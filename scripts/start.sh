@@ -32,6 +32,7 @@ case "$1" in
         echo "Starting Flask dev server on port 5001..."
         cd "$ROOT_DIR/backend"
         source venv/bin/activate
+        export FLASK_ENV=dev
         python app.py &
         BACKEND_PID=$!
 

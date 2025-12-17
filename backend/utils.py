@@ -25,7 +25,8 @@ def fetch_player_games_archives(USERNAME):
     data = response.json()
     return data["archives"]
 
-def fetch_games_played_per_week(USERNAME):
+def fetch_games_played_per_week(USERNAME, time_class=None):
+    """Fetch games played per week, optionally filtered by time class."""
     monthly_archives_urls_list = fetch_player_games_archives(USERNAME)
     games_by_week = {}
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
@@ -37,6 +38,10 @@ def fetch_games_played_per_week(USERNAME):
             data = response.json()
 
             for game in data.get('games', []):
+                # Filter by time class if specified
+                if time_class and game.get('time_class') != time_class:
+                    continue
+
                 end_time = game.get('end_time')
                 if not end_time:
                     continue
@@ -62,6 +67,94 @@ def fetch_games_played_per_week(USERNAME):
     games_per_week_data.sort(key=lambda x: (x['year'], x['week']))
 
     return fill_missing_weeks(games_per_week_data)
+
+def fetch_elo_per_week(USERNAME, time_class='rapid'):
+    """Fetch the last Elo rating per week for a given time control.
+    Returns: (elo_per_week_data, total_games_count)
+    """
+    monthly_archives_urls_list = fetch_player_games_archives(USERNAME)
+    elo_by_week = {}  # {(year, week): {'elo': rating, 'timestamp': end_time}}
+    total_games = 0
+    headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
+
+    for archive_url in monthly_archives_urls_list:
+        try:
+            response = requests.get(archive_url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            for game in data.get('games', []):
+                # Filter by time class
+                if game.get('time_class') != time_class:
+                    continue
+
+                total_games += 1
+
+                end_time = game.get('end_time')
+                if not end_time:
+                    continue
+
+                # Determine which color the user played
+                if game['white']['username'].lower() == USERNAME.lower():
+                    rating = game['white'].get('rating')
+                elif game['black']['username'].lower() == USERNAME.lower():
+                    rating = game['black'].get('rating')
+                else:
+                    continue
+
+                if not rating:
+                    continue
+
+                game_date = datetime.datetime.fromtimestamp(end_time)
+                year, week, _ = game_date.isocalendar()
+                key = (year, week)
+
+                # Keep the most recent game's rating for each week
+                if key not in elo_by_week or end_time > elo_by_week[key]['timestamp']:
+                    elo_by_week[key] = {'elo': rating, 'timestamp': end_time}
+
+            parts = archive_url.split('/')
+            print(f"Processed Elo {parts[-2]}-{parts[-1]}")
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching {archive_url}: {e}")
+
+    elo_per_week_data = [
+        {'year': year, 'week': week, 'elo': data['elo']}
+        for (year, week), data in elo_by_week.items()
+    ]
+    elo_per_week_data.sort(key=lambda x: (x['year'], x['week']))
+
+    return fill_missing_weeks_elo(elo_per_week_data), total_games
+
+def fill_missing_weeks_elo(data):
+    """Fill missing weeks by carrying forward the last known Elo."""
+    if not data:
+        return []
+
+    data.sort(key=lambda x: (x['year'], x['week']))
+    existing_data = {(d['year'], d['week']): d['elo'] for d in data}
+
+    start_year, start_week = data[0]['year'], data[0]['week']
+    end_year, end_week = data[-1]['year'], data[-1]['week']
+
+    filled_data = []
+    curr_year, curr_week = start_year, start_week
+    last_elo = data[0]['elo']
+
+    while (curr_year, curr_week) <= (end_year, end_week):
+        if (curr_year, curr_week) in existing_data:
+            last_elo = existing_data[(curr_year, curr_week)]
+        filled_data.append({'year': curr_year, 'week': curr_week, 'elo': last_elo})
+
+        max_week = datetime.date(curr_year, 12, 28).isocalendar()[1]
+        if curr_week >= max_week:
+            curr_week = 1
+            curr_year += 1
+        else:
+            curr_week += 1
+
+    return filled_data
 
 def fetch_all_openings(USERNAME, monthly_games_archives_urls_list):
     chess_openings_played_dict = {"white" : [], "black" : []}
@@ -210,3 +303,147 @@ def process_openings_for_json(openings_dict):
             results.append(entry)
         processed[color] = results
     return processed
+
+def fetch_youtube_videos(opening, side, api_key, max_results=6):
+    """
+    Fetch YouTube videos about a chess opening from different channels.
+    Ranks by: subscriber count, view count, and recency.
+    Returns top 5 videos from 5 different channels.
+    """
+    headers = {'User-Agent': 'ChessStatsApp/1.0'}
+
+    # Build search query
+    query = f"chess {opening}"
+    if side:
+        query += f" {side.lower()}"
+
+    # Step 1: Search for videos
+    search_url = "https://www.googleapis.com/youtube/v3/search"
+    search_params = {
+        'part': 'snippet',
+        'q': query,
+        'type': 'video',
+        'maxResults': 50,  # Get more to filter down to 5 different channels
+        'order': 'relevance',
+        'key': api_key
+    }
+
+    response = requests.get(search_url, params=search_params, headers=headers)
+    response.raise_for_status()
+    search_data = response.json()
+
+    if not search_data.get('items'):
+        return []
+
+    # Collect video IDs and channel IDs
+    video_ids = []
+    channel_ids = set()
+    video_channel_map = {}
+
+    for item in search_data['items']:
+        video_id = item['id']['videoId']
+        channel_id = item['snippet']['channelId']
+        video_ids.append(video_id)
+        channel_ids.add(channel_id)
+        video_channel_map[video_id] = {
+            'channel_id': channel_id,
+            'title': item['snippet']['title'],
+            'channel_title': item['snippet']['channelTitle'],
+            'published_at': item['snippet']['publishedAt'],
+            'thumbnail': item['snippet']['thumbnails'].get('high', {}).get('url') or
+                        item['snippet']['thumbnails'].get('medium', {}).get('url')
+        }
+
+    # Step 2: Get video statistics (view count)
+    videos_url = "https://www.googleapis.com/youtube/v3/videos"
+    videos_params = {
+        'part': 'statistics',
+        'id': ','.join(video_ids[:50]),
+        'key': api_key
+    }
+
+    response = requests.get(videos_url, params=videos_params, headers=headers)
+    response.raise_for_status()
+    videos_data = response.json()
+
+    video_stats = {}
+    for item in videos_data.get('items', []):
+        video_stats[item['id']] = {
+            'view_count': int(item['statistics'].get('viewCount', 0))
+        }
+
+    # Step 3: Get channel statistics (subscriber count) and thumbnails
+    channels_url = "https://www.googleapis.com/youtube/v3/channels"
+    channels_params = {
+        'part': 'statistics,snippet',
+        'id': ','.join(list(channel_ids)[:50]),
+        'key': api_key
+    }
+
+    response = requests.get(channels_url, params=channels_params, headers=headers)
+    response.raise_for_status()
+    channels_data = response.json()
+
+    channel_stats = {}
+    for item in channels_data.get('items', []):
+        channel_stats[item['id']] = {
+            'subscriber_count': int(item['statistics'].get('subscriberCount', 0)),
+            'channel_thumbnail': item['snippet']['thumbnails'].get('default', {}).get('url', '')
+        }
+
+    # Step 4: Combine and score videos
+    scored_videos = []
+    for video_id, info in video_channel_map.items():
+        channel_id = info['channel_id']
+
+        # Get stats
+        views = video_stats.get(video_id, {}).get('view_count', 0)
+        subs = channel_stats.get(channel_id, {}).get('subscriber_count', 0)
+        channel_thumb = channel_stats.get(channel_id, {}).get('channel_thumbnail', '')
+
+        # Calculate recency score (days since published)
+        published = datetime.datetime.fromisoformat(info['published_at'].replace('Z', '+00:00'))
+        days_old = (datetime.datetime.now(datetime.timezone.utc) - published).days
+
+        # Scoring: Higher subs, higher views, more recent = better
+        # Normalize and combine (simple weighted score)
+        score = (subs / 1000000) * 0.4 + (views / 100000) * 0.3 + (max(0, 365 - days_old) / 365) * 0.3
+
+        scored_videos.append({
+            'video_id': video_id,
+            'title': info['title'],
+            'channel_title': info['channel_title'],
+            'channel_id': channel_id,
+            'thumbnail': info['thumbnail'],
+            'channel_thumbnail': channel_thumb,
+            'published_at': info['published_at'],
+            'view_count': views,
+            'subscriber_count': subs,
+            'score': score
+        })
+
+    # Step 5: Select top 5 from different channels
+    scored_videos.sort(key=lambda x: x['score'], reverse=True)
+
+    selected_videos = []
+    seen_channels = set()
+
+    for video in scored_videos:
+        if video['channel_id'] not in seen_channels:
+            selected_videos.append({
+                'video_id': video['video_id'],
+                'title': video['title'],
+                'channel_title': video['channel_title'],
+                'thumbnail': video['thumbnail'],
+                'channel_thumbnail': video['channel_thumbnail'],
+                'published_at': video['published_at'],
+                'view_count': video['view_count'],
+                'subscriber_count': video['subscriber_count'],
+                'url': f"https://www.youtube.com/watch?v={video['video_id']}"
+            })
+            seen_channels.add(video['channel_id'])
+
+            if len(selected_videos) >= max_results:
+                break
+
+    return selected_videos

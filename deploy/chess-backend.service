@@ -4,8 +4,9 @@ After=network.target
 
 [Service]
 User=azureuser
-WorkingDirectory=/home/azureuser/Chess/backend
-ExecStart=/home/azureuser/Chess/backend/venv/bin/gunicorn --bind 127.0.0.1:5001 app:app
+WorkingDirectory=/home/azureuser/Chess/app/backend
+Environment="FLASK_ENV=prod"
+ExecStart=/home/azureuser/Chess/app/backend/venv/bin/gunicorn --bind 127.0.0.1:5001 app:app
 Restart=always
 
 [Install]

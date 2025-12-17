@@ -34,6 +34,8 @@ build/
 # Never commit your API keys or database passwords!
 .env
 .env.local
+.env.dev
+.env.prod
 .env.development.local
 .env.test.local
 .env.production.local
