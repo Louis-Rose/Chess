@@ -30,15 +30,15 @@ Press `Ctrl+C` to stop both.
 
 ### Production (VM)
 
+Build the frontend:
+
 ```bash
-./scripts/start.sh --prod
+cd frontend && npm run build
 ```
 
-Builds the frontend and starts gunicorn on port 5001.
+## Deployment
 
-## Deployment (nginx)
-
-Copy the nginx config:
+### 1. Nginx
 
 ```bash
 sudo cp deploy/nginx.conf /etc/nginx/sites-available/chess
@@ -46,3 +46,14 @@ sudo ln -s /etc/nginx/sites-available/chess /etc/nginx/sites-enabled/
 sudo rm /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl restart nginx
 ```
+
+### 2. Backend service
+
+```bash
+sudo cp deploy/chess-backend.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable chess-backend
+sudo systemctl start chess-backend
+```
+
+Check status: `sudo systemctl status chess-backend`
