@@ -5,9 +5,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 usage() {
-    echo "Usage: $0 [--dev|--prod]"
-    echo "  --dev   Run development servers (Flask + Vite with hot reload)"
-    echo "  --prod  Run production server (Gunicorn + built frontend)"
+    echo "Usage: $0 <mode> [command]"
+    echo ""
+    echo "Modes:"
+    echo "  --dev              Run development servers (Flask + Vite with hot reload)"
+    echo "  --prod [command]   Manage production services (nginx + gunicorn)"
+    echo ""
+    echo "Production commands:"
+    echo "  --prod             Start services (default)"
+    echo "  --prod stop        Stop services"
+    echo "  --prod restart     Restart services"
+    echo "  --prod status      Check services status"
+    echo "  --prod logs        View backend logs (Ctrl+C to exit)"
     exit 1
 }
 
@@ -40,18 +49,64 @@ case "$1" in
         ;;
 
     --prod)
-        echo "=== Starting in PROD mode ==="
+        COMMAND="${2:-start}"
 
-        # Build frontend
-        echo "Building frontend..."
-        cd "$ROOT_DIR/frontend"
-        npm run build
+        case "$COMMAND" in
+            start)
+                echo "=== Starting production services ==="
+                # Build frontend first
+                echo "Building frontend..."
+                cd "$ROOT_DIR/frontend"
+                npm run build
 
-        # Start backend with gunicorn
-        echo "Starting Gunicorn on port 5001..."
-        cd "$ROOT_DIR/backend"
-        source venv/bin/activate
-        exec gunicorn --bind 0.0.0.0:5001 app:app
+                echo "Starting services..."
+                sudo systemctl start chess-backend
+                sudo systemctl start nginx
+                echo "Services started."
+                sudo systemctl status chess-backend --no-pager
+                ;;
+
+            stop)
+                echo "=== Stopping production services ==="
+                sudo systemctl stop nginx
+                sudo systemctl stop chess-backend
+                echo "Services stopped."
+                ;;
+
+            restart)
+                echo "=== Restarting production services ==="
+                # Rebuild frontend
+                echo "Building frontend..."
+                cd "$ROOT_DIR/frontend"
+                npm run build
+
+                echo "Restarting services..."
+                sudo systemctl restart chess-backend
+                sudo systemctl restart nginx
+                echo "Services restarted."
+                sudo systemctl status chess-backend --no-pager
+                ;;
+
+            status)
+                echo "=== Production services status ==="
+                echo ""
+                echo "--- chess-backend ---"
+                sudo systemctl status chess-backend --no-pager || true
+                echo ""
+                echo "--- nginx ---"
+                sudo systemctl status nginx --no-pager || true
+                ;;
+
+            logs)
+                echo "=== Backend logs (Ctrl+C to exit) ==="
+                sudo journalctl -u chess-backend -f
+                ;;
+
+            *)
+                echo "Unknown command: $COMMAND"
+                usage
+                ;;
+        esac
         ;;
 
     *)

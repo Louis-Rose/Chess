@@ -30,13 +30,15 @@ Press `Ctrl+C` to stop both.
 
 ### Production (VM)
 
-Build the frontend:
-
 ```bash
-cd frontend && npm run build
+./scripts/start.sh --prod           # Start services
+./scripts/start.sh --prod stop      # Stop services
+./scripts/start.sh --prod restart   # Restart services
+./scripts/start.sh --prod status    # Check status
+./scripts/start.sh --prod logs      # View backend logs
 ```
 
-## Deployment
+## Deployment (first time)
 
 ### 1. Nginx
 
@@ -44,7 +46,7 @@ cd frontend && npm run build
 sudo cp deploy/nginx.conf /etc/nginx/sites-available/chess
 sudo ln -s /etc/nginx/sites-available/chess /etc/nginx/sites-enabled/
 sudo rm /etc/nginx/sites-enabled/default
-sudo nginx -t && sudo systemctl restart nginx
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
 ### 2. Backend service
@@ -53,7 +55,6 @@ sudo nginx -t && sudo systemctl restart nginx
 sudo cp deploy/chess-backend.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable chess-backend
-sudo systemctl start chess-backend
 ```
 
-Check status: `sudo systemctl status chess-backend`
+Then start with `./scripts/start.sh --prod`
