@@ -2,6 +2,11 @@ import math
 import requests
 import datetime
 import pandas as pd
+import numpy as np
+import json
+from scipy.optimize import minimize
+from scipy.special import expit  # logistic function
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
 
 # --- Data Fetching Functions ---
 
@@ -24,6 +29,181 @@ def fetch_player_games_archives(USERNAME):
     response.raise_for_status()
     data = response.json()
     return data["archives"]
+
+
+def fetch_stats_streaming(USERNAME, time_class='rapid'):
+    """
+    Generator that fetches all stats in a single pass through archives.
+    Yields SSE-formatted progress events and final data.
+    """
+    headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
+
+    # Step 1: Get archives list
+    archives = fetch_player_games_archives(USERNAME)
+    total_archives = len(archives)
+
+    yield f"data: {json.dumps({'type': 'start', 'total_archives': total_archives})}\n\n"
+
+    # Data structures for all stats
+    games_by_week = {}
+    elo_by_week = {}
+    games_by_day = {}  # For game number stats
+    openings_white = []
+    openings_black = []
+    total_games = 0
+    total_rapid = 0
+    total_blitz = 0
+
+    # Step 2: Process each archive
+    for idx, archive_url in enumerate(archives):
+        # Extract year/month from URL for progress display
+        parts = archive_url.split('/')
+        year_month = f"{parts[-2]}-{parts[-1]}"
+
+        yield f"data: {json.dumps({'type': 'progress', 'current': idx + 1, 'total': total_archives, 'month': year_month})}\n\n"
+
+        try:
+            response = requests.get(archive_url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            for game in data.get('games', []):
+                game_time_class = game.get('time_class')
+                end_time = game.get('end_time')
+                if not end_time:
+                    continue
+
+                # Count all rapid and blitz games
+                if game_time_class == 'rapid':
+                    total_rapid += 1
+                elif game_time_class == 'blitz':
+                    total_blitz += 1
+
+                game_date = datetime.datetime.fromtimestamp(end_time)
+                year, week, _ = game_date.isocalendar()
+
+                # --- Games per week (filtered by time_class) ---
+                if game_time_class == time_class:
+                    total_games += 1
+                    key = (year, week)
+                    if key not in games_by_week:
+                        games_by_week[key] = 0
+                    games_by_week[key] += 1
+
+                    # --- Elo per week ---
+                    if game['white']['username'].lower() == USERNAME.lower():
+                        rating = game['white'].get('rating')
+                        result_code = game['white'].get('result')
+                        side = 'white'
+                    elif game['black']['username'].lower() == USERNAME.lower():
+                        rating = game['black'].get('rating')
+                        result_code = game['black'].get('result')
+                        side = 'black'
+                    else:
+                        continue
+
+                    if rating:
+                        if key not in elo_by_week or end_time > elo_by_week[key]['timestamp']:
+                            elo_by_week[key] = {'elo': rating, 'timestamp': end_time}
+
+                    # --- Game number stats ---
+                    game_result = get_game_result(result_code)
+                    date_key = game_date.strftime('%Y-%m-%d')
+                    if date_key not in games_by_day:
+                        games_by_day[date_key] = []
+                    games_by_day[date_key].append((end_time, game_result))
+
+                # --- Openings (last 12 months only, all time classes) ---
+                if archive_url in archives[-12:] and 'eco' in game:
+                    if game['white']['username'].lower() == USERNAME.lower():
+                        side_played = 'white'
+                        result_code = game['white'].get('result')
+                    else:
+                        side_played = 'black'
+                        result_code = game['black'].get('result')
+
+                    game_result = get_game_result(result_code)
+                    opening_data = {'opening': game['eco'], 'result': game_result}
+
+                    if side_played == 'white':
+                        openings_white.append(opening_data)
+                    else:
+                        openings_black.append(opening_data)
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching {archive_url}: {e}")
+
+    # Step 3: Process collected data
+    yield f"data: {json.dumps({'type': 'processing', 'message': 'Processing collected data...'})}\n\n"
+
+    # Games per week
+    games_per_week_data = [
+        {'year': year, 'week': week, 'games_played': count}
+        for (year, week), count in games_by_week.items()
+    ]
+    games_per_week_data.sort(key=lambda x: (x['year'], x['week']))
+    games_per_week_data = fill_missing_weeks(games_per_week_data)
+
+    # Elo per week
+    elo_per_week_data = [
+        {'year': year, 'week': week, 'elo': data['elo']}
+        for (year, week), data in elo_by_week.items()
+    ]
+    elo_per_week_data.sort(key=lambda x: (x['year'], x['week']))
+    elo_per_week_data = fill_missing_weeks_elo(elo_per_week_data)
+
+    # Game number stats
+    game_number_stats = {}
+    for date_key, games in games_by_day.items():
+        games.sort(key=lambda x: x[0])
+        for idx, (timestamp, result) in enumerate(games):
+            game_number = idx + 1
+            if game_number not in game_number_stats:
+                game_number_stats[game_number] = {'wins': 0, 'draws': 0, 'total': 0}
+            game_number_stats[game_number]['total'] += 1
+            if result == 'win':
+                game_number_stats[game_number]['wins'] += 1
+            elif result == 'draw':
+                game_number_stats[game_number]['draws'] += 1
+
+    game_number_result = []
+    for game_number in sorted(game_number_stats.keys()):
+        stats = game_number_stats[game_number]
+        if stats['total'] > 0:
+            win_rate = ((stats['wins'] + 0.5 * stats['draws']) / stats['total']) * 100
+        else:
+            win_rate = 0
+        game_number_result.append({
+            'game_number': game_number,
+            'win_rate': round(win_rate, 1),
+            'sample_size': stats['total']
+        })
+    game_number_result = [d for d in game_number_result if d['game_number'] <= 15 and d['sample_size'] >= 5]
+
+    # Openings
+    openings = {
+        'white': group_opening_stats(openings_white),
+        'black': group_opening_stats(openings_black)
+    }
+    processed_openings = process_openings_for_json(openings)
+
+    # Step 4: Yield final result
+    final_data = {
+        'type': 'complete',
+        'data': {
+            'time_class': time_class,
+            'history': games_per_week_data,
+            'elo_history': elo_per_week_data,
+            'total_games': total_games,
+            'total_rapid': total_rapid,
+            'total_blitz': total_blitz,
+            'openings': processed_openings,
+            'game_number_stats': game_number_result
+        }
+    }
+
+    yield f"data: {json.dumps(final_data)}\n\n"
+
 
 def fetch_games_played_per_week(USERNAME, time_class=None):
     """Fetch games played per week, optionally filtered by time class."""
@@ -126,6 +306,98 @@ def fetch_elo_per_week(USERNAME, time_class='rapid'):
     elo_per_week_data.sort(key=lambda x: (x['year'], x['week']))
 
     return fill_missing_weeks_elo(elo_per_week_data), total_games
+
+def fetch_win_rate_by_game_number(USERNAME, time_class='rapid'):
+    """
+    Calculate win rate by game number per day.
+    E.g., what's the win rate for the 1st game of the day, 2nd game, etc.
+    Returns: list of {game_number, win_rate, sample_size}
+    """
+    monthly_archives_urls_list = fetch_player_games_archives(USERNAME)
+    headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
+
+    # Collect all games with their date and timestamp
+    games_by_day = {}  # {date_string: [(timestamp, result), ...]}
+
+    for archive_url in monthly_archives_urls_list:
+        try:
+            response = requests.get(archive_url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            for game in data.get('games', []):
+                # Filter by time class
+                if game.get('time_class') != time_class:
+                    continue
+
+                end_time = game.get('end_time')
+                if not end_time:
+                    continue
+
+                # Determine which color the user played and the result
+                if game['white']['username'].lower() == USERNAME.lower():
+                    result = game['white'].get('result')
+                elif game['black']['username'].lower() == USERNAME.lower():
+                    result = game['black'].get('result')
+                else:
+                    continue
+
+                # Convert result to win/loss/draw
+                game_result = get_game_result(result)
+
+                # Group by day
+                game_date = datetime.datetime.fromtimestamp(end_time)
+                date_key = game_date.strftime('%Y-%m-%d')
+
+                if date_key not in games_by_day:
+                    games_by_day[date_key] = []
+                games_by_day[date_key].append((end_time, game_result))
+
+            parts = archive_url.split('/')
+            print(f"Processed game numbers {parts[-2]}-{parts[-1]}")
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching {archive_url}: {e}")
+
+    # For each day, sort games by timestamp and assign game numbers
+    game_number_stats = {}  # {game_number: {'wins': 0, 'total': 0}}
+
+    for date_key, games in games_by_day.items():
+        # Sort by timestamp
+        games.sort(key=lambda x: x[0])
+
+        for idx, (timestamp, result) in enumerate(games):
+            game_number = idx + 1  # 1-indexed
+
+            if game_number not in game_number_stats:
+                game_number_stats[game_number] = {'wins': 0, 'draws': 0, 'total': 0}
+
+            game_number_stats[game_number]['total'] += 1
+            if result == 'win':
+                game_number_stats[game_number]['wins'] += 1
+            elif result == 'draw':
+                game_number_stats[game_number]['draws'] += 1
+
+    # Convert to output format
+    result_data = []
+    for game_number in sorted(game_number_stats.keys()):
+        stats = game_number_stats[game_number]
+        # Adjusted win rate (wins + 0.5 * draws)
+        if stats['total'] > 0:
+            win_rate = ((stats['wins'] + 0.5 * stats['draws']) / stats['total']) * 100
+        else:
+            win_rate = 0
+
+        result_data.append({
+            'game_number': game_number,
+            'win_rate': round(win_rate, 1),
+            'sample_size': stats['total']
+        })
+
+    # Only return up to game 10 or where sample_size >= 5
+    filtered_data = [d for d in result_data if d['game_number'] <= 15 and d['sample_size'] >= 5]
+
+    return filtered_data
 
 def fill_missing_weeks_elo(data):
     """Fill missing weeks by carrying forward the last known Elo."""
@@ -304,11 +576,52 @@ def process_openings_for_json(openings_dict):
         processed[color] = results
     return processed
 
-def fetch_youtube_videos(opening, side, api_key, max_results=6):
+def score_transcript_for_tips(video_id):
+    """
+    Fetch transcript and score based on improvement-related keywords.
+    Returns a score from 0 to 1 based on keyword density.
+    """
+    # Keywords that indicate helpful improvement content
+    IMPROVEMENT_KEYWORDS = [
+        'improve', 'improvement', 'better', 'tip', 'tips', 'advice',
+        'mistake', 'mistakes', 'avoid', 'learn', 'learning', 'study',
+        'practice', 'training', 'beginner', 'intermediate', 'advanced',
+        'strategy', 'tactic', 'tactics', 'opening', 'endgame', 'middlegame',
+        'calculate', 'calculation', 'think', 'thinking', 'plan', 'planning',
+        'analyze', 'analysis', 'principle', 'fundamental', 'basic', 'basics',
+        'important', 'key', 'crucial', 'essential', 'must', 'should',
+        'win', 'winning', 'rating', 'elo', 'stronger', 'weakness',
+        'blunder', 'blunders', 'error', 'errors', 'common'
+    ]
+
+    try:
+        transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en', 'en-US', 'en-GB'])
+        full_text = ' '.join([entry['text'].lower() for entry in transcript_list])
+
+        # Count keyword occurrences
+        word_count = len(full_text.split())
+        if word_count == 0:
+            return 0
+
+        keyword_count = sum(full_text.count(kw) for kw in IMPROVEMENT_KEYWORDS)
+
+        # Normalize: keyword density per 100 words, capped at 1
+        density = min(1.0, (keyword_count / word_count) * 100 * 2)
+
+        return density
+
+    except (TranscriptsDisabled, NoTranscriptFound):
+        return 0  # No transcript available
+    except Exception as e:
+        print(f"Error fetching transcript for {video_id}: {e}")
+        return 0
+
+
+def fetch_youtube_videos(opening, side, api_key, max_results=3, use_transcript_scoring=False):
     """
     Fetch YouTube videos about a chess opening from different channels.
     Ranks by: subscriber count, view count, and recency.
-    Returns top 5 videos from 5 different channels.
+    If use_transcript_scoring=True, also analyzes transcripts for improvement content.
     """
     headers = {'User-Agent': 'ChessStatsApp/1.0'}
 
@@ -405,9 +718,16 @@ def fetch_youtube_videos(opening, side, api_key, max_results=6):
         published = datetime.datetime.fromisoformat(info['published_at'].replace('Z', '+00:00'))
         days_old = (datetime.datetime.now(datetime.timezone.utc) - published).days
 
-        # Scoring: Higher subs, higher views, more recent = better
-        # Normalize and combine (simple weighted score)
-        score = (subs / 1000000) * 0.4 + (views / 100000) * 0.3 + (max(0, 365 - days_old) / 365) * 0.3
+        # Base scoring: Higher subs, higher views, more recent = better
+        base_score = (subs / 1000000) * 0.3 + (views / 100000) * 0.2 + (max(0, 365 - days_old) / 365) * 0.2
+
+        # Transcript scoring (only if enabled)
+        if use_transcript_scoring:
+            transcript_score = score_transcript_for_tips(video_id)
+            # Transcript score has 30% weight
+            score = base_score + transcript_score * 0.3
+        else:
+            score = base_score
 
         scored_videos.append({
             'video_id': video_id,
@@ -447,3 +767,216 @@ def fetch_youtube_videos(opening, side, api_key, max_results=6):
                 break
 
     return selected_videos
+
+
+def compute_fatigue_analysis(USERNAME, time_class='rapid'):
+    """
+    Analyze how fatigue affects your chess performance.
+    Uses logistic regression to understand the impact of:
+    - Number of games played in a session
+    - Time between games
+    - Total time spent playing
+    """
+    monthly_archives_urls_list = fetch_player_games_archives(USERNAME)
+    headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
+
+    # Collect all games with timestamps
+    games_by_day = {}
+
+    for archive_url in monthly_archives_urls_list:
+        try:
+            response = requests.get(archive_url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            for game in data.get('games', []):
+                if game.get('time_class') != time_class:
+                    continue
+
+                end_time = game.get('end_time')
+                if not end_time:
+                    continue
+
+                if game['white']['username'].lower() == USERNAME.lower():
+                    result = game['white'].get('result')
+                elif game['black']['username'].lower() == USERNAME.lower():
+                    result = game['black'].get('result')
+                else:
+                    continue
+
+                game_result = get_game_result(result)
+                win = 1 if game_result == 'win' else (0.5 if game_result == 'draw' else 0)
+
+                time_control = game.get('time_control', '600')
+                try:
+                    base_time = int(time_control.split('+')[0])
+                    duration_estimate = base_time / 60
+                except:
+                    duration_estimate = 10
+
+                game_date = datetime.datetime.fromtimestamp(end_time)
+                date_key = game_date.strftime('%Y-%m-%d')
+
+                if date_key not in games_by_day:
+                    games_by_day[date_key] = []
+                games_by_day[date_key].append((end_time, win, duration_estimate))
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching {archive_url}: {e}")
+
+    # Build feature matrix
+    features = []
+
+    for date_key, games in games_by_day.items():
+        games.sort(key=lambda x: x[0])
+
+        cumulative_time = 0
+        for idx, (timestamp, win, duration) in enumerate(games):
+            game_number = idx + 1
+
+            if idx == 0:
+                time_since_last = 60
+            else:
+                prev_timestamp = games[idx - 1][0]
+                time_since_last = (timestamp - prev_timestamp) / 60
+
+            features.append({
+                'game_number': game_number,
+                'time_since_last': min(time_since_last, 120),
+                'cumulative_time': cumulative_time,
+                'win': win
+            })
+
+            cumulative_time += duration
+
+    if len(features) < 50:
+        return {
+            'error': 'Not enough data for analysis (need at least 50 games)',
+            'sample_size': len(features)
+        }
+
+    df = pd.DataFrame(features)
+
+    # Calculate baseline win rate
+    baseline_win_rate = df['win'].mean() * 100
+
+    # Calculate win rate by game number (for insights)
+    win_by_game_num = df.groupby('game_number')['win'].agg(['mean', 'count'])
+    win_by_game_num = win_by_game_num[win_by_game_num['count'] >= 10]  # At least 10 samples
+
+    # Find optimal game number (peak performance)
+    if len(win_by_game_num) > 0:
+        best_game_num = win_by_game_num['mean'].idxmax()
+        best_win_rate = win_by_game_num.loc[best_game_num, 'mean'] * 100
+        worst_game_num = win_by_game_num['mean'].idxmin()
+        worst_win_rate = win_by_game_num.loc[worst_game_num, 'mean'] * 100
+    else:
+        best_game_num = 1
+        best_win_rate = baseline_win_rate
+        worst_game_num = 1
+        worst_win_rate = baseline_win_rate
+
+    # Logistic Regression for deeper analysis
+    def logistic_loss(params, X, y):
+        beta = params
+        z = X @ beta
+        p = expit(z)
+        p = np.clip(p, 1e-10, 1 - 1e-10)
+        return -np.mean(y * np.log(p) + (1 - y) * np.log(1 - p))
+
+    X_logistic = np.column_stack([
+        np.ones(len(df)),
+        (df['game_number'] - df['game_number'].mean()) / max(df['game_number'].std(), 1),
+        (df['time_since_last'] - df['time_since_last'].mean()) / max(df['time_since_last'].std(), 1),
+        (df['cumulative_time'] - df['cumulative_time'].mean()) / max(df['cumulative_time'].std(), 1)
+    ])
+    y = df['win'].values
+
+    result_logistic = minimize(
+        logistic_loss,
+        x0=np.zeros(4),
+        args=(X_logistic, y),
+        method='BFGS'
+    )
+
+    coef_game_num = result_logistic.x[1]
+    coef_time_gap = result_logistic.x[2]
+    coef_cumulative = result_logistic.x[3]
+
+    # Generate user-friendly insights
+    insights = []
+
+    # Game number insight
+    if coef_game_num < -0.05:
+        if best_game_num <= 3:
+            insights.append({
+                'type': 'warning',
+                'title': 'You play best early in your session',
+                'message': f'Your peak performance is around game #{best_game_num} ({best_win_rate:.0f}% win rate). After that, fatigue seems to set in.',
+                'recommendation': f'Consider limiting sessions to {min(best_game_num + 2, 5)} games for optimal results.'
+            })
+        else:
+            insights.append({
+                'type': 'info',
+                'title': 'Performance drops over time',
+                'message': f'Your win rate tends to decrease as you play more games in a session.',
+                'recommendation': 'Take breaks between games or limit your daily sessions.'
+            })
+    elif coef_game_num > 0.05:
+        insights.append({
+            'type': 'positive',
+            'title': 'You warm up as you play',
+            'message': f'You perform better after a few games. Your peak is around game #{best_game_num} ({best_win_rate:.0f}% win rate).',
+            'recommendation': 'Playing a warm-up game or two before important matches could help.'
+        })
+    else:
+        insights.append({
+            'type': 'info',
+            'title': 'Consistent performance',
+            'message': 'Your win rate stays relatively stable regardless of how many games you play.',
+            'recommendation': 'You handle longer sessions well. Keep doing what works!'
+        })
+
+    # Break time insight
+    if coef_time_gap > 0.05:
+        insights.append({
+            'type': 'positive',
+            'title': 'Breaks help your performance',
+            'message': 'Taking time between games improves your results.',
+            'recommendation': 'After a loss or intense game, take a 5-10 minute break before playing again.'
+        })
+    elif coef_time_gap < -0.05:
+        insights.append({
+            'type': 'info',
+            'title': 'You play better with momentum',
+            'message': 'You perform better when playing games back-to-back.',
+            'recommendation': 'Stay "in the zone" by not taking long breaks between games.'
+        })
+
+    # Session length insight
+    if coef_cumulative < -0.05:
+        insights.append({
+            'type': 'warning',
+            'title': 'Long sessions hurt your game',
+            'message': 'Your performance declines the longer you play in a single session.',
+            'recommendation': 'Keep sessions under 1-2 hours for best results.'
+        })
+
+    # If no specific insights, give general feedback
+    if len(insights) == 0:
+        insights.append({
+            'type': 'info',
+            'title': 'No strong patterns detected',
+            'message': f'Your baseline win rate is {baseline_win_rate:.0f}%. We couldn\'t find strong fatigue patterns in your data.',
+            'recommendation': 'This could mean you manage your energy well, or that other factors affect your performance more.'
+        })
+
+    return {
+        'sample_size': len(features),
+        'baseline_win_rate': round(baseline_win_rate, 1),
+        'best_game_number': int(best_game_num),
+        'best_win_rate': round(best_win_rate, 1),
+        'worst_game_number': int(worst_game_num),
+        'worst_win_rate': round(worst_win_rate, 1),
+        'insights': insights
+    }
