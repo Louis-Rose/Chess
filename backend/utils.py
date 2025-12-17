@@ -25,33 +25,43 @@ def fetch_player_games_archives(USERNAME):
     data = response.json()
     return data["archives"]
 
-def fetch_games_played_per_month(USERNAME):
+def fetch_games_played_per_week(USERNAME):
     monthly_archives_urls_list = fetch_player_games_archives(USERNAME)
-    games_per_month_data = []
+    games_by_week = {}
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
 
     for archive_url in monthly_archives_urls_list:
         try:
-            parts = archive_url.split('/')
-            year = int(parts[-2])
-            month = int(parts[-1])
-
             response = requests.get(archive_url, headers=headers)
             response.raise_for_status()
             data = response.json()
-            
-            game_count = len(data.get('games', []))
-            games_per_month_data.append({
-                'year': year,
-                'month': month,
-                'games_played': game_count
-            })
-            print(f"Processed {year}-{month}: {game_count} games found.")
+
+            for game in data.get('games', []):
+                end_time = game.get('end_time')
+                if not end_time:
+                    continue
+
+                game_date = datetime.datetime.fromtimestamp(end_time)
+                year, week, _ = game_date.isocalendar()
+
+                key = (year, week)
+                if key not in games_by_week:
+                    games_by_week[key] = 0
+                games_by_week[key] += 1
+
+            parts = archive_url.split('/')
+            print(f"Processed {parts[-2]}-{parts[-1]}")
 
         except requests.exceptions.RequestException as e:
             print(f"Error fetching {archive_url}: {e}")
 
-    return fill_missing_months(games_per_month_data)
+    games_per_week_data = [
+        {'year': year, 'week': week, 'games_played': count}
+        for (year, week), count in games_by_week.items()
+    ]
+    games_per_week_data.sort(key=lambda x: (x['year'], x['week']))
+
+    return fill_missing_weeks(games_per_week_data)
 
 def fetch_all_openings(USERNAME, monthly_games_archives_urls_list):
     chess_openings_played_dict = {"white" : [], "black" : []}
@@ -85,26 +95,31 @@ def fetch_all_openings(USERNAME, monthly_games_archives_urls_list):
 
 # --- Helper Functions ---
 
-def fill_missing_months(data):
+def fill_missing_weeks(data):
     if not data: return []
-    data.sort(key=lambda x: x['year'] * 12 + x['month'])
-    
-    start_year, start_month = data[0]['year'], data[0]['month']
-    end_year, end_month = data[-1]['year'], data[-1]['month']
-    existing_data = {(d['year'], d['month']): d['games_played'] for d in data}
+    data.sort(key=lambda x: (x['year'], x['week']))
+
+    existing_data = {(d['year'], d['week']): d['games_played'] for d in data}
+
+    start_year, start_week = data[0]['year'], data[0]['week']
+    end_year, end_week = data[-1]['year'], data[-1]['week']
 
     filled_data = []
-    curr_year, curr_month = start_year, start_month
+    curr_year, curr_week = start_year, start_week
 
-    while (curr_year * 12 + curr_month) <= (end_year * 12 + end_month):
-        count = existing_data.get((curr_year, curr_month), 0)
-        filled_data.append({'year': curr_year, 'month': curr_month, 'games_played': count})
-        
-        if curr_month == 12:
-            curr_month = 1
+    while (curr_year, curr_week) <= (end_year, end_week):
+        count = existing_data.get((curr_year, curr_week), 0)
+        filled_data.append({'year': curr_year, 'week': curr_week, 'games_played': count})
+
+        # Get max weeks in current year (52 or 53)
+        max_week = datetime.date(curr_year, 12, 28).isocalendar()[1]
+
+        if curr_week >= max_week:
+            curr_week = 1
             curr_year += 1
         else:
-            curr_month += 1
+            curr_week += 1
+
     return filled_data
 
 def get_game_result(result_code):

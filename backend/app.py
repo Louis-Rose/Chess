@@ -14,8 +14,8 @@ def get_chess_stats():
         return jsonify({"error": "Username required"}), 400
 
     try:
-        # 1. Fetch History
-        history = utils.fetch_games_played_per_month(username)
+        # 1. Fetch History (weekly)
+        history = utils.fetch_games_played_per_week(username)
         
         # 2. Fetch Openings (This can be slow, might want to split endpoints later)
         archives = utils.fetch_player_games_archives(username)

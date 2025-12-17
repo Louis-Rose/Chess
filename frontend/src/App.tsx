@@ -8,7 +8,7 @@ import { Search, Loader2 } from 'lucide-react';
 // --- Types ---
 interface HistoryData {
   year: number;
-  month: number;
+  week: number;
   games_played: number;
 }
 
@@ -35,15 +35,33 @@ const getBarColor = (winRate: number) => {
   return "#f87171"; // Red
 };
 
-// Helper to format "YYYY-MM" to "Jan '23"
-// Helper to format "YYYY-MM" to "Jan. '23"
-const formatMonthYear = (year: number, month: number) => {
-  const date = new Date(year, month - 1);
-  const monthName = date.toLocaleString('default', { month: 'short' });
-  const yearShort = date.toLocaleString('default', { year: '2-digit' });
-  
-  // Adds the dot and the apostrophe: "Jan. '23"
-  return `${monthName}. ${yearShort}`;
+// Helper to format ISO week to "Aug. W2" (week of month based on first Monday)
+const formatWeekYear = (year: number, isoWeek: number) => {
+  // Get the Monday of this ISO week
+  const jan4 = new Date(year, 0, 4);
+  const dayOfWeek = jan4.getDay() || 7;
+  const firstMonday = new Date(jan4);
+  firstMonday.setDate(jan4.getDate() - dayOfWeek + 1);
+
+  const weekMonday = new Date(firstMonday);
+  weekMonday.setDate(firstMonday.getDate() + (isoWeek - 1) * 7);
+
+  // Get month name
+  const monthName = weekMonday.toLocaleString('default', { month: 'short' });
+
+  // Find the first Monday of this month
+  const firstOfMonth = new Date(weekMonday.getFullYear(), weekMonday.getMonth(), 1);
+  const firstMondayOfMonth = new Date(firstOfMonth);
+  const dow = firstOfMonth.getDay();
+  const daysUntilMonday = dow === 0 ? 1 : (dow === 1 ? 0 : 8 - dow);
+  firstMondayOfMonth.setDate(1 + daysUntilMonday);
+
+  // Calculate week of month
+  const diffDays = Math.floor((weekMonday.getTime() - firstMondayOfMonth.getTime()) / (1000 * 60 * 60 * 24));
+  const weekOfMonth = Math.floor(diffDays / 7) + 1;
+
+  const yearShort = weekMonday.getFullYear().toString().slice(-2);
+  return `W${weekOfMonth} ${monthName}. ${yearShort}`;
 };
 
 function App() {
@@ -76,7 +94,7 @@ function App() {
   const processedHistory = data?.history.map(item => ({
     ...item,
     // Create a specific key for the X-Axis to use
-    periodLabel: formatMonthYear(item.year, item.month)
+    periodLabel: formatWeekYear(item.year, item.week)
   }));
 
   return (
@@ -132,7 +150,7 @@ function App() {
               
               {/* History Chart */}
               <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm lg:col-span-2">
-                <h2 className="text-xl font-bold mb-6 text-slate-800">Games Played Per Month</h2>
+                <h2 className="text-xl font-bold mb-6 text-slate-800">Games Played Per Week</h2>
                 <div className="h-80 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     {/* 2. Use the processed data here */}
