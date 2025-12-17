@@ -61,7 +61,7 @@ function App() {
     setData(null);
 
     try {
-      const response = await axios.get(`http://127.0.0.1:5000/api/stats?username=${username}`);
+      const response = await axios.get(`http://127.0.0.1:5001/api/stats?username=${username}`);
       setData(response.data);
     } catch (err) {
       setError('Failed to fetch data. Username might not exist or API is down.');
