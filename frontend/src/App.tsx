@@ -1255,7 +1255,7 @@ function App() {
             ) : (
               <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm">
                 <h2 className="text-xl font-bold mb-6 text-slate-800 capitalize text-center">{data.time_class} Rating Over Time</h2>
-                <p className="text-slate-500 italic">No {data.time_class} games found.</p>
+                <p className="text-slate-500 italic text-center">No {data.time_class} games found.</p>
               </div>
             )}
 
@@ -1411,7 +1411,7 @@ function App() {
             ) : (
               <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm">
                 <h2 className="text-xl font-bold mb-6 text-slate-800 text-center">Win Rate by Nth Game of the Day</h2>
-                <p className="text-slate-500 italic">Not enough data to display.</p>
+                <p className="text-slate-500 italic text-center">Not enough data to display.</p>
               </div>
             )}
 
@@ -1523,7 +1523,7 @@ function App() {
 
 // Sub-components
 const OpeningsChart = ({ data }: { data: OpeningData[] }) => {
-  if (!data || data.length === 0) return <p className="text-slate-500 italic">No data available.</p>;
+  if (!data || data.length === 0) return <p className="text-slate-500 italic text-center">No data available.</p>;
 
   return (
     <div className="h-[500px] w-full">
