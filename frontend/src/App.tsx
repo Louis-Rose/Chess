@@ -159,14 +159,6 @@ const formatNumber = (num: number) => {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 };
 
-const formatJoinedDate = (timestamp: number) => {
-  const date = new Date(timestamp * 1000);
-  const month = formatMonth(date);
-  const day = date.getDate();
-  const year = date.getFullYear();
-  return `${month} ${day}, ${year}`;
-};
-
 const getBarColor = (winRate: number) => {
   if (winRate >= 55) return "#4ade80"; // Green
   if (winRate >= 45) return "#facc15"; // Yellow
