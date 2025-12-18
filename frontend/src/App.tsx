@@ -513,7 +513,7 @@ function App() {
         </div>
 
         {/* Player Info in Sidebar - Always shows the logged-in user's Chess.com profile */}
-        <div className="px-2 pb-4 mb-2 border-b border-slate-700">
+        <div className="px-2 pb-4 border-b border-slate-700">
           {isAuthenticated && myPlayerData?.player ? (
             <div className="bg-white rounded-lg p-4 text-center">
               {myPlayerData.player.avatar ? (
@@ -549,7 +549,22 @@ function App() {
           )}
         </div>
 
-        <div className="flex flex-col gap-1 px-2 pb-4 border-b border-slate-700">
+        {/* Game Type Selector */}
+        <div className="px-2 py-4 border-b border-slate-700">
+          <div className="bg-white rounded-lg p-3">
+            <label className="block text-slate-600 text-xs font-medium mb-2 text-center">Game Type</label>
+            <select
+              value={selectedTimeClass}
+              onChange={(e) => handleTimeClassChange(e.target.value as TimeClass)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="rapid">Rapid</option>
+              <option value="blitz">Blitz</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1 px-2 py-4 border-b border-slate-700">
         <button
           onClick={() => setActivePanel('my-data')}
           className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
@@ -630,7 +645,7 @@ function App() {
 
           {/* Login prompt when not authenticated */}
           {!isAuthenticated && (
-            <div className="flex flex-col items-center min-h-[70vh]" style={{ marginLeft: 'calc(-128px)' }}>
+            <div className="flex flex-col items-center min-h-[70vh]">
               <h1 className="text-5xl font-bold text-slate-100 mt-16">Let's improve your chess rating !</h1>
               <div className="flex items-start pt-8">
                 <img src="/favicon.svg" alt="" className="w-48 h-48 opacity-15" />
@@ -649,7 +664,7 @@ function App() {
 
           {/* Header with search - only when authenticated */}
           {isAuthenticated && (
-            <div className="text-center space-y-6" style={{ marginLeft: 'calc(-128px)' }}>
+            <div className="text-center space-y-6">
               <h1 className="text-4xl font-bold text-slate-100">Your Chess AI Assistant</h1>
 
               {/* First-time user prompt */}
@@ -685,7 +700,9 @@ function App() {
                   {showUsernameDropdown && savedPlayers.length > 0 && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
                       <div className="px-3 py-2 text-xs text-slate-500 border-b border-slate-200">Recent searches</div>
-                      {savedPlayers.map((player, idx) => (
+                      {savedPlayers.map((player, idx) => {
+                        const isMe = user?.preferences?.chess_username?.toLowerCase() === player.username.toLowerCase();
+                        return (
                         <button
                           key={idx}
                           type="button"
@@ -704,8 +721,10 @@ function App() {
                             </div>
                           )}
                           {player.username}
+                          {isMe && <span className="text-sm"> (me)</span>}
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -726,11 +745,6 @@ function App() {
           {/* ========== HOW TO IMPROVE (FROM PROS) PANEL ========== */}
           {isAuthenticated && activePanel === 'pros-tips' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="flex justify-center mb-8 mt-20">
-                <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
-              </div>
-
-              
               <div className="flex justify-center mb-8 mt-12">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
@@ -835,11 +849,6 @@ function App() {
           {/* ========== IDENTIFY MY WEAKNESSES PANEL ========== */}
           {isAuthenticated && activePanel === 'weaknesses' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="flex justify-center mb-8 mt-20">
-                <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
-              </div>
-
-              
               <div className="flex justify-center mb-8 mt-12">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
@@ -990,11 +999,6 @@ function App() {
           {isAuthenticated && activePanel === 'openings' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-              <div className="flex justify-center mb-8 mt-20">
-                <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
-              </div>
-
-              
               {/* Opening Statistics Section */}
               <div className="flex justify-center mb-8 mt-12">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
@@ -1140,11 +1144,6 @@ function App() {
           {/* ========== MIDDLE GAME PANEL ========== */}
           {isAuthenticated && activePanel === 'middle-game' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="flex justify-center mb-8 mt-20">
-                <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
-              </div>
-
-              
               <div className="flex justify-center mb-8 mt-12">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
@@ -1171,11 +1170,6 @@ function App() {
           {/* ========== END GAME PANEL ========== */}
           {isAuthenticated && activePanel === 'end-game' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="flex justify-center mb-8 mt-20">
-                <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
-              </div>
-
-              
               <div className="flex justify-center mb-8 mt-12">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
@@ -1202,27 +1196,6 @@ function App() {
           {/* ========== MY DATA PANEL ========== */}
           {isAuthenticated && activePanel === 'my-data' && data && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-            {/* ========== GAME TYPE SELECTOR ========== */}
-            <div className="flex justify-center mb-8 mt-12">
-              <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
-            </div>
-
-            <div className="flex flex-col items-center gap-4 mb-6">
-              <h2 className="text-3xl font-bold text-slate-100 whitespace-nowrap">
-                Game Type
-              </h2>
-              <div className="bg-slate-100 border border-slate-300 p-4 rounded-xl shadow-sm">
-                <select
-                  value={selectedTimeClass}
-                  onChange={(e) => handleTimeClassChange(e.target.value as TimeClass)}
-                  className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="rapid">Rapid</option>
-                  <option value="blitz">Blitz</option>
-                </select>
-              </div>
-            </div>
 
             {/* ========== ELO RATING SECTION ========== */}
             <div className="flex justify-center mb-8 mt-12">

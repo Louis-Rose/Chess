@@ -6,7 +6,7 @@ from flask import Flask, jsonify, request, Response, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 import utils
-from database import get_db, init_db, get_cached_stats, save_cached_stats
+from database import get_db, init_db, get_all_cached_stats, save_all_cached_stats
 from auth import (
     verify_google_token, get_or_create_user, create_access_token,
     create_refresh_token, set_auth_cookies, clear_auth_cookies,
@@ -76,7 +76,11 @@ def get_chess_stats():
 
 @app.route('/api/stats-stream', methods=['GET'])
 def get_chess_stats_stream():
-    """SSE endpoint that streams progress while fetching stats. Uses caching for performance."""
+    """SSE endpoint that streams progress while fetching stats. Uses caching for performance.
+
+    Optimization: Fetches ALL time classes (rapid, blitz) in a single pass through archives.
+    This makes switching between time classes instant after the first fetch.
+    """
     import json as json_module
 
     username = request.args.get('username')
@@ -101,31 +105,52 @@ def get_chess_stats_stream():
             }
             yield f"data: {json_module.dumps({'type': 'player', 'player': player_info})}\n\n"
 
-            # Check cache
-            cached_player, cached_stats, last_archive, is_fresh = get_cached_stats(username, time_class)
+            # Check cache for ALL time classes
+            all_cached = get_all_cached_stats(username)
 
-            if is_fresh and cached_stats:
-                # Return cached data immediately
-                yield f"data: {json_module.dumps({'type': 'start', 'total_archives': 0, 'incremental': False, 'cached': True})}\n\n"
-                yield f"data: {json_module.dumps({'type': 'complete', 'data': cached_stats})}\n\n"
-            else:
-                # Fetch stats (incremental if we have stale cache)
-                final_stats = None
-                for chunk in utils.fetch_stats_streaming(username, time_class, cached_stats, last_archive):
-                    yield chunk
-                    # Parse the chunk to capture final data for caching
-                    if chunk.startswith('data: '):
-                        try:
-                            msg = json_module.loads(chunk[6:].strip())
-                            if msg.get('type') == 'complete':
-                                final_stats = msg.get('data')
-                        except:
-                            pass
+            # Check if requested time class has fresh cache
+            if time_class in all_cached:
+                cached_stats, _, is_fresh = all_cached[time_class]
+                if is_fresh:
+                    # Return cached data immediately
+                    yield f"data: {json_module.dumps({'type': 'start', 'total_archives': 0, 'incremental': False, 'cached': True})}\n\n"
+                    yield f"data: {json_module.dumps({'type': 'complete', 'data': cached_stats})}\n\n"
+                    return
 
-                # Save to cache after successful fetch
-                if final_stats:
-                    last_archive_new = final_stats.pop('last_archive', None)
-                    save_cached_stats(username, time_class, player_info, final_stats, last_archive_new)
+            # Need to fetch - prepare cached stats map for incremental update
+            cached_stats_map = None
+            last_archive = None
+            if all_cached:
+                # Use any existing cache for incremental update
+                cached_stats_map = {}
+                for tc, (stats, archive, _) in all_cached.items():
+                    cached_stats_map[tc] = stats
+                    if archive:
+                        last_archive = archive  # They should all be the same
+
+            # Fetch stats for ALL time classes
+            all_time_classes_data = None
+            final_stats = None
+            for chunk in utils.fetch_all_time_classes_streaming(username, time_class, cached_stats_map, last_archive):
+                yield chunk
+                # Parse the chunk to capture final data for caching
+                if chunk.startswith('data: '):
+                    try:
+                        msg = json_module.loads(chunk[6:].strip())
+                        if msg.get('type') == 'complete':
+                            final_stats = msg.get('data')
+                            all_time_classes_data = msg.get('all_time_classes')
+                    except:
+                        pass
+
+            # Save ALL time classes to cache after successful fetch
+            if all_time_classes_data:
+                last_archive_new = None
+                # Clean up last_archive from each time class data before caching
+                for tc, tc_data in all_time_classes_data.items():
+                    if 'last_archive' in tc_data:
+                        last_archive_new = tc_data.pop('last_archive')
+                save_all_cached_stats(username, player_info, all_time_classes_data, last_archive_new)
 
         except Exception as e:
             yield f"data: {json_module.dumps({'type': 'error', 'error': str(e)})}\n\n"

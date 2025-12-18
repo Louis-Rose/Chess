@@ -81,3 +81,50 @@ def save_cached_stats(username, time_class, player_data, stats_data, last_archiv
                    updated_at = excluded.updated_at''',
             (username, time_class, json.dumps(player_data), json.dumps(stats_data), last_archive, datetime.now(timezone.utc).replace(tzinfo=None).isoformat())
         )
+
+
+def get_all_cached_stats(username):
+    """
+    Get all cached stats for a player (all time classes).
+    Returns: dict of {time_class: (stats_data, last_archive, is_fresh)} or empty dict
+    """
+    username = username.lower()
+    result = {}
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT time_class, stats_data, last_archive, updated_at
+               FROM player_stats_cache
+               WHERE username = ?''',
+            (username,)
+        )
+        rows = cursor.fetchall()
+
+        for row in rows:
+            stats_data = json.loads(row['stats_data'])
+            last_archive = row['last_archive']
+            updated_at = datetime.fromisoformat(row['updated_at'])
+            is_fresh = datetime.now(timezone.utc).replace(tzinfo=None) - updated_at < timedelta(minutes=CACHE_MAX_AGE_MINUTES)
+            result[row['time_class']] = (stats_data, last_archive, is_fresh)
+
+    return result
+
+
+def save_all_cached_stats(username, player_data, all_stats_data, last_archive):
+    """
+    Save cached stats for all time classes at once.
+    all_stats_data: dict of {time_class: stats_data}
+    """
+    username = username.lower()
+    now = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
+    with get_db() as conn:
+        for time_class, stats_data in all_stats_data.items():
+            conn.execute(
+                '''INSERT INTO player_stats_cache (username, time_class, player_data, stats_data, last_archive, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(username, time_class) DO UPDATE SET
+                       player_data = excluded.player_data,
+                       stats_data = excluded.stats_data,
+                       last_archive = excluded.last_archive,
+                       updated_at = excluded.updated_at''',
+                (username, time_class, json.dumps(player_data), json.dumps(stats_data), last_archive, now)
+            )

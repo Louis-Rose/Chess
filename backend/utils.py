@@ -45,6 +45,21 @@ def fetch_stats_streaming(USERNAME, time_class='rapid', cached_stats=None, last_
     - Only fetches archives newer than last_archive
     - Merges new data with cached_stats
     """
+    # Delegate to multi-time-class function
+    for chunk in fetch_all_time_classes_streaming(USERNAME, time_class, cached_stats, last_archive):
+        yield chunk
+
+
+def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cached_stats_map=None, last_archive=None):
+    """
+    Generator that fetches stats for ALL time classes (rapid, blitz) in a single pass.
+    Yields SSE-formatted progress events and final data for the requested time class.
+
+    Also returns all_time_classes_data in the final message for caching.
+
+    cached_stats_map: dict of {time_class: stats_data} for incremental updates
+    """
+    TIME_CLASSES = ['rapid', 'blitz']
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
 
     # Step 1: Get archives list
@@ -54,37 +69,49 @@ def fetch_stats_streaming(USERNAME, time_class='rapid', cached_stats=None, last_
     archives_to_fetch = archives
     if last_archive and last_archive in archives:
         last_idx = archives.index(last_archive)
-        archives_to_fetch = archives[last_idx + 1:]  # Only archives after the last cached one
+        archives_to_fetch = archives[last_idx + 1:]
 
     total_archives = len(archives_to_fetch)
-    is_incremental = cached_stats is not None and total_archives < len(archives)
+    is_incremental = cached_stats_map is not None and total_archives < len(archives)
 
     yield f"data: {json.dumps({'type': 'start', 'total_archives': total_archives, 'incremental': is_incremental})}\n\n"
 
-    # Data structures for all stats - initialize from cache if available
-    if cached_stats:
-        # Rebuild dictionaries from cached data for merging
-        games_by_week = {(d['year'], d['week']): d['games_played'] for d in cached_stats.get('history', [])}
-        elo_by_week = {(d['year'], d['week']): {'elo': d['elo'], 'timestamp': 0} for d in cached_stats.get('elo_history', [])}
-        games_by_day = {}  # Will be rebuilt - affects game_number_stats
-        openings_white = []  # Will be rebuilt from last 12 months
-        openings_black = []
-        total_games = cached_stats.get('total_games', 0)
-        total_rapid = cached_stats.get('total_rapid', 0)
-        total_blitz = cached_stats.get('total_blitz', 0)
-    else:
-        games_by_week = {}
-        elo_by_week = {}
-        games_by_day = {}
-        openings_white = []
-        openings_black = []
-        total_games = 0
-        total_rapid = 0
-        total_blitz = 0
+    # Initialize data structures for EACH time class
+    tc_data = {}
+    for tc in TIME_CLASSES:
+        cached = cached_stats_map.get(tc) if cached_stats_map else None
+        if cached:
+            tc_data[tc] = {
+                'games_by_week': {(d['year'], d['week']): d['games_played'] for d in cached.get('history', [])},
+                'elo_by_week': {(d['year'], d['week']): {'elo': d['elo'], 'timestamp': 0} for d in cached.get('elo_history', [])},
+                'games_by_day': {},
+                'openings_white': [],
+                'openings_black': [],
+                'total_games': cached.get('total_games', 0),
+            }
+        else:
+            tc_data[tc] = {
+                'games_by_week': {},
+                'elo_by_week': {},
+                'games_by_day': {},
+                'openings_white': [],
+                'openings_black': [],
+                'total_games': 0,
+            }
+
+    # Track totals across all time classes
+    total_rapid = 0
+    total_blitz = 0
+    if cached_stats_map:
+        # Get totals from any cached data (they're the same across time classes)
+        for tc, cached in cached_stats_map.items():
+            if cached:
+                total_rapid = cached.get('total_rapid', 0)
+                total_blitz = cached.get('total_blitz', 0)
+                break
 
     # Step 2: Process each archive (only new ones if incremental)
     for idx, archive_url in enumerate(archives_to_fetch):
-        # Extract year/month from URL for progress display
         parts = archive_url.split('/')
         year_month = f"{parts[-2]}-{parts[-1]}"
 
@@ -107,131 +134,137 @@ def fetch_stats_streaming(USERNAME, time_class='rapid', cached_stats=None, last_
                 elif game_time_class == 'blitz':
                     total_blitz += 1
 
+                # Skip if not a time class we track
+                if game_time_class not in TIME_CLASSES:
+                    continue
+
                 game_date = datetime.datetime.fromtimestamp(end_time)
                 year, week, _ = game_date.isocalendar()
 
-                # --- Games per week (filtered by time_class) ---
-                if game_time_class == time_class:
-                    total_games += 1
-                    key = (year, week)
-                    if key not in games_by_week:
-                        games_by_week[key] = 0
-                    games_by_week[key] += 1
+                # Get data structure for this time class
+                tcd = tc_data[game_time_class]
+                tcd['total_games'] += 1
 
-                    # --- Elo per week ---
-                    if game['white']['username'].lower() == USERNAME.lower():
-                        rating = game['white'].get('rating')
-                        result_code = game['white'].get('result')
-                        side = 'white'
-                    elif game['black']['username'].lower() == USERNAME.lower():
-                        rating = game['black'].get('rating')
-                        result_code = game['black'].get('result')
-                        side = 'black'
-                    else:
-                        continue
+                key = (year, week)
+                if key not in tcd['games_by_week']:
+                    tcd['games_by_week'][key] = 0
+                tcd['games_by_week'][key] += 1
 
-                    if rating:
-                        if key not in elo_by_week or end_time > elo_by_week[key]['timestamp']:
-                            elo_by_week[key] = {'elo': rating, 'timestamp': end_time}
+                # Determine user's side and rating
+                if game['white']['username'].lower() == USERNAME.lower():
+                    rating = game['white'].get('rating')
+                    result_code = game['white'].get('result')
+                    side = 'white'
+                elif game['black']['username'].lower() == USERNAME.lower():
+                    rating = game['black'].get('rating')
+                    result_code = game['black'].get('result')
+                    side = 'black'
+                else:
+                    continue
 
-                    # --- Game number stats ---
-                    game_result = get_game_result(result_code)
-                    date_key = game_date.strftime('%Y-%m-%d')
-                    if date_key not in games_by_day:
-                        games_by_day[date_key] = []
-                    games_by_day[date_key].append((end_time, game_result))
+                # Elo per week
+                if rating:
+                    if key not in tcd['elo_by_week'] or end_time > tcd['elo_by_week'][key]['timestamp']:
+                        tcd['elo_by_week'][key] = {'elo': rating, 'timestamp': end_time}
 
-                # --- Openings (last 12 months only, all time classes) ---
+                # Game number stats
+                game_result = get_game_result(result_code)
+                date_key = game_date.strftime('%Y-%m-%d')
+                if date_key not in tcd['games_by_day']:
+                    tcd['games_by_day'][date_key] = []
+                tcd['games_by_day'][date_key].append((end_time, game_result))
+
+                # Openings (last 12 months only)
                 if archive_url in archives[-12:] and 'eco' in game:
-                    if game['white']['username'].lower() == USERNAME.lower():
-                        side_played = 'white'
-                        result_code = game['white'].get('result')
-                    else:
-                        side_played = 'black'
-                        result_code = game['black'].get('result')
-
-                    game_result = get_game_result(result_code)
                     opening_data = {'opening': game['eco'], 'result': game_result}
-
-                    if side_played == 'white':
-                        openings_white.append(opening_data)
+                    if side == 'white':
+                        tcd['openings_white'].append(opening_data)
                     else:
-                        openings_black.append(opening_data)
+                        tcd['openings_black'].append(opening_data)
 
         except requests.exceptions.RequestException as e:
             print(f"Error fetching {archive_url}: {e}")
 
-    # Step 3: Process collected data
+    # Step 3: Process collected data for ALL time classes
     yield f"data: {json.dumps({'type': 'processing', 'message': 'Processing collected data...'})}\n\n"
 
-    # Games per week
-    games_per_week_data = [
-        {'year': year, 'week': week, 'games_played': count}
-        for (year, week), count in games_by_week.items()
-    ]
-    games_per_week_data.sort(key=lambda x: (x['year'], x['week']))
-    games_per_week_data = fill_missing_weeks(games_per_week_data)
-
-    # Elo per week
-    elo_per_week_data = [
-        {'year': year, 'week': week, 'elo': data['elo']}
-        for (year, week), data in elo_by_week.items()
-    ]
-    elo_per_week_data.sort(key=lambda x: (x['year'], x['week']))
-    elo_per_week_data = fill_missing_weeks_elo(elo_per_week_data)
-
-    # Game number stats
-    game_number_stats = {}
-    for date_key, games in games_by_day.items():
-        games.sort(key=lambda x: x[0])
-        for idx, (timestamp, result) in enumerate(games):
-            game_number = idx + 1
-            if game_number not in game_number_stats:
-                game_number_stats[game_number] = {'wins': 0, 'draws': 0, 'total': 0}
-            game_number_stats[game_number]['total'] += 1
-            if result == 'win':
-                game_number_stats[game_number]['wins'] += 1
-            elif result == 'draw':
-                game_number_stats[game_number]['draws'] += 1
-
-    game_number_result = []
-    for game_number in sorted(game_number_stats.keys()):
-        stats = game_number_stats[game_number]
-        if stats['total'] > 0:
-            win_rate = ((stats['wins'] + 0.5 * stats['draws']) / stats['total']) * 100
-        else:
-            win_rate = 0
-        game_number_result.append({
-            'game_number': game_number,
-            'win_rate': round(win_rate, 1),
-            'sample_size': stats['total']
-        })
-    game_number_result = [d for d in game_number_result if d['game_number'] <= 15 and d['sample_size'] >= 5]
-
-    # Openings
-    openings = {
-        'white': group_opening_stats(openings_white),
-        'black': group_opening_stats(openings_black)
-    }
-    processed_openings = process_openings_for_json(openings)
-
-    # Step 4: Yield final result
-    # Track the last archive for incremental updates
     last_archive_processed = archives[-1] if archives else None
+    all_time_classes_data = {}
 
-    final_data = {
-        'type': 'complete',
-        'data': {
-            'time_class': time_class,
+    for tc in TIME_CLASSES:
+        tcd = tc_data[tc]
+
+        # Games per week
+        games_per_week_data = [
+            {'year': year, 'week': week, 'games_played': count}
+            for (year, week), count in tcd['games_by_week'].items()
+        ]
+        games_per_week_data.sort(key=lambda x: (x['year'], x['week']))
+        games_per_week_data = fill_missing_weeks(games_per_week_data)
+
+        # Elo per week
+        elo_per_week_data = [
+            {'year': year, 'week': week, 'elo': data['elo']}
+            for (year, week), data in tcd['elo_by_week'].items()
+        ]
+        elo_per_week_data.sort(key=lambda x: (x['year'], x['week']))
+        elo_per_week_data = fill_missing_weeks_elo(elo_per_week_data)
+
+        # Game number stats
+        game_number_stats = {}
+        for date_key, games in tcd['games_by_day'].items():
+            games.sort(key=lambda x: x[0])
+            for i, (timestamp, result) in enumerate(games):
+                game_number = i + 1
+                if game_number not in game_number_stats:
+                    game_number_stats[game_number] = {'wins': 0, 'draws': 0, 'total': 0}
+                game_number_stats[game_number]['total'] += 1
+                if result == 'win':
+                    game_number_stats[game_number]['wins'] += 1
+                elif result == 'draw':
+                    game_number_stats[game_number]['draws'] += 1
+
+        game_number_result = []
+        for game_number in sorted(game_number_stats.keys()):
+            stats = game_number_stats[game_number]
+            if stats['total'] > 0:
+                win_rate = ((stats['wins'] + 0.5 * stats['draws']) / stats['total']) * 100
+            else:
+                win_rate = 0
+            game_number_result.append({
+                'game_number': game_number,
+                'win_rate': round(win_rate, 1),
+                'sample_size': stats['total']
+            })
+        game_number_result = [d for d in game_number_result if d['game_number'] <= 15 and d['sample_size'] >= 5]
+
+        # Openings
+        openings = {
+            'white': group_opening_stats(tcd['openings_white']),
+            'black': group_opening_stats(tcd['openings_black'])
+        }
+        processed_openings = process_openings_for_json(openings)
+
+        all_time_classes_data[tc] = {
+            'time_class': tc,
             'history': games_per_week_data,
             'elo_history': elo_per_week_data,
-            'total_games': total_games,
+            'total_games': tcd['total_games'],
             'total_rapid': total_rapid,
             'total_blitz': total_blitz,
             'openings': processed_openings,
             'game_number_stats': game_number_result,
             'last_archive': last_archive_processed
         }
+
+    # Step 4: Yield final result with requested time class data
+    # Also include all_time_classes_data for caching
+    requested_data = all_time_classes_data.get(requested_time_class, all_time_classes_data.get('rapid'))
+
+    final_data = {
+        'type': 'complete',
+        'data': requested_data,
+        'all_time_classes': all_time_classes_data  # For caching
     }
 
     yield f"data: {json.dumps(final_data)}\n\n"
