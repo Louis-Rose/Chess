@@ -444,18 +444,19 @@ function App() {
       // Clear the search bar after successful fetch
       setUsernameInput('');
 
-      // If this is the user's own data (matches their saved username), store it separately
+      // If this matches the user's saved chess username, update myPlayerData
       if (isAuthenticated && user?.preferences?.chess_username?.toLowerCase() === data.player.username.toLowerCase()) {
         setMyPlayerData(data);
       }
 
-      // If user hasn't set their chess username yet, save it
-      if (isAuthenticated && !user?.preferences?.chess_username) {
+      // First-time user: when they answer "What is your Chess.com username?" and search,
+      // save that as their profile. Only if they don't have a preference yet.
+      if (isAuthenticated && !user?.preferences?.chess_username && !myPlayerData) {
         updatePreferences({ chess_username: data.player.username });
         setMyPlayerData(data);
       }
     }
-  }, [data?.player, isAuthenticated, user?.preferences?.chess_username]);
+  }, [data?.player, isAuthenticated, user?.preferences?.chess_username, myPlayerData]);
 
   const handleSelectSavedUsername = (player: SavedPlayer) => {
     setUsernameInput(player.username);
