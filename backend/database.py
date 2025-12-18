@@ -1,8 +1,11 @@
 import sqlite3
 import os
+import json
+from datetime import datetime, timedelta, timezone
 from contextlib import contextmanager
 
 DATABASE_PATH = os.environ.get('DATABASE_PATH', 'chess_stats.db')
+CACHE_MAX_AGE_MINUTES = 30
 
 
 def get_db_connection():
@@ -32,3 +35,49 @@ def init_db():
     with get_db() as conn:
         with open(schema_path, 'r') as f:
             conn.executescript(f.read())
+
+
+# ============= CACHE FUNCTIONS =============
+
+def get_cached_stats(username, time_class):
+    """
+    Get cached stats for a player if they exist.
+    Returns: (player_data, stats_data, last_archive, is_fresh) or (None, None, None, False)
+    """
+    username = username.lower()
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT player_data, stats_data, last_archive, updated_at
+               FROM player_stats_cache
+               WHERE username = ? AND time_class = ?''',
+            (username, time_class)
+        )
+        row = cursor.fetchone()
+
+        if not row:
+            return None, None, None, False
+
+        player_data = json.loads(row['player_data'])
+        stats_data = json.loads(row['stats_data'])
+        last_archive = row['last_archive']
+        updated_at = datetime.fromisoformat(row['updated_at'])
+
+        is_fresh = datetime.now(timezone.utc).replace(tzinfo=None) - updated_at < timedelta(minutes=CACHE_MAX_AGE_MINUTES)
+
+        return player_data, stats_data, last_archive, is_fresh
+
+
+def save_cached_stats(username, time_class, player_data, stats_data, last_archive):
+    """Save or update cached stats for a player."""
+    username = username.lower()
+    with get_db() as conn:
+        conn.execute(
+            '''INSERT INTO player_stats_cache (username, time_class, player_data, stats_data, last_archive, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?)
+               ON CONFLICT(username, time_class) DO UPDATE SET
+                   player_data = excluded.player_data,
+                   stats_data = excluded.stats_data,
+                   last_archive = excluded.last_archive,
+                   updated_at = excluded.updated_at''',
+            (username, time_class, json.dumps(player_data), json.dumps(stats_data), last_archive, datetime.now(timezone.utc).replace(tzinfo=None).isoformat())
+        )

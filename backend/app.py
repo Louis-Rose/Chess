@@ -6,7 +6,7 @@ from flask import Flask, jsonify, request, Response, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 import utils
-from database import get_db, init_db
+from database import get_db, init_db, get_cached_stats, save_cached_stats
 from auth import (
     verify_google_token, get_or_create_user, create_access_token,
     create_refresh_token, set_auth_cookies, clear_auth_cookies,
@@ -76,7 +76,9 @@ def get_chess_stats():
 
 @app.route('/api/stats-stream', methods=['GET'])
 def get_chess_stats_stream():
-    """SSE endpoint that streams progress while fetching stats."""
+    """SSE endpoint that streams progress while fetching stats. Uses caching for performance."""
+    import json as json_module
+
     username = request.args.get('username')
     time_class = request.args.get('time_class', 'rapid')
 
@@ -88,17 +90,45 @@ def get_chess_stats_stream():
 
     def generate():
         try:
-            # First, fetch player data (fast)
+            # First, fetch player data (always fresh for profile info)
             player_data = utils.fetch_player_data_and_stats(username)
-            import json
-            yield f"data: {json.dumps({'type': 'player', 'player': {'name': player_data.get('name', username), 'username': player_data.get('username', username), 'avatar': player_data.get('avatar'), 'followers': player_data.get('followers', 0), 'joined': player_data.get('joined')}})}\n\n"
+            player_info = {
+                'name': player_data.get('name', username),
+                'username': player_data.get('username', username),
+                'avatar': player_data.get('avatar'),
+                'followers': player_data.get('followers', 0),
+                'joined': player_data.get('joined')
+            }
+            yield f"data: {json_module.dumps({'type': 'player', 'player': player_info})}\n\n"
 
-            # Then stream the stats with progress
-            for chunk in utils.fetch_stats_streaming(username, time_class):
-                yield chunk
+            # Check cache
+            cached_player, cached_stats, last_archive, is_fresh = get_cached_stats(username, time_class)
+
+            if is_fresh and cached_stats:
+                # Return cached data immediately
+                yield f"data: {json_module.dumps({'type': 'start', 'total_archives': 0, 'incremental': False, 'cached': True})}\n\n"
+                yield f"data: {json_module.dumps({'type': 'complete', 'data': cached_stats})}\n\n"
+            else:
+                # Fetch stats (incremental if we have stale cache)
+                final_stats = None
+                for chunk in utils.fetch_stats_streaming(username, time_class, cached_stats, last_archive):
+                    yield chunk
+                    # Parse the chunk to capture final data for caching
+                    if chunk.startswith('data: '):
+                        try:
+                            msg = json_module.loads(chunk[6:].strip())
+                            if msg.get('type') == 'complete':
+                                final_stats = msg.get('data')
+                        except:
+                            pass
+
+                # Save to cache after successful fetch
+                if final_stats:
+                    last_archive_new = final_stats.pop('last_archive', None)
+                    save_cached_stats(username, time_class, player_info, final_stats, last_archive_new)
 
         except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+            yield f"data: {json_module.dumps({'type': 'error', 'error': str(e)})}\n\n"
 
     return Response(
         generate(),

@@ -16,7 +16,10 @@ def fetch_player_data_and_stats(USERNAME):
     stats_url = f"https://api.chess.com/pub/player/{USERNAME}/stats"
 
     data_response = requests.get(data_url, headers=headers)
+    if data_response.status_code == 404:
+        raise ValueError(f"Player '{USERNAME}' not found on Chess.com")
     data_response.raise_for_status()
+
     stats_response = requests.get(stats_url, headers=headers)
     stats_response.raise_for_status()
 
@@ -26,36 +29,61 @@ def fetch_player_games_archives(USERNAME):
     url = f"https://api.chess.com/pub/player/{USERNAME}/games/archives"
     headers = {'User-Agent': 'MyPythonScript/1.0 (contact@example.com)'}
     response = requests.get(url, headers=headers)
+    if response.status_code == 404:
+        raise ValueError(f"Player '{USERNAME}' not found on Chess.com")
     response.raise_for_status()
     data = response.json()
     return data["archives"]
 
 
-def fetch_stats_streaming(USERNAME, time_class='rapid'):
+def fetch_stats_streaming(USERNAME, time_class='rapid', cached_stats=None, last_archive=None):
     """
     Generator that fetches all stats in a single pass through archives.
     Yields SSE-formatted progress events and final data.
+
+    If cached_stats and last_archive are provided, performs incremental update:
+    - Only fetches archives newer than last_archive
+    - Merges new data with cached_stats
     """
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
 
     # Step 1: Get archives list
     archives = fetch_player_games_archives(USERNAME)
-    total_archives = len(archives)
 
-    yield f"data: {json.dumps({'type': 'start', 'total_archives': total_archives})}\n\n"
+    # For incremental updates, filter to only new archives
+    archives_to_fetch = archives
+    if last_archive and last_archive in archives:
+        last_idx = archives.index(last_archive)
+        archives_to_fetch = archives[last_idx + 1:]  # Only archives after the last cached one
 
-    # Data structures for all stats
-    games_by_week = {}
-    elo_by_week = {}
-    games_by_day = {}  # For game number stats
-    openings_white = []
-    openings_black = []
-    total_games = 0
-    total_rapid = 0
-    total_blitz = 0
+    total_archives = len(archives_to_fetch)
+    is_incremental = cached_stats is not None and total_archives < len(archives)
 
-    # Step 2: Process each archive
-    for idx, archive_url in enumerate(archives):
+    yield f"data: {json.dumps({'type': 'start', 'total_archives': total_archives, 'incremental': is_incremental})}\n\n"
+
+    # Data structures for all stats - initialize from cache if available
+    if cached_stats:
+        # Rebuild dictionaries from cached data for merging
+        games_by_week = {(d['year'], d['week']): d['games_played'] for d in cached_stats.get('history', [])}
+        elo_by_week = {(d['year'], d['week']): {'elo': d['elo'], 'timestamp': 0} for d in cached_stats.get('elo_history', [])}
+        games_by_day = {}  # Will be rebuilt - affects game_number_stats
+        openings_white = []  # Will be rebuilt from last 12 months
+        openings_black = []
+        total_games = cached_stats.get('total_games', 0)
+        total_rapid = cached_stats.get('total_rapid', 0)
+        total_blitz = cached_stats.get('total_blitz', 0)
+    else:
+        games_by_week = {}
+        elo_by_week = {}
+        games_by_day = {}
+        openings_white = []
+        openings_black = []
+        total_games = 0
+        total_rapid = 0
+        total_blitz = 0
+
+    # Step 2: Process each archive (only new ones if incremental)
+    for idx, archive_url in enumerate(archives_to_fetch):
         # Extract year/month from URL for progress display
         parts = archive_url.split('/')
         year_month = f"{parts[-2]}-{parts[-1]}"
@@ -188,6 +216,9 @@ def fetch_stats_streaming(USERNAME, time_class='rapid'):
     processed_openings = process_openings_for_json(openings)
 
     # Step 4: Yield final result
+    # Track the last archive for incremental updates
+    last_archive_processed = archives[-1] if archives else None
+
     final_data = {
         'type': 'complete',
         'data': {
@@ -198,7 +229,8 @@ def fetch_stats_streaming(USERNAME, time_class='rapid'):
             'total_rapid': total_rapid,
             'total_blitz': total_blitz,
             'openings': processed_openings,
-            'game_number_stats': game_number_result
+            'game_number_stats': game_number_result,
+            'last_archive': last_archive_processed
         }
     }
 

@@ -129,6 +129,7 @@ interface StreamProgress {
   current: number;
   total: number;
   month: string;  // e.g., "2024-01"
+  cached?: boolean;  // true when data comes from cache
 }
 
 interface VideoData {
@@ -248,7 +249,7 @@ function useStreamingStats(username: string, timeClass: TimeClass) {
             break;
 
           case 'start':
-            setProgress({ current: 0, total: message.total_archives, month: '' });
+            setProgress({ current: 0, total: message.total_archives, month: '', cached: message.cached });
             break;
 
           case 'progress':
@@ -287,7 +288,7 @@ function useStreamingStats(username: string, timeClass: TimeClass) {
     };
 
     eventSource.onerror = () => {
-      setError('Connection lost. Please try again.');
+      setError('Failed to fetch player data. Check the username and try again.');
       setLoading(false);
       eventSource.close();
     };
@@ -322,6 +323,9 @@ function App() {
   const [showUsernameDropdown, setShowUsernameDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // User's own player data (separate from searched player)
+  const [myPlayerData, setMyPlayerData] = useState<ApiResponse | null>(null);
+
   // Load saved players on mount
   useEffect(() => {
     setSavedPlayers(getSavedPlayers());
@@ -336,6 +340,7 @@ function App() {
     if (wasAuthenticated.current && !isAuthenticated) {
       setSearchedUsername('');
       setUsernameInput('');
+      setMyPlayerData(null);
       hasAutoLoaded.current = false;
     }
     wasAuthenticated.current = isAuthenticated;
@@ -435,12 +440,22 @@ function App() {
     if (data?.player) {
       savePlayer(data.player.username, data.player.avatar);
       setSavedPlayers(getSavedPlayers());
-      // Save to server preferences if logged in
-      if (isAuthenticated && user?.preferences?.chess_username !== data.player.username) {
+
+      // Clear the search bar after successful fetch
+      setUsernameInput('');
+
+      // If this is the user's own data (matches their saved username), store it separately
+      if (isAuthenticated && user?.preferences?.chess_username?.toLowerCase() === data.player.username.toLowerCase()) {
+        setMyPlayerData(data);
+      }
+
+      // If user hasn't set their chess username yet, save it
+      if (isAuthenticated && !user?.preferences?.chess_username) {
         updatePreferences({ chess_username: data.player.username });
+        setMyPlayerData(data);
       }
     }
-  }, [data?.player, isAuthenticated]);
+  }, [data?.player, isAuthenticated, user?.preferences?.chess_username]);
 
   const handleSelectSavedUsername = (player: SavedPlayer) => {
     setUsernameInput(player.username);
@@ -480,40 +495,58 @@ function App() {
     <div className="min-h-screen bg-slate-800 font-sans text-slate-800 flex">
       {/* Sidebar */}
       <div className="w-64 bg-slate-900 min-h-screen p-4 flex flex-col gap-2">
-        {isAuthenticated && (
-          <div className="flex justify-center mb-4 px-2 pb-4 border-b border-slate-700">
-            {authLoading ? (
+        {/* User Menu - show placeholder when not authenticated */}
+        <div className="flex justify-center mb-4 px-2 pb-4 border-b border-slate-700">
+          {isAuthenticated ? (
+            authLoading ? (
               <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
             ) : (
               <UserMenu />
-            )}
-          </div>
-        )}
+            )
+          ) : (
+            <div className="flex items-center gap-2 text-slate-500">
+              <div className="w-8 h-8 rounded-full bg-slate-700" />
+              <span className="text-sm">Not signed in</span>
+            </div>
+          )}
+        </div>
 
-        {/* Player Info in Sidebar - only when logged in */}
-        {isAuthenticated && data?.player && (
-          <div className="px-2 pb-4 mb-2 border-b border-slate-700">
+        {/* Player Info in Sidebar - Always shows the logged-in user's Chess.com profile */}
+        <div className="px-2 pb-4 mb-2 border-b border-slate-700">
+          {isAuthenticated && myPlayerData?.player ? (
             <div className="bg-white rounded-lg p-4 text-center">
-              {data.player.avatar ? (
-                <img src={data.player.avatar} alt="" className="w-16 h-16 rounded-full mx-auto mb-2" />
+              {myPlayerData.player.avatar ? (
+                <img src={myPlayerData.player.avatar} alt="" className="w-16 h-16 rounded-full mx-auto mb-2" />
               ) : (
                 <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-xl font-bold mx-auto mb-2">
-                  {data.player.username.charAt(0).toUpperCase()}
+                  {myPlayerData.player.username.charAt(0).toUpperCase()}
                 </div>
               )}
-              <p className="text-slate-800 font-semibold">{data.player.name || data.player.username}</p>
-              <p className="text-slate-500 text-sm">@{data.player.username}</p>
-              <p className="text-slate-400 text-xs mt-1">{data.player.followers} followers</p>
+              <p className="text-slate-800 font-semibold">{myPlayerData.player.name || myPlayerData.player.username}</p>
+              <p className="text-slate-500 text-sm">@{myPlayerData.player.username}</p>
+              <p className="text-slate-400 text-xs mt-1">{myPlayerData.player.followers} followers</p>
               <p className="text-slate-400 text-xs">
-                Joined {new Date(data.player.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                Joined {new Date(myPlayerData.player.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </p>
               <div className="mt-3 pt-3 border-t border-slate-200 text-xs text-slate-600 space-y-1">
-                <p>Rapid: <span className="font-semibold text-slate-800">{data.total_rapid?.toLocaleString() || 0}</span> games</p>
-                <p>Blitz: <span className="font-semibold text-slate-800">{data.total_blitz?.toLocaleString() || 0}</span> games</p>
+                <p>Rapid: <span className="font-semibold text-slate-800">{myPlayerData.total_rapid?.toLocaleString() || 0}</span> games</p>
+                <p>Blitz: <span className="font-semibold text-slate-800">{myPlayerData.total_blitz?.toLocaleString() || 0}</span> games</p>
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="bg-slate-800 rounded-lg p-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-slate-600 mx-auto mb-2" />
+              <p className="text-slate-500 font-semibold">&nbsp;</p>
+              <p className="text-slate-500 text-sm">@username</p>
+              <p className="text-slate-500 text-xs mt-1">-- followers</p>
+              <p className="text-slate-500 text-xs">Joined --</p>
+              <div className="mt-3 pt-3 border-t border-slate-600 text-xs text-slate-500 space-y-1">
+                <p>Rapid: <span className="font-semibold">--</span> games</p>
+                <p>Blitz: <span className="font-semibold">--</span> games</p>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="flex flex-col gap-1 px-2 pb-4 border-b border-slate-700">
         <button
@@ -602,8 +635,11 @@ function App() {
                 <img src="/favicon.svg" alt="" className="w-48 h-48 opacity-15" />
               </div>
               <div className="flex flex-col items-center flex-1 justify-end pb-8">
-                <p className="text-slate-400 mb-8 text-center max-w-md">
-                  Sign in with your Google account to analyze your Chess.com games and get personalized insights.
+                <p className="text-xl text-slate-300 mb-3 text-center max-w-lg font-light tracking-wide">
+                  Analyze your Chess.com games.
+                </p>
+                <p className="text-xl text-slate-300 mb-10 text-center max-w-lg font-light tracking-wide">
+                  Get personalized insights to improve your play.
                 </p>
                 <LoginButton />
               </div>
@@ -615,13 +651,18 @@ function App() {
             <div className="text-center space-y-6" style={{ marginLeft: 'calc(-128px)' }}>
               <h1 className="text-4xl font-bold text-slate-100">Your Chess AI Assistant</h1>
 
-              <form onSubmit={handleSubmit} className="flex justify-center gap-2">
+              {/* First-time user prompt */}
+              {!myPlayerData && (
+                <p className="text-xl text-slate-300 font-light">What is your Chess.com username?</p>
+              )}
+
+              <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
                 <div className="relative" ref={dropdownRef}>
                   <div className="flex">
                     <input
                       type="text"
-                      placeholder="Enter chess.com username"
-                      className="bg-white text-slate-900 placeholder:text-slate-400 px-4 py-2 border border-slate-300 rounded-l-lg w-56 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={myPlayerData ? "Enter any chess.com username" : "Enter your chess.com username"}
+                      className="bg-white text-slate-900 placeholder:text-slate-400 px-4 py-3 border border-slate-300 rounded-l-lg w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={usernameInput}
                       onChange={(e) => setUsernameInput(e.target.value)}
                       onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
@@ -630,7 +671,7 @@ function App() {
                       <button
                         type="button"
                         onClick={() => setShowUsernameDropdown(!showUsernameDropdown)}
-                        className="bg-white border border-l-0 border-slate-300 rounded-r-lg px-2 hover:bg-slate-50"
+                        className="bg-white border border-l-0 border-slate-300 rounded-r-lg px-3 hover:bg-slate-50"
                       >
                         <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${showUsernameDropdown ? 'rotate-180' : ''}`} />
                       </button>
@@ -670,7 +711,7 @@ function App() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                  className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
                 >
                   {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
                   Fetch data
@@ -1448,33 +1489,46 @@ const OpeningsChart = ({ data }: { data: OpeningData[] }) => {
 
 // Loading progress indicator with real-time progress from SSE
 const LoadingProgress = ({ progress }: { progress: StreamProgress | null }) => {
-  // Format month from "2024-01" to "Jan. 2024"
+  // Format month from "2024-01" to "January 2024"
   const formatProgressMonth = (month: string) => {
-    if (!month) return '...';
+    if (!month) return null;
     const [year, monthNum] = month.split('-');
     const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
-    const monthName = date.toLocaleString('en-US', { month: 'short' });
-    return `${monthName}. ${year}`;
+    const monthName = date.toLocaleString('en-US', { month: 'long' });
+    return `${monthName} ${year}`;
   };
 
-  const percentage = progress ? (progress.current / progress.total) * 100 : 0;
+  // Handle cached data - show brief loading message
+  if (progress?.cached) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-8">
+        <Loader2 className="animate-spin w-10 h-10 text-blue-500" />
+        <div className="text-slate-300 text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  const percentage = progress && progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
+  const formattedMonth = formatProgressMonth(progress?.month || '');
 
   return (
     <div className="flex flex-col items-center gap-4 py-8">
       <Loader2 className="animate-spin w-10 h-10 text-blue-500" />
       <div className="text-slate-300 text-lg">
-        Fetching data from <span className="font-mono font-bold text-white">{formatProgressMonth(progress?.month || '')}</span>...
+        {formattedMonth ? `Fetching data from ${formattedMonth}...` : 'Fetching data from...'}
       </div>
-      <div className="w-64 h-2 bg-slate-700 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-blue-500 transition-all duration-300"
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-      {progress && (
-        <div className="text-slate-400 text-sm">
-          {progress.current} / {progress.total} months processed
-        </div>
+      {progress && progress.total > 0 && (
+        <>
+          <div className="w-64 h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 transition-all duration-300"
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+          <div className="text-slate-400 text-sm">
+            {progress.current} / {progress.total} months processed
+          </div>
+        </>
       )}
     </div>
   );
