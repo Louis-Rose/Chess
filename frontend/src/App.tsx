@@ -355,7 +355,7 @@ function App() {
       hasAutoLoaded.current = true;
     }
     if (user?.preferences?.preferred_time_class) {
-      setSelectedTimeClass(user.preferences.preferred_time_class);
+      setSelectedTimeClass(user.preferences.preferred_time_class as TimeClass);
     }
   }, [user, isAuthenticated]);
 
@@ -1411,34 +1411,6 @@ function App() {
 }
 
 // Sub-components
-const PlayerDataCard = ({ player, totalRapid, totalBlitz }: { player: PlayerData; totalRapid: number; totalBlitz: number }) => (
-  <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm max-w-md mx-auto">
-    <div className="flex items-center gap-6">
-      {player.avatar ? (
-        <img
-          src={player.avatar}
-          alt={`${player.username}'s avatar`}
-          className="w-24 h-24 rounded-full border-2 border-slate-300"
-        />
-      ) : (
-        <div className="w-24 h-24 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 text-2xl font-bold">
-          {player.username.charAt(0).toUpperCase()}
-        </div>
-      )}
-      <div className="space-y-1">
-        <h3 className="text-xl font-bold text-slate-800">{player.name}</h3>
-        <p className="text-slate-600">@{player.username}</p>
-        <p className="text-slate-600">{formatNumber(player.followers)} followers</p>
-        <p className="text-slate-500 text-sm">Joined {formatJoinedDate(player.joined)}</p>
-        <div className="mt-2 space-y-0.5">
-          <p className="text-slate-600">Total games played (rapid): <span className="font-bold">{formatNumber(totalRapid)}</span></p>
-          <p className="text-slate-600">Total games played (blitz): <span className="font-bold">{formatNumber(totalBlitz)}</span></p>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
 const OpeningsChart = ({ data }: { data: OpeningData[] }) => {
   if (!data || data.length === 0) return <p className="text-slate-500 italic">No data available.</p>;
 
