@@ -43,3 +43,8 @@ build/
 # Allow example files (so people know what keys they need)
 !.env.example
 
+# --- Database ---
+*.db
+*.sqlite
+*.sqlite3
+

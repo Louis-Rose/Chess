@@ -5,6 +5,9 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine
 } from 'recharts';
 import { Search, Loader2, BarChart3, Trophy, Target, BookOpen, Swords, Crown, ChevronDown } from 'lucide-react';
+import { useAuth } from './contexts/AuthContext';
+import { LoginButton } from './components/LoginButton';
+import { UserMenu } from './components/UserMenu';
 
 type PanelType = 'my-data' | 'pros-tips' | 'weaknesses' | 'openings' | 'middle-game' | 'end-game';
 
@@ -311,6 +314,9 @@ function useStreamingStats(username: string, timeClass: TimeClass) {
 }
 
 function App() {
+  // Auth
+  const { user, isAuthenticated, isLoading: authLoading, updatePreferences } = useAuth();
+
   // UI state
   const [usernameInput, setUsernameInput] = useState('');
   const [searchedUsername, setSearchedUsername] = useState('');
@@ -328,6 +334,30 @@ function App() {
   useEffect(() => {
     setSavedPlayers(getSavedPlayers());
   }, []);
+
+  // Use saved preferences when user logs in - auto-load their data
+  const hasAutoLoaded = useRef(false);
+  const wasAuthenticated = useRef(false);
+
+  useEffect(() => {
+    // Handle logout - clear data
+    if (wasAuthenticated.current && !isAuthenticated) {
+      setSearchedUsername('');
+      setUsernameInput('');
+      hasAutoLoaded.current = false;
+    }
+    wasAuthenticated.current = isAuthenticated;
+
+    // Handle login - auto-load user's data
+    if (user?.preferences?.chess_username && !hasAutoLoaded.current) {
+      setUsernameInput(user.preferences.chess_username);
+      setSearchedUsername(user.preferences.chess_username);
+      hasAutoLoaded.current = true;
+    }
+    if (user?.preferences?.preferred_time_class) {
+      setSelectedTimeClass(user.preferences.preferred_time_class);
+    }
+  }, [user, isAuthenticated]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -413,8 +443,12 @@ function App() {
     if (data?.player) {
       savePlayer(data.player.username, data.player.avatar);
       setSavedPlayers(getSavedPlayers());
+      // Save to server preferences if logged in
+      if (isAuthenticated && user?.preferences?.chess_username !== data.player.username) {
+        updatePreferences({ chess_username: data.player.username });
+      }
     }
-  }, [data?.player]);
+  }, [data?.player, isAuthenticated]);
 
   const handleSelectSavedUsername = (player: SavedPlayer) => {
     setUsernameInput(player.username);
@@ -454,8 +488,42 @@ function App() {
     <div className="min-h-screen bg-slate-800 font-sans text-slate-800 flex">
       {/* Sidebar */}
       <div className="w-64 bg-slate-900 min-h-screen p-4 flex flex-col gap-2">
-        <h1 className="text-xl font-bold text-slate-100 mb-6 px-2">Chess Stats</h1>
+        {isAuthenticated && (
+          <div className="flex justify-center mb-4 px-2 pb-4 border-b border-slate-700">
+            {authLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+            ) : (
+              <UserMenu />
+            )}
+          </div>
+        )}
 
+        {/* Player Info in Sidebar - only when logged in */}
+        {isAuthenticated && data?.player && (
+          <div className="px-2 pb-4 mb-2 border-b border-slate-700">
+            <div className="bg-white rounded-lg p-4 text-center">
+              {data.player.avatar ? (
+                <img src={data.player.avatar} alt="" className="w-16 h-16 rounded-full mx-auto mb-2" />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-xl font-bold mx-auto mb-2">
+                  {data.player.username.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <p className="text-slate-800 font-semibold">{data.player.name || data.player.username}</p>
+              <p className="text-slate-500 text-sm">@{data.player.username}</p>
+              <p className="text-slate-400 text-xs mt-1">{data.player.followers} followers</p>
+              <p className="text-slate-400 text-xs">
+                Joined {new Date(data.player.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+              <div className="mt-3 pt-3 border-t border-slate-200 text-xs text-slate-600 space-y-1">
+                <p>Rapid: <span className="font-semibold text-slate-800">{data.total_rapid?.toLocaleString() || 0}</span> games</p>
+                <p>Blitz: <span className="font-semibold text-slate-800">{data.total_blitz?.toLocaleString() || 0}</span> games</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-1 px-2 pb-4 border-b border-slate-700">
         <button
           onClick={() => setActivePanel('my-data')}
           className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
@@ -527,90 +595,108 @@ function App() {
           <Crown className="w-5 h-5" />
           End Game
         </button>
+        </div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 p-8 overflow-auto">
         <div className="max-w-6xl mx-auto space-y-8">
 
-          {/* Header with search - always visible */}
-          <div className="text-center space-y-6">
-            <h1 className="text-4xl font-bold text-slate-100">Your Chess AI Assistant</h1>
+          {/* Login prompt when not authenticated */}
+          {!isAuthenticated && (
+            <div className="flex flex-col items-center min-h-[70vh]" style={{ marginLeft: 'calc(-128px)' }}>
+              <h1 className="text-5xl font-bold text-slate-100 mt-16">Let's improve your chess rating !</h1>
+              <div className="flex items-start pt-8">
+                <img src="/favicon.svg" alt="" className="w-48 h-48 opacity-15" />
+              </div>
+              <div className="flex flex-col items-center flex-1 justify-end pb-8">
+                <p className="text-slate-400 mb-8 text-center max-w-md">
+                  Sign in with your Google account to analyze your Chess.com games and get personalized insights.
+                </p>
+                <LoginButton />
+              </div>
+            </div>
+          )}
 
-            <form onSubmit={handleSubmit} className="flex justify-center gap-2">
-              <div className="relative" ref={dropdownRef}>
-                <div className="flex">
-                  <input
-                    type="text"
-                    placeholder="Enter chess.com username"
-                    className="bg-white text-slate-900 placeholder:text-slate-400 px-4 py-2 border border-slate-300 rounded-l-lg w-56 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={usernameInput}
-                    onChange={(e) => setUsernameInput(e.target.value)}
-                    onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
-                  />
-                  {savedPlayers.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowUsernameDropdown(!showUsernameDropdown)}
-                      className="bg-white border border-l-0 border-slate-300 rounded-r-lg px-2 hover:bg-slate-50"
-                    >
-                      <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${showUsernameDropdown ? 'rotate-180' : ''}`} />
-                    </button>
-                  )}
-                  {savedPlayers.length === 0 && (
-                    <div className="w-0 border-r border-slate-300 rounded-r-lg" />
+          {/* Header with search - only when authenticated */}
+          {isAuthenticated && (
+            <div className="text-center space-y-6" style={{ marginLeft: 'calc(-128px)' }}>
+              <h1 className="text-4xl font-bold text-slate-100">Your Chess AI Assistant</h1>
+
+              <form onSubmit={handleSubmit} className="flex justify-center gap-2">
+                <div className="relative" ref={dropdownRef}>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      placeholder="Enter chess.com username"
+                      className="bg-white text-slate-900 placeholder:text-slate-400 px-4 py-2 border border-slate-300 rounded-l-lg w-56 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={usernameInput}
+                      onChange={(e) => setUsernameInput(e.target.value)}
+                      onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
+                    />
+                    {savedPlayers.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowUsernameDropdown(!showUsernameDropdown)}
+                        className="bg-white border border-l-0 border-slate-300 rounded-r-lg px-2 hover:bg-slate-50"
+                      >
+                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${showUsernameDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+                    )}
+                    {savedPlayers.length === 0 && (
+                      <div className="w-0 border-r border-slate-300 rounded-r-lg" />
+                    )}
+                  </div>
+                  {/* Dropdown */}
+                  {showUsernameDropdown && savedPlayers.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
+                      <div className="px-3 py-2 text-xs text-slate-500 border-b border-slate-200">Recent searches</div>
+                      {savedPlayers.map((player, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleSelectSavedUsername(player)}
+                          className="w-full px-3 py-2 text-left text-slate-800 hover:bg-blue-50 flex items-center gap-2"
+                        >
+                          {player.avatar ? (
+                            <img
+                              src={player.avatar}
+                              alt=""
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs font-bold">
+                              {player.username.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          {player.username}
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
-                {/* Dropdown */}
-                {showUsernameDropdown && savedPlayers.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
-                    <div className="px-3 py-2 text-xs text-slate-500 border-b border-slate-200">Recent searches</div>
-                    {savedPlayers.map((player, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => handleSelectSavedUsername(player)}
-                        className="w-full px-3 py-2 text-left text-slate-800 hover:bg-blue-50 flex items-center gap-2"
-                      >
-                        {player.avatar ? (
-                          <img
-                            src={player.avatar}
-                            alt=""
-                            className="w-6 h-6 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs font-bold">
-                            {player.username.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        {player.username}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-              >
-                {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
-                Fetch data
-              </button>
-            </form>
-            {error && <p className="text-red-500 bg-red-100 py-2 px-4 rounded inline-block">{error}</p>}
-            {loading && searchedUsername && <LoadingProgress progress={progress} />}
-          </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
+                  Fetch data
+                </button>
+              </form>
+              {error && <p className="text-red-500 bg-red-100 py-2 px-4 rounded inline-block">{error}</p>}
+              {loading && searchedUsername && <LoadingProgress progress={progress} />}
+            </div>
+          )}
 
           {/* ========== HOW TO IMPROVE (FROM PROS) PANEL ========== */}
-          {activePanel === 'pros-tips' && (
+          {isAuthenticated && activePanel === 'pros-tips' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
               <div className="flex justify-center mb-8 mt-20">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
 
-              {data && <PlayerDataCard player={data.player} totalRapid={data.total_rapid} totalBlitz={data.total_blitz} />}
-
+              
               <div className="flex justify-center mb-8 mt-12">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
@@ -713,14 +799,13 @@ function App() {
           )}
 
           {/* ========== IDENTIFY MY WEAKNESSES PANEL ========== */}
-          {activePanel === 'weaknesses' && (
+          {isAuthenticated && activePanel === 'weaknesses' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
               <div className="flex justify-center mb-8 mt-20">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
 
-              {data && <PlayerDataCard player={data.player} totalRapid={data.total_rapid} totalBlitz={data.total_blitz} />}
-
+              
               <div className="flex justify-center mb-8 mt-12">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
@@ -868,15 +953,14 @@ function App() {
           )}
 
           {/* ========== OPENINGS PANEL ========== */}
-          {activePanel === 'openings' && (
+          {isAuthenticated && activePanel === 'openings' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
 
               <div className="flex justify-center mb-8 mt-20">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
 
-              {data && <PlayerDataCard player={data.player} totalRapid={data.total_rapid} totalBlitz={data.total_blitz} />}
-
+              
               {/* Opening Statistics Section */}
               <div className="flex justify-center mb-8 mt-12">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
@@ -1020,14 +1104,13 @@ function App() {
           )}
 
           {/* ========== MIDDLE GAME PANEL ========== */}
-          {activePanel === 'middle-game' && (
+          {isAuthenticated && activePanel === 'middle-game' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
               <div className="flex justify-center mb-8 mt-20">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
 
-              {data && <PlayerDataCard player={data.player} totalRapid={data.total_rapid} totalBlitz={data.total_blitz} />}
-
+              
               <div className="flex justify-center mb-8 mt-12">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
@@ -1052,14 +1135,13 @@ function App() {
           )}
 
           {/* ========== END GAME PANEL ========== */}
-          {activePanel === 'end-game' && (
+          {isAuthenticated && activePanel === 'end-game' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
               <div className="flex justify-center mb-8 mt-20">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
 
-              {data && <PlayerDataCard player={data.player} totalRapid={data.total_rapid} totalBlitz={data.total_blitz} />}
-
+              
               <div className="flex justify-center mb-8 mt-12">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
@@ -1084,14 +1166,8 @@ function App() {
           )}
 
           {/* ========== MY DATA PANEL ========== */}
-          {activePanel === 'my-data' && data && (
+          {isAuthenticated && activePanel === 'my-data' && data && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-            <div className="flex justify-center mb-8 mt-20">
-              <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
-            </div>
-
-            <PlayerDataCard player={data.player} totalRapid={data.total_rapid} totalBlitz={data.total_blitz} />
 
             {/* ========== GAME TYPE SELECTOR ========== */}
             <div className="flex justify-center mb-8 mt-12">

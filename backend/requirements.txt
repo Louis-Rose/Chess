@@ -8,3 +8,6 @@ scipy
 youtube-transcript-api
 gevent
 gunicorn
+PyJWT>=2.8.0
+google-auth>=2.23.0
+google-auth-oauthlib>=1.1.0
