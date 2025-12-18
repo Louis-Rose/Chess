@@ -85,18 +85,24 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 'games_by_week': {(d['year'], d['week']): d['games_played'] for d in cached.get('history', [])},
                 'elo_by_week': {(d['year'], d['week']): {'elo': d['elo'], 'timestamp': 0} for d in cached.get('elo_history', [])},
                 'games_by_day': {},
+                'games_by_hour': {},  # Track win rate by hour of day
                 'openings_white': [],
                 'openings_black': [],
                 'total_games': cached.get('total_games', 0),
+                'cached_game_number_stats': cached.get('game_number_stats', []),  # Preserve for incremental updates
+                'cached_hourly_stats': cached.get('hourly_stats', []),  # Preserve for incremental updates
             }
         else:
             tc_data[tc] = {
                 'games_by_week': {},
                 'elo_by_week': {},
                 'games_by_day': {},
+                'games_by_hour': {},  # Track win rate by hour of day
                 'openings_white': [],
                 'openings_black': [],
                 'total_games': 0,
+                'cached_game_number_stats': [],
+                'cached_hourly_stats': [],
             }
 
     # Track totals across all time classes
@@ -174,6 +180,16 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                     tcd['games_by_day'][date_key] = []
                 tcd['games_by_day'][date_key].append((end_time, game_result))
 
+                # Hourly stats (win rate by 2-hour groups for better statistical significance)
+                hour_group = game_date.hour // 2  # 0-1 -> 0, 2-3 -> 1, etc.
+                if hour_group not in tcd['games_by_hour']:
+                    tcd['games_by_hour'][hour_group] = {'wins': 0, 'draws': 0, 'total': 0}
+                tcd['games_by_hour'][hour_group]['total'] += 1
+                if game_result == 'win':
+                    tcd['games_by_hour'][hour_group]['wins'] += 1
+                elif game_result == 'draw':
+                    tcd['games_by_hour'][hour_group]['draws'] += 1
+
                 # Openings (last 12 months only)
                 if archive_url in archives[-12:] and 'eco' in game:
                     opening_data = {'opening': game['eco'], 'result': game_result}
@@ -238,6 +254,32 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             })
         game_number_result = [d for d in game_number_result if d['game_number'] <= 15 and d['sample_size'] >= 5]
 
+        # For incremental updates, games_by_day only has new games, so use cached stats if new is empty
+        if not game_number_result and tcd.get('cached_game_number_stats'):
+            game_number_result = tcd['cached_game_number_stats']
+
+        # Hourly stats (win rate by 2-hour groups)
+        hourly_result = []
+        for hour_group in range(12):  # 12 groups of 2 hours each
+            if hour_group in tcd['games_by_hour']:
+                stats = tcd['games_by_hour'][hour_group]
+                if stats['total'] > 0:
+                    win_rate = ((stats['wins'] + 0.5 * stats['draws']) / stats['total']) * 100
+                else:
+                    win_rate = 0
+                start_hour = hour_group * 2
+                hourly_result.append({
+                    'hour_group': hour_group,
+                    'start_hour': start_hour,
+                    'end_hour': start_hour + 1,
+                    'win_rate': round(win_rate, 1),
+                    'sample_size': stats['total']
+                })
+
+        # For incremental updates, use cached stats if new is empty
+        if not hourly_result and tcd.get('cached_hourly_stats'):
+            hourly_result = tcd['cached_hourly_stats']
+
         # Openings
         openings = {
             'white': group_opening_stats(tcd['openings_white']),
@@ -254,6 +296,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             'total_blitz': total_blitz,
             'openings': processed_openings,
             'game_number_stats': game_number_result,
+            'hourly_stats': hourly_result,
             'last_archive': last_archive_processed
         }
 

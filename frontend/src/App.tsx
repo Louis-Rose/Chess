@@ -89,6 +89,14 @@ interface GameNumberStats {
   sample_size: number;
 }
 
+interface HourlyStats {
+  hour_group: number;
+  start_hour: number;
+  end_hour: number;
+  win_rate: number;
+  sample_size: number;
+}
+
 interface FatigueInsight {
   type: 'warning' | 'positive' | 'info';
   title: string;
@@ -120,6 +128,7 @@ interface ApiResponse {
     black: OpeningData[];
   };
   game_number_stats: GameNumberStats[];
+  hourly_stats: HourlyStats[];
 }
 
 type TimeClass = 'rapid' | 'blitz';
@@ -441,9 +450,6 @@ function App() {
       savePlayer(data.player.username, data.player.avatar);
       setSavedPlayers(getSavedPlayers());
 
-      // Clear the search bar after successful fetch
-      setUsernameInput('');
-
       // If this matches the user's saved chess username, update myPlayerData
       if (isAuthenticated && user?.preferences?.chess_username?.toLowerCase() === data.player.username.toLowerCase()) {
         setMyPlayerData(data);
@@ -672,7 +678,7 @@ function App() {
                 <p className="text-xl text-slate-300 font-light">What is your Chess.com username?</p>
               )}
 
-              <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
+              <form onSubmit={handleSubmit} className="flex items-center justify-center gap-2">
                 <div className="relative" ref={dropdownRef}>
                   <div className="flex">
                     <input
@@ -749,10 +755,11 @@ function App() {
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
               </div>
 
-              <div className="flex flex-col items-center gap-4 mb-6">
+              <div className="flex flex-col items-center gap-2 mb-6">
                 <h2 className="text-3xl font-bold text-slate-100 whitespace-nowrap">
                   How to Improve (from Pros)
                 </h2>
+                <p className="text-slate-400 text-lg italic">Work in progress..</p>
               </div>
 
               <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm max-w-2xl mx-auto">
@@ -1014,13 +1021,13 @@ function App() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
                   {/* White Openings */}
                   <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm">
-                    <h2 className="text-xl font-bold mb-6 text-slate-800">Openings as White</h2>
+                    <h2 className="text-xl font-bold mb-6 text-slate-800 text-center">Openings as White</h2>
                     <OpeningsChart data={data.openings.white} />
                   </div>
 
                   {/* Black Openings */}
                   <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm">
-                    <h2 className="text-xl font-bold mb-6 text-slate-800">Openings as Black</h2>
+                    <h2 className="text-xl font-bold mb-6 text-slate-800 text-center">Openings as Black</h2>
                     <OpeningsChart data={data.openings.black} />
                   </div>
                 </div>
@@ -1202,15 +1209,16 @@ function App() {
               <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
             </div>
 
-            <div className="flex flex-col items-center gap-4 mb-6">
+            <div className="flex flex-col items-center gap-2 mb-6">
               <h2 className="text-3xl font-bold text-slate-100 whitespace-nowrap">
                 Elo Rating
               </h2>
+              <p className="text-slate-400 text-lg italic">How has your elo evolved over time?</p>
             </div>
 
             {processedEloHistory && processedEloHistory.length > 0 ? (
               <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm">
-                <h2 className="text-xl font-bold mb-6 text-slate-800 capitalize">{data.time_class} Rating Over Time</h2>
+                <h2 className="text-xl font-bold mb-6 text-slate-800 capitalize text-center">{data.time_class} Rating Over Time</h2>
                 <div className="h-80 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={processedEloHistory}>
@@ -1246,7 +1254,7 @@ function App() {
               </div>
             ) : (
               <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm">
-                <h2 className="text-xl font-bold mb-6 text-slate-800 capitalize">{data.time_class} Rating Over Time</h2>
+                <h2 className="text-xl font-bold mb-6 text-slate-800 capitalize text-center">{data.time_class} Rating Over Time</h2>
                 <p className="text-slate-500 italic">No {data.time_class} games found.</p>
               </div>
             )}
@@ -1256,17 +1264,18 @@ function App() {
               <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
             </div>
 
-            <div className="flex flex-col items-center gap-4 mb-6">
+            <div className="flex flex-col items-center gap-2 mb-6">
               <h2 className="text-3xl font-bold text-slate-100 whitespace-nowrap">
                 All Games Played
               </h2>
+              <p className="text-slate-400 text-lg italic">How many games have you been playing?</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
               {/* History Chart */}
               <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm lg:col-span-2">
-                <h2 className="text-xl font-bold mb-6 text-slate-800">Games Played Per Week</h2>
+                <h2 className="text-xl font-bold mb-6 text-slate-800 text-center">Games Played Per Week</h2>
                 <div className="h-80 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={processedHistory}>
@@ -1308,15 +1317,16 @@ function App() {
               <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
             </div>
 
-            <div className="flex flex-col items-center gap-4 mb-6">
+            <div className="flex flex-col items-center gap-2 mb-6">
               <h2 className="text-3xl font-bold text-slate-100 whitespace-nowrap">
                 Win Rate by Game Number
               </h2>
+              <p className="text-slate-400 text-lg italic">Are your first or last games of the day better?</p>
             </div>
 
             {data.game_number_stats && data.game_number_stats.length > 0 ? (
               <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm">
-                <h2 className="text-xl font-bold mb-6 text-slate-800">Win Rate by Nth Game of the Day</h2>
+                <h2 className="text-xl font-bold mb-6 text-slate-800 text-center">Win Rate by Nth Game of the Day</h2>
                 <div className="h-80 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data.game_number_stats}>
@@ -1400,8 +1410,102 @@ function App() {
               </div>
             ) : (
               <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm">
-                <h2 className="text-xl font-bold mb-6 text-slate-800">Win Rate by Nth Game of the Day</h2>
+                <h2 className="text-xl font-bold mb-6 text-slate-800 text-center">Win Rate by Nth Game of the Day</h2>
                 <p className="text-slate-500 italic">Not enough data to display.</p>
+              </div>
+            )}
+
+            {/* ========== HOURLY WIN RATE SECTION ========== */}
+            <div className="flex justify-center mb-8 mt-12">
+              <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
+            </div>
+
+            <div className="flex flex-col items-center gap-2 mb-6">
+              <h2 className="text-3xl font-bold text-slate-100 whitespace-nowrap">
+                Best Time to Play
+              </h2>
+              <p className="text-slate-400 text-lg italic">Are you an early riser or a night owl?</p>
+            </div>
+
+            {data.hourly_stats && data.hourly_stats.length > 0 ? (
+              <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm">
+                <h2 className="text-xl font-bold mb-6 text-slate-800 text-center">Win Rate by Time of Day</h2>
+                <div className="h-80 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.hourly_stats}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ccc" />
+                      <XAxis
+                        dataKey="hour_group"
+                        stroke="#475569"
+                        tick={{fill: '#475569'}}
+                        tickFormatter={(group) => {
+                          const start = group * 2;
+                          return `${start}h-${start + 2}h`;
+                        }}
+                      />
+                      <YAxis
+                        stroke="#475569"
+                        tick={{fill: '#475569'}}
+                      />
+                      <Tooltip
+                        cursor={{fill: '#f1f5f9'}}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const d = payload[0].payload;
+                            const isSignificant = d.sample_size >= 50;
+                            const color = !isSignificant ? '#9ca3af' : d.win_rate >= 55 ? '#16a34a' : d.win_rate >= 50 ? '#4ade80' : d.win_rate >= 45 ? '#f87171' : '#dc2626';
+                            const formatHour = (h: number) => h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`;
+                            const timeLabel = `${formatHour(d.start_hour)} - ${formatHour(d.end_hour + 1)}`;
+                            return (
+                              <div className="bg-white p-3 border border-slate-200 shadow-xl rounded text-sm text-slate-800">
+                                <p className="font-bold text-base mb-1">{timeLabel}</p>
+                                <p>Win Rate: <span className="font-mono font-bold" style={{color}}>{d.win_rate}%</span></p>
+                                <p>Games played: <span className="font-mono">{formatNumber(d.sample_size)}</span></p>
+                                {!isSignificant && <p className="text-slate-400 italic text-xs mt-1">Not statistically significant (&lt;50 games)</p>}
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar dataKey="sample_size" radius={[4, 4, 0, 0]}>
+                        {data.hourly_stats.map((entry, index) => {
+                          const isSignificant = entry.sample_size >= 50;
+                          const color = !isSignificant ? '#d1d5db' : entry.win_rate >= 55 ? '#16a34a' : entry.win_rate >= 50 ? '#4ade80' : entry.win_rate >= 45 ? '#f87171' : '#dc2626';
+                          return <Cell key={`cell-${index}`} fill={color} />;
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Legend */}
+                <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm text-slate-700">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{backgroundColor: '#16a34a'}}></div>
+                    <span>≥55%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{backgroundColor: '#4ade80'}}></div>
+                    <span>50-55%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{backgroundColor: '#f87171'}}></div>
+                    <span>45-50%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{backgroundColor: '#dc2626'}}></div>
+                    <span>&lt;45%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{backgroundColor: '#d1d5db'}}></div>
+                    <span className="italic">Not significant (&lt;50 games)</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm">
+                <h2 className="text-xl font-bold mb-6 text-slate-800 text-center">Win Rate by Time of Day</h2>
+                <p className="text-slate-500 italic text-center">Not enough data to display.</p>
               </div>
             )}
 
