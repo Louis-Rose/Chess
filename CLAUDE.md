@@ -12,7 +12,7 @@ Chess Stats App — web app for visualizing Chess.com player statistics.
 
 ## Deployment
 - **VM**: Azure Ubuntu at `20.86.130.108`
-- **Domain**: yourchessdata.duckdns.org (HTTP only, HTTPS pending due to DuckDNS issues)
+- **Domain**: improveatchess.io
 - **User**: azureuser
 - **Repo path on VM**: `/home/azureuser/Chess`
 
@@ -34,5 +34,4 @@ Chess Stats App — web app for visualizing Chess.com player statistics.
 ```
 
 ## Pending
-- HTTPS setup (waiting for DuckDNS nameservers to stabilize)
-- Retry command: `sudo certbot --standalone -d yourchessdata.duckdns.org`
+- None
