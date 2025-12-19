@@ -964,6 +964,22 @@ function App() {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+                {/* How to Improve */}
+                <button
+                  onClick={() => setActivePanel('pros-tips')}
+                  className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-yellow-500 transition-colors cursor-pointer text-left"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center">
+                      <Trophy className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-100">How to Improve</h3>
+                  </div>
+                  <p className="text-slate-400 text-sm">
+                    Learn from the best! Watch curated video tips from top FIDE players like Magnus Carlsen, Hikaru Nakamura, and more.
+                  </p>
+                </button>
+
                 {/* My Data */}
                 <button
                   onClick={() => setActivePanel('my-data')}
@@ -993,22 +1009,6 @@ function App() {
                   </div>
                   <p className="text-slate-400 text-sm">
                     Uses logistic regression to analyze if your previous game result and time of day predict your next game outcome. Discover tilt and momentum patterns.
-                  </p>
-                </button>
-
-                {/* How to Improve */}
-                <button
-                  onClick={() => setActivePanel('pros-tips')}
-                  className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-yellow-500 transition-colors cursor-pointer text-left"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center">
-                      <Trophy className="w-5 h-5 text-white" />
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-100">How to Improve</h3>
-                  </div>
-                  <p className="text-slate-400 text-sm">
-                    Learn from the best! Watch curated video tips from top FIDE players like Magnus Carlsen, Hikaru Nakamura, and more.
                   </p>
                 </button>
 
