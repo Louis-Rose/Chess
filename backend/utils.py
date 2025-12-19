@@ -91,6 +91,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 'total_games': cached.get('total_games', 0),
                 'cached_game_number_stats': cached.get('game_number_stats', []),  # Preserve for incremental updates
                 'cached_hourly_stats': cached.get('hourly_stats', []),  # Preserve for incremental updates
+                'cached_win_prediction': cached.get('win_prediction'),  # Preserve for incremental updates
             }
         else:
             tc_data[tc] = {
@@ -103,6 +104,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 'total_games': 0,
                 'cached_game_number_stats': [],
                 'cached_hourly_stats': [],
+                'cached_win_prediction': None,
             }
 
     # Track totals across all time classes
@@ -287,6 +289,14 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
         }
         processed_openings = process_openings_for_json(openings)
 
+        # Win prediction analysis (use cached if no new games processed)
+        if tcd['games_by_day']:
+            win_prediction = compute_win_prediction_from_games(tcd['games_by_day'])
+        elif tcd.get('cached_win_prediction'):
+            win_prediction = tcd['cached_win_prediction']
+        else:
+            win_prediction = {'error': 'No game data available', 'sample_size': 0}
+
         all_time_classes_data[tc] = {
             'time_class': tc,
             'history': games_per_week_data,
@@ -297,6 +307,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             'openings': processed_openings,
             'game_number_stats': game_number_result,
             'hourly_stats': hourly_result,
+            'win_prediction': win_prediction,
             'last_archive': last_archive_processed
         }
 
@@ -666,6 +677,230 @@ def group_opening_stats(games_list):
 
     filtered = [g for g in results_list if g["games"] >= MINIMUM_GAMES]
     return sorted(filtered, key=lambda x: x['games'], reverse=True)
+
+def compute_win_prediction_from_games(games_by_day):
+    """
+    Compute win prediction analysis from already-collected games_by_day data.
+    Uses logistic regression with two predictors:
+    1. Previous game result (momentum/tilt)
+    2. Hour of day (2-hour spans)
+    """
+    # Build pairs of (previous_result, current_result, hour) for same-day consecutive games
+    pairs = []
+    for date_key, games in games_by_day.items():
+        # Sort games by timestamp within each day
+        sorted_games = sorted(games, key=lambda x: x[0])
+
+        for i in range(1, len(sorted_games)):
+            prev_result = sorted_games[i - 1][1]  # 'win', 'draw', 'loss'
+            curr_result = sorted_games[i][1]
+            curr_timestamp = sorted_games[i][0]
+
+            # Extract hour group (2-hour spans: 0-1, 2-3, etc.)
+            game_hour = datetime.datetime.fromtimestamp(curr_timestamp).hour
+            hour_group = game_hour // 2  # 0-11 representing 2-hour blocks
+
+            # Convert results to numeric
+            prev_win = 1 if prev_result == 'win' else (0.5 if prev_result == 'draw' else 0)
+            curr_win = 1 if curr_result == 'win' else (0.5 if curr_result == 'draw' else 0)
+
+            pairs.append({
+                'prev_win': prev_win,
+                'curr_win': curr_win,
+                'hour_group': hour_group,
+            })
+
+    if len(pairs) < 50:
+        return {
+            'error': 'Not enough consecutive same-day games for analysis (need at least 50 pairs)',
+            'sample_size': len(pairs)
+        }
+
+    # Calculate conditional win rates by previous result
+    after_win = [p['curr_win'] for p in pairs if p['prev_win'] == 1]
+    after_loss = [p['curr_win'] for p in pairs if p['prev_win'] == 0]
+    after_draw = [p['curr_win'] for p in pairs if p['prev_win'] == 0.5]
+
+    win_rate_after_win = (sum(after_win) / len(after_win) * 100) if after_win else None
+    win_rate_after_loss = (sum(after_loss) / len(after_loss) * 100) if after_loss else None
+    win_rate_after_draw = (sum(after_draw) / len(after_draw) * 100) if after_draw else None
+
+    games_after_win = len(after_win)
+    games_after_loss = len(after_loss)
+    games_after_draw = len(after_draw)
+
+    # Calculate win rates by hour group
+    hourly_stats = {}
+    for p in pairs:
+        hg = p['hour_group']
+        if hg not in hourly_stats:
+            hourly_stats[hg] = {'wins': 0, 'total': 0}
+        hourly_stats[hg]['total'] += 1
+        if p['curr_win'] == 1:
+            hourly_stats[hg]['wins'] += 1
+
+    # Find best and worst hours
+    hourly_win_rates = {}
+    for hg, stats in hourly_stats.items():
+        if stats['total'] >= 10:  # Minimum sample size
+            hourly_win_rates[hg] = (stats['wins'] / stats['total']) * 100
+
+    best_hour_group = max(hourly_win_rates, key=hourly_win_rates.get) if hourly_win_rates else None
+    worst_hour_group = min(hourly_win_rates, key=hourly_win_rates.get) if hourly_win_rates else None
+
+    # Logistic Regression with both predictors
+    prev_won = np.array([1 if p['prev_win'] == 1 else 0 for p in pairs])
+    curr_won = np.array([1 if p['curr_win'] == 1 else 0 for p in pairs])
+    hour_groups = np.array([p['hour_group'] for p in pairs])
+
+    # Normalize hour to [-0.5, 0.5] range for better regression stability
+    hour_normalized = (hour_groups - 6) / 12.0  # Center around noon
+
+    def logistic_loss(params, X, y):
+        z = X @ params
+        p = expit(z)
+        p = np.clip(p, 1e-10, 1 - 1e-10)
+        return -np.mean(y * np.log(p) + (1 - y) * np.log(1 - p))
+
+    # Full model: intercept + prev_win + hour
+    X_full = np.column_stack([np.ones(len(pairs)), prev_won, hour_normalized])
+    y = curr_won
+
+    result_full = minimize(logistic_loss, x0=np.zeros(3), args=(X_full, y), method='BFGS')
+    intercept = result_full.x[0]
+    coef_prev_win = result_full.x[1]
+    coef_hour = result_full.x[2]
+
+    # Odds ratios
+    odds_ratio_prev = np.exp(coef_prev_win)
+    odds_ratio_hour = np.exp(coef_hour)  # Per unit change in normalized hour
+
+    baseline_prob = expit(intercept) * 100
+
+    # Significance tests using likelihood ratio
+    # Null model (intercept only)
+    X_null = np.ones((len(pairs), 1))
+    result_null = minimize(logistic_loss, x0=np.zeros(1), args=(X_null, y), method='BFGS')
+
+    # Model with only prev_win
+    X_prev_only = np.column_stack([np.ones(len(pairs)), prev_won])
+    result_prev_only = minimize(logistic_loss, x0=np.zeros(2), args=(X_prev_only, y), method='BFGS')
+
+    # Model with only hour
+    X_hour_only = np.column_stack([np.ones(len(pairs)), hour_normalized])
+    result_hour_only = minimize(logistic_loss, x0=np.zeros(2), args=(X_hour_only, y), method='BFGS')
+
+    # Log-likelihoods
+    ll_null = -logistic_loss(result_null.x, X_null, y) * len(pairs)
+    ll_prev_only = -logistic_loss(result_prev_only.x, X_prev_only, y) * len(pairs)
+    ll_hour_only = -logistic_loss(result_hour_only.x, X_hour_only, y) * len(pairs)
+    ll_full = -logistic_loss(result_full.x, X_full, y) * len(pairs)
+
+    # Test significance of each predictor
+    lr_stat_prev = 2 * (ll_prev_only - ll_null)
+    lr_stat_hour = 2 * (ll_hour_only - ll_null)
+    is_prev_significant = bool(lr_stat_prev > 3.84)
+    is_hour_significant = bool(lr_stat_hour > 3.84)
+
+    # Generate insights
+    insights = []
+
+    # Previous result insights
+    if coef_prev_win > 0.1 and is_prev_significant:
+        insights.append({
+            'type': 'positive',
+            'title': 'You have positive momentum',
+            'message': f'After a win, your win rate is {win_rate_after_win:.1f}% compared to {win_rate_after_loss:.1f}% after a loss.',
+            'recommendation': 'Ride your winning streaks - your mental state improves after victories.'
+        })
+    elif coef_prev_win < -0.1 and is_prev_significant:
+        insights.append({
+            'type': 'warning',
+            'title': 'Watch out for overconfidence',
+            'message': f'Your win rate drops to {win_rate_after_win:.1f}% after a win, compared to {win_rate_after_loss:.1f}% after a loss.',
+            'recommendation': 'Stay focused after wins. Treat each game fresh.'
+        })
+    else:
+        insights.append({
+            'type': 'info',
+            'title': 'Your results are independent',
+            'message': f'Previous game result doesn\'t significantly predict next game. Win rate after win: {win_rate_after_win:.1f}%, after loss: {win_rate_after_loss:.1f}%.',
+            'recommendation': 'Good mental resilience! You don\'t seem affected by tilt or overconfidence.'
+        })
+
+    # Hour-of-day insights
+    if best_hour_group is not None and worst_hour_group is not None:
+        best_start = best_hour_group * 2
+        worst_start = worst_hour_group * 2
+        best_rate = hourly_win_rates[best_hour_group]
+        worst_rate = hourly_win_rates[worst_hour_group]
+
+        if is_hour_significant and abs(best_rate - worst_rate) > 5:
+            insights.append({
+                'type': 'positive' if best_rate > 55 else 'info',
+                'title': 'Time of day matters',
+                'message': f'You perform best at {best_start}:00-{best_start+2}:00 ({best_rate:.1f}% win rate) and worst at {worst_start}:00-{worst_start+2}:00 ({worst_rate:.1f}%).',
+                'recommendation': f'Try to schedule your games around {best_start}:00-{best_start+2}:00 when possible.'
+            })
+        else:
+            insights.append({
+                'type': 'info',
+                'title': 'Time of day has minimal impact',
+                'message': f'Your performance is relatively consistent across different times. Best: {best_start}:00-{best_start+2}:00 ({best_rate:.1f}%), Worst: {worst_start}:00-{worst_start+2}:00 ({worst_rate:.1f}%).',
+                'recommendation': 'Play whenever suits your schedule - time doesn\'t significantly affect your results.'
+            })
+
+    # Loss recovery insight
+    if win_rate_after_loss and win_rate_after_loss >= 50:
+        insights.append({
+            'type': 'positive',
+            'title': 'Strong loss recovery',
+            'message': f'You maintain a {win_rate_after_loss:.1f}% win rate even after a loss.',
+            'recommendation': 'You handle losses well mentally. Keep it up!'
+        })
+    elif win_rate_after_loss and win_rate_after_loss < 45:
+        insights.append({
+            'type': 'warning',
+            'title': 'Tilt detected after losses',
+            'message': f'Your win rate drops to {win_rate_after_loss:.1f}% after a loss.',
+            'recommendation': 'Consider taking a short break after a loss to reset mentally.'
+        })
+
+    # Build hourly data for frontend display
+    hourly_data = []
+    for hg in range(12):
+        if hg in hourly_stats:
+            stats = hourly_stats[hg]
+            win_rate = (stats['wins'] / stats['total'] * 100) if stats['total'] > 0 else 0
+            hourly_data.append({
+                'hour_group': hg,
+                'start_hour': hg * 2,
+                'end_hour': hg * 2 + 2,
+                'win_rate': round(win_rate, 1),
+                'sample_size': stats['total']
+            })
+
+    return {
+        'sample_size': len(pairs),
+        'games_after_win': games_after_win,
+        'games_after_loss': games_after_loss,
+        'games_after_draw': games_after_draw,
+        'win_rate_after_win': round(win_rate_after_win, 1) if win_rate_after_win else None,
+        'win_rate_after_loss': round(win_rate_after_loss, 1) if win_rate_after_loss else None,
+        'win_rate_after_draw': round(win_rate_after_draw, 1) if win_rate_after_draw else None,
+        'odds_ratio': round(float(odds_ratio_prev), 2),
+        'odds_ratio_hour': round(float(odds_ratio_hour), 2),
+        'coefficient': round(float(coef_prev_win), 3),
+        'coefficient_hour': round(float(coef_hour), 3),
+        'is_significant': is_prev_significant,
+        'is_hour_significant': is_hour_significant,
+        'baseline_win_rate': round(float(baseline_prob), 1),
+        'best_hour': best_hour_group * 2 if best_hour_group is not None else None,
+        'worst_hour': worst_hour_group * 2 if worst_hour_group is not None else None,
+        'hourly_data': hourly_data,
+        'insights': insights
+    }
+
 
 def process_openings_for_json(openings_dict):
     """
@@ -1088,3 +1323,216 @@ def compute_fatigue_analysis(USERNAME, time_class='rapid'):
         'worst_win_rate': round(worst_win_rate, 1),
         'insights': insights
     }
+
+
+def compute_win_prediction_analysis_streaming(USERNAME, time_class='rapid'):
+    """
+    Streaming version: Analyze if the result of the immediately preceding game (from the same day)
+    predicts the outcome of the current game using logistic regression.
+
+    Yields SSE-formatted progress events and final data.
+    """
+    monthly_archives_urls_list = fetch_player_games_archives(USERNAME)
+    headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
+    total_archives = len(monthly_archives_urls_list)
+
+    yield f"data: {json.dumps({'type': 'start', 'total_archives': total_archives})}\n\n"
+
+    # Collect all games with timestamps grouped by day
+    games_by_day = {}
+
+    for idx, archive_url in enumerate(monthly_archives_urls_list):
+        parts = archive_url.split('/')
+        year_month = f"{parts[-2]}-{parts[-1]}"
+
+        yield f"data: {json.dumps({'type': 'progress', 'current': idx + 1, 'total': total_archives, 'month': year_month})}\n\n"
+
+        try:
+            response = requests.get(archive_url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            for game in data.get('games', []):
+                if game.get('time_class') != time_class:
+                    continue
+
+                end_time = game.get('end_time')
+                if not end_time:
+                    continue
+
+                if game['white']['username'].lower() == USERNAME.lower():
+                    result = game['white'].get('result')
+                elif game['black']['username'].lower() == USERNAME.lower():
+                    result = game['black'].get('result')
+                else:
+                    continue
+
+                game_result = get_game_result(result)
+                # Convert to numeric: win=1, draw=0.5, loss=0
+                win_value = 1 if game_result == 'win' else (0.5 if game_result == 'draw' else 0)
+
+                game_date = datetime.datetime.fromtimestamp(end_time)
+                date_key = game_date.strftime('%Y-%m-%d')
+
+                if date_key not in games_by_day:
+                    games_by_day[date_key] = []
+                games_by_day[date_key].append((end_time, win_value, game_result))
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching {archive_url}: {e}")
+
+    yield f"data: {json.dumps({'type': 'processing', 'message': 'Running logistic regression...'})}\n\n"
+
+    # Build pairs of (previous_result, current_result) for same-day consecutive games
+    pairs = []
+    for date_key, games in games_by_day.items():
+        # Sort games by timestamp within each day
+        games.sort(key=lambda x: x[0])
+
+        for i in range(1, len(games)):
+            prev_result = games[i - 1][1]  # Previous game result (0, 0.5, or 1)
+            curr_result = games[i][1]      # Current game result
+            pairs.append({
+                'prev_win': prev_result,
+                'curr_win': curr_result,
+                'prev_outcome': games[i - 1][2],  # 'win', 'draw', 'loss'
+                'curr_outcome': games[i][2]
+            })
+
+    if len(pairs) < 50:
+        yield f"data: {json.dumps({'type': 'complete', 'data': {'error': 'Not enough consecutive same-day games for analysis (need at least 50 pairs)', 'sample_size': len(pairs)}})}\n\n"
+        return
+
+    df = pd.DataFrame(pairs)
+
+    # Calculate conditional win rates
+    after_win = df[df['prev_win'] == 1]['curr_win']
+    after_loss = df[df['prev_win'] == 0]['curr_win']
+    after_draw = df[df['prev_win'] == 0.5]['curr_win']
+
+    win_rate_after_win = (after_win.mean() * 100) if len(after_win) > 0 else None
+    win_rate_after_loss = (after_loss.mean() * 100) if len(after_loss) > 0 else None
+    win_rate_after_draw = (after_draw.mean() * 100) if len(after_draw) > 0 else None
+
+    # Count samples for each category
+    games_after_win = len(after_win)
+    games_after_loss = len(after_loss)
+    games_after_draw = len(after_draw)
+
+    # Logistic Regression: Does previous result predict current result?
+    # We'll use binary outcomes for cleaner interpretation (win vs not-win)
+    df['prev_won'] = (df['prev_win'] == 1).astype(int)
+    df['curr_won'] = (df['curr_win'] == 1).astype(int)
+
+    def logistic_loss(params, X, y):
+        beta = params
+        z = X @ beta
+        p = expit(z)
+        p = np.clip(p, 1e-10, 1 - 1e-10)
+        return -np.mean(y * np.log(p) + (1 - y) * np.log(1 - p))
+
+    # Simple model: intercept + previous_win coefficient
+    X = np.column_stack([
+        np.ones(len(df)),
+        df['prev_won'].values
+    ])
+    y = df['curr_won'].values
+
+    result_logistic = minimize(
+        logistic_loss,
+        x0=np.zeros(2),
+        args=(X, y),
+        method='BFGS'
+    )
+
+    intercept = result_logistic.x[0]
+    coef_prev_win = result_logistic.x[1]
+
+    # Calculate odds ratio: exp(coefficient)
+    odds_ratio = np.exp(coef_prev_win)
+
+    # Calculate baseline win probability and probability after win
+    baseline_prob = expit(intercept) * 100
+    prob_after_win = expit(intercept + coef_prev_win) * 100
+
+    # Determine statistical significance using likelihood ratio test
+    # Null model (intercept only)
+    X_null = np.ones((len(df), 1))
+    result_null = minimize(
+        logistic_loss,
+        x0=np.zeros(1),
+        args=(X_null, y),
+        method='BFGS'
+    )
+
+    # Calculate log-likelihoods
+    ll_null = -logistic_loss(result_null.x, X_null, y) * len(df)
+    ll_full = -logistic_loss(result_logistic.x, X, y) * len(df)
+
+    # Likelihood ratio test statistic (chi-squared with 1 df)
+    lr_stat = 2 * (ll_full - ll_null)
+    # Using chi-squared approximation: p < 0.05 roughly when lr_stat > 3.84
+    is_significant = bool(lr_stat > 3.84)
+
+    # Generate insights based on the analysis
+    insights = []
+
+    # Main finding about momentum/tilt
+    effect_size = abs(win_rate_after_win - win_rate_after_loss) if win_rate_after_win and win_rate_after_loss else 0
+
+    if coef_prev_win > 0.1 and is_significant:
+        # Positive momentum effect
+        insights.append({
+            'type': 'positive',
+            'title': 'You have positive momentum',
+            'message': f'After a win, your win rate is {win_rate_after_win:.1f}% compared to {win_rate_after_loss:.1f}% after a loss. Winning seems to boost your confidence!',
+            'recommendation': 'Ride your winning streaks - your mental state improves after victories.'
+        })
+    elif coef_prev_win < -0.1 and is_significant:
+        # Negative effect (tilt after winning, or overconfidence)
+        insights.append({
+            'type': 'warning',
+            'title': 'Watch out for overconfidence',
+            'message': f'Surprisingly, your win rate drops to {win_rate_after_win:.1f}% after a win, compared to {win_rate_after_loss:.1f}% after a loss.',
+            'recommendation': 'You may be getting overconfident after wins. Stay focused and treat each game fresh.'
+        })
+    else:
+        insights.append({
+            'type': 'info',
+            'title': 'Your results are independent',
+            'message': f'Your previous game result doesn\'t significantly predict your next game outcome. Win rate after win: {win_rate_after_win:.1f}%, after loss: {win_rate_after_loss:.1f}%.',
+            'recommendation': 'Good mental resilience! You don\'t seem affected by tilt or overconfidence.'
+        })
+
+    # Additional insight about loss recovery
+    if win_rate_after_loss and win_rate_after_loss >= 50:
+        insights.append({
+            'type': 'positive',
+            'title': 'Strong loss recovery',
+            'message': f'You maintain a {win_rate_after_loss:.1f}% win rate even after a loss.',
+            'recommendation': 'You handle losses well mentally. Keep up the resilience!'
+        })
+    elif win_rate_after_loss and win_rate_after_loss < 45:
+        insights.append({
+            'type': 'warning',
+            'title': 'Tilt detected after losses',
+            'message': f'Your win rate drops to {win_rate_after_loss:.1f}% after a loss.',
+            'recommendation': 'Consider taking a short break after a loss to reset mentally before the next game.'
+        })
+
+    result_data = {
+        'sample_size': len(pairs),
+        'games_after_win': games_after_win,
+        'games_after_loss': games_after_loss,
+        'games_after_draw': games_after_draw,
+        'win_rate_after_win': round(win_rate_after_win, 1) if win_rate_after_win else None,
+        'win_rate_after_loss': round(win_rate_after_loss, 1) if win_rate_after_loss else None,
+        'win_rate_after_draw': round(win_rate_after_draw, 1) if win_rate_after_draw else None,
+        'odds_ratio': round(float(odds_ratio), 2),
+        'coefficient': round(float(coef_prev_win), 3),
+        'is_significant': is_significant,
+        'baseline_win_rate': round(float(baseline_prob), 1),
+        'insights': insights
+    }
+
+    yield f"data: {json.dumps({'type': 'complete', 'data': result_data})}\n\n"

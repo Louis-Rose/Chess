@@ -182,6 +182,38 @@ def get_fatigue_analysis():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+@app.route('/api/win-prediction-stream', methods=['GET'])
+def get_win_prediction_stream():
+    """SSE endpoint that streams progress while analyzing win prediction patterns."""
+    import json as json_module
+
+    username = request.args.get('username')
+    time_class = request.args.get('time_class', 'rapid')
+
+    if not username:
+        return jsonify({"error": "Username required"}), 400
+
+    if time_class not in ['rapid', 'blitz', 'bullet']:
+        return jsonify({"error": "Invalid time_class"}), 400
+
+    def generate():
+        try:
+            for chunk in utils.compute_win_prediction_analysis_streaming(username, time_class=time_class):
+                yield chunk
+        except Exception as e:
+            yield f"data: {json_module.dumps({'type': 'error', 'error': str(e)})}\n\n"
+
+    return Response(
+        generate(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no'
+        }
+    )
+
 @app.route('/api/youtube-videos', methods=['GET'])
 def get_youtube_videos():
     opening = request.args.get('opening')
