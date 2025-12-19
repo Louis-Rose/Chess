@@ -47,11 +47,74 @@ const savePlayer = (username: string, avatar: string | null) => {
   }
 };
 
-// Top 3 FIDE rated players (December 2024)
-const TOP_FIDE_PLAYERS = [
-  { name: 'Magnus Carlsen', country: 'Norway', rating: 2831 },
-  { name: 'Fabiano Caruana', country: 'USA', rating: 2805 },
-  { name: 'Hikaru Nakamura', country: 'USA', rating: 2802 },
+// Top 3 FIDE rated players with their tips and videos
+const PRO_PLAYERS = [
+  {
+    name: 'Magnus Carlsen',
+    country: 'Norway',
+    rating: 2831,
+    rank: 1,
+    videoId: 'l1wXlyFOzgc',
+    videoTitle: '5 Rules For Brutal Chess',
+    tips: [
+      {
+        title: 'Hinder Opponent Development',
+        description: "Don't just focus on moving your pieces; prioritize making moves that force your opponent to \"undevelop\" theirs or block their own pieces."
+      },
+      {
+        title: 'Avoid "Unmotivated" Exchanges',
+        description: "Never trade pieces just for the sake of it; exchanges should only happen if they give you a specific positional advantage, like helping you advance a pawn or activate a piece."
+      },
+      {
+        title: 'Connect Your Rooks',
+        description: "The opening phase is only truly complete once your Rooks are connected and eyeing each other, signaling that you are ready for a middle-game attack."
+      }
+    ]
+  },
+  {
+    name: 'Fabiano Caruana',
+    country: 'USA',
+    rating: 2805,
+    rank: 2,
+    videoId: 'Ixg8sRmu2IU',
+    videoTitle: 'Exclusive Classroom Lesson',
+    tips: [
+      {
+        title: 'Improve Visualization',
+        description: "Visualization is the most critical skill because most blunders come from not seeing the future board clearly."
+      },
+      {
+        title: 'Trust Your Intuition',
+        description: "When you feel you have the initiative, lean into being aggressive rather than playing too cautiously to \"preserve\" your position."
+      },
+      {
+        title: 'The "Pattern within the Pattern"',
+        description: "Real improvement comes from identifying macro mistakes, such as a consistent habit of playing too fast during critical moments or over-relying on computer evaluations."
+      }
+    ]
+  },
+  {
+    name: 'Hikaru Nakamura',
+    country: 'USA',
+    rating: 2802,
+    rank: 3,
+    videoId: 'YcsWbpFKLUg',
+    videoTitle: 'Peak Performance & Blitz Strategy',
+    tips: [
+      {
+        title: 'Spam Blitz for Intuition',
+        description: "Playing a massive volume of blitz games helps build a \"database\" of intuitive patterns that you can use in slower games."
+      },
+      {
+        title: 'Manage Tilt and Fatigue',
+        description: "Take conscious, long breaks (sometimes months) to refresh and reset your mental state to avoid burnout."
+      },
+      {
+        title: 'Practical Decision Making',
+        description: "Focus on making \"good enough\" moves quickly when under pressure rather than searching for the engine's \"best\" move and losing on time."
+      }
+    ]
+  }
 ];
 
 // --- Types ---
@@ -130,6 +193,11 @@ interface WinPredictionHourlyData {
   sample_size: number;
 }
 
+interface AutocorrelationData {
+  value: number;
+  name: string;
+}
+
 interface WinPredictionAnalysis {
   sample_size: number;
   error?: string;
@@ -141,14 +209,26 @@ interface WinPredictionAnalysis {
   win_rate_after_draw?: number;
   odds_ratio?: number;
   odds_ratio_hour?: number;
+  odds_ratio_day_balance?: number;
+  odds_ratio_minutes?: number;
   coefficient?: number;
   coefficient_hour?: number;
+  coefficient_day_balance?: number;
+  coefficient_minutes?: number;
   is_significant?: boolean;
   is_hour_significant?: boolean;
+  is_balance_significant?: boolean;
+  is_minutes_significant?: boolean;
   baseline_win_rate?: number;
   best_hour?: number;
   worst_hour?: number;
   hourly_data?: WinPredictionHourlyData[];
+  autocorrelations?: {
+    prev_result: AutocorrelationData;
+    hour: AutocorrelationData;
+    day_balance: AutocorrelationData;
+    minutes_gap: AutocorrelationData;
+  };
   insights?: WinPredictionInsight[];
 }
 
@@ -245,12 +325,6 @@ const formatWeekYear = (year: number, isoWeek: number) => {
 // --- API fetch functions ---
 const fetchYouTubeVideos = async (opening: string, side: string): Promise<VideoData[]> => {
   const response = await axios.get(`/api/youtube-videos?opening=${encodeURIComponent(opening)}&side=${encodeURIComponent(side)}`);
-  return response.data.videos;
-};
-
-const fetchProTipsVideos = async (playerName: string): Promise<VideoData[]> => {
-  const query = `${playerName} chess how to improve tips`;
-  const response = await axios.get(`/api/youtube-videos?opening=${encodeURIComponent(query)}&side=tips`);
   return response.data.videos;
 };
 
@@ -433,17 +507,6 @@ function App() {
     queryKey: ['youtubeVideos', openingName, openingSide],
     queryFn: () => fetchYouTubeVideos(openingName, openingSide),
     enabled: !!selectedOpening, // Only fetch when an opening is selected
-  });
-
-  // Pro tips videos query - cached by pro player name
-  const {
-    data: proVideos = [],
-    isLoading: proVideosLoading,
-    error: proVideosError,
-  } = useQuery({
-    queryKey: ['proTipsVideos', selectedPro],
-    queryFn: () => fetchProTipsVideos(selectedPro),
-    enabled: !!selectedPro,
   });
 
   // Fatigue analysis query - manually triggered
@@ -693,6 +756,18 @@ function App() {
         </button>
 
         <button
+          onClick={() => setActivePanel('pros-tips')}
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+            activePanel === 'pros-tips'
+              ? 'bg-blue-600 text-white'
+              : 'text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <Trophy className="w-5 h-5" />
+          How to Improve (from Pros)
+        </button>
+
+        <button
           onClick={() => setActivePanel('my-data')}
           className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
             activePanel === 'my-data'
@@ -714,18 +789,6 @@ function App() {
         >
           <TrendingUp className="w-5 h-5" />
           Win Prediction
-        </button>
-
-        <button
-          onClick={() => setActivePanel('pros-tips')}
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-            activePanel === 'pros-tips'
-              ? 'bg-blue-600 text-white'
-              : 'text-slate-300 hover:bg-slate-800'
-          }`}
-        >
-          <Trophy className="w-5 h-5" />
-          How to Improve (from Pros)
         </button>
 
         <button
@@ -886,18 +949,19 @@ function App() {
           {/* ========== WELCOME PANEL ========== */}
           {activePanel === 'welcome' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-8">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-slate-100 mb-2">
-                  {myPlayerData?.player?.name || myPlayerData?.player?.username
-                    ? `Welcome back, ${myPlayerData.player.name || myPlayerData.player.username}!`
-                    : 'Welcome to Improve at Chess!'}
-                </h2>
-                <p className="text-slate-400">
-                  {myPlayerData
-                    ? 'Explore these powerful analysis tools to improve your game:'
-                    : 'Enter your Chess.com username in the sidebar to unlock these powerful analysis tools:'}
-                </p>
-              </div>
+              {/* Only show header text for authenticated users */}
+              {isAuthenticated && (
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold text-slate-100 mb-2">
+                    {myPlayerData?.player?.name || myPlayerData?.player?.username
+                      ? `Welcome back, ${myPlayerData.player.name || myPlayerData.player.username}!`
+                      : 'Welcome!'}
+                  </h2>
+                  <p className="text-slate-400">
+                    Explore these powerful analysis tools to improve your game:
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
                 {/* My Data */}
@@ -995,11 +1059,14 @@ function App() {
                 </div>
               </div>
 
-              <div className="text-center mt-8">
-                <p className="text-slate-500 text-sm">
-                  Use the "Lookup Player" search in the sidebar to fetch your stats or explore any Chess.com player.
-                </p>
-              </div>
+              {/* Only show footer text for authenticated users */}
+              {isAuthenticated && (
+                <div className="text-center mt-8">
+                  <p className="text-slate-500 text-sm">
+                    Use the "Lookup Player" search in the sidebar to fetch your stats or explore any Chess.com player.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -1014,93 +1081,85 @@ function App() {
                 <h2 className="text-3xl font-bold text-slate-100 whitespace-nowrap">
                   How to Improve (from Pros)
                 </h2>
-                <p className="text-slate-400 text-lg italic">Work in progress..</p>
+                <p className="text-slate-400 text-lg italic">Learn from the world's best players</p>
               </div>
 
-              <div className="bg-slate-100 border border-slate-300 p-6 rounded-xl shadow-sm max-w-2xl mx-auto">
-                <label className="block text-slate-800 font-bold mb-3">Select a Top Player</label>
-                <select
-                  value={selectedPro}
-                  onChange={(e) => setSelectedPro(e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">-- Choose a pro player --</option>
-                  {TOP_FIDE_PLAYERS.map((player, idx) => (
-                    <option key={idx} value={player.name}>
-                      #{idx + 1} {player.name} ({player.country}) - {formatNumber(player.rating)}
-                    </option>
-                  ))}
-                </select>
+              {/* Player Selection Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-8">
+                {PRO_PLAYERS.map((player) => (
+                  <button
+                    key={player.name}
+                    onClick={() => setSelectedPro(selectedPro === player.name ? '' : player.name)}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      selectedPro === player.name
+                        ? 'bg-blue-600 border-blue-500 text-white'
+                        : 'bg-slate-800 border-slate-700 text-slate-200 hover:border-slate-500'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`text-2xl font-bold ${selectedPro === player.name ? 'text-blue-200' : 'text-slate-500'}`}>
+                        #{player.rank}
+                      </span>
+                      <div>
+                        <p className="font-bold">{player.name}</p>
+                        <p className={`text-sm ${selectedPro === player.name ? 'text-blue-200' : 'text-slate-400'}`}>
+                          {player.country} • {formatNumber(player.rating)}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </div>
 
-              {/* Pro Tips Videos Section */}
-              {selectedPro && (
-                <div className="mt-8">
-                  <h3 className="text-2xl font-bold text-slate-100 text-center mb-6">
-                    Tips from {selectedPro}
-                  </h3>
-
-                  {proVideosLoading && (
-                    <div className="flex justify-center items-center py-12">
-                      <Loader2 className="animate-spin w-8 h-8 text-slate-300" />
-                      <span className="ml-3 text-slate-300">Loading videos...</span>
+              {/* Selected Player Content */}
+              {selectedPro && (() => {
+                const player = PRO_PLAYERS.find(p => p.name === selectedPro);
+                if (!player) return null;
+                return (
+                  <div className="max-w-4xl mx-auto space-y-6">
+                    {/* Video Embed */}
+                    <div className="bg-slate-800 rounded-xl overflow-hidden">
+                      <div className="aspect-video">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          src={`https://www.youtube.com/embed/${player.videoId}`}
+                          title={player.videoTitle}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full"
+                        ></iframe>
+                      </div>
+                      <div className="p-4">
+                        <p className="text-slate-300 text-sm">
+                          <span className="text-slate-500">Source:</span> {player.videoTitle}
+                        </p>
+                      </div>
                     </div>
-                  )}
 
-                  {proVideosError && (
-                    <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg max-w-2xl mx-auto">
-                      Failed to fetch videos. YouTube API may not be configured.
-                    </div>
-                  )}
-
-                  {!proVideosLoading && !proVideosError && proVideos.length === 0 && (
-                    <p className="text-slate-400 text-center italic">
-                      No videos found for this player.
-                    </p>
-                  )}
-
-                  {!proVideosLoading && proVideos.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                      {proVideos.map((video) => (
-                        <a
-                          key={video.video_id}
-                          href={video.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="bg-slate-100 border border-slate-300 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow"
-                        >
-                          <img
-                            src={video.thumbnail}
-                            alt={video.title}
-                            className="w-full h-40 object-cover"
-                          />
-                          <div className="p-4">
-                            <h4 className="font-bold text-slate-800 text-sm line-clamp-2 mb-3">
-                              {video.title}
-                            </h4>
-                            <div className="flex items-center gap-3">
-                              {video.channel_thumbnail && (
-                                <img
-                                  src={video.channel_thumbnail}
-                                  alt={video.channel_title}
-                                  className="w-8 h-8 rounded-full"
-                                />
-                              )}
-                              <div>
-                                <p className="text-slate-700 text-sm font-medium">{video.channel_title}</p>
-                                <div className="flex gap-3 text-xs text-slate-500">
-                                  <span>{formatNumber(video.view_count)} views</span>
-                                  <span>{formatNumber(video.subscriber_count)} subs</span>
-                                </div>
-                              </div>
+                    {/* Tips */}
+                    <div className="bg-slate-100 rounded-xl p-6">
+                      <h3 className="text-xl font-bold text-slate-800 mb-4">
+                        Key Tips from {player.name}
+                      </h3>
+                      <div className="space-y-4">
+                        {player.tips.map((tip, idx) => (
+                          <div key={idx} className="flex gap-4">
+                            <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                              {idx + 1}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-slate-800">{tip.title}</h4>
+                              <p className="text-slate-600 text-sm mt-1">{tip.description}</p>
                             </div>
                           </div>
-                        </a>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
 
               <div className="flex justify-center mt-12">
                 <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
@@ -1120,6 +1179,36 @@ function App() {
                   Win Prediction
                 </h2>
                 <p className="text-slate-400 text-lg italic">Does your previous game result predict your next one?</p>
+              </div>
+
+              {/* Methodology Section */}
+              <div className="bg-slate-800 border border-slate-700 p-5 rounded-xl text-sm max-w-2xl mx-auto">
+                <p className="font-bold text-slate-200 mb-3">How This Analysis Works</p>
+                <div className="space-y-3 text-slate-400">
+                  <p>
+                    We use <span className="text-slate-200 font-medium">logistic regression</span>, a statistical model that predicts the probability of a binary outcome (win or not win) based on input variables.
+                  </p>
+                  <p>
+                    <span className="text-slate-200 font-medium">Variables tested:</span> (1) previous game result, (2) time of day (2-hour blocks), (3) day balance (cumulative wins minus losses), and (4) minutes since last game.
+                  </p>
+                  <p>
+                    The model estimates: <span className="text-slate-300 font-mono text-xs bg-slate-700 px-2 py-1 rounded">P(win) = 1 / (1 + e^-(b₀ + b₁×prev + b₂×hour + b₃×balance + b₄×gap))</span>
+                  </p>
+                  <p>
+                    The <span className="text-slate-200 font-medium">odds ratio</span> (e^bᵢ) tells you how much your odds of winning change per unit increase in each variable. An odds ratio of 1.2 means your odds increase by 20%.
+                  </p>
+                  <p>
+                    We use a <span className="text-slate-200 font-medium">likelihood ratio test</span> to determine statistical significance: we compare the model with predictors against a baseline model. If the improvement is unlikely to occur by chance (p &lt; 0.05), the effect is significant.
+                  </p>
+                  <p>
+                    <span className="text-slate-200 font-medium">Autocorrelation</span> measures how correlated a variable is with its previous value. High autocorrelation (&gt;0.5) may inflate significance, so we display it for transparency.
+                  </p>
+                </div>
+              </div>
+
+              {/* Horizontal separator */}
+              <div className="flex justify-center my-6">
+                <div className="h-px w-full max-w-2xl bg-slate-600"></div>
               </div>
 
               {!data ? (
@@ -1165,18 +1254,18 @@ function App() {
                       </div>
                     </div>
 
-                    {/* Statistical Summary */}
+                    {/* Statistical Summary - All 4 Variables */}
                     <div className="mt-6 pt-4 border-t border-slate-200">
                       <p className="text-xs text-slate-500 text-center mb-3">Logistic Regression Results</p>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
                         {/* Previous Result Factor */}
                         <div className="bg-slate-50 p-3 rounded-lg">
                           <p className="text-slate-600 font-medium mb-2">Previous Result</p>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between text-xs">
                             <span className="text-slate-500">Odds Ratio:</span>
                             <span className="font-bold text-slate-800">{data.win_prediction.odds_ratio}x</span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between text-xs">
                             <span className="text-slate-500">Significant:</span>
                             <span className={`font-bold ${data.win_prediction.is_significant ? 'text-green-600' : 'text-slate-400'}`}>
                               {data.win_prediction.is_significant ? 'Yes' : 'No'}
@@ -1186,21 +1275,73 @@ function App() {
                         {/* Hour of Day Factor */}
                         <div className="bg-slate-50 p-3 rounded-lg">
                           <p className="text-slate-600 font-medium mb-2">Time of Day</p>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between text-xs">
                             <span className="text-slate-500">Best:</span>
                             <span className="font-bold text-green-600">
                               {data.win_prediction.best_hour !== undefined ? `${data.win_prediction.best_hour}:00-${data.win_prediction.best_hour + 2}:00` : 'N/A'}
                             </span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between text-xs">
                             <span className="text-slate-500">Significant:</span>
                             <span className={`font-bold ${data.win_prediction.is_hour_significant ? 'text-green-600' : 'text-slate-400'}`}>
                               {data.win_prediction.is_hour_significant ? 'Yes' : 'No'}
                             </span>
                           </div>
                         </div>
+                        {/* Day Balance Factor */}
+                        <div className="bg-slate-50 p-3 rounded-lg">
+                          <p className="text-slate-600 font-medium mb-2">Day Balance</p>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Odds Ratio:</span>
+                            <span className="font-bold text-slate-800">
+                              {data.win_prediction.odds_ratio_day_balance !== undefined ? `${data.win_prediction.odds_ratio_day_balance}x` : 'N/A'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Significant:</span>
+                            <span className={`font-bold ${data.win_prediction.is_balance_significant ? 'text-green-600' : 'text-slate-400'}`}>
+                              {data.win_prediction.is_balance_significant ? 'Yes' : 'No'}
+                            </span>
+                          </div>
+                        </div>
+                        {/* Minutes Gap Factor */}
+                        <div className="bg-slate-50 p-3 rounded-lg">
+                          <p className="text-slate-600 font-medium mb-2">Minutes Gap</p>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Odds Ratio:</span>
+                            <span className="font-bold text-slate-800">
+                              {data.win_prediction.odds_ratio_minutes !== undefined ? `${data.win_prediction.odds_ratio_minutes}x` : 'N/A'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Significant:</span>
+                            <span className={`font-bold ${data.win_prediction.is_minutes_significant ? 'text-green-600' : 'text-slate-400'}`}>
+                              {data.win_prediction.is_minutes_significant ? 'Yes' : 'No'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Autocorrelation Section */}
+                    {data.win_prediction.autocorrelations && (
+                      <div className="mt-4 pt-4 border-t border-slate-200">
+                        <p className="text-xs text-slate-500 text-center mb-3">Autocorrelation (lag-1)</p>
+                        <div className="grid grid-cols-4 gap-2 text-xs">
+                          {Object.entries(data.win_prediction.autocorrelations).map(([key, ac]) => (
+                            <div key={key} className="bg-slate-50 p-2 rounded text-center">
+                              <p className="text-slate-500 truncate">{ac.name}</p>
+                              <p className={`font-bold ${Math.abs(ac.value) > 0.5 ? 'text-amber-600' : 'text-slate-700'}`}>
+                                {ac.value}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-slate-400 text-center mt-2 italic">
+                          Values &gt;0.5 (amber) may have inflated significance due to serial correlation
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Insights Section */}
@@ -1249,17 +1390,6 @@ function App() {
                     </div>
                   )}
 
-                  {/* Interpretation Guide */}
-                  <div className="bg-slate-200 p-4 rounded-lg text-sm text-slate-700">
-                    <p className="font-bold mb-2">How to interpret this data:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li><span className="font-medium">Odds Ratio &gt; 1</span>: Winning increases your chances of winning the next game</li>
-                      <li><span className="font-medium">Odds Ratio &lt; 1</span>: Winning decreases your chances (possible overconfidence)</li>
-                      <li><span className="font-medium">Statistically Significant</span>: The pattern is reliable, not random chance (p &lt; 0.05)</li>
-                      <li><span className="font-medium">Time of Day</span>: Whether your performance varies by when you play (2-hour blocks)</li>
-                      <li>Only consecutive same-day games are analyzed to measure true momentum/tilt effects</li>
-                    </ul>
-                  </div>
                 </div>
               ) : null}
 

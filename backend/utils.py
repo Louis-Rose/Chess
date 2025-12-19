@@ -681,24 +681,40 @@ def group_opening_stats(games_list):
 def compute_win_prediction_from_games(games_by_day):
     """
     Compute win prediction analysis from already-collected games_by_day data.
-    Uses logistic regression with two predictors:
+    Uses logistic regression with four predictors:
     1. Previous game result (momentum/tilt)
     2. Hour of day (2-hour spans)
+    3. Day balance (cumulative wins - losses so far that day)
+    4. Minutes since last game
     """
-    # Build pairs of (previous_result, current_result, hour) for same-day consecutive games
+    # Build pairs of (previous_result, current_result, hour, day_balance, minutes_gap) for same-day consecutive games
     pairs = []
     for date_key, games in games_by_day.items():
         # Sort games by timestamp within each day
         sorted_games = sorted(games, key=lambda x: x[0])
 
+        # Track cumulative day balance (wins - losses)
+        day_balance = 0
+
         for i in range(1, len(sorted_games)):
             prev_result = sorted_games[i - 1][1]  # 'win', 'draw', 'loss'
             curr_result = sorted_games[i][1]
+            prev_timestamp = sorted_games[i - 1][0]
             curr_timestamp = sorted_games[i][0]
+
+            # Update day balance based on previous game
+            if prev_result == 'win':
+                day_balance += 1
+            elif prev_result == 'loss':
+                day_balance -= 1
+            # draws don't change balance
 
             # Extract hour group (2-hour spans: 0-1, 2-3, etc.)
             game_hour = datetime.datetime.fromtimestamp(curr_timestamp).hour
             hour_group = game_hour // 2  # 0-11 representing 2-hour blocks
+
+            # Calculate minutes since last game
+            minutes_since_last = (curr_timestamp - prev_timestamp) / 60.0
 
             # Convert results to numeric
             prev_win = 1 if prev_result == 'win' else (0.5 if prev_result == 'draw' else 0)
@@ -708,6 +724,8 @@ def compute_win_prediction_from_games(games_by_day):
                 'prev_win': prev_win,
                 'curr_win': curr_win,
                 'hour_group': hour_group,
+                'day_balance': day_balance,
+                'minutes_since_last': minutes_since_last,
             })
 
     if len(pairs) < 50:
@@ -748,13 +766,50 @@ def compute_win_prediction_from_games(games_by_day):
     best_hour_group = max(hourly_win_rates, key=hourly_win_rates.get) if hourly_win_rates else None
     worst_hour_group = min(hourly_win_rates, key=hourly_win_rates.get) if hourly_win_rates else None
 
-    # Logistic Regression with both predictors
+    # Logistic Regression with four predictors
     prev_won = np.array([1 if p['prev_win'] == 1 else 0 for p in pairs])
     curr_won = np.array([1 if p['curr_win'] == 1 else 0 for p in pairs])
     hour_groups = np.array([p['hour_group'] for p in pairs])
+    day_balances = np.array([p['day_balance'] for p in pairs])
+    minutes_gaps = np.array([p['minutes_since_last'] for p in pairs])
 
-    # Normalize hour to [-0.5, 0.5] range for better regression stability
+    # Normalize variables for regression stability
     hour_normalized = (hour_groups - 6) / 12.0  # Center around noon
+
+    # Normalize day_balance (typically ranges from -10 to +10)
+    day_balance_std = np.std(day_balances) if np.std(day_balances) > 0 else 1
+    day_balance_normalized = day_balances / day_balance_std
+
+    # Normalize minutes (log transform to handle skewness, then normalize)
+    minutes_log = np.log1p(minutes_gaps)  # log(1 + x) to handle 0s
+    minutes_std = np.std(minutes_log) if np.std(minutes_log) > 0 else 1
+    minutes_normalized = (minutes_log - np.mean(minutes_log)) / minutes_std
+
+    # Compute autocorrelation for each predictor variable
+    def compute_autocorr(x, lag=1):
+        """Compute autocorrelation at given lag."""
+        n = len(x)
+        if n <= lag:
+            return 0.0
+        mean_x = np.mean(x)
+        var_x = np.var(x)
+        if var_x == 0:
+            return 0.0
+        autocov = np.mean((x[:-lag] - mean_x) * (x[lag:] - mean_x))
+        return autocov / var_x
+
+    autocorr_prev_win = compute_autocorr(prev_won)
+    autocorr_hour = compute_autocorr(hour_groups)
+    autocorr_day_balance = compute_autocorr(day_balances)
+    autocorr_minutes = compute_autocorr(minutes_gaps)
+
+    # Build autocorrelation info for display
+    autocorrelations = {
+        'prev_result': {'value': round(float(autocorr_prev_win), 3), 'name': 'Previous Result'},
+        'hour': {'value': round(float(autocorr_hour), 3), 'name': 'Hour of Day'},
+        'day_balance': {'value': round(float(autocorr_day_balance), 3), 'name': 'Day Balance'},
+        'minutes_gap': {'value': round(float(autocorr_minutes), 3), 'name': 'Minutes Since Last'}
+    }
 
     def logistic_loss(params, X, y):
         z = X @ params
@@ -762,22 +817,26 @@ def compute_win_prediction_from_games(games_by_day):
         p = np.clip(p, 1e-10, 1 - 1e-10)
         return -np.mean(y * np.log(p) + (1 - y) * np.log(1 - p))
 
-    # Full model: intercept + prev_win + hour
-    X_full = np.column_stack([np.ones(len(pairs)), prev_won, hour_normalized])
+    # Full model: intercept + prev_win + hour + day_balance + minutes
+    X_full = np.column_stack([np.ones(len(pairs)), prev_won, hour_normalized, day_balance_normalized, minutes_normalized])
     y = curr_won
 
-    result_full = minimize(logistic_loss, x0=np.zeros(3), args=(X_full, y), method='BFGS')
+    result_full = minimize(logistic_loss, x0=np.zeros(5), args=(X_full, y), method='BFGS')
     intercept = result_full.x[0]
     coef_prev_win = result_full.x[1]
     coef_hour = result_full.x[2]
+    coef_day_balance = result_full.x[3]
+    coef_minutes = result_full.x[4]
 
     # Odds ratios
     odds_ratio_prev = np.exp(coef_prev_win)
-    odds_ratio_hour = np.exp(coef_hour)  # Per unit change in normalized hour
+    odds_ratio_hour = np.exp(coef_hour)
+    odds_ratio_day_balance = np.exp(coef_day_balance)
+    odds_ratio_minutes = np.exp(coef_minutes)
 
     baseline_prob = expit(intercept) * 100
 
-    # Significance tests using likelihood ratio
+    # Significance tests using likelihood ratio for each predictor
     # Null model (intercept only)
     X_null = np.ones((len(pairs), 1))
     result_null = minimize(logistic_loss, x0=np.zeros(1), args=(X_null, y), method='BFGS')
@@ -790,17 +849,31 @@ def compute_win_prediction_from_games(games_by_day):
     X_hour_only = np.column_stack([np.ones(len(pairs)), hour_normalized])
     result_hour_only = minimize(logistic_loss, x0=np.zeros(2), args=(X_hour_only, y), method='BFGS')
 
+    # Model with only day_balance
+    X_balance_only = np.column_stack([np.ones(len(pairs)), day_balance_normalized])
+    result_balance_only = minimize(logistic_loss, x0=np.zeros(2), args=(X_balance_only, y), method='BFGS')
+
+    # Model with only minutes
+    X_minutes_only = np.column_stack([np.ones(len(pairs)), minutes_normalized])
+    result_minutes_only = minimize(logistic_loss, x0=np.zeros(2), args=(X_minutes_only, y), method='BFGS')
+
     # Log-likelihoods
     ll_null = -logistic_loss(result_null.x, X_null, y) * len(pairs)
     ll_prev_only = -logistic_loss(result_prev_only.x, X_prev_only, y) * len(pairs)
     ll_hour_only = -logistic_loss(result_hour_only.x, X_hour_only, y) * len(pairs)
+    ll_balance_only = -logistic_loss(result_balance_only.x, X_balance_only, y) * len(pairs)
+    ll_minutes_only = -logistic_loss(result_minutes_only.x, X_minutes_only, y) * len(pairs)
     ll_full = -logistic_loss(result_full.x, X_full, y) * len(pairs)
 
-    # Test significance of each predictor
+    # Test significance of each predictor (chi-squared critical value at p=0.05, df=1 is 3.84)
     lr_stat_prev = 2 * (ll_prev_only - ll_null)
     lr_stat_hour = 2 * (ll_hour_only - ll_null)
+    lr_stat_balance = 2 * (ll_balance_only - ll_null)
+    lr_stat_minutes = 2 * (ll_minutes_only - ll_null)
     is_prev_significant = bool(lr_stat_prev > 3.84)
     is_hour_significant = bool(lr_stat_hour > 3.84)
+    is_balance_significant = bool(lr_stat_balance > 3.84)
+    is_minutes_significant = bool(lr_stat_minutes > 3.84)
 
     # Generate insights
     insights = []
@@ -866,6 +939,54 @@ def compute_win_prediction_from_games(games_by_day):
             'recommendation': 'Consider taking a short break after a loss to reset mentally.'
         })
 
+    # Day balance insights
+    if is_balance_significant:
+        if coef_day_balance > 0.05:
+            insights.append({
+                'type': 'positive',
+                'title': 'Winning days boost performance',
+                'message': f'When you\'re ahead for the day (more wins than losses), you tend to play better. Odds ratio: {odds_ratio_day_balance:.2f}x.',
+                'recommendation': 'Your confidence builds throughout winning sessions. Use this momentum!'
+            })
+        elif coef_day_balance < -0.05:
+            insights.append({
+                'type': 'warning',
+                'title': 'Winning streaks may cause complacency',
+                'message': f'When you\'re ahead for the day, your win rate actually drops. Odds ratio: {odds_ratio_day_balance:.2f}x.',
+                'recommendation': 'Stay focused even when having a good day. Don\'t get overconfident.'
+            })
+    else:
+        insights.append({
+            'type': 'info',
+            'title': 'Day balance has no impact',
+            'message': f'Whether you\'re ahead or behind for the day doesn\'t significantly affect your next game. Odds ratio: {odds_ratio_day_balance:.2f}x.',
+            'recommendation': 'Good mental stability! Your performance doesn\'t depend on your session\'s running tally.'
+        })
+
+    # Minutes gap insights
+    if is_minutes_significant:
+        if coef_minutes > 0.05:
+            insights.append({
+                'type': 'info',
+                'title': 'Longer breaks help',
+                'message': f'Taking more time between games improves your performance. Odds ratio: {odds_ratio_minutes:.2f}x per std deviation.',
+                'recommendation': 'Don\'t rush into the next game. A short break helps you reset.'
+            })
+        elif coef_minutes < -0.05:
+            insights.append({
+                'type': 'info',
+                'title': 'You play better when warmed up',
+                'message': f'Playing games in quick succession improves your performance. Odds ratio: {odds_ratio_minutes:.2f}x.',
+                'recommendation': 'You benefit from staying "in the zone". Keep the momentum going!'
+            })
+    else:
+        insights.append({
+            'type': 'info',
+            'title': 'Time between games doesn\'t matter',
+            'message': f'The gap between your games doesn\'t significantly affect performance. Odds ratio: {odds_ratio_minutes:.2f}x.',
+            'recommendation': 'Play at your own pace - quick succession or with breaks, it doesn\'t impact your results.'
+        })
+
     # Build hourly data for frontend display
     hourly_data = []
     for hg in range(12):
@@ -890,14 +1011,21 @@ def compute_win_prediction_from_games(games_by_day):
         'win_rate_after_draw': round(win_rate_after_draw, 1) if win_rate_after_draw else None,
         'odds_ratio': round(float(odds_ratio_prev), 2),
         'odds_ratio_hour': round(float(odds_ratio_hour), 2),
+        'odds_ratio_day_balance': round(float(odds_ratio_day_balance), 2),
+        'odds_ratio_minutes': round(float(odds_ratio_minutes), 2),
         'coefficient': round(float(coef_prev_win), 3),
         'coefficient_hour': round(float(coef_hour), 3),
+        'coefficient_day_balance': round(float(coef_day_balance), 3),
+        'coefficient_minutes': round(float(coef_minutes), 3),
         'is_significant': is_prev_significant,
         'is_hour_significant': is_hour_significant,
+        'is_balance_significant': is_balance_significant,
+        'is_minutes_significant': is_minutes_significant,
         'baseline_win_rate': round(float(baseline_prob), 1),
         'best_hour': best_hour_group * 2 if best_hour_group is not None else None,
         'worst_hour': worst_hour_group * 2 if worst_hour_group is not None else None,
         'hourly_data': hourly_data,
+        'autocorrelations': autocorrelations,
         'insights': insights
     }
 
