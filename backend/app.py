@@ -420,5 +420,367 @@ def update_preferences():
     return jsonify({'success': True, 'preferences': updates})
 
 
+# ============= INVESTING ROUTES =============
+
+from investing_utils import (
+    compute_portfolio_composition, compute_portfolio_performance_from_transactions,
+    fetch_stock_price, get_previous_weekday, set_db_getter
+)
+
+# Initialize database getter for caching in investing_utils
+set_db_getter(get_db)
+
+@app.route('/api/investing/transactions', methods=['GET'])
+@login_required
+def get_transactions():
+    """Get user's transaction history."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+               FROM portfolio_transactions WHERE user_id = ?
+               ORDER BY transaction_date DESC, id DESC''',
+            (request.user_id,)
+        )
+        rows = cursor.fetchall()
+
+    transactions = [{
+        'id': row['id'],
+        'stock_ticker': row['stock_ticker'],
+        'transaction_type': row['transaction_type'],
+        'quantity': row['quantity'],
+        'transaction_date': row['transaction_date'],
+        'price_per_share': row['price_per_share']
+    } for row in rows]
+    return jsonify({'transactions': transactions})
+
+
+@app.route('/api/investing/transactions', methods=['POST'])
+@login_required
+def add_transaction():
+    """Add a new transaction (BUY or SELL) with auto-fetched price."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    stock_ticker = data.get('stock_ticker', '').upper().strip()
+    transaction_type = data.get('transaction_type', '').upper().strip()
+    quantity = data.get('quantity')
+    transaction_date = data.get('transaction_date')  # YYYY-MM-DD format
+
+    if not stock_ticker:
+        return jsonify({'error': 'Stock ticker required'}), 400
+    if transaction_type not in ['BUY', 'SELL']:
+        return jsonify({'error': 'Transaction type must be BUY or SELL'}), 400
+    if quantity is None or not isinstance(quantity, (int, float)) or quantity <= 0:
+        return jsonify({'error': 'Valid quantity required (must be > 0)'}), 400
+    if not transaction_date:
+        return jsonify({'error': 'Transaction date required (YYYY-MM-DD)'}), 400
+
+    quantity = int(quantity)
+
+    # Validate date format
+    try:
+        datetime.strptime(transaction_date, "%Y-%m-%d")
+    except ValueError:
+        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+
+    # Adjust for weekends (markets closed)
+    transaction_date = get_previous_weekday(transaction_date)
+
+    # Fetch historical price at transaction date
+    try:
+        price_per_share = fetch_stock_price(stock_ticker, transaction_date)
+    except Exception as e:
+        return jsonify({'error': f'Could not fetch price for {stock_ticker} on {transaction_date}: {str(e)}'}), 400
+
+    with get_db() as conn:
+        cursor = conn.execute('''
+            INSERT INTO portfolio_transactions (user_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (request.user_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share))
+        transaction_id = cursor.lastrowid
+
+    return jsonify({
+        'success': True,
+        'id': transaction_id,
+        'stock_ticker': stock_ticker,
+        'transaction_type': transaction_type,
+        'quantity': quantity,
+        'transaction_date': transaction_date,
+        'price_per_share': price_per_share
+    })
+
+
+@app.route('/api/investing/transactions/bulk', methods=['POST'])
+@login_required
+def bulk_add_transactions():
+    """Bulk add transactions (for initial setup). Fetches historical prices for each."""
+    data = request.get_json()
+    if not data or 'transactions' not in data:
+        return jsonify({'error': 'Transactions array required'}), 400
+
+    transactions = data['transactions']
+    if not isinstance(transactions, list):
+        return jsonify({'error': 'Transactions must be an array'}), 400
+
+    processed = []
+    errors = []
+
+    for t in transactions:
+        stock_ticker = t.get('stock_ticker', '').upper().strip()
+        transaction_type = t.get('transaction_type', 'BUY').upper().strip()
+        quantity = t.get('quantity', 0)
+        transaction_date = t.get('transaction_date')
+
+        if not stock_ticker or quantity <= 0 or not transaction_date:
+            continue
+        if transaction_type not in ['BUY', 'SELL']:
+            transaction_type = 'BUY'
+
+        try:
+            adjusted_date = get_previous_weekday(transaction_date)
+            price_per_share = fetch_stock_price(stock_ticker, adjusted_date)
+            processed.append({
+                'stock_ticker': stock_ticker,
+                'transaction_type': transaction_type,
+                'quantity': int(quantity),
+                'transaction_date': adjusted_date,
+                'price_per_share': price_per_share
+            })
+        except Exception as e:
+            errors.append(f'{stock_ticker}: {str(e)}')
+
+    if not processed:
+        return jsonify({'error': 'No valid transactions to save', 'details': errors}), 400
+
+    with get_db() as conn:
+        # Clear existing transactions
+        conn.execute('DELETE FROM portfolio_transactions WHERE user_id = ?', (request.user_id,))
+
+        # Insert new transactions
+        for t in processed:
+            conn.execute('''
+                INSERT INTO portfolio_transactions (user_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (request.user_id, t['stock_ticker'], t['transaction_type'], t['quantity'], t['transaction_date'], t['price_per_share']))
+
+    return jsonify({
+        'success': True,
+        'count': len(processed),
+        'transactions': processed,
+        'errors': errors if errors else None
+    })
+
+
+@app.route('/api/investing/transactions/<int:transaction_id>', methods=['DELETE'])
+@login_required
+def delete_transaction(transaction_id):
+    """Delete a transaction by ID."""
+    with get_db() as conn:
+        conn.execute(
+            'DELETE FROM portfolio_transactions WHERE user_id = ? AND id = ?',
+            (request.user_id, transaction_id)
+        )
+    return jsonify({'success': True, 'id': transaction_id})
+
+
+@app.route('/api/investing/holdings', methods=['GET'])
+@login_required
+def get_holdings():
+    """Get computed current holdings from transaction history."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+               FROM portfolio_transactions WHERE user_id = ?
+               ORDER BY transaction_date ASC, id ASC''',
+            (request.user_id,)
+        )
+        rows = cursor.fetchall()
+
+    # Compute holdings using FIFO for cost basis
+    holdings_map = {}  # ticker -> { quantity, lots: [{qty, price, date}] }
+
+    for row in rows:
+        ticker = row['stock_ticker']
+        qty = row['quantity']
+        price = row['price_per_share']
+        date = row['transaction_date']
+        tx_type = row['transaction_type']
+
+        if ticker not in holdings_map:
+            holdings_map[ticker] = {'quantity': 0, 'lots': []}
+
+        if tx_type == 'BUY':
+            holdings_map[ticker]['quantity'] += qty
+            holdings_map[ticker]['lots'].append({'qty': qty, 'price': price, 'date': date})
+        elif tx_type == 'SELL':
+            holdings_map[ticker]['quantity'] -= qty
+            # FIFO: remove from oldest lots first
+            remaining_sell = qty
+            while remaining_sell > 0 and holdings_map[ticker]['lots']:
+                lot = holdings_map[ticker]['lots'][0]
+                if lot['qty'] <= remaining_sell:
+                    remaining_sell -= lot['qty']
+                    holdings_map[ticker]['lots'].pop(0)
+                else:
+                    lot['qty'] -= remaining_sell
+                    remaining_sell = 0
+
+    # Build response with cost basis
+    holdings = []
+    for ticker, data in holdings_map.items():
+        if data['quantity'] > 0:
+            # Calculate weighted average cost basis from remaining lots
+            total_cost = sum(lot['qty'] * lot['price'] for lot in data['lots'])
+            total_qty = sum(lot['qty'] for lot in data['lots'])
+            avg_cost = total_cost / total_qty if total_qty > 0 else 0
+
+            holdings.append({
+                'stock_ticker': ticker,
+                'quantity': data['quantity'],
+                'cost_basis': round(avg_cost, 2)
+            })
+
+    return jsonify({'holdings': holdings})
+
+
+def compute_holdings_from_transactions(user_id):
+    """Helper to compute current holdings from transactions using FIFO."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+               FROM portfolio_transactions WHERE user_id = ?
+               ORDER BY transaction_date ASC, id ASC''',
+            (user_id,)
+        )
+        rows = cursor.fetchall()
+
+    holdings_map = {}
+
+    for row in rows:
+        ticker = row['stock_ticker']
+        qty = row['quantity']
+        price = row['price_per_share']
+        date = row['transaction_date']
+        tx_type = row['transaction_type']
+
+        if ticker not in holdings_map:
+            holdings_map[ticker] = {'quantity': 0, 'lots': []}
+
+        if tx_type == 'BUY':
+            holdings_map[ticker]['quantity'] += qty
+            holdings_map[ticker]['lots'].append({'qty': qty, 'price': price, 'date': date})
+        elif tx_type == 'SELL':
+            holdings_map[ticker]['quantity'] -= qty
+            remaining_sell = qty
+            while remaining_sell > 0 and holdings_map[ticker]['lots']:
+                lot = holdings_map[ticker]['lots'][0]
+                if lot['qty'] <= remaining_sell:
+                    remaining_sell -= lot['qty']
+                    holdings_map[ticker]['lots'].pop(0)
+                else:
+                    lot['qty'] -= remaining_sell
+                    remaining_sell = 0
+
+    holdings = []
+    for ticker, data in holdings_map.items():
+        if data['quantity'] > 0:
+            total_cost = sum(lot['qty'] * lot['price'] for lot in data['lots'])
+            total_qty = sum(lot['qty'] for lot in data['lots'])
+            avg_cost = total_cost / total_qty if total_qty > 0 else 0
+
+            holdings.append({
+                'stock_ticker': ticker,
+                'quantity': data['quantity'],
+                'cost_basis': round(avg_cost, 2),
+                'total_cost': round(total_cost, 2)
+            })
+
+    return holdings
+
+
+@app.route('/api/investing/portfolio/composition', methods=['GET'])
+@login_required
+def get_portfolio_composition():
+    """Get portfolio composition with current values, weights, cost basis and gains."""
+    holdings = compute_holdings_from_transactions(request.user_id)
+
+    if not holdings:
+        return jsonify({
+            'holdings': [],
+            'total_value_usd': 0,
+            'total_value_eur': 0,
+            'total_cost_basis': 0,
+            'total_gain_usd': 0,
+            'total_gain_pct': 0,
+            'eurusd_rate': 1.0
+        })
+
+    try:
+        composition = compute_portfolio_composition(holdings)
+        return jsonify(composition)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/investing/portfolio/performance', methods=['GET'])
+@login_required
+def get_portfolio_performance():
+    """Get portfolio performance vs benchmark, tracking actual holdings over time."""
+    benchmark = request.args.get('benchmark', 'QQQ')
+
+    if benchmark not in ['SP500', 'QQQ']:
+        return jsonify({'error': 'Invalid benchmark. Use SP500 or QQQ'}), 400
+
+    # Get all transactions
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+               FROM portfolio_transactions WHERE user_id = ?
+               ORDER BY transaction_date ASC''',
+            (request.user_id,)
+        )
+        rows = cursor.fetchall()
+
+    if not rows:
+        return jsonify({'error': 'No transactions found', 'data': [], 'summary': None})
+
+    transactions = [dict(row) for row in rows]
+
+    try:
+        performance = compute_portfolio_performance_from_transactions(transactions, benchmark=benchmark)
+        return jsonify(performance)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/investing/watchlist', methods=['GET'])
+@login_required
+def get_watchlist():
+    """Get user's watchlist (placeholder)."""
+    return jsonify({
+        'symbols': [],
+        'last_updated': None
+    })
+
+
+@app.route('/api/investing/watchlist', methods=['POST'])
+@login_required
+def add_to_watchlist():
+    """Add symbol to watchlist (placeholder)."""
+    data = request.get_json()
+    symbol = data.get('symbol') if data else None
+    if not symbol:
+        return jsonify({'error': 'Symbol required'}), 400
+    return jsonify({'success': True, 'symbol': symbol.upper()})
+
+
+@app.route('/api/investing/watchlist/<symbol>', methods=['DELETE'])
+@login_required
+def remove_from_watchlist(symbol):
+    """Remove symbol from watchlist (placeholder)."""
+    return jsonify({'success': True, 'symbol': symbol.upper()})
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

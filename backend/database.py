@@ -4,7 +4,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from contextlib import contextmanager
 
-DATABASE_PATH = os.environ.get('DATABASE_PATH', 'chess_stats.db')
+_DEFAULT_DB = os.path.join(os.path.dirname(__file__), 'chess_stats.db')
+DATABASE_PATH = os.environ.get('DATABASE_PATH', _DEFAULT_DB)
 CACHE_MAX_AGE_MINUTES = 30
 
 

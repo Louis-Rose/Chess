@@ -41,9 +41,45 @@ CREATE TABLE IF NOT EXISTS player_stats_cache (
     PRIMARY KEY (username, time_class)
 );
 
+-- Portfolio transactions table (investing app)
+-- Each row represents a BUY or SELL transaction
+CREATE TABLE IF NOT EXISTS portfolio_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    stock_ticker TEXT NOT NULL,
+    transaction_type TEXT NOT NULL,     -- 'BUY' or 'SELL'
+    quantity INTEGER NOT NULL,
+    transaction_date TEXT NOT NULL,     -- Date of transaction (YYYY-MM-DD)
+    price_per_share REAL NOT NULL,      -- Price per share at transaction date (USD)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Historical stock prices cache (shared across all users)
+CREATE TABLE IF NOT EXISTS historical_prices (
+    ticker TEXT NOT NULL,
+    date TEXT NOT NULL,              -- YYYY-MM-DD
+    close_price REAL NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (ticker, date)
+);
+
+-- Historical FX rates cache (shared across all users)
+CREATE TABLE IF NOT EXISTS historical_fx_rates (
+    pair TEXT NOT NULL,              -- e.g., 'EURUSD'
+    date TEXT NOT NULL,              -- YYYY-MM-DD
+    rate REAL NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (pair, date)
+);
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_player_stats_cache_updated ON player_stats_cache(updated_at);
+CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_user_id ON portfolio_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_ticker ON portfolio_transactions(stock_ticker);
+CREATE INDEX IF NOT EXISTS idx_historical_prices_date ON historical_prices(date);
+CREATE INDEX IF NOT EXISTS idx_historical_fx_rates_date ON historical_fx_rates(date);
