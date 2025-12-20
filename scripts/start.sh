@@ -55,9 +55,16 @@ case "$1" in
         case "$COMMAND" in
             start)
                 echo "=== Starting production services ==="
-                # Build frontend first
+                # Install backend dependencies
+                echo "Installing backend dependencies..."
+                cd "$ROOT_DIR/backend"
+                source venv/bin/activate
+                pip install -r requirements.txt --quiet
+
+                # Build frontend
                 echo "Building frontend..."
                 cd "$ROOT_DIR/frontend"
+                npm install --silent
                 npm run build
 
                 echo "Starting services..."
@@ -76,9 +83,16 @@ case "$1" in
 
             restart)
                 echo "=== Restarting production services ==="
-                # Rebuild frontend
+                # Install backend dependencies
+                echo "Installing backend dependencies..."
+                cd "$ROOT_DIR/backend"
+                source venv/bin/activate
+                pip install -r requirements.txt --quiet
+
+                # Build frontend
                 echo "Building frontend..."
                 cd "$ROOT_DIR/frontend"
+                npm install --silent
                 npm run build
 
                 echo "Restarting services..."
