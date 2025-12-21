@@ -757,29 +757,151 @@ def get_portfolio_performance():
 @app.route('/api/investing/watchlist', methods=['GET'])
 @login_required
 def get_watchlist():
-    """Get user's watchlist (placeholder)."""
-    return jsonify({
-        'symbols': [],
-        'last_updated': None
-    })
+    """Get user's watchlist."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT stock_ticker FROM watchlist WHERE user_id = ? ORDER BY created_at ASC',
+            (request.user_id,)
+        )
+        rows = cursor.fetchall()
+
+    symbols = [row['stock_ticker'] for row in rows]
+    return jsonify({'symbols': symbols})
 
 
 @app.route('/api/investing/watchlist', methods=['POST'])
 @login_required
 def add_to_watchlist():
-    """Add symbol to watchlist (placeholder)."""
+    """Add symbol to watchlist."""
     data = request.get_json()
     symbol = data.get('symbol') if data else None
     if not symbol:
         return jsonify({'error': 'Symbol required'}), 400
-    return jsonify({'success': True, 'symbol': symbol.upper()})
+
+    symbol = symbol.upper().strip()
+    with get_db() as conn:
+        try:
+            conn.execute(
+                'INSERT INTO watchlist (user_id, stock_ticker) VALUES (?, ?)',
+                (request.user_id, symbol)
+            )
+        except Exception:
+            # Already exists, ignore
+            pass
+
+    return jsonify({'success': True, 'symbol': symbol})
 
 
 @app.route('/api/investing/watchlist/<symbol>', methods=['DELETE'])
 @login_required
 def remove_from_watchlist(symbol):
-    """Remove symbol from watchlist (placeholder)."""
-    return jsonify({'success': True, 'symbol': symbol.upper()})
+    """Remove symbol from watchlist."""
+    symbol = symbol.upper().strip()
+    with get_db() as conn:
+        conn.execute(
+            'DELETE FROM watchlist WHERE user_id = ? AND stock_ticker = ?',
+            (request.user_id, symbol)
+        )
+    return jsonify({'success': True, 'symbol': symbol})
+
+
+@app.route('/api/investing/stock-info', methods=['GET'])
+def get_stock_info():
+    """Get stock info including PE ratio and earnings growth for one or more tickers."""
+    import yfinance as yf
+
+    tickers_param = request.args.get('tickers', '')
+    if not tickers_param:
+        return jsonify({'error': 'No tickers provided'}), 400
+
+    tickers = [t.strip().upper() for t in tickers_param.split(',') if t.strip()]
+    if not tickers:
+        return jsonify({'error': 'No valid tickers provided'}), 400
+
+    results = {}
+    for ticker in tickers:
+        try:
+            stock = yf.Ticker(ticker)
+            info = stock.info
+
+            # Get PE ratio - try different fields
+            pe_ratio = info.get('trailingPE') or info.get('forwardPE')
+            current_price = info.get('regularMarketPrice') or info.get('currentPrice') or info.get('previousClose')
+            market_cap = info.get('marketCap')
+            name = info.get('shortName') or info.get('longName') or ticker
+
+            # Get net income: TTM, 2024, 2021, 2020
+            net_income_ttm = None
+            net_income_2024 = None
+            net_income_2021 = None
+            net_income_2020 = None
+            try:
+                # Get TTM from quarterly financials
+                quarterly = stock.quarterly_financials
+                if quarterly is not None and not quarterly.empty:
+                    for row_name in ['Net Income', 'Net Income Common Stockholders', 'NetIncome']:
+                        if row_name in quarterly.index:
+                            quarterly_income = quarterly.loc[row_name].dropna().sort_index(ascending=False)
+                            if len(quarterly_income) >= 4:
+                                # Sum last 4 quarters for TTM
+                                net_income_ttm = float(sum(quarterly_income.iloc[:4]))
+                            break
+
+                # Get annual financials
+                financials = stock.financials
+                if financials is not None and not financials.empty:
+                    net_income_row = None
+                    for row_name in ['Net Income', 'Net Income Common Stockholders', 'NetIncome']:
+                        if row_name in financials.index:
+                            net_income_row = financials.loc[row_name]
+                            break
+
+                    if net_income_row is not None:
+                        # Create dict of year -> net income
+                        yearly_income = {}
+                        for date, value in net_income_row.dropna().items():
+                            yearly_income[date.year] = float(value)
+
+                        net_income_2024 = yearly_income.get(2024)
+                        net_income_2021 = yearly_income.get(2021)
+                        net_income_2020 = yearly_income.get(2020)
+            except Exception:
+                pass  # Earnings data not available
+
+            # Calculate CAGR from 2020 (or 2021) to TTM (or 2024)
+            earnings_cagr = None
+            cagr_end = net_income_ttm or net_income_2024
+            cagr_start = net_income_2020 or net_income_2021
+            start_year = 2020 if net_income_2020 else 2021
+            if cagr_end and cagr_start and cagr_end > 0 and cagr_start > 0:
+                # Calculate years from start to end
+                end_year = 2024.5 if net_income_ttm else 2024
+                years = end_year - start_year
+                if years > 0:
+                    cagr = ((cagr_end / cagr_start) ** (1 / years) - 1) * 100
+                    earnings_cagr = round(cagr, 1)
+
+            results[ticker] = {
+                'ticker': ticker,
+                'name': name,
+                'price': round(float(current_price), 2) if current_price else None,
+                'pe_ratio': round(float(pe_ratio), 2) if pe_ratio else None,
+                'market_cap': market_cap,
+                'sector': info.get('sector'),
+                'industry': info.get('industry'),
+                'net_income_ttm': net_income_ttm,
+                'net_income_2024': net_income_2024,
+                'net_income_2021': net_income_2021,
+                'net_income_2020': net_income_2020,
+                'earnings_cagr': earnings_cagr,
+            }
+        except Exception as e:
+            results[ticker] = {
+                'ticker': ticker,
+                'error': str(e)
+            }
+
+    return jsonify({'stocks': results})
 
 
 if __name__ == '__main__':

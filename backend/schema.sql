@@ -73,6 +73,16 @@ CREATE TABLE IF NOT EXISTS historical_fx_rates (
     PRIMARY KEY (pair, date)
 );
 
+-- Watchlist table (investing app)
+CREATE TABLE IF NOT EXISTS watchlist (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    stock_ticker TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(user_id, stock_ticker)
+);
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -83,3 +93,4 @@ CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_user_id ON portfolio_trans
 CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_ticker ON portfolio_transactions(stock_ticker);
 CREATE INDEX IF NOT EXISTS idx_historical_prices_date ON historical_prices(date);
 CREATE INDEX IF NOT EXISTS idx_historical_fx_rates_date ON historical_fx_rates(date);
+CREATE INDEX IF NOT EXISTS idx_watchlist_user_id ON watchlist(user_id);
