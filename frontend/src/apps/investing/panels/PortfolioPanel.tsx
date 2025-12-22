@@ -7,7 +7,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ReferenceDot
 } from 'recharts';
-import { Briefcase, Plus, Trash2, Loader2, TrendingUp, TrendingDown, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet, ChevronDown } from 'lucide-react';
+import { Briefcase, Plus, Trash2, Loader2, TrendingUp, TrendingDown, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
@@ -201,7 +201,6 @@ export function PortfolioPanel() {
   const [showStockDropdown, setShowStockDropdown] = useState(false);
   const [hoveredTransactions, setHoveredTransactions] = useState<{ txs: TransactionEvent[]; x: number; y: number } | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(undefined);
-  const [showAccountsSection, setShowAccountsSection] = useState(false);
   const [showAddAccountForm, setShowAddAccountForm] = useState(false);
   const [newAccountType, setNewAccountType] = useState('');
   const [newAccountBank, setNewAccountBank] = useState('');
