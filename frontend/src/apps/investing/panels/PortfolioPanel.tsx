@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ReferenceDot
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Legend
 } from 'recharts';
 import { Briefcase, Plus, Trash2, Loader2, TrendingUp, TrendingDown, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -199,7 +199,6 @@ export function PortfolioPanel() {
   const [stockSearch, setStockSearch] = useState('');
   const [stockResults, setStockResults] = useState<Stock[]>([]);
   const [showStockDropdown, setShowStockDropdown] = useState(false);
-  const [hoveredTransactions, setHoveredTransactions] = useState<{ txs: TransactionEvent[]; x: number; y: number } | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(undefined);
   const [showAddAccountForm, setShowAddAccountForm] = useState(false);
   const [newAccountType, setNewAccountType] = useState('');
@@ -1100,7 +1099,7 @@ export function PortfolioPanel() {
                       <span className={`text-2xl font-bold ${performanceData.summary.benchmark_return_eur >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
                         {performanceData.summary.benchmark_return_eur >= 0 ? '+' : ''}{performanceData.summary.benchmark_return_eur}%
                       </span>
-                      <p className="text-slate-500 text-sm">{benchmark}</p>
+                      <p className="text-slate-500 text-sm">{language === 'fr' ? 'Indice' : 'Benchmark'} ({benchmark})</p>
                     </div>
                   </div>
                 )}
@@ -1148,7 +1147,7 @@ export function PortfolioPanel() {
                           }
                           return [`€${numValue.toLocaleString()}`, label];
                         }}
-                        wrapperStyle={{ display: hoveredTransactions ? 'none' : 'block', zIndex: 100 }}
+                        wrapperStyle={{ zIndex: 100 }}
                         allowEscapeViewBox={{ x: true, y: true }}
                         offset={20}
                       />
@@ -1166,14 +1165,6 @@ export function PortfolioPanel() {
                             <div className="flex items-center gap-1.5">
                               <div className="w-4 h-0.5 bg-slate-400"></div>
                               <span className="text-slate-600">{t('performance.invested')}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-2.5 h-2.5 rounded-full bg-green-600"></div>
-                              <span className="text-slate-600">{t('transactions.buy')}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-2.5 h-2.5 rounded-full bg-red-600"></div>
-                              <span className="text-slate-600">{t('transactions.sell')}</span>
                             </div>
                           </div>
                         )}
@@ -1203,102 +1194,8 @@ export function PortfolioPanel() {
                         strokeWidth={2}
                         dot={false}
                       />
-                      {/* Transaction markers - grouped by week */}
-                      {(() => {
-                        // Group transactions by their chart data point
-                        const grouped = new Map<string, { dataPoint: PerformanceDataPoint; txs: TransactionEvent[] }>();
-                        performanceData.transactions?.forEach(tx => {
-                          const dataPoint = performanceData.data.find(d => d.date >= tx.date) || performanceData.data[performanceData.data.length - 1];
-                          if (!dataPoint) return;
-                          const key = dataPoint.date;
-                          if (!grouped.has(key)) {
-                            grouped.set(key, { dataPoint, txs: [] });
-                          }
-                          grouped.get(key)!.txs.push(tx);
-                        });
-
-                        return Array.from(grouped.entries()).map(([key, { dataPoint, txs }]) => {
-                          const hasBuy = txs.some(t => t.type === 'BUY');
-                          const hasSell = txs.some(t => t.type === 'SELL');
-                          const isMixed = hasBuy && hasSell;
-
-                          return (
-                            <ReferenceDot
-                              key={`tx-group-${key}`}
-                              x={dataPoint.date}
-                              y={dataPoint.portfolio_value_eur}
-                              r={6}
-                              ifOverflow="extendDomain"
-                              shape={(props: { cx?: number; cy?: number }) => {
-                                const { cx = 0, cy = 0 } = props;
-                                return (
-                                  <g
-                                    style={{ cursor: 'pointer' }}
-                                    onMouseEnter={() => setHoveredTransactions({ txs, x: cx, y: cy })}
-                                    onMouseLeave={() => setHoveredTransactions(null)}
-                                  >
-                                    {/* Larger invisible hit area */}
-                                    <circle cx={cx} cy={cy} r={24} fill="transparent" />
-                                    {/* Visible dot - half/half if mixed */}
-                                    {isMixed ? (
-                                      <>
-                                        <clipPath id={`clip-left-${key}`}>
-                                          <rect x={cx - 6} y={cy - 6} width={6} height={12} />
-                                        </clipPath>
-                                        <clipPath id={`clip-right-${key}`}>
-                                          <rect x={cx} y={cy - 6} width={6} height={12} />
-                                        </clipPath>
-                                        <circle cx={cx} cy={cy} r={6} fill="#16a34a" clipPath={`url(#clip-left-${key})`} />
-                                        <circle cx={cx} cy={cy} r={6} fill="#dc2626" clipPath={`url(#clip-right-${key})`} />
-                                        <circle cx={cx} cy={cy} r={6} fill="none" stroke="white" strokeWidth={2} />
-                                      </>
-                                    ) : (
-                                      <circle
-                                        cx={cx}
-                                        cy={cy}
-                                        r={6}
-                                        fill={hasBuy ? '#16a34a' : '#dc2626'}
-                                        stroke="white"
-                                        strokeWidth={2}
-                                      />
-                                    )}
-                                  </g>
-                                );
-                              }}
-                            />
-                          );
-                        });
-                      })()}
                     </LineChart>
                   </ResponsiveContainer>
-                  {/* Custom tooltip for transaction markers */}
-                  {hoveredTransactions && (
-                    <div
-                      className="absolute pointer-events-none bg-white border border-slate-200 rounded-lg shadow-lg p-3 z-50"
-                      style={{
-                        left: hoveredTransactions.x + 10,
-                        top: hoveredTransactions.y - (hoveredTransactions.txs.length > 1 ? 40 * hoveredTransactions.txs.length : 60),
-                        transform: hoveredTransactions.x > (chartContainerRef.current?.offsetWidth || 0) - 200 ? 'translateX(-100%)' : 'none',
-                      }}
-                    >
-                      {hoveredTransactions.txs.map((tx, idx) => (
-                        <div key={idx} className={idx > 0 ? 'mt-2 pt-2 border-t border-slate-100' : ''}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${tx.type === 'BUY' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              {tx.type === 'BUY' ? t('transactions.buy') : t('transactions.sell')}
-                            </span>
-                            <span className="font-bold text-slate-800">{tx.quantity} {t('transactions.shares')}</span>
-                          </div>
-                          <p className="text-slate-700 font-medium">
-                            {SP500_STOCKS.find(s => s.ticker === tx.ticker)?.name || tx.ticker}
-                          </p>
-                          <p className="text-slate-500 text-sm">
-                            {new Date(tx.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </>
             ) : (

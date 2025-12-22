@@ -384,9 +384,12 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark='QQQ
         date_dt = datetime.strptime(date_str, "%Y-%m-%d")
 
         # Calculate holdings at this date (only transactions before or on this date)
-        holdings_at_date = {}
+        # Track quantity, total cost (USD), and total cost (EUR) per ticker for average cost calculation
+        holdings_at_date = {}  # ticker -> quantity
+        cost_per_ticker_usd = {}  # ticker -> total cost in USD
+        cost_per_ticker_eur = {}  # ticker -> total cost in EUR
         cost_basis_at_date = 0
-        cost_basis_eur_at_date = 0  # Track EUR invested at transaction dates
+        cost_basis_eur_at_date = 0
         benchmark_shares_at_date = 0
 
         for i, tx in enumerate(sorted_txs):
@@ -397,19 +400,42 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark='QQQ
             ticker = tx['stock_ticker']
             if ticker not in holdings_at_date:
                 holdings_at_date[ticker] = 0
+                cost_per_ticker_usd[ticker] = 0
+                cost_per_ticker_eur[ticker] = 0
 
             if tx['transaction_type'] == 'BUY':
                 holdings_at_date[ticker] += tx['quantity']
-                cost_basis_at_date += tx['quantity'] * tx['price_per_share']
-                cost_basis_eur_at_date += tx_benchmark_info[i]['cost_eur']  # EUR at transaction date
+                tx_cost_usd = tx['quantity'] * tx['price_per_share']
+                tx_cost_eur = tx_benchmark_info[i]['cost_eur']
+                cost_per_ticker_usd[ticker] += tx_cost_usd
+                cost_per_ticker_eur[ticker] += tx_cost_eur
+                cost_basis_at_date += tx_cost_usd
+                cost_basis_eur_at_date += tx_cost_eur
                 benchmark_shares_at_date += tx_benchmark_info[i]['benchmark_shares']
             else:  # SELL
-                holdings_at_date[ticker] -= tx['quantity']
-                cost_basis_eur_at_date += tx_benchmark_info[i]['cost_eur']  # Negative, reduces invested amount
-                benchmark_shares_at_date += tx_benchmark_info[i]['benchmark_shares']  # Negative, reduces benchmark position
+                # Calculate average cost per share before this sale
+                qty_before = holdings_at_date[ticker]
+                if qty_before > 0:
+                    avg_cost_usd = cost_per_ticker_usd[ticker] / qty_before
+                    avg_cost_eur = cost_per_ticker_eur[ticker] / qty_before
+                else:
+                    avg_cost_usd = 0
+                    avg_cost_eur = 0
+
+                # Reduce holdings and cost basis by the original cost (not sale price)
+                sell_qty = tx['quantity']
+                holdings_at_date[ticker] -= sell_qty
+                cost_reduction_usd = sell_qty * avg_cost_usd
+                cost_reduction_eur = sell_qty * avg_cost_eur
+                cost_per_ticker_usd[ticker] -= cost_reduction_usd
+                cost_per_ticker_eur[ticker] -= cost_reduction_eur
+                cost_basis_at_date -= cost_reduction_usd
+                cost_basis_eur_at_date -= cost_reduction_eur
+                # Benchmark shares also reduce proportionally
+                benchmark_shares_at_date += tx_benchmark_info[i]['benchmark_shares']
 
         # Skip if no holdings yet
-        if not holdings_at_date or cost_basis_at_date == 0:
+        if not holdings_at_date or cost_basis_at_date <= 0:
             continue
 
         try:
