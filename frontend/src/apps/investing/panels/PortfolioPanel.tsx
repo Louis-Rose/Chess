@@ -1,11 +1,16 @@
 // Portfolio panel with transactions, composition and performance
 
+// Format number with wider spacing for EUR (e.g., "1 234 567")
+const formatEur = (num: number): string => {
+  return Math.round(num).toLocaleString('fr-FR').replace(/\u202F/g, ' ');
+};
+
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Legend
+  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Legend
 } from 'recharts';
 import { Briefcase, Plus, Trash2, Loader2, TrendingUp, TrendingDown, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -85,8 +90,11 @@ interface CompositionData {
   total_value_usd: number;
   total_value_eur: number;
   total_cost_basis: number;
+  total_cost_basis_eur: number;
   total_gain_usd: number;
   total_gain_pct: number;
+  realized_gains_usd: number;
+  realized_gains_eur: number;
   eurusd_rate: number;
 }
 
@@ -142,8 +150,9 @@ const fetchComposition = async (): Promise<CompositionData> => {
   return response.data;
 };
 
-const fetchPerformance = async (benchmark: string): Promise<PerformanceData> => {
-  const response = await axios.get(`/api/investing/portfolio/performance?benchmark=${benchmark}`);
+const fetchPerformance = async (benchmark: string, currency: string): Promise<PerformanceData> => {
+  // Send benchmark name (NASDAQ/SP500) and currency, backend handles ticker mapping
+  const response = await axios.get(`/api/investing/portfolio/performance?benchmark=${benchmark}&currency=${currency}`);
   return response.data;
 };
 
@@ -185,7 +194,8 @@ export function PortfolioPanel() {
   const { language, t } = useLanguage();
   const queryClient = useQueryClient();
 
-  const [benchmark, setBenchmark] = useState<'QQQ' | 'SP500'>('QQQ');
+  const [currency, setCurrency] = useState<'EUR' | 'USD'>('EUR');
+  const [benchmark, setBenchmark] = useState<'NASDAQ' | 'SP500'>('NASDAQ');
   const [privateMode, setPrivateMode] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
@@ -285,8 +295,8 @@ export function PortfolioPanel() {
   });
 
   const { data: performanceData, isLoading: performanceLoading } = useQuery({
-    queryKey: ['performance', benchmark],
-    queryFn: () => fetchPerformance(benchmark),
+    queryKey: ['performance', benchmark, currency],
+    queryFn: () => fetchPerformance(benchmark, currency),
     enabled: isAuthenticated && hasHoldings,
   });
 
@@ -462,6 +472,21 @@ export function PortfolioPanel() {
       <div className="flex flex-col items-center gap-2 mb-6">
         <div className="flex items-center gap-4">
           <h2 className="text-3xl font-bold text-slate-100">{t('portfolio.title')}</h2>
+          {/* Currency Toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-slate-600">
+            <button
+              onClick={() => setCurrency('EUR')}
+              className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+            >
+              EUR €
+            </button>
+            <button
+              onClick={() => setCurrency('USD')}
+              className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+            >
+              USD $
+            </button>
+          </div>
           <button
             onClick={() => setPrivateMode(!privateMode)}
             className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${privateMode ? 'bg-slate-600 text-slate-200' : 'bg-slate-700 text-slate-400 hover:text-slate-300'}`}
@@ -474,36 +499,84 @@ export function PortfolioPanel() {
       </div>
 
       <div className="max-w-6xl mx-auto space-y-8">
-        {/* Summary Cards */}
+        {/* Summary Cards - 4 columns */}
         {selectedAccountId && compositionData && hasHoldings && (
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-slate-100 rounded-xl p-6 text-center">
-              <p className="text-3xl font-bold text-slate-800">
-                {privateMode ? '•••' : `€${Math.round(compositionData.total_value_eur).toLocaleString()}`}
+          <div className="grid grid-cols-4 gap-4">
+            {/* Prix de revient (Cost Basis) */}
+            <div className="bg-slate-100 rounded-xl p-5 text-center">
+              <p className="text-2xl font-bold text-slate-800">
+                {privateMode ? '•••' : currency === 'EUR'
+                  ? `${formatEur(compositionData.total_cost_basis_eur)}€`
+                  : `$${Math.round(compositionData.total_cost_basis).toLocaleString('en-US')}`}
               </p>
-              <p className="text-slate-500 text-sm">{t('portfolio.totalValue')}</p>
+              <p className="text-slate-500 text-sm">{language === 'fr' ? 'Prix de revient' : 'Cost Basis'}</p>
             </div>
-            <div className="bg-slate-100 rounded-xl p-6 text-center">
-              <p className="text-3xl font-bold text-slate-800">
-                {privateMode ? '•••' : `€${Math.round(compositionData.total_cost_basis / compositionData.eurusd_rate).toLocaleString()}`}
+            {/* Valeur totale (Total Value) */}
+            <div className="bg-slate-100 rounded-xl p-5 text-center">
+              <p className="text-2xl font-bold text-slate-800">
+                {privateMode ? '•••' : currency === 'EUR'
+                  ? `${formatEur(compositionData.total_value_eur)}€`
+                  : `$${Math.round(compositionData.total_value_eur * compositionData.eurusd_rate).toLocaleString('en-US')}`}
               </p>
-              <p className="text-slate-500 text-sm">{t('portfolio.costBasis')}</p>
+              <p className="text-slate-500 text-sm">{language === 'fr' ? 'Valeur totale' : 'Total Value'}</p>
             </div>
-            <div className="bg-slate-100 rounded-xl p-6 text-center">
-              <div className="flex items-center justify-center gap-1">
-                {compositionData.total_gain_usd >= 0 ? (
-                  <TrendingUp className="w-6 h-6 text-green-600" />
-                ) : (
-                  <TrendingDown className="w-6 h-6 text-red-600" />
-                )}
-                <p className={`text-3xl font-bold ${compositionData.total_gain_usd >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {compositionData.total_gain_pct >= 0 ? '+' : ''}{compositionData.total_gain_pct}%
-                </p>
-              </div>
-              <p className="text-slate-500 text-sm">
-                {privateMode ? t('portfolio.totalGain') : `${compositionData.total_gain_usd >= 0 ? '+' : ''}€${Math.round(compositionData.total_gain_usd / compositionData.eurusd_rate).toLocaleString()}`}
-              </p>
-            </div>
+            {/* Gains non réalisés (Unrealized Gains) */}
+            {(() => {
+              // Calculate EUR gain: current value EUR - cost basis EUR (historical)
+              const unrealizedGainEur = compositionData.total_value_eur - compositionData.total_cost_basis_eur;
+              const unrealizedGainPctEur = compositionData.total_cost_basis_eur > 0
+                ? Math.round(100 * unrealizedGainEur / compositionData.total_cost_basis_eur * 10) / 10
+                : 0;
+              const displayGain = currency === 'EUR' ? unrealizedGainEur : compositionData.total_gain_usd;
+              const displayPct = currency === 'EUR' ? unrealizedGainPctEur : compositionData.total_gain_pct;
+              return (
+                <div className="bg-slate-100 rounded-xl p-5 text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    {displayGain >= 0 ? (
+                      <TrendingUp className="w-5 h-5 text-green-600" />
+                    ) : (
+                      <TrendingDown className="w-5 h-5 text-red-600" />
+                    )}
+                    <p className={`text-2xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {privateMode ? '•••' : currency === 'EUR'
+                        ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
+                        : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
+                    </p>
+                  </div>
+                  <p className={`text-sm font-semibold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {displayPct >= 0 ? '+' : ''}{displayPct}%
+                  </p>
+                  <p className="text-slate-500 text-xs">
+                    {language === 'fr' ? 'Gains non réalisés' : 'Unrealized Gains'}
+                  </p>
+                </div>
+              );
+            })()}
+            {/* Gains réalisés (Realized Gains) */}
+            {(() => {
+              const displayRealizedGain = currency === 'EUR'
+                ? compositionData.realized_gains_eur
+                : compositionData.realized_gains_usd;
+              return (
+                <div className="bg-slate-100 rounded-xl p-5 text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    {displayRealizedGain >= 0 ? (
+                      <TrendingUp className="w-5 h-5 text-emerald-600" />
+                    ) : (
+                      <TrendingDown className="w-5 h-5 text-red-600" />
+                    )}
+                    <p className={`text-2xl font-bold ${displayRealizedGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {privateMode ? '•••' : currency === 'EUR'
+                        ? `${displayRealizedGain >= 0 ? '+' : ''}${formatEur(displayRealizedGain)}€`
+                        : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
+                    </p>
+                  </div>
+                  <p className="text-slate-500 text-sm">
+                    {language === 'fr' ? 'Gains réalisés' : 'Realized Gains'}
+                  </p>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -580,10 +653,10 @@ export function PortfolioPanel() {
                     </p>
                     <ul className="list-disc list-inside space-y-1">
                       <li>
-                        {language === 'fr' ? 'Transaction' : 'Transaction'}: {banks[newAccountBank].order_fee_pct}% (min €{banks[newAccountBank].order_fee_min})
+                        {language === 'fr' ? 'Transaction' : 'Transaction'}: {banks[newAccountBank].order_fee_pct}% (min {banks[newAccountBank].order_fee_min}€)
                       </li>
                       <li>
-                        {language === 'fr' ? 'Tenue de compte' : 'Account fee'}: {banks[newAccountBank].account_fee_pct_semester}%/{language === 'fr' ? 'sem.' : 'sem.'} (€{banks[newAccountBank].account_fee_min_semester}-{banks[newAccountBank].account_fee_max_semester})
+                        {language === 'fr' ? 'Tenue de compte' : 'Account fee'}: {banks[newAccountBank].account_fee_pct_semester}%/{language === 'fr' ? 'sem.' : 'sem.'} ({banks[newAccountBank].account_fee_min_semester}€-{banks[newAccountBank].account_fee_max_semester}€)
                       </li>
                       <li>
                         {language === 'fr' ? 'Change' : 'FX'}: {language === 'fr' ? banks[newAccountBank].fx_fee_info_fr : banks[newAccountBank].fx_fee_info_en}
@@ -633,10 +706,7 @@ export function PortfolioPanel() {
                         <p><span className="text-slate-400">{t('accounts.type')}:</span> {account.type_info.name}</p>
                         <p><span className="text-slate-400">{t('accounts.bank')}:</span> {account.bank_info.name}</p>
                         <p className="text-xs text-slate-400">
-                          {language === 'fr'
-                            ? `${account.bank_info.order_fee_pct}% (min ${account.bank_info.order_fee_min}€)`
-                            : `${account.bank_info.order_fee_pct}% (min €${account.bank_info.order_fee_min})`
-                          }
+                          {`${account.bank_info.order_fee_pct}% (min ${account.bank_info.order_fee_min}€)`}
                         </p>
                       </div>
                     </div>
@@ -689,7 +759,7 @@ export function PortfolioPanel() {
                   </p>
                   <p className="text-amber-800">
                     {bankInfo.order_fee_pct}%
-                    <span className="text-amber-600 text-xs ml-1">(min €{bankInfo.order_fee_min})</span>
+                    <span className="text-amber-600 text-xs ml-1">(min {bankInfo.order_fee_min}€)</span>
                   </p>
                 </div>
                 <div>
@@ -697,11 +767,11 @@ export function PortfolioPanel() {
                     {language === 'fr' ? 'Tenue de compte (semestriels)' : 'Account fee (per semester)'}
                   </p>
                   <p className="text-amber-800">
-                    {bankInfo.account_fee_pct_semester}% (min €{bankInfo.account_fee_min_semester} - max €{bankInfo.account_fee_max_semester})
+                    {bankInfo.account_fee_pct_semester}% (min {bankInfo.account_fee_min_semester}€ - max {bankInfo.account_fee_max_semester}€)
                   </p>
                   {!privateMode && portfolioValueEur > 0 && (
                     <p className="text-amber-600 text-xs">
-                      ~€{Math.round(accountFeeSemester)}/{language === 'fr' ? 'sem.' : 'sem.'}
+                      ~{Math.round(accountFeeSemester)}€/{language === 'fr' ? 'sem.' : 'sem.'}
                     </p>
                   )}
                 </div>
@@ -992,7 +1062,7 @@ export function PortfolioPanel() {
                         formatter={(value, _name, props) => {
                           const payload = props.payload as CompositionItem;
                           const valueEur = Math.round(payload.current_value / compositionData.eurusd_rate);
-                          return [privateMode ? `${value}%` : `€${valueEur.toLocaleString()} (${value}%)`, payload.ticker];
+                          return [privateMode ? `${value}%` : `${formatEur(valueEur)}€ (${value}%)`, payload.ticker];
                         }}
                       />
                     </PieChart>
@@ -1020,7 +1090,7 @@ export function PortfolioPanel() {
                             <td className="py-2 text-right text-slate-600">{privateMode ? '••' : h.quantity}</td>
                             <td className="py-2 text-right text-slate-600">${h.current_price}</td>
                             <td className="py-2 text-right text-slate-800 font-medium">
-                              {privateMode ? `${h.weight}%` : `€${valueEur.toLocaleString()}`}
+                              {privateMode ? `${h.weight}%` : `${formatEur(valueEur)}€`}
                             </td>
                             <td className={`py-2 text-right font-medium ${h.gain_usd >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {h.gain_usd >= 0 ? '+' : ''}{h.gain_pct}%
@@ -1046,17 +1116,18 @@ export function PortfolioPanel() {
                 <h3 className="text-xl font-bold text-slate-800">{t('performance.title')}</h3>
                 {performanceData?.summary && (
                   <span className={`text-lg font-semibold ${performanceData.summary.cagr_eur >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {t('performance.cagr')}: {performanceData.summary.cagr_eur >= 0 ? '+' : ''}{performanceData.summary.cagr_eur}%/{language === 'fr' ? 'an' : 'year'}
+                    {language === 'fr' ? 'Croissance annuelle' : 'Annual growth'}: {performanceData.summary.cagr_eur >= 0 ? '+' : ''}{performanceData.summary.cagr_eur}%
                   </span>
                 )}
               </div>
+              {/* Benchmark Select */}
               <select
                 value={benchmark}
-                onChange={(e) => setBenchmark(e.target.value as 'QQQ' | 'SP500')}
+                onChange={(e) => setBenchmark(e.target.value as 'NASDAQ' | 'SP500')}
                 className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
               >
-                <option value="QQQ">{t('performance.benchmark.qqq')}</option>
-                <option value="SP500">{t('performance.benchmark.sp500')}</option>
+                <option value="NASDAQ">{currency === 'EUR' ? 'EQQQ (NASDAQ)' : 'QQQ (NASDAQ)'}</option>
+                <option value="SP500">{currency === 'EUR' ? 'CSPX (S&P 500)' : 'SPY (S&P 500)'}</option>
               </select>
             </div>
 
@@ -1064,7 +1135,20 @@ export function PortfolioPanel() {
               <div className="flex justify-center py-12">
                 <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
               </div>
-            ) : performanceData?.data && performanceData.data.length > 0 ? (
+            ) : performanceData?.data && performanceData.data.length > 0 ? (() => {
+              // Compute chart data with fill areas for outperformance/underperformance
+              const chartData = performanceData.data.map(d => {
+                const isOutperforming = d.portfolio_value_eur >= d.benchmark_value_eur;
+                return {
+                  ...d,
+                  // For stacked areas: base is the minimum, fill is the difference
+                  area_base: Math.min(d.portfolio_value_eur, d.benchmark_value_eur),
+                  outperformance_fill: isOutperforming ? d.portfolio_value_eur - d.benchmark_value_eur : 0,
+                  underperformance_fill: !isOutperforming ? d.benchmark_value_eur - d.portfolio_value_eur : 0,
+                };
+              });
+
+              return (
               <>
                 {/* Summary Stats */}
                 {performanceData.summary && (
@@ -1099,7 +1183,7 @@ export function PortfolioPanel() {
                       <span className={`text-2xl font-bold ${performanceData.summary.benchmark_return_eur >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
                         {performanceData.summary.benchmark_return_eur >= 0 ? '+' : ''}{performanceData.summary.benchmark_return_eur}%
                       </span>
-                      <p className="text-slate-500 text-sm">{language === 'fr' ? 'Indice' : 'Benchmark'} ({benchmark})</p>
+                      <p className="text-slate-500 text-sm">{language === 'fr' ? 'Indice' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})</p>
                     </div>
                   </div>
                 )}
@@ -1107,28 +1191,54 @@ export function PortfolioPanel() {
                 {/* Performance Chart */}
                 <div className="h-[400px] relative" ref={chartContainerRef}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={performanceData.data} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
+                    <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="outperformanceGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#16a34a" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="#16a34a" stopOpacity={0.1} />
+                        </linearGradient>
+                        <linearGradient id="underperformanceGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#dc2626" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="#dc2626" stopOpacity={0.1} />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis
                         dataKey="date"
                         tickFormatter={(date) => {
                           const d = new Date(date);
-                          return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
+                          const formatted = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
+                          // Capitalize first letter
+                          return formatted.charAt(0).toUpperCase() + formatted.slice(1);
                         }}
                         tick={{ fontSize: 11, fill: '#64748b' }}
-                        interval={Math.floor(performanceData.data.length / 8)}
+                        interval={Math.floor(chartData.length / 8)}
                       />
                       <YAxis
                         tick={{ fontSize: 12, fill: '#64748b' }}
                         tickFormatter={(val) => {
                           if (privateMode) {
-                            const costBasis = performanceData.data[performanceData.data.length - 1]?.cost_basis_eur || 1;
+                            const costBasis = chartData[chartData.length - 1]?.cost_basis_eur || 1;
                             const pct = Math.round((val / costBasis) * 100);
                             return `${pct}%`;
                           }
-                          return `€${(val / 1000).toFixed(0)}k`;
+                          return `${formatEur(val / 1000)}k€`;
                         }}
-                        domain={['dataMin - 1000', 'dataMax + 1000']}
+                        domain={[
+                          (dataMin: number) => Math.floor(dataMin / 10000) * 10000,
+                          (dataMax: number) => Math.ceil(dataMax / 10000) * 10000
+                        ]}
+                        allowDecimals={false}
+                        ticks={(() => {
+                          const values = chartData.map(d => Math.max(d.portfolio_value_eur, d.benchmark_value_eur, d.cost_basis_eur));
+                          const minVal = Math.floor(Math.min(...values) / 10000) * 10000;
+                          const maxVal = Math.ceil(Math.max(...values) / 10000) * 10000;
+                          const ticks = [];
+                          for (let i = minVal; i <= maxVal; i += 10000) {
+                            ticks.push(i);
+                          }
+                          return ticks;
+                        })()}
                       />
                       <Tooltip
                         contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}
@@ -1137,15 +1247,20 @@ export function PortfolioPanel() {
                         formatter={(value, name) => {
                           const numValue = Math.round(Number(value));
                           const nameStr = String(name);
-                          let label: string = benchmark;
+                          // Skip fill areas in tooltip
+                          if (nameStr.includes('outperformance') || nameStr.includes('underperformance') || nameStr.includes('area_base') || nameStr.includes('fill')) {
+                            return null;
+                          }
+                          const benchmarkTicker = benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY');
+                          let label: string = benchmarkTicker;
                           if (nameStr.includes('Portfolio')) label = t('performance.portfolio');
                           else if (nameStr.includes('Invested')) label = t('performance.invested');
                           if (privateMode) {
-                            const costBasis = performanceData.data[performanceData.data.length - 1]?.cost_basis_eur || 1;
+                            const costBasis = chartData[chartData.length - 1]?.cost_basis_eur || 1;
                             const pct = Math.round((numValue / costBasis) * 100);
                             return [`${pct}%`, label];
                           }
-                          return [`€${numValue.toLocaleString()}`, label];
+                          return [`${formatEur(numValue)}€`, label];
                         }}
                         wrapperStyle={{ zIndex: 100 }}
                         allowEscapeViewBox={{ x: true, y: true }}
@@ -1153,21 +1268,62 @@ export function PortfolioPanel() {
                       />
                       <Legend
                         content={() => (
-                          <div className="flex justify-center gap-6 mt-2 text-sm">
+                          <div className="flex justify-center gap-6 mt-2 text-sm flex-wrap">
                             <div className="flex items-center gap-1.5">
                               <div className="w-4 h-0.5 bg-green-600"></div>
                               <span className="text-slate-600">{t('performance.portfolio')}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <div className="w-4 h-0.5 bg-[#8A8EFF]" style={{ borderStyle: 'dashed', borderWidth: '1px', borderColor: '#8A8EFF', height: 0 }}></div>
-                              <span className="text-slate-600">{benchmark}</span>
+                              <span className="text-slate-600">{benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <div className="w-4 h-0.5 bg-slate-400"></div>
                               <span className="text-slate-600">{t('performance.invested')}</span>
                             </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-3 h-3 bg-green-500/30 border border-green-500"></div>
+                              <span className="text-slate-600">{language === 'fr' ? 'Surperformance' : 'Outperformance'}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-3 h-3 bg-red-500/30 border border-red-500"></div>
+                              <span className="text-slate-600">{language === 'fr' ? 'Sous-performance' : 'Underperformance'}</span>
+                            </div>
                           </div>
                         )}
+                      />
+                      {/* Stacked areas for outperformance/underperformance fill */}
+                      <Area
+                        type="monotone"
+                        dataKey="area_base"
+                        stackId="performance"
+                        stroke="none"
+                        fill="transparent"
+                        isAnimationActive={false}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="outperformance_fill"
+                        stackId="performance"
+                        stroke="none"
+                        fill="url(#outperformanceGradient)"
+                        isAnimationActive={false}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="underperformance_fill"
+                        stackId="underperf"
+                        stroke="none"
+                        fill="url(#underperformanceGradient)"
+                        isAnimationActive={false}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="area_base"
+                        stackId="underperf"
+                        stroke="none"
+                        fill="transparent"
+                        isAnimationActive={false}
                       />
                       <Line
                         type="monotone"
@@ -1194,11 +1350,12 @@ export function PortfolioPanel() {
                         strokeWidth={2}
                         dot={false}
                       />
-                    </LineChart>
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               </>
-            ) : (
+              );
+            })() : (
               <p className="text-slate-500 text-center py-8">
                 {performanceData?.error || 'No performance data available.'}
               </p>

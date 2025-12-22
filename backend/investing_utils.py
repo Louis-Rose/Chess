@@ -191,20 +191,23 @@ def compute_portfolio_composition(holdings):
     Compute portfolio composition with current values, weights, cost basis and gains.
 
     Args:
-        holdings: list of dicts with 'stock_ticker', 'quantity', 'cost_basis' (avg price), 'total_cost'
+        holdings: list of dicts with 'stock_ticker', 'quantity', 'cost_basis' (avg price),
+                  'total_cost' (USD), 'total_cost_eur' (EUR at historical rates)
 
     Returns:
         dict with composition data including gains/losses
     """
     composition = []
     total_value = 0
-    total_cost_basis = 0
+    total_cost_basis_usd = 0
+    total_cost_basis_eur = 0
 
     for holding in holdings:
         ticker = holding['stock_ticker']
         quantity = holding['quantity']
         cost_basis_per_share = holding.get('cost_basis', 0)
         total_cost = holding.get('total_cost', cost_basis_per_share * quantity)
+        total_cost_eur = holding.get('total_cost_eur', total_cost)  # Fallback to USD if not provided
 
         try:
             current_price = fetch_current_stock_price(ticker)
@@ -220,13 +223,15 @@ def compute_portfolio_composition(holdings):
                 'current_price': current_price,
                 'current_value': round(current_value, 2),
                 'cost_basis': round(total_cost, 2),
+                'cost_basis_eur': round(total_cost_eur, 2),
                 'avg_cost': round(cost_basis_per_share, 2),
                 'gain_usd': round(gain_usd, 2),
                 'gain_pct': gain_pct,
                 'color': STOCK_COLORS.get(ticker, '#95A5A6'),
             })
             total_value += current_value
-            total_cost_basis += total_cost
+            total_cost_basis_usd += total_cost
+            total_cost_basis_eur += total_cost_eur
         except Exception as e:
             print(f"Error fetching price for {ticker}: {e}")
             composition.append({
@@ -235,12 +240,14 @@ def compute_portfolio_composition(holdings):
                 'current_price': 0,
                 'current_value': 0,
                 'cost_basis': round(total_cost, 2),
+                'cost_basis_eur': round(total_cost_eur, 2),
                 'avg_cost': round(cost_basis_per_share, 2),
                 'gain_usd': -total_cost,
                 'gain_pct': -100,
                 'color': STOCK_COLORS.get(ticker, '#95A5A6'),
             })
-            total_cost_basis += total_cost
+            total_cost_basis_usd += total_cost
+            total_cost_basis_eur += total_cost_eur
 
     # Calculate weights
     for item in composition:
@@ -255,36 +262,35 @@ def compute_portfolio_composition(holdings):
     # Get EUR values
     eurusd_rate = get_current_eurusd_rate()
     total_value_eur = round(total_value / eurusd_rate, 2)
-    total_gain_usd = total_value - total_cost_basis
-    total_gain_pct = round(100 * total_gain_usd / total_cost_basis, 1) if total_cost_basis > 0 else 0
+    total_gain_usd = total_value - total_cost_basis_usd
+    total_gain_pct = round(100 * total_gain_usd / total_cost_basis_usd, 1) if total_cost_basis_usd > 0 else 0
 
     return {
         'holdings': composition,
         'total_value_usd': round(total_value, 2),
         'total_value_eur': total_value_eur,
-        'total_cost_basis': round(total_cost_basis, 2),
+        'total_cost_basis': round(total_cost_basis_usd, 2),
+        'total_cost_basis_eur': round(total_cost_basis_eur, 2),
         'total_gain_usd': round(total_gain_usd, 2),
         'total_gain_pct': total_gain_pct,
         'eurusd_rate': eurusd_rate
     }
 
 
-def compute_portfolio_performance_from_transactions(transactions, benchmark='QQQ'):
+def compute_portfolio_performance_from_transactions(transactions, benchmark_ticker='QQQ'):
     """
     Compute portfolio performance vs benchmark over time, tracking actual holdings.
 
     Args:
         transactions: list of dicts with 'stock_ticker', 'transaction_type', 'quantity',
                       'transaction_date', 'price_per_share'
-        benchmark: 'SP500' or 'QQQ'
+        benchmark_ticker: ticker symbol for benchmark (e.g., 'QQQ', 'EQQQ.DE', 'SPY', 'CSPX.L')
 
     Returns:
         dict with performance data
     """
     if not transactions:
         return {'error': 'No transactions provided', 'data': []}
-
-    benchmark_ticker = BENCHMARKS.get(benchmark, 'QQQ')
 
     # Sort transactions by date
     sorted_txs = sorted(transactions, key=lambda x: x['transaction_date'])
@@ -383,13 +389,10 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark='QQQ
     for date_str in weekly_dates:
         date_dt = datetime.strptime(date_str, "%Y-%m-%d")
 
-        # Calculate holdings at this date (only transactions before or on this date)
-        # Track quantity, total cost (USD), and total cost (EUR) per ticker for average cost calculation
-        holdings_at_date = {}  # ticker -> quantity
-        cost_per_ticker_usd = {}  # ticker -> total cost in USD
-        cost_per_ticker_eur = {}  # ticker -> total cost in EUR
-        cost_basis_at_date = 0
-        cost_basis_eur_at_date = 0
+        # Calculate holdings at this date using FIFO
+        # Track lots per ticker: list of { qty, cost_usd_per_share, cost_eur }
+        lots_per_ticker = {}  # ticker -> list of lots
+        holdings_at_date = {}  # ticker -> total quantity
         benchmark_shares_at_date = 0
 
         for i, tx in enumerate(sorted_txs):
@@ -398,41 +401,50 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark='QQQ
                 break
 
             ticker = tx['stock_ticker']
-            if ticker not in holdings_at_date:
+            if ticker not in lots_per_ticker:
+                lots_per_ticker[ticker] = []
                 holdings_at_date[ticker] = 0
-                cost_per_ticker_usd[ticker] = 0
-                cost_per_ticker_eur[ticker] = 0
 
             if tx['transaction_type'] == 'BUY':
                 holdings_at_date[ticker] += tx['quantity']
                 tx_cost_usd = tx['quantity'] * tx['price_per_share']
                 tx_cost_eur = tx_benchmark_info[i]['cost_eur']
-                cost_per_ticker_usd[ticker] += tx_cost_usd
-                cost_per_ticker_eur[ticker] += tx_cost_eur
-                cost_basis_at_date += tx_cost_usd
-                cost_basis_eur_at_date += tx_cost_eur
+                lots_per_ticker[ticker].append({
+                    'qty': tx['quantity'],
+                    'cost_usd_per_share': tx['price_per_share'],
+                    'cost_eur': tx_cost_eur
+                })
                 benchmark_shares_at_date += tx_benchmark_info[i]['benchmark_shares']
-            else:  # SELL
-                # Calculate average cost per share before this sale
-                qty_before = holdings_at_date[ticker]
-                if qty_before > 0:
-                    avg_cost_usd = cost_per_ticker_usd[ticker] / qty_before
-                    avg_cost_eur = cost_per_ticker_eur[ticker] / qty_before
-                else:
-                    avg_cost_usd = 0
-                    avg_cost_eur = 0
-
-                # Reduce holdings and cost basis by the original cost (not sale price)
+            else:  # SELL - use FIFO
                 sell_qty = tx['quantity']
                 holdings_at_date[ticker] -= sell_qty
-                cost_reduction_usd = sell_qty * avg_cost_usd
-                cost_reduction_eur = sell_qty * avg_cost_eur
-                cost_per_ticker_usd[ticker] -= cost_reduction_usd
-                cost_per_ticker_eur[ticker] -= cost_reduction_eur
-                cost_basis_at_date -= cost_reduction_usd
-                cost_basis_eur_at_date -= cost_reduction_eur
-                # Benchmark shares also reduce proportionally
+                remaining_sell = sell_qty
+
+                # FIFO: consume oldest lots first
+                while remaining_sell > 0 and lots_per_ticker[ticker]:
+                    lot = lots_per_ticker[ticker][0]
+                    sell_from_lot = min(remaining_sell, lot['qty'])
+
+                    # Reduce lot proportionally
+                    if sell_from_lot == lot['qty']:
+                        lots_per_ticker[ticker].pop(0)
+                    else:
+                        portion = sell_from_lot / lot['qty']
+                        lot['cost_eur'] *= (1 - portion)
+                        lot['qty'] -= sell_from_lot
+
+                    remaining_sell -= sell_from_lot
+
+                # Benchmark shares also reduce
                 benchmark_shares_at_date += tx_benchmark_info[i]['benchmark_shares']
+
+        # Calculate cost basis from remaining lots
+        cost_basis_at_date = 0
+        cost_basis_eur_at_date = 0
+        for ticker, lots in lots_per_ticker.items():
+            for lot in lots:
+                cost_basis_at_date += lot['qty'] * lot['cost_usd_per_share']
+                cost_basis_eur_at_date += lot['cost_eur']
 
         # Skip if no holdings yet
         if not holdings_at_date or cost_basis_at_date <= 0:
@@ -440,18 +452,29 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark='QQQ
 
         try:
             # Calculate portfolio value at this date
+            # Use current prices for the last data point to match composition endpoint
+            is_last_date = (date_str == weekly_dates[-1])
             portfolio_value = 0
             for ticker, qty in holdings_at_date.items():
                 if qty > 0:
-                    price = fetch_stock_price(ticker, date_str)
+                    if is_last_date:
+                        price = fetch_current_stock_price(ticker)
+                    else:
+                        price = fetch_stock_price(ticker, date_str)
                     portfolio_value += price * qty
 
             # Calculate benchmark value (what if we'd invested in benchmark instead)
-            benchmark_price = fetch_stock_price(benchmark_ticker, date_str)
+            if is_last_date:
+                benchmark_price = fetch_current_stock_price(benchmark_ticker)
+            else:
+                benchmark_price = fetch_stock_price(benchmark_ticker, date_str)
             benchmark_value = benchmark_shares_at_date * benchmark_price
 
-            # EUR conversion
-            eurusd = fetch_eurusd_rate(date_str)
+            # EUR conversion - use current rate for last date
+            if is_last_date:
+                eurusd = get_current_eurusd_rate()
+            else:
+                eurusd = fetch_eurusd_rate(date_str)
             portfolio_value_eur = portfolio_value / eurusd
             benchmark_value_eur = benchmark_value / eurusd
             # Use the EUR amount invested at transaction dates (doesn't fluctuate with FX)
@@ -514,6 +537,6 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark='QQQ
             'cagr_eur': round(cagr_eur, 1),
             'cagr_benchmark_eur': round(cagr_benchmark_eur, 1),
             'years': round(years, 2),
-            'benchmark': benchmark
+            'benchmark': benchmark_ticker
         }
     }

@@ -665,7 +665,11 @@ def get_holdings():
 
 
 def compute_holdings_from_transactions(user_id):
-    """Helper to compute current holdings from transactions using FIFO."""
+    """Helper to compute current holdings from transactions using FIFO.
+    Tracks both USD and EUR cost basis (EUR uses historical rates at transaction time).
+    """
+    from investing_utils import fetch_eurusd_rate
+
     with get_db() as conn:
         cursor = conn.execute(
             '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
@@ -688,8 +692,21 @@ def compute_holdings_from_transactions(user_id):
             holdings_map[ticker] = {'quantity': 0, 'lots': []}
 
         if tx_type == 'BUY':
+            # Fetch historical EUR/USD rate for this transaction
+            try:
+                eurusd_at_tx = fetch_eurusd_rate(date)
+            except:
+                eurusd_at_tx = 1.0
+            cost_usd = qty * price
+            cost_eur = cost_usd / eurusd_at_tx
+
             holdings_map[ticker]['quantity'] += qty
-            holdings_map[ticker]['lots'].append({'qty': qty, 'price': price, 'date': date})
+            holdings_map[ticker]['lots'].append({
+                'qty': qty,
+                'price': price,
+                'date': date,
+                'cost_eur': cost_eur
+            })
         elif tx_type == 'SELL':
             holdings_map[ticker]['quantity'] -= qty
             remaining_sell = qty
@@ -699,24 +716,121 @@ def compute_holdings_from_transactions(user_id):
                     remaining_sell -= lot['qty']
                     holdings_map[ticker]['lots'].pop(0)
                 else:
+                    # Reduce lot proportionally (including EUR cost)
+                    sell_fraction = remaining_sell / lot['qty']
+                    lot['cost_eur'] *= (1 - sell_fraction)
                     lot['qty'] -= remaining_sell
                     remaining_sell = 0
 
     holdings = []
     for ticker, data in holdings_map.items():
         if data['quantity'] > 0:
-            total_cost = sum(lot['qty'] * lot['price'] for lot in data['lots'])
+            total_cost_usd = sum(lot['qty'] * lot['price'] for lot in data['lots'])
+            total_cost_eur = sum(lot['cost_eur'] for lot in data['lots'])
             total_qty = sum(lot['qty'] for lot in data['lots'])
-            avg_cost = total_cost / total_qty if total_qty > 0 else 0
+            avg_cost = total_cost_usd / total_qty if total_qty > 0 else 0
 
             holdings.append({
                 'stock_ticker': ticker,
                 'quantity': data['quantity'],
                 'cost_basis': round(avg_cost, 2),
-                'total_cost': round(total_cost, 2)
+                'total_cost': round(total_cost_usd, 2),
+                'total_cost_eur': round(total_cost_eur, 2)
             })
 
     return holdings
+
+
+def compute_realized_gains(user_id):
+    """Calculate realized gains using FIFO with historical EUR rates.
+    Returns both USD and EUR realized gains.
+    """
+    from investing_utils import fetch_eurusd_rate
+
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+               FROM portfolio_transactions WHERE user_id = ?
+               ORDER BY transaction_date ASC, id ASC''',
+            (user_id,)
+        )
+        rows = cursor.fetchall()
+
+    # Track inventory per ticker: array of { qty, cost_usd, cost_eur }
+    inventory = {}
+    total_realized_gain_usd = 0
+    total_realized_gain_eur = 0
+    sell_count = 0
+
+    for row in rows:
+        ticker = row['stock_ticker']
+        qty = row['quantity']
+        price = row['price_per_share']
+        date = row['transaction_date']
+        tx_type = row['transaction_type']
+
+        if ticker not in inventory:
+            inventory[ticker] = []
+
+        if tx_type == 'BUY':
+            # Get historical EUR/USD rate
+            try:
+                eurusd_at_tx = fetch_eurusd_rate(date)
+            except:
+                eurusd_at_tx = 1.0
+            cost_usd = qty * price
+            cost_eur = cost_usd / eurusd_at_tx
+
+            inventory[ticker].append({
+                'qty': qty,
+                'cost_usd_per_share': price,
+                'cost_eur': cost_eur
+            })
+        else:  # SELL
+            # Get EUR/USD rate at sell time
+            try:
+                eurusd_at_sell = fetch_eurusd_rate(date)
+            except:
+                eurusd_at_sell = 1.0
+
+            remaining_sell = qty
+            sale_price_usd = price
+            sale_proceeds_eur = (qty * sale_price_usd) / eurusd_at_sell
+            sell_count += 1
+
+            # FIFO: consume oldest lots first
+            cost_basis_usd = 0
+            cost_basis_eur = 0
+            while remaining_sell > 0 and inventory[ticker]:
+                lot = inventory[ticker][0]
+                sell_from_lot = min(remaining_sell, lot['qty'])
+
+                # Calculate cost basis for this portion
+                portion_cost_usd = sell_from_lot * lot['cost_usd_per_share']
+                portion_cost_eur = (sell_from_lot / lot['qty']) * lot['cost_eur']
+
+                cost_basis_usd += portion_cost_usd
+                cost_basis_eur += portion_cost_eur
+
+                lot['qty'] -= sell_from_lot
+                lot['cost_eur'] -= portion_cost_eur
+                remaining_sell -= sell_from_lot
+
+                if lot['qty'] <= 0:
+                    inventory[ticker].pop(0)
+
+            # Calculate gains
+            gain_usd = (qty * sale_price_usd) - cost_basis_usd
+            gain_eur = sale_proceeds_eur - cost_basis_eur
+
+            total_realized_gain_usd += gain_usd
+            total_realized_gain_eur += gain_eur
+
+    return {
+        'total_usd': round(total_realized_gain_usd, 2),
+        'total_eur': round(total_realized_gain_eur, 2),
+        'count': sell_count
+    }
 
 
 @app.route('/api/investing/portfolio/composition', methods=['GET'])
@@ -731,13 +845,20 @@ def get_portfolio_composition():
             'total_value_usd': 0,
             'total_value_eur': 0,
             'total_cost_basis': 0,
+            'total_cost_basis_eur': 0,
             'total_gain_usd': 0,
             'total_gain_pct': 0,
+            'realized_gains_usd': 0,
+            'realized_gains_eur': 0,
             'eurusd_rate': 1.0
         })
 
     try:
         composition = compute_portfolio_composition(holdings)
+        # Add realized gains
+        realized = compute_realized_gains(request.user_id)
+        composition['realized_gains_usd'] = realized['total_usd']
+        composition['realized_gains_eur'] = realized['total_eur']
         return jsonify(composition)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -747,10 +868,24 @@ def get_portfolio_composition():
 @login_required
 def get_portfolio_performance():
     """Get portfolio performance vs benchmark, tracking actual holdings over time."""
-    benchmark = request.args.get('benchmark', 'QQQ')
+    benchmark = request.args.get('benchmark', 'NASDAQ')
+    currency = request.args.get('currency', 'EUR')
 
-    if benchmark not in ['SP500', 'QQQ']:
-        return jsonify({'error': 'Invalid benchmark. Use SP500 or QQQ'}), 400
+    # Map benchmark name + currency to actual ticker
+    benchmark_tickers = {
+        'NASDAQ': {'USD': 'QQQ', 'EUR': 'EQQQ.DE'},
+        'SP500': {'USD': 'SPY', 'EUR': 'CSPX.L'},
+        # Legacy support
+        'QQQ': {'USD': 'QQQ', 'EUR': 'EQQQ.DE'},
+    }
+
+    if benchmark not in benchmark_tickers:
+        return jsonify({'error': f'Invalid benchmark. Use NASDAQ or SP500'}), 400
+
+    if currency not in ['USD', 'EUR']:
+        return jsonify({'error': 'Invalid currency. Use USD or EUR'}), 400
+
+    benchmark_ticker = benchmark_tickers[benchmark].get(currency, 'QQQ')
 
     # Get all transactions
     with get_db() as conn:
@@ -768,7 +903,7 @@ def get_portfolio_performance():
     transactions = [dict(row) for row in rows]
 
     try:
-        performance = compute_portfolio_performance_from_transactions(transactions, benchmark=benchmark)
+        performance = compute_portfolio_performance_from_transactions(transactions, benchmark_ticker=benchmark_ticker)
         return jsonify(performance)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
