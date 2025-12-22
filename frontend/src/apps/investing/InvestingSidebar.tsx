@@ -4,7 +4,9 @@ import { useState, useRef, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { Loader2, Home, Briefcase, Eye, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { UserMenu } from '../../components/UserMenu';
+import { LanguageToggle } from '../../components/LanguageToggle';
 
 const navItems = [
   { path: '/investing', icon: Home, label: 'Welcome', end: true },
@@ -43,6 +45,13 @@ export function InvestingSidebar() {
             <span className="text-sm">Not signed in</span>
           </Link>
         )}
+      </div>
+
+      {/* Language Toggle */}
+      <div className="px-2 pb-4 border-b border-slate-700">
+        <div className="flex items-center justify-center">
+          <LanguageToggle />
+        </div>
       </div>
 
       {/* App Title with Switcher */}
@@ -106,6 +115,7 @@ export function InvestingSidebar() {
           </NavLink>
         ))}
       </div>
+
     </div>
   );
 }

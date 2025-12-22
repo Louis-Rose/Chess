@@ -436,9 +436,13 @@ def get_transactions():
     """Get user's transaction history."""
     with get_db() as conn:
         cursor = conn.execute(
-            '''SELECT id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share
-               FROM portfolio_transactions WHERE user_id = ?
-               ORDER BY transaction_date DESC, id DESC''',
+            '''SELECT pt.id, pt.stock_ticker, pt.transaction_type, pt.quantity,
+                      pt.transaction_date, pt.price_per_share, pt.account_id,
+                      ia.name as account_name, ia.account_type, ia.bank
+               FROM portfolio_transactions pt
+               LEFT JOIN investment_accounts ia ON pt.account_id = ia.id
+               WHERE pt.user_id = ?
+               ORDER BY pt.transaction_date DESC, pt.id DESC''',
             (request.user_id,)
         )
         rows = cursor.fetchall()
@@ -449,7 +453,11 @@ def get_transactions():
         'transaction_type': row['transaction_type'],
         'quantity': row['quantity'],
         'transaction_date': row['transaction_date'],
-        'price_per_share': row['price_per_share']
+        'price_per_share': row['price_per_share'],
+        'account_id': row['account_id'],
+        'account_name': row['account_name'],
+        'account_type': row['account_type'],
+        'bank': row['bank'],
     } for row in rows]
     return jsonify({'transactions': transactions})
 
@@ -466,6 +474,7 @@ def add_transaction():
     transaction_type = data.get('transaction_type', '').upper().strip()
     quantity = data.get('quantity')
     transaction_date = data.get('transaction_date')  # YYYY-MM-DD format
+    account_id = data.get('account_id')  # Optional: link to investment account
 
     if not stock_ticker:
         return jsonify({'error': 'Stock ticker required'}), 400
@@ -477,6 +486,16 @@ def add_transaction():
         return jsonify({'error': 'Transaction date required (YYYY-MM-DD)'}), 400
 
     quantity = int(quantity)
+
+    # Validate account_id if provided
+    if account_id is not None:
+        with get_db() as conn:
+            cursor = conn.execute(
+                'SELECT id FROM investment_accounts WHERE id = ? AND user_id = ?',
+                (account_id, request.user_id)
+            )
+            if not cursor.fetchone():
+                return jsonify({'error': 'Invalid account_id'}), 400
 
     # Validate date format
     try:
@@ -495,14 +514,15 @@ def add_transaction():
 
     with get_db() as conn:
         cursor = conn.execute('''
-            INSERT INTO portfolio_transactions (user_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (request.user_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share))
+            INSERT INTO portfolio_transactions (user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (request.user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share))
         transaction_id = cursor.lastrowid
 
     return jsonify({
         'success': True,
         'id': transaction_id,
+        'account_id': account_id,
         'stock_ticker': stock_ticker,
         'transaction_type': transaction_type,
         'quantity': quantity,
@@ -902,6 +922,121 @@ def get_stock_info():
             }
 
     return jsonify({'stocks': results})
+
+
+# =============================================================================
+# Investment Accounts API (for fee tracking)
+# =============================================================================
+
+# French banks/brokers with their fee structures
+BANKS = {
+    'CREDIT_MUTUEL': {
+        'name': 'Crédit Mutuel',
+        'order_fee_pct': 0.50,
+        'order_fee_min': 30,
+        'account_fee_pct_semester': 0.125,
+        'account_fee_min_semester': 6,
+        'account_fee_max_semester': 75,
+        'custody_fee_pct': 0,
+        'fx_fee_info_fr': 'Sur devis (communiqué avant l\'ordre)',
+        'fx_fee_info_en': 'Quoted before order',
+    },
+}
+
+# Account types with tax implications
+ACCOUNT_TYPES = {
+    'CTO': {
+        'name': 'CTO',
+        'description_en': '30% flat tax on capital gains (PFU)',
+        'description_fr': '30% d\'imposition forfaitaire sur les plus-values (PFU)',
+        'tax_rate': 30.0
+    },
+}
+
+
+@app.route('/api/investing/banks', methods=['GET'])
+def get_banks():
+    """Get list of available banks with their fee structures."""
+    return jsonify({'banks': BANKS})
+
+
+@app.route('/api/investing/account-types', methods=['GET'])
+def get_account_types():
+    """Get list of available account types with tax info."""
+    return jsonify({'account_types': ACCOUNT_TYPES})
+
+
+@app.route('/api/investing/accounts', methods=['GET'])
+@login_required
+def get_accounts():
+    """Get user's investment accounts."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT id, name, account_type, bank, created_at
+               FROM investment_accounts WHERE user_id = ?
+               ORDER BY created_at ASC''',
+            (request.user_id,)
+        )
+        rows = cursor.fetchall()
+
+    accounts = [{
+        'id': row['id'],
+        'name': row['name'],
+        'account_type': row['account_type'],
+        'bank': row['bank'],
+        'bank_info': BANKS.get(row['bank'], {}),
+        'type_info': ACCOUNT_TYPES.get(row['account_type'], {}),
+    } for row in rows]
+    return jsonify({'accounts': accounts})
+
+
+@app.route('/api/investing/accounts', methods=['POST'])
+@login_required
+def create_account():
+    """Create a new investment account."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    name = data.get('name', '').strip()
+    account_type = data.get('account_type', '').upper().strip()
+    bank = data.get('bank', '').upper().strip()
+
+    if not name:
+        return jsonify({'error': 'Account name required'}), 400
+    if account_type not in ACCOUNT_TYPES:
+        return jsonify({'error': f'Invalid account type. Valid: {list(ACCOUNT_TYPES.keys())}'}), 400
+    if bank not in BANKS:
+        return jsonify({'error': f'Invalid bank. Valid: {list(BANKS.keys())}'}), 400
+
+    with get_db() as conn:
+        cursor = conn.execute('''
+            INSERT INTO investment_accounts (user_id, name, account_type, bank)
+            VALUES (?, ?, ?, ?)
+        ''', (request.user_id, name, account_type, bank))
+        account_id = cursor.lastrowid
+
+    return jsonify({
+        'success': True,
+        'id': account_id,
+        'name': name,
+        'account_type': account_type,
+        'bank': bank,
+        'bank_info': BANKS[bank],
+        'type_info': ACCOUNT_TYPES[account_type],
+    })
+
+
+@app.route('/api/investing/accounts/<int:account_id>', methods=['DELETE'])
+@login_required
+def delete_account(account_id):
+    """Delete an investment account."""
+    with get_db() as conn:
+        conn.execute(
+            'DELETE FROM investment_accounts WHERE user_id = ? AND id = ?',
+            (request.user_id, account_id)
+        )
+    return jsonify({'success': True, 'id': account_id})
 
 
 if __name__ == '__main__':

@@ -46,13 +46,15 @@ CREATE TABLE IF NOT EXISTS player_stats_cache (
 CREATE TABLE IF NOT EXISTS portfolio_transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
+    account_id INTEGER,                  -- Reference to investment_accounts (nullable for legacy data)
     stock_ticker TEXT NOT NULL,
     transaction_type TEXT NOT NULL,     -- 'BUY' or 'SELL'
     quantity INTEGER NOT NULL,
     transaction_date TEXT NOT NULL,     -- Date of transaction (YYYY-MM-DD)
     price_per_share REAL NOT NULL,      -- Price per share at transaction date (USD)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (account_id) REFERENCES investment_accounts(id) ON DELETE SET NULL
 );
 
 -- Historical stock prices cache (shared across all users)
@@ -71,6 +73,17 @@ CREATE TABLE IF NOT EXISTS historical_fx_rates (
     rate REAL NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (pair, date)
+);
+
+-- Investment accounts table (PEA, CTO, Assurance-vie, etc.)
+CREATE TABLE IF NOT EXISTS investment_accounts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,                   -- User-defined name (e.g., "PEA Boursorama")
+    account_type TEXT NOT NULL,           -- 'PEA', 'PEA-PME', 'CTO', 'ASSURANCE_VIE'
+    bank TEXT NOT NULL,                   -- 'BOURSORAMA', 'FORTUNEO', 'BOURSE_DIRECT', etc.
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Watchlist table (investing app)
@@ -94,3 +107,5 @@ CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_ticker ON portfolio_transa
 CREATE INDEX IF NOT EXISTS idx_historical_prices_date ON historical_prices(date);
 CREATE INDEX IF NOT EXISTS idx_historical_fx_rates_date ON historical_fx_rates(date);
 CREATE INDEX IF NOT EXISTS idx_watchlist_user_id ON watchlist(user_id);
+CREATE INDEX IF NOT EXISTS idx_investment_accounts_user_id ON investment_accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_account_id ON portfolio_transactions(account_id);

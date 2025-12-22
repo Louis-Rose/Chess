@@ -31,9 +31,19 @@ def get_db():
 
 
 def init_db():
-    """Initialize database with schema."""
+    """Initialize database with schema and run migrations."""
     schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
     with get_db() as conn:
+        # First run migrations for existing tables (before schema which may reference new columns)
+        # Migration: Add account_id column to portfolio_transactions if not exists
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='portfolio_transactions'")
+        if cursor.fetchone():
+            cursor = conn.execute("PRAGMA table_info(portfolio_transactions)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'account_id' not in columns:
+                conn.execute('ALTER TABLE portfolio_transactions ADD COLUMN account_id INTEGER')
+
+        # Now run full schema (creates new tables and indexes)
         with open(schema_path, 'r') as f:
             conn.executescript(f.read())
 
