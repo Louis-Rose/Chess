@@ -1,8 +1,12 @@
-// My Data panel - placeholder (full version to be extracted from App.tsx)
+// My Data panel with ELO history and games played charts
 
 import { BarChart3 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
+import {
+  LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts';
 
 export function MyDataPanel() {
   const { data, loading, progress, searchedUsername } = useChessData();
@@ -26,6 +30,24 @@ export function MyDataPanel() {
       </div>
     );
   }
+
+  // Format week/year for display
+  const formatPeriod = (year: number, week: number) => {
+    const date = new Date(year, 0, 1 + (week - 1) * 7);
+    return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+  };
+
+  // Prepare ELO history data
+  const eloData = data.elo_history?.map(item => ({
+    ...item,
+    label: formatPeriod(item.year, item.week)
+  })) || [];
+
+  // Prepare games played data
+  const gamesData = data.history?.map(item => ({
+    ...item,
+    label: formatPeriod(item.year, item.week)
+  })) || [];
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -53,19 +75,73 @@ export function MyDataPanel() {
           </div>
         </div>
 
-        {/* Placeholder for charts */}
+        {/* ELO History Chart */}
         <div className="bg-slate-100 rounded-xl p-6">
           <h3 className="text-xl font-bold text-slate-800 mb-4">ELO History</h3>
-          <p className="text-slate-500 text-center py-8">
-            Charts will be displayed here. Full implementation coming soon.
-          </p>
+          {eloData.length > 0 ? (
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={eloData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    interval={Math.floor(eloData.length / 6)}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    domain={['dataMin - 50', 'dataMax + 50']}
+                  />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                    formatter={(value: number) => [value, 'ELO']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="elo"
+                    stroke="#16a34a"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p className="text-slate-500 text-center py-8">No ELO history data available.</p>
+          )}
         </div>
 
+        {/* Games Played Chart */}
         <div className="bg-slate-100 rounded-xl p-6">
           <h3 className="text-xl font-bold text-slate-800 mb-4">Games Played</h3>
-          <p className="text-slate-500 text-center py-8">
-            Charts will be displayed here. Full implementation coming soon.
-          </p>
+          {gamesData.length > 0 ? (
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={gamesData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    interval={Math.floor(gamesData.length / 6)}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                  />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                    formatter={(value: number) => [value, 'Games']}
+                  />
+                  <Bar
+                    dataKey="games_played"
+                    fill="#3b82f6"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p className="text-slate-500 text-center py-8">No games history data available.</p>
+          )}
         </div>
       </div>
     </div>
