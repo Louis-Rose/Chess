@@ -17,23 +17,6 @@ export function LandingPage() {
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl w-full">
-        {/* Chess Card */}
-        <Link
-          to="/chess"
-          className="bg-slate-700 p-8 rounded-2xl hover:bg-slate-600 transition-all hover:scale-105 group"
-        >
-          <div className="text-7xl mb-6 text-center">&#9822;</div>
-          <h2 className="text-2xl font-bold text-white text-center mb-3">Chess</h2>
-          <p className="text-slate-400 text-center">
-            Analyze your Chess.com games, track your ELO progression, and get personalized insights to improve your play.
-          </p>
-          <div className="mt-6 text-center">
-            <span className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg group-hover:bg-blue-500 transition-colors">
-              Open Chess App
-            </span>
-          </div>
-        </Link>
-
         {/* Investing Card */}
         <Link
           to="/investing"
@@ -47,6 +30,23 @@ export function LandingPage() {
           <div className="mt-6 text-center">
             <span className="inline-block bg-green-600 text-white px-6 py-2 rounded-lg group-hover:bg-green-500 transition-colors">
               Open Investing App
+            </span>
+          </div>
+        </Link>
+
+        {/* Chess Card */}
+        <Link
+          to="/chess"
+          className="bg-slate-700 p-8 rounded-2xl hover:bg-slate-600 transition-all hover:scale-105 group"
+        >
+          <div className="text-7xl mb-6 text-center">&#9822;</div>
+          <h2 className="text-2xl font-bold text-white text-center mb-3">Chess</h2>
+          <p className="text-slate-400 text-center">
+            Analyze your Chess.com games, track your ELO progression, and get personalized insights to improve your play.
+          </p>
+          <div className="mt-6 text-center">
+            <span className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg group-hover:bg-blue-500 transition-colors">
+              Open Chess App
             </span>
           </div>
         </Link>

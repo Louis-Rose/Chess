@@ -14,7 +14,7 @@ import { EndGamePanel } from './panels/EndGamePanel';
 
 export function ChessApp() {
   useEffect(() => {
-    document.title = 'Improve at Chess';
+    document.title = 'Improve at Stuff';
     const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (link) link.href = '/favicon.svg';
   }, []);
