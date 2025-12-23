@@ -197,6 +197,9 @@ export function PortfolioPanel() {
   const [currency, setCurrency] = useState<'EUR' | 'USD'>('EUR');
   const [benchmark, setBenchmark] = useState<'NASDAQ' | 'SP500'>('NASDAQ');
   const [privateMode, setPrivateMode] = useState(false);
+  const [showAnnualized, setShowAnnualized] = useState(false);
+  const [showFees, setShowFees] = useState(false);
+  const [showAccounts, setShowAccounts] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
   const [filterTicker, setFilterTicker] = useState('');
@@ -465,69 +468,87 @@ export function PortfolioPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex justify-center mb-8 mt-12">
-        <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
-      </div>
-
-      <div className="flex flex-col items-center gap-2 mb-6">
-        <div className="flex items-center gap-4">
+      <div className="sticky top-0 z-20 bg-slate-800 py-4 -mx-4 px-4 mt-8">
+        <div className="flex flex-col items-center gap-2">
           <h2 className="text-3xl font-bold text-slate-100">{t('portfolio.title')}</h2>
-          {/* Currency Toggle */}
-          <div className="flex rounded-lg overflow-hidden border border-slate-600">
+          <p className="text-slate-400 text-lg italic">{t('portfolio.subtitle')}</p>
+          <div className="flex items-center gap-4 mt-2">
+            {/* Currency Toggle */}
+            <div className="flex rounded-lg overflow-hidden border border-slate-600">
+              <button
+                onClick={() => setCurrency('EUR')}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+              >
+                EUR €
+              </button>
+              <button
+                onClick={() => setCurrency('USD')}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+              >
+                USD $
+              </button>
+            </div>
             <button
-              onClick={() => setCurrency('EUR')}
-              className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+              onClick={() => setPrivateMode(!privateMode)}
+              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${privateMode ? 'bg-slate-600 text-slate-200' : 'bg-slate-700 text-slate-400 hover:text-slate-300'}`}
             >
-              EUR €
-            </button>
-            <button
-              onClick={() => setCurrency('USD')}
-              className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
-            >
-              USD $
+              {privateMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span>{t('portfolio.privateMode')}</span>
             </button>
           </div>
-          <button
-            onClick={() => setPrivateMode(!privateMode)}
-            className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${privateMode ? 'bg-slate-600 text-slate-200' : 'bg-slate-700 text-slate-400 hover:text-slate-300'}`}
-          >
-            {privateMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            <span>{t('portfolio.privateMode')}</span>
-          </button>
         </div>
-        <p className="text-slate-400 text-lg italic">{t('portfolio.subtitle')}</p>
       </div>
 
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Summary Cards - 4 columns */}
         {selectedAccountId && compositionData && hasHoldings && (
           <div className="grid grid-cols-4 gap-4">
-            {/* Prix de revient (Cost Basis) */}
-            <div className="bg-slate-100 rounded-xl p-5 text-center">
-              <p className="text-2xl font-bold text-slate-800">
-                {privateMode ? '•••' : currency === 'EUR'
-                  ? `${formatEur(compositionData.total_cost_basis_eur)}€`
-                  : `$${Math.round(compositionData.total_cost_basis).toLocaleString('en-US')}`}
-              </p>
-              <p className="text-slate-500 text-sm">{language === 'fr' ? 'Prix de revient' : 'Cost Basis'}</p>
-            </div>
-            {/* Valeur totale (Total Value) */}
-            <div className="bg-slate-100 rounded-xl p-5 text-center">
-              <p className="text-2xl font-bold text-slate-800">
-                {privateMode ? '•••' : currency === 'EUR'
-                  ? `${formatEur(compositionData.total_value_eur)}€`
-                  : `$${Math.round(compositionData.total_value_eur * compositionData.eurusd_rate).toLocaleString('en-US')}`}
-              </p>
-              <p className="text-slate-500 text-sm">{language === 'fr' ? 'Valeur totale' : 'Total Value'}</p>
-            </div>
+            {(() => {
+              // In private mode, scale all values to assume 10,000 cost basis
+              const PRIVATE_COST_BASIS = 10000;
+              const actualCostBasis = currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis;
+              const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
+
+              const displayCostBasis = privateMode ? PRIVATE_COST_BASIS : (currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis);
+              const displayTotalValue = (currency === 'EUR' ? compositionData.total_value_eur : compositionData.total_value_eur * compositionData.eurusd_rate) * scaleFactor;
+
+              return (
+                <>
+                  {/* Prix de revient (Cost Basis) */}
+                  <div className="bg-slate-100 rounded-xl p-5 text-center">
+                    <p className="text-2xl font-bold text-slate-800">
+                      {currency === 'EUR'
+                        ? `${formatEur(displayCostBasis)}€`
+                        : `$${Math.round(displayCostBasis).toLocaleString('en-US')}`}
+                    </p>
+                    <p className="text-slate-500 text-sm">{language === 'fr' ? 'Prix de revient' : 'Cost Basis'}</p>
+                  </div>
+                  {/* Valeur totale (Total Value) */}
+                  <div className="bg-slate-100 rounded-xl p-5 text-center">
+                    <p className="text-2xl font-bold text-slate-800">
+                      {currency === 'EUR'
+                        ? `${formatEur(displayTotalValue)}€`
+                        : `$${Math.round(displayTotalValue).toLocaleString('en-US')}`}
+                    </p>
+                    <p className="text-slate-500 text-sm">{language === 'fr' ? 'Valeur totale' : 'Total Value'}</p>
+                  </div>
+                </>
+              );
+            })()}
             {/* Gains non réalisés (Unrealized Gains) */}
             {(() => {
+              // In private mode, scale all values to assume 10,000 cost basis
+              const PRIVATE_COST_BASIS = 10000;
+              const actualCostBasis = currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis;
+              const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
+
               // Calculate EUR gain: current value EUR - cost basis EUR (historical)
               const unrealizedGainEur = compositionData.total_value_eur - compositionData.total_cost_basis_eur;
               const unrealizedGainPctEur = compositionData.total_cost_basis_eur > 0
                 ? Math.round(100 * unrealizedGainEur / compositionData.total_cost_basis_eur * 10) / 10
                 : 0;
-              const displayGain = currency === 'EUR' ? unrealizedGainEur : compositionData.total_gain_usd;
+              const rawGain = currency === 'EUR' ? unrealizedGainEur : compositionData.total_gain_usd;
+              const displayGain = rawGain * scaleFactor;
               const displayPct = currency === 'EUR' ? unrealizedGainPctEur : compositionData.total_gain_pct;
               return (
                 <div className="bg-slate-100 rounded-xl p-5 text-center">
@@ -538,7 +559,7 @@ export function PortfolioPanel() {
                       <TrendingDown className="w-5 h-5 text-red-600" />
                     )}
                     <p className={`text-2xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {privateMode ? '•••' : currency === 'EUR'
+                      {currency === 'EUR'
                         ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
                         : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
                     </p>
@@ -554,9 +575,15 @@ export function PortfolioPanel() {
             })()}
             {/* Gains réalisés (Realized Gains) */}
             {(() => {
-              const displayRealizedGain = currency === 'EUR'
+              // In private mode, scale all values to assume 10,000 cost basis
+              const PRIVATE_COST_BASIS = 10000;
+              const actualCostBasis = currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis;
+              const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
+
+              const rawRealizedGain = currency === 'EUR'
                 ? compositionData.realized_gains_eur
                 : compositionData.realized_gains_usd;
+              const displayRealizedGain = rawRealizedGain * scaleFactor;
               return (
                 <div className="bg-slate-100 rounded-xl p-5 text-center">
                   <div className="flex items-center justify-center gap-1">
@@ -566,7 +593,7 @@ export function PortfolioPanel() {
                       <TrendingDown className="w-5 h-5 text-red-600" />
                     )}
                     <p className={`text-2xl font-bold ${displayRealizedGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {privateMode ? '•••' : currency === 'EUR'
+                      {currency === 'EUR'
                         ? `${displayRealizedGain >= 0 ? '+' : ''}${formatEur(displayRealizedGain)}€`
                         : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
                     </p>
@@ -580,139 +607,151 @@ export function PortfolioPanel() {
           </div>
         )}
 
-        {/* Investment Accounts Section - Always visible */}
+        {/* Investment Accounts Section */}
         {accounts.length > 0 && (
           <div className="bg-slate-100 rounded-xl p-6">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-3">
-                <Building2 className="w-5 h-5 text-slate-600" />
-                <h3 className="text-xl font-bold text-slate-800">{t('accounts.title')}</h3>
-                <span className="text-slate-500 text-sm">({accounts.length})</span>
-              </div>
-              {!showAddAccountForm && (
-                <button
-                  onClick={() => setShowAddAccountForm(true)}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  {t('accounts.addAccount')}
-                </button>
-              )}
+            <div className="flex justify-center">
+              <button
+                onClick={() => setShowAccounts(!showAccounts)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+              >
+                <Building2 className="w-4 h-4" />
+                {showAccounts
+                  ? (language === 'fr' ? 'Masquer comptes d\'investissement' : 'Hide investment accounts')
+                  : (language === 'fr' ? 'Afficher comptes d\'investissement' : 'Show investment accounts')}
+              </button>
             </div>
-
-            {/* Add Account Form */}
-            {showAddAccountForm && (
-              <div className="bg-white rounded-lg p-4 mb-4 border border-slate-200">
-                <div className="flex gap-3 flex-wrap items-end">
-                  <div className="min-w-[160px]">
-                    <label className="block text-sm font-medium text-slate-600 mb-1">{t('accounts.accountType')}</label>
-                    <select
-                      value={newAccountType}
-                      onChange={(e) => setNewAccountType(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                      <option value="">{t('accounts.selectType')}</option>
-                      {Object.entries(accountTypes).map(([key, info]) => (
-                        <option key={key} value={key}>{info.name}</option>
-                      ))}
-                    </select>
+            {showAccounts && (
+              <>
+                <div className="flex justify-between items-center mb-4 mt-6">
+                  <div className="flex items-center gap-3">
+                    <Building2 className="w-5 h-5 text-slate-600" />
+                    <h3 className="text-xl font-bold text-slate-800">{t('accounts.title')}</h3>
+                    <span className="text-slate-500 text-sm">({accounts.length})</span>
                   </div>
-                  <div className="min-w-[180px]">
-                    <label className="block text-sm font-medium text-slate-600 mb-1">{t('accounts.bank')}</label>
-                    <select
-                      value={newAccountBank}
-                      onChange={(e) => setNewAccountBank(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  {!showAddAccountForm && (
+                    <button
+                      onClick={() => setShowAddAccountForm(true)}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
                     >
-                      <option value="">{t('accounts.selectBank')}</option>
-                      {Object.entries(banks).map(([key, info]) => (
-                        <option key={key} value={key}>{info.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <button
-                    onClick={handleCreateAccount}
-                    disabled={!newAccountType || !newAccountBank || createAccountMutation.isPending}
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {createAccountMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                    {t('accounts.create')}
-                  </button>
-                  <button
-                    onClick={() => { setShowAddAccountForm(false); setNewAccountType(''); setNewAccountBank(''); }}
-                    className="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50"
-                  >
-                    {t('accounts.cancel')}
-                  </button>
+                      <Plus className="w-4 h-4" />
+                      {t('accounts.addAccount')}
+                    </button>
+                  )}
                 </div>
-                {/* Fee explanation when both type and bank are selected */}
-                {newAccountType && newAccountBank && banks[newAccountBank] && (
-                  <div className="mt-3 p-3 bg-slate-50 rounded-lg text-sm text-slate-600">
-                    <p className="font-medium text-slate-700 mb-1">
-                      {language === 'fr' ? 'Frais applicables:' : 'Applicable fees:'}
-                    </p>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>
-                        {language === 'fr' ? 'Transaction' : 'Transaction'}: {banks[newAccountBank].order_fee_pct}% (min {banks[newAccountBank].order_fee_min}€)
-                      </li>
-                      <li>
-                        {language === 'fr' ? 'Tenue de compte' : 'Account fee'}: {banks[newAccountBank].account_fee_pct_semester}%/{language === 'fr' ? 'sem.' : 'sem.'} ({banks[newAccountBank].account_fee_min_semester}€-{banks[newAccountBank].account_fee_max_semester}€)
-                      </li>
-                      <li>
-                        {language === 'fr' ? 'Change' : 'FX'}: {language === 'fr' ? banks[newAccountBank].fx_fee_info_fr : banks[newAccountBank].fx_fee_info_en}
-                      </li>
-                      <li>
-                        {language === 'fr' ? 'Fiscalité' : 'Tax'}: {accountTypes[newAccountType]?.tax_rate}% PFU
-                      </li>
-                    </ul>
+
+                {/* Add Account Form */}
+                {showAddAccountForm && (
+                  <div className="bg-white rounded-lg p-4 mb-4 border border-slate-200">
+                    <div className="flex gap-3 flex-wrap items-end">
+                      <div className="min-w-[160px]">
+                        <label className="block text-sm font-medium text-slate-600 mb-1">{t('accounts.accountType')}</label>
+                        <select
+                          value={newAccountType}
+                          onChange={(e) => setNewAccountType(e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                          <option value="">{t('accounts.selectType')}</option>
+                          {Object.entries(accountTypes).map(([key, info]) => (
+                            <option key={key} value={key}>{info.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="min-w-[180px]">
+                        <label className="block text-sm font-medium text-slate-600 mb-1">{t('accounts.bank')}</label>
+                        <select
+                          value={newAccountBank}
+                          onChange={(e) => setNewAccountBank(e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                          <option value="">{t('accounts.selectBank')}</option>
+                          {Object.entries(banks).map(([key, info]) => (
+                            <option key={key} value={key}>{info.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        onClick={handleCreateAccount}
+                        disabled={!newAccountType || !newAccountBank || createAccountMutation.isPending}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {createAccountMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                        {t('accounts.create')}
+                      </button>
+                      <button
+                        onClick={() => { setShowAddAccountForm(false); setNewAccountType(''); setNewAccountBank(''); }}
+                        className="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50"
+                      >
+                        {t('accounts.cancel')}
+                      </button>
+                    </div>
+                    {/* Fee explanation when both type and bank are selected */}
+                    {newAccountType && newAccountBank && banks[newAccountBank] && (
+                      <div className="mt-3 p-3 bg-slate-50 rounded-lg text-sm text-slate-600">
+                        <p className="font-medium text-slate-700 mb-1">
+                          {language === 'fr' ? 'Frais applicables:' : 'Applicable fees:'}
+                        </p>
+                        <ul className="list-disc list-inside space-y-1">
+                          <li>
+                            {language === 'fr' ? 'Transaction' : 'Transaction'}: {banks[newAccountBank].order_fee_pct}% (min {banks[newAccountBank].order_fee_min}€)
+                          </li>
+                          <li>
+                            {language === 'fr' ? 'Tenue de compte' : 'Account fee'}: {banks[newAccountBank].account_fee_pct_semester}%/{language === 'fr' ? 'sem.' : 'sem.'} ({banks[newAccountBank].account_fee_min_semester}€-{banks[newAccountBank].account_fee_max_semester}€)
+                          </li>
+                          <li>
+                            {language === 'fr' ? 'Change' : 'FX'}: {language === 'fr' ? banks[newAccountBank].fx_fee_info_fr : banks[newAccountBank].fx_fee_info_en}
+                          </li>
+                          <li>
+                            {language === 'fr' ? 'Fiscalité' : 'Tax'}: {accountTypes[newAccountType]?.tax_rate}% PFU
+                          </li>
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* Accounts List */}
-            {accounts.length === 0 ? (
-              <p className="text-slate-500 text-center py-4">{t('accounts.noAccounts')}</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {accounts.map((account) => {
-                  const isSelected = selectedAccountId === account.id;
-                  return (
-                    <div
-                      key={account.id}
-                      onClick={() => setSelectedAccountId(isSelected ? undefined : account.id)}
-                      className={`rounded-lg p-4 relative group cursor-pointer transition-all ${
-                        isSelected
-                          ? 'bg-green-50 border-2 border-green-500 shadow-md'
-                          : 'bg-white border border-slate-200 hover:border-green-300 hover:shadow-sm'
-                      }`}
-                    >
-                      <button
-                        onClick={(e) => { e.stopPropagation(); deleteAccountMutation.mutate(account.id); }}
-                        className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Wallet className={`w-4 h-4 ${isSelected ? 'text-green-600' : 'text-slate-400'}`} />
-                        <span className={`font-bold ${isSelected ? 'text-green-700' : 'text-slate-800'}`}>{account.name}</span>
-                        {isSelected && (
-                          <span className="ml-auto text-xs bg-green-600 text-white px-2 py-0.5 rounded">
-                            {language === 'fr' ? 'Sélectionné' : 'Selected'}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-slate-600 space-y-1">
-                        <p><span className="text-slate-400">{t('accounts.type')}:</span> {account.type_info.name}</p>
-                        <p><span className="text-slate-400">{t('accounts.bank')}:</span> {account.bank_info.name}</p>
-                        <p className="text-xs text-slate-400">
-                          {`${account.bank_info.order_fee_pct}% (min ${account.bank_info.order_fee_min}€)`}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                {/* Accounts List */}
+                {accounts.length === 0 ? (
+                  <p className="text-slate-500 text-center py-4">{t('accounts.noAccounts')}</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {accounts.map((account) => {
+                      const isSelected = selectedAccountId === account.id;
+                      return (
+                        <div
+                          key={account.id}
+                          onClick={() => setSelectedAccountId(isSelected ? undefined : account.id)}
+                          className={`rounded-lg p-4 relative group cursor-pointer transition-all ${
+                            isSelected
+                              ? 'bg-green-50 border-2 border-green-500 shadow-md'
+                              : 'bg-white border border-slate-200 hover:border-green-300 hover:shadow-sm'
+                          }`}
+                        >
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteAccountMutation.mutate(account.id); }}
+                            className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Wallet className={`w-4 h-4 ${isSelected ? 'text-green-600' : 'text-slate-400'}`} />
+                            <span className={`font-bold ${isSelected ? 'text-green-700' : 'text-slate-800'}`}>{account.name}</span>
+                            {isSelected && (
+                              <span className="ml-auto text-xs bg-green-600 text-white px-2 py-0.5 rounded">
+                                {language === 'fr' ? 'Sélectionné' : 'Selected'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm text-slate-600 space-y-1">
+                            <p><span className="text-slate-400">{t('accounts.type')}:</span> {account.type_info.name}</p>
+                            <p><span className="text-slate-400">{t('accounts.bank')}:</span> {account.bank_info.name}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -728,75 +767,92 @@ export function PortfolioPanel() {
           </div>
         )}
 
-        {/* Fees Summary - Only visible when account selected */}
-        {selectedAccountId && accounts.length > 0 && (() => {
-          const selectedAccount = accounts.find(a => a.id === selectedAccountId) || accounts[0];
-          const bankInfo = selectedAccount?.bank_info;
-          if (!bankInfo) return null;
-
-          // Calculate estimated account fees per semester
-          const portfolioValueEur = compositionData?.total_value_eur || 0;
-          const accountFeeSemester = Math.min(
-            Math.max(
-              portfolioValueEur * (bankInfo.account_fee_pct_semester / 100),
-              bankInfo.account_fee_min_semester
-            ),
-            bankInfo.account_fee_max_semester
-          );
-
-          return (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Wallet className="w-5 h-5 text-amber-600" />
-                <h4 className="font-semibold text-amber-800">
-                  {language === 'fr' ? 'Frais et Impôts' : 'Fees & Taxes'} ({selectedAccount.bank_info.name})
-                </h4>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-amber-600 font-medium">
-                    {language === 'fr' ? 'Frais de transaction' : 'Transaction fees'}
-                  </p>
-                  <p className="text-amber-800">
-                    {bankInfo.order_fee_pct}%
-                    <span className="text-amber-600 text-xs ml-1">(min {bankInfo.order_fee_min}€)</span>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-amber-600 font-medium">
-                    {language === 'fr' ? 'Tenue de compte (semestriels)' : 'Account fee (per semester)'}
-                  </p>
-                  <p className="text-amber-800">
-                    {bankInfo.account_fee_pct_semester}% (min {bankInfo.account_fee_min_semester}€ - max {bankInfo.account_fee_max_semester}€)
-                  </p>
-                  {!privateMode && portfolioValueEur > 0 && (
-                    <p className="text-amber-600 text-xs">
-                      ~{Math.round(accountFeeSemester)}€/{language === 'fr' ? 'sem.' : 'sem.'}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-amber-600 font-medium">
-                    {language === 'fr' ? 'Frais de change' : 'FX fees'}
-                  </p>
-                  <p className="text-amber-800 text-xs">
-                    {language === 'fr' ? bankInfo.fx_fee_info_fr : bankInfo.fx_fee_info_en}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-amber-600 font-medium">
-                    {language === 'fr' ? 'Fiscalité (PFU)' : 'Tax (PFU)'}
-                  </p>
-                  <p className="text-amber-800">
-                    {selectedAccount.type_info.tax_rate}% {language === 'fr' ? 'sur plus-values' : 'on gains'}
-                  </p>
-                </div>
-              </div>
+        {/* Fees Button & Content - Always visible when account selected */}
+        {selectedAccountId && (
+          <div className="bg-slate-100 rounded-xl p-6 sticky top-4 z-10">
+            <div className="flex justify-center">
+              <button
+                onClick={() => setShowFees(!showFees)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+              >
+                <Wallet className="w-4 h-4" />
+                {showFees
+                  ? (language === 'fr' ? 'Masquer frais et impôts' : 'Hide fees & taxes')
+                  : (language === 'fr' ? 'Afficher frais et impôts' : 'Show fees & taxes')}
+              </button>
             </div>
-          );
-        })()}
 
-        {/* Toggle Transactions Button - Only when account selected */}
+            {/* Fees Summary - Inside the button container when visible */}
+            {showFees && accounts.length > 0 && (() => {
+              const selectedAccount = accounts.find(a => a.id === selectedAccountId) || accounts[0];
+              const bankInfo = selectedAccount?.bank_info;
+              if (!bankInfo) return null;
+
+              // Calculate estimated account fees per semester
+              const portfolioValueEur = compositionData?.total_value_eur || 0;
+              const accountFeeSemester = Math.min(
+                Math.max(
+                  portfolioValueEur * (bankInfo.account_fee_pct_semester / 100),
+                  bankInfo.account_fee_min_semester
+                ),
+                bankInfo.account_fee_max_semester
+              );
+
+              return (
+                <div className="bg-white rounded-xl p-4 mt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Wallet className="w-5 h-5 text-amber-600" />
+                    <h4 className="font-semibold text-amber-800">
+                      {language === 'fr' ? 'Frais et Impôts' : 'Fees & Taxes'} ({selectedAccount.bank_info.name})
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-amber-600 font-medium">
+                        {language === 'fr' ? 'Frais de transaction' : 'Transaction fees'}
+                      </p>
+                      <p className="text-amber-800">
+                        {bankInfo.order_fee_pct}%
+                        <span className="text-amber-600 text-xs ml-1">(min {bankInfo.order_fee_min}€)</span>
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-amber-600 font-medium">
+                        {language === 'fr' ? 'Tenue de compte (semestriels)' : 'Account fee (per semester)'}
+                      </p>
+                      <p className="text-amber-800">
+                        {bankInfo.account_fee_pct_semester}% (min {bankInfo.account_fee_min_semester}€ - max {bankInfo.account_fee_max_semester}€)
+                      </p>
+                      {!privateMode && portfolioValueEur > 0 && (
+                        <p className="text-amber-600 text-xs">
+                          ~{Math.round(accountFeeSemester)}€/{language === 'fr' ? 'sem.' : 'sem.'}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-amber-600 font-medium">
+                        {language === 'fr' ? 'Frais de change' : 'FX fees'}
+                      </p>
+                      <p className="text-amber-800 text-xs">
+                        {language === 'fr' ? bankInfo.fx_fee_info_fr : bankInfo.fx_fee_info_en}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-amber-600 font-medium">
+                        {language === 'fr' ? 'Fiscalité (PFU)' : 'Tax (PFU)'}
+                      </p>
+                      <p className="text-amber-800">
+                        {selectedAccount.type_info.tax_rate}% {language === 'fr' ? 'sur plus-values' : 'on gains'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Transactions Button - Only when transactions not open */}
         {selectedAccountId && !showTransactions && (
           <div className="bg-slate-100 rounded-xl p-6">
             <div className="flex justify-center">
@@ -818,10 +874,10 @@ export function PortfolioPanel() {
           <div className="flex justify-center mb-6">
             <button
               onClick={() => { setShowTransactions(false); setShowAddForm(false); }}
-              className="bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
             >
-              <span className="text-lg leading-none">−</span>
-              {t('transactions.close')}
+              <Plus className="w-4 h-4" />
+              {language === 'fr' ? 'Masquer les transactions' : 'Hide transactions'}
             </button>
           </div>
 
@@ -1062,7 +1118,12 @@ export function PortfolioPanel() {
                         formatter={(value, _name, props) => {
                           const payload = props.payload as CompositionItem;
                           const valueEur = Math.round(payload.current_value / compositionData.eurusd_rate);
-                          return [privateMode ? `${value}%` : `${formatEur(valueEur)}€ (${value}%)`, payload.ticker];
+                          // In private mode, scale to 10,000 cost basis
+                          const PRIVATE_COST_BASIS = 10000;
+                          const actualCostBasis = compositionData.total_cost_basis_eur;
+                          const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
+                          const displayValue = Math.round(valueEur * scaleFactor);
+                          return [`${formatEur(displayValue)}€ (${value}%)`, payload.ticker];
                         }}
                       />
                     </PieChart>
@@ -1071,35 +1132,46 @@ export function PortfolioPanel() {
 
                 {/* Holdings Table */}
                 <div className="w-1/2">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-left text-slate-600 text-sm border-b border-slate-300">
-                        <th className="pb-2">{t('holdings.stock')}</th>
-                        <th className="pb-2 text-right">{t('holdings.shares')}</th>
-                        <th className="pb-2 text-right">{t('holdings.price')}</th>
-                        <th className="pb-2 text-right">{privateMode ? t('holdings.weight') : t('holdings.value')}</th>
-                        <th className="pb-2 text-right">{t('holdings.gain')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {compositionData.holdings.map((h) => {
-                        const valueEur = Math.round(h.current_value / compositionData.eurusd_rate);
-                        return (
-                          <tr key={h.ticker} className="border-b border-slate-200">
-                            <td className="py-2 font-bold" style={{ color: h.color }}>{h.ticker}</td>
-                            <td className="py-2 text-right text-slate-600">{privateMode ? '••' : h.quantity}</td>
-                            <td className="py-2 text-right text-slate-600">${h.current_price}</td>
-                            <td className="py-2 text-right text-slate-800 font-medium">
-                              {privateMode ? `${h.weight}%` : `${formatEur(valueEur)}€`}
-                            </td>
-                            <td className={`py-2 text-right font-medium ${h.gain_usd >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {h.gain_usd >= 0 ? '+' : ''}{h.gain_pct}%
-                            </td>
+                  {(() => {
+                    // In private mode, scale all values to assume 10,000 cost basis
+                    const PRIVATE_COST_BASIS = 10000;
+                    const actualCostBasis = compositionData.total_cost_basis_eur;
+                    const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
+
+                    return (
+                      <table className="w-full">
+                        <thead>
+                          <tr className="text-left text-slate-600 text-sm border-b border-slate-300">
+                            <th className="pb-2">{t('holdings.stock')}</th>
+                            <th className="pb-2 text-right">{t('holdings.shares')}</th>
+                            <th className="pb-2 text-right">{t('holdings.price')}</th>
+                            <th className="pb-2 text-right">{t('holdings.value')}</th>
+                            <th className="pb-2 text-right">{t('holdings.gain')}</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody>
+                          {compositionData.holdings.map((h) => {
+                            const valueEur = Math.round(h.current_value / compositionData.eurusd_rate);
+                            const displayValue = Math.round(valueEur * scaleFactor);
+                            const displayQuantity = privateMode ? Math.round(h.quantity * scaleFactor) : h.quantity;
+                            return (
+                              <tr key={h.ticker} className="border-b border-slate-200">
+                                <td className="py-2 font-bold" style={{ color: h.color }}>{h.ticker}</td>
+                                <td className="py-2 text-right text-slate-600">{displayQuantity}</td>
+                                <td className="py-2 text-right text-slate-600">${h.current_price}</td>
+                                <td className="py-2 text-right text-slate-800 font-medium">
+                                  {`${formatEur(displayValue)}€`}
+                                </td>
+                                <td className={`py-2 text-right font-medium ${h.gain_usd >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {h.gain_usd >= 0 ? '+' : ''}{h.gain_pct}%
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
                 </div>
               </div>
             ) : (
@@ -1111,24 +1183,37 @@ export function PortfolioPanel() {
         {/* Portfolio Performance */}
         {selectedAccountId && hasHoldings && (
           <div className="bg-slate-100 rounded-xl p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-4">
+            <div className="flex items-center mb-6">
+              <div className="flex-1">
                 <h3 className="text-xl font-bold text-slate-800">{t('performance.title')}</h3>
-                {performanceData?.summary && (
-                  <span className={`text-lg font-semibold ${performanceData.summary.cagr_eur >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {language === 'fr' ? 'Croissance annuelle' : 'Annual growth'}: {performanceData.summary.cagr_eur >= 0 ? '+' : ''}{performanceData.summary.cagr_eur}%
-                  </span>
-                )}
+              </div>
+              {/* Toggle: Total vs Annualized */}
+              <div className="flex rounded-lg overflow-hidden border border-slate-300">
+                <button
+                  onClick={() => setShowAnnualized(false)}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${!showAnnualized ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                >
+                  {language === 'fr' ? 'Total' : 'Total'}
+                </button>
+                <button
+                  onClick={() => setShowAnnualized(true)}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${showAnnualized ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                >
+                  {language === 'fr' ? 'Annualisé' : 'Annualized'}
+                </button>
               </div>
               {/* Benchmark Select */}
-              <select
-                value={benchmark}
-                onChange={(e) => setBenchmark(e.target.value as 'NASDAQ' | 'SP500')}
-                className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <option value="NASDAQ">{currency === 'EUR' ? 'EQQQ (NASDAQ)' : 'QQQ (NASDAQ)'}</option>
-                <option value="SP500">{currency === 'EUR' ? 'CSPX (S&P 500)' : 'SPY (S&P 500)'}</option>
-              </select>
+              <div className="flex-1 flex items-center justify-end gap-2">
+                <span className="text-slate-600 font-medium">{language === 'fr' ? 'Indice de référence :' : 'Benchmark:'}</span>
+                <select
+                  value={benchmark}
+                  onChange={(e) => setBenchmark(e.target.value as 'NASDAQ' | 'SP500')}
+                  className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="NASDAQ">{currency === 'EUR' ? 'EQQQ (NASDAQ)' : 'QQQ (NASDAQ)'}</option>
+                  <option value="SP500">{currency === 'EUR' ? 'CSPX (S&P 500)' : 'SPY (S&P 500)'}</option>
+                </select>
+              </div>
             </div>
 
             {performanceLoading ? (
@@ -1136,15 +1221,27 @@ export function PortfolioPanel() {
                 <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
               </div>
             ) : performanceData?.data && performanceData.data.length > 0 ? (() => {
+              // In private mode, scale all values to assume 10,000 cost basis
+              const PRIVATE_COST_BASIS = 10000;
+              const lastDataPoint = performanceData.data[performanceData.data.length - 1];
+              const actualCostBasis = lastDataPoint?.cost_basis_eur || 1;
+              const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
+
               // Compute chart data with fill areas for outperformance/underperformance
               const chartData = performanceData.data.map(d => {
-                const isOutperforming = d.portfolio_value_eur >= d.benchmark_value_eur;
+                const scaledPortfolioValue = d.portfolio_value_eur * scaleFactor;
+                const scaledBenchmarkValue = d.benchmark_value_eur * scaleFactor;
+                const scaledCostBasis = d.cost_basis_eur * scaleFactor;
+                const isOutperforming = scaledPortfolioValue >= scaledBenchmarkValue;
                 return {
                   ...d,
+                  portfolio_value_eur: scaledPortfolioValue,
+                  benchmark_value_eur: scaledBenchmarkValue,
+                  cost_basis_eur: scaledCostBasis,
                   // For stacked areas: base is the minimum, fill is the difference
-                  area_base: Math.min(d.portfolio_value_eur, d.benchmark_value_eur),
-                  outperformance_fill: isOutperforming ? d.portfolio_value_eur - d.benchmark_value_eur : 0,
-                  underperformance_fill: !isOutperforming ? d.benchmark_value_eur - d.portfolio_value_eur : 0,
+                  area_base: Math.min(scaledPortfolioValue, scaledBenchmarkValue),
+                  outperformance_fill: isOutperforming ? scaledPortfolioValue - scaledBenchmarkValue : 0,
+                  underperformance_fill: !isOutperforming ? scaledBenchmarkValue - scaledPortfolioValue : 0,
                 };
               });
 
@@ -1152,8 +1249,8 @@ export function PortfolioPanel() {
               <>
                 {/* Summary Stats */}
                 {performanceData.summary && (
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="bg-white rounded-lg p-4 text-center">
+                  <div className="flex justify-center gap-4 mb-6">
+                    <div className="bg-white rounded-lg p-4 text-center w-56">
                       <span className="text-lg text-slate-600">
                         {(() => {
                           const y = performanceData.summary.years;
@@ -1166,24 +1263,26 @@ export function PortfolioPanel() {
                       </span>
                       <p className="text-slate-500 text-sm">{t('performance.since')} {new Date(performanceData.summary.start_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                     </div>
-                    <div className="bg-white rounded-lg p-4 text-center">
+                    <div className="bg-white rounded-lg p-4 text-center w-56">
                       <div className="flex items-center justify-center gap-1 mb-1">
-                        {performanceData.summary.portfolio_return_eur >= 0 ? (
+                        {(showAnnualized ? performanceData.summary.cagr_eur : performanceData.summary.portfolio_return_eur) >= 0 ? (
                           <TrendingUp className="w-5 h-5 text-green-600" />
                         ) : (
                           <TrendingDown className="w-5 h-5 text-red-600" />
                         )}
-                        <span className={`text-2xl font-bold ${performanceData.summary.portfolio_return_eur >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {performanceData.summary.portfolio_return_eur >= 0 ? '+' : ''}{performanceData.summary.portfolio_return_eur}%
+                        <span className={`text-2xl font-bold ${(showAnnualized ? performanceData.summary.cagr_eur : performanceData.summary.portfolio_return_eur) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {(showAnnualized ? performanceData.summary.cagr_eur : performanceData.summary.portfolio_return_eur) >= 0 ? '+' : ''}{showAnnualized ? performanceData.summary.cagr_eur : performanceData.summary.portfolio_return_eur}%
                         </span>
                       </div>
-                      <p className="text-slate-500 text-sm">{t('performance.totalReturn')}</p>
+                      <p className="text-slate-500 text-sm">{showAnnualized ? (language === 'fr' ? 'CAGR' : 'CAGR') : t('performance.totalReturn')}</p>
                     </div>
-                    <div className="bg-white rounded-lg p-4 text-center">
-                      <span className={`text-2xl font-bold ${performanceData.summary.benchmark_return_eur >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                        {performanceData.summary.benchmark_return_eur >= 0 ? '+' : ''}{performanceData.summary.benchmark_return_eur}%
-                      </span>
-                      <p className="text-slate-500 text-sm">{language === 'fr' ? 'Indice' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})</p>
+                    <div className="bg-white rounded-lg p-4 text-center w-56">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <span className={`text-2xl font-bold ${(showAnnualized ? performanceData.summary.cagr_benchmark_eur : performanceData.summary.benchmark_return_eur) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                          {(showAnnualized ? performanceData.summary.cagr_benchmark_eur : performanceData.summary.benchmark_return_eur) >= 0 ? '+' : ''}{showAnnualized ? performanceData.summary.cagr_benchmark_eur : performanceData.summary.benchmark_return_eur}%
+                        </span>
+                      </div>
+                      <p className="text-slate-500 text-sm">{language === 'fr' ? 'Indice de réf.' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})</p>
                     </div>
                   </div>
                 )}
@@ -1217,11 +1316,6 @@ export function PortfolioPanel() {
                       <YAxis
                         tick={{ fontSize: 12, fill: '#64748b' }}
                         tickFormatter={(val) => {
-                          if (privateMode) {
-                            const costBasis = chartData[chartData.length - 1]?.cost_basis_eur || 1;
-                            const pct = Math.round((val / costBasis) * 100);
-                            return `${pct}%`;
-                          }
                           return `${formatEur(val / 1000)}k€`;
                         }}
                         domain={[
@@ -1255,11 +1349,6 @@ export function PortfolioPanel() {
                           let label: string = benchmarkTicker;
                           if (nameStr.includes('Portfolio')) label = t('performance.portfolio');
                           else if (nameStr.includes('Invested')) label = t('performance.invested');
-                          if (privateMode) {
-                            const costBasis = chartData[chartData.length - 1]?.cost_basis_eur || 1;
-                            const pct = Math.round((numValue / costBasis) * 100);
-                            return [`${pct}%`, label];
-                          }
                           return [`${formatEur(numValue)}€`, label];
                         }}
                         wrapperStyle={{ zIndex: 100 }}
@@ -1275,7 +1364,7 @@ export function PortfolioPanel() {
                             </div>
                             <div className="flex items-center gap-1.5">
                               <div className="w-4 h-0.5 bg-[#8A8EFF]" style={{ borderStyle: 'dashed', borderWidth: '1px', borderColor: '#8A8EFF', height: 0 }}></div>
-                              <span className="text-slate-600">{benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')}</span>
+                              <span className="text-slate-600">{language === 'fr' ? 'Indice de réf.' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <div className="w-4 h-0.5 bg-slate-400"></div>

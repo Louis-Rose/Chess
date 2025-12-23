@@ -143,7 +143,7 @@ const translations: Record<Language, Record<string, string>> = {
     'performance.years': 'ans',
     'performance.month': 'mois',
     'performance.months': 'mois',
-    'performance.since': 'Depuis',
+    'performance.since': 'Depuis le',
     'performance.totalReturn': 'Rendement Total',
     'performance.benchmark.qqq': 'Indice: QQQ (Nasdaq-100)',
     'performance.benchmark.sp500': 'Indice: S&P 500',

@@ -9,11 +9,7 @@ export function ProsTipsPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex justify-center mb-8 mt-12">
-        <div className="h-1 w-[90%] bg-slate-100 rounded-full"></div>
-      </div>
-
-      <div className="flex flex-col items-center gap-2 mb-6">
+      <div className="flex flex-col items-center gap-2 mb-6 mt-8">
         <h2 className="text-3xl font-bold text-slate-100 whitespace-nowrap">
           How to Improve (from Pros)
         </h2>
