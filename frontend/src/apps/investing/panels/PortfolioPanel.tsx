@@ -198,6 +198,7 @@ export function PortfolioPanel() {
   const [benchmark, setBenchmark] = useState<'NASDAQ' | 'SP500'>('NASDAQ');
   const [privateMode, setPrivateMode] = useState(false);
   const [showAnnualized, setShowAnnualized] = useState(false);
+  const [yearFilter, setYearFilter] = useState<'all' | number>('all');
   const [showFees, setShowFees] = useState(false);
   const [showAccounts, setShowAccounts] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -1183,9 +1184,26 @@ export function PortfolioPanel() {
         {/* Portfolio Performance */}
         {selectedAccountId && hasHoldings && (
           <div className="bg-slate-100 rounded-xl p-6">
-            <div className="flex items-center mb-6">
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-slate-800">{t('performance.title')}</h3>
+            <div className="flex items-center mb-6 gap-4">
+              <h3 className="text-xl font-bold text-slate-800">{t('performance.title')}</h3>
+              {/* Year Filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-slate-600 font-medium">{language === 'fr' ? 'Période :' : 'Period:'}</span>
+                <select
+                  value={yearFilter}
+                  onChange={(e) => setYearFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                  className="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                >
+                  <option value="all">{language === 'fr' ? 'Tout' : 'All'}</option>
+                  {(() => {
+                    const currentYear = new Date().getFullYear();
+                    const years = [];
+                    for (let y = currentYear; y >= 2020; y--) {
+                      years.push(<option key={y} value={y}>{y}</option>);
+                    }
+                    return years;
+                  })()}
+                </select>
               </div>
               {/* Toggle: Total vs Annualized */}
               <div className="flex rounded-lg overflow-hidden border border-slate-300">
@@ -1203,7 +1221,7 @@ export function PortfolioPanel() {
                 </button>
               </div>
               {/* Benchmark Select */}
-              <div className="flex-1 flex items-center justify-end gap-2">
+              <div className="flex items-center gap-2 ml-auto">
                 <span className="text-slate-600 font-medium">{language === 'fr' ? 'Indice de référence :' : 'Benchmark:'}</span>
                 <select
                   value={benchmark}
@@ -1221,14 +1239,64 @@ export function PortfolioPanel() {
                 <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
               </div>
             ) : performanceData?.data && performanceData.data.length > 0 ? (() => {
+              // Filter data by year if a specific year is selected
+              const filteredData = yearFilter === 'all'
+                ? performanceData.data
+                : performanceData.data.filter(d => new Date(d.date).getFullYear() === yearFilter);
+
+              if (filteredData.length === 0) {
+                return <p className="text-slate-500 text-center py-8">{language === 'fr' ? 'Aucune donnée pour cette année' : 'No data for this year'}</p>;
+              }
+
               // In private mode, scale all values to assume 10,000 cost basis
               const PRIVATE_COST_BASIS = 10000;
-              const lastDataPoint = performanceData.data[performanceData.data.length - 1];
+              const lastDataPoint = filteredData[filteredData.length - 1];
+              const firstDataPoint = filteredData[0];
               const actualCostBasis = lastDataPoint?.cost_basis_eur || 1;
               const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
 
+              // Calculate summary for filtered data
+              const startDate = firstDataPoint.date;
+              const endDate = lastDataPoint.date;
+              const endPortfolioValue = lastDataPoint.portfolio_value_eur;
+              const endCostBasis = lastDataPoint.cost_basis_eur;
+              const startBenchmarkValue = firstDataPoint.benchmark_value_eur;
+              const endBenchmarkValue = lastDataPoint.benchmark_value_eur;
+
+              // Portfolio return = (current value - cost basis) / cost basis
+              const portfolioReturn = endCostBasis > 0
+                ? Math.round(((endPortfolioValue - endCostBasis) / endCostBasis) * 1000) / 10
+                : 0;
+              // Benchmark return = (benchmark value - cost basis) / cost basis (fair comparison)
+              const benchmarkReturn = endCostBasis > 0
+                ? Math.round(((endBenchmarkValue - endCostBasis) / endCostBasis) * 1000) / 10
+                : 0;
+
+              const daysDiff = (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24);
+              const years = daysDiff / 365;
+
+              // CAGR = annualized total return: (1 + totalReturn)^(1/years) - 1
+              // For periods close to 1 year (0.9-1.1), just use total return to avoid confusing differences
+              const shouldAnnualize = years > 0 && (years < 0.9 || years > 1.1);
+              const cagrPortfolio = shouldAnnualize
+                ? Math.round((Math.pow(1 + portfolioReturn / 100, 1 / years) - 1) * 1000) / 10
+                : portfolioReturn;
+              const cagrBenchmark = shouldAnnualize
+                ? Math.round((Math.pow(1 + benchmarkReturn / 100, 1 / years) - 1) * 1000) / 10
+                : benchmarkReturn;
+
+              const filteredSummary = yearFilter === 'all' ? performanceData.summary : {
+                start_date: startDate,
+                end_date: endDate,
+                years: years,
+                portfolio_return_eur: portfolioReturn,
+                benchmark_return_eur: benchmarkReturn,
+                cagr_eur: cagrPortfolio,
+                cagr_benchmark_eur: cagrBenchmark,
+              };
+
               // Compute chart data with fill areas for outperformance/underperformance
-              const chartData = performanceData.data.map(d => {
+              const chartData = filteredData.map(d => {
                 const scaledPortfolioValue = d.portfolio_value_eur * scaleFactor;
                 const scaledBenchmarkValue = d.benchmark_value_eur * scaleFactor;
                 const scaledCostBasis = d.cost_basis_eur * scaleFactor;
@@ -1248,12 +1316,12 @@ export function PortfolioPanel() {
               return (
               <>
                 {/* Summary Stats */}
-                {performanceData.summary && (
+                {filteredSummary && (
                   <div className="flex justify-center gap-4 mb-6">
                     <div className="bg-white rounded-lg p-4 text-center w-56">
                       <span className="text-lg text-slate-600">
                         {(() => {
-                          const y = performanceData.summary.years;
+                          const y = filteredSummary.years;
                           const fullYears = Math.floor(y);
                           const months = Math.round((y - fullYears) * 12);
                           if (months === 0) return `${fullYears} ${fullYears !== 1 ? t('performance.years') : t('performance.year')}`;
@@ -1261,25 +1329,25 @@ export function PortfolioPanel() {
                           return `${fullYears} ${fullYears !== 1 ? t('performance.years') : t('performance.year')} ${months} ${t('performance.months')}`;
                         })()}
                       </span>
-                      <p className="text-slate-500 text-sm">{t('performance.since')} {new Date(performanceData.summary.start_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                      <p className="text-slate-500 text-sm">{t('performance.since')} {new Date(filteredSummary.start_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                     </div>
                     <div className="bg-white rounded-lg p-4 text-center w-56">
                       <div className="flex items-center justify-center gap-1 mb-1">
-                        {(showAnnualized ? performanceData.summary.cagr_eur : performanceData.summary.portfolio_return_eur) >= 0 ? (
+                        {(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? (
                           <TrendingUp className="w-5 h-5 text-green-600" />
                         ) : (
                           <TrendingDown className="w-5 h-5 text-red-600" />
                         )}
-                        <span className={`text-2xl font-bold ${(showAnnualized ? performanceData.summary.cagr_eur : performanceData.summary.portfolio_return_eur) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {(showAnnualized ? performanceData.summary.cagr_eur : performanceData.summary.portfolio_return_eur) >= 0 ? '+' : ''}{showAnnualized ? performanceData.summary.cagr_eur : performanceData.summary.portfolio_return_eur}%
+                        <span className={`text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur}%
                         </span>
                       </div>
                       <p className="text-slate-500 text-sm">{showAnnualized ? (language === 'fr' ? 'CAGR' : 'CAGR') : t('performance.totalReturn')}</p>
                     </div>
                     <div className="bg-white rounded-lg p-4 text-center w-56">
                       <div className="flex items-center justify-center gap-1 mb-1">
-                        <span className={`text-2xl font-bold ${(showAnnualized ? performanceData.summary.cagr_benchmark_eur : performanceData.summary.benchmark_return_eur) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                          {(showAnnualized ? performanceData.summary.cagr_benchmark_eur : performanceData.summary.benchmark_return_eur) >= 0 ? '+' : ''}{showAnnualized ? performanceData.summary.cagr_benchmark_eur : performanceData.summary.benchmark_return_eur}%
+                        <span className={`text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                          {(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur}%
                         </span>
                       </div>
                       <p className="text-slate-500 text-sm">{language === 'fr' ? 'Indice de réf.' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})</p>
@@ -1310,25 +1378,32 @@ export function PortfolioPanel() {
                           // Capitalize first letter
                           return formatted.charAt(0).toUpperCase() + formatted.slice(1);
                         }}
-                        tick={{ fontSize: 11, fill: '#64748b' }}
+                        tick={{ fontSize: 16, fill: '#64748b' }}
                         interval={Math.floor(chartData.length / 8)}
                       />
                       <YAxis
-                        tick={{ fontSize: 12, fill: '#64748b' }}
+                        tick={{ fontSize: 16, fill: '#64748b' }}
                         tickFormatter={(val) => {
                           return `${formatEur(val / 1000)}k€`;
                         }}
                         domain={[
-                          (dataMin: number) => Math.floor(dataMin / 10000) * 10000,
-                          (dataMax: number) => Math.ceil(dataMax / 10000) * 10000
+                          (dataMin: number) => {
+                            const increment = privateMode ? 5000 : 10000;
+                            return Math.floor(dataMin / increment) * increment;
+                          },
+                          (dataMax: number) => {
+                            const increment = privateMode ? 5000 : 10000;
+                            return Math.ceil(dataMax / increment) * increment;
+                          }
                         ]}
                         allowDecimals={false}
                         ticks={(() => {
+                          const increment = privateMode ? 5000 : 10000;
                           const values = chartData.map(d => Math.max(d.portfolio_value_eur, d.benchmark_value_eur, d.cost_basis_eur));
-                          const minVal = Math.floor(Math.min(...values) / 10000) * 10000;
-                          const maxVal = Math.ceil(Math.max(...values) / 10000) * 10000;
+                          const minVal = Math.floor(Math.min(...values) / increment) * increment;
+                          const maxVal = Math.ceil(Math.max(...values) / increment) * increment;
                           const ticks = [];
-                          for (let i = minVal; i <= maxVal; i += 10000) {
+                          for (let i = minVal; i <= maxVal; i += increment) {
                             ticks.push(i);
                           }
                           return ticks;
