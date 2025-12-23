@@ -940,50 +940,52 @@ def compute_win_prediction_from_games(games_by_day):
         })
 
     # Day balance insights
+    balance_effect = round((odds_ratio_day_balance - 1) * 100)
     if is_balance_significant:
         if coef_day_balance > 0.05:
             insights.append({
                 'type': 'positive',
                 'title': 'Winning days boost performance',
-                'message': f'When you\'re ahead for the day (more wins than losses), you tend to play better. Odds ratio: {odds_ratio_day_balance:.2f}x.',
+                'message': f'When you\'re ahead for the day (more wins than losses), your win probability increases by ~{abs(balance_effect)}%.',
                 'recommendation': 'Your confidence builds throughout winning sessions. Use this momentum!'
             })
         elif coef_day_balance < -0.05:
             insights.append({
                 'type': 'warning',
                 'title': 'Winning streaks may cause complacency',
-                'message': f'When you\'re ahead for the day, your win rate actually drops. Odds ratio: {odds_ratio_day_balance:.2f}x.',
+                'message': f'When you\'re ahead for the day, your win probability decreases by ~{abs(balance_effect)}%.',
                 'recommendation': 'Stay focused even when having a good day. Don\'t get overconfident.'
             })
     else:
         insights.append({
             'type': 'info',
             'title': 'Day balance has no impact',
-            'message': f'Whether you\'re ahead or behind for the day doesn\'t significantly affect your next game. Odds ratio: {odds_ratio_day_balance:.2f}x.',
+            'message': f'Whether you\'re ahead or behind for the day doesn\'t significantly affect your next game.',
             'recommendation': 'Good mental stability! Your performance doesn\'t depend on your session\'s running tally.'
         })
 
     # Minutes gap insights
+    minutes_effect = round((odds_ratio_minutes - 1) * 100)
     if is_minutes_significant:
         if coef_minutes > 0.05:
             insights.append({
                 'type': 'info',
                 'title': 'Longer breaks help',
-                'message': f'Taking more time between games improves your performance. Odds ratio: {odds_ratio_minutes:.2f}x per std deviation.',
+                'message': f'Taking more time between games increases your win probability by ~{abs(minutes_effect)}%.',
                 'recommendation': 'Don\'t rush into the next game. A short break helps you reset.'
             })
         elif coef_minutes < -0.05:
             insights.append({
                 'type': 'info',
                 'title': 'You play better when warmed up',
-                'message': f'Playing games in quick succession improves your performance. Odds ratio: {odds_ratio_minutes:.2f}x.',
+                'message': f'Playing games in quick succession increases your win probability by ~{abs(minutes_effect)}%.',
                 'recommendation': 'You benefit from staying "in the zone". Keep the momentum going!'
             })
     else:
         insights.append({
             'type': 'info',
             'title': 'Time between games doesn\'t matter',
-            'message': f'The gap between your games doesn\'t significantly affect performance. Odds ratio: {odds_ratio_minutes:.2f}x.',
+            'message': f'The gap between your games doesn\'t significantly affect your performance.',
             'recommendation': 'Play at your own pace - quick succession or with breaks, it doesn\'t impact your results.'
         })
 
