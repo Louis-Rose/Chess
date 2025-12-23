@@ -1260,7 +1260,6 @@ export function PortfolioPanel() {
               const endDate = lastDataPoint.date;
               const endPortfolioValue = lastDataPoint.portfolio_value_eur;
               const endCostBasis = lastDataPoint.cost_basis_eur;
-              const startBenchmarkValue = firstDataPoint.benchmark_value_eur;
               const endBenchmarkValue = lastDataPoint.benchmark_value_eur;
 
               // Portfolio return = (current value - cost basis) / cost basis
