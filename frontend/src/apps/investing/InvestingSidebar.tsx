@@ -87,7 +87,7 @@ export function InvestingSidebar() {
               <span className="text-2xl">♞</span>
               <div>
                 <p className="text-slate-200 font-medium">Chess</p>
-                <p className="text-slate-500 text-xs">Improve at Chess</p>
+                <p className="text-slate-500 text-xs">Improve at Stuff</p>
               </div>
             </Link>
           </div>
