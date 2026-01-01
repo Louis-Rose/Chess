@@ -224,19 +224,31 @@ export function PortfolioPanel() {
 
   // Download chart as image
   const downloadChart = async () => {
-    if (!chartContainerRef.current) return;
+    if (!chartContainerRef.current) {
+      console.error('Chart container ref not found');
+      return;
+    }
     setIsDownloading(true);
     try {
       const canvas = await html2canvas(chartContainerRef.current, {
-        backgroundColor: '#f1f5f9', // slate-100 background
-        scale: 2, // Higher resolution
+        backgroundColor: '#f1f5f9',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
       });
+
+      // Create download link
+      const url = canvas.toDataURL('image/png');
       const link = document.createElement('a');
+      link.href = url;
       link.download = `portfolio-performance-${new Date().toISOString().split('T')[0]}.png`;
-      link.href = canvas.toDataURL('image/png');
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch (error) {
       console.error('Failed to download chart:', error);
+      alert(language === 'fr' ? 'Erreur lors du téléchargement' : 'Download failed');
     } finally {
       setIsDownloading(false);
     }
