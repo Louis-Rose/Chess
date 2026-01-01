@@ -1065,6 +1065,39 @@ def get_stock_info():
 
 # French banks/brokers with their fee structures
 BANKS = {
+    'BNP_PARIBAS': {
+        'name': 'BNP Paribas',
+        'order_fee_pct': 0.50,
+        'order_fee_min': 7.50,
+        'account_fee_pct_semester': 0.125,
+        'account_fee_min_semester': 5,
+        'account_fee_max_semester': 60,
+        'custody_fee_pct': 0,
+        'fx_fee_info_fr': '0.10% (min 15€)',
+        'fx_fee_info_en': '0.10% (min €15)',
+    },
+    'CREDIT_AGRICOLE': {
+        'name': 'Crédit Agricole',
+        'order_fee_pct': 0.50,
+        'order_fee_min': 8,
+        'account_fee_pct_semester': 0.15,
+        'account_fee_min_semester': 5,
+        'account_fee_max_semester': 50,
+        'custody_fee_pct': 0,
+        'fx_fee_info_fr': '0.15% (min 10€)',
+        'fx_fee_info_en': '0.15% (min €10)',
+    },
+    'SOCIETE_GENERALE': {
+        'name': 'Société Générale',
+        'order_fee_pct': 0.50,
+        'order_fee_min': 8.90,
+        'account_fee_pct_semester': 0.10,
+        'account_fee_min_semester': 5,
+        'account_fee_max_semester': 50,
+        'custody_fee_pct': 0,
+        'fx_fee_info_fr': '0.20% (min 12€)',
+        'fx_fee_info_en': '0.20% (min €12)',
+    },
     'CREDIT_MUTUEL': {
         'name': 'Crédit Mutuel',
         'order_fee_pct': 0.50,
@@ -1085,6 +1118,12 @@ ACCOUNT_TYPES = {
         'description_en': '30% flat tax on capital gains (PFU)',
         'description_fr': '30% d\'imposition forfaitaire sur les plus-values (PFU)',
         'tax_rate': 30.0
+    },
+    'PEA': {
+        'name': 'PEA',
+        'description_en': '17.2% social contributions only (after 5 years)',
+        'description_fr': '17.2% de prélèvements sociaux uniquement (après 5 ans)',
+        'tax_rate': 17.2
     },
 }
 
