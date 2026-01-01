@@ -556,20 +556,13 @@ export function PortfolioPanel() {
                   <p className="text-sm md:text-base font-medium text-slate-600 mb-1">
                     {language === 'fr' ? 'Plus-value latente' : 'Unrealized Gains'}
                   </p>
-                  <div className="flex items-center justify-center gap-1">
-                    {displayGain >= 0 ? (
-                      <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
-                    ) : (
-                      <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
-                    )}
-                    <p className={`text-base md:text-2xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {currency === 'EUR'
-                        ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
-                        : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
-                    </p>
-                  </div>
-                  <p className={`text-xs md:text-sm font-semibold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <p className={`text-base md:text-2xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {displayPct >= 0 ? '+' : ''}{displayPct}%
+                  </p>
+                  <p className={`text-base md:text-2xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {currency === 'EUR'
+                      ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
+                      : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
                   </p>
                 </div>
               );
@@ -590,18 +583,11 @@ export function PortfolioPanel() {
                   <p className="text-sm md:text-base font-medium text-slate-600 mb-1">
                     {language === 'fr' ? 'Plus-value réalisée' : 'Realized Gains'}
                   </p>
-                  <div className="flex items-center justify-center gap-1">
-                    {displayRealizedGain >= 0 ? (
-                      <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
-                    ) : (
-                      <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
-                    )}
-                    <p className={`text-base md:text-2xl font-bold ${displayRealizedGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {currency === 'EUR'
-                        ? `${displayRealizedGain >= 0 ? '+' : ''}${formatEur(displayRealizedGain)}€`
-                        : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
-                    </p>
-                  </div>
+                  <p className={`text-base md:text-2xl font-bold ${displayRealizedGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {currency === 'EUR'
+                      ? `${displayRealizedGain >= 0 ? '+' : ''}${formatEur(displayRealizedGain)}€`
+                      : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
+                  </p>
                 </div>
               );
             })()}
