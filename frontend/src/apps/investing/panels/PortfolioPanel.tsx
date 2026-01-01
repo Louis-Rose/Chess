@@ -1228,7 +1228,7 @@ export function PortfolioPanel() {
                   onClick={() => setShowAnnualized(false)}
                   className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${!showAnnualized ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
                 >
-                  {language === 'fr' ? 'Tout' : 'Total'}
+                  {language === 'fr' ? 'Tout' : 'All'}
                 </button>
                 <button
                   onClick={() => setShowAnnualized(true)}
