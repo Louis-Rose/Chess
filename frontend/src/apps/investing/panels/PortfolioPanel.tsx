@@ -5,7 +5,7 @@ const formatEur = (num: number): string => {
   return Math.round(num).toLocaleString('fr-FR').replace(/\u202F/g, ' ');
 };
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import {
@@ -200,6 +200,19 @@ export function PortfolioPanel() {
   const [privateMode, setPrivateMode] = useState(false);
   const [showAnnualized, setShowAnnualized] = useState(false);
   const [brushRange, setBrushRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
+  const brushDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced brush change handler - only update after user stops dragging
+  const handleBrushChange = useCallback((range: { startIndex?: number; endIndex?: number }) => {
+    if (brushDebounceRef.current) {
+      clearTimeout(brushDebounceRef.current);
+    }
+    if (typeof range.startIndex === 'number' && typeof range.endIndex === 'number') {
+      brushDebounceRef.current = setTimeout(() => {
+        setBrushRange({ startIndex: range.startIndex!, endIndex: range.endIndex! });
+      }, 300);
+    }
+  }, []);
   const [showFees, setShowFees] = useState(false);
   const [showAccounts, setShowAccounts] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -1495,11 +1508,7 @@ export function PortfolioPanel() {
                           const formatted = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
                           return formatted.charAt(0).toUpperCase() + formatted.slice(1);
                         }}
-                        onChange={(range) => {
-                          if (range && typeof range.startIndex === 'number' && typeof range.endIndex === 'number') {
-                            setBrushRange({ startIndex: range.startIndex, endIndex: range.endIndex });
-                          }
-                        }}
+                        onChange={handleBrushChange}
                       />
                       {/* Stacked areas for outperformance/underperformance fill */}
                       <Area
