@@ -75,7 +75,7 @@ const translations: Record<Language, Record<string, string>> = {
     'performance.benchmark.qqq': 'Benchmark: QQQ (Nasdaq-100)',
     'performance.benchmark.sp500': 'Benchmark: S&P 500',
     'performance.portfolio': 'Portfolio',
-    'performance.invested': 'Invested',
+    'performance.invested': 'Invested capital',
 
     // Common
     'common.loading': 'Loading...',
@@ -148,7 +148,7 @@ const translations: Record<Language, Record<string, string>> = {
     'performance.benchmark.qqq': 'Indice: QQQ (Nasdaq-100)',
     'performance.benchmark.sp500': 'Indice: S&P 500',
     'performance.portfolio': 'Portefeuille',
-    'performance.invested': 'Investi',
+    'performance.invested': 'Capital investi',
 
     // Common
     'common.loading': 'Chargement...',

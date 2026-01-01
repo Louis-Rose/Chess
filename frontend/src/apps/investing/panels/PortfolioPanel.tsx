@@ -517,21 +517,21 @@ export function PortfolioPanel() {
                 <>
                   {/* Prix de revient (Cost Basis) */}
                   <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
+                    <p className="text-sm md:text-base font-medium text-slate-600 mb-1">{language === 'fr' ? 'Prix de revient' : 'Cost Basis'}</p>
                     <p className="text-base md:text-2xl font-bold text-slate-800">
                       {currency === 'EUR'
                         ? `${formatEur(displayCostBasis)}€`
                         : `$${Math.round(displayCostBasis).toLocaleString('en-US')}`}
                     </p>
-                    <p className="text-slate-500 text-sm">{language === 'fr' ? 'Prix de revient' : 'Cost Basis'}</p>
                   </div>
                   {/* Valeur totale (Total Value) */}
                   <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
+                    <p className="text-sm md:text-base font-medium text-slate-600 mb-1">{language === 'fr' ? 'Valeur totale' : 'Total Value'}</p>
                     <p className="text-base md:text-2xl font-bold text-slate-800">
                       {currency === 'EUR'
                         ? `${formatEur(displayTotalValue)}€`
                         : `$${Math.round(displayTotalValue).toLocaleString('en-US')}`}
                     </p>
-                    <p className="text-slate-500 text-sm">{language === 'fr' ? 'Valeur totale' : 'Total Value'}</p>
                   </div>
                 </>
               );
@@ -553,6 +553,9 @@ export function PortfolioPanel() {
               const displayPct = currency === 'EUR' ? unrealizedGainPctEur : compositionData.total_gain_pct;
               return (
                 <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
+                  <p className="text-sm md:text-base font-medium text-slate-600 mb-1">
+                    {language === 'fr' ? 'Plus-value latente' : 'Unrealized Gains'}
+                  </p>
                   <div className="flex items-center justify-center gap-1">
                     {displayGain >= 0 ? (
                       <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
@@ -565,11 +568,8 @@ export function PortfolioPanel() {
                         : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
                     </p>
                   </div>
-                  <p className={`text-sm font-semibold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <p className={`text-xs md:text-sm font-semibold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {displayPct >= 0 ? '+' : ''}{displayPct}%
-                  </p>
-                  <p className="text-slate-500 text-xs">
-                    {language === 'fr' ? 'Gains non réalisés' : 'Unrealized Gains'}
                   </p>
                 </div>
               );
@@ -587,6 +587,9 @@ export function PortfolioPanel() {
               const displayRealizedGain = rawRealizedGain * scaleFactor;
               return (
                 <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
+                  <p className="text-sm md:text-base font-medium text-slate-600 mb-1">
+                    {language === 'fr' ? 'Plus-value réalisée' : 'Realized Gains'}
+                  </p>
                   <div className="flex items-center justify-center gap-1">
                     {displayRealizedGain >= 0 ? (
                       <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
@@ -599,9 +602,6 @@ export function PortfolioPanel() {
                         : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
                     </p>
                   </div>
-                  <p className="text-slate-500 text-sm">
-                    {language === 'fr' ? 'Gains réalisés' : 'Realized Gains'}
-                  </p>
                 </div>
               );
             })()}
@@ -1423,7 +1423,7 @@ export function PortfolioPanel() {
                           return [`${formatEur(numValue)}€`, label];
                         }}
                         wrapperStyle={{ zIndex: 100 }}
-                        allowEscapeViewBox={{ x: true, y: true }}
+                        allowEscapeViewBox={{ x: false, y: true }}
                         offset={10}
                       />
                       <Legend
