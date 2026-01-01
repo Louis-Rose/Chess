@@ -12,7 +12,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Legend
 } from 'recharts';
-import { Briefcase, Plus, Trash2, Loader2, TrendingUp, TrendingDown, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet } from 'lucide-react';
+import { Briefcase, Plus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
@@ -1307,38 +1307,29 @@ export function PortfolioPanel() {
                 {filteredSummary && (
                   <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
                     <div className="bg-white rounded-lg p-2 md:p-4 text-center">
-                      <span className="text-sm md:text-lg text-slate-600">
+                      <p className="text-slate-500 text-xs md:text-sm mb-1">{t('performance.since')} {new Date(filteredSummary.start_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: 'numeric' })}</p>
+                      <span className="text-sm md:text-lg font-bold text-slate-800">
                         {(() => {
                           const y = filteredSummary.years;
                           const fullYears = Math.floor(y);
                           const months = Math.round((y - fullYears) * 12);
                           if (months === 0) return `${fullYears} ${fullYears !== 1 ? t('performance.years') : t('performance.year')}`;
                           if (fullYears === 0) return `${months} ${t('performance.months')}`;
-                          return `${fullYears}${language === 'fr' ? 'a' : 'y'} ${months}${language === 'fr' ? 'm' : 'm'}`;
+                          return `${fullYears} ${fullYears !== 1 ? t('performance.years') : t('performance.year')} ${months} ${language === 'fr' ? 'mois' : (months !== 1 ? 'months' : 'month')}`;
                         })()}
                       </span>
-                      <p className="text-slate-500 text-xs md:text-sm hidden md:block">{t('performance.since')} {new Date(filteredSummary.start_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: 'numeric' })}</p>
                     </div>
                     <div className="bg-white rounded-lg p-2 md:p-4 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? (
-                          <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
-                        ) : (
-                          <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
-                        )}
-                        <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur}%
-                        </span>
-                      </div>
-                      <p className="text-slate-500 text-xs md:text-sm">{showAnnualized ? 'CAGR' : t('performance.totalReturn')}</p>
+                      <p className="text-slate-500 text-xs md:text-sm mb-1">{showAnnualized ? 'CAGR' : t('performance.totalReturn')}</p>
+                      <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur}%
+                      </span>
                     </div>
                     <div className="bg-white rounded-lg p-2 md:p-4 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                          {(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur}%
-                        </span>
-                      </div>
-                      <p className="text-slate-500 text-xs md:text-sm">{benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')}</p>
+                      <p className="text-slate-500 text-xs md:text-sm mb-1">Benchmark</p>
+                      <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                        {(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur}%
+                      </span>
                     </div>
                   </div>
                 )}
