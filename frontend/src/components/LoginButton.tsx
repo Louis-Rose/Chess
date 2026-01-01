@@ -7,9 +7,9 @@ export function LoginButton() {
   const [error, setError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
 
-  // Small delay to let Google SDK fully initialize
+  // Delay to let Google SDK fully initialize
   useEffect(() => {
-    const timer = setTimeout(() => setIsReady(true), 100);
+    const timer = setTimeout(() => setIsReady(true), 500);
     return () => clearTimeout(timer);
   }, []);
 
