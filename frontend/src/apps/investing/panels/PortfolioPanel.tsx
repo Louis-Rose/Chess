@@ -1307,7 +1307,7 @@ export function PortfolioPanel() {
                 {filteredSummary && (
                   <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
                     <div className="bg-white rounded-lg p-2 md:p-4 text-center">
-                      <p className="text-slate-500 text-xs md:text-sm mb-1">{t('performance.since')} {new Date(filteredSummary.start_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: 'numeric' })}</p>
+                      <p className="text-slate-500 text-xs md:text-sm mb-1">{language === 'fr' ? 'Période de détention' : 'Holding period'}</p>
                       <span className="text-sm md:text-lg font-bold text-slate-800">
                         {(() => {
                           const y = filteredSummary.years;
