@@ -1349,18 +1349,21 @@ export function PortfolioPanel() {
                         }}
                         tick={{ fontSize: 12, fill: '#64748b' }}
                         ticks={(() => {
-                          // Show quarterly ticks (every 3 months) + always include last month
-                          const ticks: string[] = [];
-                          const quarterMonths = [0, 3, 6, 9]; // Jan, Apr, Jul, Oct
+                          // Desktop: ~10 ticks, Mobile: ~5 ticks
+                          const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+                          const targetTicks = isMobile ? 5 : 10;
 
-                          chartData.forEach((d) => {
-                            const date = new Date(d.date);
-                            const month = date.getMonth();
-                            // Include if it's a quarter month (Jan, Apr, Jul, Oct)
-                            if (quarterMonths.includes(month)) {
-                              ticks.push(d.date);
-                            }
-                          });
+                          if (chartData.length <= targetTicks) {
+                            return chartData.map(d => d.date);
+                          }
+
+                          // Calculate interval to evenly space ticks
+                          const interval = Math.ceil(chartData.length / (targetTicks - 1));
+                          const ticks: string[] = [];
+
+                          for (let i = 0; i < chartData.length; i += interval) {
+                            ticks.push(chartData[i].date);
+                          }
 
                           // Always include the last data point (current month)
                           const lastDate = chartData[chartData.length - 1]?.date;
