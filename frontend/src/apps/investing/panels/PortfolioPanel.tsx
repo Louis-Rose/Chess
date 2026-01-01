@@ -13,7 +13,7 @@ import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Legend
 } from 'recharts';
 import { Briefcase, Plus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet, Download } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
@@ -230,22 +230,15 @@ export function PortfolioPanel() {
     }
     setIsDownloading(true);
     try {
-      const canvas = await html2canvas(chartContainerRef.current, {
+      const dataUrl = await toPng(chartContainerRef.current, {
         backgroundColor: '#f1f5f9',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        allowTaint: true,
+        pixelRatio: 2,
       });
 
-      // Create download link
-      const url = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.href = url;
+      link.href = dataUrl;
       link.download = `portfolio-performance-${new Date().toISOString().split('T')[0]}.png`;
-      document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
     } catch (error) {
       console.error('Failed to download chart:', error);
       alert(language === 'fr' ? 'Erreur lors du téléchargement' : 'Download failed');
