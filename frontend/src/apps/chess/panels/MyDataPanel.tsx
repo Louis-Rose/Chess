@@ -94,7 +94,7 @@ export function MyDataPanel() {
                   />
                   <Tooltip
                     contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                    formatter={(value: number) => [value, 'ELO']}
+                    formatter={(value) => [value ?? 0, 'ELO']}
                   />
                   <Line
                     type="monotone"
@@ -129,7 +129,7 @@ export function MyDataPanel() {
                   />
                   <Tooltip
                     contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                    formatter={(value: number) => [value, 'Games']}
+                    formatter={(value) => [value ?? 0, 'Games']}
                   />
                   <Bar
                     dataKey="games_played"
