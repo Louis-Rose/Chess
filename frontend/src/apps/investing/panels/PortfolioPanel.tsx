@@ -1327,7 +1327,7 @@ export function PortfolioPanel() {
                 {/* Performance Chart */}
                 <div className="h-[300px] md:h-[400px] relative" ref={chartContainerRef}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="outperformanceGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#16a34a" stopOpacity={0.3} />
@@ -1348,7 +1348,17 @@ export function PortfolioPanel() {
                           return formatted.charAt(0).toUpperCase() + formatted.slice(1);
                         }}
                         tick={{ fontSize: 12, fill: '#64748b' }}
-                        interval={Math.floor(chartData.length / 5)}
+                        ticks={(() => {
+                          // Show ~5 evenly spaced ticks, always including first and last
+                          if (chartData.length <= 5) return chartData.map(d => d.date);
+                          const step = Math.floor((chartData.length - 1) / 4);
+                          const indices = [0];
+                          for (let i = 1; i < 4; i++) {
+                            indices.push(i * step);
+                          }
+                          indices.push(chartData.length - 1); // Always include last
+                          return indices.map(i => chartData[i].date);
+                        })()}
                       />
                       <YAxis
                         tick={{ fontSize: 12, fill: '#64748b' }}
