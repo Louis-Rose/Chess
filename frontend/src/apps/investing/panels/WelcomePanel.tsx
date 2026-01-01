@@ -20,16 +20,16 @@ export function InvestingWelcomePanel() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col items-center min-h-[70vh]">
-        <h1 className="text-5xl font-bold text-slate-100 mt-16">Track Your Investments</h1>
-        <div className="flex items-start pt-8">
-          <span className="text-9xl opacity-15">&#128200;</span>
+      <div className="flex flex-col items-center py-8 md:py-16">
+        <h1 className="text-3xl md:text-5xl font-bold text-slate-100 text-center px-4">Track Your Investments</h1>
+        <div className="flex items-start pt-6 md:pt-8">
+          <span className="text-7xl md:text-9xl opacity-15">&#128200;</span>
         </div>
-        <div className="flex flex-col items-center flex-1 justify-end pb-8">
-          <p className="text-xl text-slate-300 mb-3 text-center max-w-lg font-light tracking-wide">
+        <div className="flex flex-col items-center mt-6 md:mt-8 px-4">
+          <p className="text-lg md:text-xl text-slate-300 mb-3 text-center max-w-lg font-light tracking-wide">
             Monitor your portfolio performance.
           </p>
-          <p className="text-xl text-slate-300 mb-10 text-center max-w-lg font-light tracking-wide">
+          <p className="text-lg md:text-xl text-slate-300 mb-8 md:mb-10 text-center max-w-lg font-light tracking-wide">
             Get insights to make better investment decisions.
           </p>
           <LoginButton />
