@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Legend
+  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Legend, Brush
 } from 'recharts';
 import { Briefcase, Plus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet, Download } from 'lucide-react';
 import { toPng } from 'html-to-image';
@@ -199,7 +199,7 @@ export function PortfolioPanel() {
   const [benchmark, setBenchmark] = useState<'NASDAQ' | 'SP500'>('NASDAQ');
   const [privateMode, setPrivateMode] = useState(false);
   const [showAnnualized, setShowAnnualized] = useState(false);
-  const [yearFilter, setYearFilter] = useState<'all' | number>('all');
+  const [brushRange, setBrushRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
   const [showFees, setShowFees] = useState(false);
   const [showAccounts, setShowAccounts] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -1199,22 +1199,6 @@ export function PortfolioPanel() {
               </button>
             </div>
             <div className="flex flex-wrap items-end justify-center gap-3 md:gap-4 mb-4 md:mb-6">
-              {/* Year Filter */}
-              <select
-                value={yearFilter}
-                onChange={(e) => setYearFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-                className="px-2 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
-              >
-                <option value="all">{language === 'fr' ? 'Tout' : 'All'}</option>
-                {(() => {
-                  const currentYear = new Date().getFullYear();
-                  const years = [];
-                  for (let y = currentYear; y >= 2020; y--) {
-                    years.push(<option key={y} value={y}>{y}</option>);
-                  }
-                  return years;
-                })()}
-              </select>
               {/* Toggle: Total vs Annualized */}
               <div className="flex rounded-lg overflow-hidden border border-slate-300">
                 <button
@@ -1255,19 +1239,21 @@ export function PortfolioPanel() {
                 <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
               </div>
             ) : performanceData?.data && performanceData.data.length > 0 ? (() => {
-              // Filter data by year if a specific year is selected
-              const filteredData = yearFilter === 'all'
-                ? performanceData.data
-                : performanceData.data.filter(d => new Date(d.date).getFullYear() === yearFilter);
+              const allData = performanceData.data;
 
-              if (filteredData.length === 0) {
-                return <p className="text-slate-500 text-center py-8">{language === 'fr' ? 'Aucune donnée pour cette année' : 'No data for this year'}</p>;
+              // Use brush range for summary calculation, but show all data in chart
+              const startIdx = brushRange?.startIndex ?? 0;
+              const endIdx = brushRange?.endIndex ?? allData.length - 1;
+              const selectedRangeData = allData.slice(startIdx, endIdx + 1);
+
+              if (selectedRangeData.length === 0) {
+                return <p className="text-slate-500 text-center py-8">{language === 'fr' ? 'Aucune donnée' : 'No data'}</p>;
               }
 
               // In private mode, scale all values to assume 10,000 cost basis
               const PRIVATE_COST_BASIS = 10000;
-              const lastDataPoint = filteredData[filteredData.length - 1];
-              const firstDataPoint = filteredData[0];
+              const lastDataPoint = selectedRangeData[selectedRangeData.length - 1];
+              const firstDataPoint = selectedRangeData[0];
               const actualCostBasis = lastDataPoint?.cost_basis_eur || 1;
               const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
 
@@ -1300,7 +1286,8 @@ export function PortfolioPanel() {
                 ? Math.round((Math.pow(1 + benchmarkReturn / 100, 1 / years) - 1) * 1000) / 10
                 : benchmarkReturn;
 
-              const filteredSummary = yearFilter === 'all' ? performanceData.summary : {
+              // Use calculated summary when brush range is set, otherwise use original summary
+              const filteredSummary = brushRange ? {
                 start_date: startDate,
                 end_date: endDate,
                 years: years,
@@ -1308,10 +1295,10 @@ export function PortfolioPanel() {
                 benchmark_return_eur: benchmarkReturn,
                 cagr_eur: cagrPortfolio,
                 cagr_benchmark_eur: cagrBenchmark,
-              };
+              } : performanceData.summary;
 
-              // Compute chart data with fill areas for outperformance/underperformance
-              const chartData = filteredData.map(d => {
+              // Compute chart data with fill areas for outperformance/underperformance (use ALL data)
+              const chartData = allData.map(d => {
                 const scaledPortfolioValue = d.portfolio_value_eur * scaleFactor;
                 const scaledBenchmarkValue = d.benchmark_value_eur * scaleFactor;
                 const scaledCostBasis = d.cost_basis_eur * scaleFactor;
@@ -1493,6 +1480,22 @@ export function PortfolioPanel() {
                             </div>
                           </div>
                         )}
+                      />
+                      {/* Time range brush selector */}
+                      <Brush
+                        dataKey="date"
+                        height={30}
+                        stroke="#16a34a"
+                        fill="#f1f5f9"
+                        tickFormatter={(date) => {
+                          const d = new Date(date);
+                          return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
+                        }}
+                        onChange={(range) => {
+                          if (range && typeof range.startIndex === 'number' && typeof range.endIndex === 'number') {
+                            setBrushRange({ startIndex: range.startIndex, endIndex: range.endIndex });
+                          }
+                        }}
                       />
                       {/* Stacked areas for outperformance/underperformance fill */}
                       <Area
