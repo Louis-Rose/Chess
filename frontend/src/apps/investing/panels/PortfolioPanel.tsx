@@ -1183,16 +1183,15 @@ export function PortfolioPanel() {
 
         {/* Portfolio Performance */}
         {selectedAccountId && hasHoldings && (
-          <div className="bg-slate-100 rounded-xl p-6">
-            <div className="flex items-center mb-6 gap-4">
-              <h3 className="text-xl font-bold text-slate-800">{t('performance.title')}</h3>
-              {/* Year Filter */}
-              <div className="flex items-center gap-2">
-                <span className="text-slate-600 font-medium">{language === 'fr' ? 'Période :' : 'Period:'}</span>
+          <div className="bg-slate-100 rounded-xl p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:items-center mb-4 md:mb-6 gap-3 md:gap-4">
+              <h3 className="text-lg md:text-xl font-bold text-slate-800">{t('performance.title')}</h3>
+              <div className="flex flex-wrap items-center gap-2 md:gap-4">
+                {/* Year Filter */}
                 <select
                   value={yearFilter}
                   onChange={(e) => setYearFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-                  className="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                  className="px-2 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                 >
                   <option value="all">{language === 'fr' ? 'Tout' : 'All'}</option>
                   {(() => {
@@ -1204,32 +1203,29 @@ export function PortfolioPanel() {
                     return years;
                   })()}
                 </select>
-              </div>
-              {/* Toggle: Total vs Annualized */}
-              <div className="flex rounded-lg overflow-hidden border border-slate-300">
-                <button
-                  onClick={() => setShowAnnualized(false)}
-                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${!showAnnualized ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
-                >
-                  {language === 'fr' ? 'Total' : 'Total'}
-                </button>
-                <button
-                  onClick={() => setShowAnnualized(true)}
-                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${showAnnualized ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
-                >
-                  {language === 'fr' ? 'Annualisé' : 'Annualized'}
-                </button>
-              </div>
-              {/* Benchmark Select */}
-              <div className="flex items-center gap-2 ml-auto">
-                <span className="text-slate-600 font-medium">{language === 'fr' ? 'Indice de référence :' : 'Benchmark:'}</span>
+                {/* Toggle: Total vs Annualized */}
+                <div className="flex rounded-lg overflow-hidden border border-slate-300">
+                  <button
+                    onClick={() => setShowAnnualized(false)}
+                    className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${!showAnnualized ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    Total
+                  </button>
+                  <button
+                    onClick={() => setShowAnnualized(true)}
+                    className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${showAnnualized ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    {language === 'fr' ? 'Annuel' : 'Annual'}
+                  </button>
+                </div>
+                {/* Benchmark Select */}
                 <select
                   value={benchmark}
                   onChange={(e) => setBenchmark(e.target.value as 'NASDAQ' | 'SP500')}
-                  className="px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="px-2 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                 >
-                  <option value="NASDAQ">{currency === 'EUR' ? 'EQQQ (NASDAQ)' : 'QQQ (NASDAQ)'}</option>
-                  <option value="SP500">{currency === 'EUR' ? 'CSPX (S&P 500)' : 'SPY (S&P 500)'}</option>
+                  <option value="NASDAQ">{currency === 'EUR' ? 'EQQQ' : 'QQQ'}</option>
+                  <option value="SP500">{currency === 'EUR' ? 'CSPX' : 'SPY'}</option>
                 </select>
               </div>
             </div>
@@ -1316,40 +1312,40 @@ export function PortfolioPanel() {
               <>
                 {/* Summary Stats */}
                 {filteredSummary && (
-                  <div className="flex justify-center gap-4 mb-6">
-                    <div className="bg-white rounded-lg p-4 text-center w-56">
-                      <span className="text-lg text-slate-600">
+                  <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
+                    <div className="bg-white rounded-lg p-2 md:p-4 text-center">
+                      <span className="text-sm md:text-lg text-slate-600">
                         {(() => {
                           const y = filteredSummary.years;
                           const fullYears = Math.floor(y);
                           const months = Math.round((y - fullYears) * 12);
                           if (months === 0) return `${fullYears} ${fullYears !== 1 ? t('performance.years') : t('performance.year')}`;
                           if (fullYears === 0) return `${months} ${t('performance.months')}`;
-                          return `${fullYears} ${fullYears !== 1 ? t('performance.years') : t('performance.year')} ${months} ${t('performance.months')}`;
+                          return `${fullYears}${language === 'fr' ? 'a' : 'y'} ${months}${language === 'fr' ? 'm' : 'm'}`;
                         })()}
                       </span>
-                      <p className="text-slate-500 text-sm">{t('performance.since')} {new Date(filteredSummary.start_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                      <p className="text-slate-500 text-xs md:text-sm hidden md:block">{t('performance.since')} {new Date(filteredSummary.start_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: 'numeric' })}</p>
                     </div>
-                    <div className="bg-white rounded-lg p-4 text-center w-56">
-                      <div className="flex items-center justify-center gap-1 mb-1">
+                    <div className="bg-white rounded-lg p-2 md:p-4 text-center">
+                      <div className="flex items-center justify-center gap-1">
                         {(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? (
-                          <TrendingUp className="w-5 h-5 text-green-600" />
+                          <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
                         ) : (
-                          <TrendingDown className="w-5 h-5 text-red-600" />
+                          <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
                         )}
-                        <span className={`text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur}%
                         </span>
                       </div>
-                      <p className="text-slate-500 text-sm">{showAnnualized ? (language === 'fr' ? 'CAGR' : 'CAGR') : t('performance.totalReturn')}</p>
+                      <p className="text-slate-500 text-xs md:text-sm">{showAnnualized ? 'CAGR' : t('performance.totalReturn')}</p>
                     </div>
-                    <div className="bg-white rounded-lg p-4 text-center w-56">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <span className={`text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                    <div className="bg-white rounded-lg p-2 md:p-4 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
                           {(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur}%
                         </span>
                       </div>
-                      <p className="text-slate-500 text-sm">{language === 'fr' ? 'Indice de réf.' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})</p>
+                      <p className="text-slate-500 text-xs md:text-sm">{benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')}</p>
                     </div>
                   </div>
                 )}
@@ -1377,11 +1373,11 @@ export function PortfolioPanel() {
                           // Capitalize first letter
                           return formatted.charAt(0).toUpperCase() + formatted.slice(1);
                         }}
-                        tick={{ fontSize: 11, fill: '#64748b' }}
+                        tick={{ fontSize: 12, fill: '#64748b' }}
                         interval={Math.floor(chartData.length / 5)}
                       />
                       <YAxis
-                        tick={{ fontSize: 11, fill: '#64748b' }}
+                        tick={{ fontSize: 12, fill: '#64748b' }}
                         tickFormatter={(val) => {
                           return `${formatEur(val / 1000)}k€`;
                         }}
@@ -1409,9 +1405,10 @@ export function PortfolioPanel() {
                         })()}
                       />
                       <Tooltip
-                        contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                        labelStyle={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '4px' }}
-                        labelFormatter={(date) => new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        contentStyle={{ backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e2e8f0', padding: '6px 10px', fontSize: '12px' }}
+                        labelStyle={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '2px', fontSize: '11px' }}
+                        itemStyle={{ padding: '1px 0', fontSize: '11px' }}
+                        labelFormatter={(date) => new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
                         formatter={(value, name) => {
                           const numValue = Math.round(Number(value));
                           const nameStr = String(name);
@@ -1427,7 +1424,7 @@ export function PortfolioPanel() {
                         }}
                         wrapperStyle={{ zIndex: 100 }}
                         allowEscapeViewBox={{ x: true, y: true }}
-                        offset={20}
+                        offset={10}
                       />
                       <Legend
                         content={() => (
