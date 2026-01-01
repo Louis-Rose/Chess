@@ -1,24 +1,13 @@
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../contexts/AuthContext';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export function LoginButton() {
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const [isReady, setIsReady] = useState(false);
-
-  // Delay to let Google SDK fully initialize
-  useEffect(() => {
-    const timer = setTimeout(() => setIsReady(true), 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (!isReady) {
-    return <div className="h-[40px] w-[120px]" />;
-  }
 
   return (
-    <div className="relative h-[40px] flex items-center justify-center">
+    <div className="relative h-[44px] min-h-[44px] max-h-[44px] flex items-center justify-center overflow-hidden">
       <GoogleLogin
         onSuccess={async (credentialResponse) => {
           setError(null);
