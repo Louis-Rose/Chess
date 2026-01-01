@@ -242,6 +242,8 @@ export function PortfolioPanel() {
       return;
     }
     setIsDownloading(true);
+    // Wait for React to re-render without the brush
+    await new Promise(resolve => setTimeout(resolve, 100));
     try {
       const dataUrl = await toPng(chartContainerRef.current, {
         backgroundColor: '#f1f5f9',
@@ -1494,22 +1496,24 @@ export function PortfolioPanel() {
                           </div>
                         )}
                       />
-                      {/* Time range brush selector */}
-                      <Brush
-                        dataKey="date"
-                        height={40}
-                        stroke="#16a34a"
-                        fill="#e2e8f0"
-                        travellerWidth={12}
-                        startIndex={brushRange?.startIndex ?? 0}
-                        endIndex={brushRange?.endIndex ?? chartData.length - 1}
-                        tickFormatter={(date) => {
-                          const d = new Date(date);
-                          const formatted = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
-                          return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-                        }}
-                        onChange={handleBrushChange}
-                      />
+                      {/* Time range brush selector - hidden during download */}
+                      {!isDownloading && (
+                        <Brush
+                          dataKey="date"
+                          height={40}
+                          stroke="#16a34a"
+                          fill="#e2e8f0"
+                          travellerWidth={12}
+                          startIndex={brushRange?.startIndex ?? 0}
+                          endIndex={brushRange?.endIndex ?? chartData.length - 1}
+                          tickFormatter={(date) => {
+                            const d = new Date(date);
+                            const formatted = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
+                            return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+                          }}
+                          onChange={handleBrushChange}
+                        />
+                      )}
                       {/* Stacked areas for outperformance/underperformance fill */}
                       <Area
                         type="monotone"
