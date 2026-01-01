@@ -554,7 +554,7 @@ export function PortfolioPanel() {
               return (
                 <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
                   <p className="text-sm md:text-base font-medium text-slate-600 mb-1">
-                    {language === 'fr' ? 'Plus-value latente' : 'Unrealized Gains'}
+                    {language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}
                   </p>
                   <p className={`text-base md:text-2xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {displayPct >= 0 ? '+' : ''}{displayPct}%
@@ -581,7 +581,7 @@ export function PortfolioPanel() {
               return (
                 <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
                   <p className="text-sm md:text-base font-medium text-slate-600 mb-1">
-                    {language === 'fr' ? 'Plus-value réalisée' : 'Realized Gains'}
+                    {language === 'fr' ? 'Plus-value réalisée (brut)' : 'Realized Gains (gross)'}
                   </p>
                   <p className={`text-base md:text-2xl font-bold ${displayRealizedGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                     {currency === 'EUR'
