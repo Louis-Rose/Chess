@@ -9,7 +9,7 @@ export function LoginButton() {
 
   // Delay to let Google SDK fully initialize
   useEffect(() => {
-    const timer = setTimeout(() => setIsReady(true), 500);
+    const timer = setTimeout(() => setIsReady(true), 2000);
     return () => clearTimeout(timer);
   }, []);
 
