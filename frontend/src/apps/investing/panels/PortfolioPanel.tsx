@@ -12,7 +12,8 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Legend
 } from 'recharts';
-import { Briefcase, Plus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet } from 'lucide-react';
+import { Briefcase, Plus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet, Download } from 'lucide-react';
+import html2canvas from 'html2canvas';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
@@ -219,6 +220,27 @@ export function PortfolioPanel() {
   const [newAccountBank, setNewAccountBank] = useState('');
   const stockDropdownRef = useRef<HTMLDivElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Download chart as image
+  const downloadChart = async () => {
+    if (!chartContainerRef.current) return;
+    setIsDownloading(true);
+    try {
+      const canvas = await html2canvas(chartContainerRef.current, {
+        backgroundColor: '#f1f5f9', // slate-100 background
+        scale: 2, // Higher resolution
+      });
+      const link = document.createElement('a');
+      link.download = `portfolio-performance-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Failed to download chart:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   // Date picker options
   const currentYear = new Date().getFullYear();
@@ -1160,7 +1182,17 @@ export function PortfolioPanel() {
         {/* Portfolio Performance */}
         {selectedAccountId && hasHoldings && (
           <div className="bg-slate-100 rounded-xl p-4 md:p-6">
-            <h3 className="text-lg md:text-xl font-bold text-slate-800 text-center mb-4">{t('performance.title')}</h3>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <h3 className="text-lg md:text-xl font-bold text-slate-800">{t('performance.title')}</h3>
+              <button
+                onClick={downloadChart}
+                disabled={isDownloading}
+                className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+                title={language === 'fr' ? 'Télécharger le graphique' : 'Download chart'}
+              >
+                {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              </button>
+            </div>
             <div className="flex flex-wrap items-end justify-center gap-3 md:gap-4 mb-4 md:mb-6">
               {/* Year Filter */}
               <select
@@ -1347,7 +1379,7 @@ export function PortfolioPanel() {
                           // Capitalize first letter
                           return formatted.charAt(0).toUpperCase() + formatted.slice(1);
                         }}
-                        tick={{ fontSize: 12, fill: '#64748b' }}
+                        tick={{ fontSize: 14, fill: '#64748b' }}
                         ticks={(() => {
                           // Desktop: ~10 ticks, Mobile: ~5 ticks
                           const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -1375,7 +1407,7 @@ export function PortfolioPanel() {
                         })()}
                       />
                       <YAxis
-                        tick={{ fontSize: 12, fill: '#64748b' }}
+                        tick={{ fontSize: 14, fill: '#64748b' }}
                         tickFormatter={(val) => {
                           return `${formatEur(val / 1000)}k€`;
                         }}
