@@ -210,7 +210,7 @@ export function PortfolioPanel() {
     if (typeof range.startIndex === 'number' && typeof range.endIndex === 'number') {
       brushDebounceRef.current = setTimeout(() => {
         setBrushRange({ startIndex: range.startIndex!, endIndex: range.endIndex! });
-      }, 300);
+      }, 1000);
     }
   }, []);
   const [showFees, setShowFees] = useState(false);
