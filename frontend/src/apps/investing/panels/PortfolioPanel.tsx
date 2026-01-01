@@ -1225,13 +1225,13 @@ export function PortfolioPanel() {
                     onClick={() => setBenchmark('NASDAQ')}
                     className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${benchmark === 'NASDAQ' ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
                   >
-                    {currency === 'EUR' ? 'EQQQ' : 'QQQ'}
+                    Nasdaq
                   </button>
                   <button
                     onClick={() => setBenchmark('SP500')}
                     className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${benchmark === 'SP500' ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
                   >
-                    {currency === 'EUR' ? 'CSPX' : 'SPY'}
+                    S&P 500
                   </button>
                 </div>
               </div>
