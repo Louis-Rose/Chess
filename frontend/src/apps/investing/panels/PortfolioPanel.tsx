@@ -691,11 +691,6 @@ export function PortfolioPanel() {
                             {language === 'fr' ? 'Fiscalité' : 'Tax'}: {accountTypes[newAccountType]?.tax_rate}% {newAccountType === 'PEA' ? (language === 'fr' ? 'prél. sociaux' : 'social contrib.') : 'PFU'}
                           </li>
                         </ul>
-                        {banks[newAccountBank].note_fr && (
-                          <p className="text-slate-500 text-xs mt-2 italic">
-                            💡 {language === 'fr' ? banks[newAccountBank].note_fr : banks[newAccountBank].note_en}
-                          </p>
-                        )}
                       </div>
                     )}
                   </div>
@@ -780,10 +775,7 @@ export function PortfolioPanel() {
               const isPEA = selectedAccount?.account_type === 'PEA';
               if (!bankInfo) return null;
 
-              // Calculate estimated custody fees per year
-              const portfolioValueEur = compositionData?.total_value_eur || 0;
               const custodyFeeRate = isPEA ? bankInfo.custody_fee_pct_year_pea : bankInfo.custody_fee_pct_year;
-              const estimatedCustodyFee = portfolioValueEur * (custodyFeeRate / 100);
 
               return (
                 <div className="bg-white rounded-xl p-4 mt-4">
@@ -808,13 +800,8 @@ export function PortfolioPanel() {
                         {language === 'fr' ? 'Droits de garde (annuels)' : 'Custody fees (yearly)'}
                       </p>
                       <p className="text-amber-800">
-                        {custodyFeeRate}%{isPEA ? ' (plafonné)' : ''}
+                        {custodyFeeRate}%{isPEA ? ` (${language === 'fr' ? 'plafonné' : 'capped'})` : ''}
                       </p>
-                      {!privateMode && portfolioValueEur > 0 && (
-                        <p className="text-amber-600 text-xs">
-                          ~{Math.round(estimatedCustodyFee)}€/{language === 'fr' ? 'an' : 'year'}
-                        </p>
-                      )}
                     </div>
                     <div>
                       <p className="text-amber-600 font-medium">
@@ -833,12 +820,6 @@ export function PortfolioPanel() {
                       </p>
                     </div>
                   </div>
-                  {/* Bank-specific note */}
-                  {bankInfo.note_fr && (
-                    <p className="text-amber-600 text-xs mt-3 italic">
-                      💡 {language === 'fr' ? bankInfo.note_fr : bankInfo.note_en}
-                    </p>
-                  )}
                 </div>
               );
             })()}
