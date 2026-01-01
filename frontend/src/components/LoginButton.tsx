@@ -7,7 +7,7 @@ export function LoginButton() {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="relative">
+    <div className="relative min-h-[40px] flex items-center justify-center">
       <GoogleLogin
         onSuccess={async (credentialResponse) => {
           setError(null);
