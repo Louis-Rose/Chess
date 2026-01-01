@@ -64,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const data = await response.json();
+    queryClient.clear(); // Clear cache from previous user
     setUser(data.user);
   };
 

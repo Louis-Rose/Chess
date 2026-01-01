@@ -1015,13 +1015,6 @@ export function PortfolioPanel() {
                   {addMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   {t('transactions.add')}
                 </button>
-
-                <button
-                  onClick={closeForm}
-                  className="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50"
-                >
-                  {t('transactions.done')}
-                </button>
               </div>
               <p className="text-slate-500 text-sm mt-2">
                 {t('transactions.priceNote')}
@@ -1066,6 +1059,16 @@ export function PortfolioPanel() {
               ))}
             </div>
           )}
+
+          {/* Done button - centered below transactions */}
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={closeForm}
+              className="px-6 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50"
+            >
+              {t('transactions.done')}
+            </button>
+          </div>
 
         </div>
         )}
