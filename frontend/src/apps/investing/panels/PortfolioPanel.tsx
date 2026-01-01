@@ -1217,17 +1217,23 @@ export function PortfolioPanel() {
                   {language === 'fr' ? 'Annuel' : 'Annual'}
                 </button>
               </div>
-              {/* Benchmark Select */}
+              {/* Benchmark Toggle */}
               <div className="flex flex-col items-center">
                 <span className="text-xs text-slate-500 mb-1">Benchmark:</span>
-                <select
-                  value={benchmark}
-                  onChange={(e) => setBenchmark(e.target.value as 'NASDAQ' | 'SP500')}
-                  className="px-2 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
-                >
-                  <option value="NASDAQ">{currency === 'EUR' ? 'EQQQ' : 'QQQ'}</option>
-                  <option value="SP500">{currency === 'EUR' ? 'CSPX' : 'SPY'}</option>
-                </select>
+                <div className="flex rounded-lg overflow-hidden border border-slate-300">
+                  <button
+                    onClick={() => setBenchmark('NASDAQ')}
+                    className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${benchmark === 'NASDAQ' ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    {currency === 'EUR' ? 'EQQQ' : 'QQQ'}
+                  </button>
+                  <button
+                    onClick={() => setBenchmark('SP500')}
+                    className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${benchmark === 'SP500' ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    {currency === 'EUR' ? 'CSPX' : 'SPY'}
+                  </button>
+                </div>
               </div>
             </div>
 
