@@ -35,12 +35,12 @@ interface BankInfo {
   name: string;
   order_fee_pct: number;
   order_fee_min: number;
-  account_fee_pct_semester: number;
-  account_fee_min_semester: number;
-  account_fee_max_semester: number;
-  custody_fee_pct: number;
+  custody_fee_pct_year: number;
+  custody_fee_pct_year_pea: number;
   fx_fee_info_fr?: string;
   fx_fee_info_en?: string;
+  note_fr?: string;
+  note_en?: string;
 }
 
 interface AccountTypeInfo {
@@ -682,15 +682,20 @@ export function PortfolioPanel() {
                             {language === 'fr' ? 'Transaction' : 'Transaction'}: {banks[newAccountBank].order_fee_pct}% (min {banks[newAccountBank].order_fee_min}€)
                           </li>
                           <li>
-                            {language === 'fr' ? 'Tenue de compte' : 'Account fee'}: {banks[newAccountBank].account_fee_pct_semester}%/{language === 'fr' ? 'sem.' : 'sem.'} ({banks[newAccountBank].account_fee_min_semester}€-{banks[newAccountBank].account_fee_max_semester}€)
+                            {language === 'fr' ? 'Droits de garde' : 'Custody fees'}: {newAccountType === 'PEA' ? banks[newAccountBank].custody_fee_pct_year_pea : banks[newAccountBank].custody_fee_pct_year}%/{language === 'fr' ? 'an' : 'year'}
                           </li>
                           <li>
                             {language === 'fr' ? 'Change' : 'FX'}: {language === 'fr' ? banks[newAccountBank].fx_fee_info_fr : banks[newAccountBank].fx_fee_info_en}
                           </li>
                           <li>
-                            {language === 'fr' ? 'Fiscalité' : 'Tax'}: {accountTypes[newAccountType]?.tax_rate}% PFU
+                            {language === 'fr' ? 'Fiscalité' : 'Tax'}: {accountTypes[newAccountType]?.tax_rate}% {newAccountType === 'PEA' ? (language === 'fr' ? 'prél. sociaux' : 'social contrib.') : 'PFU'}
                           </li>
                         </ul>
+                        {banks[newAccountBank].note_fr && (
+                          <p className="text-slate-500 text-xs mt-2 italic">
+                            💡 {language === 'fr' ? banks[newAccountBank].note_fr : banks[newAccountBank].note_en}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -771,24 +776,21 @@ export function PortfolioPanel() {
             {showFees && accounts.length > 0 && (() => {
               const selectedAccount = accounts.find(a => a.id === selectedAccountId) || accounts[0];
               const bankInfo = selectedAccount?.bank_info;
+              const typeInfo = selectedAccount?.type_info;
+              const isPEA = selectedAccount?.account_type === 'PEA';
               if (!bankInfo) return null;
 
-              // Calculate estimated account fees per semester
+              // Calculate estimated custody fees per year
               const portfolioValueEur = compositionData?.total_value_eur || 0;
-              const accountFeeSemester = Math.min(
-                Math.max(
-                  portfolioValueEur * (bankInfo.account_fee_pct_semester / 100),
-                  bankInfo.account_fee_min_semester
-                ),
-                bankInfo.account_fee_max_semester
-              );
+              const custodyFeeRate = isPEA ? bankInfo.custody_fee_pct_year_pea : bankInfo.custody_fee_pct_year;
+              const estimatedCustodyFee = portfolioValueEur * (custodyFeeRate / 100);
 
               return (
                 <div className="bg-white rounded-xl p-4 mt-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Wallet className="w-5 h-5 text-amber-600" />
                     <h4 className="font-semibold text-amber-800">
-                      {language === 'fr' ? 'Frais et Impôts' : 'Fees & Taxes'} ({selectedAccount.bank_info.name})
+                      {language === 'fr' ? 'Frais et Impôts' : 'Fees & Taxes'} ({selectedAccount.bank_info.name} - {selectedAccount.account_type})
                     </h4>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -803,14 +805,14 @@ export function PortfolioPanel() {
                     </div>
                     <div>
                       <p className="text-amber-600 font-medium">
-                        {language === 'fr' ? 'Tenue de compte (semestriels)' : 'Account fee (per semester)'}
+                        {language === 'fr' ? 'Droits de garde (annuels)' : 'Custody fees (yearly)'}
                       </p>
                       <p className="text-amber-800">
-                        {bankInfo.account_fee_pct_semester}% (min {bankInfo.account_fee_min_semester}€ - max {bankInfo.account_fee_max_semester}€)
+                        {custodyFeeRate}%{isPEA ? ' (plafonné)' : ''}
                       </p>
                       {!privateMode && portfolioValueEur > 0 && (
                         <p className="text-amber-600 text-xs">
-                          ~{Math.round(accountFeeSemester)}€/{language === 'fr' ? 'sem.' : 'sem.'}
+                          ~{Math.round(estimatedCustodyFee)}€/{language === 'fr' ? 'an' : 'year'}
                         </p>
                       )}
                     </div>
@@ -824,13 +826,19 @@ export function PortfolioPanel() {
                     </div>
                     <div>
                       <p className="text-amber-600 font-medium">
-                        {language === 'fr' ? 'Fiscalité (PFU)' : 'Tax (PFU)'}
+                        {language === 'fr' ? 'Fiscalité' : 'Taxation'}
                       </p>
                       <p className="text-amber-800">
-                        {selectedAccount.type_info.tax_rate}% {language === 'fr' ? 'sur plus-values' : 'on gains'}
+                        {typeInfo?.tax_rate}% {language === 'fr' ? 'sur plus-values' : 'on gains'}
                       </p>
                     </div>
                   </div>
+                  {/* Bank-specific note */}
+                  {bankInfo.note_fr && (
+                    <p className="text-amber-600 text-xs mt-3 italic">
+                      💡 {language === 'fr' ? bankInfo.note_fr : bankInfo.note_en}
+                    </p>
+                  )}
                 </div>
               );
             })()}

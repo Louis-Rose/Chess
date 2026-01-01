@@ -1065,49 +1065,49 @@ def get_stock_info():
 
 # French banks/brokers with their fee structures
 BANKS = {
-    'BNP_PARIBAS': {
-        'name': 'BNP Paribas',
-        'order_fee_pct': 0.50,
-        'order_fee_min': 7.50,
-        'account_fee_pct_semester': 0.125,
-        'account_fee_min_semester': 5,
-        'account_fee_max_semester': 60,
-        'custody_fee_pct': 0,
-        'fx_fee_info_fr': '0.10% (min 15€)',
-        'fx_fee_info_en': '0.10% (min €15)',
-    },
     'CREDIT_AGRICOLE': {
         'name': 'Crédit Agricole',
         'order_fee_pct': 0.50,
-        'order_fee_min': 8,
-        'account_fee_pct_semester': 0.15,
-        'account_fee_min_semester': 5,
-        'account_fee_max_semester': 50,
-        'custody_fee_pct': 0,
-        'fx_fee_info_fr': '0.15% (min 10€)',
-        'fx_fee_info_en': '0.15% (min €10)',
+        'order_fee_min': 5,
+        'custody_fee_pct_year': 0.25,  # 0.20-0.30% + per-line fees
+        'custody_fee_pct_year_pea': 0.40,  # capped
+        'fx_fee_info_fr': '0.50% (min 20€)',
+        'fx_fee_info_en': '0.50% (min €20)',
+        'note_fr': 'Offre Intégral: 0.09% (>1100€), gratuit si 24 ordres/an',
+        'note_en': 'Intégral offer: 0.09% (>€1100), free if 24 orders/year',
+    },
+    'BNP_PARIBAS': {
+        'name': 'BNP Paribas',
+        'order_fee_pct': 0.50,
+        'order_fee_min': 5,
+        'custody_fee_pct_year': 0.40,  # <50k, degressive for larger
+        'custody_fee_pct_year_pea': 0.40,  # capped
+        'fx_fee_info_fr': '0.50-0.60% (min 15-25€)',
+        'fx_fee_info_en': '0.50-0.60% (min €15-25)',
+        'note_fr': 'Frais par ligne pénalisants sur petits portefeuilles',
+        'note_en': 'Per-line fees penalize small portfolios',
     },
     'SOCIETE_GENERALE': {
         'name': 'Société Générale',
         'order_fee_pct': 0.50,
-        'order_fee_min': 8.90,
-        'account_fee_pct_semester': 0.10,
-        'account_fee_min_semester': 5,
-        'account_fee_max_semester': 50,
-        'custody_fee_pct': 0,
-        'fx_fee_info_fr': '0.20% (min 12€)',
-        'fx_fee_info_en': '0.20% (min €12)',
+        'order_fee_min': 2,
+        'custody_fee_pct_year': 0.30,  # free if 1 order/month
+        'custody_fee_pct_year_pea': 0.40,  # capped
+        'fx_fee_info_fr': '0.50% (min 16€ USA, 40€ autres)',
+        'fx_fee_info_en': '0.50% (min €16 USA, €40 others)',
+        'note_fr': 'Offre jeunes 18-29 ans avantageuse',
+        'note_en': 'Advantageous offer for ages 18-29',
     },
     'CREDIT_MUTUEL': {
         'name': 'Crédit Mutuel',
         'order_fee_pct': 0.50,
-        'order_fee_min': 30,
-        'account_fee_pct_semester': 0.125,
-        'account_fee_min_semester': 6,
-        'account_fee_max_semester': 75,
-        'custody_fee_pct': 0,
-        'fx_fee_info_fr': 'Sur devis (communiqué avant l\'ordre)',
-        'fx_fee_info_en': 'Quoted before order',
+        'order_fee_min': 5,
+        'custody_fee_pct_year': 0.25,  # 0.125% per semester
+        'custody_fee_pct_year_pea': 0.40,  # capped
+        'fx_fee_info_fr': '0.50% (min 30€ - élevé)',
+        'fx_fee_info_en': '0.50% (min €30 - high)',
+        'note_fr': 'Tarifs varient selon fédération (Alliance vs Arkéa)',
+        'note_en': 'Rates vary by federation (Alliance vs Arkéa)',
     },
 }
 
