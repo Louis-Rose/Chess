@@ -1086,14 +1086,14 @@ export function PortfolioPanel() {
                 {/* Pie Chart */}
                 <div className="w-full md:w-1/2 h-[280px] md:h-[380px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                    <PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
                       <Pie
                         data={compositionData.holdings as unknown as Record<string, unknown>[]}
                         dataKey="weight"
                         nameKey="ticker"
                         cx="50%"
                         cy="50%"
-                        outerRadius="70%"
+                        outerRadius="60%"
                         label={({ name, value }) => `${name} ${value}%`}
                         labelLine={true}
                       >
