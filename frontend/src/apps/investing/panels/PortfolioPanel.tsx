@@ -595,8 +595,7 @@ export function PortfolioPanel() {
         )}
 
         {/* Investment Accounts Section */}
-        {accounts.length > 0 && (
-          <div className="bg-slate-100 rounded-xl p-6">
+        <div className="bg-slate-100 rounded-xl p-6">
             <div className="flex justify-center">
               <button
                 onClick={() => setShowAccounts(!showAccounts)}
@@ -741,7 +740,6 @@ export function PortfolioPanel() {
               </>
             )}
           </div>
-        )}
 
         {/* Prompt to select account */}
         {!selectedAccountId && accounts.length > 0 && (
