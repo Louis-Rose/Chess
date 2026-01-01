@@ -501,9 +501,9 @@ export function PortfolioPanel() {
       </div>
 
       <div className="max-w-6xl mx-auto space-y-8">
-        {/* Summary Cards - 4 columns */}
+        {/* Summary Cards - 2 cols mobile, 4 cols desktop */}
         {selectedAccountId && compositionData && hasHoldings && (
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
             {(() => {
               // In private mode, scale all values to assume 10,000 cost basis
               const PRIVATE_COST_BASIS = 10000;
@@ -516,8 +516,8 @@ export function PortfolioPanel() {
               return (
                 <>
                   {/* Prix de revient (Cost Basis) */}
-                  <div className="bg-slate-100 rounded-xl p-5 text-center">
-                    <p className="text-2xl font-bold text-slate-800">
+                  <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
+                    <p className="text-base md:text-2xl font-bold text-slate-800">
                       {currency === 'EUR'
                         ? `${formatEur(displayCostBasis)}€`
                         : `$${Math.round(displayCostBasis).toLocaleString('en-US')}`}
@@ -525,8 +525,8 @@ export function PortfolioPanel() {
                     <p className="text-slate-500 text-sm">{language === 'fr' ? 'Prix de revient' : 'Cost Basis'}</p>
                   </div>
                   {/* Valeur totale (Total Value) */}
-                  <div className="bg-slate-100 rounded-xl p-5 text-center">
-                    <p className="text-2xl font-bold text-slate-800">
+                  <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
+                    <p className="text-base md:text-2xl font-bold text-slate-800">
                       {currency === 'EUR'
                         ? `${formatEur(displayTotalValue)}€`
                         : `$${Math.round(displayTotalValue).toLocaleString('en-US')}`}
@@ -552,14 +552,14 @@ export function PortfolioPanel() {
               const displayGain = rawGain * scaleFactor;
               const displayPct = currency === 'EUR' ? unrealizedGainPctEur : compositionData.total_gain_pct;
               return (
-                <div className="bg-slate-100 rounded-xl p-5 text-center">
+                <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
                   <div className="flex items-center justify-center gap-1">
                     {displayGain >= 0 ? (
-                      <TrendingUp className="w-5 h-5 text-green-600" />
+                      <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
                     ) : (
-                      <TrendingDown className="w-5 h-5 text-red-600" />
+                      <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
                     )}
-                    <p className={`text-2xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className={`text-base md:text-2xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {currency === 'EUR'
                         ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
                         : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
@@ -586,14 +586,14 @@ export function PortfolioPanel() {
                 : compositionData.realized_gains_usd;
               const displayRealizedGain = rawRealizedGain * scaleFactor;
               return (
-                <div className="bg-slate-100 rounded-xl p-5 text-center">
+                <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
                   <div className="flex items-center justify-center gap-1">
                     {displayRealizedGain >= 0 ? (
-                      <TrendingUp className="w-5 h-5 text-emerald-600" />
+                      <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
                     ) : (
-                      <TrendingDown className="w-5 h-5 text-red-600" />
+                      <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
                     )}
-                    <p className={`text-2xl font-bold ${displayRealizedGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    <p className={`text-base md:text-2xl font-bold ${displayRealizedGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       {currency === 'EUR'
                         ? `${displayRealizedGain >= 0 ? '+' : ''}${formatEur(displayRealizedGain)}€`
                         : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
@@ -1096,9 +1096,9 @@ export function PortfolioPanel() {
                 <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
               </div>
             ) : compositionData?.holdings && compositionData.holdings.length > 0 ? (
-              <div className="flex items-center gap-8">
+              <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
                 {/* Pie Chart */}
-                <div className="w-1/2 h-[380px] pt-8 pb-8">
+                <div className="w-full md:w-1/2 h-[280px] md:h-[380px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -1107,7 +1107,7 @@ export function PortfolioPanel() {
                         nameKey="ticker"
                         cx="50%"
                         cy="50%"
-                        outerRadius={120}
+                        outerRadius="70%"
                         label={({ name, value }) => `${name} ${value}%`}
                         labelLine={true}
                       >
@@ -1132,7 +1132,7 @@ export function PortfolioPanel() {
                 </div>
 
                 {/* Holdings Table */}
-                <div className="w-1/2">
+                <div className="w-full md:w-1/2 overflow-x-auto">
                   {(() => {
                     // In private mode, scale all values to assume 10,000 cost basis
                     const PRIVATE_COST_BASIS = 10000;
@@ -1355,9 +1355,9 @@ export function PortfolioPanel() {
                 )}
 
                 {/* Performance Chart */}
-                <div className="h-[400px] relative" ref={chartContainerRef}>
+                <div className="h-[300px] md:h-[400px] relative" ref={chartContainerRef}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
+                    <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="outperformanceGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#16a34a" stopOpacity={0.3} />
@@ -1377,11 +1377,11 @@ export function PortfolioPanel() {
                           // Capitalize first letter
                           return formatted.charAt(0).toUpperCase() + formatted.slice(1);
                         }}
-                        tick={{ fontSize: 16, fill: '#64748b' }}
-                        interval={Math.floor(chartData.length / 8)}
+                        tick={{ fontSize: 11, fill: '#64748b' }}
+                        interval={Math.floor(chartData.length / 5)}
                       />
                       <YAxis
-                        tick={{ fontSize: 16, fill: '#64748b' }}
+                        tick={{ fontSize: 11, fill: '#64748b' }}
                         tickFormatter={(val) => {
                           return `${formatEur(val / 1000)}k€`;
                         }}
