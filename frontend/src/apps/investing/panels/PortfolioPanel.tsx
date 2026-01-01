@@ -1356,9 +1356,9 @@ export function PortfolioPanel() {
                   )}
 
                   {/* Performance Chart */}
-                  <div className="h-[300px] md:h-[400px] relative">
+                  <div className="h-[380px] md:h-[480px] relative">
                   <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 40 }}>
                       <defs>
                         <linearGradient id="outperformanceGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#16a34a" stopOpacity={0.3} />
@@ -1484,12 +1484,16 @@ export function PortfolioPanel() {
                       {/* Time range brush selector */}
                       <Brush
                         dataKey="date"
-                        height={30}
+                        height={40}
                         stroke="#16a34a"
-                        fill="#f1f5f9"
+                        fill="#e2e8f0"
+                        travellerWidth={12}
+                        startIndex={brushRange?.startIndex ?? 0}
+                        endIndex={brushRange?.endIndex ?? chartData.length - 1}
                         tickFormatter={(date) => {
                           const d = new Date(date);
-                          return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
+                          const formatted = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
+                          return formatted.charAt(0).toUpperCase() + formatted.slice(1);
                         }}
                         onChange={(range) => {
                           if (range && typeof range.startIndex === 'number' && typeof range.endIndex === 'number') {
