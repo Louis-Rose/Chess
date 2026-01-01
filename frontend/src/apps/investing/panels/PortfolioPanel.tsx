@@ -1349,15 +1349,26 @@ export function PortfolioPanel() {
                         }}
                         tick={{ fontSize: 12, fill: '#64748b' }}
                         ticks={(() => {
-                          // Show ~5 evenly spaced ticks, always including first and last
-                          if (chartData.length <= 5) return chartData.map(d => d.date);
-                          const step = Math.floor((chartData.length - 1) / 4);
-                          const indices = [0];
-                          for (let i = 1; i < 4; i++) {
-                            indices.push(i * step);
+                          // Show quarterly ticks (every 3 months) + always include last month
+                          const ticks: string[] = [];
+                          const quarterMonths = [0, 3, 6, 9]; // Jan, Apr, Jul, Oct
+
+                          chartData.forEach((d) => {
+                            const date = new Date(d.date);
+                            const month = date.getMonth();
+                            // Include if it's a quarter month (Jan, Apr, Jul, Oct)
+                            if (quarterMonths.includes(month)) {
+                              ticks.push(d.date);
+                            }
+                          });
+
+                          // Always include the last data point (current month)
+                          const lastDate = chartData[chartData.length - 1]?.date;
+                          if (lastDate && !ticks.includes(lastDate)) {
+                            ticks.push(lastDate);
                           }
-                          indices.push(chartData.length - 1); // Always include last
-                          return indices.map(i => chartData[i].date);
+
+                          return ticks;
                         })()}
                       />
                       <YAxis
