@@ -7,9 +7,8 @@ export function LoginButton() {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="relative h-[44px] min-h-[44px] w-[200px]">
-      <div className="absolute inset-0 flex items-center justify-center">
-        <GoogleLogin
+    <div className="relative h-[44px] min-h-[44px] max-h-[44px] flex items-center justify-center overflow-hidden">
+      <GoogleLogin
         onSuccess={async (credentialResponse) => {
           setError(null);
           try {
@@ -27,8 +26,7 @@ export function LoginButton() {
         theme="outline"
         text="signin"
         shape="rectangular"
-        />
-      </div>
+      />
       {error && (
         <div className="absolute top-full mt-2 right-0 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
           {error}
