@@ -1330,39 +1330,46 @@ export function PortfolioPanel() {
 
               return (
               <>
-                {/* Summary Stats */}
-                {filteredSummary && (
-                  <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
-                    <div className="bg-white rounded-lg p-2 md:p-4 text-center">
-                      <p className="text-slate-500 text-xs md:text-sm mb-1">{language === 'fr' ? 'Période de détention' : 'Holding period'}</p>
-                      <span className="text-sm md:text-lg font-bold text-slate-800">
-                        {(() => {
-                          const y = filteredSummary.years;
-                          const fullYears = Math.floor(y);
-                          const months = Math.round((y - fullYears) * 12);
-                          if (months === 0) return `${fullYears} ${fullYears !== 1 ? t('performance.years') : t('performance.year')}`;
-                          if (fullYears === 0) return `${months} ${t('performance.months')}`;
-                          return `${fullYears} ${fullYears !== 1 ? t('performance.years') : t('performance.year')} ${months} ${language === 'fr' ? 'mois' : (months !== 1 ? 'months' : 'month')}`;
-                        })()}
-                      </span>
-                    </div>
-                    <div className="bg-white rounded-lg p-2 md:p-4 text-center">
-                      <p className="text-slate-500 text-xs md:text-sm mb-1">{showAnnualized ? 'CAGR' : t('performance.totalReturn')}</p>
-                      <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur}%
-                      </span>
-                    </div>
-                    <div className="bg-white rounded-lg p-2 md:p-4 text-center">
-                      <p className="text-slate-500 text-xs md:text-sm mb-1">Benchmark</p>
-                      <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                        {(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur}%
-                      </span>
-                    </div>
-                  </div>
-                )}
+                {/* Downloadable area: title + summary + chart */}
+                <div ref={chartContainerRef} className="bg-slate-100 rounded-xl p-4">
+                  {/* Title for the downloaded image */}
+                  <h4 className="text-lg font-bold text-slate-800 text-center mb-4">
+                    {language === 'fr' ? 'Performance du Portefeuille' : 'Portfolio Performance'}
+                  </h4>
 
-                {/* Performance Chart */}
-                <div className="h-[300px] md:h-[400px] relative" ref={chartContainerRef}>
+                  {/* Summary Stats */}
+                  {filteredSummary && (
+                    <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
+                      <div className="bg-white rounded-lg p-2 md:p-4 text-center">
+                        <p className="text-slate-500 text-xs md:text-sm mb-1">{language === 'fr' ? 'Période de détention' : 'Holding period'}</p>
+                        <span className="text-sm md:text-lg font-bold text-slate-800">
+                          {(() => {
+                            const y = filteredSummary.years;
+                            const fullYears = Math.floor(y);
+                            const months = Math.round((y - fullYears) * 12);
+                            if (months === 0) return `${fullYears} ${fullYears !== 1 ? t('performance.years') : t('performance.year')}`;
+                            if (fullYears === 0) return `${months} ${t('performance.months')}`;
+                            return `${fullYears} ${fullYears !== 1 ? t('performance.years') : t('performance.year')} ${months} ${language === 'fr' ? 'mois' : (months !== 1 ? 'months' : 'month')}`;
+                          })()}
+                        </span>
+                      </div>
+                      <div className="bg-white rounded-lg p-2 md:p-4 text-center">
+                        <p className="text-slate-500 text-xs md:text-sm mb-1">{showAnnualized ? 'CAGR' : t('performance.totalReturn')}</p>
+                        <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur}%
+                        </span>
+                      </div>
+                      <div className="bg-white rounded-lg p-2 md:p-4 text-center">
+                        <p className="text-slate-500 text-xs md:text-sm mb-1">Benchmark</p>
+                        <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                          {(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Performance Chart */}
+                  <div className="h-[300px] md:h-[400px] relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                       <defs>
@@ -1547,6 +1554,7 @@ export function PortfolioPanel() {
                       />
                     </ComposedChart>
                   </ResponsiveContainer>
+                  </div>
                 </div>
               </>
               );
