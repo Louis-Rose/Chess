@@ -1184,41 +1184,42 @@ export function PortfolioPanel() {
         {/* Portfolio Performance */}
         {selectedAccountId && hasHoldings && (
           <div className="bg-slate-100 rounded-xl p-4 md:p-6">
-            <div className="flex flex-col md:flex-row md:items-center mb-4 md:mb-6 gap-3 md:gap-4">
-              <h3 className="text-lg md:text-xl font-bold text-slate-800">{t('performance.title')}</h3>
-              <div className="flex flex-wrap items-center gap-2 md:gap-4">
-                {/* Year Filter */}
-                <select
-                  value={yearFilter}
-                  onChange={(e) => setYearFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-                  className="px-2 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+            <h3 className="text-lg md:text-xl font-bold text-slate-800 text-center mb-4">{t('performance.title')}</h3>
+            <div className="flex flex-wrap items-end justify-center gap-3 md:gap-4 mb-4 md:mb-6">
+              {/* Year Filter */}
+              <select
+                value={yearFilter}
+                onChange={(e) => setYearFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                className="px-2 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+              >
+                <option value="all">{language === 'fr' ? 'Tout' : 'All'}</option>
+                {(() => {
+                  const currentYear = new Date().getFullYear();
+                  const years = [];
+                  for (let y = currentYear; y >= 2020; y--) {
+                    years.push(<option key={y} value={y}>{y}</option>);
+                  }
+                  return years;
+                })()}
+              </select>
+              {/* Toggle: Total vs Annualized */}
+              <div className="flex rounded-lg overflow-hidden border border-slate-300">
+                <button
+                  onClick={() => setShowAnnualized(false)}
+                  className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${!showAnnualized ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
                 >
-                  <option value="all">{language === 'fr' ? 'Tout' : 'All'}</option>
-                  {(() => {
-                    const currentYear = new Date().getFullYear();
-                    const years = [];
-                    for (let y = currentYear; y >= 2020; y--) {
-                      years.push(<option key={y} value={y}>{y}</option>);
-                    }
-                    return years;
-                  })()}
-                </select>
-                {/* Toggle: Total vs Annualized */}
-                <div className="flex rounded-lg overflow-hidden border border-slate-300">
-                  <button
-                    onClick={() => setShowAnnualized(false)}
-                    className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${!showAnnualized ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
-                  >
-                    Total
-                  </button>
-                  <button
-                    onClick={() => setShowAnnualized(true)}
-                    className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${showAnnualized ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
-                  >
-                    {language === 'fr' ? 'Annuel' : 'Annual'}
-                  </button>
-                </div>
-                {/* Benchmark Select */}
+                  Total
+                </button>
+                <button
+                  onClick={() => setShowAnnualized(true)}
+                  className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${showAnnualized ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                >
+                  {language === 'fr' ? 'Annuel' : 'Annual'}
+                </button>
+              </div>
+              {/* Benchmark Select */}
+              <div className="flex flex-col items-center">
+                <span className="text-xs text-slate-500 mb-1">Benchmark:</span>
                 <select
                   value={benchmark}
                   onChange={(e) => setBenchmark(e.target.value as 'NASDAQ' | 'SP500')}
