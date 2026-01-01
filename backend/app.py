@@ -1089,13 +1089,13 @@ BANKS = {
     },
     'SOCIETE_GENERALE': {
         'name': 'Société Générale',
-        'order_fee_pct': 0.50,  # 0.50% jusqu'à 2k€, 0.45% 2-8k€, 0.35% >8k€
-        'order_fee_min': 0,
+        'order_fee_pct': 0.50,  # 0.50% ≤2k€, 0.45% 2-8k€, 0.35% >8k€
+        'order_fee_min': 6,  # CTO uniquement, PEA pas de minimum
         'custody_fee_pct_year': 0.30,  # + 4.50€/ligne, dégressif selon montant
         'custody_fee_pct_year_pea': 0.40,  # plafonné légalement
         'account_fee_year': 17.50,  # offert si 1 achat/an
-        'fx_fee_info_fr': '0.50%',
-        'fx_fee_info_en': '0.50%',
+        'fx_fee_info_fr': '0.50% (min 16€ USA, 40€ autres)',
+        'fx_fee_info_en': '0.50% (min €16 USA, €40 others)',
     },
     'CREDIT_MUTUEL': {
         'name': 'Crédit Mutuel',
