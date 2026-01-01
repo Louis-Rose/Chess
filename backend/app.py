@@ -1067,25 +1067,21 @@ def get_stock_info():
 BANKS = {
     'CREDIT_AGRICOLE': {
         'name': 'Crédit Agricole',
-        'order_fee_pct': 0.50,
-        'order_fee_min': 5,
-        'custody_fee_pct_year': 0.25,  # 0.20-0.30% + per-line fees
-        'custody_fee_pct_year_pea': 0.40,  # capped
+        'order_fee_pct': 1.30,  # variable selon caisse régionale
+        'order_fee_min': 16,
+        'custody_fee_pct_year': 0.30,  # + frais par ligne, variable selon caisse
+        'custody_fee_pct_year_pea': 0.40,  # plafonné légalement + 5€/ligne
         'fx_fee_info_fr': '0.50% (min 20€)',
         'fx_fee_info_en': '0.50% (min €20)',
-        'note_fr': 'Offre Intégral: 0.09% (>1100€), gratuit si 24 ordres/an',
-        'note_en': 'Intégral offer: 0.09% (>€1100), free if 24 orders/year',
     },
     'BNP_PARIBAS': {
         'name': 'BNP Paribas',
         'order_fee_pct': 0.50,
         'order_fee_min': 5,
-        'custody_fee_pct_year': 0.40,  # <50k, degressive for larger
-        'custody_fee_pct_year_pea': 0.40,  # capped
-        'fx_fee_info_fr': '0.50-0.60% (min 15-25€)',
-        'fx_fee_info_en': '0.50-0.60% (min €15-25)',
-        'note_fr': 'Frais par ligne pénalisants sur petits portefeuilles',
-        'note_en': 'Per-line fees penalize small portfolios',
+        'custody_fee_pct_year': 0.40,  # <50k, dégressif pour gros montants
+        'custody_fee_pct_year_pea': 0.40,  # plafonné légalement
+        'fx_fee_info_fr': '0.50% (min 15-25€)',
+        'fx_fee_info_en': '0.50% (min €15-25)',
     },
     'SOCIETE_GENERALE': {
         'name': 'Société Générale',
@@ -1101,12 +1097,10 @@ BANKS = {
         'name': 'Crédit Mutuel',
         'order_fee_pct': 0.50,
         'order_fee_min': 5,
-        'custody_fee_pct_year': 0.25,  # 0.125% per semester
-        'custody_fee_pct_year_pea': 0.40,  # capped
-        'fx_fee_info_fr': '0.50% (min 30€ - élevé)',
-        'fx_fee_info_en': '0.50% (min €30 - high)',
-        'note_fr': 'Tarifs varient selon fédération (Alliance vs Arkéa)',
-        'note_en': 'Rates vary by federation (Alliance vs Arkéa)',
+        'custody_fee_pct_year': 0.25,  # 0.125%/semestre
+        'custody_fee_pct_year_pea': 0.40,  # plafonné légalement
+        'fx_fee_info_fr': '0.50% (min 30€)',
+        'fx_fee_info_en': '0.50% (min €30)',
     },
 }
 
