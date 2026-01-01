@@ -10,7 +10,7 @@ import { LanguageToggle } from '../../components/LanguageToggle';
 const navItems = [
   { path: '/investing', icon: Home, label: 'Welcome', end: true },
   { path: '/investing/portfolio', icon: Briefcase, label: 'My Portfolio' },
-  { path: '/investing/watchlist', icon: Eye, label: 'Watchlist' },
+  { path: '/investing/watchlist', icon: Eye, label: 'Watchlist', disabled: true },
 ];
 
 export function InvestingSidebar() {
@@ -97,21 +97,32 @@ export function InvestingSidebar() {
       {/* Navigation */}
       <div className="flex flex-col gap-1 px-2 py-4 border-b border-slate-700">
         {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.end}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                isActive
-                  ? 'bg-green-600 text-white'
-                  : 'text-slate-300 hover:bg-slate-800'
-              }`
-            }
-          >
-            <item.icon className="w-5 h-5" />
-            {item.label}
-          </NavLink>
+          item.disabled ? (
+            <div
+              key={item.path}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-left text-slate-500 cursor-not-allowed opacity-50"
+            >
+              <item.icon className="w-5 h-5" />
+              {item.label}
+              <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded ml-auto">Soon</span>
+            </div>
+          ) : (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.end}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  isActive
+                    ? 'bg-green-600 text-white'
+                    : 'text-slate-300 hover:bg-slate-800'
+                }`
+              }
+            >
+              <item.icon className="w-5 h-5" />
+              {item.label}
+            </NavLink>
+          )
         ))}
       </div>
 
