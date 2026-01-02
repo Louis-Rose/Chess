@@ -1,8 +1,10 @@
 // Admin panel - view registered users (admin only)
 
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, TrendingUp } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Navigate } from 'react-router-dom';
@@ -37,6 +39,30 @@ export function AdminPanel() {
     enabled: !!user?.is_admin,
   });
 
+  // Compute cumulative users per day
+  const chartData = useMemo(() => {
+    if (!data?.users) return [];
+
+    // Group users by date
+    const usersByDate: Record<string, number> = {};
+    data.users.forEach((u) => {
+      const date = u.created_at.split('T')[0].split(' ')[0]; // Handle both ISO and space-separated formats
+      usersByDate[date] = (usersByDate[date] || 0) + 1;
+    });
+
+    // Sort dates and compute cumulative
+    const sortedDates = Object.keys(usersByDate).sort();
+    let cumulative = 0;
+    return sortedDates.map((date) => {
+      cumulative += usersByDate[date];
+      return {
+        date,
+        users: cumulative,
+        newUsers: usersByDate[date],
+      };
+    });
+  }, [data?.users]);
+
   // Redirect non-admins
   if (!authLoading && (!user || !user.is_admin)) {
     return <Navigate to="/investing" replace />;
@@ -66,6 +92,75 @@ export function AdminPanel() {
       </div>
 
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* User Growth Chart */}
+        {!isLoading && !error && chartData.length > 0 && (
+          <div className="bg-slate-100 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <TrendingUp className="w-5 h-5 text-slate-600" />
+              <h3 className="text-xl font-bold text-slate-800">
+                {language === 'fr' ? 'Croissance des utilisateurs' : 'User Growth'}
+              </h3>
+            </div>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="userGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    tickFormatter={(date) => {
+                      const d = new Date(date);
+                      return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                        day: 'numeric',
+                        month: 'short',
+                      });
+                    }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    allowDecimals={false}
+                    domain={[0, 'auto']}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      padding: '8px 12px',
+                    }}
+                    labelFormatter={(date) =>
+                      new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })
+                    }
+                    formatter={(value: number, name: string) => {
+                      if (name === 'users') {
+                        return [value, language === 'fr' ? 'Total utilisateurs' : 'Total users'];
+                      }
+                      return [value, name];
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="users"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    fill="url(#userGradient)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
         {/* Users List */}
         <div className="bg-slate-100 rounded-xl p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -86,9 +181,9 @@ export function AdminPanel() {
               <span>{language === 'fr' ? 'Erreur lors du chargement' : 'Error loading users'}</span>
             </div>
           ) : data?.users && data.users.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
               <table className="w-full">
-                <thead>
+                <thead className="sticky top-0 bg-slate-100">
                   <tr className="text-left text-slate-600 text-sm border-b-2 border-slate-300">
                     <th className="pb-3 pl-2">ID</th>
                     <th className="pb-3">{language === 'fr' ? 'Utilisateur' : 'User'}</th>
