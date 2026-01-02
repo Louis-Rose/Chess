@@ -8,6 +8,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
 import { searchStocks, SP500_STOCKS, type Stock } from '../utils/sp500';
+import { getCompanyLogoUrl } from '../utils/companyLogos';
 
 const fetchWatchlist = async (): Promise<{ symbols: string[] }> => {
   const response = await axios.get('/api/investing/watchlist');
@@ -153,6 +154,7 @@ export function WatchlistPanel() {
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
                   {stockResults.map((stock) => {
                     const isInWatchlist = watchlist.includes(stock.ticker);
+                    const logoUrl = getCompanyLogoUrl(stock.ticker);
                     return (
                       <button
                         key={stock.ticker}
@@ -161,6 +163,20 @@ export function WatchlistPanel() {
                         disabled={isInWatchlist}
                         className={`w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 ${isInWatchlist ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'hover:bg-blue-50'}`}
                       >
+                        {logoUrl ? (
+                          <img
+                            src={logoUrl}
+                            alt={`${stock.ticker} logo`}
+                            className="w-6 h-6 rounded object-contain bg-white flex-shrink-0"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-6 h-6 rounded bg-slate-200 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[10px] font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
+                          </div>
+                        )}
                         <span className="font-bold text-slate-800 w-16">{stock.ticker}</span>
                         <span className="text-slate-600 text-sm truncate">{stock.name}</span>
                         {isInWatchlist && <span className="text-xs text-slate-400 ml-auto">{language === 'fr' ? 'Ajouté' : 'Added'}</span>}
@@ -204,6 +220,7 @@ export function WatchlistPanel() {
               {watchlist.map((ticker) => {
                 const sp500Stock = SP500_STOCKS.find(s => s.ticker === ticker);
                 const displayName = sp500Stock?.name || ticker;
+                const logoUrl = getCompanyLogoUrl(ticker);
 
                 return (
                   <div
@@ -211,6 +228,20 @@ export function WatchlistPanel() {
                     className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200"
                   >
                     <div className="flex items-center gap-3">
+                      {logoUrl ? (
+                        <img
+                          src={logoUrl}
+                          alt={`${ticker} logo`}
+                          className="w-8 h-8 rounded object-contain bg-white"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded bg-slate-200 flex items-center justify-center">
+                          <span className="text-xs font-bold text-slate-500">{ticker.slice(0, 2)}</span>
+                        </div>
+                      )}
                       <span className="font-bold text-slate-800 w-16">{ticker}</span>
                       <span className="text-slate-600 text-sm">{displayName}</span>
                     </div>
