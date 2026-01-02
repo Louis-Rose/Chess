@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { TrendingUp, Search, X, Loader2 } from 'lucide-react';
+import { TrendingUp, Search, X, Loader2, Eye } from 'lucide-react';
+import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { searchStocks, SP500_STOCKS, type Stock } from '../utils/sp500';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
@@ -21,6 +22,11 @@ const fetchMarketCap = async (tickers: string[]): Promise<{ stocks: Record<strin
   return response.data;
 };
 
+const fetchWatchlist = async (): Promise<{ symbols: string[] }> => {
+  const response = await axios.get('/api/investing/watchlist');
+  return response.data;
+};
+
 const formatMarketCap = (marketCap: number | null): string => {
   if (!marketCap) return '-';
   if (marketCap >= 1e12) return `$${(marketCap / 1e12).toFixed(2)}T`;
@@ -30,12 +36,22 @@ const formatMarketCap = (marketCap: number | null): string => {
 };
 
 export function FinancialsPanel() {
+  const { isAuthenticated } = useAuth();
   const { language } = useLanguage();
   const [stockSearch, setStockSearch] = useState('');
   const [stockResults, setStockResults] = useState<Stock[]>([]);
   const [showStockDropdown, setShowStockDropdown] = useState(false);
   const [selectedTickers, setSelectedTickers] = useState<string[]>([]);
   const stockDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fetch watchlist
+  const { data: watchlistData } = useQuery({
+    queryKey: ['watchlist'],
+    queryFn: fetchWatchlist,
+    enabled: isAuthenticated,
+  });
+
+  const watchlist = watchlistData?.symbols ?? [];
 
   // Fetch market cap for selected tickers
   const { data: marketCapData, isLoading: marketCapLoading } = useQuery({
@@ -48,8 +64,9 @@ export function FinancialsPanel() {
   useEffect(() => {
     const results = searchStocks(stockSearch);
     setStockResults(results);
-    setShowStockDropdown(results.length > 0 && stockSearch.length > 0);
-  }, [stockSearch]);
+    // Show dropdown if there are search results OR if empty and we have watchlist items
+    setShowStockDropdown((results.length > 0 && stockSearch.length > 0) || (stockSearch.length === 0 && watchlist.length > 0));
+  }, [stockSearch, watchlist.length]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -99,13 +116,62 @@ export function FinancialsPanel() {
                 placeholder={language === 'fr' ? 'Rechercher S&P 500...' : 'Search S&P 500 stocks...'}
                 value={stockSearch}
                 onChange={(e) => setStockSearch(e.target.value)}
-                onFocus={() => stockSearch && setShowStockDropdown(stockResults.length > 0)}
+                onFocus={() => setShowStockDropdown((stockResults.length > 0 && stockSearch.length > 0) || (stockSearch.length === 0 && watchlist.length > 0))}
                 className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
-            {showStockDropdown && stockResults.length > 0 && (
+            {showStockDropdown && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
-                {stockResults.map((stock) => {
+                {/* Show watchlist when search is empty */}
+                {stockSearch.length === 0 && watchlist.length > 0 && (
+                  <>
+                    <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-blue-600" />
+                      <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                        {language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}
+                      </span>
+                    </div>
+                    {watchlist.map((ticker) => {
+                      const isSelected = selectedTickers.includes(ticker);
+                      const sp500Stock = SP500_STOCKS.find(s => s.ticker === ticker);
+                      const displayName = sp500Stock?.name || ticker;
+                      const logoUrl = getCompanyLogoUrl(ticker);
+                      return (
+                        <button
+                          key={ticker}
+                          type="button"
+                          onClick={() => handleSelectStock({ ticker, name: displayName })}
+                          disabled={isSelected}
+                          className={`w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 ${isSelected ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'hover:bg-purple-50'}`}
+                        >
+                          <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {logoUrl && (
+                              <img
+                                src={logoUrl}
+                                alt={`${ticker} logo`}
+                                className="w-6 h-6 object-contain"
+                                onError={(e) => {
+                                  const parent = e.currentTarget.parentElement;
+                                  if (parent) {
+                                    parent.innerHTML = `<span class="text-[10px] font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
+                                  }
+                                }}
+                              />
+                            )}
+                            {!logoUrl && (
+                              <span className="text-[10px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
+                            )}
+                          </div>
+                          <span className="font-bold text-slate-800 w-16">{ticker}</span>
+                          <span className="text-slate-600 text-sm truncate">{displayName}</span>
+                          {isSelected && <span className="text-xs text-slate-400 ml-auto">{language === 'fr' ? 'Ajouté' : 'Added'}</span>}
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+                {/* Show search results when searching */}
+                {stockSearch.length > 0 && stockResults.map((stock) => {
                   const isSelected = selectedTickers.includes(stock.ticker);
                   const logoUrl = getCompanyLogoUrl(stock.ticker);
                   return (
