@@ -566,9 +566,9 @@ export function PortfolioPanel() {
                         : `$${Math.round(displayCostBasis).toLocaleString('en-US')}`}
                     </p>
                   </div>
-                  {/* Valeur totale (Total Value) */}
+                  {/* Valeur actuelle (Current Value) */}
                   <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
-                    <p className="text-sm md:text-base font-medium text-slate-600 mb-1">{language === 'fr' ? 'Valeur totale' : 'Total Value'}</p>
+                    <p className="text-sm md:text-base font-medium text-slate-600 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
                     <p className="text-base md:text-2xl font-bold text-slate-800">
                       {currency === 'EUR'
                         ? `${formatEur(displayTotalValue)}€`
