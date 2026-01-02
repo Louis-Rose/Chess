@@ -140,7 +140,7 @@ export function AdminPanel() {
                   <YAxis
                     tick={{ fontSize: 12, fill: '#64748b' }}
                     allowDecimals={false}
-                    domain={[0, 'auto']}
+                    domain={[0, 50]}
                   />
                   <Tooltip
                     contentStyle={{
