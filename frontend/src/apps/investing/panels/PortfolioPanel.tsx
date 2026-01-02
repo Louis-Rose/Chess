@@ -228,7 +228,12 @@ export function PortfolioPanel() {
   const [stockSearch, setStockSearch] = useState('');
   const [stockResults, setStockResults] = useState<Stock[]>([]);
   const [showStockDropdown, setShowStockDropdown] = useState(false);
-  const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(undefined);
+  const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(() => {
+    const saved = localStorage.getItem('selectedAccountId');
+    if (saved === 'none') return undefined;
+    if (saved) return parseInt(saved, 10);
+    return undefined;
+  });
   const [showAddAccountForm, setShowAddAccountForm] = useState(false);
   const [newAccountType, setNewAccountType] = useState('');
   const [newAccountBank, setNewAccountBank] = useState('');
@@ -389,10 +394,27 @@ export function PortfolioPanel() {
     },
   });
 
-  // Auto-select first account when accounts load
+  // Save selected account to localStorage
+  useEffect(() => {
+    if (selectedAccountId === undefined) {
+      // Check if this is an explicit deselection (localStorage has a value) or initial state
+      const saved = localStorage.getItem('selectedAccountId');
+      if (saved !== null) {
+        localStorage.setItem('selectedAccountId', 'none');
+      }
+    } else {
+      localStorage.setItem('selectedAccountId', String(selectedAccountId));
+    }
+  }, [selectedAccountId]);
+
+  // Auto-select first account when accounts load (only if no saved preference)
   useEffect(() => {
     if (accounts.length > 0 && selectedAccountId === undefined) {
-      setSelectedAccountId(accounts[0].id);
+      const saved = localStorage.getItem('selectedAccountId');
+      // Only auto-select if there's no saved preference (first visit)
+      if (saved === null) {
+        setSelectedAccountId(accounts[0].id);
+      }
     }
   }, [accounts]);
 
