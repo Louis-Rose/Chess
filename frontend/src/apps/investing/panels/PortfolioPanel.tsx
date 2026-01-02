@@ -1261,26 +1261,24 @@ export function PortfolioPanel() {
               const endDate = lastDataPoint.date;
               const startPortfolioValue = firstDataPoint.portfolio_value_eur;
               const startBenchmarkValue = firstDataPoint.benchmark_value_eur;
+              const startCostBasis = firstDataPoint.cost_basis_eur;
               const endCostBasis = lastDataPoint.cost_basis_eur;
               const endPortfolioValue = lastDataPoint.portfolio_value_eur;
               const endBenchmarkValue = lastDataPoint.benchmark_value_eur;
 
-              // Check if brush covers full range
-              const isFullRange = startIdx === 0 && endIdx === allData.length - 1;
-
-              // For full range: use total return formula (currentValue - costBasis) / costBasis
-              // For sub-range: use period change formula (endValue - startValue) / endCostBasis
+              // Net gains = value change - capital added (isolates investment performance)
+              // Formula: ((endValue - startValue) - (endCostBasis - startCostBasis)) / endCostBasis
+              const capitalAdded = endCostBasis - startCostBasis;
+              const portfolioValueChange = endPortfolioValue - startPortfolioValue;
+              const portfolioNetGains = portfolioValueChange - capitalAdded;
               const portfolioReturn = endCostBasis > 0
-                ? Math.round(((isFullRange
-                    ? endPortfolioValue - endCostBasis
-                    : endPortfolioValue - startPortfolioValue
-                  ) / endCostBasis) * 1000) / 10
+                ? Math.round((portfolioNetGains / endCostBasis) * 1000) / 10
                 : 0;
+
+              const benchmarkValueChange = endBenchmarkValue - startBenchmarkValue;
+              const benchmarkNetGains = benchmarkValueChange - capitalAdded;
               const benchmarkReturn = endCostBasis > 0
-                ? Math.round(((isFullRange
-                    ? endBenchmarkValue - endCostBasis
-                    : endBenchmarkValue - startBenchmarkValue
-                  ) / endCostBasis) * 1000) / 10
+                ? Math.round((benchmarkNetGains / endCostBasis) * 1000) / 10
                 : 0;
 
               const daysDiff = (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24);
