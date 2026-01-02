@@ -92,19 +92,19 @@ export function InvestingSidebar() {
 
       {/* Admin Link - only visible to admins, at top */}
       {user?.is_admin && (
-        <div className="flex flex-col gap-1 px-2 py-4 border-b border-slate-700">
+        <div className="px-2 py-4 border-b border-slate-700">
           <NavLink
             to="/investing/admin"
             className={({ isActive }) =>
-              `flex items-center justify-start gap-3 px-4 py-3 rounded-lg transition-colors h-auto ${
+              `flex items-center justify-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
                   ? 'bg-amber-600 text-white'
                   : 'text-amber-400 hover:bg-slate-800'
               }`
             }
           >
-            <Shield className="w-5 h-5 shrink-0" />
-            <span className="leading-tight">{language === 'fr' ? 'Administration' : 'Admin'}</span>
+            <Shield className="w-5 h-5" />
+            <span>{language === 'fr' ? 'Administration' : 'Admin'}</span>
           </NavLink>
         </div>
       )}
