@@ -78,6 +78,12 @@ export function AdminPanel() {
     });
   }, [data?.users]);
 
+  // Calculate Y-axis max (first multiple of 50 strictly greater than current users)
+  const yAxisMax = useMemo(() => {
+    const totalUsers = chartData.length > 0 ? chartData[chartData.length - 1].users : 0;
+    return Math.floor(totalUsers / 50) * 50 + 50;
+  }, [chartData]);
+
   // Redirect non-admins
   if (!authLoading && (!user || !user.is_admin)) {
     return <Navigate to="/investing" replace />;
@@ -140,7 +146,7 @@ export function AdminPanel() {
                   <YAxis
                     tick={{ fontSize: 12, fill: '#64748b' }}
                     allowDecimals={false}
-                    domain={[0, 50]}
+                    domain={[0, yAxisMax]}
                   />
                   <Tooltip
                     contentStyle={{
