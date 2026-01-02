@@ -7,6 +7,9 @@ from dateutil.relativedelta import relativedelta
 # Global database connection (set by app.py)
 _db_getter = None
 
+# Cache TTL for current prices (15 minutes)
+CURRENT_PRICE_TTL_MINUTES = 15
+
 def set_db_getter(getter):
     """Set the database getter function from app.py"""
     global _db_getter
@@ -27,6 +30,30 @@ def _get_cached_price(ticker, date_str):
     except:
         return None
 
+def _get_cached_current_price(ticker):
+    """Get cached current price if fresh (within TTL)"""
+    if not _db_getter:
+        return None
+    try:
+        today = datetime.now().strftime("%Y-%m-%d")
+        with _db_getter() as conn:
+            cursor = conn.execute(
+                '''SELECT close_price, created_at FROM historical_prices
+                   WHERE ticker = ? AND date = ?''',
+                (ticker, today)
+            )
+            row = cursor.fetchone()
+            if row:
+                # Check if cache is fresh (within TTL)
+                created_at = datetime.strptime(row['created_at'], "%Y-%m-%d %H:%M:%S")
+                age_minutes = (datetime.now() - created_at).total_seconds() / 60
+                if age_minutes < CURRENT_PRICE_TTL_MINUTES:
+                    return row['close_price']
+            return None
+    except Exception as e:
+        print(f"Error getting cached current price: {e}")
+        return None
+
 def _save_cached_price(ticker, date_str, price):
     """Save price to cache"""
     if not _db_getter:
@@ -34,8 +61,8 @@ def _save_cached_price(ticker, date_str, price):
     try:
         with _db_getter() as conn:
             conn.execute(
-                'INSERT OR REPLACE INTO historical_prices (ticker, date, close_price) VALUES (?, ?, ?)',
-                (ticker, date_str, price)
+                'INSERT OR REPLACE INTO historical_prices (ticker, date, close_price, created_at) VALUES (?, ?, ?, ?)',
+                (ticker, date_str, price, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             )
     except Exception as e:
         print(f"Error caching price: {e}")
@@ -55,6 +82,30 @@ def _get_cached_fx_rate(pair, date_str):
     except:
         return None
 
+def _get_cached_current_fx_rate(pair):
+    """Get cached current FX rate if fresh (within TTL)"""
+    if not _db_getter:
+        return None
+    try:
+        today = datetime.now().strftime("%Y-%m-%d")
+        with _db_getter() as conn:
+            cursor = conn.execute(
+                '''SELECT rate, created_at FROM historical_fx_rates
+                   WHERE pair = ? AND date = ?''',
+                (pair, today)
+            )
+            row = cursor.fetchone()
+            if row:
+                # Check if cache is fresh (within TTL)
+                created_at = datetime.strptime(row['created_at'], "%Y-%m-%d %H:%M:%S")
+                age_minutes = (datetime.now() - created_at).total_seconds() / 60
+                if age_minutes < CURRENT_PRICE_TTL_MINUTES:
+                    return row['rate']
+            return None
+    except Exception as e:
+        print(f"Error getting cached current FX rate: {e}")
+        return None
+
 def _save_cached_fx_rate(pair, date_str, rate):
     """Save FX rate to cache"""
     if not _db_getter:
@@ -62,8 +113,8 @@ def _save_cached_fx_rate(pair, date_str, rate):
     try:
         with _db_getter() as conn:
             conn.execute(
-                'INSERT OR REPLACE INTO historical_fx_rates (pair, date, rate) VALUES (?, ?, ?)',
-                (pair, date_str, rate)
+                'INSERT OR REPLACE INTO historical_fx_rates (pair, date, rate, created_at) VALUES (?, ?, ?, ?)',
+                (pair, date_str, rate, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             )
     except Exception as e:
         print(f"Error caching FX rate: {e}")
@@ -119,7 +170,13 @@ def fetch_stock_price(stock_ticker, date_str):
 
 
 def fetch_current_stock_price(stock_ticker):
-    """Fetch current stock price."""
+    """Fetch current stock price (with 15-min TTL caching)."""
+    # Check cache first
+    cached = _get_cached_current_price(stock_ticker)
+    if cached is not None:
+        return cached
+
+    # Fetch from API
     ticker = yf.Ticker(stock_ticker)
     info = ticker.info
     # Try multiple price fields
@@ -129,7 +186,14 @@ def fetch_current_stock_price(stock_ticker):
         hist = ticker.history(period='1d')
         if not hist.empty:
             price = hist['Close'].iloc[-1]
-    return round(float(price), 2) if price else None
+
+    if price:
+        price = round(float(price), 2)
+        # Save to cache with today's date
+        today = datetime.now().strftime("%Y-%m-%d")
+        _save_cached_price(stock_ticker, today, price)
+
+    return price
 
 
 def fetch_eurusd_rate(date_str):
@@ -161,7 +225,13 @@ def fetch_eurusd_rate(date_str):
 
 
 def get_current_eurusd_rate():
-    """Fetch current EUR/USD exchange rate."""
+    """Fetch current EUR/USD exchange rate (with 15-min TTL caching)."""
+    # Check cache first
+    cached = _get_cached_current_fx_rate('EURUSD')
+    if cached is not None:
+        return cached
+
+    # Fetch from API
     eurusd = yf.Ticker("EURUSD=X")
     info = eurusd.info
     rate = info.get('regularMarketPrice') or info.get('previousClose')
@@ -169,7 +239,15 @@ def get_current_eurusd_rate():
         hist = eurusd.history(period='1d')
         if not hist.empty:
             rate = hist['Close'].iloc[-1]
-    return float(round(rate, 4)) if rate else 1.0
+
+    if rate:
+        rate = float(round(rate, 4))
+        # Save to cache with today's date
+        today = datetime.now().strftime("%Y-%m-%d")
+        _save_cached_fx_rate('EURUSD', today, rate)
+        return rate
+
+    return 1.0
 
 
 def get_previous_weekday(date=None):
