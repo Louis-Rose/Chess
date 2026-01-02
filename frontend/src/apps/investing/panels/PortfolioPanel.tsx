@@ -599,12 +599,11 @@ export function PortfolioPanel() {
                     {language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}
                   </p>
                   <p className={`text-base md:text-2xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {displayPct >= 0 ? '+' : ''}{displayPct}%
-                  </p>
-                  <p className={`text-base md:text-2xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {currency === 'EUR'
                       ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
                       : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
+                    {' '}
+                    <span className="text-sm md:text-lg font-medium">({displayPct >= 0 ? '+' : ''}{displayPct}%)</span>
                   </p>
                 </div>
               );
