@@ -112,7 +112,9 @@ export function EarningsCalendarPanel() {
                     <th className="pb-3 text-center font-semibold w-1/5">
                       {language === 'fr' ? 'Confirmé' : 'Confirmed'}
                     </th>
-                    <th className="pb-3 text-center font-semibold w-1/5">IR</th>
+                    <th className="pb-3 text-center font-semibold w-1/5">
+                      {language === 'fr' ? 'Relations Investisseurs' : 'Investor Relations'}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -173,9 +175,10 @@ export function EarningsCalendarPanel() {
                               href={irUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-500 hover:text-blue-700 inline-flex items-center gap-1 text-xs transition-colors"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg text-sm font-medium transition-colors"
                             >
                               <ExternalLink className="w-4 h-4" />
+                              <span className="hidden sm:inline">IR</span>
                             </a>
                           ) : (
                             <span className="text-slate-400">-</span>
