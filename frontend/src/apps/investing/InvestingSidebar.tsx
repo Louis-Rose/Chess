@@ -1,8 +1,7 @@
 // Investing app sidebar
 
-import { useState, useRef, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, ChevronDown, BarChart3 } from 'lucide-react';
+import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, BarChart3 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../../components/UserMenu';
 import { LanguageToggle } from '../../components/LanguageToggle';
@@ -17,18 +16,6 @@ const navItems = [
 
 export function InvestingSidebar() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const [showAppSwitcher, setShowAppSwitcher] = useState(false);
-  const appSwitcherRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (appSwitcherRef.current && !appSwitcherRef.current.contains(event.target as Node)) {
-        setShowAppSwitcher(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   return (
     <div className="w-64 bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0 overflow-y-auto">

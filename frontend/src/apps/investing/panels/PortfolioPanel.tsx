@@ -1309,7 +1309,11 @@ export function PortfolioPanel() {
                 cagr_eur: cagrPortfolio,
                 cagr_benchmark_eur: cagrBenchmark,
               } : {
-                ...performanceData.summary,
+                years: performanceData.summary?.years ?? 0,
+                portfolio_return_eur: performanceData.summary?.portfolio_return_eur ?? 0,
+                benchmark_return_eur: performanceData.summary?.benchmark_return_eur ?? 0,
+                cagr_eur: performanceData.summary?.cagr_eur ?? 0,
+                cagr_benchmark_eur: performanceData.summary?.cagr_benchmark_eur ?? 0,
                 portfolio_gains_eur: fullRangeNetGains,
                 benchmark_gains_eur: fullRangeBenchmarkGains,
               };
