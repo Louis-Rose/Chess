@@ -205,14 +205,47 @@ const TICKER_TO_DOMAIN: Record<string, string> = {
   EQR: 'equityapartments.com',
 };
 
+// Tickers that don't work with FMP - use Clearbit instead
+const FMP_EXCEPTIONS: Record<string, string> = {
+  UBER: 'uber.com',
+  LYFT: 'lyft.com',
+  ABNB: 'airbnb.com',
+  DASH: 'doordash.com',
+  HOOD: 'robinhood.com',
+  COIN: 'coinbase.com',
+  PLTR: 'palantir.com',
+  SNOW: 'snowflake.com',
+  RBLX: 'roblox.com',
+  DDOG: 'datadoghq.com',
+  NET: 'cloudflare.com',
+  CRWD: 'crowdstrike.com',
+  ZS: 'zscaler.com',
+  OKTA: 'okta.com',
+  MDB: 'mongodb.com',
+  TTD: 'thetradedesk.com',
+  SHOP: 'shopify.com',
+  SQ: 'squareup.com',
+  SNAP: 'snap.com',
+  PINS: 'pinterest.com',
+  SPOT: 'spotify.com',
+  ZM: 'zoom.us',
+  DOCU: 'docusign.com',
+};
+
 /**
  * Get logo URL for a stock ticker
- * Uses multiple sources with fallback
+ * Uses Financial Modeling Prep, with Clearbit fallback for exceptions
  */
 export function getCompanyLogoUrl(ticker: string): string | null {
   const upperTicker = ticker.toUpperCase();
 
-  // Try Financial Modeling Prep (free, no API key needed for logos)
+  // Check if this ticker needs Clearbit
+  const clearbitDomain = FMP_EXCEPTIONS[upperTicker] || TICKER_TO_DOMAIN[upperTicker];
+  if (FMP_EXCEPTIONS[upperTicker]) {
+    return `https://logo.clearbit.com/${clearbitDomain}`;
+  }
+
+  // Default to Financial Modeling Prep
   return `https://financialmodelingprep.com/image-stock/${upperTicker}.png`;
 }
 
