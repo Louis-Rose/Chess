@@ -544,101 +544,87 @@ export function PortfolioPanel() {
       </div>
 
       <div className="max-w-6xl mx-auto space-y-8">
-        {/* Summary Cards - 2 cols mobile, 4 cols desktop */}
+        {/* Summary Cards - Single row */}
         {selectedAccountId && compositionData && hasHoldings && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
-            {(() => {
-              // In private mode, scale all values to assume 10,000 cost basis
-              const PRIVATE_COST_BASIS = 10000;
-              const actualCostBasis = currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis;
-              const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
+          <div className="bg-slate-100 rounded-xl p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {(() => {
+                // In private mode, scale all values to assume 10,000 cost basis
+                const PRIVATE_COST_BASIS = 10000;
+                const actualCostBasis = currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis;
+                const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
 
-              const displayCostBasis = privateMode ? PRIVATE_COST_BASIS : (currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis);
-              const displayTotalValue = (currency === 'EUR' ? compositionData.total_value_eur : compositionData.total_value_eur * compositionData.eurusd_rate) * scaleFactor;
+                const displayCostBasis = privateMode ? PRIVATE_COST_BASIS : (currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis);
+                const displayTotalValue = (currency === 'EUR' ? compositionData.total_value_eur : compositionData.total_value_eur * compositionData.eurusd_rate) * scaleFactor;
 
-              return (
-                <>
-                  {/* Capital investi (Invested Capital) */}
-                  <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
-                    <p className="text-sm md:text-base font-medium text-slate-600 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
-                    <p className="text-base md:text-2xl font-bold text-slate-800">
-                      {currency === 'EUR'
-                        ? `${formatEur(displayCostBasis)}€`
-                        : `$${Math.round(displayCostBasis).toLocaleString('en-US')}`}
-                    </p>
-                  </div>
-                  {/* Valeur actuelle (Current Value) */}
-                  <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
-                    <p className="text-sm md:text-base font-medium text-slate-600 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
-                    <p className="text-base md:text-2xl font-bold text-slate-800">
-                      {currency === 'EUR'
-                        ? `${formatEur(displayTotalValue)}€`
-                        : `$${Math.round(displayTotalValue).toLocaleString('en-US')}`}
-                    </p>
-                  </div>
-                </>
-              );
-            })()}
-            {/* Gains non réalisés (Unrealized Gains) */}
-            {(() => {
-              // In private mode, scale all values to assume 10,000 cost basis
-              const PRIVATE_COST_BASIS = 10000;
-              const actualCostBasis = currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis;
-              const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
+                // Calculate EUR gain: current value EUR - cost basis EUR (historical)
+                const unrealizedGainEur = compositionData.total_value_eur - compositionData.total_cost_basis_eur;
+                const unrealizedGainPctEur = compositionData.total_cost_basis_eur > 0
+                  ? Math.round(100 * unrealizedGainEur / compositionData.total_cost_basis_eur * 10) / 10
+                  : 0;
+                const rawGain = currency === 'EUR' ? unrealizedGainEur : compositionData.total_gain_usd;
+                const displayGain = rawGain * scaleFactor;
+                const displayPct = currency === 'EUR' ? unrealizedGainPctEur : compositionData.total_gain_pct;
 
-              // Calculate EUR gain: current value EUR - cost basis EUR (historical)
-              const unrealizedGainEur = compositionData.total_value_eur - compositionData.total_cost_basis_eur;
-              const unrealizedGainPctEur = compositionData.total_cost_basis_eur > 0
-                ? Math.round(100 * unrealizedGainEur / compositionData.total_cost_basis_eur * 10) / 10
-                : 0;
-              const rawGain = currency === 'EUR' ? unrealizedGainEur : compositionData.total_gain_usd;
-              const displayGain = rawGain * scaleFactor;
-              const displayPct = currency === 'EUR' ? unrealizedGainPctEur : compositionData.total_gain_pct;
-              return (
-                <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
-                  <p className="text-sm md:text-base font-medium text-slate-600 mb-1">
-                    {language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}
-                  </p>
-                  <p className={`text-base md:text-2xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {currency === 'EUR'
-                      ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
-                      : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
-                    {' '}
-                    <span>({displayPct >= 0 ? '+' : ''}{displayPct}%)</span>
-                  </p>
-                </div>
-              );
-            })()}
-            {/* Gains réalisés (Realized Gains) */}
-            {(() => {
-              // In private mode, scale all values to assume 10,000 cost basis
-              const PRIVATE_COST_BASIS = 10000;
-              const actualCostBasis = currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis;
-              const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
+                const rawRealizedGain = currency === 'EUR'
+                  ? compositionData.realized_gains_eur
+                  : compositionData.realized_gains_usd;
+                const displayRealizedGain = rawRealizedGain * scaleFactor;
+                const investedCapital = compositionData.total_cost_basis_eur || 0;
+                const realizedGainPct = investedCapital > 0
+                  ? Math.round(100 * compositionData.realized_gains_eur / investedCapital * 10) / 10
+                  : 0;
 
-              const rawRealizedGain = currency === 'EUR'
-                ? compositionData.realized_gains_eur
-                : compositionData.realized_gains_usd;
-              const displayRealizedGain = rawRealizedGain * scaleFactor;
-              const investedCapital = compositionData.total_cost_basis_eur || 0;
-              const realizedGainPct = investedCapital > 0
-                ? Math.round(100 * compositionData.realized_gains_eur / investedCapital * 10) / 10
-                : 0;
-              return (
-                <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
-                  <p className="text-sm md:text-base font-medium text-slate-600 mb-1">
-                    {language === 'fr' ? 'Plus-value réalisée (brut)' : 'Realized Gains (gross)'}
-                  </p>
-                  <p className={`text-base md:text-2xl font-bold ${displayRealizedGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {currency === 'EUR'
-                      ? `${displayRealizedGain >= 0 ? '+' : ''}${formatEur(displayRealizedGain)}€`
-                      : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
-                    {' '}
-                    <span>({realizedGainPct >= 0 ? '+' : ''}{realizedGainPct}%)</span>
-                  </p>
-                </div>
-              );
-            })()}
+                return (
+                  <>
+                    {/* Capital investi (Invested Capital) */}
+                    <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
+                      <p className="text-sm md:text-xl font-bold text-slate-800">
+                        {currency === 'EUR'
+                          ? `${formatEur(displayCostBasis)}€`
+                          : `$${Math.round(displayCostBasis).toLocaleString('en-US')}`}
+                      </p>
+                    </div>
+                    {/* Valeur actuelle (Current Value) */}
+                    <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
+                      <p className="text-sm md:text-xl font-bold text-slate-800">
+                        {currency === 'EUR'
+                          ? `${formatEur(displayTotalValue)}€`
+                          : `$${Math.round(displayTotalValue).toLocaleString('en-US')}`}
+                      </p>
+                    </div>
+                    {/* Gains non réalisés (Unrealized Gains) */}
+                    <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">
+                        {language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}
+                      </p>
+                      <p className={`text-sm md:text-xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {currency === 'EUR'
+                          ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
+                          : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
+                        {' '}
+                        <span className="text-xs md:text-base">({displayPct >= 0 ? '+' : ''}{displayPct}%)</span>
+                      </p>
+                    </div>
+                    {/* Gains réalisés (Realized Gains) */}
+                    <div className="text-center">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">
+                        {language === 'fr' ? 'Plus-value réalisée (brut)' : 'Realized Gains (gross)'}
+                      </p>
+                      <p className={`text-sm md:text-xl font-bold ${displayRealizedGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {currency === 'EUR'
+                          ? `${displayRealizedGain >= 0 ? '+' : ''}${formatEur(displayRealizedGain)}€`
+                          : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
+                        {' '}
+                        <span className="text-xs md:text-base">({realizedGainPct >= 0 ? '+' : ''}{realizedGainPct}%)</span>
+                      </p>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
           </div>
         )}
 
