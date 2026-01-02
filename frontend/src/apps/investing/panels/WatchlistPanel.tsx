@@ -252,25 +252,23 @@ export function WatchlistPanel() {
                       )}
                     </div>
                     <span className="font-bold text-slate-800 w-16 flex-shrink-0">{ticker}</span>
-                    <span className="text-slate-600 text-sm truncate">{displayName}</span>
+                    <span className="text-slate-600 text-sm truncate w-48 flex-shrink-0">{displayName}</span>
                     {irUrl ? (
                       <a
                         href={irUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-xs transition-colors ml-auto flex-shrink-0"
+                        className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-xs transition-colors flex-shrink-0"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <ExternalLink className="w-3 h-3" />
                         <span className="hidden sm:inline">{language === 'fr' ? 'Relations investisseurs' : 'Investor Relations'}</span>
                       </a>
-                    ) : (
-                      <span className="ml-auto" />
-                    )}
+                    ) : null}
                     <button
                       onClick={() => handleRemoveSymbol(ticker)}
                       disabled={removeMutation.isPending}
-                      className="text-slate-400 hover:text-red-500 p-1 transition-colors flex-shrink-0"
+                      className="text-slate-400 hover:text-red-500 p-1 transition-colors flex-shrink-0 ml-auto"
                       title={language === 'fr' ? 'Supprimer' : 'Remove'}
                     >
                       <X className="w-5 h-5" />
