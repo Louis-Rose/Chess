@@ -1206,5 +1206,97 @@ def delete_account(account_id):
     return jsonify({'success': True, 'id': account_id})
 
 
+@app.route('/api/investing/earnings-calendar', methods=['GET'])
+@login_required
+def get_earnings_calendar():
+    """Get upcoming earnings dates for portfolio holdings."""
+    import yfinance as yf
+    from datetime import datetime
+
+    # Get user's current holdings (unique tickers with quantity > 0)
+    holdings = compute_holdings_from_transactions(request.user_id)
+    tickers = [h['stock_ticker'] for h in holdings if h['quantity'] > 0]
+
+    if not tickers:
+        return jsonify({'earnings': [], 'message': 'No holdings found'})
+
+    today = datetime.now().date()
+    earnings_data = []
+
+    for ticker in tickers:
+        try:
+            stock = yf.Ticker(ticker)
+            calendar = stock.calendar
+
+            # yfinance returns calendar as a DataFrame or dict depending on version
+            # Try to extract earnings date
+            next_earnings_date = None
+            date_confirmed = False
+
+            if calendar is not None:
+                # Handle different yfinance return formats
+                if hasattr(calendar, 'to_dict'):
+                    # DataFrame format
+                    cal_dict = calendar.to_dict()
+                    if 'Earnings Date' in cal_dict:
+                        dates = cal_dict['Earnings Date']
+                        if dates:
+                            # Get first date (it's often a range)
+                            first_key = list(dates.keys())[0]
+                            next_earnings_date = dates[first_key]
+                            # If there's only one date (not a range), it's confirmed
+                            date_confirmed = len(dates) == 1
+                elif isinstance(calendar, dict):
+                    # Dict format (newer yfinance)
+                    if 'Earnings Date' in calendar:
+                        earnings_dates = calendar['Earnings Date']
+                        if isinstance(earnings_dates, list) and len(earnings_dates) > 0:
+                            next_earnings_date = earnings_dates[0]
+                            date_confirmed = len(earnings_dates) == 1
+                        elif earnings_dates:
+                            next_earnings_date = earnings_dates
+                            date_confirmed = True
+
+            # Convert to date if it's a timestamp
+            if next_earnings_date is not None:
+                if hasattr(next_earnings_date, 'date'):
+                    next_earnings_date = next_earnings_date.date()
+                elif isinstance(next_earnings_date, str):
+                    next_earnings_date = datetime.strptime(next_earnings_date, '%Y-%m-%d').date()
+
+                # Calculate remaining days
+                remaining_days = (next_earnings_date - today).days
+
+                earnings_data.append({
+                    'ticker': ticker,
+                    'next_earnings_date': next_earnings_date.strftime('%Y-%m-%d'),
+                    'remaining_days': remaining_days,
+                    'date_confirmed': date_confirmed
+                })
+            else:
+                # No earnings date available
+                earnings_data.append({
+                    'ticker': ticker,
+                    'next_earnings_date': None,
+                    'remaining_days': None,
+                    'date_confirmed': False
+                })
+
+        except Exception as e:
+            print(f"Error fetching earnings for {ticker}: {e}")
+            earnings_data.append({
+                'ticker': ticker,
+                'next_earnings_date': None,
+                'remaining_days': None,
+                'date_confirmed': False,
+                'error': str(e)
+            })
+
+    # Sort by remaining days (nulls at the end)
+    earnings_data.sort(key=lambda x: (x['remaining_days'] is None, x['remaining_days'] or 9999))
+
+    return jsonify({'earnings': earnings_data})
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

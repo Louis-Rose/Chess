@@ -6,6 +6,7 @@ import { InvestingLayout } from './InvestingLayout';
 import { InvestingWelcomePanel } from './panels/WelcomePanel';
 import { PortfolioPanel } from './panels/PortfolioPanel';
 import { WatchlistPanel } from './panels/WatchlistPanel';
+import { EarningsCalendarPanel } from './panels/EarningsCalendarPanel';
 
 export function InvestingApp() {
   useEffect(() => {
@@ -20,6 +21,7 @@ export function InvestingApp() {
         <Route index element={<InvestingWelcomePanel />} />
         <Route path="portfolio" element={<PortfolioPanel />} />
         <Route path="watchlist" element={<WatchlistPanel />} />
+        <Route path="earnings" element={<EarningsCalendarPanel />} />
       </Route>
     </Routes>
   );

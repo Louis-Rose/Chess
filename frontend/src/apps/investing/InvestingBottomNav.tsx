@@ -1,11 +1,12 @@
 // Mobile bottom navigation for Investing app
 
 import { NavLink } from 'react-router-dom';
-import { Home, Briefcase, Eye } from 'lucide-react';
+import { Home, Briefcase, Calendar, Eye } from 'lucide-react';
 
 const navItems = [
   { path: '/investing', icon: Home, label: 'Home', end: true },
   { path: '/investing/portfolio', icon: Briefcase, label: 'Portfolio' },
+  { path: '/investing/earnings', icon: Calendar, label: 'Earnings' },
   { path: '/investing/watchlist', icon: Eye, label: 'Watchlist', disabled: true },
 ];
 
