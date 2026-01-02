@@ -1,13 +1,12 @@
 // Earnings Calendar panel - displays upcoming earnings dates for portfolio holdings and watchlist
 
-import { useState, useEffect, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Calendar, Loader2, CheckCircle2, HelpCircle, Search, Plus, X, Briefcase, Eye } from 'lucide-react';
+import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
-import { searchStocks, type Stock } from '../utils/sp500';
 
 interface EarningsData {
   ticker: string;
@@ -20,90 +19,27 @@ interface EarningsData {
 
 interface EarningsResponse {
   earnings: EarningsData[];
-  watchlist: string[];
   message?: string;
 }
 
-const fetchEarningsCalendar = async (includePortfolio: boolean): Promise<EarningsResponse> => {
-  const response = await axios.get(`/api/investing/earnings-calendar?include_portfolio=${includePortfolio}`);
+const fetchEarningsCalendar = async (includePortfolio: boolean, includeWatchlist: boolean): Promise<EarningsResponse> => {
+  const response = await axios.get(`/api/investing/earnings-calendar?include_portfolio=${includePortfolio}&include_watchlist=${includeWatchlist}`);
   return response.data;
-};
-
-const addToEarningsWatchlist = async (symbol: string): Promise<void> => {
-  await axios.post('/api/investing/earnings-watchlist', { symbol });
-};
-
-const removeFromEarningsWatchlist = async (symbol: string): Promise<void> => {
-  await axios.delete(`/api/investing/earnings-watchlist/${symbol}`);
 };
 
 export function EarningsCalendarPanel() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
-  const queryClient = useQueryClient();
 
   const [includePortfolio, setIncludePortfolio] = useState(true);
-  const [stockSearch, setStockSearch] = useState('');
-  const [stockResults, setStockResults] = useState<Stock[]>([]);
-  const [showStockDropdown, setShowStockDropdown] = useState(false);
-  const stockDropdownRef = useRef<HTMLDivElement>(null);
+  const [includeWatchlist, setIncludeWatchlist] = useState(true);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['earnings-calendar', includePortfolio],
-    queryFn: () => fetchEarningsCalendar(includePortfolio),
+    queryKey: ['earnings-calendar', includePortfolio, includeWatchlist],
+    queryFn: () => fetchEarningsCalendar(includePortfolio, includeWatchlist),
     enabled: isAuthenticated,
     staleTime: 1000 * 60 * 30, // Cache for 30 minutes
   });
-
-  const addMutation = useMutation({
-    mutationFn: addToEarningsWatchlist,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['earnings-calendar'] });
-    },
-  });
-
-  const removeMutation = useMutation({
-    mutationFn: removeFromEarningsWatchlist,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['earnings-calendar'] });
-    },
-  });
-
-  // Stock search effect
-  useEffect(() => {
-    const results = searchStocks(stockSearch);
-    setStockResults(results);
-    setShowStockDropdown(results.length > 0 && stockSearch.length > 0);
-  }, [stockSearch]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (stockDropdownRef.current && !stockDropdownRef.current.contains(event.target as Node)) {
-        setShowStockDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSelectStock = (stock: Stock) => {
-    if (!data?.watchlist?.includes(stock.ticker)) {
-      addMutation.mutate(stock.ticker);
-    }
-    setStockSearch('');
-    setShowStockDropdown(false);
-  };
-
-  const handleAddSymbol = (e: React.FormEvent) => {
-    e.preventDefault();
-    const ticker = stockSearch.trim().toUpperCase();
-    if (ticker && !data?.watchlist?.includes(ticker)) {
-      addMutation.mutate(ticker);
-      setStockSearch('');
-      setShowStockDropdown(false);
-    }
-  };
 
   if (authLoading) {
     return (
@@ -133,8 +69,6 @@ export function EarningsCalendarPanel() {
     );
   }
 
-  const watchlistTickers = data?.watchlist || [];
-
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="sticky top-0 z-20 bg-slate-800 py-4 -mx-4 px-4 mt-8">
@@ -151,75 +85,36 @@ export function EarningsCalendarPanel() {
       </div>
 
       <div className="max-w-4xl mx-auto mt-8 space-y-6">
-        {/* Controls: Add stock + Portfolio toggle */}
+        {/* Controls: Portfolio and Watchlist toggles */}
         <div className="bg-slate-100 rounded-xl p-6">
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
-            {/* Stock search */}
-            <div className="flex-1 w-full">
-              <label className="block text-sm font-medium text-slate-600 mb-2">
-                {language === 'fr' ? 'Ajouter une action' : 'Add a stock'}
-              </label>
-              <form onSubmit={handleAddSymbol} className="flex gap-2">
-                <div className="relative flex-1" ref={stockDropdownRef}>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder={language === 'fr' ? 'Rechercher S&P 500...' : 'Search S&P 500...'}
-                      value={stockSearch}
-                      onChange={(e) => setStockSearch(e.target.value)}
-                      onFocus={() => stockSearch && setShowStockDropdown(stockResults.length > 0)}
-                      className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                  </div>
-                  {showStockDropdown && stockResults.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
-                      {stockResults.map((stock) => {
-                        const isInWatchlist = watchlistTickers.includes(stock.ticker);
-                        const isInEarnings = data?.earnings?.some(e => e.ticker === stock.ticker);
-                        const isAdded = isInWatchlist || isInEarnings;
-                        return (
-                          <button
-                            key={stock.ticker}
-                            type="button"
-                            onClick={() => handleSelectStock(stock)}
-                            disabled={isAdded}
-                            className={`w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 ${isAdded ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'hover:bg-green-50'}`}
-                          >
-                            <span className="font-bold text-slate-800 w-16">{stock.ticker}</span>
-                            <span className="text-slate-600 text-sm truncate">{stock.name}</span>
-                            {isAdded && <span className="text-xs text-slate-400 ml-auto">{language === 'fr' ? 'Ajouté' : 'Added'}</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="submit"
-                  disabled={!stockSearch.trim() || addMutation.isPending}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {addMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                </button>
-              </form>
-            </div>
-
+          <div className="flex flex-wrap gap-6 items-center justify-center">
             {/* Portfolio toggle */}
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={includePortfolio}
-                  onChange={(e) => setIncludePortfolio(e.target.checked)}
-                  className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                />
-                <span className="text-sm text-slate-600 flex items-center gap-1">
-                  <Briefcase className="w-4 h-4" />
-                  {language === 'fr' ? 'Inclure portefeuille' : 'Include portfolio'}
-                </span>
-              </label>
-            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includePortfolio}
+                onChange={(e) => setIncludePortfolio(e.target.checked)}
+                className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+              />
+              <span className="text-sm text-slate-600 flex items-center gap-1">
+                <Briefcase className="w-4 h-4" />
+                {language === 'fr' ? 'Inclure portefeuille' : 'Include portfolio'}
+              </span>
+            </label>
+
+            {/* Watchlist toggle */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeWatchlist}
+                onChange={(e) => setIncludeWatchlist(e.target.checked)}
+                className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+              />
+              <span className="text-sm text-slate-600 flex items-center gap-1">
+                <Eye className="w-4 h-4" />
+                {language === 'fr' ? 'Inclure watchlist' : 'Include watchlist'}
+              </span>
+            </label>
           </div>
         </div>
 
@@ -243,17 +138,16 @@ export function EarningsCalendarPanel() {
               <table className="w-full table-fixed">
                 <thead>
                   <tr className="text-left text-slate-600 text-sm border-b-2 border-slate-300">
-                    <th className="pb-3 pl-2 font-semibold w-[20%]">Ticker</th>
-                    <th className="pb-3 font-semibold w-[35%]">
+                    <th className="pb-3 pl-2 font-semibold w-1/4">Ticker</th>
+                    <th className="pb-3 font-semibold w-1/4">
                       {language === 'fr' ? 'Date' : 'Date'}
                     </th>
-                    <th className="pb-3 text-center font-semibold w-[20%]">
+                    <th className="pb-3 text-center font-semibold w-1/4">
                       {language === 'fr' ? 'Jours restants' : 'Remaining'}
                     </th>
-                    <th className="pb-3 text-center font-semibold w-[15%]">
+                    <th className="pb-3 text-center font-semibold w-1/4">
                       {language === 'fr' ? 'Confirmé' : 'Confirmed'}
                     </th>
-                    <th className="pb-3 text-center font-semibold w-[10%]"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -306,18 +200,6 @@ export function EarningsCalendarPanel() {
                           <HelpCircle className="w-5 h-5 text-slate-400 mx-auto" />
                         )}
                       </td>
-                      <td className="py-4 text-center">
-                        {item.source === 'watchlist' && (
-                          <button
-                            onClick={() => removeMutation.mutate(item.ticker)}
-                            disabled={removeMutation.isPending}
-                            className="text-slate-400 hover:text-red-500 p-1"
-                            title={language === 'fr' ? 'Supprimer' : 'Remove'}
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -353,8 +235,8 @@ export function EarningsCalendarPanel() {
             </p>
             <p className="text-slate-400">
               {language === 'fr'
-                ? 'Ajoutez des actions ci-dessus ou activez le portefeuille.'
-                : 'Add stocks above or enable portfolio tracking.'}
+                ? 'Activez le portefeuille ou la watchlist ci-dessus.'
+                : 'Enable portfolio or watchlist tracking above.'}
             </p>
           </div>
         )}

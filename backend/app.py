@@ -1265,9 +1265,11 @@ def get_earnings_calendar():
     from datetime import datetime
 
     include_portfolio = request.args.get('include_portfolio', 'true').lower() == 'true'
+    include_watchlist = request.args.get('include_watchlist', 'true').lower() == 'true'
 
     tickers = set()
     portfolio_tickers = set()
+    watchlist_tickers = set()
 
     # Get portfolio holdings if include_portfolio is true
     if include_portfolio:
@@ -1275,14 +1277,15 @@ def get_earnings_calendar():
         portfolio_tickers = {h['stock_ticker'] for h in holdings if h['quantity'] > 0}
         tickers.update(portfolio_tickers)
 
-    # Get earnings watchlist tickers
-    with get_db() as conn:
-        cursor = conn.execute(
-            'SELECT stock_ticker FROM earnings_watchlist WHERE user_id = ?',
-            (request.user_id,)
-        )
-        watchlist_tickers = {row['stock_ticker'] for row in cursor.fetchall()}
-        tickers.update(watchlist_tickers)
+    # Get watchlist tickers if include_watchlist is true
+    if include_watchlist:
+        with get_db() as conn:
+            cursor = conn.execute(
+                'SELECT stock_ticker FROM watchlist WHERE user_id = ?',
+                (request.user_id,)
+            )
+            watchlist_tickers = {row['stock_ticker'] for row in cursor.fetchall()}
+            tickers.update(watchlist_tickers)
 
     if not tickers:
         return jsonify({'earnings': [], 'watchlist': [], 'message': 'No tickers to track'})
