@@ -631,7 +631,7 @@ export function PortfolioPanel() {
         {/* Action Buttons Row */}
         {selectedAccountId && (
           <div className="bg-slate-100 rounded-xl p-4">
-            <div className="flex flex-wrap justify-center gap-6">
+            <div className="flex flex-wrap justify-center gap-12">
               <button
                 onClick={() => setShowAccounts(!showAccounts)}
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
