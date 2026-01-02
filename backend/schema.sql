@@ -96,6 +96,16 @@ CREATE TABLE IF NOT EXISTS watchlist (
     UNIQUE(user_id, stock_ticker)
 );
 
+-- Earnings watchlist table (for tracking earnings of stocks not in portfolio)
+CREATE TABLE IF NOT EXISTS earnings_watchlist (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    stock_ticker TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(user_id, stock_ticker)
+);
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -109,3 +119,4 @@ CREATE INDEX IF NOT EXISTS idx_historical_fx_rates_date ON historical_fx_rates(d
 CREATE INDEX IF NOT EXISTS idx_watchlist_user_id ON watchlist(user_id);
 CREATE INDEX IF NOT EXISTS idx_investment_accounts_user_id ON investment_accounts(user_id);
 CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_account_id ON portfolio_transactions(account_id);
+CREATE INDEX IF NOT EXISTS idx_earnings_watchlist_user_id ON earnings_watchlist(user_id);

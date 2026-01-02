@@ -1206,19 +1206,86 @@ def delete_account(account_id):
     return jsonify({'success': True, 'id': account_id})
 
 
+@app.route('/api/investing/earnings-watchlist', methods=['GET'])
+@login_required
+def get_earnings_watchlist():
+    """Get user's earnings watchlist."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT stock_ticker FROM earnings_watchlist WHERE user_id = ? ORDER BY created_at ASC',
+            (request.user_id,)
+        )
+        rows = cursor.fetchall()
+
+    symbols = [row['stock_ticker'] for row in rows]
+    return jsonify({'symbols': symbols})
+
+
+@app.route('/api/investing/earnings-watchlist', methods=['POST'])
+@login_required
+def add_to_earnings_watchlist():
+    """Add symbol to earnings watchlist."""
+    data = request.get_json()
+    symbol = data.get('symbol') if data else None
+    if not symbol:
+        return jsonify({'error': 'Symbol required'}), 400
+
+    symbol = symbol.upper().strip()
+    with get_db() as conn:
+        try:
+            conn.execute(
+                'INSERT INTO earnings_watchlist (user_id, stock_ticker) VALUES (?, ?)',
+                (request.user_id, symbol)
+            )
+        except Exception:
+            # Already exists, ignore
+            pass
+
+    return jsonify({'success': True, 'symbol': symbol})
+
+
+@app.route('/api/investing/earnings-watchlist/<symbol>', methods=['DELETE'])
+@login_required
+def remove_from_earnings_watchlist(symbol):
+    """Remove symbol from earnings watchlist."""
+    symbol = symbol.upper().strip()
+    with get_db() as conn:
+        conn.execute(
+            'DELETE FROM earnings_watchlist WHERE user_id = ? AND stock_ticker = ?',
+            (request.user_id, symbol)
+        )
+    return jsonify({'success': True, 'symbol': symbol})
+
+
 @app.route('/api/investing/earnings-calendar', methods=['GET'])
 @login_required
 def get_earnings_calendar():
-    """Get upcoming earnings dates for portfolio holdings."""
+    """Get upcoming earnings dates for portfolio holdings and earnings watchlist."""
     import yfinance as yf
     from datetime import datetime
 
-    # Get user's current holdings (unique tickers with quantity > 0)
-    holdings = compute_holdings_from_transactions(request.user_id)
-    tickers = [h['stock_ticker'] for h in holdings if h['quantity'] > 0]
+    include_portfolio = request.args.get('include_portfolio', 'true').lower() == 'true'
+
+    tickers = set()
+    portfolio_tickers = set()
+
+    # Get portfolio holdings if include_portfolio is true
+    if include_portfolio:
+        holdings = compute_holdings_from_transactions(request.user_id)
+        portfolio_tickers = {h['stock_ticker'] for h in holdings if h['quantity'] > 0}
+        tickers.update(portfolio_tickers)
+
+    # Get earnings watchlist tickers
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT stock_ticker FROM earnings_watchlist WHERE user_id = ?',
+            (request.user_id,)
+        )
+        watchlist_tickers = {row['stock_ticker'] for row in cursor.fetchall()}
+        tickers.update(watchlist_tickers)
 
     if not tickers:
-        return jsonify({'earnings': [], 'message': 'No holdings found'})
+        return jsonify({'earnings': [], 'watchlist': [], 'message': 'No tickers to track'})
 
     today = datetime.now().date()
     earnings_data = []
@@ -1271,7 +1338,8 @@ def get_earnings_calendar():
                     'ticker': ticker,
                     'next_earnings_date': next_earnings_date.strftime('%Y-%m-%d'),
                     'remaining_days': remaining_days,
-                    'date_confirmed': date_confirmed
+                    'date_confirmed': date_confirmed,
+                    'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
                 })
             else:
                 # No earnings date available
@@ -1279,7 +1347,8 @@ def get_earnings_calendar():
                     'ticker': ticker,
                     'next_earnings_date': None,
                     'remaining_days': None,
-                    'date_confirmed': False
+                    'date_confirmed': False,
+                    'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
                 })
 
         except Exception as e:
@@ -1289,13 +1358,17 @@ def get_earnings_calendar():
                 'next_earnings_date': None,
                 'remaining_days': None,
                 'date_confirmed': False,
+                'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist',
                 'error': str(e)
             })
 
     # Sort by remaining days (nulls at the end)
     earnings_data.sort(key=lambda x: (x['remaining_days'] is None, x['remaining_days'] or 9999))
 
-    return jsonify({'earnings': earnings_data})
+    return jsonify({
+        'earnings': earnings_data,
+        'watchlist': list(watchlist_tickers)
+    })
 
 
 if __name__ == '__main__':
