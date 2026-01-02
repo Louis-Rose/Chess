@@ -39,7 +39,7 @@ export function InvestingLayout() {
       <div className="hidden md:block">
         <InvestingSidebar />
       </div>
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto pb-20 md:pb-8">
+      <main className="flex-1 p-4 md:p-8 pb-20 md:pb-8">
         <Outlet />
       </main>
       {/* Bottom nav: visible on mobile, hidden on md+ */}
