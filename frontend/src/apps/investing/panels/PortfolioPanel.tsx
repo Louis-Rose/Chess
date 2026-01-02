@@ -1284,15 +1284,35 @@ export function PortfolioPanel() {
                 : benchmarkReturn;
 
               // Use calculated summary when brush range is set, otherwise use original summary
+              // For original summary, calculate gains from full data range
+              const fullRangeNetGains = brushRange ? portfolioNetGains : (
+                allData.length > 0 ? (
+                  (allData[allData.length - 1].portfolio_value_eur - allData[0].portfolio_value_eur) -
+                  (allData[allData.length - 1].cost_basis_eur - allData[0].cost_basis_eur)
+                ) * scaleFactor : 0
+              );
+              const fullRangeBenchmarkGains = brushRange ? benchmarkNetGains : (
+                allData.length > 0 ? (
+                  (allData[allData.length - 1].benchmark_value_eur - allData[0].benchmark_value_eur) -
+                  (allData[allData.length - 1].cost_basis_eur - allData[0].cost_basis_eur)
+                ) * scaleFactor : 0
+              );
+
               const filteredSummary = brushRange ? {
                 start_date: startDate,
                 end_date: endDate,
                 years: years,
                 portfolio_return_eur: portfolioReturn,
                 benchmark_return_eur: benchmarkReturn,
+                portfolio_gains_eur: portfolioNetGains * scaleFactor,
+                benchmark_gains_eur: benchmarkNetGains * scaleFactor,
                 cagr_eur: cagrPortfolio,
                 cagr_benchmark_eur: cagrBenchmark,
-              } : performanceData.summary;
+              } : {
+                ...performanceData.summary,
+                portfolio_gains_eur: fullRangeNetGains,
+                benchmark_gains_eur: fullRangeBenchmarkGains,
+              };
 
               // Compute chart data with fill areas for outperformance/underperformance (use ALL data)
               const chartData = allData.map(d => {
@@ -1340,13 +1360,31 @@ export function PortfolioPanel() {
                       <div className="bg-white rounded-lg p-2 md:p-4 text-center">
                         <p className="text-slate-500 text-xs md:text-sm mb-1">{showAnnualized ? 'CAGR' : t('performance.totalReturn')}</p>
                         <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur}%
+                          {showAnnualized ? (
+                            <>
+                              {filteredSummary.cagr_eur >= 0 ? '+' : ''}{filteredSummary.cagr_eur}%
+                            </>
+                          ) : (
+                            <>
+                              {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€{' '}
+                              <span className="text-sm md:text-lg">({filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}{filteredSummary.portfolio_return_eur}%)</span>
+                            </>
+                          )}
                         </span>
                       </div>
                       <div className="bg-white rounded-lg p-2 md:p-4 text-center">
                         <p className="text-slate-500 text-xs md:text-sm mb-1">Benchmark</p>
                         <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                          {(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? '+' : ''}{showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur}%
+                          {showAnnualized ? (
+                            <>
+                              {filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}{filteredSummary.cagr_benchmark_eur}%
+                            </>
+                          ) : (
+                            <>
+                              {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€{' '}
+                              <span className="text-sm md:text-lg">({filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}{filteredSummary.benchmark_return_eur}%)</span>
+                            </>
+                          )}
                         </span>
                       </div>
                     </div>
