@@ -259,11 +259,11 @@ export function WatchlistPanel() {
                           href={irUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-500 hover:text-blue-700 p-1 transition-colors"
-                          title={language === 'fr' ? 'Relations investisseurs' : 'Investor Relations'}
+                          className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-xs transition-colors ml-2"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <ExternalLink className="w-4 h-4" />
+                          <ExternalLink className="w-3 h-3" />
+                          <span className="hidden sm:inline">{language === 'fr' ? 'Relations investisseurs' : 'Investor Relations'}</span>
                         </a>
                       )}
                     </div>
