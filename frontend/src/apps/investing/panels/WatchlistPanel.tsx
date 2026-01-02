@@ -231,46 +231,46 @@ export function WatchlistPanel() {
                 return (
                   <div
                     key={ticker}
-                    className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200"
+                    className="flex items-center bg-white rounded-lg px-4 py-3 border border-slate-200 gap-3"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {logoUrl && (
-                          <img
-                            src={logoUrl}
-                            alt={`${ticker} logo`}
-                            className="w-8 h-8 object-contain"
-                            onError={(e) => {
-                              const parent = e.currentTarget.parentElement;
-                              if (parent) {
-                                parent.innerHTML = `<span class="text-xs font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
-                              }
-                            }}
-                          />
-                        )}
-                        {!logoUrl && (
-                          <span className="text-xs font-bold text-slate-500">{ticker.slice(0, 2)}</span>
-                        )}
-                      </div>
-                      <span className="font-bold text-slate-800 w-16">{ticker}</span>
-                      <span className="text-slate-600 text-sm">{displayName}</span>
-                      {irUrl && (
-                        <a
-                          href={irUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-xs transition-colors ml-2"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          <span className="hidden sm:inline">{language === 'fr' ? 'Relations investisseurs' : 'Investor Relations'}</span>
-                        </a>
+                    <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {logoUrl && (
+                        <img
+                          src={logoUrl}
+                          alt={`${ticker} logo`}
+                          className="w-8 h-8 object-contain"
+                          onError={(e) => {
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<span class="text-xs font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
+                            }
+                          }}
+                        />
+                      )}
+                      {!logoUrl && (
+                        <span className="text-xs font-bold text-slate-500">{ticker.slice(0, 2)}</span>
                       )}
                     </div>
+                    <span className="font-bold text-slate-800 w-16 flex-shrink-0">{ticker}</span>
+                    <span className="text-slate-600 text-sm truncate">{displayName}</span>
+                    {irUrl ? (
+                      <a
+                        href={irUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-xs transition-colors ml-auto flex-shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span className="hidden sm:inline">{language === 'fr' ? 'Relations investisseurs' : 'Investor Relations'}</span>
+                      </a>
+                    ) : (
+                      <span className="ml-auto" />
+                    )}
                     <button
                       onClick={() => handleRemoveSymbol(ticker)}
                       disabled={removeMutation.isPending}
-                      className="text-slate-400 hover:text-red-500 p-1 transition-colors"
+                      className="text-slate-400 hover:text-red-500 p-1 transition-colors flex-shrink-0"
                       title={language === 'fr' ? 'Supprimer' : 'Remove'}
                     >
                       <X className="w-5 h-5" />
