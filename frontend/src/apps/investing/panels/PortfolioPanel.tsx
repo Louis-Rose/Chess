@@ -395,15 +395,21 @@ export function PortfolioPanel() {
 
   // Save selected account to localStorage
   useEffect(() => {
-    if (selectedAccountId !== undefined) {
+    if (selectedAccountId === undefined) {
+      localStorage.setItem('selectedAccountId', 'none');
+    } else {
       localStorage.setItem('selectedAccountId', String(selectedAccountId));
     }
   }, [selectedAccountId]);
 
-  // Auto-select first account when accounts load (always if none selected)
+  // Auto-select first account when accounts load (only on first visit, not if user explicitly deselected)
   useEffect(() => {
     if (accounts.length > 0 && selectedAccountId === undefined) {
-      setSelectedAccountId(accounts[0].id);
+      const saved = localStorage.getItem('selectedAccountId');
+      // Only auto-select if there's no saved preference (first visit)
+      if (saved === null) {
+        setSelectedAccountId(accounts[0].id);
+      }
     }
   }, [accounts]);
 
@@ -692,7 +698,7 @@ export function PortfolioPanel() {
                       return (
                         <div
                           key={account.id}
-                          onClick={() => !isSelected && setSelectedAccountId(account.id)}
+                          onClick={() => setSelectedAccountId(isSelected ? undefined : account.id)}
                           className={`rounded-lg p-4 relative group cursor-pointer transition-all ${
                             isSelected
                               ? 'bg-green-50 border-2 border-green-500 shadow-md'
