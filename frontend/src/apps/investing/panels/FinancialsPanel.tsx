@@ -60,13 +60,11 @@ export function FinancialsPanel() {
     enabled: selectedTickers.length > 0,
   });
 
-  // Stock search effect
+  // Stock search effect - only update results, don't auto-show dropdown
   useEffect(() => {
     const results = searchStocks(stockSearch);
     setStockResults(results);
-    // Show dropdown if there are search results OR if empty and we have watchlist items
-    setShowStockDropdown((results.length > 0 && stockSearch.length > 0) || (stockSearch.length === 0 && watchlist.length > 0));
-  }, [stockSearch, watchlist.length]);
+  }, [stockSearch]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -116,11 +114,11 @@ export function FinancialsPanel() {
                 placeholder={language === 'fr' ? 'Rechercher S&P 500...' : 'Search S&P 500 stocks...'}
                 value={stockSearch}
                 onChange={(e) => setStockSearch(e.target.value)}
-                onFocus={() => setShowStockDropdown((stockResults.length > 0 && stockSearch.length > 0) || (stockSearch.length === 0 && watchlist.length > 0))}
+                onFocus={() => setShowStockDropdown(true)}
                 className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
-            {showStockDropdown && (
+            {showStockDropdown && ((stockSearch.length === 0 && watchlist.length > 0) || (stockSearch.length > 0 && stockResults.length > 0)) && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
                 {/* Show watchlist when search is empty */}
                 {stockSearch.length === 0 && watchlist.length > 0 && (
