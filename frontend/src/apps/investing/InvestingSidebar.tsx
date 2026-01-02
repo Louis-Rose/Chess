@@ -92,7 +92,7 @@ export function InvestingSidebar() {
 
       {/* Admin Link - only visible to admins, at top */}
       {user?.is_admin && (
-        <div className="px-2 py-4 border-b border-slate-700">
+        <div className="flex flex-col gap-1 px-2 py-4 border-b border-slate-700">
           <NavLink
             to="/investing/admin"
             className={({ isActive }) =>
