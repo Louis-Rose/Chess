@@ -46,13 +46,6 @@ export function InvestingSidebar() {
         )}
       </div>
 
-      {/* Language Toggle */}
-      <div className="px-2 pb-4 border-b border-slate-700">
-        <div className="flex items-center justify-center">
-          <LanguageToggle />
-        </div>
-      </div>
-
       {/* App Title with Switcher - commented out for now
       <div className="px-2 pb-4 border-b border-slate-700 relative" ref={appSwitcherRef}>
         <button
@@ -116,6 +109,12 @@ export function InvestingSidebar() {
         ))}
       </div>
 
+      {/* Language Toggle - at bottom */}
+      <div className="mt-auto px-2 pt-4 border-t border-slate-700">
+        <div className="flex items-center justify-center">
+          <LanguageToggle />
+        </div>
+      </div>
     </div>
   );
 }
