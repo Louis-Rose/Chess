@@ -113,7 +113,7 @@ export function EarningsCalendarPanel() {
                       {language === 'fr' ? 'Date' : 'Date'}
                     </th>
                     <th className="pb-3 text-center font-semibold w-1/4">
-                      {language === 'fr' ? 'Jours' : 'Days'}
+                      {language === 'fr' ? 'Jours restants' : 'Remaining'}
                     </th>
                     <th className="pb-3 text-center font-semibold w-1/4">
                       {language === 'fr' ? 'Confirmé' : 'Confirmed'}
@@ -134,7 +134,7 @@ export function EarningsCalendarPanel() {
                           <span className="text-slate-700">
                             {new Date(item.next_earnings_date).toLocaleDateString(
                               language === 'fr' ? 'fr-FR' : 'en-US',
-                              { day: '2-digit', month: '2-digit', year: '2-digit' }
+                              { day: 'numeric', month: 'long', year: 'numeric' }
                             )}
                           </span>
                         ) : (
