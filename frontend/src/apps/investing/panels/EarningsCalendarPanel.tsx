@@ -105,18 +105,18 @@ export function EarningsCalendarPanel() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-fixed">
                 <thead>
                   <tr className="text-left text-slate-600 text-sm border-b-2 border-slate-300">
-                    <th className="pb-3 pl-2 font-semibold">Ticker</th>
-                    <th className="pb-3 font-semibold">
-                      {language === 'fr' ? 'Date des résultats' : 'Next Earnings Date'}
+                    <th className="pb-3 pl-2 font-semibold w-1/4">Ticker</th>
+                    <th className="pb-3 font-semibold w-1/4">
+                      {language === 'fr' ? 'Date' : 'Date'}
                     </th>
-                    <th className="pb-3 text-center font-semibold">
-                      {language === 'fr' ? 'Jours restants' : 'Remaining Days'}
+                    <th className="pb-3 text-center font-semibold w-1/4">
+                      {language === 'fr' ? 'Jours' : 'Days'}
                     </th>
-                    <th className="pb-3 text-center font-semibold">
-                      {language === 'fr' ? 'Confirmé' : 'Date Confirmed'}
+                    <th className="pb-3 text-center font-semibold w-1/4">
+                      {language === 'fr' ? 'Confirmé' : 'Confirmed'}
                     </th>
                   </tr>
                 </thead>
@@ -139,21 +139,13 @@ export function EarningsCalendarPanel() {
                           </span>
                         ) : (
                           <span className="text-slate-400 italic">
-                            {language === 'fr' ? 'Non disponible' : 'Not available'}
+                            {language === 'fr' ? 'N/A' : 'N/A'}
                           </span>
                         )}
                       </td>
                       <td className="py-4 text-center">
                         {item.remaining_days !== null ? (
-                          <span
-                            className={`inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-full text-sm font-medium ${
-                              item.remaining_days <= 7
-                                ? 'bg-red-100 text-red-700'
-                                : item.remaining_days <= 30
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-slate-200 text-slate-700'
-                            }`}
-                          >
+                          <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-full text-sm font-medium bg-slate-200 text-slate-700">
                             {item.remaining_days}
                           </span>
                         ) : (

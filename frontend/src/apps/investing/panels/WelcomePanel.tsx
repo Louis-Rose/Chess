@@ -1,7 +1,7 @@
 // Investing Welcome panel
 
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, Eye, Loader2 } from 'lucide-react';
+import { Briefcase, Eye, Calendar, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { LoginButton } from '../../../components/LoginButton';
 
@@ -68,6 +68,22 @@ export function InvestingWelcomePanel() {
             </div>
             <p className="text-slate-400 text-sm">
               View your holdings, track performance, and analyze your investment distribution.
+            </p>
+          </button>
+
+          {/* Earnings Calendar */}
+          <button
+            onClick={() => navigate('/investing/earnings')}
+            className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-amber-500 transition-colors cursor-pointer text-left"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-amber-600 rounded-lg flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-100">Earnings Calendar</h3>
+            </div>
+            <p className="text-slate-400 text-sm">
+              Track upcoming earnings releases for your portfolio holdings.
             </p>
           </button>
 
