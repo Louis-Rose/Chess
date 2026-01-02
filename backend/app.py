@@ -1262,13 +1262,97 @@ def remove_from_earnings_watchlist(symbol):
     return jsonify({'success': True, 'symbol': symbol})
 
 
+def fetch_earnings_from_yfinance(ticker):
+    """Fetch earnings date from yfinance for a single ticker."""
+    import yfinance as yf
+
+    try:
+        stock = yf.Ticker(ticker)
+        calendar = stock.calendar
+
+        next_earnings_date = None
+        date_confirmed = False
+
+        if calendar is not None:
+            # Handle different yfinance return formats
+            if hasattr(calendar, 'to_dict'):
+                # DataFrame format
+                cal_dict = calendar.to_dict()
+                if 'Earnings Date' in cal_dict:
+                    dates = cal_dict['Earnings Date']
+                    if dates:
+                        first_key = list(dates.keys())[0]
+                        next_earnings_date = dates[first_key]
+                        date_confirmed = len(dates) == 1
+            elif isinstance(calendar, dict):
+                # Dict format (newer yfinance)
+                if 'Earnings Date' in calendar:
+                    earnings_dates = calendar['Earnings Date']
+                    if isinstance(earnings_dates, list) and len(earnings_dates) > 0:
+                        next_earnings_date = earnings_dates[0]
+                        date_confirmed = len(earnings_dates) == 1
+                    elif earnings_dates:
+                        next_earnings_date = earnings_dates
+                        date_confirmed = True
+
+        # Convert to date string
+        if next_earnings_date is not None:
+            if hasattr(next_earnings_date, 'date'):
+                next_earnings_date = next_earnings_date.date()
+            elif isinstance(next_earnings_date, str):
+                next_earnings_date = datetime.strptime(next_earnings_date, '%Y-%m-%d').date()
+            return next_earnings_date.strftime('%Y-%m-%d'), date_confirmed
+
+        return None, False
+
+    except Exception as e:
+        print(f"Error fetching earnings for {ticker}: {e}")
+        return None, False
+
+
+def get_cached_earnings(ticker):
+    """Get cached earnings data if fresh (< 24 hours old)."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT next_earnings_date, date_confirmed, updated_at
+               FROM earnings_cache WHERE ticker = ?''',
+            (ticker,)
+        )
+        row = cursor.fetchone()
+
+        if not row:
+            return None, None, False  # Not in cache
+
+        updated_at = datetime.fromisoformat(row['updated_at'])
+        age_hours = (datetime.now() - updated_at).total_seconds() / 3600
+
+        if age_hours < 24:
+            # Cache is fresh
+            return row['next_earnings_date'], bool(row['date_confirmed']), True
+
+        return None, None, False  # Cache is stale
+
+
+def save_earnings_cache(ticker, next_earnings_date, date_confirmed):
+    """Save earnings data to cache."""
+    with get_db() as conn:
+        conn.execute(
+            '''INSERT INTO earnings_cache (ticker, next_earnings_date, date_confirmed, updated_at)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(ticker) DO UPDATE SET
+                   next_earnings_date = excluded.next_earnings_date,
+                   date_confirmed = excluded.date_confirmed,
+                   updated_at = excluded.updated_at''',
+            (ticker, next_earnings_date, 1 if date_confirmed else 0, datetime.now().isoformat())
+        )
+
+
 @app.route('/api/investing/earnings-calendar', methods=['GET'])
 @login_required
 def get_earnings_calendar():
-    """Get upcoming earnings dates for portfolio holdings and earnings watchlist."""
-    import yfinance as yf
-    from datetime import datetime
-
+    """Get upcoming earnings dates for portfolio holdings and watchlist.
+    Uses database cache with lazy refresh (updates if > 24 hours old).
+    """
     include_portfolio = request.args.get('include_portfolio', 'true').lower() == 'true'
     include_watchlist = request.args.get('include_watchlist', 'true').lower() == 'true'
 
@@ -1299,75 +1383,37 @@ def get_earnings_calendar():
     earnings_data = []
 
     for ticker in tickers:
-        try:
-            stock = yf.Ticker(ticker)
-            calendar = stock.calendar
+        # Try to get from cache first
+        cached_date, cached_confirmed, is_fresh = get_cached_earnings(ticker)
 
-            # yfinance returns calendar as a DataFrame or dict depending on version
-            # Try to extract earnings date
-            next_earnings_date = None
-            date_confirmed = False
+        if is_fresh:
+            # Use cached data
+            next_earnings_date = cached_date
+            date_confirmed = cached_confirmed
+        else:
+            # Fetch fresh data from yfinance
+            next_earnings_date, date_confirmed = fetch_earnings_from_yfinance(ticker)
+            # Save to cache (even if None, to avoid repeated fetches)
+            save_earnings_cache(ticker, next_earnings_date, date_confirmed)
 
-            if calendar is not None:
-                # Handle different yfinance return formats
-                if hasattr(calendar, 'to_dict'):
-                    # DataFrame format
-                    cal_dict = calendar.to_dict()
-                    if 'Earnings Date' in cal_dict:
-                        dates = cal_dict['Earnings Date']
-                        if dates:
-                            # Get first date (it's often a range)
-                            first_key = list(dates.keys())[0]
-                            next_earnings_date = dates[first_key]
-                            # If there's only one date (not a range), it's confirmed
-                            date_confirmed = len(dates) == 1
-                elif isinstance(calendar, dict):
-                    # Dict format (newer yfinance)
-                    if 'Earnings Date' in calendar:
-                        earnings_dates = calendar['Earnings Date']
-                        if isinstance(earnings_dates, list) and len(earnings_dates) > 0:
-                            next_earnings_date = earnings_dates[0]
-                            date_confirmed = len(earnings_dates) == 1
-                        elif earnings_dates:
-                            next_earnings_date = earnings_dates
-                            date_confirmed = True
+        if next_earnings_date:
+            earnings_date = datetime.strptime(next_earnings_date, '%Y-%m-%d').date()
+            remaining_days = (earnings_date - today).days
 
-            # Convert to date if it's a timestamp
-            if next_earnings_date is not None:
-                if hasattr(next_earnings_date, 'date'):
-                    next_earnings_date = next_earnings_date.date()
-                elif isinstance(next_earnings_date, str):
-                    next_earnings_date = datetime.strptime(next_earnings_date, '%Y-%m-%d').date()
-
-                # Calculate remaining days
-                remaining_days = (next_earnings_date - today).days
-
-                earnings_data.append({
-                    'ticker': ticker,
-                    'next_earnings_date': next_earnings_date.strftime('%Y-%m-%d'),
-                    'remaining_days': remaining_days,
-                    'date_confirmed': date_confirmed,
-                    'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
-                })
-            else:
-                # No earnings date available
-                earnings_data.append({
-                    'ticker': ticker,
-                    'next_earnings_date': None,
-                    'remaining_days': None,
-                    'date_confirmed': False,
-                    'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
-                })
-
-        except Exception as e:
-            print(f"Error fetching earnings for {ticker}: {e}")
+            earnings_data.append({
+                'ticker': ticker,
+                'next_earnings_date': next_earnings_date,
+                'remaining_days': remaining_days,
+                'date_confirmed': date_confirmed,
+                'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
+            })
+        else:
             earnings_data.append({
                 'ticker': ticker,
                 'next_earnings_date': None,
                 'remaining_days': None,
                 'date_confirmed': False,
-                'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist',
-                'error': str(e)
+                'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
             })
 
     # Sort by remaining days (nulls at the end)

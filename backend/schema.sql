@@ -106,6 +106,14 @@ CREATE TABLE IF NOT EXISTS earnings_watchlist (
     UNIQUE(user_id, stock_ticker)
 );
 
+-- Earnings dates cache (shared across all users, refreshed daily via lazy loading)
+CREATE TABLE IF NOT EXISTS earnings_cache (
+    ticker TEXT PRIMARY KEY,
+    next_earnings_date TEXT,           -- YYYY-MM-DD or NULL if unknown
+    date_confirmed INTEGER DEFAULT 0,  -- 1 if confirmed, 0 if estimated
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -120,3 +128,4 @@ CREATE INDEX IF NOT EXISTS idx_watchlist_user_id ON watchlist(user_id);
 CREATE INDEX IF NOT EXISTS idx_investment_accounts_user_id ON investment_accounts(user_id);
 CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_account_id ON portfolio_transactions(account_id);
 CREATE INDEX IF NOT EXISTS idx_earnings_watchlist_user_id ON earnings_watchlist(user_id);
+CREATE INDEX IF NOT EXISTS idx_earnings_cache_updated ON earnings_cache(updated_at);
