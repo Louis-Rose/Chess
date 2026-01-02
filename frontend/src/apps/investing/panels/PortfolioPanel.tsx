@@ -629,42 +629,44 @@ export function PortfolioPanel() {
         )}
 
         {/* Action Buttons Row */}
-        {selectedAccountId && (
-          <div className="bg-slate-100 rounded-xl p-4">
-            <div className="flex flex-wrap justify-center gap-12">
-              <button
-                onClick={() => setShowAccounts(!showAccounts)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
-              >
-                <Building2 className="w-4 h-4" />
-                {showAccounts
-                  ? (language === 'fr' ? 'Masquer comptes' : 'Hide accounts')
-                  : (language === 'fr' ? 'Afficher comptes' : 'Show accounts')}
-              </button>
-              <button
-                onClick={() => setShowFees(!showFees)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
-              >
-                <Wallet className="w-4 h-4" />
-                {showFees
-                  ? (language === 'fr' ? 'Masquer frais' : 'Hide fees')
-                  : (language === 'fr' ? 'Afficher frais' : 'Show fees')}
-              </button>
-              <button
-                onClick={() => setShowTransactions(!showTransactions)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                {showTransactions
-                  ? (language === 'fr' ? 'Masquer transactions' : 'Hide transactions')
-                  : (language === 'fr' ? 'Modifier transactions' : 'Edit transactions')}
-              </button>
-            </div>
+        <div className="bg-slate-100 rounded-xl p-4">
+          <div className="flex flex-wrap justify-center gap-12">
+            <button
+              onClick={() => setShowAccounts(!showAccounts)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+            >
+              <Building2 className="w-4 h-4" />
+              {showAccounts
+                ? (language === 'fr' ? 'Masquer comptes' : 'Hide accounts')
+                : (language === 'fr' ? 'Afficher comptes' : 'Show accounts')}
+            </button>
+            {selectedAccountId && (
+              <>
+                <button
+                  onClick={() => setShowFees(!showFees)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+                >
+                  <Wallet className="w-4 h-4" />
+                  {showFees
+                    ? (language === 'fr' ? 'Masquer frais' : 'Hide fees')
+                    : (language === 'fr' ? 'Afficher frais' : 'Show fees')}
+                </button>
+                <button
+                  onClick={() => setShowTransactions(!showTransactions)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  {showTransactions
+                    ? (language === 'fr' ? 'Masquer transactions' : 'Hide transactions')
+                    : (language === 'fr' ? 'Modifier transactions' : 'Edit transactions')}
+                </button>
+              </>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Investment Accounts Section - Content */}
-        {selectedAccountId && showAccounts && (
+        {showAccounts && (
           <div className="bg-slate-100 rounded-xl p-6">
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-3">
@@ -794,17 +796,6 @@ export function PortfolioPanel() {
                     })}
                   </div>
                 )}
-          </div>
-        )}
-
-        {/* Prompt to select account */}
-        {!selectedAccountId && accounts.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
-            <p className="text-blue-800 text-lg">
-              {language === 'fr'
-                ? '👆 Cliquez sur un compte pour voir votre portefeuille, vos transactions et performances'
-                : '👆 Click on an account to view your portfolio, transactions and performance'}
-            </p>
           </div>
         )}
 
