@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Loader2, Home, Briefcase, Eye, Calendar, ChevronDown } from 'lucide-react';
+import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../../components/UserMenu';
 import { LanguageToggle } from '../../components/LanguageToggle';
@@ -10,8 +10,9 @@ import { LanguageToggle } from '../../components/LanguageToggle';
 const navItems = [
   { path: '/investing', icon: Home, label: 'Welcome', end: true },
   { path: '/investing/portfolio', icon: Briefcase, label: 'My Portfolio' },
+  { path: '/investing/watchlist', icon: Eye, label: 'My Watchlist' },
   { path: '/investing/earnings', icon: Calendar, label: 'Earnings Calendar' },
-  { path: '/investing/watchlist', icon: Eye, label: 'Watchlist' },
+  { path: '/investing/financials', icon: TrendingUp, label: 'Financials' },
 ];
 
 export function InvestingSidebar() {

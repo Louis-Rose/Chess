@@ -1,7 +1,7 @@
 // Investing Welcome panel
 
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, Eye, Calendar, Loader2 } from 'lucide-react';
+import { Briefcase, Eye, Calendar, TrendingUp, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { LoginButton } from '../../../components/LoginButton';
 
@@ -54,7 +54,7 @@ export function InvestingWelcomePanel() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
           {/* My Portfolio */}
           <button
             onClick={() => navigate('/investing/portfolio')}
@@ -71,6 +71,22 @@ export function InvestingWelcomePanel() {
             </p>
           </button>
 
+          {/* My Watchlist */}
+          <button
+            onClick={() => navigate('/investing/watchlist')}
+            className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-blue-500 transition-colors cursor-pointer text-left"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Eye className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-100">My Watchlist</h3>
+            </div>
+            <p className="text-slate-400 text-sm">
+              Manage the list of stocks you want to follow.
+            </p>
+          </button>
+
           {/* Earnings Calendar */}
           <button
             onClick={() => navigate('/investing/earnings')}
@@ -83,23 +99,23 @@ export function InvestingWelcomePanel() {
               <h3 className="text-lg font-bold text-slate-100">Earnings Calendar</h3>
             </div>
             <p className="text-slate-400 text-sm">
-              Track upcoming earnings releases for your portfolio holdings.
+              Track upcoming earnings releases for your holdings.
             </p>
           </button>
 
-          {/* Watchlist */}
+          {/* Financials */}
           <button
-            onClick={() => navigate('/investing/watchlist')}
-            className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-blue-500 transition-colors cursor-pointer text-left"
+            onClick={() => navigate('/investing/financials')}
+            className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-purple-500 transition-colors cursor-pointer text-left"
           >
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Eye className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-slate-100">Watchlist</h3>
+              <h3 className="text-lg font-bold text-slate-100">Financials</h3>
             </div>
             <p className="text-slate-400 text-sm">
-              Monitor stocks you're interested in with P/E ratios and earnings growth.
+              P/E ratios, market cap, and earnings growth for your watchlist.
             </p>
           </button>
         </div>

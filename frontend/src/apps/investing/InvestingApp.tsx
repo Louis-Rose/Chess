@@ -7,6 +7,7 @@ import { InvestingWelcomePanel } from './panels/WelcomePanel';
 import { PortfolioPanel } from './panels/PortfolioPanel';
 import { WatchlistPanel } from './panels/WatchlistPanel';
 import { EarningsCalendarPanel } from './panels/EarningsCalendarPanel';
+import { FinancialsPanel } from './panels/FinancialsPanel';
 
 export function InvestingApp() {
   useEffect(() => {
@@ -22,6 +23,7 @@ export function InvestingApp() {
         <Route path="portfolio" element={<PortfolioPanel />} />
         <Route path="watchlist" element={<WatchlistPanel />} />
         <Route path="earnings" element={<EarningsCalendarPanel />} />
+        <Route path="financials" element={<FinancialsPanel />} />
       </Route>
     </Routes>
   );
