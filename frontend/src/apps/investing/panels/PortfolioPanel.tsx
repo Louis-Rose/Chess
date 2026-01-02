@@ -230,9 +230,8 @@ export function PortfolioPanel() {
   const [showStockDropdown, setShowStockDropdown] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(() => {
     const saved = localStorage.getItem('selectedAccountId');
-    if (saved === 'none') return undefined;
-    if (saved) return parseInt(saved, 10);
-    return undefined;
+    if (saved && saved !== 'none') return parseInt(saved, 10);
+    return undefined; // Will be auto-selected by useEffect when accounts load
   });
   const [showAddAccountForm, setShowAddAccountForm] = useState(false);
   const [newAccountType, setNewAccountType] = useState('');
@@ -396,25 +395,15 @@ export function PortfolioPanel() {
 
   // Save selected account to localStorage
   useEffect(() => {
-    if (selectedAccountId === undefined) {
-      // Check if this is an explicit deselection (localStorage has a value) or initial state
-      const saved = localStorage.getItem('selectedAccountId');
-      if (saved !== null) {
-        localStorage.setItem('selectedAccountId', 'none');
-      }
-    } else {
+    if (selectedAccountId !== undefined) {
       localStorage.setItem('selectedAccountId', String(selectedAccountId));
     }
   }, [selectedAccountId]);
 
-  // Auto-select first account when accounts load (only if no saved preference)
+  // Auto-select first account when accounts load (always if none selected)
   useEffect(() => {
     if (accounts.length > 0 && selectedAccountId === undefined) {
-      const saved = localStorage.getItem('selectedAccountId');
-      // Only auto-select if there's no saved preference (first visit)
-      if (saved === null) {
-        setSelectedAccountId(accounts[0].id);
-      }
+      setSelectedAccountId(accounts[0].id);
     }
   }, [accounts]);
 
@@ -596,7 +585,7 @@ export function PortfolioPanel() {
                   <Plus className="w-4 h-4" />
                   {showTransactions
                     ? (language === 'fr' ? 'Masquer transactions' : 'Hide transactions')
-                    : (language === 'fr' ? 'Modifier transactions' : 'Edit transactions')}
+                    : (language === 'fr' ? 'Afficher transactions' : 'Show transactions')}
                 </button>
               </>
             )}
@@ -703,7 +692,7 @@ export function PortfolioPanel() {
                       return (
                         <div
                           key={account.id}
-                          onClick={() => setSelectedAccountId(isSelected ? undefined : account.id)}
+                          onClick={() => !isSelected && setSelectedAccountId(account.id)}
                           className={`rounded-lg p-4 relative group cursor-pointer transition-all ${
                             isSelected
                               ? 'bg-green-50 border-2 border-green-500 shadow-md'
@@ -959,7 +948,7 @@ export function PortfolioPanel() {
           )}
 
           {/* Transactions List */}
-          {transactions.length === 0 ? (
+          {accountTransactions.length === 0 ? (
             <p className="text-slate-500 text-center py-8">{t('transactions.noTransactions')}</p>
           ) : filteredTransactions.length === 0 ? (
             <p className="text-slate-500 text-center py-8">{language === 'fr' ? `Aucune transaction pour ${filterTicker}.` : `No transactions for ${filterTicker}.`}</p>
