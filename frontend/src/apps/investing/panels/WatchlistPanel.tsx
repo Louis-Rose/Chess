@@ -252,7 +252,7 @@ export function WatchlistPanel() {
                       )}
                     </div>
                     <span className="font-bold text-slate-800 w-16 flex-shrink-0">{ticker}</span>
-                    <span className="text-slate-600 text-sm truncate w-48 flex-shrink-0">{displayName}</span>
+                    <span className="text-slate-600 text-sm truncate w-64 flex-shrink-0">{displayName}</span>
                     {irUrl ? (
                       <a
                         href={irUrl}
