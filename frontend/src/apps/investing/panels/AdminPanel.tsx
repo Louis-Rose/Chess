@@ -39,9 +39,9 @@ export function AdminPanel() {
     enabled: !!user?.is_admin,
   });
 
-  // Compute cumulative users per day
+  // Compute cumulative users per day (including all days)
   const chartData = useMemo(() => {
-    if (!data?.users) return [];
+    if (!data?.users || data.users.length === 0) return [];
 
     // Group users by date
     const usersByDate: Record<string, number> = {};
@@ -50,15 +50,28 @@ export function AdminPanel() {
       usersByDate[date] = (usersByDate[date] || 0) + 1;
     });
 
-    // Sort dates and compute cumulative
-    const sortedDates = Object.keys(usersByDate).sort();
+    // Get date range
+    const sortedRegistrationDates = Object.keys(usersByDate).sort();
+    const startDate = new Date(sortedRegistrationDates[0]);
+    const endDate = new Date(sortedRegistrationDates[sortedRegistrationDates.length - 1]);
+
+    // Generate all dates between start and end
+    const allDates: string[] = [];
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      allDates.push(currentDate.toISOString().split('T')[0]);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Compute cumulative for all dates
     let cumulative = 0;
-    return sortedDates.map((date) => {
-      cumulative += usersByDate[date];
+    return allDates.map((date) => {
+      const newUsers = usersByDate[date] || 0;
+      cumulative += newUsers;
       return {
         date,
         users: cumulative,
-        newUsers: usersByDate[date],
+        newUsers,
       };
     });
   }, [data?.users]);
