@@ -11,7 +11,7 @@ import { FinancialsPanel } from './panels/FinancialsPanel';
 
 export function InvestingApp() {
   useEffect(() => {
-    document.title = 'Investing';
+    document.title = 'LUMRA';
     const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (link) link.href = '/favicon-investing.svg';
   }, []);

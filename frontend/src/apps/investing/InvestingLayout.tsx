@@ -1,7 +1,7 @@
 // Investing app layout
 
 import { Outlet, Link } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, BarChart3 } from 'lucide-react';
 import { InvestingSidebar } from './InvestingSidebar';
 import { InvestingBottomNav } from './InvestingBottomNav';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,10 +15,12 @@ export function InvestingLayout() {
     <div className="min-h-screen bg-slate-800 font-sans text-slate-100 flex flex-col md:flex-row">
       {/* Mobile header: visible on mobile, hidden on md+ */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate-700">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">📈</span>
-          <span className="text-green-400 font-semibold">Investing</span>
-        </div>
+        <Link to="/investing" className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+            <BarChart3 className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-lg font-bold text-white tracking-wide">LUMRA</span>
+        </Link>
         <div className="flex items-center gap-3">
           <LanguageToggle />
           {isAuthenticated ? (
