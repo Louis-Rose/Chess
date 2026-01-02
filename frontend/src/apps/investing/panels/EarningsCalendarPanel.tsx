@@ -1,6 +1,5 @@
 // Earnings Calendar panel - displays upcoming earnings dates for portfolio holdings and watchlist
 
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye } from 'lucide-react';
@@ -22,8 +21,8 @@ interface EarningsResponse {
   message?: string;
 }
 
-const fetchEarningsCalendar = async (includePortfolio: boolean, includeWatchlist: boolean): Promise<EarningsResponse> => {
-  const response = await axios.get(`/api/investing/earnings-calendar?include_portfolio=${includePortfolio}&include_watchlist=${includeWatchlist}`);
+const fetchEarningsCalendar = async (): Promise<EarningsResponse> => {
+  const response = await axios.get('/api/investing/earnings-calendar?include_portfolio=true&include_watchlist=true');
   return response.data;
 };
 
@@ -31,12 +30,9 @@ export function EarningsCalendarPanel() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
 
-  const [includePortfolio, setIncludePortfolio] = useState(true);
-  const [includeWatchlist, setIncludeWatchlist] = useState(true);
-
   const { data, isLoading, error } = useQuery({
-    queryKey: ['earnings-calendar', includePortfolio, includeWatchlist],
-    queryFn: () => fetchEarningsCalendar(includePortfolio, includeWatchlist),
+    queryKey: ['earnings-calendar'],
+    queryFn: fetchEarningsCalendar,
     enabled: isAuthenticated,
     staleTime: 1000 * 60 * 30, // Cache for 30 minutes
   });
@@ -85,39 +81,6 @@ export function EarningsCalendarPanel() {
       </div>
 
       <div className="max-w-4xl mx-auto mt-8 space-y-6">
-        {/* Controls: Portfolio and Watchlist toggles */}
-        <div className="bg-slate-100 rounded-xl p-6">
-          <div className="flex flex-wrap gap-6 items-center justify-center">
-            {/* Portfolio toggle */}
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={includePortfolio}
-                onChange={(e) => setIncludePortfolio(e.target.checked)}
-                className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-              />
-              <span className="text-sm text-slate-600 flex items-center gap-1">
-                <Briefcase className="w-4 h-4" />
-                {language === 'fr' ? 'Inclure portefeuille' : 'Include portfolio'}
-              </span>
-            </label>
-
-            {/* Watchlist toggle */}
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={includeWatchlist}
-                onChange={(e) => setIncludeWatchlist(e.target.checked)}
-                className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-              />
-              <span className="text-sm text-slate-600 flex items-center gap-1">
-                <Eye className="w-4 h-4" />
-                {language === 'fr' ? 'Inclure watchlist' : 'Include watchlist'}
-              </span>
-            </label>
-          </div>
-        </div>
-
         {/* Earnings table */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12">
@@ -235,8 +198,8 @@ export function EarningsCalendarPanel() {
             </p>
             <p className="text-slate-400">
               {language === 'fr'
-                ? 'Activez le portefeuille ou la watchlist ci-dessus.'
-                : 'Enable portfolio or watchlist tracking above.'}
+                ? 'Ajoutez des actions à votre portefeuille ou watchlist.'
+                : 'Add stocks to your portfolio or watchlist.'}
             </p>
           </div>
         )}
