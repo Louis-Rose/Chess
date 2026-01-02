@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye, ExternalLink } from 'lucide-react';
+import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye, ExternalLink, Bell } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
@@ -98,9 +98,9 @@ export function EarningsCalendarPanel() {
           </div>
         ) : data?.earnings && data.earnings.length > 0 ? (
           <div className="bg-slate-100 rounded-xl p-6">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
               <table className="w-full table-fixed">
-                <thead>
+                <thead className="sticky top-0 bg-slate-100">
                   <tr className="text-left text-slate-600 text-sm border-b-2 border-slate-300">
                     <th className="pb-3 pl-2 font-semibold w-1/5">Ticker</th>
                     <th className="pb-3 font-semibold w-1/5">
@@ -208,6 +208,15 @@ export function EarningsCalendarPanel() {
                 <HelpCircle className="w-4 h-4 text-slate-400 inline-block mx-1" />
                 {language === 'fr' ? 'Date estimée' : 'Estimated'}
               </p>
+            </div>
+
+            <div className="mt-6 flex justify-center">
+              <button
+                className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+              >
+                <Bell className="w-5 h-5" />
+                {language === 'fr' ? 'Recevoir des alertes personnalisées' : 'Get custom alerts'}
+              </button>
             </div>
           </div>
         ) : (
