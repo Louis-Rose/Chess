@@ -50,10 +50,10 @@ export function AdminPanel() {
       usersByDate[date] = (usersByDate[date] || 0) + 1;
     });
 
-    // Get date range
+    // Get date range (from first registration to today)
     const sortedRegistrationDates = Object.keys(usersByDate).sort();
     const startDate = new Date(sortedRegistrationDates[0]);
-    const endDate = new Date(sortedRegistrationDates[sortedRegistrationDates.length - 1]);
+    const endDate = new Date(); // Today
 
     // Generate all dates between start and end
     const allDates: string[] = [];
