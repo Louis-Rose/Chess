@@ -1265,14 +1265,22 @@ export function PortfolioPanel() {
               const endPortfolioValue = lastDataPoint.portfolio_value_eur;
               const endBenchmarkValue = lastDataPoint.benchmark_value_eur;
 
-              // Gains = change in value during period, Return = gains / invested capital
-              const portfolioGains = endPortfolioValue - startPortfolioValue;
+              // Check if brush covers full range
+              const isFullRange = startIdx === 0 && endIdx === allData.length - 1;
+
+              // For full range: use total return formula (currentValue - costBasis) / costBasis
+              // For sub-range: use period change formula (endValue - startValue) / endCostBasis
               const portfolioReturn = endCostBasis > 0
-                ? Math.round((portfolioGains / endCostBasis) * 1000) / 10
+                ? Math.round(((isFullRange
+                    ? endPortfolioValue - endCostBasis
+                    : endPortfolioValue - startPortfolioValue
+                  ) / endCostBasis) * 1000) / 10
                 : 0;
-              const benchmarkGains = endBenchmarkValue - startBenchmarkValue;
               const benchmarkReturn = endCostBasis > 0
-                ? Math.round((benchmarkGains / endCostBasis) * 1000) / 10
+                ? Math.round(((isFullRange
+                    ? endBenchmarkValue - endCostBasis
+                    : endBenchmarkValue - startBenchmarkValue
+                  ) / endCostBasis) * 1000) / 10
                 : 0;
 
               const daysDiff = (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24);
