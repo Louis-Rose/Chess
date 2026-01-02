@@ -96,15 +96,15 @@ export function InvestingSidebar() {
           <NavLink
             to="/investing/admin"
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+              `flex items-center justify-start gap-3 px-4 py-3 rounded-lg transition-colors h-auto ${
                 isActive
                   ? 'bg-amber-600 text-white'
                   : 'text-amber-400 hover:bg-slate-800'
               }`
             }
           >
-            <Shield className="w-5 h-5" />
-            {language === 'fr' ? 'Administration' : 'Admin'}
+            <Shield className="w-5 h-5 shrink-0" />
+            <span className="leading-tight">{language === 'fr' ? 'Administration' : 'Admin'}</span>
           </NavLink>
         </div>
       )}
