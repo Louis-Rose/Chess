@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, ChevronDown } from 'lucide-react';
+import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, ChevronDown, BarChart3 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../../components/UserMenu';
 import { LanguageToggle } from '../../components/LanguageToggle';
@@ -38,7 +38,7 @@ export function InvestingSidebar() {
         className="flex items-center justify-center gap-3 px-2 pb-4 mb-2 border-b border-slate-700 hover:opacity-80 transition-opacity"
       >
         <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-          <TrendingUp className="w-6 h-6 text-white" />
+          <BarChart3 className="w-6 h-6 text-white" />
         </div>
         <span className="text-xl font-bold text-white tracking-wide">LUMRA</span>
       </Link>

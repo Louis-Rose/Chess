@@ -1,7 +1,7 @@
 // Investing app layout
 
 import { Outlet, Link } from 'react-router-dom';
-import { Loader2, TrendingUp } from 'lucide-react';
+import { Loader2, BarChart3 } from 'lucide-react';
 import { InvestingSidebar } from './InvestingSidebar';
 import { InvestingBottomNav } from './InvestingBottomNav';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,7 +17,7 @@ export function InvestingLayout() {
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate-700">
         <Link to="/investing" className="flex items-center gap-2">
           <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-white" />
+            <BarChart3 className="w-5 h-5 text-white" />
           </div>
           <span className="text-lg font-bold text-white tracking-wide">LUMRA</span>
         </Link>
