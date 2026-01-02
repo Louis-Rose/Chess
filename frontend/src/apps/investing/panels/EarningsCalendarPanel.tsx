@@ -154,7 +154,7 @@ export function EarningsCalendarPanel() {
                       <td className="py-4 text-center">
                         {item.remaining_days !== null ? (
                           <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-full text-sm font-medium bg-slate-200 text-slate-700">
-                            {item.remaining_days}
+                            {item.remaining_days} {language === 'fr' ? 'jours' : 'days'}
                           </span>
                         ) : (
                           <span className="text-slate-400">-</span>
