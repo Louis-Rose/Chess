@@ -171,6 +171,7 @@ export const SP500_STOCKS: Stock[] = [
   { ticker: 'TRV', name: 'Travelers Companies' },
   { ticker: 'TSLA', name: 'Tesla' },
   { ticker: 'TXN', name: 'Texas Instruments' },
+  { ticker: 'UBER', name: 'Uber Technologies' },
   { ticker: 'UNH', name: 'UnitedHealth Group' },
   { ticker: 'UNP', name: 'Union Pacific' },
   { ticker: 'UPS', name: 'United Parcel Service' },
