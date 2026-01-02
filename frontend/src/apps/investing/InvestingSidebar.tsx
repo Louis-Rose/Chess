@@ -1,7 +1,7 @@
 // Investing app sidebar
 
 import { NavLink, Link } from 'react-router-dom';
-import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, BarChart3 } from 'lucide-react';
+import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, BarChart3, Shield } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { UserMenu } from '../../components/UserMenu';
@@ -16,7 +16,7 @@ const navItems = [
 ];
 
 export function InvestingSidebar() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { language } = useLanguage();
 
   return (
@@ -110,6 +110,25 @@ export function InvestingSidebar() {
           </NavLink>
         ))}
       </div>
+
+      {/* Admin Link - only visible to admins */}
+      {user?.is_admin && (
+        <div className="px-2 py-4 border-b border-slate-700">
+          <NavLink
+            to="/investing/admin"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                isActive
+                  ? 'bg-amber-600 text-white'
+                  : 'text-amber-400 hover:bg-slate-800'
+              }`
+            }
+          >
+            <Shield className="w-5 h-5" />
+            {language === 'fr' ? 'Administration' : 'Admin'}
+          </NavLink>
+        </div>
+      )}
 
       {/* Language Toggle - at bottom */}
       <div className="mt-auto px-2 pt-4 border-t border-slate-700">

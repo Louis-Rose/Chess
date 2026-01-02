@@ -366,6 +366,7 @@ def get_current_user_info():
             'email': user['email'],
             'name': user['name'],
             'picture': user['picture'],
+            'is_admin': bool(user.get('is_admin')),
             'preferences': {
                 'chess_username': user['chess_username'],
                 'preferred_time_class': user['preferred_time_class']
