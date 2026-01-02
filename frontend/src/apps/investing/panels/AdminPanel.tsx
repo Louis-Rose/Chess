@@ -141,11 +141,11 @@ export function AdminPanel() {
                         year: 'numeric',
                       })
                     }
-                    formatter={(value: number, name: string) => {
+                    formatter={(value, name) => {
                       if (name === 'users') {
                         return [value, language === 'fr' ? 'Total utilisateurs' : 'Total users'];
                       }
-                      return [value, name];
+                      return [value, String(name)];
                     }}
                   />
                   <Area
