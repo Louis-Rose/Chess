@@ -49,9 +49,6 @@ export function InvestingWelcomePanel() {
           <h2 className="text-2xl font-bold text-slate-100 mb-2">
             Welcome{user?.name ? `, ${user.name}` : ''}!
           </h2>
-          <p className="text-slate-400">
-            Explore your investment tools:
-          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
