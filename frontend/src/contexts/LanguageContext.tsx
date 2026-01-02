@@ -17,7 +17,7 @@ const translations: Record<Language, Record<string, string>> = {
     'portfolio.editButton': 'Edit transactions',
     'portfolio.privateMode': 'Private mode',
     'portfolio.totalValue': 'Total Value (EUR)',
-    'portfolio.costBasis': 'Cost Basis (EUR)',
+    'portfolio.costBasis': 'Invested Capital (EUR)',
     'portfolio.totalGain': 'Total Gain',
 
     // Accounts
@@ -90,7 +90,7 @@ const translations: Record<Language, Record<string, string>> = {
     'portfolio.editButton': 'Modifier les transactions',
     'portfolio.privateMode': 'Mode privé',
     'portfolio.totalValue': 'Valeur Totale (EUR)',
-    'portfolio.costBasis': 'Prix de Revient (EUR)',
+    'portfolio.costBasis': 'Capital Investi (EUR)',
     'portfolio.totalGain': 'Gain Total',
 
     // Accounts

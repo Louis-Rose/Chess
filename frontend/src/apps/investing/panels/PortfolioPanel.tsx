@@ -557,9 +557,9 @@ export function PortfolioPanel() {
 
               return (
                 <>
-                  {/* Prix de revient (Cost Basis) */}
+                  {/* Capital investi (Invested Capital) */}
                   <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
-                    <p className="text-sm md:text-base font-medium text-slate-600 mb-1">{language === 'fr' ? 'Prix de revient' : 'Cost Basis'}</p>
+                    <p className="text-sm md:text-base font-medium text-slate-600 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
                     <p className="text-base md:text-2xl font-bold text-slate-800">
                       {currency === 'EUR'
                         ? `${formatEur(displayCostBasis)}€`
