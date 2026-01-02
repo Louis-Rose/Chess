@@ -205,7 +205,7 @@ const TICKER_TO_DOMAIN: Record<string, string> = {
   EQR: 'equityapartments.com',
 };
 
-// Tickers that don't work with FMP - use Clearbit instead
+// Tickers that don't work with FMP - use Google favicon instead
 const FMP_EXCEPTIONS: Record<string, string> = {
   UBER: 'uber.com',
   LYFT: 'lyft.com',
@@ -234,15 +234,15 @@ const FMP_EXCEPTIONS: Record<string, string> = {
 
 /**
  * Get logo URL for a stock ticker
- * Uses Financial Modeling Prep, with Clearbit fallback for exceptions
+ * Uses Financial Modeling Prep, with Google favicon fallback for exceptions
  */
 export function getCompanyLogoUrl(ticker: string): string | null {
   const upperTicker = ticker.toUpperCase();
 
-  // Check if this ticker needs Clearbit
-  const clearbitDomain = FMP_EXCEPTIONS[upperTicker] || TICKER_TO_DOMAIN[upperTicker];
+  // Check if this ticker needs Google favicon fallback
   if (FMP_EXCEPTIONS[upperTicker]) {
-    return `https://logo.clearbit.com/${clearbitDomain}`;
+    const domain = FMP_EXCEPTIONS[upperTicker];
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
   }
 
   // Default to Financial Modeling Prep
