@@ -760,6 +760,7 @@ def compute_realized_gains(user_id):
     inventory = {}
     total_realized_gain_usd = 0
     total_realized_gain_eur = 0
+    total_sold_cost_basis_eur = 0
     sell_count = 0
 
     for row in rows:
@@ -825,10 +826,12 @@ def compute_realized_gains(user_id):
 
             total_realized_gain_usd += gain_usd
             total_realized_gain_eur += gain_eur
+            total_sold_cost_basis_eur += cost_basis_eur
 
     return {
         'total_usd': round(total_realized_gain_usd, 2),
         'total_eur': round(total_realized_gain_eur, 2),
+        'sold_cost_basis_eur': round(total_sold_cost_basis_eur, 2),
         'count': sell_count
     }
 
@@ -850,6 +853,7 @@ def get_portfolio_composition():
             'total_gain_pct': 0,
             'realized_gains_usd': 0,
             'realized_gains_eur': 0,
+            'sold_cost_basis_eur': 0,
             'eurusd_rate': 1.0
         })
 
@@ -859,6 +863,7 @@ def get_portfolio_composition():
         realized = compute_realized_gains(request.user_id)
         composition['realized_gains_usd'] = realized['total_usd']
         composition['realized_gains_eur'] = realized['total_eur']
+        composition['sold_cost_basis_eur'] = realized['sold_cost_basis_eur']
         return jsonify(composition)
     except Exception as e:
         return jsonify({'error': str(e)}), 500

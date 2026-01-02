@@ -96,6 +96,7 @@ interface CompositionData {
   total_gain_pct: number;
   realized_gains_usd: number;
   realized_gains_eur: number;
+  sold_cost_basis_eur: number;
   eurusd_rate: number;
 }
 
@@ -619,6 +620,10 @@ export function PortfolioPanel() {
                 ? compositionData.realized_gains_eur
                 : compositionData.realized_gains_usd;
               const displayRealizedGain = rawRealizedGain * scaleFactor;
+              const soldCostBasis = compositionData.sold_cost_basis_eur || 0;
+              const realizedGainPct = soldCostBasis > 0
+                ? Math.round(100 * compositionData.realized_gains_eur / soldCostBasis * 10) / 10
+                : 0;
               return (
                 <div className="bg-slate-100 rounded-xl p-3 md:p-5 text-center">
                   <p className="text-sm md:text-base font-medium text-slate-600 mb-1">
@@ -628,6 +633,12 @@ export function PortfolioPanel() {
                     {currency === 'EUR'
                       ? `${displayRealizedGain >= 0 ? '+' : ''}${formatEur(displayRealizedGain)}€`
                       : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
+                    {soldCostBasis > 0 && (
+                      <>
+                        {' '}
+                        <span>({realizedGainPct >= 0 ? '+' : ''}{realizedGainPct}%)</span>
+                      </>
+                    )}
                   </p>
                 </div>
               );
