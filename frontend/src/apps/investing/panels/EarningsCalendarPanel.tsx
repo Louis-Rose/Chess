@@ -266,9 +266,13 @@ export function EarningsCalendarPanel() {
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-slate-800">{item.ticker}</span>
                           {item.source === 'portfolio' ? (
-                            <Briefcase className="w-3 h-3 text-green-600" title={language === 'fr' ? 'Portefeuille' : 'Portfolio'} />
+                            <span title={language === 'fr' ? 'Portefeuille' : 'Portfolio'}>
+                              <Briefcase className="w-3 h-3 text-green-600" />
+                            </span>
                           ) : (
-                            <Eye className="w-3 h-3 text-blue-600" title={language === 'fr' ? 'Watchlist' : 'Watchlist'} />
+                            <span title="Watchlist">
+                              <Eye className="w-3 h-3 text-blue-600" />
+                            </span>
                           )}
                         </div>
                       </td>
