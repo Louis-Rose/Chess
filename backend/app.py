@@ -10,7 +10,7 @@ from database import get_db, init_db, get_all_cached_stats, save_all_cached_stat
 from auth import (
     verify_google_token, get_or_create_user, create_access_token,
     create_refresh_token, set_auth_cookies, clear_auth_cookies,
-    get_current_user, login_required
+    get_current_user, login_required, admin_required
 )
 
 # Load environment-specific .env file
@@ -418,6 +418,23 @@ def update_preferences():
         ''', values)
 
     return jsonify({'success': True, 'preferences': updates})
+
+
+# ============= ADMIN ROUTES =============
+
+@app.route('/api/admin/users', methods=['GET'])
+@admin_required
+def list_users():
+    """List all registered users (admin only)."""
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT id, email, name, picture, is_admin, created_at, updated_at
+            FROM users
+            ORDER BY created_at DESC
+        ''')
+        users = [dict(row) for row in cursor.fetchall()]
+
+    return jsonify({'users': users, 'total': len(users)})
 
 
 # ============= INVESTING ROUTES =============

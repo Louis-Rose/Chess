@@ -157,3 +157,23 @@ def login_optional(f):
         request.user_id = get_current_user()
         return f(*args, **kwargs)
     return decorated_function
+
+
+def admin_required(f):
+    """Decorator for endpoints that require admin privileges."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = get_current_user()
+        if user_id is None:
+            return jsonify({'error': 'Authentication required'}), 401
+
+        # Check if user is admin
+        with get_db() as conn:
+            cursor = conn.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,))
+            row = cursor.fetchone()
+            if not row or not row['is_admin']:
+                return jsonify({'error': 'Admin privileges required'}), 403
+
+        request.user_id = user_id
+        return f(*args, **kwargs)
+    return decorated_function
