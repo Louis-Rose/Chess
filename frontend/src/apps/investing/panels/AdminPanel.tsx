@@ -84,6 +84,12 @@ export function AdminPanel() {
     return Math.floor(totalUsers / 50) * 50 + 50;
   }, [chartData]);
 
+  // Calculate Y-axis ticks (6 values: 0 + 5 equally spaced)
+  const yAxisTicks = useMemo(() => {
+    const step = yAxisMax / 5;
+    return [0, step, step * 2, step * 3, step * 4, yAxisMax];
+  }, [yAxisMax]);
+
   // Redirect non-admins
   if (!authLoading && (!user || !user.is_admin)) {
     return <Navigate to="/investing" replace />;
@@ -147,6 +153,7 @@ export function AdminPanel() {
                     tick={{ fontSize: 12, fill: '#64748b' }}
                     allowDecimals={false}
                     domain={[0, yAxisMax]}
+                    ticks={yAxisTicks}
                   />
                   <Tooltip
                     contentStyle={{
