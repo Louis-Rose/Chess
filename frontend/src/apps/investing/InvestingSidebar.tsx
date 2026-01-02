@@ -66,7 +66,7 @@ export function InvestingSidebar() {
         </div>
       </div>
 
-      {/* App Title with Switcher */}
+      {/* App Title with Switcher - commented out for now
       <div className="px-2 pb-4 border-b border-slate-700 relative" ref={appSwitcherRef}>
         <button
           onClick={() => setShowAppSwitcher(!showAppSwitcher)}
@@ -106,6 +106,7 @@ export function InvestingSidebar() {
           </div>
         )}
       </div>
+      */}
 
       {/* Navigation */}
       <div className="flex flex-col gap-1 px-2 py-4 border-b border-slate-700">
