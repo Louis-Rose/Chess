@@ -628,22 +628,45 @@ export function PortfolioPanel() {
           </div>
         )}
 
-        {/* Investment Accounts Section */}
-        <div className="bg-slate-100 rounded-xl p-6">
-            <div className="flex justify-center">
+        {/* Action Buttons Row */}
+        {selectedAccountId && (
+          <div className="bg-slate-100 rounded-xl p-4">
+            <div className="flex flex-wrap justify-center gap-3">
               <button
                 onClick={() => setShowAccounts(!showAccounts)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
               >
                 <Building2 className="w-4 h-4" />
                 {showAccounts
-                  ? (language === 'fr' ? 'Masquer comptes d\'investissement' : 'Hide investment accounts')
-                  : (language === 'fr' ? 'Afficher comptes d\'investissement' : 'Show investment accounts')}
+                  ? (language === 'fr' ? 'Masquer comptes' : 'Hide accounts')
+                  : (language === 'fr' ? 'Afficher comptes' : 'Show accounts')}
+              </button>
+              <button
+                onClick={() => setShowFees(!showFees)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+              >
+                <Wallet className="w-4 h-4" />
+                {showFees
+                  ? (language === 'fr' ? 'Masquer frais' : 'Hide fees')
+                  : (language === 'fr' ? 'Afficher frais' : 'Show fees')}
+              </button>
+              <button
+                onClick={() => setShowTransactions(!showTransactions)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                {showTransactions
+                  ? (language === 'fr' ? 'Masquer transactions' : 'Hide transactions')
+                  : (language === 'fr' ? 'Modifier transactions' : 'Edit transactions')}
               </button>
             </div>
-            {showAccounts && (
-              <>
-                <div className="flex justify-between items-center mb-4 mt-6">
+          </div>
+        )}
+
+        {/* Investment Accounts Section - Content */}
+        {selectedAccountId && showAccounts && (
+          <div className="bg-slate-100 rounded-xl p-6">
+                <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-3">
                     <Building2 className="w-5 h-5 text-slate-600" />
                     <h3 className="text-xl font-bold text-slate-800">{t('accounts.title')}</h3>
@@ -771,9 +794,8 @@ export function PortfolioPanel() {
                     })}
                   </div>
                 )}
-              </>
-            )}
           </div>
+        )}
 
         {/* Prompt to select account */}
         {!selectedAccountId && accounts.length > 0 && (
@@ -786,23 +808,8 @@ export function PortfolioPanel() {
           </div>
         )}
 
-        {/* Fees Button & Content - Always visible when account selected */}
-        {selectedAccountId && (
-          <div className="bg-slate-100 rounded-xl p-6 sticky top-4 z-10">
-            <div className="flex justify-center">
-              <button
-                onClick={() => setShowFees(!showFees)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-              >
-                <Wallet className="w-4 h-4" />
-                {showFees
-                  ? (language === 'fr' ? 'Masquer frais et impôts' : 'Hide fees & taxes')
-                  : (language === 'fr' ? 'Afficher frais et impôts' : 'Show fees & taxes')}
-              </button>
-            </div>
-
-            {/* Fees Summary - Inside the button container when visible */}
-            {showFees && accounts.length > 0 && (() => {
+        {/* Fees Content - when showFees is true */}
+        {selectedAccountId && showFees && accounts.length > 0 && (() => {
               const selectedAccount = accounts.find(a => a.id === selectedAccountId) || accounts[0];
               const bankInfo = selectedAccount?.bank_info;
               const typeInfo = selectedAccount?.type_info;
@@ -857,38 +864,10 @@ export function PortfolioPanel() {
                 </div>
               );
             })()}
-          </div>
-        )}
-
-        {/* Transactions Button - Only when transactions not open */}
-        {selectedAccountId && !showTransactions && (
-          <div className="bg-slate-100 rounded-xl p-6">
-            <div className="flex justify-center">
-              <button
-                onClick={() => setShowTransactions(true)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                {t('portfolio.editButton')}
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Transaction History - Only when account selected */}
         {selectedAccountId && showTransactions && (
         <div className="bg-slate-100 rounded-xl p-6">
-          {/* Close Button - at top, same position as open button */}
-          <div className="flex justify-center mb-6">
-            <button
-              onClick={() => { setShowTransactions(false); setShowAddForm(false); }}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              {language === 'fr' ? 'Masquer les transactions' : 'Hide transactions'}
-            </button>
-          </div>
-
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
               <h3 className="text-xl font-bold text-slate-800">{t('transactions.title')}</h3>
