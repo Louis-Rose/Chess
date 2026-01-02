@@ -134,6 +134,7 @@ export function AdminPanel() {
                       border: '1px solid #e2e8f0',
                       padding: '8px 12px',
                     }}
+                    labelStyle={{ color: '#1e293b', fontWeight: 'bold' }}
                     labelFormatter={(date) =>
                       new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
                         day: 'numeric',
