@@ -11,7 +11,7 @@ const navItems = [
   { path: '/investing', icon: Home, label: 'Welcome', end: true },
   { path: '/investing/portfolio', icon: Briefcase, label: 'My Portfolio' },
   { path: '/investing/earnings', icon: Calendar, label: 'Earnings Calendar' },
-  { path: '/investing/watchlist', icon: Eye, label: 'Watchlist', disabled: true },
+  { path: '/investing/watchlist', icon: Eye, label: 'Watchlist' },
 ];
 
 export function InvestingSidebar() {

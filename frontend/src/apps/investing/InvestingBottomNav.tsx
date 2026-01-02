@@ -7,7 +7,7 @@ const navItems = [
   { path: '/investing', icon: Home, label: 'Home', end: true },
   { path: '/investing/portfolio', icon: Briefcase, label: 'Portfolio' },
   { path: '/investing/earnings', icon: Calendar, label: 'Earnings' },
-  { path: '/investing/watchlist', icon: Eye, label: 'Watchlist', disabled: true },
+  { path: '/investing/watchlist', icon: Eye, label: 'Watchlist' },
 ];
 
 export function InvestingBottomNav() {

@@ -87,20 +87,7 @@ export function InvestingWelcomePanel() {
             </p>
           </button>
 
-          {/* Watchlist - Coming Soon */}
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 transition-colors opacity-60 text-left">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-slate-600 rounded-lg flex items-center justify-center">
-                <Eye className="w-5 h-5 text-white" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-100">Watchlist</h3>
-              <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded">Coming Soon</span>
-            </div>
-            <p className="text-slate-400 text-sm">
-              Monitor stocks you're interested in. Get alerts on price movements and key metrics.
-            </p>
-          </div>
-          {/* Watchlist - Original clickable version (commented out)
+          {/* Watchlist */}
           <button
             onClick={() => navigate('/investing/watchlist')}
             className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-blue-500 transition-colors cursor-pointer text-left"
@@ -112,10 +99,9 @@ export function InvestingWelcomePanel() {
               <h3 className="text-lg font-bold text-slate-100">Watchlist</h3>
             </div>
             <p className="text-slate-400 text-sm">
-              Monitor stocks you're interested in. Get alerts on price movements and key metrics.
+              Monitor stocks you're interested in with P/E ratios and earnings growth.
             </p>
           </button>
-          */}
         </div>
       </div>
     </>
