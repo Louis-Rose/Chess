@@ -965,6 +965,41 @@ def remove_from_watchlist(symbol):
     return jsonify({'success': True, 'symbol': symbol})
 
 
+@app.route('/api/investing/market-cap', methods=['GET'])
+def get_market_cap():
+    """Get market cap for one or more tickers."""
+    import yfinance as yf
+
+    tickers_param = request.args.get('tickers', '')
+    if not tickers_param:
+        return jsonify({'error': 'No tickers provided'}), 400
+
+    tickers = [t.strip().upper() for t in tickers_param.split(',') if t.strip()]
+    if not tickers:
+        return jsonify({'error': 'No valid tickers provided'}), 400
+
+    results = {}
+    for ticker in tickers:
+        try:
+            stock = yf.Ticker(ticker)
+            info = stock.info
+            market_cap = info.get('marketCap')
+            name = info.get('shortName') or info.get('longName') or ticker
+
+            results[ticker] = {
+                'ticker': ticker,
+                'name': name,
+                'market_cap': market_cap,
+            }
+        except Exception as e:
+            results[ticker] = {
+                'ticker': ticker,
+                'error': str(e)
+            }
+
+    return jsonify({'stocks': results})
+
+
 # =============================================================================
 # Investment Accounts API (for fee tracking)
 # =============================================================================
