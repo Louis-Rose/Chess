@@ -1,6 +1,6 @@
 // Financials panel - displays P/E ratios, earnings growth for watchlist stocks
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { TrendingUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
