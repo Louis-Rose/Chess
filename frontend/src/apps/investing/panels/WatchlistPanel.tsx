@@ -163,20 +163,24 @@ export function WatchlistPanel() {
                         disabled={isInWatchlist}
                         className={`w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 ${isInWatchlist ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'hover:bg-blue-50'}`}
                       >
-                        {logoUrl ? (
-                          <img
-                            src={logoUrl}
-                            alt={`${stock.ticker} logo`}
-                            className="w-6 h-6 rounded object-contain bg-white flex-shrink-0"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-6 h-6 rounded bg-slate-200 flex items-center justify-center flex-shrink-0">
+                        <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {logoUrl && (
+                            <img
+                              src={logoUrl}
+                              alt={`${stock.ticker} logo`}
+                              className="w-6 h-6 object-contain"
+                              onError={(e) => {
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `<span class="text-[10px] font-bold text-slate-500">${stock.ticker.slice(0, 2)}</span>`;
+                                }
+                              }}
+                            />
+                          )}
+                          {!logoUrl && (
                             <span className="text-[10px] font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
-                          </div>
-                        )}
+                          )}
+                        </div>
                         <span className="font-bold text-slate-800 w-16">{stock.ticker}</span>
                         <span className="text-slate-600 text-sm truncate">{stock.name}</span>
                         {isInWatchlist && <span className="text-xs text-slate-400 ml-auto">{language === 'fr' ? 'Ajouté' : 'Added'}</span>}
@@ -228,20 +232,24 @@ export function WatchlistPanel() {
                     className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-slate-200"
                   >
                     <div className="flex items-center gap-3">
-                      {logoUrl ? (
-                        <img
-                          src={logoUrl}
-                          alt={`${ticker} logo`}
-                          className="w-8 h-8 rounded object-contain bg-white"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded bg-slate-200 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {logoUrl && (
+                          <img
+                            src={logoUrl}
+                            alt={`${ticker} logo`}
+                            className="w-8 h-8 object-contain"
+                            onError={(e) => {
+                              const parent = e.currentTarget.parentElement;
+                              if (parent) {
+                                parent.innerHTML = `<span class="text-xs font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
+                              }
+                            }}
+                          />
+                        )}
+                        {!logoUrl && (
                           <span className="text-xs font-bold text-slate-500">{ticker.slice(0, 2)}</span>
-                        </div>
-                      )}
+                        )}
+                      </div>
                       <span className="font-bold text-slate-800 w-16">{ticker}</span>
                       <span className="text-slate-600 text-sm">{displayName}</span>
                     </div>

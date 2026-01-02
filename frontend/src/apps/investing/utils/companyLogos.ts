@@ -206,13 +206,14 @@ const TICKER_TO_DOMAIN: Record<string, string> = {
 };
 
 /**
- * Get logo URL for a stock ticker using Clearbit's logo API
- * Falls back to null if domain mapping not found
+ * Get logo URL for a stock ticker
+ * Uses multiple sources with fallback
  */
 export function getCompanyLogoUrl(ticker: string): string | null {
-  const domain = TICKER_TO_DOMAIN[ticker.toUpperCase()];
-  if (!domain) return null;
-  return `https://logo.clearbit.com/${domain}`;
+  const upperTicker = ticker.toUpperCase();
+
+  // Try Financial Modeling Prep (free, no API key needed for logos)
+  return `https://financialmodelingprep.com/image-stock/${upperTicker}.png`;
 }
 
 /**
