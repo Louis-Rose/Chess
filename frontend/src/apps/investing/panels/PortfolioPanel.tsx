@@ -603,7 +603,7 @@ export function PortfolioPanel() {
                       ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
                       : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
                     {' '}
-                    <span className="text-sm md:text-lg font-medium">({displayPct >= 0 ? '+' : ''}{displayPct}%)</span>
+                    <span>({displayPct >= 0 ? '+' : ''}{displayPct}%)</span>
                   </p>
                 </div>
               );
