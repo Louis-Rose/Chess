@@ -1259,18 +1259,17 @@ export function PortfolioPanel() {
               // Calculate summary for filtered data
               const startDate = firstDataPoint.date;
               const endDate = lastDataPoint.date;
-              const startPortfolioValue = firstDataPoint.portfolio_value_eur;
-              const startBenchmarkValue = firstDataPoint.benchmark_value_eur;
+              const startCostBasis = firstDataPoint.cost_basis_eur;
               const endPortfolioValue = lastDataPoint.portfolio_value_eur;
               const endBenchmarkValue = lastDataPoint.benchmark_value_eur;
 
-              // Portfolio return within the selected range = (end - start) / start
-              const portfolioReturn = startPortfolioValue > 0
-                ? Math.round(((endPortfolioValue - startPortfolioValue) / startPortfolioValue) * 1000) / 10
+              // Portfolio return = (endValue - costBasis) / costBasis (costBasis within selected range)
+              const portfolioReturn = startCostBasis > 0
+                ? Math.round(((endPortfolioValue - startCostBasis) / startCostBasis) * 1000) / 10
                 : 0;
-              // Benchmark return within the selected range
-              const benchmarkReturn = startBenchmarkValue > 0
-                ? Math.round(((endBenchmarkValue - startBenchmarkValue) / startBenchmarkValue) * 1000) / 10
+              // Benchmark return = (endBenchmark - costBasis) / costBasis
+              const benchmarkReturn = startCostBasis > 0
+                ? Math.round(((endBenchmarkValue - startCostBasis) / startCostBasis) * 1000) / 10
                 : 0;
 
               const daysDiff = (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24);
