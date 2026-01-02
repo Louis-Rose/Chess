@@ -3,19 +3,21 @@
 import { NavLink, Link } from 'react-router-dom';
 import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, BarChart3 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { UserMenu } from '../../components/UserMenu';
 import { LanguageToggle } from '../../components/LanguageToggle';
 
 const navItems = [
-  { path: '/investing', icon: Home, label: 'Welcome', end: true },
-  { path: '/investing/portfolio', icon: Briefcase, label: 'My Portfolio' },
-  { path: '/investing/watchlist', icon: Eye, label: 'My Watchlist' },
-  { path: '/investing/earnings', icon: Calendar, label: 'Earnings Calendar' },
-  { path: '/investing/financials', icon: TrendingUp, label: 'Stocks Research' },
+  { path: '/investing', icon: Home, labelEn: 'Welcome', labelFr: 'Accueil', end: true },
+  { path: '/investing/portfolio', icon: Briefcase, labelEn: 'My Portfolio', labelFr: 'Mon Portefeuille' },
+  { path: '/investing/watchlist', icon: Eye, labelEn: 'My Watchlist', labelFr: 'Ma Watchlist' },
+  { path: '/investing/earnings', icon: Calendar, labelEn: 'Earnings Calendar', labelFr: 'Calendrier des Résultats' },
+  { path: '/investing/financials', icon: TrendingUp, labelEn: 'Stocks Research', labelFr: 'Recherche Actions' },
 ];
 
 export function InvestingSidebar() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { language } = useLanguage();
 
   return (
     <div className="w-64 bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0 overflow-y-auto">
@@ -41,7 +43,7 @@ export function InvestingSidebar() {
         ) : (
           <Link to="/" className="flex items-center gap-2 text-slate-500 hover:text-slate-300 transition-colors">
             <div className="w-8 h-8 rounded-full bg-slate-700" />
-            <span className="text-sm">Not signed in</span>
+            <span className="text-sm">{language === 'fr' ? 'Non connecté' : 'Not signed in'}</span>
           </Link>
         )}
       </div>
@@ -104,7 +106,7 @@ export function InvestingSidebar() {
             }
           >
             <item.icon className="w-5 h-5" />
-            {item.label}
+            {language === 'fr' ? item.labelFr : item.labelEn}
           </NavLink>
         ))}
       </div>
