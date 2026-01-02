@@ -3,13 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Plus, X, Loader2, Search, ExternalLink } from 'lucide-react';
+import { Eye, Plus, X, Loader2, Search } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
 import { searchStocks, SP500_STOCKS, type Stock } from '../utils/sp500';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
-import { getCompanyIRUrl } from '../utils/companyIRLinks';
 
 const fetchWatchlist = async (): Promise<{ symbols: string[] }> => {
   const response = await axios.get('/api/investing/watchlist');
@@ -226,7 +225,6 @@ export function WatchlistPanel() {
                 const sp500Stock = SP500_STOCKS.find(s => s.ticker === ticker);
                 const displayName = sp500Stock?.name || ticker;
                 const logoUrl = getCompanyLogoUrl(ticker);
-                const irUrl = getCompanyIRUrl(ticker);
 
                 return (
                   <div
@@ -252,19 +250,7 @@ export function WatchlistPanel() {
                       )}
                     </div>
                     <span className="font-bold text-slate-800 w-16 flex-shrink-0">{ticker}</span>
-                    <span className="text-slate-600 text-sm truncate w-64 flex-shrink-0">{displayName}</span>
-                    {irUrl ? (
-                      <a
-                        href={irUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-xs transition-colors flex-shrink-0"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        <span className="hidden sm:inline">{language === 'fr' ? 'Relations investisseurs' : 'Investor Relations'}</span>
-                      </a>
-                    ) : null}
+                    <span className="text-slate-600 text-sm truncate flex-grow">{displayName}</span>
                     <button
                       onClick={() => handleRemoveSymbol(ticker)}
                       disabled={removeMutation.isPending}

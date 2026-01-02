@@ -2,10 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye } from 'lucide-react';
+import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
+import { getCompanyIRUrl } from '../utils/companyIRLinks';
 
 interface EarningsData {
   ticker: string;
@@ -101,16 +102,17 @@ export function EarningsCalendarPanel() {
               <table className="w-full table-fixed">
                 <thead>
                   <tr className="text-left text-slate-600 text-sm border-b-2 border-slate-300">
-                    <th className="pb-3 pl-2 font-semibold w-1/4">Ticker</th>
-                    <th className="pb-3 font-semibold w-1/4">
+                    <th className="pb-3 pl-2 font-semibold w-1/5">Ticker</th>
+                    <th className="pb-3 font-semibold w-1/5">
                       {language === 'fr' ? 'Date' : 'Date'}
                     </th>
-                    <th className="pb-3 text-center font-semibold w-1/4">
+                    <th className="pb-3 text-center font-semibold w-1/5">
                       {language === 'fr' ? 'Jours restants' : 'Remaining'}
                     </th>
-                    <th className="pb-3 text-center font-semibold w-1/4">
+                    <th className="pb-3 text-center font-semibold w-1/5">
                       {language === 'fr' ? 'Confirmé' : 'Confirmed'}
                     </th>
+                    <th className="pb-3 text-center font-semibold w-1/5">IR</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -162,6 +164,23 @@ export function EarningsCalendarPanel() {
                         ) : (
                           <HelpCircle className="w-5 h-5 text-slate-400 mx-auto" />
                         )}
+                      </td>
+                      <td className="py-4 text-center">
+                        {(() => {
+                          const irUrl = getCompanyIRUrl(item.ticker);
+                          return irUrl ? (
+                            <a
+                              href={irUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-500 hover:text-blue-700 inline-flex items-center gap-1 text-xs transition-colors"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))}
