@@ -14,7 +14,7 @@ export function InvestingApp() {
   useEffect(() => {
     document.title = 'LUMRA';
     const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-    if (link) link.href = '/favicon-investing.svg';
+    if (link) link.href = '/favicon-lumra.svg';
   }, []);
 
   return (
