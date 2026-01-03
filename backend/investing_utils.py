@@ -119,29 +119,19 @@ def _save_cached_fx_rate(pair, date_str, rate):
     except Exception as e:
         print(f"Error caching FX rate: {e}")
 
-# Modern color palette for pie chart (works well on dark backgrounds)
-PIE_CHART_COLORS = [
-    "#22d3ee",  # Cyan
-    "#a78bfa",  # Purple
-    "#34d399",  # Emerald
-    "#f472b6",  # Pink
-    "#fbbf24",  # Amber
-    "#60a5fa",  # Blue
-    "#fb923c",  # Orange
-    "#4ade80",  # Green
-    "#c084fc",  # Violet
-    "#38bdf8",  # Sky
-    "#f87171",  # Red
-    "#2dd4bf",  # Teal
-    "#e879f9",  # Fuchsia
-    "#facc15",  # Yellow
-    "#818cf8",  # Indigo
-]
-
-# Dynamic color assignment based on ticker index
-def get_stock_color(ticker, index=0):
-    """Get a color for a stock ticker from the palette."""
-    return PIE_CHART_COLORS[index % len(PIE_CHART_COLORS)]
+# Stock color map for pie chart
+STOCK_COLORS = {
+    'NVDA': "#76B900",
+    'GOOGL': "#DB4437",
+    'GOOG': "#DB4437",
+    'AMZN': "#FF9900",
+    'META': "#4267B2",
+    'MSFT': "#00A4EF",
+    'AAPL': "#555555",
+    'TSLA': "#CC0000",
+    'V': "#1A1F71",
+    'Cash': "#FFD700",
+}
 
 # Benchmark tickers
 BENCHMARKS = {
@@ -315,7 +305,7 @@ def compute_portfolio_composition(holdings):
                 'avg_cost': round(cost_basis_per_share, 2),
                 'gain_usd': round(gain_usd, 2),
                 'gain_pct': gain_pct,
-                'color': '',  # Will be assigned after sorting
+                'color': STOCK_COLORS.get(ticker, '#95A5A6')
             })
             total_value += current_value
             total_cost_basis_usd += total_cost
@@ -332,7 +322,7 @@ def compute_portfolio_composition(holdings):
                 'avg_cost': round(cost_basis_per_share, 2),
                 'gain_usd': -total_cost,
                 'gain_pct': -100,
-                'color': '',  # Will be assigned after sorting
+                'color': STOCK_COLORS.get(ticker, '#95A5A6')
             })
             total_cost_basis_usd += total_cost
             total_cost_basis_eur += total_cost_eur
@@ -346,10 +336,6 @@ def compute_portfolio_composition(holdings):
 
     # Sort by weight descending
     composition.sort(key=lambda x: -x['weight'])
-
-    # Assign colors from palette after sorting (so colors match visual order)
-    for idx, item in enumerate(composition):
-        item['color'] = get_stock_color(item['ticker'], idx)
 
     # Get EUR values
     eurusd_rate = get_current_eurusd_rate()
