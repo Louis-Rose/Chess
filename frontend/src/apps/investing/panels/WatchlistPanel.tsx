@@ -125,15 +125,15 @@ export function WatchlistPanel() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col items-center gap-2 mb-6 mt-8">
-        <h2 className="text-3xl font-bold text-slate-100">My Watchlist</h2>
-        <p className="text-slate-400 text-lg italic">
+        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">My Watchlist</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-lg italic">
           {language === 'fr' ? 'Gérez les actions que vous suivez' : 'Manage the stocks you follow'}
         </p>
       </div>
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Add Company */}
-        <div className="bg-slate-100 rounded-xl p-6">
+        <div className="bg-white dark:bg-slate-100 rounded-xl p-6 shadow-sm dark:shadow-none">
           <h3 className="text-xl font-bold text-slate-800 mb-4">
             {language === 'fr' ? 'Ajouter une entreprise à ma watchlist' : 'Add a company to my watchlist'}
           </h3>
@@ -202,7 +202,7 @@ export function WatchlistPanel() {
         </div>
 
         {/* Watchlist */}
-        <div className="bg-slate-100 rounded-xl p-6">
+        <div className="bg-white dark:bg-slate-100 rounded-xl p-6 shadow-sm dark:shadow-none">
           <h3 className="text-xl font-bold text-slate-800 mb-4">
             {language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}
             {watchlist.length > 0 && <span className="text-slate-500 font-normal ml-2">({watchlist.length})</span>}

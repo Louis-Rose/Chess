@@ -94,15 +94,15 @@ export function FinancialsPanel() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col items-center gap-2 mb-6 mt-8">
-        <h2 className="text-3xl font-bold text-slate-100">Stocks Research</h2>
-        <p className="text-slate-400 text-lg italic">
+        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Stocks Research</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-lg italic">
           {language === 'fr' ? 'Recherchez des actions S&P 500' : 'Search S&P 500 stocks'}
         </p>
       </div>
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Search Bar */}
-        <div className="bg-slate-100 rounded-xl p-6">
+        <div className="bg-white dark:bg-slate-100 rounded-xl p-6 shadow-sm dark:shadow-none">
           <h3 className="text-xl font-bold text-slate-800 mb-4">
             {language === 'fr' ? 'Rechercher une action' : 'Search for a stock'}
           </h3>
@@ -211,7 +211,7 @@ export function FinancialsPanel() {
 
         {/* Selected Stocks */}
         {selectedTickers.length > 0 && (
-          <div className="bg-slate-100 rounded-xl p-6">
+          <div className="bg-white dark:bg-slate-100 rounded-xl p-6 shadow-sm dark:shadow-none">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-slate-800">
                 {language === 'fr' ? 'Actions sélectionnées' : 'Selected Stocks'}
@@ -280,7 +280,7 @@ export function FinancialsPanel() {
 
         {/* Empty State */}
         {selectedTickers.length === 0 && (
-          <div className="bg-slate-100 rounded-xl p-12 text-center">
+          <div className="bg-white dark:bg-slate-100 rounded-xl p-12 text-center shadow-sm dark:shadow-none">
             <TrendingUp className="w-16 h-16 text-slate-400 mx-auto mb-4" />
             <p className="text-slate-500">
               {language === 'fr'

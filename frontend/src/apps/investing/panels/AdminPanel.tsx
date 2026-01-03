@@ -109,11 +109,11 @@ export function AdminPanel() {
       <div className="flex flex-col items-center gap-2 mb-6 mt-8">
         <div className="flex items-center gap-3">
           <Shield className="w-8 h-8 text-amber-500" />
-          <h2 className="text-3xl font-bold text-slate-100">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
             {language === 'fr' ? 'Administration' : 'Admin Panel'}
           </h2>
         </div>
-        <p className="text-slate-400 text-lg italic">
+        <p className="text-slate-500 dark:text-slate-400 text-lg italic">
           {language === 'fr' ? 'Gestion des utilisateurs' : 'User management'}
         </p>
       </div>
@@ -121,7 +121,7 @@ export function AdminPanel() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* User Growth Chart */}
         {!isLoading && !error && chartData.length > 0 && (
-          <div className="bg-slate-100 rounded-xl p-6">
+          <div className="bg-white dark:bg-slate-100 rounded-xl p-6 shadow-sm dark:shadow-none">
             <div className="flex items-center gap-3 mb-4">
               <TrendingUp className="w-5 h-5 text-slate-600" />
               <h3 className="text-xl font-bold text-slate-800">
@@ -191,7 +191,7 @@ export function AdminPanel() {
         )}
 
         {/* Users List */}
-        <div className="bg-slate-100 rounded-xl p-6">
+        <div className="bg-white dark:bg-slate-100 rounded-xl p-6 shadow-sm dark:shadow-none">
           <div className="flex items-center gap-3 mb-4">
             <Users className="w-5 h-5 text-slate-600" />
             <h3 className="text-xl font-bold text-slate-800">
@@ -212,7 +212,7 @@ export function AdminPanel() {
           ) : data?.users && data.users.length > 0 ? (
             <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
               <table className="w-full">
-                <thead className="sticky top-0 bg-slate-100">
+                <thead className="sticky top-0 bg-white dark:bg-slate-100">
                   <tr className="text-left text-slate-600 text-sm border-b-2 border-slate-300">
                     <th className="pb-3 pl-2">ID</th>
                     <th className="pb-3">{language === 'fr' ? 'Utilisateur' : 'User'}</th>

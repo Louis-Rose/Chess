@@ -529,29 +529,29 @@ export function PortfolioPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="sticky top-0 z-20 bg-slate-800 py-4 -mx-4 px-4 mt-8">
+      <div className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 py-4 -mx-4 px-4 mt-8">
         <div className="flex flex-col items-center gap-2">
-          <h2 className="text-3xl font-bold text-slate-100">{t('portfolio.title')}</h2>
-          <p className="text-slate-400 text-lg italic">{t('portfolio.subtitle')}</p>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{t('portfolio.title')}</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-lg italic">{t('portfolio.subtitle')}</p>
           <div className="flex items-center gap-4 mt-2">
             {/* Currency Toggle */}
-            <div className="flex rounded-lg overflow-hidden border border-slate-600">
+            <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600">
               <button
                 onClick={() => setCurrency('EUR')}
-                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
               >
                 EUR €
               </button>
               <button
                 onClick={() => setCurrency('USD')}
-                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
               >
                 USD $
               </button>
             </div>
             <button
               onClick={() => setPrivateMode(!privateMode)}
-              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${privateMode ? 'bg-slate-600 text-slate-200' : 'bg-slate-700 text-slate-400 hover:text-slate-300'}`}
+              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${privateMode ? 'bg-slate-300 dark:bg-slate-600 text-slate-700 dark:text-slate-200' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
             >
               {privateMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               <span>{t('portfolio.privateMode')}</span>
