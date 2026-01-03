@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, BarChart3, Shield, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, BarChart3, Shield, PanelLeftClose } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { UserMenu } from '../../components/UserMenu';
@@ -161,14 +161,8 @@ export function InvestingSidebar() {
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
           title={isCollapsed ? (language === 'fr' ? 'Développer' : 'Expand') : (language === 'fr' ? 'Réduire' : 'Collapse')}
         >
-          {isCollapsed ? (
-            <PanelLeftOpen className="w-5 h-5" />
-          ) : (
-            <>
-              <PanelLeftClose className="w-5 h-5" />
-              <span className="text-sm">{language === 'fr' ? 'Réduire' : 'Collapse'}</span>
-            </>
-          )}
+          <PanelLeftClose className={`w-5 h-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
+          {!isCollapsed && <span className="text-sm">{language === 'fr' ? 'Réduire' : 'Collapse'}</span>}
         </button>
       </div>
     </div>
