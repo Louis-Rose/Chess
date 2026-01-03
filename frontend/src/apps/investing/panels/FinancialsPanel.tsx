@@ -1,4 +1,4 @@
-// Financials panel - search S&P 500 stocks and view market cap
+// Financials panel - search stocks and view market cap
 
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -6,7 +6,7 @@ import axios from 'axios';
 import { TrendingUp, Search, X, Loader2, Eye } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { searchStocks, SP500_STOCKS, type Stock } from '../utils/sp500';
+import { searchAllStocks, findStockByTicker, type Stock } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 
 interface MarketCapData {
@@ -62,7 +62,7 @@ export function FinancialsPanel() {
 
   // Stock search effect - only update results, don't auto-show dropdown
   useEffect(() => {
-    const results = searchStocks(stockSearch);
+    const results = searchAllStocks(stockSearch);
     setStockResults(results);
   }, [stockSearch]);
 
@@ -131,8 +131,8 @@ export function FinancialsPanel() {
                     </div>
                     {watchlist.map((ticker) => {
                       const isSelected = selectedTickers.includes(ticker);
-                      const sp500Stock = SP500_STOCKS.find(s => s.ticker === ticker);
-                      const displayName = sp500Stock?.name || ticker;
+                      const stock = findStockByTicker(ticker);
+                      const displayName = stock?.name || ticker;
                       const logoUrl = getCompanyLogoUrl(ticker);
                       return (
                         <button
@@ -226,9 +226,9 @@ export function FinancialsPanel() {
             </div>
             <div className="space-y-2">
               {selectedTickers.map((ticker) => {
-                const sp500Stock = SP500_STOCKS.find(s => s.ticker === ticker);
+                const stock = findStockByTicker(ticker);
                 const marketCapInfo = marketCaps[ticker];
-                const displayName = marketCapInfo?.name || sp500Stock?.name || ticker;
+                const displayName = marketCapInfo?.name || stock?.name || ticker;
                 const logoUrl = getCompanyLogoUrl(ticker);
                 const isLoading = !marketCapInfo && marketCapLoading;
 

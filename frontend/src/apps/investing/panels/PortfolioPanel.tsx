@@ -17,7 +17,7 @@ import { toPng } from 'html-to-image';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
-import { searchStocks, SP500_STOCKS, type Stock } from '../utils/sp500';
+import { searchAllStocks, findStockByTicker, type Stock } from '../utils/allStocks';
 
 interface Transaction {
   id: number;
@@ -415,7 +415,7 @@ export function PortfolioPanel() {
 
   // Stock search effect
   useEffect(() => {
-    const results = searchStocks(stockSearch);
+    const results = searchAllStocks(stockSearch);
     setStockResults(results);
     setShowStockDropdown(results.length > 0 && stockSearch.length > 0);
   }, [stockSearch]);
@@ -529,29 +529,29 @@ export function PortfolioPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="sticky top-0 z-20 bg-slate-200 dark:bg-slate-800 py-4 -mx-4 px-4 mt-8">
+      <div className="sticky top-0 z-20 bg-slate-200 dark:bg-slate-900 py-4 -mx-4 px-4 mt-8">
         <div className="flex flex-col items-center gap-2">
           <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{t('portfolio.title')}</h2>
           <p className="text-slate-500 dark:text-slate-400 text-lg italic">{t('portfolio.subtitle')}</p>
           <div className="flex items-center gap-4 mt-2">
             {/* Currency Toggle */}
-            <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600">
+            <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-white/20">
               <button
                 onClick={() => setCurrency('EUR')}
-                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
               >
                 EUR €
               </button>
               <button
                 onClick={() => setCurrency('USD')}
-                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
               >
                 USD $
               </button>
             </div>
             <button
               onClick={() => setPrivateMode(!privateMode)}
-              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${privateMode ? 'bg-slate-300 dark:bg-slate-600 text-slate-700 dark:text-slate-200' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${privateMode ? 'bg-slate-300 dark:bg-white/5 text-slate-700 dark:text-slate-200' : 'bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
             >
               {privateMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               <span>{t('portfolio.privateMode')}</span>
@@ -562,7 +562,7 @@ export function PortfolioPanel() {
 
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Action Buttons Row */}
-        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+        <div className="bg-slate-50 dark:bg-white/10 backdrop-blur rounded-xl p-4 dark:border dark:border-white/20">
           <div className="flex flex-wrap justify-center gap-12">
             <button
               onClick={() => setShowAccounts(!showAccounts)}
@@ -600,7 +600,7 @@ export function PortfolioPanel() {
 
         {/* Investment Accounts Section - Content */}
         {showAccounts && (
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+          <div className="bg-slate-50 dark:bg-white/10 rounded-xl p-6">
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-3">
                     <Building2 className="w-5 h-5 text-slate-600 dark:text-slate-300" />
@@ -791,7 +791,7 @@ export function PortfolioPanel() {
 
         {/* Transaction History - Only when account selected */}
         {selectedAccountId && showTransactions && (
-        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+        <div className="bg-slate-50 dark:bg-white/10 rounded-xl p-6">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('transactions.title')}</h3>
@@ -803,7 +803,7 @@ export function PortfolioPanel() {
                 >
                   <option value="">{t('transactions.allStocks')}</option>
                   {uniqueTickers.map(ticker => {
-                    const stock = SP500_STOCKS.find(s => s.ticker === ticker);
+                    const stock = findStockByTicker(ticker);
                     const label = stock ? `${stock.name} (${ticker})` : ticker;
                     return <option key={ticker} value={ticker}>{label}</option>;
                   })}
@@ -1001,7 +1001,7 @@ export function PortfolioPanel() {
 
         {/* Summary Cards - Single row */}
         {selectedAccountId && compositionData && hasHoldings && (
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+          <div className="bg-slate-50 dark:bg-white/10 rounded-xl p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {(() => {
                 // In private mode, scale all values to assume 10,000 cost basis
@@ -1085,7 +1085,7 @@ export function PortfolioPanel() {
 
         {/* Portfolio Composition */}
         {selectedAccountId && hasHoldings && (
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+          <div className="bg-slate-50 dark:bg-white/10 rounded-xl p-6">
             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-6">{t('holdings.title')}</h3>
 
             {compositionLoading ? (
@@ -1180,7 +1180,7 @@ export function PortfolioPanel() {
 
         {/* Portfolio Performance */}
         {selectedAccountId && hasHoldings && (
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 md:p-6">
+          <div className="bg-slate-50 dark:bg-white/10 rounded-xl p-4 md:p-6">
             <div className="flex items-center justify-center gap-3 mb-4">
               <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">{t('performance.title')}</h3>
               <button
@@ -1345,7 +1345,7 @@ export function PortfolioPanel() {
               return (
               <>
                 {/* Downloadable area: title + summary + chart */}
-                <div ref={chartContainerRef} className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4">
+                <div ref={chartContainerRef} className="bg-slate-100 dark:bg-white/5 rounded-xl p-4">
                   {/* Title for the downloaded image */}
                   <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
                     {language === 'fr' ? 'Performance du Portefeuille' : 'Portfolio Performance'}

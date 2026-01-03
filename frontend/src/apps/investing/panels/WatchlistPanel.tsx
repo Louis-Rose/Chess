@@ -7,7 +7,7 @@ import { Eye, Plus, X, Loader2, Search } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
-import { searchStocks, SP500_STOCKS, type Stock } from '../utils/sp500';
+import { searchAllStocks, findStockByTicker, type Stock } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 
 const fetchWatchlist = async (): Promise<{ symbols: string[] }> => {
@@ -58,7 +58,7 @@ export function WatchlistPanel() {
 
   // Stock search effect
   useEffect(() => {
-    const results = searchStocks(stockSearch);
+    const results = searchAllStocks(stockSearch);
     setStockResults(results);
     setShowStockDropdown(results.length > 0 && stockSearch.length > 0);
   }, [stockSearch]);
@@ -222,8 +222,8 @@ export function WatchlistPanel() {
           ) : (
             <div className="space-y-2">
               {watchlist.map((ticker) => {
-                const sp500Stock = SP500_STOCKS.find(s => s.ticker === ticker);
-                const displayName = sp500Stock?.name || ticker;
+                const stock = findStockByTicker(ticker);
+                const displayName = stock?.name || ticker;
                 const logoUrl = getCompanyLogoUrl(ticker);
 
                 return (
