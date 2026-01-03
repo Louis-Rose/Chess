@@ -163,7 +163,7 @@ export function FinancialsPanel() {
                 onChange={(e) => setIndexFilter({ ...indexFilter, stoxx600: e.target.checked })}
                 className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
               />
-              <span className="text-sm text-slate-700 dark:text-slate-300">STOXX 600</span>
+              <span className="text-sm text-slate-700 dark:text-slate-300">STOXX Europe 600</span>
             </label>
           </div>
           <div className="relative" ref={stockDropdownRef}>

@@ -844,7 +844,7 @@ export function PortfolioPanel() {
                     onChange={(e) => setIndexFilter({ ...indexFilter, stoxx600: e.target.checked })}
                     className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
                   />
-                  <span className="text-sm text-slate-700">STOXX 600</span>
+                  <span className="text-sm text-slate-700">STOXX Europe 600</span>
                 </label>
               </div>
               <div className="flex gap-3 flex-wrap items-start">
