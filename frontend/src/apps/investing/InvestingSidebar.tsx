@@ -155,14 +155,14 @@ export function InvestingSidebar() {
       </div>
 
       {/* Collapse Toggle */}
-      <div className={`${isCollapsed ? 'px-1' : 'px-2'} pt-2`}>
+      <div className="px-2 pt-2 flex justify-center">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className={`w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2' : 'px-3 py-2'} rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 transition-colors`}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm transition-colors"
           title={isCollapsed ? (language === 'fr' ? 'Développer' : 'Expand') : (language === 'fr' ? 'Réduire' : 'Collapse')}
         >
-          <PanelLeftClose className="w-5 h-5" />
-          {!isCollapsed && <span className="text-sm">{language === 'fr' ? 'Réduire' : 'Collapse'}</span>}
+          <PanelLeftClose className="w-4 h-4 text-slate-400" />
+          {!isCollapsed && <span className="text-slate-200 font-medium">{language === 'fr' ? 'Réduire' : 'Collapse'}</span>}
         </button>
       </div>
     </div>
