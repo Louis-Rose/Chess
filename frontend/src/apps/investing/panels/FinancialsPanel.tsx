@@ -96,7 +96,7 @@ export function FinancialsPanel() {
       <div className="flex flex-col items-center gap-2 mb-6 mt-8">
         <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Stocks Research</h2>
         <p className="text-slate-500 dark:text-slate-400 text-lg italic">
-          {language === 'fr' ? 'Recherchez des actions S&P 500' : 'Search S&P 500 stocks'}
+          {language === 'fr' ? 'Recherchez des actions' : 'Search stocks'}
         </p>
       </div>
 
@@ -111,7 +111,7 @@ export function FinancialsPanel() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
-                placeholder={language === 'fr' ? 'Rechercher S&P 500...' : 'Search S&P 500 stocks...'}
+                placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
                 value={stockSearch}
                 onChange={(e) => setStockSearch(e.target.value)}
                 onFocus={() => setShowStockDropdown(true)}

@@ -143,7 +143,7 @@ export function WatchlistPanel() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder={language === 'fr' ? 'Rechercher S&P 500...' : 'Search S&P 500 stocks...'}
+                  placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
                   value={stockSearch}
                   onChange={(e) => setStockSearch(e.target.value)}
                   onFocus={() => stockSearch && setShowStockDropdown(stockResults.length > 0)}
