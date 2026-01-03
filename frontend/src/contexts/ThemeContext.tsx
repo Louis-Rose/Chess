@@ -27,17 +27,28 @@ function applyTheme(theme: 'light' | 'dark') {
   }
 }
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const saved = localStorage.getItem('theme');
-    return (saved as Theme) || 'system';
-  });
+// Get initial theme and apply it synchronously to prevent flash
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'system';
+  const saved = localStorage.getItem('theme');
+  return (saved as Theme) || 'system';
+}
 
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('theme') as Theme;
-    if (saved === 'light' || saved === 'dark') return saved;
-    return getSystemTheme();
-  });
+function getInitialResolvedTheme(theme: Theme): 'light' | 'dark' {
+  if (theme === 'light' || theme === 'dark') return theme;
+  return getSystemTheme();
+}
+
+// Apply theme immediately on module load to prevent flash
+const initialTheme = getInitialTheme();
+const initialResolved = getInitialResolvedTheme(initialTheme);
+if (typeof window !== 'undefined') {
+  applyTheme(initialResolved);
+}
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>(initialTheme);
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(initialResolved);
 
   // Apply theme on mount and when theme changes
   useEffect(() => {
