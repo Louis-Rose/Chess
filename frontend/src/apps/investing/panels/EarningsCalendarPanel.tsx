@@ -68,7 +68,7 @@ export function EarningsCalendarPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 py-4 -mx-4 px-4 mt-8">
+      <div className="sticky top-0 z-20 bg-slate-200 dark:bg-slate-800 py-4 -mx-4 px-4 mt-8">
         <div className="flex flex-col items-center gap-2">
           <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
             {language === 'fr' ? 'Calendrier des Résultats' : 'Earnings Calendar'}
@@ -97,10 +97,10 @@ export function EarningsCalendarPanel() {
             </p>
           </div>
         ) : data?.earnings && data.earnings.length > 0 ? (
-          <div className="bg-white dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
               <table className="w-full table-fixed">
-                <thead className="sticky top-0 bg-white dark:bg-slate-700">
+                <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
                   <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
                     <th className="pb-3 pl-2 font-semibold w-1/5">Ticker</th>
                     <th className="pb-3 font-semibold w-1/5">
@@ -220,7 +220,7 @@ export function EarningsCalendarPanel() {
             </div>
           </div>
         ) : (
-          <div className="bg-white dark:bg-slate-700 rounded-xl p-12 text-center shadow-sm dark:shadow-none">
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-12 text-center shadow-sm dark:shadow-none">
             <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-4" />
             <p className="text-slate-600 dark:text-slate-300 text-lg mb-2">
               {language === 'fr'

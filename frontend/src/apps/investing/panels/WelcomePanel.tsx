@@ -55,7 +55,7 @@ export function InvestingWelcomePanel() {
           {/* My Portfolio */}
           <button
             onClick={() => navigate('/investing/portfolio')}
-            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-green-500 transition-colors cursor-pointer text-left"
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 hover:border-green-500 transition-colors cursor-pointer text-left"
           >
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
@@ -71,7 +71,7 @@ export function InvestingWelcomePanel() {
           {/* My Watchlist */}
           <button
             onClick={() => navigate('/investing/watchlist')}
-            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-blue-500 transition-colors cursor-pointer text-left"
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 hover:border-blue-500 transition-colors cursor-pointer text-left"
           >
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -87,7 +87,7 @@ export function InvestingWelcomePanel() {
           {/* Earnings Calendar */}
           <button
             onClick={() => navigate('/investing/earnings')}
-            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-amber-500 transition-colors cursor-pointer text-left"
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 hover:border-amber-500 transition-colors cursor-pointer text-left"
           >
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-amber-600 rounded-lg flex items-center justify-center">
@@ -103,7 +103,7 @@ export function InvestingWelcomePanel() {
           {/* Financials */}
           <button
             onClick={() => navigate('/investing/financials')}
-            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-purple-500 transition-colors cursor-pointer text-left"
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 hover:border-purple-500 transition-colors cursor-pointer text-left"
           >
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">

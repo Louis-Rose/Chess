@@ -13,7 +13,7 @@ export function InvestingLayout() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-800 font-sans text-slate-900 dark:text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-slate-200 dark:bg-slate-800 font-sans text-slate-900 dark:text-slate-100 flex flex-col md:flex-row">
       {/* Mobile header: visible on mobile, hidden on md+ */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
         <Link to="/investing" className="flex items-center gap-2">

@@ -133,7 +133,7 @@ export function WatchlistPanel() {
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Add Company */}
-        <div className="bg-white dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
             {language === 'fr' ? 'Ajouter une entreprise à ma watchlist' : 'Add a company to my watchlist'}
           </h3>
@@ -202,7 +202,7 @@ export function WatchlistPanel() {
         </div>
 
         {/* Watchlist */}
-        <div className="bg-white dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
             {language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}
             {watchlist.length > 0 && <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">({watchlist.length})</span>}
@@ -229,7 +229,7 @@ export function WatchlistPanel() {
                 return (
                   <div
                     key={ticker}
-                    className="flex items-center bg-white dark:bg-slate-600 rounded-lg px-4 py-3 border border-slate-200 dark:border-slate-500 gap-3"
+                    className="flex items-center bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-3 border border-slate-300 dark:border-slate-500 gap-3"
                   >
                     <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-500 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {logoUrl && (

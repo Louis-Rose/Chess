@@ -121,7 +121,7 @@ export function AdminPanel() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* User Growth Chart */}
         {!isLoading && !error && chartData.length > 0 && (
-          <div className="bg-white dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <div className="flex items-center gap-3 mb-4">
               <TrendingUp className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
@@ -191,7 +191,7 @@ export function AdminPanel() {
         )}
 
         {/* Users List */}
-        <div className="bg-white dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <div className="flex items-center gap-3 mb-4">
             <Users className="w-5 h-5 text-slate-600 dark:text-slate-300" />
             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
@@ -212,7 +212,7 @@ export function AdminPanel() {
           ) : data?.users && data.users.length > 0 ? (
             <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
               <table className="w-full">
-                <thead className="sticky top-0 bg-white dark:bg-slate-700">
+                <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
                   <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
                     <th className="pb-3 pl-2">ID</th>
                     <th className="pb-3">{language === 'fr' ? 'Utilisateur' : 'User'}</th>
