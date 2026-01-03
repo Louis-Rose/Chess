@@ -531,27 +531,27 @@ export function PortfolioPanel() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="sticky top-0 z-20 bg-slate-200 dark:bg-slate-900 py-4 -mx-4 px-4 mt-8">
         <div className="flex flex-col items-center gap-2">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{t('portfolio.title')}</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-lg italic">{t('portfolio.subtitle')}</p>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-800">{t('portfolio.title')}</h2>
+          <p className="text-slate-500 dark:text-slate-500 text-lg italic">{t('portfolio.subtitle')}</p>
           <div className="flex items-center gap-4 mt-2">
             {/* Currency Toggle */}
             <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-white/20">
               <button
                 onClick={() => setCurrency('EUR')}
-                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-white text-slate-600 dark:text-slate-600 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
               >
                 EUR €
               </button>
               <button
                 onClick={() => setCurrency('USD')}
-                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-white text-slate-600 dark:text-slate-600 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
               >
                 USD $
               </button>
             </div>
             <button
               onClick={() => setPrivateMode(!privateMode)}
-              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${privateMode ? 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-200' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${privateMode ? 'bg-slate-300 dark:bg-slate-100 text-slate-700 dark:text-slate-200' : 'bg-slate-200 dark:bg-white text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
             >
               {privateMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               <span>{t('portfolio.privateMode')}</span>
@@ -562,7 +562,7 @@ export function PortfolioPanel() {
 
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Action Buttons Row */}
-        <div className="bg-slate-50 dark:bg-slate-800 backdrop-blur rounded-xl p-4 dark:border dark:border-white/20">
+        <div className="bg-slate-50 dark:bg-white backdrop-blur rounded-xl p-4 dark:border dark:border-white/20">
           <div className="flex flex-wrap justify-center gap-12">
             <button
               onClick={() => setShowAccounts(!showAccounts)}
@@ -600,10 +600,10 @@ export function PortfolioPanel() {
 
         {/* Investment Accounts Section - Content */}
         {showAccounts && (
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6">
+          <div className="bg-slate-50 dark:bg-white rounded-xl p-6">
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-3">
-                    <Building2 className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                    <Building2 className="w-5 h-5 text-slate-600 dark:text-slate-600" />
                     <h3 className="text-xl font-bold text-slate-800">{t('accounts.title')}</h3>
                     <span className="text-slate-500 text-sm">({accounts.length})</span>
                   </div>
@@ -791,10 +791,10 @@ export function PortfolioPanel() {
 
         {/* Transaction History - Only when account selected */}
         {selectedAccountId && showTransactions && (
-        <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6">
+        <div className="bg-slate-50 dark:bg-white rounded-xl p-6">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('transactions.title')}</h3>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-800">{t('transactions.title')}</h3>
               {uniqueTickers.length > 0 && (
                 <select
                   value={filterTicker}
@@ -1001,7 +1001,7 @@ export function PortfolioPanel() {
 
         {/* Summary Cards - Single row */}
         {selectedAccountId && compositionData && hasHoldings && (
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
+          <div className="bg-slate-50 dark:bg-white rounded-xl p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {(() => {
                 // In private mode, scale all values to assume 10,000 cost basis
@@ -1085,8 +1085,8 @@ export function PortfolioPanel() {
 
         {/* Portfolio Composition */}
         {selectedAccountId && hasHoldings && (
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6">
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-6">{t('holdings.title')}</h3>
+          <div className="bg-slate-50 dark:bg-white rounded-xl p-6">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-800 mb-6">{t('holdings.title')}</h3>
 
             {compositionLoading ? (
               <div className="flex justify-center py-12">
@@ -1180,9 +1180,9 @@ export function PortfolioPanel() {
 
         {/* Portfolio Performance */}
         {selectedAccountId && hasHoldings && (
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 md:p-6">
+          <div className="bg-slate-50 dark:bg-white rounded-xl p-4 md:p-6">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">{t('performance.title')}</h3>
+              <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-800">{t('performance.title')}</h3>
               <button
                 onClick={downloadChart}
                 disabled={isDownloading}
@@ -1345,9 +1345,9 @@ export function PortfolioPanel() {
               return (
               <>
                 {/* Downloadable area: title + summary + chart */}
-                <div ref={chartContainerRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
+                <div ref={chartContainerRef} className="bg-slate-100 dark:bg-slate-100 rounded-xl p-4">
                   {/* Title for the downloaded image */}
-                  <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
+                  <h4 className="text-lg font-bold text-slate-800 dark:text-slate-800 text-center mb-4">
                     {language === 'fr' ? 'Performance du Portefeuille' : 'Portfolio Performance'}
                   </h4>
 
