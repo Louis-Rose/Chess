@@ -100,7 +100,7 @@ export function InvestingWelcomePanel() {
             </p>
           </button>
 
-          {/* Financials */}
+          {/* Stocks Research */}
           <button
             onClick={() => navigate('/investing/financials')}
             className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 hover:border-purple-500 transition-colors cursor-pointer text-left"
@@ -109,7 +109,7 @@ export function InvestingWelcomePanel() {
               <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Financials</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Stocks Research</h3>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm">
               P/E ratios, market cap, and earnings growth for your watchlist.
