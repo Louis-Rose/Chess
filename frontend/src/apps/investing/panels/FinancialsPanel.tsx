@@ -3,11 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { TrendingUp, Search, X, Loader2, Eye } from 'lucide-react';
+import { TrendingUp, Search, X, Loader2, Eye, ChevronRight, Layers } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { searchAllStocks, findStockByTicker, type Stock } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
+import { GICS_SECTORS, type GICSSector, type GICSIndustryGroup, type GICSIndustry, type GICSSubIndustry } from '../utils/gics';
 
 interface MarketCapData {
   ticker: string;
@@ -43,6 +44,12 @@ export function FinancialsPanel() {
   const [showStockDropdown, setShowStockDropdown] = useState(false);
   const [selectedTickers, setSelectedTickers] = useState<string[]>([]);
   const stockDropdownRef = useRef<HTMLDivElement>(null);
+
+  // GICS state
+  const [selectedSector, setSelectedSector] = useState<GICSSector | null>(null);
+  const [selectedIndustryGroup, setSelectedIndustryGroup] = useState<GICSIndustryGroup | null>(null);
+  const [selectedIndustry, setSelectedIndustry] = useState<GICSIndustry | null>(null);
+  const [selectedSubIndustry, setSelectedSubIndustry] = useState<GICSSubIndustry | null>(null);
 
   // Fetch watchlist
   const { data: watchlistData } = useQuery({
@@ -87,6 +94,36 @@ export function FinancialsPanel() {
 
   const handleRemoveStock = (ticker: string) => {
     setSelectedTickers(selectedTickers.filter(t => t !== ticker));
+  };
+
+  // GICS handlers
+  const handleSelectSector = (sector: GICSSector) => {
+    setSelectedSector(sector);
+    setSelectedIndustryGroup(null);
+    setSelectedIndustry(null);
+    setSelectedSubIndustry(null);
+  };
+
+  const handleSelectIndustryGroup = (group: GICSIndustryGroup) => {
+    setSelectedIndustryGroup(group);
+    setSelectedIndustry(null);
+    setSelectedSubIndustry(null);
+  };
+
+  const handleSelectIndustry = (industry: GICSIndustry) => {
+    setSelectedIndustry(industry);
+    setSelectedSubIndustry(null);
+  };
+
+  const handleSelectSubIndustry = (subIndustry: GICSSubIndustry) => {
+    setSelectedSubIndustry(subIndustry);
+  };
+
+  const handleResetGICS = () => {
+    setSelectedSector(null);
+    setSelectedIndustryGroup(null);
+    setSelectedIndustry(null);
+    setSelectedSubIndustry(null);
   };
 
   const marketCaps = marketCapData?.stocks || {};
@@ -207,6 +244,162 @@ export function FinancialsPanel() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* GICS Industry Search */}
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-purple-600" />
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                {language === 'fr' ? 'Rechercher par industrie (GICS)' : 'Search by industry (GICS)'}
+              </h3>
+            </div>
+            {selectedSector && (
+              <button
+                onClick={handleResetGICS}
+                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+              >
+                {language === 'fr' ? 'Réinitialiser' : 'Reset'}
+              </button>
+            )}
+          </div>
+
+          {/* Breadcrumb */}
+          {selectedSector && (
+            <div className="flex items-center gap-1 text-sm mb-4 flex-wrap">
+              <button
+                onClick={handleResetGICS}
+                className="text-purple-600 hover:underline"
+              >
+                GICS
+              </button>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+              <button
+                onClick={() => { setSelectedIndustryGroup(null); setSelectedIndustry(null); setSelectedSubIndustry(null); }}
+                className={`${selectedIndustryGroup ? 'text-purple-600 hover:underline' : 'text-slate-700 dark:text-slate-300 font-medium'}`}
+              >
+                {selectedSector.name}
+              </button>
+              {selectedIndustryGroup && (
+                <>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                  <button
+                    onClick={() => { setSelectedIndustry(null); setSelectedSubIndustry(null); }}
+                    className={`${selectedIndustry ? 'text-purple-600 hover:underline' : 'text-slate-700 dark:text-slate-300 font-medium'}`}
+                  >
+                    {selectedIndustryGroup.name}
+                  </button>
+                </>
+              )}
+              {selectedIndustry && (
+                <>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                  <button
+                    onClick={() => { setSelectedSubIndustry(null); }}
+                    className={`${selectedSubIndustry ? 'text-purple-600 hover:underline' : 'text-slate-700 dark:text-slate-300 font-medium'}`}
+                  >
+                    {selectedIndustry.name}
+                  </button>
+                </>
+              )}
+              {selectedSubIndustry && (
+                <>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">
+                    {selectedSubIndustry.name}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Level 1: Sectors */}
+          {!selectedSector && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {GICS_SECTORS.map((sector) => (
+                <button
+                  key={sector.code}
+                  onClick={() => handleSelectSector(sector)}
+                  className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
+                >
+                  <span className="text-xs text-slate-400 dark:text-slate-400">{sector.code}</span>
+                  <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{sector.name}</p>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Level 2: Industry Groups */}
+          {selectedSector && !selectedIndustryGroup && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {selectedSector.industryGroups.map((group) => (
+                <button
+                  key={group.code}
+                  onClick={() => handleSelectIndustryGroup(group)}
+                  className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left flex items-center justify-between"
+                >
+                  <div>
+                    <span className="text-xs text-slate-400 dark:text-slate-400">{group.code}</span>
+                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{group.name}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Level 3: Industries */}
+          {selectedIndustryGroup && !selectedIndustry && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {selectedIndustryGroup.industries.map((industry) => (
+                <button
+                  key={industry.code}
+                  onClick={() => handleSelectIndustry(industry)}
+                  className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left flex items-center justify-between"
+                >
+                  <div>
+                    <span className="text-xs text-slate-400 dark:text-slate-400">{industry.code}</span>
+                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{industry.name}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Level 4: Sub-Industries */}
+          {selectedIndustry && !selectedSubIndustry && (
+            <div className="grid grid-cols-1 gap-2">
+              {selectedIndustry.subIndustries.map((subIndustry) => (
+                <button
+                  key={subIndustry.code}
+                  onClick={() => handleSelectSubIndustry(subIndustry)}
+                  className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
+                >
+                  <span className="text-xs text-slate-400 dark:text-slate-400">{subIndustry.code}</span>
+                  <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{subIndustry.name}</p>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Selected Sub-Industry Info */}
+          {selectedSubIndustry && (
+            <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-mono bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded">
+                  {selectedSubIndustry.code}
+                </span>
+              </div>
+              <p className="font-semibold text-purple-900 dark:text-purple-100">{selectedSubIndustry.name}</p>
+              <p className="text-sm text-purple-700 dark:text-purple-300 mt-2">
+                {language === 'fr'
+                  ? 'Fonctionnalité à venir : liste des actions dans cette sous-industrie'
+                  : 'Coming soon: list of stocks in this sub-industry'}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Selected Stocks */}
