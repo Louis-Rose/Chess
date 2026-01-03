@@ -133,8 +133,8 @@ export function WatchlistPanel() {
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Add Company */}
-        <div className="bg-white dark:bg-slate-100 rounded-xl p-6 shadow-sm dark:shadow-none">
-          <h3 className="text-xl font-bold text-slate-800 mb-4">
+        <div className="bg-white dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
             {language === 'fr' ? 'Ajouter une entreprise à ma watchlist' : 'Add a company to my watchlist'}
           </h3>
           <form onSubmit={handleAddSymbol} className="flex gap-2">
@@ -202,10 +202,10 @@ export function WatchlistPanel() {
         </div>
 
         {/* Watchlist */}
-        <div className="bg-white dark:bg-slate-100 rounded-xl p-6 shadow-sm dark:shadow-none">
-          <h3 className="text-xl font-bold text-slate-800 mb-4">
+        <div className="bg-white dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
             {language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}
-            {watchlist.length > 0 && <span className="text-slate-500 font-normal ml-2">({watchlist.length})</span>}
+            {watchlist.length > 0 && <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">({watchlist.length})</span>}
           </h3>
           {watchlist.length === 0 ? (
             <div className="text-center py-8">
@@ -229,9 +229,9 @@ export function WatchlistPanel() {
                 return (
                   <div
                     key={ticker}
-                    className="flex items-center bg-white rounded-lg px-4 py-3 border border-slate-200 gap-3"
+                    className="flex items-center bg-white dark:bg-slate-600 rounded-lg px-4 py-3 border border-slate-200 dark:border-slate-500 gap-3"
                   >
-                    <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-500 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {logoUrl && (
                         <img
                           src={logoUrl}
@@ -246,11 +246,11 @@ export function WatchlistPanel() {
                         />
                       )}
                       {!logoUrl && (
-                        <span className="text-xs font-bold text-slate-500">{ticker.slice(0, 2)}</span>
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-300">{ticker.slice(0, 2)}</span>
                       )}
                     </div>
-                    <span className="font-bold text-slate-800 w-16 flex-shrink-0">{ticker}</span>
-                    <span className="text-slate-600 text-sm truncate flex-grow">{displayName}</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-100 w-16 flex-shrink-0">{ticker}</span>
+                    <span className="text-slate-600 dark:text-slate-300 text-sm truncate flex-grow">{displayName}</span>
                     <button
                       onClick={() => handleRemoveSymbol(ticker)}
                       disabled={removeMutation.isPending}

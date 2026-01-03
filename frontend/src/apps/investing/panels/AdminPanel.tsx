@@ -121,10 +121,10 @@ export function AdminPanel() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* User Growth Chart */}
         {!isLoading && !error && chartData.length > 0 && (
-          <div className="bg-white dark:bg-slate-100 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <div className="bg-white dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <div className="flex items-center gap-3 mb-4">
-              <TrendingUp className="w-5 h-5 text-slate-600" />
-              <h3 className="text-xl font-bold text-slate-800">
+              <TrendingUp className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
                 {language === 'fr' ? 'Croissance des utilisateurs' : 'User Growth'}
               </h3>
             </div>
@@ -191,12 +191,12 @@ export function AdminPanel() {
         )}
 
         {/* Users List */}
-        <div className="bg-white dark:bg-slate-100 rounded-xl p-6 shadow-sm dark:shadow-none">
+        <div className="bg-white dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <div className="flex items-center gap-3 mb-4">
-            <Users className="w-5 h-5 text-slate-600" />
-            <h3 className="text-xl font-bold text-slate-800">
+            <Users className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
               {language === 'fr' ? 'Utilisateurs inscrits' : 'Registered Users'}
-              {data && <span className="text-slate-500 font-normal ml-2">({data.total})</span>}
+              {data && <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">({data.total})</span>}
             </h3>
           </div>
 
@@ -212,8 +212,8 @@ export function AdminPanel() {
           ) : data?.users && data.users.length > 0 ? (
             <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
               <table className="w-full">
-                <thead className="sticky top-0 bg-white dark:bg-slate-100">
-                  <tr className="text-left text-slate-600 text-sm border-b-2 border-slate-300">
+                <thead className="sticky top-0 bg-white dark:bg-slate-700">
+                  <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
                     <th className="pb-3 pl-2">ID</th>
                     <th className="pb-3">{language === 'fr' ? 'Utilisateur' : 'User'}</th>
                     <th className="pb-3">Email</th>
@@ -223,8 +223,8 @@ export function AdminPanel() {
                 </thead>
                 <tbody>
                   {data.users.map((u) => (
-                    <tr key={u.id} className="border-b border-slate-200 hover:bg-slate-50">
-                      <td className="py-3 pl-2 text-slate-500">#{u.id}</td>
+                    <tr key={u.id} className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600">
+                      <td className="py-3 pl-2 text-slate-500 dark:text-slate-400">#{u.id}</td>
                       <td className="py-3">
                         <div className="flex items-center gap-3">
                           {u.picture ? (
@@ -234,12 +234,12 @@ export function AdminPanel() {
                               className="w-8 h-8 rounded-full"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-slate-300" />
+                            <div className="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-500" />
                           )}
-                          <span className="font-medium text-slate-800">{u.name || '-'}</span>
+                          <span className="font-medium text-slate-800 dark:text-slate-100">{u.name || '-'}</span>
                         </div>
                       </td>
-                      <td className="py-3 text-slate-600">{u.email}</td>
+                      <td className="py-3 text-slate-600 dark:text-slate-300">{u.email}</td>
                       <td className="py-3 text-center">
                         {u.is_admin ? (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
@@ -250,7 +250,7 @@ export function AdminPanel() {
                           <span className="text-slate-400">-</span>
                         )}
                       </td>
-                      <td className="py-3 text-slate-500 text-sm">
+                      <td className="py-3 text-slate-500 dark:text-slate-400 text-sm">
                         {new Date(u.created_at).toLocaleDateString(
                           language === 'fr' ? 'fr-FR' : 'en-US',
                           { day: 'numeric', month: 'short', year: 'numeric' }

@@ -97,11 +97,11 @@ export function EarningsCalendarPanel() {
             </p>
           </div>
         ) : data?.earnings && data.earnings.length > 0 ? (
-          <div className="bg-white dark:bg-slate-100 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <div className="bg-white dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
               <table className="w-full table-fixed">
-                <thead className="sticky top-0 bg-white dark:bg-slate-100">
-                  <tr className="text-left text-slate-600 text-sm border-b-2 border-slate-300">
+                <thead className="sticky top-0 bg-white dark:bg-slate-700">
+                  <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
                     <th className="pb-3 pl-2 font-semibold w-1/5">Ticker</th>
                     <th className="pb-3 font-semibold w-1/5">
                       {language === 'fr' ? 'Date' : 'Date'}
@@ -121,11 +121,11 @@ export function EarningsCalendarPanel() {
                   {data.earnings.map((item) => (
                     <tr
                       key={item.ticker}
-                      className="border-b border-slate-200 hover:bg-slate-50 transition-colors"
+                      className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
                     >
                       <td className="py-4 pl-2">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-800">{item.ticker}</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-100">{item.ticker}</span>
                           {item.source === 'portfolio' ? (
                             <span title={language === 'fr' ? 'Portefeuille' : 'Portfolio'}>
                               <Briefcase className="w-3 h-3 text-green-600" />
@@ -139,7 +139,7 @@ export function EarningsCalendarPanel() {
                       </td>
                       <td className="py-4">
                         {item.next_earnings_date ? (
-                          <span className="text-slate-700">
+                          <span className="text-slate-700 dark:text-slate-200">
                             {new Date(item.next_earnings_date).toLocaleDateString(
                               language === 'fr' ? 'fr-FR' : 'en-US',
                               { day: 'numeric', month: 'long', year: 'numeric' }
@@ -153,7 +153,7 @@ export function EarningsCalendarPanel() {
                       </td>
                       <td className="py-4 text-center">
                         {item.remaining_days !== null ? (
-                          <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-full text-sm font-medium bg-slate-200 text-slate-700">
+                          <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-full text-sm font-medium bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200">
                             {item.remaining_days} {language === 'fr' ? 'jours' : 'days'}
                           </span>
                         ) : (
@@ -191,9 +191,9 @@ export function EarningsCalendarPanel() {
               </table>
             </div>
 
-            <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-200/50 rounded-lg">
-              <p className="text-sm text-slate-500">
-                <span className="font-medium text-slate-600">
+            <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-600 rounded-lg">
+              <p className="text-sm text-slate-500 dark:text-slate-300">
+                <span className="font-medium text-slate-600 dark:text-slate-200">
                   {language === 'fr' ? 'Légende : ' : 'Legend: '}
                 </span>
                 <Briefcase className="w-4 h-4 text-green-600 inline-block mx-1" />
@@ -220,9 +220,9 @@ export function EarningsCalendarPanel() {
             </div>
           </div>
         ) : (
-          <div className="bg-white dark:bg-slate-100 rounded-xl p-12 text-center shadow-sm dark:shadow-none">
+          <div className="bg-white dark:bg-slate-700 rounded-xl p-12 text-center shadow-sm dark:shadow-none">
             <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-600 text-lg mb-2">
+            <p className="text-slate-600 dark:text-slate-300 text-lg mb-2">
               {language === 'fr'
                 ? 'Aucune action à suivre'
                 : 'No stocks to track'}

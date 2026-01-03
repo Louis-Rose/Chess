@@ -102,8 +102,8 @@ export function FinancialsPanel() {
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Search Bar */}
-        <div className="bg-white dark:bg-slate-100 rounded-xl p-6 shadow-sm dark:shadow-none">
-          <h3 className="text-xl font-bold text-slate-800 mb-4">
+        <div className="bg-white dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
             {language === 'fr' ? 'Rechercher une action' : 'Search for a stock'}
           </h3>
           <div className="relative" ref={stockDropdownRef}>
@@ -211,14 +211,14 @@ export function FinancialsPanel() {
 
         {/* Selected Stocks */}
         {selectedTickers.length > 0 && (
-          <div className="bg-white dark:bg-slate-100 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <div className="bg-white dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-slate-800">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
                 {language === 'fr' ? 'Actions sélectionnées' : 'Selected Stocks'}
-                <span className="text-slate-500 font-normal ml-2">({selectedTickers.length})</span>
+                <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">({selectedTickers.length})</span>
               </h3>
               {marketCapLoading && (
-                <div className="flex items-center gap-2 text-slate-500">
+                <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span className="text-sm">{language === 'fr' ? 'Chargement...' : 'Loading...'}</span>
                 </div>
@@ -235,9 +235,9 @@ export function FinancialsPanel() {
                 return (
                   <div
                     key={ticker}
-                    className="flex items-center bg-white rounded-lg px-4 py-3 border border-slate-200 gap-3"
+                    className="flex items-center bg-white dark:bg-slate-600 rounded-lg px-4 py-3 border border-slate-200 dark:border-slate-500 gap-3"
                   >
-                    <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-500 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {logoUrl && (
                         <img
                           src={logoUrl}
@@ -252,12 +252,12 @@ export function FinancialsPanel() {
                         />
                       )}
                       {!logoUrl && (
-                        <span className="text-xs font-bold text-slate-500">{ticker.slice(0, 2)}</span>
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-300">{ticker.slice(0, 2)}</span>
                       )}
                     </div>
-                    <span className="font-bold text-slate-800 w-16 flex-shrink-0">{ticker}</span>
-                    <span className="text-slate-600 text-sm truncate flex-1">{displayName}</span>
-                    <span className="text-slate-800 font-semibold flex-shrink-0">
+                    <span className="font-bold text-slate-800 dark:text-slate-100 w-16 flex-shrink-0">{ticker}</span>
+                    <span className="text-slate-600 dark:text-slate-300 text-sm truncate flex-1">{displayName}</span>
+                    <span className="text-slate-800 dark:text-slate-100 font-semibold flex-shrink-0">
                       {isLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
                       ) : (
@@ -280,7 +280,7 @@ export function FinancialsPanel() {
 
         {/* Empty State */}
         {selectedTickers.length === 0 && (
-          <div className="bg-white dark:bg-slate-100 rounded-xl p-12 text-center shadow-sm dark:shadow-none">
+          <div className="bg-white dark:bg-slate-700 rounded-xl p-12 text-center shadow-sm dark:shadow-none">
             <TrendingUp className="w-16 h-16 text-slate-400 mx-auto mb-4" />
             <p className="text-slate-500">
               {language === 'fr'
