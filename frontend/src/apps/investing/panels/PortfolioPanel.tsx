@@ -17,7 +17,7 @@ import { toPng } from 'html-to-image';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
-import { searchAllStocks, findStockByTicker, type Stock } from '../utils/allStocks';
+import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 
 interface Transaction {
   id: number;
@@ -228,6 +228,7 @@ export function PortfolioPanel() {
   const [stockSearch, setStockSearch] = useState('');
   const [stockResults, setStockResults] = useState<Stock[]>([]);
   const [showStockDropdown, setShowStockDropdown] = useState(false);
+  const [indexFilter, setIndexFilter] = useState<IndexFilter>({ sp500: true, stoxx600: true });
   const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(() => {
     const saved = localStorage.getItem('selectedAccountId');
     if (saved && saved !== 'none') return parseInt(saved, 10);
@@ -415,10 +416,10 @@ export function PortfolioPanel() {
 
   // Stock search effect
   useEffect(() => {
-    const results = searchAllStocks(stockSearch);
+    const results = searchAllStocks(stockSearch, indexFilter);
     setStockResults(results);
     setShowStockDropdown(results.length > 0 && stockSearch.length > 0);
-  }, [stockSearch]);
+  }, [stockSearch, indexFilter]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -824,6 +825,28 @@ export function PortfolioPanel() {
           {/* Add Transaction Form */}
           {showAddForm && (
             <div className="bg-white rounded-lg p-4 mb-6 border border-slate-200">
+              {/* Index Filter Toggles */}
+              <div className="flex items-center gap-4 mb-3">
+                <span className="text-sm text-slate-500">{language === 'fr' ? 'Indices:' : 'Indices:'}</span>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={indexFilter.sp500}
+                    onChange={(e) => setIndexFilter({ ...indexFilter, sp500: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                  />
+                  <span className="text-sm text-slate-700">S&P 500</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={indexFilter.stoxx600}
+                    onChange={(e) => setIndexFilter({ ...indexFilter, stoxx600: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                  />
+                  <span className="text-sm text-slate-700">STOXX 600</span>
+                </label>
+              </div>
               <div className="flex gap-3 flex-wrap items-start">
                 {/* Stock search dropdown */}
                 <div className="relative flex-1 min-w-[200px]" ref={stockDropdownRef}>

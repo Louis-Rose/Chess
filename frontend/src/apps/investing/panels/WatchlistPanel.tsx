@@ -7,7 +7,7 @@ import { Eye, Plus, X, Loader2, Search } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
-import { searchAllStocks, findStockByTicker, type Stock } from '../utils/allStocks';
+import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 
 const fetchWatchlist = async (): Promise<{ symbols: string[] }> => {
@@ -30,6 +30,7 @@ export function WatchlistPanel() {
   const [stockSearch, setStockSearch] = useState('');
   const [stockResults, setStockResults] = useState<Stock[]>([]);
   const [showStockDropdown, setShowStockDropdown] = useState(false);
+  const [indexFilter, setIndexFilter] = useState<IndexFilter>({ sp500: true, stoxx600: true });
   const stockDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch watchlist from database
@@ -58,10 +59,10 @@ export function WatchlistPanel() {
 
   // Stock search effect
   useEffect(() => {
-    const results = searchAllStocks(stockSearch);
+    const results = searchAllStocks(stockSearch, indexFilter);
     setStockResults(results);
     setShowStockDropdown(results.length > 0 && stockSearch.length > 0);
-  }, [stockSearch]);
+  }, [stockSearch, indexFilter]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -137,6 +138,28 @@ export function WatchlistPanel() {
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
             {language === 'fr' ? 'Ajouter une entreprise à ma watchlist' : 'Add a company to my watchlist'}
           </h3>
+          {/* Index Filter Toggles */}
+          <div className="flex items-center gap-4 mb-3">
+            <span className="text-sm text-slate-500 dark:text-slate-400">{language === 'fr' ? 'Indices:' : 'Indices:'}</span>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={indexFilter.sp500}
+                onChange={(e) => setIndexFilter({ ...indexFilter, sp500: e.target.checked })}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">S&P 500</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={indexFilter.stoxx600}
+                onChange={(e) => setIndexFilter({ ...indexFilter, stoxx600: e.target.checked })}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">STOXX 600</span>
+            </label>
+          </div>
           <form onSubmit={handleAddSymbol} className="flex gap-2">
             <div className="relative flex-1" ref={stockDropdownRef}>
               <div className="relative">

@@ -5,6 +5,12 @@ import { STOXX600_STOCKS } from './stoxx600';
 // Re-export the Stock type
 export type { Stock };
 
+// Index filter options
+export interface IndexFilter {
+  sp500: boolean;
+  stoxx600: boolean;
+}
+
 // Combined list of all stocks (S&P 500 + STOXX Europe 600)
 // Note: Some companies may appear in both indices (e.g., dual-listed)
 export const ALL_STOCKS: Stock[] = [...SP500_STOCKS, ...STOXX600_STOCKS];
@@ -12,11 +18,30 @@ export const ALL_STOCKS: Stock[] = [...SP500_STOCKS, ...STOXX600_STOCKS];
 // Export individual indices for reference
 export { SP500_STOCKS, STOXX600_STOCKS };
 
-// Unified search function across all indices
-export function searchAllStocks(query: string): Stock[] {
+// Get stocks based on filter
+function getFilteredStocks(filter?: IndexFilter): Stock[] {
+  // Default to all if no filter provided
+  if (!filter) {
+    return ALL_STOCKS;
+  }
+
+  // Return empty if both are unchecked
+  if (!filter.sp500 && !filter.stoxx600) {
+    return [];
+  }
+
+  const stocks: Stock[] = [];
+  if (filter.sp500) stocks.push(...SP500_STOCKS);
+  if (filter.stoxx600) stocks.push(...STOXX600_STOCKS);
+  return stocks;
+}
+
+// Unified search function across selected indices
+export function searchAllStocks(query: string, filter?: IndexFilter): Stock[] {
   if (!query.trim()) return [];
 
   const q = query.toLowerCase();
+  const stocksToSearch = getFilteredStocks(filter);
 
   // Separate matches into priority groups
   const exact: Stock[] = [];
@@ -26,7 +51,7 @@ export function searchAllStocks(query: string): Stock[] {
   // Use a Set to avoid duplicates (same ticker from different indices)
   const seenTickers = new Set<string>();
 
-  for (const stock of ALL_STOCKS) {
+  for (const stock of stocksToSearch) {
     if (seenTickers.has(stock.ticker)) continue;
 
     const tickerLower = stock.ticker.toLowerCase();

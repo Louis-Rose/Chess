@@ -6,7 +6,7 @@ import axios from 'axios';
 import { TrendingUp, Search, X, Loader2, Eye, ChevronRight, Layers } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { searchAllStocks, findStockByTicker, type Stock } from '../utils/allStocks';
+import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { GICS_SECTORS, type GICSSector, type GICSIndustryGroup, type GICSIndustry, type GICSSubIndustry } from '../utils/gics';
 
@@ -43,6 +43,7 @@ export function FinancialsPanel() {
   const [stockResults, setStockResults] = useState<Stock[]>([]);
   const [showStockDropdown, setShowStockDropdown] = useState(false);
   const [selectedTickers, setSelectedTickers] = useState<string[]>([]);
+  const [indexFilter, setIndexFilter] = useState<IndexFilter>({ sp500: true, stoxx600: true });
   const stockDropdownRef = useRef<HTMLDivElement>(null);
 
   // GICS state
@@ -69,9 +70,9 @@ export function FinancialsPanel() {
 
   // Stock search effect - only update results, don't auto-show dropdown
   useEffect(() => {
-    const results = searchAllStocks(stockSearch);
+    const results = searchAllStocks(stockSearch, indexFilter);
     setStockResults(results);
-  }, [stockSearch]);
+  }, [stockSearch, indexFilter]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -143,6 +144,28 @@ export function FinancialsPanel() {
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
             {language === 'fr' ? 'Rechercher une action' : 'Search for a stock'}
           </h3>
+          {/* Index Filter Toggles */}
+          <div className="flex items-center gap-4 mb-3">
+            <span className="text-sm text-slate-500 dark:text-slate-400">{language === 'fr' ? 'Indices:' : 'Indices:'}</span>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={indexFilter.sp500}
+                onChange={(e) => setIndexFilter({ ...indexFilter, sp500: e.target.checked })}
+                className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">S&P 500</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={indexFilter.stoxx600}
+                onChange={(e) => setIndexFilter({ ...indexFilter, stoxx600: e.target.checked })}
+                className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">STOXX 600</span>
+            </label>
+          </div>
           <div className="relative" ref={stockDropdownRef}>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
