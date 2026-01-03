@@ -161,7 +161,7 @@ export function InvestingSidebar() {
           className={`w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2' : 'px-3 py-2'} rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 transition-colors`}
           title={isCollapsed ? (language === 'fr' ? 'Développer' : 'Expand') : (language === 'fr' ? 'Réduire' : 'Collapse')}
         >
-          <PanelLeftClose className={`w-5 h-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
+          <PanelLeftClose className="w-5 h-5" />
           {!isCollapsed && <span className="text-sm">{language === 'fr' ? 'Réduire' : 'Collapse'}</span>}
         </button>
       </div>
