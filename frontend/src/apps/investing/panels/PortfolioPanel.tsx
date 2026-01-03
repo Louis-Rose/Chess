@@ -551,7 +551,7 @@ export function PortfolioPanel() {
             </div>
             <button
               onClick={() => setPrivateMode(!privateMode)}
-              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${privateMode ? 'bg-slate-300 dark:bg-slate-100 text-slate-700 dark:text-slate-200' : 'bg-slate-200 dark:bg-slate-100 text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${privateMode ? 'bg-slate-300 dark:bg-slate-200 text-slate-700 dark:text-slate-700' : 'bg-slate-200 dark:bg-slate-100 text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-700'}`}
             >
               {privateMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               <span>{t('portfolio.privateMode')}</span>
@@ -1414,7 +1414,7 @@ export function PortfolioPanel() {
                           <stop offset="100%" stopColor="#dc2626" stopOpacity={0.1} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
                       <XAxis
                         dataKey="date"
                         tickFormatter={(date) => {
