@@ -31,9 +31,9 @@ export function UserMenu({ collapsed = false }: UserMenuProps) {
         title={collapsed ? user.name || user.email : undefined}
       >
         {user.picture ? (
-          <img src={user.picture} alt="" className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
+          <img src={user.picture} alt="" className="w-8 h-8 min-w-[2rem] min-h-[2rem] rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+          <div className="w-8 h-8 min-w-[2rem] min-h-[2rem] rounded-full bg-blue-500 flex items-center justify-center text-white font-bold flex-shrink-0">
             {user.name?.charAt(0) || user.email.charAt(0)}
           </div>
         )}
