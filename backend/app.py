@@ -480,6 +480,63 @@ def get_user_activity(user_id):
     return jsonify({'activity': activity})
 
 
+@app.route('/api/admin/users/<int:user_id>', methods=['GET'])
+@admin_required
+def get_user_detail(user_id):
+    """Get detailed info for a specific user (admin only)."""
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at,
+                   COALESCE(SUM(a.minutes), 0) as total_minutes,
+                   MAX(a.last_ping) as last_active
+            FROM users u
+            LEFT JOIN user_activity a ON u.id = a.user_id
+            WHERE u.id = ?
+            GROUP BY u.id
+        ''', (user_id,))
+        user = cursor.fetchone()
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    return jsonify({'user': dict(user)})
+
+
+@app.route('/api/admin/users/<int:user_id>/watchlist', methods=['GET'])
+@admin_required
+def get_user_watchlist(user_id):
+    """Get a user's watchlist (admin only)."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT stock_ticker FROM watchlist WHERE user_id = ? ORDER BY created_at ASC',
+            (user_id,)
+        )
+        rows = cursor.fetchall()
+
+    symbols = [row['stock_ticker'] for row in rows]
+    return jsonify({'symbols': symbols})
+
+
+@app.route('/api/admin/users/<int:user_id>/portfolio', methods=['GET'])
+@admin_required
+def get_user_portfolio(user_id):
+    """Get a user's portfolio composition (admin only)."""
+    holdings = compute_holdings_from_transactions(user_id)
+
+    if not holdings:
+        return jsonify({
+            'holdings': [],
+            'total_value_usd': 0,
+            'total_value_eur': 0,
+        })
+
+    try:
+        composition = compute_portfolio_composition(holdings)
+        return jsonify(composition)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 # ============= INVESTING ROUTES =============
 
 from investing_utils import (

@@ -1,13 +1,13 @@
 // Admin panel - view registered users (admin only)
 
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown } from 'lucide-react';
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { Navigate } from 'react-router-dom';
 
 interface AdminUser {
   id: number;
@@ -26,11 +26,6 @@ interface AdminUsersResponse {
   total: number;
 }
 
-interface DailyActivity {
-  activity_date: string;
-  minutes: number;
-}
-
 type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes';
 type SortDirection = 'asc' | 'desc';
 
@@ -39,12 +34,8 @@ const fetchUsers = async (): Promise<AdminUsersResponse> => {
   return response.data;
 };
 
-const fetchUserActivity = async (userId: number): Promise<DailyActivity[]> => {
-  const response = await axios.get(`/api/admin/users/${userId}/activity`);
-  return response.data.activity;
-};
-
 export function AdminPanel() {
+  const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
 
@@ -57,16 +48,6 @@ export function AdminPanel() {
   // Sort state (default: most recently registered first)
   const [sortColumn, setSortColumn] = useState<SortColumn>('created_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-
-  // Expanded user for activity details
-  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
-
-  // Fetch activity for expanded user
-  const { data: activityData, isLoading: activityLoading } = useQuery({
-    queryKey: ['admin-user-activity', expandedUserId],
-    queryFn: () => fetchUserActivity(expandedUserId!),
-    enabled: expandedUserId !== null,
-  });
 
   // Handle column header click
   const handleSort = (column: SortColumn) => {
@@ -319,98 +300,52 @@ export function AdminPanel() {
                 </thead>
                 <tbody>
                   {sortedUsers.map((u) => (
-                    <React.Fragment key={u.id}>
-                      <tr
-                        className={`border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${expandedUserId === u.id ? 'bg-slate-100 dark:bg-slate-600' : ''}`}
-                        onClick={() => setExpandedUserId(expandedUserId === u.id ? null : u.id)}
-                      >
-                        <td className="py-3 pl-2 text-slate-500 dark:text-slate-300">#{u.id}</td>
-                        <td className="py-3">
-                          <div className="flex items-center gap-3">
-                            {u.picture ? (
-                              <img
-                                src={u.picture}
-                                alt={u.name}
-                                className="w-8 h-8 rounded-full"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-500" />
-                            )}
-                            <span className="font-medium text-slate-800 dark:text-slate-100">{u.name || '-'}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 text-slate-500 dark:text-slate-300 text-sm">
-                          {new Date(u.created_at).toLocaleDateString(
-                            language === 'fr' ? 'fr-FR' : 'en-US',
-                            { day: 'numeric', month: 'short', year: 'numeric' }
-                          )}
-                        </td>
-                        <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-300">
-                          {u.last_active ? (
-                            (() => {
-                              const days = Math.floor((Date.now() - new Date(u.last_active).getTime()) / (1000 * 60 * 60 * 24));
-                              if (days === 0) return language === 'fr' ? "Aujourd'hui" : 'Today';
-                              if (days === 1) return language === 'fr' ? 'Hier' : 'Yesterday';
-                              return language === 'fr' ? `${days}j` : `${days}d`;
-                            })()
+                    <tr
+                      key={u.id}
+                      className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer"
+                      onClick={() => navigate(`/investing/admin/user/${u.id}`)}
+                    >
+                      <td className="py-3 pl-2 text-slate-500 dark:text-slate-300">#{u.id}</td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-3">
+                          {u.picture ? (
+                            <img
+                              src={u.picture}
+                              alt={u.name}
+                              className="w-8 h-8 rounded-full"
+                            />
                           ) : (
-                            <span className="text-slate-300">-</span>
+                            <div className="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-500" />
                           )}
-                        </td>
-                        <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-300">
-                          {u.total_minutes > 0 ? (
-                            u.total_minutes >= 60
-                              ? `${Math.floor(u.total_minutes / 60)}h${String(u.total_minutes % 60).padStart(2, '0')}`
-                              : `${u.total_minutes}m`
-                          ) : '-'}
-                        </td>
-                      </tr>
-                      {expandedUserId === u.id && (
-                        <tr className="bg-slate-100 dark:bg-slate-600">
-                          <td colSpan={5} className="px-4 py-3">
-                            {activityLoading ? (
-                              <div className="flex justify-center py-2">
-                                <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
-                              </div>
-                            ) : activityData && activityData.length > 0 ? (
-                              <div className="h-[200px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <BarChart data={(() => {
-                                    const threeMonthsAgo = new Date();
-                                    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-                                    const filtered = activityData.filter(d => new Date(d.activity_date) >= threeMonthsAgo);
-                                    return [...filtered].reverse();
-                                  })()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <XAxis
-                                      dataKey="activity_date"
-                                      tick={{ fontSize: 11 }}
-                                      tickFormatter={(date) => new Date(date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
-                                      stroke="#cbd5e1"
-                                    />
-                                    <YAxis tick={{ fontSize: 11 }} stroke="#cbd5e1" />
-                                    <Tooltip
-                                      contentStyle={{ backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e2e8f0', padding: '2px 8px', fontSize: '12px' }}
-                                      labelStyle={{ marginBottom: '-2px' }}
-                                      labelFormatter={(date) => new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
-                                      formatter={(value) => {
-                                        const mins = Number(value);
-                                        return [mins >= 60 ? `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, '0')}` : `${mins}m`, null];
-                                      }}
-                                      separator=""
-                                    />
-                                    <Bar dataKey="minutes" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                                  </BarChart>
-                                </ResponsiveContainer>
-                              </div>
-                            ) : (
-                              <span className="text-slate-400 text-sm">
-                                {language === 'fr' ? 'Aucune activité' : 'No activity'}
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
+                          <span className="font-medium text-slate-800 dark:text-slate-100">{u.name || '-'}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 text-slate-500 dark:text-slate-300 text-sm">
+                        {new Date(u.created_at).toLocaleDateString(
+                          language === 'fr' ? 'fr-FR' : 'en-US',
+                          { day: 'numeric', month: 'short', year: 'numeric' }
+                        )}
+                      </td>
+                      <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-300">
+                        {u.last_active ? (
+                          (() => {
+                            const days = Math.floor((Date.now() - new Date(u.last_active).getTime()) / (1000 * 60 * 60 * 24));
+                            if (days === 0) return language === 'fr' ? "Aujourd'hui" : 'Today';
+                            if (days === 1) return language === 'fr' ? 'Hier' : 'Yesterday';
+                            return language === 'fr' ? `${days}j` : `${days}d`;
+                          })()
+                        ) : (
+                          <span className="text-slate-300">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-300">
+                        {u.total_minutes > 0 ? (
+                          u.total_minutes >= 60
+                            ? `${Math.floor(u.total_minutes / 60)}h${String(u.total_minutes % 60).padStart(2, '0')}`
+                            : `${u.total_minutes}m`
+                        ) : '-'}
+                      </td>
+                    </tr>
                   ))}
                 </tbody>
               </table>

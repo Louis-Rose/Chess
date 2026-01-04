@@ -10,6 +10,7 @@ import { EarningsCalendarPanel } from './panels/EarningsCalendarPanel';
 import { FinancialsPanel } from './panels/FinancialsPanel';
 import { StockDetailPanel } from './panels/StockDetailPanel';
 import { AdminPanel } from './panels/AdminPanel';
+import { UserDetailPanel } from './panels/UserDetailPanel';
 
 export function InvestingApp() {
   useEffect(() => {
@@ -28,6 +29,7 @@ export function InvestingApp() {
         <Route path="financials" element={<FinancialsPanel />} />
         <Route path="stock/:ticker" element={<StockDetailPanel />} />
         <Route path="admin" element={<AdminPanel />} />
+        <Route path="admin/user/:userId" element={<UserDetailPanel />} />
       </Route>
     </Routes>
   );
