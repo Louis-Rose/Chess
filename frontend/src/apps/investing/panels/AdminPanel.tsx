@@ -385,10 +385,13 @@ export function AdminPanel() {
                                     <Tooltip
                                       contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '8px 12px' }}
                                       labelFormatter={(date) => new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                      formatter={(value: number) => [
-                                        value >= 60 ? `${Math.floor(value / 60)}h${String(value % 60).padStart(2, '0')}` : `${value}m`,
-                                        language === 'fr' ? 'Temps passé' : 'Time Spent'
-                                      ]}
+                                      formatter={(value) => {
+                                        const mins = Number(value);
+                                        return [
+                                          mins >= 60 ? `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, '0')}` : `${mins}m`,
+                                          language === 'fr' ? 'Temps passé' : 'Time Spent'
+                                        ];
+                                      }}
                                     />
                                     <Bar dataKey="minutes" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                                   </BarChart>
