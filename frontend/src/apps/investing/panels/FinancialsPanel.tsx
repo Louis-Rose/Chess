@@ -62,6 +62,7 @@ export function FinancialsPanel() {
   const stockDropdownRef = useRef<HTMLDivElement>(null);
 
   // GICS state
+  const [showGICS, setShowGICS] = useState(false);
   const [selectedSector, setSelectedSector] = useState<GICSSector | null>(null);
   const [selectedIndustryGroup, setSelectedIndustryGroup] = useState<GICSIndustryGroup | null>(null);
   const [selectedIndustry, setSelectedIndustry] = useState<GICSIndustry | null>(null);
@@ -307,7 +308,21 @@ export function FinancialsPanel() {
           </div>
         </div>
 
+        {/* GICS Industry Search Toggle */}
+        {!showGICS && (
+          <button
+            onClick={() => setShowGICS(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 dark:bg-slate-700 rounded-xl border border-dashed border-slate-300 dark:border-slate-500 text-slate-500 dark:text-slate-400 hover:border-purple-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+          >
+            <Layers className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              {language === 'fr' ? 'Rechercher par industrie (GICS)' : 'Search by industry (GICS)'}
+            </span>
+          </button>
+        )}
+
         {/* GICS Industry Search */}
+        {showGICS && (
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -316,14 +331,23 @@ export function FinancialsPanel() {
                 {language === 'fr' ? 'Rechercher par industrie (GICS)' : 'Search by industry (GICS)'}
               </h3>
             </div>
-            {selectedSector && (
+            <div className="flex items-center gap-2">
+              {selectedSector && (
+                <button
+                  onClick={handleResetGICS}
+                  className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                >
+                  {language === 'fr' ? 'Réinitialiser' : 'Reset'}
+                </button>
+              )}
               <button
-                onClick={handleResetGICS}
-                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                onClick={() => { setShowGICS(false); handleResetGICS(); }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1"
+                title={language === 'fr' ? 'Fermer' : 'Close'}
               >
-                {language === 'fr' ? 'Réinitialiser' : 'Reset'}
+                <X className="w-5 h-5" />
               </button>
-            )}
+            </div>
           </div>
 
           {/* Breadcrumb */}
@@ -513,6 +537,7 @@ export function FinancialsPanel() {
             );
           })()}
         </div>
+        )}
 
         {/* Selected Stocks */}
         {selectedTickers.length > 0 && (
