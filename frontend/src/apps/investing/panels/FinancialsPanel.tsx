@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { TrendingUp, Search, X, Eye, ChevronRight, Layers } from 'lucide-react';
+import { TrendingUp, Search, Eye, ChevronRight, Layers } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
@@ -229,12 +229,23 @@ export function FinancialsPanel() {
           </div>
         </div>
 
+        {/* Info */}
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-8 text-center shadow-sm dark:shadow-none">
+          <TrendingUp className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+          <p className="text-slate-500 dark:text-slate-400">
+            {language === 'fr'
+              ? 'Recherchez une action pour voir son historique de prix et sa capitalisation boursière.'
+              : 'Search for a stock to see its price history and market cap.'}
+          </p>
+        </div>
+
         {/* GICS Industry Search Toggle */}
         {!showGICS && (
           <button
             onClick={() => setShowGICS(true)}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 dark:bg-slate-700 rounded-xl border border-dashed border-slate-300 dark:border-slate-500 text-slate-500 dark:text-slate-400 hover:border-purple-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
           >
+            <span className="text-lg font-medium">+</span>
             <Layers className="w-4 h-4" />
             <span className="text-sm font-medium">
               {language === 'fr' ? 'Rechercher par industrie (GICS)' : 'Search by industry (GICS)'}
@@ -245,30 +256,32 @@ export function FinancialsPanel() {
         {/* GICS Industry Search */}
         {showGICS && (
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+          {/* Close button centered at top */}
+          <button
+            onClick={() => { setShowGICS(false); handleResetGICS(); }}
+            className="w-full flex items-center justify-center gap-2 mb-4 py-2 text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+          >
+            <span className="text-lg font-medium">−</span>
+            <Layers className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              {language === 'fr' ? 'Rechercher par industrie (GICS)' : 'Search by industry (GICS)'}
+            </span>
+          </button>
+
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-purple-600" />
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Rechercher par industrie (GICS)' : 'Search by industry (GICS)'}
+                {language === 'fr' ? 'Secteurs GICS' : 'GICS Sectors'}
               </h3>
             </div>
-            <div className="flex items-center gap-2">
-              {selectedSector && (
-                <button
-                  onClick={handleResetGICS}
-                  className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-                >
-                  {language === 'fr' ? 'Réinitialiser' : 'Reset'}
-                </button>
-              )}
+            {selectedSector && (
               <button
-                onClick={() => { setShowGICS(false); handleResetGICS(); }}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1"
-                title={language === 'fr' ? 'Fermer' : 'Close'}
+                onClick={handleResetGICS}
+                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
               >
-                <X className="w-5 h-5" />
+                {language === 'fr' ? 'Réinitialiser' : 'Reset'}
               </button>
-            </div>
+            )}
           </div>
 
           {/* Breadcrumb */}
@@ -450,16 +463,6 @@ export function FinancialsPanel() {
           })()}
         </div>
         )}
-
-        {/* Info */}
-        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-8 text-center shadow-sm dark:shadow-none">
-          <TrendingUp className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-          <p className="text-slate-500 dark:text-slate-400">
-            {language === 'fr'
-              ? 'Recherchez une action pour voir son historique de prix et sa capitalisation boursière.'
-              : 'Search for a stock to see its price history and market cap.'}
-          </p>
-        </div>
       </div>
     </div>
   );
