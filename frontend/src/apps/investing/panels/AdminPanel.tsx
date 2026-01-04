@@ -373,7 +373,7 @@ export function AdminPanel() {
                                 <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
                               </div>
                             ) : activityData && activityData.length > 0 ? (
-                              <div className="h-[120px]">
+                              <div className="h-[160px]">
                                 <ResponsiveContainer width="100%" height="100%">
                                   <BarChart data={[...activityData].reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                     <XAxis
@@ -384,15 +384,13 @@ export function AdminPanel() {
                                     />
                                     <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
                                     <Tooltip
-                                      contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '8px 12px' }}
-                                      labelFormatter={(date) => new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                      contentStyle={{ backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e2e8f0', padding: '4px 8px', fontSize: '12px' }}
+                                      labelFormatter={(date) => new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
                                       formatter={(value) => {
                                         const mins = Number(value);
-                                        return [
-                                          mins >= 60 ? `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, '0')}` : `${mins}m`,
-                                          language === 'fr' ? 'Temps passé' : 'Time Spent'
-                                        ];
+                                        return [mins >= 60 ? `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, '0')}` : `${mins}m`, null];
                                       }}
+                                      separator=""
                                     />
                                     <Bar dataKey="minutes" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                                   </BarChart>
