@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Navigate } from 'react-router-dom';
@@ -373,22 +373,26 @@ export function AdminPanel() {
                                 <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
                               </div>
                             ) : activityData && activityData.length > 0 ? (
-                              <div className="flex flex-wrap gap-2">
-                                {activityData.map((a) => (
-                                  <div key={a.activity_date} className="bg-white dark:bg-slate-700 rounded px-3 py-1.5 text-sm">
-                                    <span className="text-slate-500 dark:text-slate-400">
-                                      {new Date(a.activity_date).toLocaleDateString(
-                                        language === 'fr' ? 'fr-FR' : 'en-US',
-                                        { day: 'numeric', month: 'short' }
-                                      )}
-                                    </span>
-                                    <span className="ml-2 font-medium text-slate-700 dark:text-slate-200">
-                                      {a.minutes >= 60
-                                        ? `${Math.floor(a.minutes / 60)}h${String(a.minutes % 60).padStart(2, '0')}`
-                                        : `${a.minutes}m`}
-                                    </span>
-                                  </div>
-                                ))}
+                              <div className="h-[120px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <BarChart data={[...activityData].reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <XAxis
+                                      dataKey="activity_date"
+                                      tick={{ fontSize: 11, fill: '#64748b' }}
+                                      tickFormatter={(date) => new Date(date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
+                                    />
+                                    <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
+                                    <Tooltip
+                                      contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '8px 12px' }}
+                                      labelFormatter={(date) => new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                      formatter={(value: number) => [
+                                        value >= 60 ? `${Math.floor(value / 60)}h${String(value % 60).padStart(2, '0')}` : `${value}m`,
+                                        language === 'fr' ? 'Temps passé' : 'Time Spent'
+                                      ]}
+                                    />
+                                    <Bar dataKey="minutes" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                                  </BarChart>
+                                </ResponsiveContainer>
                               </div>
                             ) : (
                               <span className="text-slate-400 text-sm">
