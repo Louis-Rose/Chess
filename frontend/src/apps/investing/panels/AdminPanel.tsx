@@ -378,10 +378,11 @@ export function AdminPanel() {
                                   <BarChart data={[...activityData].reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                     <XAxis
                                       dataKey="activity_date"
-                                      tick={{ fontSize: 11, fill: '#64748b' }}
+                                      tick={{ fontSize: 11 }}
                                       tickFormatter={(date) => new Date(date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
+                                      stroke="#94a3b8"
                                     />
-                                    <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
+                                    <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
                                     <Tooltip
                                       contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '8px 12px' }}
                                       labelFormatter={(date) => new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
