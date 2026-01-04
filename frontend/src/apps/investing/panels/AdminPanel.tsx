@@ -375,7 +375,12 @@ export function AdminPanel() {
                             ) : activityData && activityData.length > 0 ? (
                               <div className="h-[200px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                  <BarChart data={[...activityData].reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                  <BarChart data={(() => {
+                                    const threeMonthsAgo = new Date();
+                                    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                                    const filtered = activityData.filter(d => new Date(d.activity_date) >= threeMonthsAgo);
+                                    return [...filtered].reverse();
+                                  })()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                     <XAxis
                                       dataKey="activity_date"
                                       tick={{ fontSize: 11 }}
