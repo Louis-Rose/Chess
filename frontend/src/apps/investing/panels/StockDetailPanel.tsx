@@ -125,7 +125,7 @@ export function StockDetailPanel() {
                     href={irLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 text-sm"
+                    className="flex items-center gap-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm"
                   >
                     <span>{language === 'fr' ? 'Relations Investisseurs' : 'Investor Relations'}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
