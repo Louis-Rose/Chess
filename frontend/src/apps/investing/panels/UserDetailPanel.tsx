@@ -317,7 +317,8 @@ export function UserDetailPanel() {
                 return (
                   <div
                     key={ticker}
-                    className="flex items-center gap-2 bg-slate-100 dark:bg-slate-600 rounded-lg px-3 py-1.5"
+                    className="flex items-center gap-2 bg-slate-100 dark:bg-slate-600 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors"
+                    onClick={() => navigate(`/investing/stock/${ticker}`)}
                   >
                     <div className="w-5 h-5 rounded bg-white dark:bg-slate-500 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {logoUrl ? (
