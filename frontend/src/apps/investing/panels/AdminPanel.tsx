@@ -1,9 +1,9 @@
 // Admin panel - view registered users (admin only)
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, TrendingUp } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -26,6 +26,9 @@ interface AdminUsersResponse {
   total: number;
 }
 
+type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes';
+type SortDirection = 'asc' | 'desc';
+
 const fetchUsers = async (): Promise<AdminUsersResponse> => {
   const response = await axios.get('/api/admin/users');
   return response.data;
@@ -40,6 +43,48 @@ export function AdminPanel() {
     queryFn: fetchUsers,
     enabled: !!user?.is_admin,
   });
+
+  // Sort state
+  const [sortColumn, setSortColumn] = useState<SortColumn>('id');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  // Handle column header click
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sorted users
+  const sortedUsers = useMemo(() => {
+    if (!data?.users) return [];
+    return [...data.users].sort((a, b) => {
+      let comparison = 0;
+      switch (sortColumn) {
+        case 'id':
+          comparison = a.id - b.id;
+          break;
+        case 'name':
+          comparison = (a.name || '').localeCompare(b.name || '');
+          break;
+        case 'created_at':
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+        case 'last_active':
+          const aTime = a.last_active ? new Date(a.last_active).getTime() : 0;
+          const bTime = b.last_active ? new Date(b.last_active).getTime() : 0;
+          comparison = aTime - bTime;
+          break;
+        case 'total_minutes':
+          comparison = a.total_minutes - b.total_minutes;
+          break;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [data?.users, sortColumn, sortDirection]);
 
   // Compute cumulative users per day (including all days)
   const chartData = useMemo(() => {
@@ -216,16 +261,40 @@ export function AdminPanel() {
               <table className="w-full">
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
                   <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
-                    <th className="pb-3 pl-2">ID</th>
-                    <th className="pb-3">{language === 'fr' ? 'Utilisateur' : 'User'}</th>
-                    <th className="pb-3">Email</th>
-                    <th className="pb-3 text-center">{language === 'fr' ? 'Dernière activité' : 'Last Active'}</th>
-                    <th className="pb-3 text-center">{language === 'fr' ? 'Minutes' : 'Minutes'}</th>
-                    <th className="pb-3">{language === 'fr' ? 'Inscrit le' : 'Registered'}</th>
+                    <th className="pb-3 pl-2">
+                      <button onClick={() => handleSort('id')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white">
+                        ID
+                        {sortColumn === 'id' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      </button>
+                    </th>
+                    <th className="pb-3">
+                      <button onClick={() => handleSort('name')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white">
+                        {language === 'fr' ? 'Utilisateur' : 'User'}
+                        {sortColumn === 'name' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      </button>
+                    </th>
+                    <th className="pb-3">
+                      <button onClick={() => handleSort('created_at')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white">
+                        {language === 'fr' ? 'Inscrit le' : 'Registered'}
+                        {sortColumn === 'created_at' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      </button>
+                    </th>
+                    <th className="pb-3 text-center">
+                      <button onClick={() => handleSort('last_active')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white mx-auto">
+                        {language === 'fr' ? 'Dernière activité' : 'Last Active'}
+                        {sortColumn === 'last_active' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      </button>
+                    </th>
+                    <th className="pb-3 text-center">
+                      <button onClick={() => handleSort('total_minutes')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white mx-auto">
+                        {language === 'fr' ? 'Minutes' : 'Minutes'}
+                        {sortColumn === 'total_minutes' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      </button>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.users.map((u) => (
+                  {sortedUsers.map((u) => (
                     <tr key={u.id} className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600">
                       <td className="py-3 pl-2 text-slate-500 dark:text-slate-400">#{u.id}</td>
                       <td className="py-3">
@@ -242,7 +311,12 @@ export function AdminPanel() {
                           <span className="font-medium text-slate-800 dark:text-slate-100">{u.name || '-'}</span>
                         </div>
                       </td>
-                      <td className="py-3 text-slate-600 dark:text-slate-300">{u.email}</td>
+                      <td className="py-3 text-slate-500 dark:text-slate-400 text-sm">
+                        {new Date(u.created_at).toLocaleDateString(
+                          language === 'fr' ? 'fr-FR' : 'en-US',
+                          { day: 'numeric', month: 'short', year: 'numeric' }
+                        )}
+                      </td>
                       <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-400">
                         {u.last_active ? (
                           (() => {
@@ -257,12 +331,6 @@ export function AdminPanel() {
                       </td>
                       <td className="py-3 text-center text-sm text-slate-600 dark:text-slate-300">
                         {u.total_minutes > 0 ? u.total_minutes : '-'}
-                      </td>
-                      <td className="py-3 text-slate-500 dark:text-slate-400 text-sm">
-                        {new Date(u.created_at).toLocaleDateString(
-                          language === 'fr' ? 'fr-FR' : 'en-US',
-                          { day: 'numeric', month: 'short', year: 'numeric' }
-                        )}
                       </td>
                     </tr>
                   ))}
