@@ -329,7 +329,7 @@ export function AdminPanel() {
                           <span className="text-slate-400">-</span>
                         )}
                       </td>
-                      <td className="py-3 text-center text-sm text-slate-600 dark:text-slate-300">
+                      <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-400">
                         {u.total_minutes > 0 ? (
                           u.total_minutes >= 60
                             ? `${Math.floor(u.total_minutes / 60)}h${String(u.total_minutes % 60).padStart(2, '0')}`
