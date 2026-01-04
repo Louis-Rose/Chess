@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { TrendingUp, Search, X, Loader2, Eye, ChevronRight, Layers } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
@@ -17,9 +18,23 @@ interface MarketCapData {
   error?: string;
 }
 
+interface StockHistoryData {
+  ticker: string;
+  period: string;
+  previous_close: number | null;
+  data: { timestamp: string; price: number }[];
+}
+
+type ChartPeriod = '1D' | '5D' | '1M' | '6M' | 'YTD' | '1Y' | '5Y' | 'MAX';
+
 const fetchMarketCap = async (tickers: string[]): Promise<{ stocks: Record<string, MarketCapData> }> => {
   if (tickers.length === 0) return { stocks: {} };
   const response = await axios.get(`/api/investing/market-cap?tickers=${tickers.join(',')}`);
+  return response.data;
+};
+
+const fetchStockHistory = async (ticker: string, period: ChartPeriod): Promise<StockHistoryData> => {
+  const response = await axios.get(`/api/investing/stock-history/${ticker}?period=${period}`);
   return response.data;
 };
 
@@ -52,6 +67,10 @@ export function FinancialsPanel() {
   const [selectedIndustry, setSelectedIndustry] = useState<GICSIndustry | null>(null);
   const [selectedSubIndustry, setSelectedSubIndustry] = useState<GICSSubIndustry | null>(null);
 
+  // Chart state
+  const [chartTicker, setChartTicker] = useState<string | null>(null);
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1M');
+
   // Fetch watchlist
   const { data: watchlistData } = useQuery({
     queryKey: ['watchlist'],
@@ -66,6 +85,13 @@ export function FinancialsPanel() {
     queryKey: ['marketCap', selectedTickers],
     queryFn: () => fetchMarketCap(selectedTickers),
     enabled: selectedTickers.length > 0,
+  });
+
+  // Fetch stock history for chart
+  const { data: stockHistoryData, isLoading: stockHistoryLoading } = useQuery({
+    queryKey: ['stockHistory', chartTicker, chartPeriod],
+    queryFn: () => fetchStockHistory(chartTicker!, chartPeriod),
+    enabled: !!chartTicker,
   });
 
   // Stock search effect - only update results, don't auto-show dropdown
@@ -95,6 +121,18 @@ export function FinancialsPanel() {
 
   const handleRemoveStock = (ticker: string) => {
     setSelectedTickers(selectedTickers.filter(t => t !== ticker));
+    if (chartTicker === ticker) {
+      setChartTicker(null);
+    }
+  };
+
+  const handleToggleChart = (ticker: string) => {
+    if (chartTicker === ticker) {
+      setChartTicker(null);
+    } else {
+      setChartTicker(ticker);
+      setChartPeriod('1M'); // Reset to default period
+    }
   };
 
   // GICS handlers
@@ -498,46 +536,157 @@ export function FinancialsPanel() {
                 const displayName = marketCapInfo?.name || stock?.name || ticker;
                 const logoUrl = getCompanyLogoUrl(ticker);
                 const isLoading = !marketCapInfo && marketCapLoading;
+                const isChartOpen = chartTicker === ticker;
 
                 return (
-                  <div
-                    key={ticker}
-                    className="flex items-center bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-3 border border-slate-300 dark:border-slate-500 gap-3"
-                  >
-                    <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-500 flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {logoUrl && (
-                        <img
-                          src={logoUrl}
-                          alt={`${ticker} logo`}
-                          className="w-8 h-8 object-contain"
-                          onError={(e) => {
-                            const parent = e.currentTarget.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `<span class="text-xs font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
-                            }
-                          }}
-                        />
-                      )}
-                      {!logoUrl && (
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-300">{ticker.slice(0, 2)}</span>
-                      )}
-                    </div>
-                    <span className="font-bold text-slate-800 dark:text-slate-100 w-16 flex-shrink-0">{ticker}</span>
-                    <span className="text-slate-600 dark:text-slate-300 text-sm truncate flex-1">{displayName}</span>
-                    <span className="text-slate-800 dark:text-slate-100 font-semibold flex-shrink-0">
-                      {isLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                      ) : (
-                        formatMarketCap(marketCapInfo?.market_cap ?? null)
-                      )}
-                    </span>
-                    <button
-                      onClick={() => handleRemoveStock(ticker)}
-                      className="text-slate-400 hover:text-red-500 p-1 transition-colors flex-shrink-0"
-                      title={language === 'fr' ? 'Supprimer' : 'Remove'}
+                  <div key={ticker}>
+                    <div
+                      className={`flex items-center bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-3 border gap-3 cursor-pointer transition-colors ${
+                        isChartOpen
+                          ? 'border-green-400 dark:border-green-500 bg-slate-200 dark:bg-slate-500'
+                          : 'border-slate-300 dark:border-slate-500 hover:border-slate-400 dark:hover:border-slate-400'
+                      }`}
+                      onClick={() => handleToggleChart(ticker)}
                     >
-                      <X className="w-5 h-5" />
-                    </button>
+                      <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {logoUrl && (
+                          <img
+                            src={logoUrl}
+                            alt={`${ticker} logo`}
+                            className="w-8 h-8 object-contain"
+                            onError={(e) => {
+                              const parent = e.currentTarget.parentElement;
+                              if (parent) {
+                                parent.innerHTML = `<span class="text-xs font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
+                              }
+                            }}
+                          />
+                        )}
+                        {!logoUrl && (
+                          <span className="text-xs font-bold text-slate-500 dark:text-slate-300">{ticker.slice(0, 2)}</span>
+                        )}
+                      </div>
+                      <span className="font-bold text-slate-800 dark:text-slate-100 w-16 flex-shrink-0">{ticker}</span>
+                      <span className="text-slate-600 dark:text-slate-300 text-sm truncate flex-1">{displayName}</span>
+                      <span className="text-slate-800 dark:text-slate-100 font-semibold flex-shrink-0">
+                        {isLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                        ) : (
+                          formatMarketCap(marketCapInfo?.market_cap ?? null)
+                        )}
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRemoveStock(ticker); }}
+                        className="text-slate-400 hover:text-red-500 p-1 transition-colors flex-shrink-0"
+                        title={language === 'fr' ? 'Supprimer' : 'Remove'}
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Price Chart */}
+                    {isChartOpen && (
+                      <div className="mt-2 bg-slate-800 dark:bg-slate-900 rounded-lg p-4 border border-slate-700">
+                        {/* Period Selectors */}
+                        <div className="flex gap-2 mb-4">
+                          {(['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'MAX'] as ChartPeriod[]).map((period) => (
+                            <button
+                              key={period}
+                              onClick={(e) => { e.stopPropagation(); setChartPeriod(period); }}
+                              className={`px-3 py-1 text-sm rounded transition-colors ${
+                                chartPeriod === period
+                                  ? 'bg-green-600 text-white font-medium'
+                                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                              }`}
+                            >
+                              {period}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Chart */}
+                        {stockHistoryLoading ? (
+                          <div className="h-[250px] flex items-center justify-center">
+                            <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+                          </div>
+                        ) : stockHistoryData?.data && stockHistoryData.data.length > 0 ? (
+                          <div className="h-[250px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={stockHistoryData.data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                <XAxis
+                                  dataKey="timestamp"
+                                  tick={{ fontSize: 11, fill: '#94a3b8' }}
+                                  tickFormatter={(ts) => {
+                                    const d = new Date(ts);
+                                    if (chartPeriod === '1D') {
+                                      return d.toLocaleTimeString(language === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+                                    }
+                                    if (chartPeriod === '5D') {
+                                      return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'short' });
+                                    }
+                                    return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
+                                  }}
+                                  stroke="#475569"
+                                  axisLine={{ stroke: '#475569' }}
+                                  tickLine={{ stroke: '#475569' }}
+                                />
+                                <YAxis
+                                  domain={['auto', 'auto']}
+                                  tick={{ fontSize: 11, fill: '#94a3b8' }}
+                                  stroke="#475569"
+                                  axisLine={{ stroke: '#475569' }}
+                                  tickLine={{ stroke: '#475569' }}
+                                  tickFormatter={(val) => val.toFixed(0)}
+                                  width={50}
+                                />
+                                <Tooltip
+                                  contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #475569', padding: '8px 12px' }}
+                                  labelStyle={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}
+                                  labelFormatter={(ts) => {
+                                    const d = new Date(String(ts));
+                                    if (chartPeriod === '1D' || chartPeriod === '5D') {
+                                      return d.toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                                      });
+                                    }
+                                    return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                                      day: 'numeric', month: 'long', year: 'numeric'
+                                    });
+                                  }}
+                                  formatter={(value) => [`$${Number(value).toFixed(2)}`, null]}
+                                  separator=""
+                                />
+                                {stockHistoryData.previous_close && (
+                                  <ReferenceLine
+                                    y={stockHistoryData.previous_close}
+                                    stroke="#64748b"
+                                    strokeDasharray="4 4"
+                                    label={{
+                                      value: language === 'fr' ? 'Clôture préc.' : 'Prev close',
+                                      position: 'right',
+                                      fill: '#64748b',
+                                      fontSize: 10,
+                                    }}
+                                  />
+                                )}
+                                <Line
+                                  type="monotone"
+                                  dataKey="price"
+                                  stroke="#22c55e"
+                                  strokeWidth={2}
+                                  dot={false}
+                                  activeDot={{ r: 4, fill: '#22c55e' }}
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        ) : (
+                          <div className="h-[250px] flex items-center justify-center text-slate-400">
+                            {language === 'fr' ? 'Aucune donnée disponible' : 'No data available'}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

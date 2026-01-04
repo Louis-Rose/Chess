@@ -1060,6 +1060,57 @@ def get_market_cap():
     return jsonify({'stocks': results})
 
 
+@app.route('/api/investing/stock-history/<ticker>', methods=['GET'])
+def get_stock_history(ticker):
+    """Get historical price data for a stock."""
+    import yfinance as yf
+
+    ticker = ticker.upper()
+    period = request.args.get('period', '1M')  # Default to 1 month
+
+    # Map period to yfinance parameters
+    period_config = {
+        '1D': {'period': '1d', 'interval': '5m'},
+        '5D': {'period': '5d', 'interval': '15m'},
+        '1M': {'period': '1mo', 'interval': '1d'},
+        '6M': {'period': '6mo', 'interval': '1d'},
+        'YTD': {'period': 'ytd', 'interval': '1d'},
+        '1Y': {'period': '1y', 'interval': '1d'},
+        '5Y': {'period': '5y', 'interval': '1wk'},
+        'MAX': {'period': 'max', 'interval': '1mo'},
+    }
+
+    config = period_config.get(period.upper(), period_config['1M'])
+
+    try:
+        stock = yf.Ticker(ticker)
+        hist = stock.history(period=config['period'], interval=config['interval'])
+
+        if hist.empty:
+            return jsonify({'error': 'No data available'}), 404
+
+        # Get previous close for reference line
+        info = stock.info
+        previous_close = info.get('previousClose') or info.get('regularMarketPreviousClose')
+
+        # Format data for frontend
+        data = []
+        for timestamp, row in hist.iterrows():
+            data.append({
+                'timestamp': timestamp.isoformat(),
+                'price': round(row['Close'], 2),
+            })
+
+        return jsonify({
+            'ticker': ticker,
+            'period': period.upper(),
+            'previous_close': previous_close,
+            'data': data,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 # =============================================================================
 # Investment Accounts API (for fee tracking)
 # =============================================================================
