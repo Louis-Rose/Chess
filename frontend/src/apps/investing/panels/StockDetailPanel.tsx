@@ -125,10 +125,10 @@ export function StockDetailPanel() {
                     href={irLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
-                    title={language === 'fr' ? 'Relations Investisseurs' : 'Investor Relations'}
+                    className="flex items-center gap-1 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 text-sm"
                   >
-                    <ExternalLink className="w-4 h-4" />
+                    <span>{language === 'fr' ? 'Relations Investisseurs' : 'Investor Relations'}</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 )}
               </div>
