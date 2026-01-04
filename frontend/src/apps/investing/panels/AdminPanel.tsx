@@ -17,6 +17,8 @@ interface AdminUser {
   is_admin: number;
   created_at: string;
   updated_at: string;
+  total_minutes: number;
+  last_active: string | null;
 }
 
 interface AdminUsersResponse {
@@ -217,7 +219,8 @@ export function AdminPanel() {
                     <th className="pb-3 pl-2">ID</th>
                     <th className="pb-3">{language === 'fr' ? 'Utilisateur' : 'User'}</th>
                     <th className="pb-3">Email</th>
-                    <th className="pb-3 text-center">Admin</th>
+                    <th className="pb-3 text-center">{language === 'fr' ? 'Dernière activité' : 'Last Active'}</th>
+                    <th className="pb-3 text-center">{language === 'fr' ? 'Minutes' : 'Minutes'}</th>
                     <th className="pb-3">{language === 'fr' ? 'Inscrit le' : 'Registered'}</th>
                   </tr>
                 </thead>
@@ -240,15 +243,20 @@ export function AdminPanel() {
                         </div>
                       </td>
                       <td className="py-3 text-slate-600 dark:text-slate-300">{u.email}</td>
-                      <td className="py-3 text-center">
-                        {u.is_admin ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-                            <Shield className="w-3 h-3 mr-1" />
-                            Admin
-                          </span>
+                      <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-400">
+                        {u.last_active ? (
+                          (() => {
+                            const days = Math.floor((Date.now() - new Date(u.last_active).getTime()) / (1000 * 60 * 60 * 24));
+                            if (days === 0) return language === 'fr' ? "Aujourd'hui" : 'Today';
+                            if (days === 1) return language === 'fr' ? 'Hier' : 'Yesterday';
+                            return language === 'fr' ? `${days}j` : `${days}d`;
+                          })()
                         ) : (
                           <span className="text-slate-400">-</span>
                         )}
+                      </td>
+                      <td className="py-3 text-center text-sm text-slate-600 dark:text-slate-300">
+                        {u.total_minutes > 0 ? u.total_minutes : '-'}
                       </td>
                       <td className="py-3 text-slate-500 dark:text-slate-400 text-sm">
                         {new Date(u.created_at).toLocaleDateString(

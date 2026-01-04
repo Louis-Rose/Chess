@@ -422,6 +422,24 @@ def update_preferences():
     return jsonify({'success': True, 'preferences': updates})
 
 
+# ============= ACTIVITY TRACKING =============
+
+@app.route('/api/activity/heartbeat', methods=['POST'])
+@login_required
+def activity_heartbeat():
+    """Record a heartbeat for activity tracking (called every 60s by frontend)."""
+    today = datetime.now().strftime('%Y-%m-%d')
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO user_activity (user_id, activity_date, minutes, last_ping)
+            VALUES (?, ?, 1, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id, activity_date) DO UPDATE SET
+                minutes = minutes + 1,
+                last_ping = CURRENT_TIMESTAMP
+        ''', (request.user_id, today))
+    return jsonify({'success': True})
+
+
 # ============= ADMIN ROUTES =============
 
 @app.route('/api/admin/users', methods=['GET'])
@@ -433,9 +451,13 @@ def list_users():
 
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT id, email, name, picture, is_admin, created_at, updated_at
-            FROM users
-            ORDER BY created_at DESC
+            SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at,
+                   COALESCE(SUM(a.minutes), 0) as total_minutes,
+                   MAX(a.last_ping) as last_active
+            FROM users u
+            LEFT JOIN user_activity a ON u.id = a.user_id
+            GROUP BY u.id
+            ORDER BY u.created_at DESC
         ''')
         users = [dict(row) for row in cursor.fetchall() if row['email'] not in hidden_emails]
 

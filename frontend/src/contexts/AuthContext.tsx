@@ -37,6 +37,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
+  // Heartbeat for activity tracking (every 60s when logged in and tab visible)
+  useEffect(() => {
+    if (!user) return;
+
+    const sendHeartbeat = () => {
+      if (document.visibilityState === 'visible') {
+        fetch('/api/activity/heartbeat', {
+          method: 'POST',
+          credentials: 'include'
+        }).catch(() => {}); // Silently fail
+      }
+    };
+
+    // Send initial heartbeat
+    sendHeartbeat();
+
+    // Set up interval
+    const interval = setInterval(sendHeartbeat, 60000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/auth/me', {

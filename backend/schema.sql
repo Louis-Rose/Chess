@@ -115,6 +115,17 @@ CREATE TABLE IF NOT EXISTS earnings_cache (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- User activity tracking (for time spent analytics)
+CREATE TABLE IF NOT EXISTS user_activity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    activity_date TEXT NOT NULL,  -- YYYY-MM-DD
+    minutes INTEGER DEFAULT 0,
+    last_ping TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(user_id, activity_date)
+);
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -130,3 +141,4 @@ CREATE INDEX IF NOT EXISTS idx_investment_accounts_user_id ON investment_account
 CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_account_id ON portfolio_transactions(account_id);
 CREATE INDEX IF NOT EXISTS idx_earnings_watchlist_user_id ON earnings_watchlist(user_id);
 CREATE INDEX IF NOT EXISTS idx_earnings_cache_updated ON earnings_cache(updated_at);
+CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON user_activity(user_id);
