@@ -464,6 +464,22 @@ def list_users():
     return jsonify({'users': users, 'total': len(users)})
 
 
+@app.route('/api/admin/users/<int:user_id>/activity', methods=['GET'])
+@admin_required
+def get_user_activity(user_id):
+    """Get daily activity breakdown for a user (admin only)."""
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT activity_date, minutes
+            FROM user_activity
+            WHERE user_id = ?
+            ORDER BY activity_date DESC
+        ''', (user_id,))
+        activity = [dict(row) for row in cursor.fetchall()]
+
+    return jsonify({'activity': activity})
+
+
 # ============= INVESTING ROUTES =============
 
 from investing_utils import (

@@ -1,6 +1,6 @@
 // Admin panel - view registered users (admin only)
 
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown } from 'lucide-react';
@@ -26,12 +26,22 @@ interface AdminUsersResponse {
   total: number;
 }
 
+interface DailyActivity {
+  activity_date: string;
+  minutes: number;
+}
+
 type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes';
 type SortDirection = 'asc' | 'desc';
 
 const fetchUsers = async (): Promise<AdminUsersResponse> => {
   const response = await axios.get('/api/admin/users');
   return response.data;
+};
+
+const fetchUserActivity = async (userId: number): Promise<DailyActivity[]> => {
+  const response = await axios.get(`/api/admin/users/${userId}/activity`);
+  return response.data.activity;
 };
 
 export function AdminPanel() {
@@ -47,6 +57,16 @@ export function AdminPanel() {
   // Sort state
   const [sortColumn, setSortColumn] = useState<SortColumn>('id');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  // Expanded user for activity details
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
+
+  // Fetch activity for expanded user
+  const { data: activityData, isLoading: activityLoading } = useQuery({
+    queryKey: ['admin-user-activity', expandedUserId],
+    queryFn: () => fetchUserActivity(expandedUserId!),
+    enabled: expandedUserId !== null,
+  });
 
   // Handle column header click
   const handleSort = (column: SortColumn) => {
@@ -295,48 +315,86 @@ export function AdminPanel() {
                 </thead>
                 <tbody>
                   {sortedUsers.map((u) => (
-                    <tr key={u.id} className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600">
-                      <td className="py-3 pl-2 text-slate-500 dark:text-slate-400">#{u.id}</td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-3">
-                          {u.picture ? (
-                            <img
-                              src={u.picture}
-                              alt={u.name}
-                              className="w-8 h-8 rounded-full"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-500" />
+                    <React.Fragment key={u.id}>
+                      <tr
+                        className={`border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${expandedUserId === u.id ? 'bg-slate-100 dark:bg-slate-600' : ''}`}
+                        onClick={() => setExpandedUserId(expandedUserId === u.id ? null : u.id)}
+                      >
+                        <td className="py-3 pl-2 text-slate-500 dark:text-slate-400">#{u.id}</td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-3">
+                            {u.picture ? (
+                              <img
+                                src={u.picture}
+                                alt={u.name}
+                                className="w-8 h-8 rounded-full"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-500" />
+                            )}
+                            <span className="font-medium text-slate-800 dark:text-slate-100">{u.name || '-'}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 text-slate-500 dark:text-slate-400 text-sm">
+                          {new Date(u.created_at).toLocaleDateString(
+                            language === 'fr' ? 'fr-FR' : 'en-US',
+                            { day: 'numeric', month: 'short', year: 'numeric' }
                           )}
-                          <span className="font-medium text-slate-800 dark:text-slate-100">{u.name || '-'}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 text-slate-500 dark:text-slate-400 text-sm">
-                        {new Date(u.created_at).toLocaleDateString(
-                          language === 'fr' ? 'fr-FR' : 'en-US',
-                          { day: 'numeric', month: 'short', year: 'numeric' }
-                        )}
-                      </td>
-                      <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-400">
-                        {u.last_active ? (
-                          (() => {
-                            const days = Math.floor((Date.now() - new Date(u.last_active).getTime()) / (1000 * 60 * 60 * 24));
-                            if (days === 0) return language === 'fr' ? "Aujourd'hui" : 'Today';
-                            if (days === 1) return language === 'fr' ? 'Hier' : 'Yesterday';
-                            return language === 'fr' ? `${days}j` : `${days}d`;
-                          })()
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </td>
-                      <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-400">
-                        {u.total_minutes > 0 ? (
-                          u.total_minutes >= 60
-                            ? `${Math.floor(u.total_minutes / 60)}h${String(u.total_minutes % 60).padStart(2, '0')}`
-                            : `${u.total_minutes}m`
-                        ) : '-'}
-                      </td>
-                    </tr>
+                        </td>
+                        <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-400">
+                          {u.last_active ? (
+                            (() => {
+                              const days = Math.floor((Date.now() - new Date(u.last_active).getTime()) / (1000 * 60 * 60 * 24));
+                              if (days === 0) return language === 'fr' ? "Aujourd'hui" : 'Today';
+                              if (days === 1) return language === 'fr' ? 'Hier' : 'Yesterday';
+                              return language === 'fr' ? `${days}j` : `${days}d`;
+                            })()
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+                        <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-400">
+                          {u.total_minutes > 0 ? (
+                            u.total_minutes >= 60
+                              ? `${Math.floor(u.total_minutes / 60)}h${String(u.total_minutes % 60).padStart(2, '0')}`
+                              : `${u.total_minutes}m`
+                          ) : '-'}
+                        </td>
+                      </tr>
+                      {expandedUserId === u.id && (
+                        <tr className="bg-slate-100 dark:bg-slate-600">
+                          <td colSpan={5} className="px-4 py-3">
+                            {activityLoading ? (
+                              <div className="flex justify-center py-2">
+                                <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
+                              </div>
+                            ) : activityData && activityData.length > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                {activityData.map((a) => (
+                                  <div key={a.activity_date} className="bg-white dark:bg-slate-700 rounded px-3 py-1.5 text-sm">
+                                    <span className="text-slate-500 dark:text-slate-400">
+                                      {new Date(a.activity_date).toLocaleDateString(
+                                        language === 'fr' ? 'fr-FR' : 'en-US',
+                                        { day: 'numeric', month: 'short' }
+                                      )}
+                                    </span>
+                                    <span className="ml-2 font-medium text-slate-700 dark:text-slate-200">
+                                      {a.minutes >= 60
+                                        ? `${Math.floor(a.minutes / 60)}h${String(a.minutes % 60).padStart(2, '0')}`
+                                        : `${a.minutes}m`}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 text-sm">
+                                {language === 'fr' ? 'Aucune activité' : 'No activity'}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
