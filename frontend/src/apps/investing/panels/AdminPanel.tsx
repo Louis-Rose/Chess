@@ -324,7 +324,7 @@ export function AdminPanel() {
                         className={`border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${expandedUserId === u.id ? 'bg-slate-100 dark:bg-slate-600' : ''}`}
                         onClick={() => setExpandedUserId(expandedUserId === u.id ? null : u.id)}
                       >
-                        <td className="py-3 pl-2 text-slate-500 dark:text-slate-400">#{u.id}</td>
+                        <td className="py-3 pl-2 text-slate-500 dark:text-slate-300">#{u.id}</td>
                         <td className="py-3">
                           <div className="flex items-center gap-3">
                             {u.picture ? (
@@ -339,13 +339,13 @@ export function AdminPanel() {
                             <span className="font-medium text-slate-800 dark:text-slate-100">{u.name || '-'}</span>
                           </div>
                         </td>
-                        <td className="py-3 text-slate-500 dark:text-slate-400 text-sm">
+                        <td className="py-3 text-slate-500 dark:text-slate-300 text-sm">
                           {new Date(u.created_at).toLocaleDateString(
                             language === 'fr' ? 'fr-FR' : 'en-US',
                             { day: 'numeric', month: 'short', year: 'numeric' }
                           )}
                         </td>
-                        <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-400">
+                        <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-300">
                           {u.last_active ? (
                             (() => {
                               const days = Math.floor((Date.now() - new Date(u.last_active).getTime()) / (1000 * 60 * 60 * 24));
@@ -354,10 +354,10 @@ export function AdminPanel() {
                               return language === 'fr' ? `${days}j` : `${days}d`;
                             })()
                           ) : (
-                            <span className="text-slate-400">-</span>
+                            <span className="text-slate-300">-</span>
                           )}
                         </td>
-                        <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-400">
+                        <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-300">
                           {u.total_minutes > 0 ? (
                             u.total_minutes >= 60
                               ? `${Math.floor(u.total_minutes / 60)}h${String(u.total_minutes % 60).padStart(2, '0')}`
