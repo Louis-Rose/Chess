@@ -1,63 +1,28 @@
-// Financials panel - search stocks and view market cap
+// Financials panel - search stocks
 
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { TrendingUp, Search, X, Loader2, Eye, ChevronRight, Layers } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { TrendingUp, Search, X, Eye, ChevronRight, Layers } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { GICS_SECTORS, getStocksBySubIndustry, type GICSSector, type GICSIndustryGroup, type GICSIndustry, type GICSSubIndustry } from '../utils/gics';
 
-interface MarketCapData {
-  ticker: string;
-  name: string;
-  market_cap: number | null;
-  error?: string;
-}
-
-interface StockHistoryData {
-  ticker: string;
-  period: string;
-  previous_close: number | null;
-  data: { timestamp: string; price: number }[];
-}
-
-type ChartPeriod = '1D' | '5D' | '1M' | '6M' | 'YTD' | '1Y' | '5Y' | 'MAX';
-
-const fetchMarketCap = async (tickers: string[]): Promise<{ stocks: Record<string, MarketCapData> }> => {
-  if (tickers.length === 0) return { stocks: {} };
-  const response = await axios.get(`/api/investing/market-cap?tickers=${tickers.join(',')}`);
-  return response.data;
-};
-
-const fetchStockHistory = async (ticker: string, period: ChartPeriod): Promise<StockHistoryData> => {
-  const response = await axios.get(`/api/investing/stock-history/${ticker}?period=${period}`);
-  return response.data;
-};
-
 const fetchWatchlist = async (): Promise<{ symbols: string[] }> => {
   const response = await axios.get('/api/investing/watchlist');
   return response.data;
 };
 
-const formatMarketCap = (marketCap: number | null): string => {
-  if (!marketCap) return '-';
-  if (marketCap >= 1e12) return `$${(marketCap / 1e12).toFixed(2)}T`;
-  if (marketCap >= 1e9) return `$${(marketCap / 1e9).toFixed(1)}B`;
-  if (marketCap >= 1e6) return `$${(marketCap / 1e6).toFixed(0)}M`;
-  return `$${marketCap.toLocaleString()}`;
-};
-
 export function FinancialsPanel() {
+  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { language } = useLanguage();
   const [stockSearch, setStockSearch] = useState('');
   const [stockResults, setStockResults] = useState<Stock[]>([]);
   const [showStockDropdown, setShowStockDropdown] = useState(false);
-  const [selectedTickers, setSelectedTickers] = useState<string[]>([]);
   const [indexFilter, setIndexFilter] = useState<IndexFilter>({ sp500: true, stoxx600: true });
   const stockDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -68,10 +33,6 @@ export function FinancialsPanel() {
   const [selectedIndustry, setSelectedIndustry] = useState<GICSIndustry | null>(null);
   const [selectedSubIndustry, setSelectedSubIndustry] = useState<GICSSubIndustry | null>(null);
 
-  // Chart state
-  const [chartTicker, setChartTicker] = useState<string | null>(null);
-  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1M');
-
   // Fetch watchlist
   const { data: watchlistData } = useQuery({
     queryKey: ['watchlist'],
@@ -80,20 +41,6 @@ export function FinancialsPanel() {
   });
 
   const watchlist = watchlistData?.symbols ?? [];
-
-  // Fetch market cap for selected tickers
-  const { data: marketCapData, isLoading: marketCapLoading } = useQuery({
-    queryKey: ['marketCap', selectedTickers],
-    queryFn: () => fetchMarketCap(selectedTickers),
-    enabled: selectedTickers.length > 0,
-  });
-
-  // Fetch stock history for chart
-  const { data: stockHistoryData, isLoading: stockHistoryLoading } = useQuery({
-    queryKey: ['stockHistory', chartTicker, chartPeriod],
-    queryFn: () => fetchStockHistory(chartTicker!, chartPeriod),
-    enabled: !!chartTicker,
-  });
 
   // Stock search effect - only update results, don't auto-show dropdown
   useEffect(() => {
@@ -112,28 +59,10 @@ export function FinancialsPanel() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSelectStock = (stock: Stock) => {
-    if (!selectedTickers.includes(stock.ticker)) {
-      setSelectedTickers([...selectedTickers, stock.ticker]);
-    }
+  const handleSelectStock = (ticker: string) => {
     setStockSearch('');
     setShowStockDropdown(false);
-  };
-
-  const handleRemoveStock = (ticker: string) => {
-    setSelectedTickers(selectedTickers.filter(t => t !== ticker));
-    if (chartTicker === ticker) {
-      setChartTicker(null);
-    }
-  };
-
-  const handleToggleChart = (ticker: string) => {
-    if (chartTicker === ticker) {
-      setChartTicker(null);
-    } else {
-      setChartTicker(ticker);
-      setChartPeriod('1M'); // Reset to default period
-    }
+    navigate(`/investing/stock/${ticker}`);
   };
 
   // GICS handlers
@@ -165,8 +94,6 @@ export function FinancialsPanel() {
     setSelectedIndustry(null);
     setSelectedSubIndustry(null);
   };
-
-  const marketCaps = marketCapData?.stocks || {};
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -229,7 +156,6 @@ export function FinancialsPanel() {
                       </span>
                     </div>
                     {watchlist.map((ticker) => {
-                      const isSelected = selectedTickers.includes(ticker);
                       const stock = findStockByTicker(ticker);
                       const displayName = stock?.name || ticker;
                       const logoUrl = getCompanyLogoUrl(ticker);
@@ -237,9 +163,8 @@ export function FinancialsPanel() {
                         <button
                           key={ticker}
                           type="button"
-                          onClick={() => handleSelectStock({ ticker, name: displayName })}
-                          disabled={isSelected}
-                          className={`w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 ${isSelected ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'hover:bg-purple-50'}`}
+                          onClick={() => handleSelectStock(ticker)}
+                          className="w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 hover:bg-purple-50"
                         >
                           <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                             {logoUrl && (
@@ -261,7 +186,6 @@ export function FinancialsPanel() {
                           </div>
                           <span className="font-bold text-slate-800 w-16">{ticker}</span>
                           <span className="text-slate-600 text-sm truncate">{displayName}</span>
-                          {isSelected && <span className="text-xs text-slate-400 ml-auto">{language === 'fr' ? 'Ajouté' : 'Added'}</span>}
                         </button>
                       );
                     })}
@@ -269,15 +193,13 @@ export function FinancialsPanel() {
                 )}
                 {/* Show search results when searching */}
                 {stockSearch.length > 0 && stockResults.map((stock) => {
-                  const isSelected = selectedTickers.includes(stock.ticker);
                   const logoUrl = getCompanyLogoUrl(stock.ticker);
                   return (
                     <button
                       key={stock.ticker}
                       type="button"
-                      onClick={() => handleSelectStock(stock)}
-                      disabled={isSelected}
-                      className={`w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 ${isSelected ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'hover:bg-purple-50'}`}
+                      onClick={() => handleSelectStock(stock.ticker)}
+                      className="w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 hover:bg-purple-50"
                     >
                       <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                         {logoUrl && (
@@ -299,7 +221,6 @@ export function FinancialsPanel() {
                       </div>
                       <span className="font-bold text-slate-800 w-16">{stock.ticker}</span>
                       <span className="text-slate-600 text-sm truncate">{stock.name}</span>
-                      {isSelected && <span className="text-xs text-slate-400 ml-auto">{language === 'fr' ? 'Ajouté' : 'Added'}</span>}
                     </button>
                   );
                 })}
@@ -492,17 +413,8 @@ export function FinancialsPanel() {
                         return (
                           <button
                             key={ticker}
-                            onClick={() => {
-                              if (!selectedTickers.includes(ticker)) {
-                                setSelectedTickers([...selectedTickers, ticker]);
-                              }
-                            }}
-                            disabled={selectedTickers.includes(ticker)}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${
-                              selectedTickers.includes(ticker)
-                                ? 'bg-purple-100 dark:bg-purple-800 border-purple-300 dark:border-purple-600 text-purple-400 dark:text-purple-500 cursor-not-allowed'
-                                : 'bg-white dark:bg-slate-600 border-purple-200 dark:border-purple-700 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-800/50'
-                            }`}
+                            onClick={() => handleSelectStock(ticker)}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors bg-white dark:bg-slate-600 border-purple-200 dark:border-purple-700 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-800/50"
                             title={stock?.name || ticker}
                           >
                             <div className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-500 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -539,197 +451,15 @@ export function FinancialsPanel() {
         </div>
         )}
 
-        {/* Selected Stocks */}
-        {selectedTickers.length > 0 && (
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Actions sélectionnées' : 'Selected Stocks'}
-                <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">({selectedTickers.length})</span>
-              </h3>
-              {marketCapLoading && (
-                <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">{language === 'fr' ? 'Chargement...' : 'Loading...'}</span>
-                </div>
-              )}
-            </div>
-            <div className="space-y-2">
-              {selectedTickers.map((ticker) => {
-                const stock = findStockByTicker(ticker);
-                const marketCapInfo = marketCaps[ticker];
-                const displayName = marketCapInfo?.name || stock?.name || ticker;
-                const logoUrl = getCompanyLogoUrl(ticker);
-                const isLoading = !marketCapInfo && marketCapLoading;
-                const isChartOpen = chartTicker === ticker;
-
-                return (
-                  <div key={ticker}>
-                    <div
-                      className={`flex items-center bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-3 border gap-3 cursor-pointer transition-colors ${
-                        isChartOpen
-                          ? 'border-green-400 dark:border-green-500 bg-slate-200 dark:bg-slate-500'
-                          : 'border-slate-300 dark:border-slate-500 hover:border-slate-400 dark:hover:border-slate-400'
-                      }`}
-                      onClick={() => handleToggleChart(ticker)}
-                    >
-                      <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-500 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {logoUrl && (
-                          <img
-                            src={logoUrl}
-                            alt={`${ticker} logo`}
-                            className="w-8 h-8 object-contain"
-                            onError={(e) => {
-                              const parent = e.currentTarget.parentElement;
-                              if (parent) {
-                                parent.innerHTML = `<span class="text-xs font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
-                              }
-                            }}
-                          />
-                        )}
-                        {!logoUrl && (
-                          <span className="text-xs font-bold text-slate-500 dark:text-slate-300">{ticker.slice(0, 2)}</span>
-                        )}
-                      </div>
-                      <span className="font-bold text-slate-800 dark:text-slate-100 w-16 flex-shrink-0">{ticker}</span>
-                      <span className="text-slate-600 dark:text-slate-300 text-sm truncate flex-1">{displayName}</span>
-                      <span className="text-slate-800 dark:text-slate-100 font-semibold flex-shrink-0">
-                        {isLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                        ) : (
-                          formatMarketCap(marketCapInfo?.market_cap ?? null)
-                        )}
-                      </span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleRemoveStock(ticker); }}
-                        className="text-slate-400 hover:text-red-500 p-1 transition-colors flex-shrink-0"
-                        title={language === 'fr' ? 'Supprimer' : 'Remove'}
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    {/* Price Chart */}
-                    {isChartOpen && (
-                      <div className="mt-2 bg-slate-800 dark:bg-slate-900 rounded-lg p-4 border border-slate-700">
-                        {/* Period Selectors */}
-                        <div className="flex gap-2 mb-4">
-                          {(['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'MAX'] as ChartPeriod[]).map((period) => (
-                            <button
-                              key={period}
-                              onClick={(e) => { e.stopPropagation(); setChartPeriod(period); }}
-                              className={`px-3 py-1 text-sm rounded transition-colors ${
-                                chartPeriod === period
-                                  ? 'bg-green-600 text-white font-medium'
-                                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                              }`}
-                            >
-                              {period}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Chart */}
-                        {stockHistoryLoading ? (
-                          <div className="h-[250px] flex items-center justify-center">
-                            <Loader2 className="w-8 h-8 animate-spin text-green-500" />
-                          </div>
-                        ) : stockHistoryData?.data && stockHistoryData.data.length > 0 ? (
-                          <div className="h-[250px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <LineChart data={stockHistoryData.data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                                <XAxis
-                                  dataKey="timestamp"
-                                  tick={{ fontSize: 11, fill: '#94a3b8' }}
-                                  tickFormatter={(ts) => {
-                                    const d = new Date(ts);
-                                    if (chartPeriod === '1D') {
-                                      return d.toLocaleTimeString(language === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
-                                    }
-                                    if (chartPeriod === '5D') {
-                                      return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'short' });
-                                    }
-                                    return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
-                                  }}
-                                  stroke="#475569"
-                                  axisLine={{ stroke: '#475569' }}
-                                  tickLine={{ stroke: '#475569' }}
-                                />
-                                <YAxis
-                                  domain={['auto', 'auto']}
-                                  tick={{ fontSize: 11, fill: '#94a3b8' }}
-                                  stroke="#475569"
-                                  axisLine={{ stroke: '#475569' }}
-                                  tickLine={{ stroke: '#475569' }}
-                                  tickFormatter={(val) => val.toFixed(0)}
-                                  width={50}
-                                />
-                                <Tooltip
-                                  contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #475569', padding: '8px 12px' }}
-                                  labelStyle={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}
-                                  labelFormatter={(ts) => {
-                                    const d = new Date(String(ts));
-                                    if (chartPeriod === '1D' || chartPeriod === '5D') {
-                                      return d.toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-                                      });
-                                    }
-                                    return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                                      day: 'numeric', month: 'long', year: 'numeric'
-                                    });
-                                  }}
-                                  formatter={(value) => [`$${Number(value).toFixed(2)}`, null]}
-                                  separator=""
-                                />
-                                {stockHistoryData.previous_close && (
-                                  <ReferenceLine
-                                    y={stockHistoryData.previous_close}
-                                    stroke="#64748b"
-                                    strokeDasharray="4 4"
-                                    label={{
-                                      value: language === 'fr' ? 'Clôture préc.' : 'Prev close',
-                                      position: 'right',
-                                      fill: '#64748b',
-                                      fontSize: 10,
-                                    }}
-                                  />
-                                )}
-                                <Line
-                                  type="monotone"
-                                  dataKey="price"
-                                  stroke="#22c55e"
-                                  strokeWidth={2}
-                                  dot={false}
-                                  activeDot={{ r: 4, fill: '#22c55e' }}
-                                />
-                              </LineChart>
-                            </ResponsiveContainer>
-                          </div>
-                        ) : (
-                          <div className="h-[250px] flex items-center justify-center text-slate-400">
-                            {language === 'fr' ? 'Aucune donnée disponible' : 'No data available'}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {selectedTickers.length === 0 && (
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-12 text-center shadow-sm dark:shadow-none">
-            <TrendingUp className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-500">
-              {language === 'fr'
-                ? 'Recherchez des actions ci-dessus pour voir leur capitalisation boursière.'
-                : 'Search for stocks above to see their market cap.'}
-            </p>
-          </div>
-        )}
+        {/* Info */}
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-8 text-center shadow-sm dark:shadow-none">
+          <TrendingUp className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+          <p className="text-slate-500 dark:text-slate-400">
+            {language === 'fr'
+              ? 'Recherchez une action pour voir son historique de prix et sa capitalisation boursière.'
+              : 'Search for a stock to see its price history and market cap.'}
+          </p>
+        </div>
       </div>
     </div>
   );
