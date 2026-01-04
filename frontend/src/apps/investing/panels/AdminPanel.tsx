@@ -287,7 +287,7 @@ export function AdminPanel() {
                     </th>
                     <th className="pb-3 text-center">
                       <button onClick={() => handleSort('total_minutes')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white mx-auto">
-                        {language === 'fr' ? 'Minutes' : 'Minutes'}
+                        {language === 'fr' ? 'Temps passé' : 'Time Spent'}
                         {sortColumn === 'total_minutes' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
@@ -330,7 +330,11 @@ export function AdminPanel() {
                         )}
                       </td>
                       <td className="py-3 text-center text-sm text-slate-600 dark:text-slate-300">
-                        {u.total_minutes > 0 ? u.total_minutes : '-'}
+                        {u.total_minutes > 0 ? (
+                          u.total_minutes >= 60
+                            ? `${Math.floor(u.total_minutes / 60)}h${String(u.total_minutes % 60).padStart(2, '0')}`
+                            : `${u.total_minutes}m`
+                        ) : '-'}
                       </td>
                     </tr>
                   ))}
