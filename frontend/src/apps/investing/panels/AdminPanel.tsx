@@ -385,9 +385,9 @@ export function AdminPanel() {
                                       dataKey="activity_date"
                                       tick={{ fontSize: 11 }}
                                       tickFormatter={(date) => new Date(date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
-                                      stroke="#94a3b8"
+                                      stroke="#cbd5e1"
                                     />
-                                    <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                                    <YAxis tick={{ fontSize: 11 }} stroke="#cbd5e1" />
                                     <Tooltip
                                       contentStyle={{ backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e2e8f0', padding: '2px 8px', fontSize: '12px' }}
                                       labelStyle={{ marginBottom: '-2px' }}
