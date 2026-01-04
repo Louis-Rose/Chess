@@ -54,9 +54,9 @@ export function AdminPanel() {
     enabled: !!user?.is_admin,
   });
 
-  // Sort state
-  const [sortColumn, setSortColumn] = useState<SortColumn>('id');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  // Sort state (default: most recently registered first)
+  const [sortColumn, setSortColumn] = useState<SortColumn>('created_at');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   // Expanded user for activity details
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
@@ -110,9 +110,13 @@ export function AdminPanel() {
   const chartData = useMemo(() => {
     if (!data?.users || data.users.length === 0) return [];
 
+    // Exclude fake/test users from chart
+    const excludeFromChart = ['fake.test@example.com'];
+    const realUsers = data.users.filter(u => !excludeFromChart.includes(u.email));
+
     // Group users by date
     const usersByDate: Record<string, number> = {};
-    data.users.forEach((u) => {
+    realUsers.forEach((u) => {
       const date = u.created_at.split('T')[0].split(' ')[0]; // Handle both ISO and space-separated formats
       usersByDate[date] = (usersByDate[date] || 0) + 1;
     });
