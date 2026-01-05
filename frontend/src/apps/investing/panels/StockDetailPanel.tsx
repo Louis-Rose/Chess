@@ -137,27 +137,6 @@ export function StockDetailPanel() {
                 )}
               </div>
               <p className="text-slate-600 dark:text-slate-300">{displayName}</p>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
-                {marketCapLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                ) : (
-                  <>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                      {language === 'fr' ? 'Cap. boursière:' : 'Market cap:'} {formatMarketCap(marketCapData?.market_cap ?? null)}
-                    </span>
-                    {marketCapData?.trailing_pe && (
-                      <span className="text-sm text-slate-500 dark:text-slate-400">
-                        P/E: {marketCapData.trailing_pe.toFixed(1)}
-                      </span>
-                    )}
-                    {marketCapData?.forward_pe && (
-                      <span className="text-sm text-slate-500 dark:text-slate-400">
-                        {language === 'fr' ? 'P/E prévu:' : 'Forward P/E:'} {marketCapData.forward_pe.toFixed(1)}
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
             </div>
             <div className="text-right">
               {currentPrice !== null && (
@@ -174,6 +153,43 @@ export function StockDetailPanel() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Financials */}
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+            {language === 'fr' ? 'Données financières' : 'Financials'}
+          </h2>
+          {marketCapLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+          ) : (
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                  {language === 'fr' ? 'Cap. boursière' : 'Market Cap'}
+                </p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {formatMarketCap(marketCapData?.market_cap ?? null)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                  P/E
+                </p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {marketCapData?.trailing_pe ? marketCapData.trailing_pe.toFixed(1) : '-'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                  {language === 'fr' ? 'P/E prévu' : 'Forward P/E'}
+                </p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {marketCapData?.forward_pe ? marketCapData.forward_pe.toFixed(1) : '-'}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Price Chart */}
