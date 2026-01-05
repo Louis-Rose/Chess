@@ -240,7 +240,58 @@ export function PortfolioPanel() {
   const [newAccountBank, setNewAccountBank] = useState('');
   const stockDropdownRef = useRef<HTMLDivElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const positionsChartRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingPositions, setIsDownloadingPositions] = useState(false);
+
+  // Add LUMRA branding to an image
+  const addLumraBranding = async (dataUrl: string, bottomOffset = 20): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d')!;
+
+        // Draw the original image
+        ctx.drawImage(img, 0, 0);
+
+        // Add LUMRA branding in bottom-right corner
+        const padding = 20;
+        const logoSize = 32;
+        const fontSize = 18;
+        const brandingWidth = logoSize + 8 + 60; // logo + gap + text width
+        const brandingHeight = logoSize;
+        const x = canvas.width - brandingWidth - padding;
+        const y = canvas.height - brandingHeight - bottomOffset;
+
+        // Draw logo background (green rounded rect)
+        ctx.fillStyle = '#16a34a';
+        ctx.beginPath();
+        ctx.roundRect(x, y, logoSize, logoSize, 6);
+        ctx.fill();
+
+        // Draw bar chart icon (white bars)
+        const barWidth = 5;
+        const barGap = 3;
+        const baseY = y + logoSize - 8;
+        ctx.fillStyle = 'white';
+        ctx.fillRect(x + 8, baseY - 12, barWidth, 12);
+        ctx.fillRect(x + 8 + barWidth + barGap, baseY - 18, barWidth, 18);
+        ctx.fillRect(x + 8 + 2 * (barWidth + barGap), baseY - 24, barWidth, 24);
+
+        // Draw LUMRA text
+        ctx.fillStyle = '#1e293b';
+        ctx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`;
+        ctx.textBaseline = 'middle';
+        ctx.fillText('LUMRA', x + logoSize + 8, y + logoSize / 2);
+
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.src = dataUrl;
+    });
+  };
 
   // Download chart as image
   const downloadChart = async () => {
@@ -257,8 +308,11 @@ export function PortfolioPanel() {
         pixelRatio: 2,
       });
 
+      // Add LUMRA branding (larger offset to position above where the brush area was)
+      const brandedDataUrl = await addLumraBranding(dataUrl, 70);
+
       const link = document.createElement('a');
-      link.href = dataUrl;
+      link.href = brandedDataUrl;
       link.download = `portfolio-performance-${new Date().toISOString().split('T')[0]}.png`;
       link.click();
     } catch (error) {
@@ -266,6 +320,35 @@ export function PortfolioPanel() {
       alert(language === 'fr' ? 'Erreur lors du téléchargement' : 'Download failed');
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  // Download positions chart as image
+  const downloadPositionsChart = async () => {
+    if (!positionsChartRef.current) {
+      console.error('Positions chart container ref not found');
+      return;
+    }
+    setIsDownloadingPositions(true);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      const dataUrl = await toPng(positionsChartRef.current, {
+        backgroundColor: '#f1f5f9',
+        pixelRatio: 2,
+      });
+
+      // Add LUMRA branding
+      const brandedDataUrl = await addLumraBranding(dataUrl);
+
+      const link = document.createElement('a');
+      link.href = brandedDataUrl;
+      link.download = `portfolio-positions-${new Date().toISOString().split('T')[0]}.png`;
+      link.click();
+    } catch (error) {
+      console.error('Failed to download positions chart:', error);
+      alert(language === 'fr' ? 'Erreur lors du téléchargement' : 'Download failed');
+    } finally {
+      setIsDownloadingPositions(false);
     }
   };
 
@@ -1111,13 +1194,24 @@ export function PortfolioPanel() {
         {/* Portfolio Composition */}
         {selectedAccountId && hasHoldings && (
           <div className="bg-slate-50 dark:bg-slate-100 rounded-xl p-6">
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-800 mb-6">{t('holdings.title')}</h3>
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-800">{t('holdings.title')}</h3>
+              <button
+                onClick={downloadPositionsChart}
+                disabled={isDownloadingPositions || compositionLoading}
+                className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+                title={language === 'fr' ? 'Télécharger le graphique' : 'Download chart'}
+              >
+                {isDownloadingPositions ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              </button>
+            </div>
 
             {compositionLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
               </div>
             ) : compositionData?.holdings && compositionData.holdings.length > 0 ? (
+              <div ref={positionsChartRef} className="bg-slate-100 rounded-xl p-4">
               <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
                 {/* Pie Chart */}
                 <div className="w-full md:w-1/2 h-[280px] md:h-[380px]">
@@ -1196,6 +1290,7 @@ export function PortfolioPanel() {
                     );
                   })()}
                 </div>
+              </div>
               </div>
             ) : (
               <p className="text-slate-500 text-center py-8">No holdings data available.</p>
