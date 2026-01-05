@@ -56,9 +56,9 @@ def get_user_earnings_data(user_id: int) -> list:
         for row in cursor.fetchall():
             portfolio_tickers.add(row['stock_ticker'])
 
-        # Get earnings watchlist tickers
+        # Get watchlist tickers
         cursor = conn.execute('''
-            SELECT stock_ticker FROM earnings_watchlist WHERE user_id = ?
+            SELECT stock_ticker FROM watchlist WHERE user_id = ?
         ''', (user_id,))
         for row in cursor.fetchall():
             watchlist_tickers.add(row['stock_ticker'])

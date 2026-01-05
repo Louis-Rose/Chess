@@ -1622,7 +1622,7 @@ def send_earnings_alert_now():
         for row in cursor.fetchall():
             portfolio_tickers.add(row['stock_ticker'])
 
-        cursor = conn.execute('SELECT stock_ticker FROM earnings_watchlist WHERE user_id = ?', (request.user_id,))
+        cursor = conn.execute('SELECT stock_ticker FROM watchlist WHERE user_id = ?', (request.user_id,))
         for row in cursor.fetchall():
             watchlist_tickers.add(row['stock_ticker'])
 
