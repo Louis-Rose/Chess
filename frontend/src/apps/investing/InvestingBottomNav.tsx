@@ -13,7 +13,7 @@ const navItems = [
 
 export function InvestingBottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 px-2 py-4 md:hidden z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 px-2 pt-3 pb-6 md:hidden z-50">
       <div className="flex justify-around items-center">
         {navItems.map((item) => (
           <NavLink
