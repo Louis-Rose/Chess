@@ -148,14 +148,17 @@ const fetchHoldings = async (): Promise<{ holdings: ComputedHolding[] }> => {
   return response.data;
 };
 
-const fetchComposition = async (): Promise<CompositionData> => {
-  const response = await axios.get('/api/investing/portfolio/composition');
+const fetchComposition = async (accountId?: number): Promise<CompositionData> => {
+  const params = accountId ? `?account_id=${accountId}` : '';
+  const response = await axios.get(`/api/investing/portfolio/composition${params}`);
   return response.data;
 };
 
-const fetchPerformance = async (benchmark: string, currency: string): Promise<PerformanceData> => {
+const fetchPerformance = async (benchmark: string, currency: string, accountId?: number): Promise<PerformanceData> => {
   // Send benchmark name (NASDAQ/SP500) and currency, backend handles ticker mapping
-  const response = await axios.get(`/api/investing/portfolio/performance?benchmark=${benchmark}&currency=${currency}`);
+  const params = new URLSearchParams({ benchmark, currency });
+  if (accountId) params.append('account_id', String(accountId));
+  const response = await axios.get(`/api/investing/portfolio/performance?${params}`);
   return response.data;
 };
 
@@ -411,7 +414,7 @@ export function PortfolioPanel() {
     enabled: isAuthenticated,
   });
 
-  const { data: holdingsData } = useQuery({
+  useQuery({
     queryKey: ['holdings'],
     queryFn: fetchHoldings,
     enabled: isAuthenticated,
@@ -433,21 +436,23 @@ export function PortfolioPanel() {
     queryFn: fetchAccountTypes,
   });
 
-  const hasHoldings = (holdingsData?.holdings?.length ?? 0) > 0;
   const accounts = accountsData?.accounts ?? [];
   const banks = banksData?.banks ?? {};
   const accountTypes = accountTypesData?.account_types ?? {};
 
   const { data: compositionData, isLoading: compositionLoading } = useQuery({
-    queryKey: ['composition'],
-    queryFn: fetchComposition,
-    enabled: isAuthenticated && hasHoldings,
+    queryKey: ['composition', selectedAccountId],
+    queryFn: () => fetchComposition(selectedAccountId),
+    enabled: isAuthenticated && !!selectedAccountId,
   });
 
+  // Check if selected account has holdings based on composition data
+  const accountHasHoldings = (compositionData?.holdings?.length ?? 0) > 0;
+
   const { data: performanceData, isLoading: performanceLoading } = useQuery({
-    queryKey: ['performance', benchmark, currency],
-    queryFn: () => fetchPerformance(benchmark, currency),
-    enabled: isAuthenticated && hasHoldings,
+    queryKey: ['performance', benchmark, currency, selectedAccountId],
+    queryFn: () => fetchPerformance(benchmark, currency, selectedAccountId),
+    enabled: isAuthenticated && !!selectedAccountId && accountHasHoldings,
   });
 
   // Mutations
@@ -1139,7 +1144,7 @@ export function PortfolioPanel() {
         )}
 
         {/* Summary Cards - Single row */}
-        {selectedAccountId && compositionData && hasHoldings && (
+        {selectedAccountId && compositionData && accountHasHoldings && (
           <div className="bg-slate-50 dark:bg-slate-100 rounded-xl p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {(() => {
@@ -1223,7 +1228,7 @@ export function PortfolioPanel() {
         )}
 
         {/* Portfolio Composition */}
-        {selectedAccountId && hasHoldings && (
+        {selectedAccountId && accountHasHoldings && (
           <div className="bg-slate-50 dark:bg-slate-100 rounded-xl p-6">
             <div className="flex items-center justify-center gap-3 mb-6">
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-800">{t('holdings.title')}</h3>
@@ -1331,7 +1336,7 @@ export function PortfolioPanel() {
         )}
 
         {/* Portfolio Performance */}
-        {selectedAccountId && hasHoldings && (
+        {selectedAccountId && accountHasHoldings && (
           <div className="bg-slate-50 dark:bg-slate-100 rounded-xl p-4 md:p-6">
             <div className="flex items-center justify-center gap-3 mb-4">
               <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-800">{t('performance.title')}</h3>
