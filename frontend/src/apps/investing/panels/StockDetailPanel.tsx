@@ -174,7 +174,7 @@ export function StockDetailPanel() {
               </div>
               <div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                  P/E
+                  P/E Ratio
                 </p>
                 <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                   {marketCapData?.trailing_pe ? marketCapData.trailing_pe.toFixed(1) : '-'}
