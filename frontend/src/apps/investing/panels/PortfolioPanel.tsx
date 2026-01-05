@@ -1239,6 +1239,7 @@ export function PortfolioPanel() {
                         outerRadius="50%"
                         label={({ name, value }) => `${name} ${value}%`}
                         labelLine={true}
+                        isAnimationActive={!isDownloadingPositions}
                       >
                         {compositionData.holdings.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
