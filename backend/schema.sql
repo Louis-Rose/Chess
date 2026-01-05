@@ -130,9 +130,9 @@ CREATE TABLE IF NOT EXISTS user_activity (
 CREATE TABLE IF NOT EXISTS earnings_alert_preferences (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER UNIQUE NOT NULL,
-    alert_type TEXT NOT NULL,             -- 'weekly' or 'days_before'
-    days_before INTEGER DEFAULT 7,        -- Number of days before earnings (for 'days_before' type)
-    enabled INTEGER DEFAULT 1,            -- 1 if alerts are enabled, 0 if disabled
+    weekly_enabled INTEGER DEFAULT 0,     -- 1 if weekly summary enabled
+    days_before_enabled INTEGER DEFAULT 0, -- 1 if X-days-before alerts enabled
+    days_before INTEGER DEFAULT 7,        -- Number of days before earnings
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

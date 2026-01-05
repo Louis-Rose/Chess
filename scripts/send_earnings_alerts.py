@@ -3,11 +3,14 @@
 Earnings Alert Email Sender
 
 This script sends earnings alert emails to subscribed users.
-Run it via cron:
-- Weekly alerts: Every Monday at 8:00 AM
-  0 8 * * 1 cd /path/to/app && ./venv/bin/python scripts/send_earnings_alerts.py weekly
-- Daily check for X-days-before alerts: Every day at 8:00 AM
-  0 8 * * * cd /path/to/app && ./venv/bin/python scripts/send_earnings_alerts.py days_before
+Run it via cron (9 AM Paris time = 8 AM UTC in winter, 7 AM UTC in summer):
+
+Using system cron with TZ environment variable:
+  CRON_TZ=Europe/Paris
+  0 9 * * 1 cd /home/azureuser/Chess && ./venv/bin/python scripts/send_earnings_alerts.py weekly
+  0 9 * * * cd /home/azureuser/Chess && ./venv/bin/python scripts/send_earnings_alerts.py days_before
+
+Or using systemd timers with OnCalendar=*-*-* 09:00:00 Europe/Paris
 """
 
 import os
@@ -100,10 +103,10 @@ def send_weekly_alerts():
 
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT u.id, u.email, u.name, eap.alert_type, eap.days_before
+            SELECT u.id, u.email, u.name, eap.days_before
             FROM users u
             JOIN earnings_alert_preferences eap ON u.id = eap.user_id
-            WHERE eap.enabled = 1 AND eap.alert_type = 'weekly'
+            WHERE eap.weekly_enabled = 1
         ''')
         users = cursor.fetchall()
 
@@ -136,10 +139,10 @@ def send_days_before_alerts():
 
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT u.id, u.email, u.name, eap.alert_type, eap.days_before
+            SELECT u.id, u.email, u.name, eap.days_before
             FROM users u
             JOIN earnings_alert_preferences eap ON u.id = eap.user_id
-            WHERE eap.enabled = 1 AND eap.alert_type = 'days_before'
+            WHERE eap.days_before_enabled = 1
         ''')
         users = cursor.fetchall()
 

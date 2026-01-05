@@ -10,9 +10,9 @@ import { LoginButton } from '../../../components/LoginButton';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
 
 interface AlertPreferences {
-  alert_type: 'weekly' | 'days_before' | null;
+  weekly_enabled: boolean;
+  days_before_enabled: boolean;
   days_before: number;
-  enabled: boolean;
 }
 
 interface EarningsData {
@@ -43,6 +43,11 @@ const saveAlertPreferences = async (prefs: AlertPreferences): Promise<void> => {
   await axios.post('/api/investing/earnings-alerts', prefs);
 };
 
+const sendTestEmail = async (): Promise<{ success: boolean; message?: string; error?: string }> => {
+  const response = await axios.post('/api/investing/earnings-alerts/send-now');
+  return response.data;
+};
+
 // Alert Configuration Modal
 function AlertModal({
   isOpen,
@@ -54,10 +59,13 @@ function AlertModal({
   language: string;
 }) {
   const queryClient = useQueryClient();
-  const [alertType, setAlertType] = useState<'weekly' | 'days_before'>('days_before');
+  const [weeklyEnabled, setWeeklyEnabled] = useState(false);
+  const [daysBeforeEnabled, setDaysBeforeEnabled] = useState(false);
   const [daysBefore, setDaysBefore] = useState(7);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Fetch existing preferences
   const { data: existingPrefs } = useQuery({
@@ -69,9 +77,8 @@ function AlertModal({
   // Update local state when preferences are loaded
   useEffect(() => {
     if (existingPrefs) {
-      if (existingPrefs.alert_type) {
-        setAlertType(existingPrefs.alert_type);
-      }
+      setWeeklyEnabled(existingPrefs.weekly_enabled);
+      setDaysBeforeEnabled(existingPrefs.days_before_enabled);
       setDaysBefore(existingPrefs.days_before || 7);
     }
   }, [existingPrefs]);
@@ -94,10 +101,24 @@ function AlertModal({
   const handleSave = () => {
     setIsSaving(true);
     saveMutation.mutate({
-      alert_type: alertType,
+      weekly_enabled: weeklyEnabled,
+      days_before_enabled: daysBeforeEnabled,
       days_before: daysBefore,
-      enabled: true,
     });
+  };
+
+  const handleSendTest = async () => {
+    setIsSendingTest(true);
+    setTestResult(null);
+    try {
+      const result = await sendTestEmail();
+      setTestResult({ success: true, message: result.message || 'Email sent!' });
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      setTestResult({ success: false, message: err.response?.data?.error || 'Failed to send email' });
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -137,24 +158,22 @@ function AlertModal({
           {/* Alert Type Selection */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              {language === 'fr' ? 'Type d\'alerte' : 'Alert Type'}
+              {language === 'fr' ? 'Types d\'alerte' : 'Alert Types'}
             </label>
 
             {/* Weekly Option */}
             <label
               className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                alertType === 'weekly'
+                weeklyEnabled
                   ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                   : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
               }`}
             >
               <input
-                type="radio"
-                name="alertType"
-                value="weekly"
-                checked={alertType === 'weekly'}
-                onChange={() => setAlertType('weekly')}
-                className="mt-1 text-green-600 focus:ring-green-500"
+                type="checkbox"
+                checked={weeklyEnabled}
+                onChange={(e) => setWeeklyEnabled(e.target.checked)}
+                className="mt-1 w-4 h-4 text-green-600 focus:ring-green-500 rounded"
               />
               <div>
                 <span className="font-medium text-slate-900 dark:text-slate-100">
@@ -162,8 +181,8 @@ function AlertModal({
                 </span>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                   {language === 'fr'
-                    ? 'Recevez un email chaque lundi matin avec les résultats de la semaine.'
-                    : 'Get an email every Monday morning with the week\'s earnings.'}
+                    ? 'Recevez un email chaque lundi à 9h avec les résultats de la semaine.'
+                    : 'Get an email every Monday at 9 AM with the week\'s earnings.'}
                 </p>
               </div>
             </label>
@@ -171,18 +190,16 @@ function AlertModal({
             {/* Days Before Option */}
             <label
               className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                alertType === 'days_before'
+                daysBeforeEnabled
                   ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                   : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
               }`}
             >
               <input
-                type="radio"
-                name="alertType"
-                value="days_before"
-                checked={alertType === 'days_before'}
-                onChange={() => setAlertType('days_before')}
-                className="mt-1 text-green-600 focus:ring-green-500"
+                type="checkbox"
+                checked={daysBeforeEnabled}
+                onChange={(e) => setDaysBeforeEnabled(e.target.checked)}
+                className="mt-1 w-4 h-4 text-green-600 focus:ring-green-500 rounded"
               />
               <div className="flex-1">
                 <span className="font-medium text-slate-900 dark:text-slate-100">
@@ -190,10 +207,10 @@ function AlertModal({
                 </span>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                   {language === 'fr'
-                    ? 'Recevez une alerte X jours avant chaque publication.'
-                    : 'Get an alert X days before each earnings release.'}
+                    ? 'Recevez une alerte X jours avant chaque publication (à 9h).'
+                    : 'Get an alert X days before each earnings release (at 9 AM).'}
                 </p>
-                {alertType === 'days_before' && (
+                {daysBeforeEnabled && (
                   <div className="mt-3 flex items-center gap-3">
                     <input
                       type="number"
@@ -211,32 +228,53 @@ function AlertModal({
               </div>
             </label>
           </div>
+
+          {/* Test Result Message */}
+          {testResult && (
+            <div className={`p-3 rounded-lg text-sm ${testResult.success ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+              {testResult.message}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
+        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-700 flex justify-between">
           <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            onClick={handleSendTest}
+            disabled={isSendingTest}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
           >
-            {language === 'fr' ? 'Annuler' : 'Cancel'}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
-          >
-            {isSaving ? (
+            {isSendingTest ? (
               <Loader2 className="w-4 h-4 animate-spin" />
-            ) : saveSuccess ? (
-              <CheckCircle2 className="w-4 h-4" />
             ) : (
               <Mail className="w-4 h-4" />
             )}
-            {saveSuccess
-              ? (language === 'fr' ? 'Enregistré !' : 'Saved!')
-              : (language === 'fr' ? 'Activer les alertes' : 'Enable Alerts')}
+            {language === 'fr' ? 'Envoyer maintenant' : 'Send Now'}
           </button>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            >
+              {language === 'fr' ? 'Annuler' : 'Cancel'}
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving || (!weeklyEnabled && !daysBeforeEnabled)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : saveSuccess ? (
+                <CheckCircle2 className="w-4 h-4" />
+              ) : (
+                <Bell className="w-4 h-4" />
+              )}
+              {saveSuccess
+                ? (language === 'fr' ? 'Enregistré !' : 'Saved!')
+                : (language === 'fr' ? 'Enregistrer' : 'Save')}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -442,15 +480,23 @@ export function EarningsCalendarPanel() {
                 <Bell className="w-5 h-5" />
                 {language === 'fr' ? 'Recevoir des alertes personnalisées' : 'Get custom alerts'}
               </button>
-              {alertPrefs?.enabled && (
-                <p className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                  {alertPrefs.alert_type === 'weekly'
-                    ? (language === 'fr' ? 'Résumé hebdomadaire activé' : 'Weekly summary enabled')
-                    : (language === 'fr'
+              {(alertPrefs?.weekly_enabled || alertPrefs?.days_before_enabled) && (
+                <div className="text-sm text-green-600 dark:text-green-400 flex flex-col items-center gap-1">
+                  {alertPrefs.weekly_enabled && (
+                    <p className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4" />
+                      {language === 'fr' ? 'Résumé hebdomadaire activé' : 'Weekly summary enabled'}
+                    </p>
+                  )}
+                  {alertPrefs.days_before_enabled && (
+                    <p className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4" />
+                      {language === 'fr'
                         ? `Alerte ${alertPrefs.days_before} jours avant activée`
-                        : `${alertPrefs.days_before}-day reminder enabled`)}
-                </p>
+                        : `${alertPrefs.days_before}-day reminder enabled`}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 

@@ -1535,23 +1535,23 @@ def get_earnings_alert_preferences():
     """Get current user's earnings alert preferences."""
     with get_db() as conn:
         cursor = conn.execute(
-            'SELECT alert_type, days_before, enabled FROM earnings_alert_preferences WHERE user_id = ?',
+            'SELECT weekly_enabled, days_before_enabled, days_before FROM earnings_alert_preferences WHERE user_id = ?',
             (request.user_id,)
         )
         row = cursor.fetchone()
 
         if row:
             return jsonify({
-                'alert_type': row['alert_type'],
-                'days_before': row['days_before'],
-                'enabled': bool(row['enabled'])
+                'weekly_enabled': bool(row['weekly_enabled']),
+                'days_before_enabled': bool(row['days_before_enabled']),
+                'days_before': row['days_before']
             })
         else:
             # Return default values if no preferences set
             return jsonify({
-                'alert_type': None,
-                'days_before': 7,
-                'enabled': False
+                'weekly_enabled': False,
+                'days_before_enabled': False,
+                'days_before': 7
             })
 
 
@@ -1561,26 +1561,23 @@ def save_earnings_alert_preferences():
     """Save or update earnings alert preferences."""
     data = request.get_json()
 
-    alert_type = data.get('alert_type')  # 'weekly' or 'days_before'
+    weekly_enabled = data.get('weekly_enabled', False)
+    days_before_enabled = data.get('days_before_enabled', False)
     days_before = data.get('days_before', 7)
-    enabled = data.get('enabled', True)
 
-    if alert_type not in ['weekly', 'days_before']:
-        return jsonify({'error': 'Invalid alert_type. Use "weekly" or "days_before"'}), 400
-
-    if alert_type == 'days_before' and (not isinstance(days_before, int) or days_before < 1 or days_before > 30):
+    if days_before_enabled and (not isinstance(days_before, int) or days_before < 1 or days_before > 30):
         return jsonify({'error': 'days_before must be an integer between 1 and 30'}), 400
 
     with get_db() as conn:
         conn.execute('''
-            INSERT INTO earnings_alert_preferences (user_id, alert_type, days_before, enabled, updated_at)
+            INSERT INTO earnings_alert_preferences (user_id, weekly_enabled, days_before_enabled, days_before, updated_at)
             VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(user_id) DO UPDATE SET
-                alert_type = excluded.alert_type,
+                weekly_enabled = excluded.weekly_enabled,
+                days_before_enabled = excluded.days_before_enabled,
                 days_before = excluded.days_before,
-                enabled = excluded.enabled,
                 updated_at = CURRENT_TIMESTAMP
-        ''', (request.user_id, alert_type, days_before, 1 if enabled else 0))
+        ''', (request.user_id, 1 if weekly_enabled else 0, 1 if days_before_enabled else 0, days_before))
 
     return jsonify({'success': True, 'message': 'Alert preferences saved'})
 
@@ -1588,14 +1585,95 @@ def save_earnings_alert_preferences():
 @app.route('/api/investing/earnings-alerts', methods=['DELETE'])
 @login_required
 def disable_earnings_alerts():
-    """Disable earnings alerts for the current user."""
+    """Disable all earnings alerts for the current user."""
     with get_db() as conn:
         conn.execute(
-            'UPDATE earnings_alert_preferences SET enabled = 0, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+            'UPDATE earnings_alert_preferences SET weekly_enabled = 0, days_before_enabled = 0, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
             (request.user_id,)
         )
 
     return jsonify({'success': True, 'message': 'Alerts disabled'})
+
+
+@app.route('/api/investing/earnings-alerts/send-now', methods=['POST'])
+@login_required
+def send_earnings_alert_now():
+    """Send an immediate test email with upcoming earnings."""
+    from email_utils import send_earnings_alert_email
+    import yfinance as yf
+    from datetime import datetime
+
+    # Get user info
+    with get_db() as conn:
+        cursor = conn.execute('SELECT email, name FROM users WHERE id = ?', (request.user_id,))
+        user = cursor.fetchone()
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    email = user['email']
+    name = user['name'] or 'Investor'
+
+    # Get portfolio and watchlist tickers
+    tickers = set()
+    with get_db() as conn:
+        cursor = conn.execute('SELECT DISTINCT stock_ticker FROM portfolio_transactions WHERE user_id = ?', (request.user_id,))
+        for row in cursor.fetchall():
+            tickers.add(row['stock_ticker'])
+
+        cursor = conn.execute('SELECT stock_ticker FROM earnings_watchlist WHERE user_id = ?', (request.user_id,))
+        for row in cursor.fetchall():
+            tickers.add(row['stock_ticker'])
+
+    if not tickers:
+        return jsonify({'error': 'No stocks in portfolio or watchlist'}), 400
+
+    # Get earnings data
+    today = datetime.now().date()
+    earnings_data = []
+
+    for ticker in tickers:
+        with get_db() as conn:
+            cursor = conn.execute('SELECT next_earnings_date, date_confirmed FROM earnings_cache WHERE ticker = ?', (ticker,))
+            row = cursor.fetchone()
+
+            if row and row['next_earnings_date']:
+                try:
+                    earnings_date = datetime.strptime(row['next_earnings_date'], '%Y-%m-%d').date()
+                    remaining_days = (earnings_date - today).days
+
+                    if remaining_days >= 0:
+                        # Get company name
+                        try:
+                            stock = yf.Ticker(ticker)
+                            info = stock.info
+                            company_name = info.get('longName') or info.get('shortName') or ticker
+                        except Exception:
+                            company_name = ticker
+
+                        earnings_data.append({
+                            'ticker': ticker,
+                            'company_name': company_name,
+                            'next_earnings_date': row['next_earnings_date'],
+                            'remaining_days': remaining_days,
+                            'date_confirmed': bool(row['date_confirmed'])
+                        })
+                except ValueError:
+                    continue
+
+    if not earnings_data:
+        return jsonify({'error': 'No upcoming earnings found'}), 400
+
+    # Sort by remaining days
+    earnings_data.sort(key=lambda x: x['remaining_days'])
+
+    # Send email
+    success = send_earnings_alert_email(email, name, earnings_data, 'test')
+
+    if success:
+        return jsonify({'success': True, 'message': f'Email sent to {email}'})
+    else:
+        return jsonify({'error': 'Failed to send email. Check SMTP configuration.'}), 500
 
 
 if __name__ == '__main__':
