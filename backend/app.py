@@ -1107,6 +1107,8 @@ def get_market_cap():
                 'ticker': ticker,
                 'name': name,
                 'market_cap': market_cap,
+                'trailing_pe': info.get('trailingPE'),
+                'forward_pe': info.get('forwardPE'),
             }
         except Exception as e:
             results[ticker] = {

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowLeft, Loader2, TrendingUp, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Loader2, TrendingUp, ExternalLink, MessageSquare, Send } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { findStockByTicker } from '../utils/allStocks';
@@ -22,6 +22,8 @@ interface MarketCapData {
   ticker: string;
   name: string;
   market_cap: number | null;
+  trailing_pe: number | null;
+  forward_pe: number | null;
 }
 
 type ChartPeriod = '1D' | '5D' | '1M' | '6M' | 'YTD' | '1Y' | '5Y' | 'MAX';
@@ -49,6 +51,8 @@ export function StockDetailPanel() {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1M');
+
+  const [question, setQuestion] = useState('');
 
   const upperTicker = ticker?.toUpperCase() || '';
   const stock = findStockByTicker(upperTicker);
@@ -133,13 +137,25 @@ export function StockDetailPanel() {
                 )}
               </div>
               <p className="text-slate-600 dark:text-slate-300">{displayName}</p>
-              <div className="flex items-center gap-4 mt-2">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
                 {marketCapLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
                 ) : (
-                  <span className="text-sm text-slate-500 dark:text-slate-400">
-                    {language === 'fr' ? 'Cap. boursière:' : 'Market cap:'} {formatMarketCap(marketCapData?.market_cap ?? null)}
-                  </span>
+                  <>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">
+                      {language === 'fr' ? 'Cap. boursière:' : 'Market cap:'} {formatMarketCap(marketCapData?.market_cap ?? null)}
+                    </span>
+                    {marketCapData?.trailing_pe && (
+                      <span className="text-sm text-slate-500 dark:text-slate-400">
+                        P/E: {marketCapData.trailing_pe.toFixed(1)}
+                      </span>
+                    )}
+                    {marketCapData?.forward_pe && (
+                      <span className="text-sm text-slate-500 dark:text-slate-400">
+                        {language === 'fr' ? 'P/E prévu:' : 'Forward P/E:'} {marketCapData.forward_pe.toFixed(1)}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -268,6 +284,36 @@ export function StockDetailPanel() {
               {language === 'fr' ? 'Aucune donnée disponible' : 'No data available'}
             </div>
           )}
+        </div>
+
+        {/* Ask a Question */}
+        <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <div className="flex items-center gap-2 mb-4">
+            <MessageSquare className="w-5 h-5 text-blue-500" />
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {language === 'fr' ? 'Poser une question' : 'Ask a question'}
+            </h2>
+          </div>
+          <div className="relative">
+            <textarea
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder={language === 'fr'
+                ? `Posez une question sur ${upperTicker}...`
+                : `Ask a question about ${upperTicker}...`}
+              className="w-full h-24 px-4 py-3 pr-12 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <button
+              disabled={!question.trim()}
+              className="absolute bottom-3 right-3 p-2 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 dark:disabled:bg-slate-600 disabled:cursor-not-allowed rounded-lg transition-colors"
+              title={language === 'fr' ? 'Envoyer' : 'Send'}
+            >
+              <Send className="w-4 h-4 text-white" />
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+            {language === 'fr' ? 'Fonctionnalité bientôt disponible' : 'Feature coming soon'}
+          </p>
         </div>
       </div>
     </div>
