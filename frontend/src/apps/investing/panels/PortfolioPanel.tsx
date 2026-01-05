@@ -1505,8 +1505,8 @@ export function PortfolioPanel() {
                   portfolio_value_eur: scaledPortfolioValue,
                   benchmark_value_eur: scaledBenchmarkValue,
                   cost_basis_eur: scaledCostBasis,
-                  // For stacked areas: base is the minimum, fill is the difference
-                  area_base: Math.min(scaledPortfolioValue, scaledBenchmarkValue),
+                  // For stacked areas: base is 0, fill is the difference
+                  area_base: 0,
                   outperformance_fill: isOutperforming ? scaledPortfolioValue - scaledBenchmarkValue : 0,
                   underperformance_fill: !isOutperforming ? scaledBenchmarkValue - scaledPortfolioValue : 0,
                 };
