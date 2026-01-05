@@ -119,7 +119,7 @@ export function FinancialsPanel() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col items-center gap-2 mb-6 mt-8">
-        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Stocks Research</h2>
+        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{language === 'fr' ? 'Recherche Actions' : 'Stocks Research'}</h2>
         <p className="text-slate-500 dark:text-slate-400 text-lg italic">
           {language === 'fr' ? 'Recherchez des actions' : 'Search stocks'}
         </p>

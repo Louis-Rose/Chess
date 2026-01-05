@@ -3,12 +3,14 @@
 import { useNavigate } from 'react-router-dom';
 import { Briefcase, Eye, Calendar, TrendingUp, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 
 export function InvestingWelcomePanel() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const { language } = useLanguage();
 
   if (authLoading) {
     return (
@@ -22,16 +24,18 @@ export function InvestingWelcomePanel() {
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center py-8 md:py-16">
-        <h1 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 text-center px-4">Track Your Investments</h1>
+        <h1 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 text-center px-4">
+          {language === 'fr' ? 'Suivez vos Investissements' : 'Track Your Investments'}
+        </h1>
         <div className="flex items-start pt-6 md:pt-8 h-[72px] md:h-[144px]">
           <span className="text-7xl md:text-9xl opacity-15 leading-none">&#128200;</span>
         </div>
         <div className="flex flex-col items-center mt-6 md:mt-8 px-4">
           <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-3 text-center max-w-lg font-light tracking-wide">
-            Monitor your portfolio performance.
+            {language === 'fr' ? 'Suivez la performance de votre portefeuille.' : 'Monitor your portfolio performance.'}
           </p>
           <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-8 md:mb-10 text-center max-w-lg font-light tracking-wide">
-            Get insights to make better investment decisions.
+            {language === 'fr' ? 'Obtenez des informations pour prendre de meilleures décisions.' : 'Get insights to make better investment decisions.'}
           </p>
           <LoginButton />
         </div>
@@ -42,14 +46,16 @@ export function InvestingWelcomePanel() {
   return (
     <>
       <div className="text-center space-y-6">
-        <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100">Your Investment Dashboard</h1>
+        <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100">
+          {language === 'fr' ? 'Tableau de Bord' : 'Your Investment Dashboard'}
+        </h1>
         <PWAInstallPrompt className="max-w-md mx-auto" />
       </div>
 
       <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700 mt-8">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-            Welcome{user?.name ? `, ${user.name}` : ''}!
+            {language === 'fr' ? 'Bienvenue' : 'Welcome'}{user?.name ? `, ${user.name}` : ''} !
           </h2>
         </div>
 
