@@ -440,22 +440,24 @@ export function EarningsCalendarPanel() {
             </div>
 
             <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-600 rounded-lg">
-              <p className="text-sm text-slate-500 dark:text-slate-300">
-                <span className="font-medium text-slate-600 dark:text-slate-200">
-                  {language === 'fr' ? 'Légende : ' : 'Legend: '}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 dark:text-slate-300">
+                <span className="inline-flex items-center gap-1">
+                  <Briefcase className="w-4 h-4 text-green-600" />
+                  {language === 'fr' ? 'Portefeuille' : 'Portfolio'}
                 </span>
-                <Briefcase className="w-4 h-4 text-green-600 inline-block mx-1" />
-                {language === 'fr' ? 'Portefeuille' : 'Portfolio'}
-                {' • '}
-                <Eye className="w-4 h-4 text-blue-600 inline-block mx-1" />
-                {language === 'fr' ? 'Watchlist' : 'Watchlist'}
-                {' • '}
-                <CheckCircle2 className="w-4 h-4 text-green-600 inline-block mx-1" />
-                {language === 'fr' ? 'Date confirmée' : 'Confirmed'}
-                {' • '}
-                <HelpCircle className="w-4 h-4 text-slate-400 inline-block mx-1" />
-                {language === 'fr' ? 'Date estimée' : 'Estimated'}
-              </p>
+                <span className="inline-flex items-center gap-1">
+                  <Eye className="w-4 h-4 text-blue-600" />
+                  Watchlist
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4 text-green-600" />
+                  {language === 'fr' ? 'Confirmé' : 'Confirmed'}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <HelpCircle className="w-4 h-4 text-slate-400" />
+                  {language === 'fr' ? 'Estimé' : 'Estimated'}
+                </span>
+              </div>
             </div>
 
             <div className="mt-6 flex flex-col items-center gap-3">
