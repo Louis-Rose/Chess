@@ -2,3 +2,8 @@
 
 /* Enable class-based dark mode for Tailwind v4 */
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* Prevent iOS Safari overscroll bounce from causing scroll jumps */
+html, body {
+  overscroll-behavior: contain;
+}
