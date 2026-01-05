@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
+import { findStockByTicker } from '../utils/allStocks';
 
 interface UserData {
   id: number;
@@ -314,13 +315,16 @@ export function UserDetailPanel() {
             <div className="flex flex-wrap gap-2">
               {watchlistData.map((ticker) => {
                 const logoUrl = getCompanyLogoUrl(ticker);
+                const stock = findStockByTicker(ticker);
+                const companyName = stock?.name || ticker;
                 return (
                   <div
                     key={ticker}
                     className="flex items-center gap-2 bg-slate-100 dark:bg-slate-600 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors"
                     onClick={() => navigate(`/investing/stock/${ticker}`)}
+                    title={companyName}
                   >
-                    <div className="w-5 h-5 rounded bg-white dark:bg-slate-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                       {logoUrl ? (
                         <img
                           src={logoUrl}
