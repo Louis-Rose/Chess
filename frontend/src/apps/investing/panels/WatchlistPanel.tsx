@@ -186,7 +186,7 @@ export function WatchlistPanel() {
                         disabled={isInWatchlist}
                         className={`w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 ${isInWatchlist ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'hover:bg-blue-50'}`}
                       >
-                        <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                           {logoUrl && (
                             <img
                               src={logoUrl}
@@ -254,7 +254,7 @@ export function WatchlistPanel() {
                     key={ticker}
                     className="flex items-center bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-3 border border-slate-300 dark:border-slate-500 gap-3"
                   >
-                    <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-8 h-8 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                       {logoUrl && (
                         <img
                           src={logoUrl}

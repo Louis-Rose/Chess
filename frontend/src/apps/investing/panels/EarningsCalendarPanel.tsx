@@ -339,21 +339,23 @@ export function EarningsCalendarPanel() {
         ) : data?.earnings && data.earnings.length > 0 ? (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-              <table className="w-full table-fixed">
+              <table className="w-full">
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
                   <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
-                    <th className="pb-3 pl-2 font-semibold w-1/5">Ticker</th>
-                    <th className="pb-3 font-semibold w-1/5">
+                    <th className="pb-3 pl-2 font-semibold">Ticker</th>
+                    <th className="pb-3 font-semibold">
                       {language === 'fr' ? 'Date' : 'Date'}
                     </th>
-                    <th className="pb-3 text-center font-semibold w-1/5">
-                      {language === 'fr' ? 'Jours restants' : 'Remaining'}
+                    <th className="pb-3 text-center font-semibold hidden sm:table-cell">
+                      {language === 'fr' ? 'Jours' : 'Days'}
                     </th>
-                    <th className="pb-3 text-center font-semibold w-1/5">
-                      {language === 'fr' ? 'Confirmé' : 'Confirmed'}
+                    <th className="pb-3 text-center font-semibold">
+                      <span className="hidden sm:inline">{language === 'fr' ? 'Confirmé' : 'Confirmed'}</span>
+                      <span className="sm:hidden">{language === 'fr' ? 'Conf.' : 'Conf.'}</span>
                     </th>
-                    <th className="pb-3 text-center font-semibold w-1/5">
-                      {language === 'fr' ? 'Relations Investisseurs' : 'Investor Relations'}
+                    <th className="pb-3 text-center font-semibold">
+                      <span className="hidden sm:inline">IR</span>
+                      <span className="sm:hidden">IR</span>
                     </th>
                   </tr>
                 </thead>
@@ -380,21 +382,27 @@ export function EarningsCalendarPanel() {
                       <td className="py-4">
                         {item.next_earnings_date ? (
                           <span className="text-slate-700 dark:text-slate-200">
-                            {new Date(item.next_earnings_date).toLocaleDateString(
-                              language === 'fr' ? 'fr-FR' : 'en-US',
-                              { day: 'numeric', month: 'long', year: 'numeric' }
-                            )}
+                            <span className="hidden sm:inline">
+                              {new Date(item.next_earnings_date).toLocaleDateString(
+                                language === 'fr' ? 'fr-FR' : 'en-US',
+                                { day: 'numeric', month: 'long', year: 'numeric' }
+                              )}
+                            </span>
+                            <span className="sm:hidden">
+                              {new Date(item.next_earnings_date).toLocaleDateString(
+                                language === 'fr' ? 'fr-FR' : 'en-US',
+                                { day: 'numeric', month: 'short' }
+                              )}
+                            </span>
                           </span>
                         ) : (
-                          <span className="text-slate-400 italic">
-                            {language === 'fr' ? 'N/A' : 'N/A'}
-                          </span>
+                          <span className="text-slate-400 italic">N/A</span>
                         )}
                       </td>
-                      <td className="py-4 text-center">
+                      <td className="py-4 text-center hidden sm:table-cell">
                         {item.remaining_days !== null ? (
                           <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-full text-sm font-medium bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200">
-                            {item.remaining_days} {language === 'fr' ? 'jours' : 'days'}
+                            {item.remaining_days}
                           </span>
                         ) : (
                           <span className="text-slate-400">-</span>
@@ -415,10 +423,10 @@ export function EarningsCalendarPanel() {
                               href={irUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg text-sm font-medium transition-colors"
+                              className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors"
+                              title={language === 'fr' ? 'Relations Investisseurs' : 'Investor Relations'}
                             >
                               <ExternalLink className="w-4 h-4" />
-                              <span className="hidden sm:inline">IR</span>
                             </a>
                           ) : (
                             <span className="text-slate-400">-</span>

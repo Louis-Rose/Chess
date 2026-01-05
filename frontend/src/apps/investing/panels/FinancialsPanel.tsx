@@ -166,7 +166,7 @@ export function FinancialsPanel() {
                           onClick={() => handleSelectStock(ticker)}
                           className="w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 hover:bg-purple-50"
                         >
-                          <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                             {logoUrl && (
                               <img
                                 src={logoUrl}
@@ -201,7 +201,7 @@ export function FinancialsPanel() {
                       onClick={() => handleSelectStock(stock.ticker)}
                       className="w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 hover:bg-purple-50"
                     >
-                      <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                         {logoUrl && (
                           <img
                             src={logoUrl}
@@ -430,7 +430,7 @@ export function FinancialsPanel() {
                             className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors bg-white dark:bg-slate-600 border-purple-200 dark:border-purple-700 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-800/50"
                             title={stock?.name || ticker}
                           >
-                            <div className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                               {logoUrl ? (
                                 <img
                                   src={logoUrl}

@@ -258,7 +258,7 @@ export function UserDetailPanel() {
                     key={holding.ticker}
                     className="flex items-center gap-3 bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-2"
                   >
-                    <div className="w-8 h-8 rounded bg-white dark:bg-slate-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-8 h-8 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                       {logoUrl ? (
                         <img
                           src={logoUrl}
