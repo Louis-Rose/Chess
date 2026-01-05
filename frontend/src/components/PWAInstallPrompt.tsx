@@ -1,6 +1,6 @@
 // PWA Install Prompt - shows device-specific instructions for installing the app
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Share, MoreVertical, Plus, Download } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -34,31 +34,31 @@ interface PWAInstallPromptProps {
   className?: string;
 }
 
+// Initialize state synchronously to avoid re-render scroll jumps
+function getInitialState(): { dismissed: boolean; platform: Platform } {
+  if (typeof window === 'undefined') {
+    return { dismissed: true, platform: 'unknown' };
+  }
+
+  if (isStandalone()) {
+    return { dismissed: true, platform: 'unknown' };
+  }
+
+  if (localStorage.getItem('pwa-prompt-dismissed')) {
+    return { dismissed: true, platform: 'unknown' };
+  }
+
+  return { dismissed: false, platform: detectPlatform() };
+}
+
 export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
   const { language } = useLanguage();
-  const [dismissed, setDismissed] = useState(true); // Start hidden until we check
-  const [platform, setPlatform] = useState<Platform>('unknown');
-
-  useEffect(() => {
-    // Check if already installed or dismissed
-    if (isStandalone()) {
-      setDismissed(true);
-      return;
-    }
-
-    const wasDismissed = localStorage.getItem('pwa-prompt-dismissed');
-    if (wasDismissed) {
-      setDismissed(true);
-      return;
-    }
-
-    setPlatform(detectPlatform());
-    setDismissed(false);
-  }, []);
+  const [state, setState] = useState(getInitialState);
+  const { dismissed, platform } = state;
 
   const handleDismiss = () => {
     localStorage.setItem('pwa-prompt-dismissed', 'true');
-    setDismissed(true);
+    setState({ dismissed: true, platform });
   };
 
   if (dismissed) return null;

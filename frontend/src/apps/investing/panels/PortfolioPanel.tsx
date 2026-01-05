@@ -530,7 +530,7 @@ export function PortfolioPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="sticky top-0 z-20 bg-slate-200 dark:bg-slate-800 py-4 -mx-4 px-4 mt-8">
+      <div className="md:sticky md:top-0 z-20 bg-slate-200 dark:bg-slate-800 py-4 md:-mx-4 md:px-4 mt-8">
         <div className="flex flex-col items-center gap-2">
           <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{t('portfolio.title')}</h2>
           <p className="text-slate-500 dark:text-slate-400 text-lg italic">{t('portfolio.subtitle')}</p>
