@@ -46,11 +46,12 @@ export function InvestingWelcomePanel() {
         <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100">Your Investment Dashboard</h1>
       </div>
 
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-8">
+      <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700 mt-8">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
             Welcome{user?.name ? `, ${user.name}` : ''}!
           </h2>
+          <PWAInstallPrompt className="mt-4 max-w-md mx-auto text-left" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
@@ -118,8 +119,6 @@ export function InvestingWelcomePanel() {
             </p>
           </button>
         </div>
-
-        <PWAInstallPrompt className="mt-8 max-w-md mx-auto" />
       </div>
     </>
   );
