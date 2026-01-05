@@ -320,10 +320,14 @@ export function UserDetailPanel() {
                 return (
                   <div
                     key={ticker}
-                    className="flex items-center gap-2 bg-slate-100 dark:bg-slate-600 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors"
+                    className="group relative flex items-center gap-2 bg-slate-100 dark:bg-slate-600 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors"
                     onClick={() => navigate(`/investing/stock/${ticker}`)}
-                    title={companyName}
                   >
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+                      {companyName}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                    </div>
                     <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                       {logoUrl ? (
                         <img
