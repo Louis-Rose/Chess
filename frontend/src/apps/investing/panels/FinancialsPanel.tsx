@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Eye, ChevronRight, Layers, Loader2, TrendingUp } from 'lucide-react';
+import { Search, Eye, ChevronRight, Layers, Loader2, TrendingUp, X } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { GICS_SECTORS, getStocksBySubIndustry, type GICSSector, type GICSIndustryGroup, type GICSIndustry, type GICSSubIndustry } from '../utils/gics';
-import { addRecentStock, getRecentStocks } from '../utils/recentStocks';
+import { addRecentStock, getRecentStocks, removeRecentStock } from '../utils/recentStocks';
 
 export function FinancialsPanel() {
   const navigate = useNavigate();
@@ -180,11 +180,10 @@ export function FinancialsPanel() {
                       const displayName = stock?.name || ticker;
                       const logoUrl = getCompanyLogoUrl(ticker);
                       return (
-                        <button
+                        <div
                           key={ticker}
-                          type="button"
                           onClick={() => handleSelectStock(ticker)}
-                          className="w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 hover:bg-purple-50"
+                          className="w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 hover:bg-purple-50 cursor-pointer group"
                         >
                           <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                             {logoUrl && (
@@ -205,8 +204,20 @@ export function FinancialsPanel() {
                             )}
                           </div>
                           <span className="font-bold text-slate-800 w-16">{ticker}</span>
-                          <span className="text-slate-600 text-sm truncate">{displayName}</span>
-                        </button>
+                          <span className="text-slate-600 text-sm truncate flex-1">{displayName}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeRecentStock(ticker);
+                              setRecentStocks(getRecentStocks());
+                            }}
+                            className="p-1 rounded hover:bg-slate-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title={language === 'fr' ? 'Supprimer' : 'Remove'}
+                          >
+                            <X className="w-3.5 h-3.5 text-slate-400" />
+                          </button>
+                        </div>
                       );
                     })}
                   </>

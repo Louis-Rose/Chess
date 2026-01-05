@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, BarChart3, Shield, PanelLeftClose, PanelLeftOpen, Clock } from 'lucide-react';
+import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, BarChart3, Shield, PanelLeftClose, PanelLeftOpen, Clock, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { UserMenu } from '../../components/UserMenu';
 import { LanguageToggle } from '../../components/LanguageToggle';
 import { ThemeToggle } from '../../components/ThemeToggle';
-import { getRecentStocks } from './utils/recentStocks';
+import { getRecentStocks, removeRecentStock } from './utils/recentStocks';
 import { getCompanyLogoUrl } from './utils/companyLogos';
 import { findStockByTicker } from './utils/allStocks';
 
@@ -168,15 +168,15 @@ export function InvestingSidebar() {
               {language === 'fr' ? 'Recherches récentes' : 'Recently searched'}
             </span>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 max-h-48 overflow-y-auto">
             {recentStocks.map((ticker) => {
               const stock = findStockByTicker(ticker);
               const logoUrl = getCompanyLogoUrl(ticker);
               return (
-                <button
+                <div
                   key={ticker}
                   onClick={() => navigate(`/investing/stock/${ticker}`)}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors text-left"
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors text-left cursor-pointer group"
                 >
                   <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                     {logoUrl ? (
@@ -201,7 +201,18 @@ export function InvestingSidebar() {
                       <p className="text-xs text-slate-500 truncate">{stock.name}</p>
                     )}
                   </div>
-                </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeRecentStock(ticker);
+                      setRecentStocks(getRecentStocks());
+                    }}
+                    className="p-1 rounded hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title={language === 'fr' ? 'Supprimer' : 'Remove'}
+                  >
+                    <X className="w-3 h-3 text-slate-400" />
+                  </button>
+                </div>
               );
             })}
           </div>

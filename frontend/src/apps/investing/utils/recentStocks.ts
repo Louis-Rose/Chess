@@ -24,3 +24,9 @@ export function addRecentStock(ticker: string): void {
   const trimmed = filtered.slice(0, MAX_RECENT);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
 }
+
+export function removeRecentStock(ticker: string): void {
+  const recent = getRecentStocks();
+  const filtered = recent.filter(t => t !== ticker);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+}
