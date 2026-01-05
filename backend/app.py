@@ -1529,5 +1529,74 @@ def get_earnings_calendar():
     })
 
 
+@app.route('/api/investing/earnings-alerts', methods=['GET'])
+@login_required
+def get_earnings_alert_preferences():
+    """Get current user's earnings alert preferences."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT alert_type, days_before, enabled FROM earnings_alert_preferences WHERE user_id = ?',
+            (request.user_id,)
+        )
+        row = cursor.fetchone()
+
+        if row:
+            return jsonify({
+                'alert_type': row['alert_type'],
+                'days_before': row['days_before'],
+                'enabled': bool(row['enabled'])
+            })
+        else:
+            # Return default values if no preferences set
+            return jsonify({
+                'alert_type': None,
+                'days_before': 7,
+                'enabled': False
+            })
+
+
+@app.route('/api/investing/earnings-alerts', methods=['POST'])
+@login_required
+def save_earnings_alert_preferences():
+    """Save or update earnings alert preferences."""
+    data = request.get_json()
+
+    alert_type = data.get('alert_type')  # 'weekly' or 'days_before'
+    days_before = data.get('days_before', 7)
+    enabled = data.get('enabled', True)
+
+    if alert_type not in ['weekly', 'days_before']:
+        return jsonify({'error': 'Invalid alert_type. Use "weekly" or "days_before"'}), 400
+
+    if alert_type == 'days_before' and (not isinstance(days_before, int) or days_before < 1 or days_before > 30):
+        return jsonify({'error': 'days_before must be an integer between 1 and 30'}), 400
+
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO earnings_alert_preferences (user_id, alert_type, days_before, enabled, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                alert_type = excluded.alert_type,
+                days_before = excluded.days_before,
+                enabled = excluded.enabled,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (request.user_id, alert_type, days_before, 1 if enabled else 0))
+
+    return jsonify({'success': True, 'message': 'Alert preferences saved'})
+
+
+@app.route('/api/investing/earnings-alerts', methods=['DELETE'])
+@login_required
+def disable_earnings_alerts():
+    """Disable earnings alerts for the current user."""
+    with get_db() as conn:
+        conn.execute(
+            'UPDATE earnings_alert_preferences SET enabled = 0, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+            (request.user_id,)
+        )
+
+    return jsonify({'success': True, 'message': 'Alerts disabled'})
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

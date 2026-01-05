@@ -1,12 +1,19 @@
 // Earnings Calendar panel - displays upcoming earnings dates for portfolio holdings and watchlist
 
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye, ExternalLink, Bell } from 'lucide-react';
+import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye, ExternalLink, Bell, X, Mail } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
+
+interface AlertPreferences {
+  alert_type: 'weekly' | 'days_before' | null;
+  days_before: number;
+  enabled: boolean;
+}
 
 interface EarningsData {
   ticker: string;
@@ -27,15 +34,232 @@ const fetchEarningsCalendar = async (): Promise<EarningsResponse> => {
   return response.data;
 };
 
+const fetchAlertPreferences = async (): Promise<AlertPreferences> => {
+  const response = await axios.get('/api/investing/earnings-alerts');
+  return response.data;
+};
+
+const saveAlertPreferences = async (prefs: AlertPreferences): Promise<void> => {
+  await axios.post('/api/investing/earnings-alerts', prefs);
+};
+
+// Alert Configuration Modal
+function AlertModal({
+  isOpen,
+  onClose,
+  language,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  language: string;
+}) {
+  const queryClient = useQueryClient();
+  const [alertType, setAlertType] = useState<'weekly' | 'days_before'>('days_before');
+  const [daysBefore, setDaysBefore] = useState(7);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Fetch existing preferences
+  const { data: existingPrefs } = useQuery({
+    queryKey: ['earnings-alert-preferences'],
+    queryFn: fetchAlertPreferences,
+    enabled: isOpen,
+  });
+
+  // Update local state when preferences are loaded
+  useEffect(() => {
+    if (existingPrefs) {
+      if (existingPrefs.alert_type) {
+        setAlertType(existingPrefs.alert_type);
+      }
+      setDaysBefore(existingPrefs.days_before || 7);
+    }
+  }, [existingPrefs]);
+
+  const saveMutation = useMutation({
+    mutationFn: saveAlertPreferences,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['earnings-alert-preferences'] });
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setSaveSuccess(false);
+        onClose();
+      }, 1500);
+    },
+    onSettled: () => {
+      setIsSaving(false);
+    },
+  });
+
+  const handleSave = () => {
+    setIsSaving(true);
+    saveMutation.mutate({
+      alert_type: alertType,
+      days_before: daysBefore,
+      enabled: true,
+    });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <Bell className="w-5 h-5 text-green-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {language === 'fr' ? 'Alertes par Email' : 'Email Alerts'}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 py-5 space-y-5">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            {language === 'fr'
+              ? 'Recevez des alertes par email pour les prochaines publications de résultats.'
+              : 'Receive email alerts for upcoming earnings releases.'}
+          </p>
+
+          {/* Alert Type Selection */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              {language === 'fr' ? 'Type d\'alerte' : 'Alert Type'}
+            </label>
+
+            {/* Weekly Option */}
+            <label
+              className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                alertType === 'weekly'
+                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                  : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
+              }`}
+            >
+              <input
+                type="radio"
+                name="alertType"
+                value="weekly"
+                checked={alertType === 'weekly'}
+                onChange={() => setAlertType('weekly')}
+                className="mt-1 text-green-600 focus:ring-green-500"
+              />
+              <div>
+                <span className="font-medium text-slate-900 dark:text-slate-100">
+                  {language === 'fr' ? 'Résumé hebdomadaire' : 'Weekly Summary'}
+                </span>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                  {language === 'fr'
+                    ? 'Recevez un email chaque lundi matin avec les résultats de la semaine.'
+                    : 'Get an email every Monday morning with the week\'s earnings.'}
+                </p>
+              </div>
+            </label>
+
+            {/* Days Before Option */}
+            <label
+              className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                alertType === 'days_before'
+                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                  : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
+              }`}
+            >
+              <input
+                type="radio"
+                name="alertType"
+                value="days_before"
+                checked={alertType === 'days_before'}
+                onChange={() => setAlertType('days_before')}
+                className="mt-1 text-green-600 focus:ring-green-500"
+              />
+              <div className="flex-1">
+                <span className="font-medium text-slate-900 dark:text-slate-100">
+                  {language === 'fr' ? 'X jours avant' : 'X Days Before'}
+                </span>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                  {language === 'fr'
+                    ? 'Recevez une alerte X jours avant chaque publication.'
+                    : 'Get an alert X days before each earnings release.'}
+                </p>
+                {alertType === 'days_before' && (
+                  <div className="mt-3 flex items-center gap-3">
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={daysBefore}
+                      onChange={(e) => setDaysBefore(Math.min(30, Math.max(1, parseInt(e.target.value) || 7)))}
+                      className="w-20 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-center font-medium focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    />
+                    <span className="text-sm text-slate-600 dark:text-slate-400">
+                      {language === 'fr' ? 'jours avant' : 'days before'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          >
+            {language === 'fr' ? 'Annuler' : 'Cancel'}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+          >
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : saveSuccess ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : (
+              <Mail className="w-4 h-4" />
+            )}
+            {saveSuccess
+              ? (language === 'fr' ? 'Enregistré !' : 'Saved!')
+              : (language === 'fr' ? 'Activer les alertes' : 'Enable Alerts')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function EarningsCalendarPanel() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['earnings-calendar'],
     queryFn: fetchEarningsCalendar,
     enabled: isAuthenticated,
     staleTime: 1000 * 60 * 30, // Cache for 30 minutes
+  });
+
+  // Fetch alert preferences to show current status
+  const { data: alertPrefs } = useQuery({
+    queryKey: ['earnings-alert-preferences'],
+    queryFn: fetchAlertPreferences,
+    enabled: isAuthenticated,
   });
 
   if (authLoading) {
@@ -210,14 +434,32 @@ export function EarningsCalendarPanel() {
               </p>
             </div>
 
-            <div className="mt-6 flex justify-center">
+            <div className="mt-6 flex flex-col items-center gap-3">
               <button
+                onClick={() => setIsAlertModalOpen(true)}
                 className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
               >
                 <Bell className="w-5 h-5" />
                 {language === 'fr' ? 'Recevoir des alertes personnalisées' : 'Get custom alerts'}
               </button>
+              {alertPrefs?.enabled && (
+                <p className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4" />
+                  {alertPrefs.alert_type === 'weekly'
+                    ? (language === 'fr' ? 'Résumé hebdomadaire activé' : 'Weekly summary enabled')
+                    : (language === 'fr'
+                        ? `Alerte ${alertPrefs.days_before} jours avant activée`
+                        : `${alertPrefs.days_before}-day reminder enabled`)}
+                </p>
+              )}
             </div>
+
+            {/* Alert Configuration Modal */}
+            <AlertModal
+              isOpen={isAlertModalOpen}
+              onClose={() => setIsAlertModalOpen(false)}
+              language={language}
+            />
           </div>
         ) : (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-12 text-center shadow-sm dark:shadow-none">

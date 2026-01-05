@@ -126,6 +126,18 @@ CREATE TABLE IF NOT EXISTS user_activity (
     UNIQUE(user_id, activity_date)
 );
 
+-- Earnings alert preferences (email notifications)
+CREATE TABLE IF NOT EXISTS earnings_alert_preferences (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER UNIQUE NOT NULL,
+    alert_type TEXT NOT NULL,             -- 'weekly' or 'days_before'
+    days_before INTEGER DEFAULT 7,        -- Number of days before earnings (for 'days_before' type)
+    enabled INTEGER DEFAULT 1,            -- 1 if alerts are enabled, 0 if disabled
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -142,3 +154,4 @@ CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_account_id ON portfolio_tr
 CREATE INDEX IF NOT EXISTS idx_earnings_watchlist_user_id ON earnings_watchlist(user_id);
 CREATE INDEX IF NOT EXISTS idx_earnings_cache_updated ON earnings_cache(updated_at);
 CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON user_activity(user_id);
+CREATE INDEX IF NOT EXISTS idx_earnings_alert_preferences_user_id ON earnings_alert_preferences(user_id);
