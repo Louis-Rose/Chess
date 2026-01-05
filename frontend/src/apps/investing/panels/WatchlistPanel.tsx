@@ -1,6 +1,7 @@
 // Watchlist panel - manage companies in your watchlist
 
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { Eye, Plus, X, Loader2, Search } from 'lucide-react';
@@ -24,6 +25,7 @@ const removeFromWatchlist = async (symbol: string): Promise<void> => {
 };
 
 export function WatchlistPanel() {
+  const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
   const queryClient = useQueryClient();
@@ -252,7 +254,8 @@ export function WatchlistPanel() {
                 return (
                   <div
                     key={ticker}
-                    className="flex items-center bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-3 border border-slate-300 dark:border-slate-500 gap-3"
+                    onClick={() => navigate(`/investing/stock/${ticker}`)}
+                    className="flex items-center bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-3 border border-slate-300 dark:border-slate-500 gap-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors"
                   >
                     <div className="w-8 h-8 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                       {logoUrl && (
@@ -275,7 +278,7 @@ export function WatchlistPanel() {
                     <span className="font-bold text-slate-800 dark:text-slate-100 w-16 flex-shrink-0">{ticker}</span>
                     <span className="text-slate-600 dark:text-slate-300 text-sm truncate flex-grow">{displayName}</span>
                     <button
-                      onClick={() => handleRemoveSymbol(ticker)}
+                      onClick={(e) => { e.stopPropagation(); handleRemoveSymbol(ticker); }}
                       disabled={removeMutation.isPending}
                       className="text-slate-400 hover:text-red-500 p-1 transition-colors flex-shrink-0 ml-auto"
                       title={language === 'fr' ? 'Supprimer' : 'Remove'}
