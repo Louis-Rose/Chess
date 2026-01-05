@@ -55,6 +55,22 @@ export function InvestingWelcomePanel() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+          {/* Stocks Research */}
+          <button
+            onClick={() => navigate('/investing/financials')}
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 hover:border-purple-500 transition-colors cursor-pointer text-left"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Stocks Research</h3>
+            </div>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
+              P/E ratios, market cap, and earnings growth for your watchlist.
+            </p>
+          </button>
+
           {/* My Portfolio */}
           <button
             onClick={() => navigate('/investing/portfolio')}
@@ -100,22 +116,6 @@ export function InvestingWelcomePanel() {
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm">
               Track upcoming earnings releases for your holdings.
-            </p>
-          </button>
-
-          {/* Stocks Research */}
-          <button
-            onClick={() => navigate('/investing/financials')}
-            className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 hover:border-purple-500 transition-colors cursor-pointer text-left"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-white" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Stocks Research</h3>
-            </div>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">
-              P/E ratios, market cap, and earnings growth for your watchlist.
             </p>
           </button>
         </div>
