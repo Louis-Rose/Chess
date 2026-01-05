@@ -59,7 +59,7 @@ function AlertModal({
   language: string;
 }) {
   const queryClient = useQueryClient();
-  const [weeklyEnabled, setWeeklyEnabled] = useState(false);
+  const [weeklyEnabled, setWeeklyEnabled] = useState(true);
   const [daysBeforeEnabled, setDaysBeforeEnabled] = useState(false);
   const [daysBefore, setDaysBefore] = useState(7);
   const [isSaving, setIsSaving] = useState(false);
