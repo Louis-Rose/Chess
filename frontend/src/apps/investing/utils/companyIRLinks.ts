@@ -57,7 +57,7 @@ const TICKER_TO_IR: Record<string, string> = {
   QCOM: 'https://investor.qualcomm.com',
   DHR: 'https://investors.danaher.com',
   ISRG: 'https://isrg.intuitive.com',
-  CMCSA: 'https://www.cmcsa.com',
+  CMCSA: 'https://www.cmcsa.com/investors',
   MS: 'https://www.morganstanley.com/about-us-ir',
 
   // Ranks 51-100
@@ -100,7 +100,7 @@ const TICKER_TO_IR: Record<string, string> = {
   DE: 'https://investor.deere.com',
   ADI: 'https://investor.analog.com',
   ADM: 'https://investors.adm.com/',
-  MDT: 'https://investor.medtronic.com/',
+  MDT: 'https://investorrelations.medtronic.com/',
   CB: 'https://investors.chubb.com',
   LRCX: 'https://investor.lamresearch.com',
 
@@ -597,7 +597,7 @@ const TICKER_TO_IR: Record<string, string> = {
   REL: 'https://www.relx.com/investors',
   EXPN: 'https://www.experianplc.com/investors',
   LSEG: 'https://www.lseg.com/investor-relations',
-  CPG: 'https://www.compass-group.com/en/investors.html/',
+  CPG: 'https://www.compass-group.com/en/investors.html',
   RKT: 'https://www.reckitt.com/investors',
   SSE: 'https://www.sse.com/investors',
   VOD: 'https://investors.vodafone.com',
@@ -719,7 +719,7 @@ const TICKER_TO_IR: Record<string, string> = {
   FME: 'https://www.freseniusmedicalcare.com/en/investors',
   FRE: 'https://www.fresenius.com/investor-relations',
   'G.MI': 'https://www.generali.com/investors',  // Generali (Italy)
-  GF: 'https://www.georgfischer.com/en/investors.html/',
+  GF: 'https://www.georgfischer.com/en/investors.html',
   G1A: 'https://www.gea.com/en/investor-relations',
   HLMA: 'https://www.halma.com/investors',
   HEI: 'https://www.heidelbergmaterials.com/en/investor-relations',
@@ -808,7 +808,7 @@ const TICKER_TO_IR: Record<string, string> = {
   SCMN: 'https://www.swisscom.ch/en/about/investors.html',
   SLHN: 'https://www.swisslife.com/en/home/investors.html',
   CNH: 'https://www.cnhindustrial.com/en-us/investors',
-  NET: 'https://cloudflare.net/home/default.aspx',
+  NET: 'https://cloudflare.net/',
   SHOP: 'https://investors.shopify.com',
   LYFT: 'https://investor.lyft.com',
   SNAP: 'https://investor.snap.com',
@@ -870,7 +870,7 @@ const TICKER_TO_IR: Record<string, string> = {
   DTG: 'https://www.daimlertruck.com/en/investors',
   DHER: 'https://ir.deliveryhero.com/',
   GXI: 'https://www.gerresheimer.com/en/company/investor-relations',
-  HNR1: 'https://www.hannover-re.com/183889/investor-relations',
+  HNR1: 'https://www.hannover-re.com/en/investors/',
   HLAG: 'https://www.hapag-lloyd.com/en/company/ir.html',
   HFG: 'https://ir.hellofreshgroup.com/',
   BOSS: 'https://group.hugoboss.com/en/investors',
