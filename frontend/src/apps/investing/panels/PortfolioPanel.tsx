@@ -1224,19 +1224,19 @@ export function PortfolioPanel() {
                 <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
               </div>
             ) : compositionData?.holdings && compositionData.holdings.length > 0 ? (
-              <div ref={positionsChartRef} className="bg-slate-100 rounded-xl p-4">
-              <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
+              <div ref={positionsChartRef} className="bg-slate-100 rounded-xl p-4 overflow-visible">
+              <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 overflow-visible">
                 {/* Pie Chart */}
-                <div className="w-full md:w-1/2 h-[280px] md:h-[380px]">
+                <div className="w-full md:w-1/2 h-[280px] md:h-[380px] overflow-visible">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
+                    <PieChart margin={{ top: 40, right: 80, bottom: 40, left: 80 }}>
                       <Pie
                         data={compositionData.holdings as unknown as Record<string, unknown>[]}
                         dataKey="weight"
                         nameKey="ticker"
                         cx="50%"
                         cy="50%"
-                        outerRadius="60%"
+                        outerRadius="50%"
                         label={({ name, value }) => `${name} ${value}%`}
                         labelLine={true}
                       >
