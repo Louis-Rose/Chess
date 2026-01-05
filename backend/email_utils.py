@@ -125,7 +125,9 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
                 color: #94a3b8;
             }}
             .source {{
-                display: inline-block;
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
                 padding: 4px 10px;
                 border-radius: 20px;
                 font-size: 11px;
@@ -138,6 +140,10 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
             .source-watchlist {{
                 background-color: #dbeafe;
                 color: #2563eb;
+            }}
+            .source svg {{
+                width: 14px;
+                height: 14px;
             }}
             .footer {{
                 margin-top: 30px;
@@ -207,22 +213,29 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
         status_class = 'confirmed' if date_confirmed else 'estimated'
         status_text = 'Confirmed' if date_confirmed else 'Estimated'
 
-        # Source styling
+        # Source styling with inline SVG icons (Lucide icons)
         if source == 'portfolio':
             source_class = 'source-portfolio'
+            # Briefcase icon (Lucide)
+            source_icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>'
             source_text = 'Portfolio'
         elif source == 'watchlist':
             source_class = 'source-watchlist'
+            # Eye icon (Lucide)
+            source_icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>'
             source_text = 'Watchlist'
         else:
             source_class = ''
+            source_icon = ''
             source_text = '-'
+
+        source_html = f'{source_icon}{source_text}' if source_icon else source_text
 
         html_body += f"""
                     <tr>
                         <td><span class="ticker">{ticker}</span></td>
                         <td><span class="company">{company_name}</span></td>
-                        <td><span class="source {source_class}">{source_text}</span></td>
+                        <td><span class="source {source_class}">{source_html}</span></td>
                         <td>{formatted_date}</td>
                         <td><span class="days {days_class}">{days_text}</span></td>
                         <td><span class="{status_class}">{status_text}</span></td>
