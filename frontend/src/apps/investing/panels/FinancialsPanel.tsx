@@ -2,24 +2,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 import { Search, Eye, ChevronRight, Layers } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { GICS_SECTORS, getStocksBySubIndustry, type GICSSector, type GICSIndustryGroup, type GICSIndustry, type GICSSubIndustry } from '../utils/gics';
-import { addRecentStock } from '../utils/recentStocks';
-
-const fetchWatchlist = async (): Promise<{ symbols: string[] }> => {
-  const response = await axios.get('/api/investing/watchlist');
-  return response.data;
-};
+import { addRecentStock, getRecentStocks } from '../utils/recentStocks';
 
 export function FinancialsPanel() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
   const { language } = useLanguage();
   const [stockSearch, setStockSearch] = useState('');
   const [stockResults, setStockResults] = useState<Stock[]>([]);
@@ -34,14 +25,8 @@ export function FinancialsPanel() {
   const [selectedIndustry, setSelectedIndustry] = useState<GICSIndustry | null>(null);
   const [selectedSubIndustry, setSelectedSubIndustry] = useState<GICSSubIndustry | null>(null);
 
-  // Fetch watchlist
-  const { data: watchlistData } = useQuery({
-    queryKey: ['watchlist'],
-    queryFn: fetchWatchlist,
-    enabled: isAuthenticated,
-  });
-
-  const watchlist = watchlistData?.symbols ?? [];
+  // Recent stocks state - refresh when dropdown opens
+  const [recentStocks, setRecentStocks] = useState<string[]>(() => getRecentStocks());
 
   // Stock search effect - only update results, don't auto-show dropdown
   useEffect(() => {
@@ -142,22 +127,22 @@ export function FinancialsPanel() {
                 placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
                 value={stockSearch}
                 onChange={(e) => setStockSearch(e.target.value)}
-                onFocus={() => setShowStockDropdown(true)}
+                onFocus={() => { setRecentStocks(getRecentStocks()); setShowStockDropdown(true); }}
                 className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
-            {showStockDropdown && ((stockSearch.length === 0 && watchlist.length > 0) || (stockSearch.length > 0 && stockResults.length > 0)) && (
+            {showStockDropdown && ((stockSearch.length === 0 && recentStocks.length > 0) || (stockSearch.length > 0 && stockResults.length > 0)) && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
-                {/* Show watchlist when search is empty */}
-                {stockSearch.length === 0 && watchlist.length > 0 && (
+                {/* Show recent stocks when search is empty */}
+                {stockSearch.length === 0 && recentStocks.length > 0 && (
                   <>
                     <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
-                      <Eye className="w-4 h-4 text-blue-600" />
+                      <Eye className="w-4 h-4 text-slate-500" />
                       <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
-                        {language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}
+                        {language === 'fr' ? 'Recherches récentes' : 'Recently searched'}
                       </span>
                     </div>
-                    {watchlist.map((ticker) => {
+                    {recentStocks.map((ticker) => {
                       const stock = findStockByTicker(ticker);
                       const displayName = stock?.name || ticker;
                       const logoUrl = getCompanyLogoUrl(ticker);
