@@ -129,7 +129,7 @@ export function WatchlistPanel() {
   return (
     <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700">
       <div className="flex flex-col items-center gap-2 mb-6 mt-8">
-        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">My Watchlist</h2>
+        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}</h2>
         <p className="text-slate-500 dark:text-slate-400 text-lg italic">
           {language === 'fr' ? 'Gérez les actions que vous suivez' : 'Manage the stocks you follow'}
         </p>
