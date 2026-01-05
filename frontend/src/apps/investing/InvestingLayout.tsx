@@ -22,9 +22,9 @@ export function InvestingLayout() {
           </div>
           <span className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">LUMRA</span>
         </Link>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <LanguageToggle />
+        <div className="flex items-center gap-1">
+          <ThemeToggle collapsed />
+          <LanguageToggle collapsed />
           {isAuthenticated ? (
             authLoading ? (
               <Loader2 className="w-5 h-5 animate-spin text-slate-500 dark:text-slate-400" />
