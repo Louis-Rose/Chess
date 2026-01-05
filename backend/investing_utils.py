@@ -10,6 +10,99 @@ _db_getter = None
 # Cache TTL for current prices (15 minutes)
 CURRENT_PRICE_TTL_MINUTES = 15
 
+# European stock ticker to yfinance ticker mapping (exchange suffixes)
+# Swiss stocks need .SW, German .DE, French .PA, UK .L, Italian .MI, etc.
+EUROPEAN_TICKER_MAP = {
+    # Swiss stocks (.SW)
+    'UHR': 'UHR.SW', 'NESN': 'NESN.SW', 'NOVN': 'NOVN.SW', 'ROG': 'ROG.SW',
+    'ABBN': 'ABBN.SW', 'ZURN': 'ZURN.SW', 'SREN': 'SREN.SW', 'UBSG': 'UBSG.SW',
+    'CSGN': 'CSGN.SW', 'GIVN': 'GIVN.SW', 'LONN': 'LONN.SW', 'SIKA': 'SIKA.SW',
+    'GEBN': 'GEBN.SW', 'SCMN': 'SCMN.SW', 'SLHN': 'SLHN.SW', 'BALN': 'BALN.SW',
+    'CFR': 'CFR.SW', 'ALC': 'ALC.SW', 'SOON': 'SOON.SW', 'PGHN': 'PGHN.SW',
+    'BARN': 'BARN.SW', 'SGSN': 'SGSN.SW', 'TEMN': 'TEMN.SW', 'HOLN': 'HOLN.SW',
+    'LOGN': 'LOGN.SW', 'VACN': 'VACN.SW', 'STMN': 'STMN.SW', 'BEKN': 'BEKN.SW',
+    'LAND': 'LAND.SW', 'LHN': 'LHN.SW', 'SPSN': 'SPSN.SW', 'SIGN': 'SIGN.SW',
+    # German stocks (.DE) - Note: many German stocks use .DE on Yahoo
+    'ALV': 'ALV.DE', 'BAS': 'BAS.DE', 'BAYN': 'BAYN.DE', 'BMW': 'BMW.DE',
+    'CON': 'CON.DE', 'DAI': 'DAI.DE', 'DB1': 'DB1.DE', 'DBK': 'DBK.DE',
+    'DPW': 'DPW.DE', 'DTE': 'DTE.DE', 'EOAN': 'EOAN.DE', 'FME': 'FME.DE',
+    'FRE': 'FRE.DE', 'HEI': 'HEI.DE', 'HEN3': 'HEN3.DE', 'IFX': 'IFX.DE',
+    'LIN': 'LIN.DE', 'MRK': 'MRK.DE', 'MTX': 'MTX.DE', 'MUV2': 'MUV2.DE',
+    'RWE': 'RWE.DE', 'SAP': 'SAP.DE', 'SIE': 'SIE.DE', 'VOW3': 'VOW3.DE',
+    'VNA': 'VNA.DE', 'ADS': 'ADS.DE', 'AIR': 'AIR.PA', 'SY1': 'SY1.DE',
+    'PAH3': 'PAH3.DE', 'BEI': 'BEI.DE', 'SHL': 'SHL.DE', 'ENR': 'ENR.DE',
+    'HNR1': 'HNR1.DE', 'PUM': 'PUM.DE', 'ZAL': 'ZAL.DE', 'LEG': 'LEG.DE',
+    'HFG': 'HFG.DE', 'TKA': 'TKA.DE', 'BOSS': 'BOSS.DE', '1COV': '1COV.DE',
+    'EVK': 'EVK.DE', 'KCO': 'KCO.DE', 'DHL': 'DHL.DE', 'G24': 'G24.DE',
+    # French stocks (.PA)
+    'OR': 'OR.PA', 'MC': 'MC.PA', 'SAN': 'SAN.PA', 'AI': 'AI.PA',
+    'BNP': 'BNP.PA', 'SU': 'SU.PA', 'CS': 'CS.PA', 'DG': 'DG.PA',
+    'CAP': 'CAP.PA', 'VIE': 'VIE.PA', 'RI': 'RI.PA', 'KER': 'KER.PA',
+    'CA': 'CA.PA', 'GLE': 'GLE.PA', 'EN': 'EN.PA', 'ENGI': 'ENGI.PA',
+    'ORA': 'ORA.PA', 'VIV': 'VIV.PA', 'HO': 'HO.PA', 'SGO': 'SGO.PA',
+    'PUB': 'PUB.PA', 'SW': 'SW.PA', 'ML': 'ML.PA', 'ATO': 'ATO.PA',
+    'DSY': 'DSY.PA', 'STM': 'STM.PA', 'LR': 'LR.PA', 'ERF': 'ERF.PA',
+    'RMS': 'RMS.PA', 'EL': 'EL.PA', 'BN': 'BN.PA', 'TEP': 'TEP.PA',
+    'TTE': 'TTE.PA', 'SAF': 'SAF.PA', 'AM': 'AM.PA', 'AC': 'AC.PA',
+    # UK stocks (.L)
+    'SHEL': 'SHEL.L', 'HSBA': 'HSBA.L', 'BP': 'BP.L', 'AZN': 'AZN.L',
+    'GSK': 'GSK.L', 'RIO': 'RIO.L', 'ULVR': 'ULVR.L', 'DGE': 'DGE.L',
+    'BATS': 'BATS.L', 'LLOY': 'LLOY.L', 'BARC': 'BARC.L', 'VOD': 'VOD.L',
+    'NWG': 'NWG.L', 'NG': 'NG.L', 'SSE': 'SSE.L', 'REL': 'REL.L',
+    'LSEG': 'LSEG.L', 'CRH': 'CRH.L', 'RKT': 'RKT.L', 'PRU': 'PRU.L',
+    'EXPN': 'EXPN.L', 'AAL': 'AAL.L', 'IMB': 'IMB.L', 'AHT': 'AHT.L',
+    'III': 'III.L', 'ANTO': 'ANTO.L', 'ABF': 'ABF.L', 'BA': 'BA.L',
+    'CPG': 'CPG.L', 'WPP': 'WPP.L', 'LAND': 'LAND.L', 'GLEN': 'GLEN.L',
+    'WTB': 'WTB.L', 'SGRO': 'SGRO.L', 'PSN': 'PSN.L', 'INF': 'INF.L',
+    'RTO': 'RTO.L', 'JET': 'JET.L', 'IHG': 'IHG.L', 'STJ': 'STJ.L',
+    # Italian stocks (.MI)
+    'ENEL': 'ENEL.MI', 'ENI': 'ENI.MI', 'ISP': 'ISP.MI', 'UCG': 'UCG.MI',
+    'RACE': 'RACE.MI', 'G': 'G.MI', 'STLA': 'STLA.MI', 'TEN': 'TEN.MI',
+    'PRY': 'PRY.MI', 'SRG': 'SRG.MI', 'SPM': 'SPM.MI', 'LDO': 'LDO.MI',
+    'MONC': 'MONC.MI', 'AMP': 'AMP.MI', 'BAMI': 'BAMI.MI', 'MB': 'MB.MI',
+    # Dutch stocks (.AS)
+    'ASML': 'ASML.AS', 'PHIA': 'PHIA.AS', 'INGA': 'INGA.AS', 'AD': 'AD.AS',
+    'HEIA': 'HEIA.AS', 'DSM': 'DSM.AS', 'RAND': 'RAND.AS', 'NN': 'NN.AS',
+    'KPN': 'KPN.AS', 'ABN': 'ABN.AS', 'AKZA': 'AKZA.AS', 'UNA': 'UNA.AS',
+    'WKL': 'WKL.AS', 'RDSA': 'RDSA.AS', 'AGN': 'AGN.AS', 'MT': 'MT.AS',
+    # Spanish stocks (.MC)
+    'SAN': 'SAN.MC', 'IBE': 'IBE.MC', 'ITX': 'ITX.MC', 'BBVA': 'BBVA.MC',
+    'TEF': 'TEF.MC', 'REP': 'REP.MC', 'ENG': 'ENG.MC', 'GRF': 'GRF.MC',
+    'ACS': 'ACS.MC', 'FER': 'FER.MC', 'AENA': 'AENA.MC', 'CABK': 'CABK.MC',
+    # Belgian stocks (.BR)
+    'ABI': 'ABI.BR', 'KBC': 'KBC.BR', 'UCB': 'UCB.BR', 'SOLB': 'SOLB.BR',
+    'ACKB': 'ACKB.BR', 'GBLB': 'GBLB.BR', 'UMI': 'UMI.BR', 'PROX': 'PROX.BR',
+    # Danish stocks (.CO)
+    'NOVO-B': 'NOVO-B.CO', 'NOVOB': 'NOVO-B.CO', 'CARL-B': 'CARL-B.CO',
+    'VWS': 'VWS.CO', 'DSV': 'DSV.CO', 'MAERSK-B': 'MAERSK-B.CO', 'ORSTED': 'ORSTED.CO',
+    # Finnish stocks (.HE)
+    'NOKIA': 'NOKIA.HE', 'NESTE': 'NESTE.HE', 'FORTUM': 'FORTUM.HE',
+    'UPM': 'UPM.HE', 'STERV': 'STERV.HE', 'KNEBV': 'KNEBV.HE',
+    # Norwegian stocks (.OL)
+    'EQNR': 'EQNR.OL', 'DNB': 'DNB.OL', 'TEL': 'TEL.OL', 'MOWI': 'MOWI.OL',
+    'YAR': 'YAR.OL', 'NHY': 'NHY.OL', 'ORK': 'ORK.OL',
+    # Swedish stocks (.ST)
+    'ERIC-B': 'ERIC-B.ST', 'ERICB': 'ERIC-B.ST', 'VOLV-B': 'VOLV-B.ST',
+    'HM-B': 'HM-B.ST', 'ATCO-A': 'ATCO-A.ST', 'SEB-A': 'SEB-A.ST',
+    'SAND': 'SAND.ST', 'ABB': 'ABB.ST', 'INVE-B': 'INVE-B.ST',
+    'EVO': 'EVO.ST', 'ALFA': 'ALFA.ST', 'SKA-B': 'SKA-B.ST',
+    # Portuguese stocks (.LS)
+    'EDP': 'EDP.LS', 'GALP': 'GALP.LS', 'JMT': 'JMT.LS',
+    # Irish stocks (.IR)
+    'RYA': 'RYA.IR', 'CRG': 'CRG.IR',
+    # Austrian stocks (.VI)
+    'VOE': 'VOE.VI', 'EBS': 'EBS.VI', 'OMV': 'OMV.VI',
+}
+
+def get_yfinance_ticker(ticker):
+    """Convert a plain ticker to yfinance-compatible ticker with exchange suffix if needed."""
+    ticker_upper = ticker.upper().strip()
+    # If already has a suffix (contains .), return as-is
+    if '.' in ticker_upper:
+        return ticker_upper
+    # Check mapping
+    return EUROPEAN_TICKER_MAP.get(ticker_upper, ticker_upper)
+
 def set_db_getter(getter):
     """Set the database getter function from app.py"""
     global _db_getter
@@ -142,13 +235,14 @@ BENCHMARKS = {
 
 def fetch_stock_price(stock_ticker, date_str):
     """Fetch stock closing price for a given date (with caching)."""
-    # Check cache first
+    # Check cache first (use original ticker for cache key)
     cached = _get_cached_price(stock_ticker, date_str)
     if cached is not None:
         return cached
 
-    # Fetch from API
-    ticker = yf.Ticker(stock_ticker)
+    # Convert to yfinance ticker (add exchange suffix if needed)
+    yf_ticker = get_yfinance_ticker(stock_ticker)
+    ticker = yf.Ticker(yf_ticker)
     end_date = datetime.strptime(date_str, "%Y-%m-%d")
     start_date = (end_date - timedelta(days=7)).strftime('%Y-%m-%d')
     prices_history = ticker.history(start=start_date, end=date_str)
@@ -171,13 +265,14 @@ def fetch_stock_price(stock_ticker, date_str):
 
 def fetch_current_stock_price(stock_ticker):
     """Fetch current stock price (with 15-min TTL caching)."""
-    # Check cache first
+    # Check cache first (use original ticker for cache key)
     cached = _get_cached_current_price(stock_ticker)
     if cached is not None:
         return cached
 
-    # Fetch from API
-    ticker = yf.Ticker(stock_ticker)
+    # Convert to yfinance ticker (add exchange suffix if needed)
+    yf_ticker = get_yfinance_ticker(stock_ticker)
+    ticker = yf.Ticker(yf_ticker)
     info = ticker.info
     # Try multiple price fields
     price = info.get('regularMarketPrice') or info.get('currentPrice') or info.get('previousClose')
