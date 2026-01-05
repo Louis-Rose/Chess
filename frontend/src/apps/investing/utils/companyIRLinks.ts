@@ -22,7 +22,7 @@ const TICKER_TO_IR: Record<string, string> = {
   JPM: 'https://www.jpmorganchase.com/ir',
   WMT: 'https://stock.walmart.com',
   V: 'https://investor.visa.com',
-  XOM: 'https://investors.exxonmobil.com',
+  XOM: 'https://investor.exxonmobil.com/',
   ORCL: 'https://investor.oracle.com',
   MA: 'https://investor.mastercard.com',
   UNH: 'https://www.unitedhealthgroup.com/investors.html',
@@ -258,7 +258,7 @@ const TICKER_TO_IR: Record<string, string> = {
   CZR: 'https://investor.caesars.com/',
   CBOE: 'https://ir.cboe.com',
   CBRE: 'https://ir.cbre.com',
-  CCI: 'https://investor.crowncastle.com',
+  CCI: 'https://investors.crowncastle.com/',
   CCL: 'https://www.carnivalcorp.com/investor-relations',
   CDW: 'https://investor.cdw.com',
   CE: 'https://investors.celanese.com',
@@ -283,7 +283,8 @@ const TICKER_TO_IR: Record<string, string> = {
   CRL: 'https://ir.criver.com',
   CSGP: 'https://investors.costargroup.com',
   CTSH: 'https://investors.cognizant.com',
-  CTVA: 'https://investors.corteva.com',
+  CTVA: 'https://investors.corteva.com/',
+  CTRA: 'https://investors.coterra.com/',
   CVNA: 'https://investors.carvana.com',
   DAL: 'https://ir.delta.com',
   DAY: 'https://investors.dayforce.com',
@@ -310,7 +311,7 @@ const TICKER_TO_IR: Record<string, string> = {
   EBAY: 'https://investors.ebayinc.com',
   ED: 'https://investor.conedison.com',
   EFX: 'https://investor.equifax.com',
-  EG: 'https://investors.everestglobal.com',
+  EG: 'https://ir.everestglobal.com/',
   EIX: 'https://www.edisoninvestor.com/',
   EL: 'https://investors.elcompanies.com/',
   EME: 'https://investors.emcorgroup.com',
@@ -342,7 +343,7 @@ const TICKER_TO_IR: Record<string, string> = {
   FMC: 'https://investors.fmc.com',
   FOX: 'https://investor.foxcorporation.com',
   FOXA: 'https://investor.foxcorporation.com',
-  FRT: 'https://investors.federalrealty.com',
+  FRT: 'https://ir.federalrealty.com/',
   FSLR: 'https://investor.firstsolar.com',
   FTV: 'https://investors.fortive.com',
   GDDY: 'https://investors.godaddy.net',
@@ -560,7 +561,7 @@ const TICKER_TO_IR: Record<string, string> = {
   ASML: 'https://www.asml.com/en/investors',
   AZN: 'https://www.astrazeneca.com/investor-relations.html',
   'NOVO B': 'https://www.novonordisk.com/investors.html',
-  RMS: 'https://www.hermes.com/investors',
+  RMS: 'https://finance.hermes.com/en/',
   SHEL: 'https://www.shell.com/investors',
   TTE: 'https://totalenergies.com/investors',
   SIE: 'https://www.siemens.com/investor',
@@ -596,7 +597,7 @@ const TICKER_TO_IR: Record<string, string> = {
   REL: 'https://www.relx.com/investors',
   EXPN: 'https://www.experianplc.com/investors',
   LSEG: 'https://www.lseg.com/investor-relations',
-  CPG: 'https://www.compass-group.com/en/investors.html',
+  CPG: 'https://www.compass-group.com/en/investors.html/',
   RKT: 'https://www.reckitt.com/investors',
   SSE: 'https://www.sse.com/investors',
   VOD: 'https://investors.vodafone.com',
@@ -610,7 +611,7 @@ const TICKER_TO_IR: Record<string, string> = {
   // European Tech & Software
   ADYEN: 'https://www.adyen.com/investor-relations',
   DSY: 'https://investor.3ds.com',
-  CAP: 'https://investors.capgemini.com',
+  CAP: 'https://investors.capgemini.com/en/',
   NOKIA: 'https://www.nokia.com/about-us/investors',
   'ERIC B': 'https://www.ericsson.com/en/investors',
   STMPA: 'https://investors.st.com',
@@ -622,7 +623,7 @@ const TICKER_TO_IR: Record<string, string> = {
   GEBN: 'https://www.geberit.com/investors',
   SIKA: 'https://www.sika.com/en/investors.html',
   SGO: 'https://www.saint-gobain.com/en/investors',
-  KNIN: 'https://investor.kuehne-nagel.com',
+  KNIN: 'https://newsroom.kuehne-nagel.com/investor-relations/',
   DSV: 'https://investor.dsv.com',
   MTX: 'https://www.mtu.de/investor-relations',
   SAF: 'https://www.safran-group.com/finance',
@@ -693,15 +694,15 @@ const TICKER_TO_IR: Record<string, string> = {
   ASM: 'https://www.asm.com/investors',
   BATS: 'https://www.bat.com/investors',
   BEI: 'https://www.beiersdorf.com/investors',
-  BVI: 'https://group.bureauveritas.com/investors',
+  BVI: 'https://group.bureauveritas.com/investors/',
   CABK: 'https://www.caixabank.com/en/shareholders-and-investors.html',
-  CLNX: 'https://www.cellnextelecom.com/en/shareholders-investors',
+  CLNX: 'https://www.cellnex.com/investor-relations/',
   CFR: 'https://www.richemont.com/investors',
   CON: 'https://www.continental.com/en/investors',
   CRDA: 'https://www.croda.com/en-gb/investors',
   BN: 'https://www.danone.com/investor-relations.html',
-  DANSKE: 'https://danskebank.com/investor-relations',
-  'AM.PA': 'https://www.dassault-aviation.com/en/investors',  // Dassault Aviation (France)
+  DANSKE: 'https://danskebank.com/investor-relations/',
+  'AM.PA': 'https://www.dassault-aviation.com/en/group/finance/',  // Dassault Aviation (France)
   DEMANT: 'https://www.demant.com/investors',
   DB1: 'https://www.deutsche-boerse.com/dbg-en/investor-relations',
   LHA: 'https://investor-relations.lufthansagroup.com/en',
@@ -712,19 +713,19 @@ const TICKER_TO_IR: Record<string, string> = {
   ENX: 'https://www.euronext.com/en/investor-relations',
   ERF: 'https://www.eurofins.com/investor-relations',
   EVK: 'https://corporate.evonik.com/en/investors',
-  FER: 'https://www.ferrovial.com/en/ir-shareholders',
+  FER: 'https://www.ferrovial.com/en/ir/',
   FBK: 'https://www.finecobank.com/en/investor-relations',
   FLTR: 'https://www.flutter.com/investors',
   FME: 'https://www.freseniusmedicalcare.com/en/investors',
   FRE: 'https://www.fresenius.com/investor-relations',
   'G.MI': 'https://www.generali.com/investors',  // Generali (Italy)
-  GF: 'https://www.georgfischer.com/en/investors.html',
+  GF: 'https://www.georgfischer.com/en/investors.html/',
   G1A: 'https://www.gea.com/en/investor-relations',
   HLMA: 'https://www.halma.com/investors',
   HEI: 'https://www.heidelbergmaterials.com/en/investor-relations',
   HEIA: 'https://www.theheinekencompany.com/investors',
   HEN3: 'https://www.henkel.com/investors-and-analysts',
-  'HEXA B': 'https://hexagon.com/company/investors',
+  'HEXA B': 'https://investors.hexagon.com/',
   HIK: 'https://www.hikma.com/investors',
   IHG: 'https://www.ihgplc.com/investors',
   IMB: 'https://www.imperialbrandsplc.com/investors.html',
@@ -741,7 +742,7 @@ const TICKER_TO_IR: Record<string, string> = {
   KNEBV: 'https://www.kone.com/en/investors',
   AD: 'https://www.aholddelhaize.com/investors',
   KPN: 'https://www.kpn.com/investors',
-  LR: 'https://www.legrand.com/en/group/investors',
+  LR: 'https://www.legrandgroup.com/en/investors-and-shareholders',
   LDO: 'https://www.leonardo.com/en/investors',
   LISN: 'https://www.lindt-spruengli.com/investors',
   LOGN: 'https://ir.logitech.com',
@@ -823,6 +824,264 @@ const TICKER_TO_IR: Record<string, string> = {
   U: 'https://investors.unity.com',
   ETSY: 'https://investors.etsy.com',
   APP: 'https://investors.applovin.com',
+
+  // ============================================
+  // Additional STOXX Europe 600 (101-300)
+  // ============================================
+
+  // UK Companies
+  BNZL: 'https://www.bunzl.com/investors/',
+  BRBY: 'https://www.burberryplc.com/investors',
+  'CCL.L': 'https://www.carnivalcorp.com/investor-relations',  // Carnival PLC (UK)
+  CNA: 'https://www.centrica.com/investors/',
+  CCEP: 'https://ir.cocacolaep.com/',
+  CCC: 'https://www.computacenter.com/investor-relations',
+  CTEC: 'https://www.convatecgroup.com/investors/',
+  CWK: 'https://www.cranswick.plc.uk/investors/',
+  DLN: 'https://www.derwentlondon.com/investors',
+  DPLM: 'https://www.diplomaplc.com/investors/',
+  'DLG.L': 'https://www.directlinegroup.co.uk/en/investors.html',  // Direct Line (UK)
+  'DOM.L': 'https://investors.dominos.co.uk/',  // Domino's Pizza Group (UK)
+  DRX: 'https://www.drax.com/investors/',
+  EZJ: 'https://corporate.easyjet.com/investors',
+  ENOG: 'https://www.energean.com/investors/',
+  ENT: 'https://entaingroup.com/investor-relations/',
+  GAW: 'https://investor.games-workshop.com/',
+  GFTU: 'https://www.graftonplc.com/investors/',
+  GRG: 'https://corporate.greggs.co.uk/investors',
+  HLN: 'https://www.haleon.com/investors/',
+  HBR: 'https://www.harbourenergy.com/investors/',
+  HSX: 'https://www.hiscoxgroup.com/investors',
+  HWDN: 'https://www.howdengroupplc.com/investors',
+  INCH: 'https://www.inchcape.com/investors/',
+  ICP: 'https://www.icgam.com/shareholders/',
+  INVP: 'https://www.investec.com/en_gb/welcome-to-investec/investor-relations.html',
+  ITV: 'https://www.itvplc.com/investors',
+  'JD.': 'https://www.jdplc.com/investor-relations',
+  SBRY: 'https://www.about.sainsburys.co.uk/investors',
+  LAND: 'https://landsec.com/investors',
+  ROO: 'https://corporate.deliveroo.co.uk/investors/',
+
+  // Germany Companies
+  BZU: 'https://www.buzzi.com/en/investors',  // Buzzi (Italy, but listed)
+  CBK: 'https://investor-relations.commerzbank.com/en/',
+  '1COV': 'https://www.covestro.com/en/investors',
+  EVD: 'https://corporate.eventim.de/en/investor-relations/',
+  DTG: 'https://www.daimlertruck.com/en/investors',
+  DHER: 'https://ir.deliveryhero.com/',
+  GXI: 'https://www.gerresheimer.com/en/company/investor-relations',
+  HNR1: 'https://www.hannover-re.com/183889/investor-relations',
+  HLAG: 'https://www.hapag-lloyd.com/en/company/ir.html',
+  HFG: 'https://ir.hellofreshgroup.com/',
+  BOSS: 'https://group.hugoboss.com/en/investors',
+  LXS: 'https://lanxess.com/en/Investors',
+  KBX: 'https://www.knorr-bremse.com/en/investor-relations/',
+  FNTN: 'https://www.freenet-group.de/investor-relations/en/',
+  SDF: 'https://www.kpluss.com/en-us/investor-relations/',
+
+  // France Companies
+  ACA: 'https://www.credit-agricole.com/en/finance',
+  CA: 'https://www.carrefour.com/en/finance',
+  COV: 'https://www.covivio.eu/en/investors/',
+  EDEN: 'https://www.edenred.com/en/investors-shareholders',
+  FGR: 'https://www.eiffage.com/en/finance',
+  ERA: 'https://www.eramet.com/en/investors',
+  'RF.PA': 'https://www.eurazeo.com/en/shareholders-investors',  // Eurazeo (France)
+  FRVIA: 'https://www.forvia.com/investors',
+  GFC: 'https://www.gecina.fr/en/investors',
+  ICAD: 'https://www.icade.fr/en/finance',
+  OR: 'https://www.loreal-finance.com/en/',
+  FDJ: 'https://www.groupefdj.com/en/investors/',
+
+  // Italy Companies
+  CPR: 'https://www.camparigroup.com/en/page/investors',
+  DLG: 'https://www.delonghigroup.com/en/investors',
+  INW: 'https://www.inwit.it/en/investors/',
+  'IP.MI': 'https://www.interpumpgroup.it/en/investor-relations',  // Interpump (Italy)
+  IG: 'https://www.italgas.it/en/investors/',
+  IVG: 'https://www.ivecogroup.com/investors',
+  HER: 'https://eng.gruppohera.it/group/investors',
+
+  // Spain Companies
+  ENG: 'https://www.enagas.es/en/investors/',
+  ELE: 'https://www.endesa.com/en/shareholders-and-investors',
+  FDR: 'https://www.fluidra.com/shareholders-investors',
+  GRF: 'https://www.grifols.com/en/investors',
+  IDR: 'https://www.indracompany.com/en/indra/shareholders-investors',
+
+  // Switzerland Companies
+  CLN: 'https://www.clariant.com/en/Investors',
+  CCH: 'https://www.coca-colahellenic.com/en/investor-relations',
+  DSFIR: 'https://www.dsm-firmenich.com/corporate/investors.html',
+  GALD: 'https://www.galderma.com/investors',
+  HELN: 'https://www.helvetia.com/corporate/en/investor-relations.html',
+  IWG: 'https://www.iwgplc.com/en-gb/investors',
+
+  // Netherlands Companies
+  CVC: 'https://www.cvc.com/shareholders/',
+  EXO: 'https://www.exor.com/pages/investors-media/investor-relations',
+  FUR: 'https://www.fugro.com/investors',
+  HEIO: 'https://www.heinekenholding.com/',
+  IMCD: 'https://www.imcdgroup.com/en/investors',
+  JDEP: 'https://www.jdepeets.com/investors/',
+
+  // Denmark Companies
+  'CARL B': 'https://www.carlsberggroup.com/investor-relations/',
+  'COLO B': 'https://www.coloplast.com/investor-relations',
+  GN: 'https://www.gn.com/investors',
+  ISS: 'https://inv.issworld.com/',
+  JYSK: 'https://www.jyskebank.com/investorrelations',
+
+  // Sweden Companies
+  CAST: 'https://www.castellum.com/investors/',
+  DOM: 'https://www.dometicgroup.com/en/investors',
+  'ELUX B': 'https://www.electroluxgroup.com/en/category/investors/',
+  'EKTA B': 'https://www.elekta.com/investors/',
+  'EMBRAC B': 'https://embracer.com/investors/',
+  EVO: 'https://www.evolution.com/investors/',
+  'GETI B': 'https://www.getinge.com/int/company/investors/',
+  'HPOL B': 'https://www.hexpol.com/investors/',
+  'HUSQ B': 'https://www.husqvarnagroup.com/en/investors',
+  INVEA: 'https://www.investorab.com/investors-media/',
+  'KINV B': 'https://www.kinnevik.com/investors',
+  'LIFCO B': 'https://lifco.se/investors/',
+  'BALD B': 'https://en.balder.se/investor-relations',
+
+  // Norway Companies
+  DNB: 'https://www.ir.dnb.no/',
+  GJF: 'https://www.gjensidige.no/group/investor-relations',
+  KOG: 'https://www.kongsberg.com/investors/',
+
+  // Finland Companies
+  ELISA: 'https://elisa.com/corporate/investors/',
+  FSKRS: 'https://fiskarsgroup.com/investors/',
+  FORTUM: 'https://www.fortum.com/investors',
+  HUH1V: 'https://www.huhtamaki.com/en/investors/',
+  KESKOB: 'https://www.kesko.fi/en/investor/',
+  KOJAMO: 'https://kojamo.fi/en/investors/',
+  KCR: 'https://www.konecranes.com/investors',
+
+  // Belgium Companies
+  COFB: 'https://www.cofinimmo.com/investors/',
+  DIE: 'https://www.dieterengroup.com/investors',
+  ELI: 'https://www.eliagroup.eu/investor-relations',
+  FAGR: 'https://investors.fagron.com/',
+  GBLB: 'https://www.gbl.be/en/investors',
+  LOTB: 'https://www.lotusbakeries.com/ir-home',
+
+  // Ireland Companies
+  DCC: 'https://www.dcc.ie/investors',
+  GLB: 'https://www.glanbia.com/investors',
+
+  // Portugal Companies
+  GALP: 'https://www.galp.com/corp/en/investors',
+
+  // Poland Companies
+  DNP: 'https://grupadino.pl/en/investor-relations/',
+
+  // Greece Companies
+  EUROB: 'https://www.eurobank.gr/en/group/investor-relations',
+
+  // Austria Companies
+  EBS: 'https://www.erstegroup.com/en/investors',
+  // Note: ANDR (Andritz) already defined above
+  BAWAG: 'https://www.bawaggroup.com/IR',
+
+  // ============================================
+  // Additional STOXX Europe 600 (1-100)
+  // ============================================
+
+  // Germany (1-100)
+  '1U1': 'https://www.1und1.ag/investor-relations-en',
+  AIXA: 'https://www.aixtron.com/en/investors',
+  NDA: 'https://www.aurubis.com/en/investor-relations',
+  BC8: 'https://www.bechtle.com/en/about-bechtle/investors',
+  GBF: 'https://www.bilfinger.com/en/investor-relations/',
+  BNR: 'https://corporate.brenntag.com/en/investor-relations/',
+  // Note: RHM (Rheinmetall) already defined above
+
+  // UK
+  ABDN: 'https://www.abrdn.com/corporate/investors',
+  'ADM.L': 'https://admiralgroup.co.uk/investor-relations',  // Admiral Group
+  ABF: 'https://www.abf.co.uk/investors',
+  AUTO: 'https://plc.autotrader.co.uk/investors/',
+  BME: 'https://www.bandmretail.com/investors',
+  BAB: 'https://www.babcockinternational.com/investors/',
+  'BA.': 'https://www.baesystems.com/en/investors',
+  BDEV: 'https://www.barrattredrow.com/investors',
+  BEZ: 'https://www.beazley.com/en-001/about-us/investor-relations',
+  BWY: 'https://www.bellwayplc.co.uk/investor-centre',
+  BKG: 'https://www.berkeleygroup.co.uk/investors',
+  BYG: 'https://corporate.bigyellow.co.uk/investors',
+  BLND: 'https://www.britishland.com/investors',
+  'BT.A': 'https://www.bt.com/about/investors',
+
+  // France
+  'ADP.PA': 'https://www.parisaeroport.fr/en/group/finance',  // Aéroports de Paris (not US ADP)
+  AF: 'https://www.airfranceklm.com/en/finance',
+  AI: 'https://www.airliquide.com/investors',
+  ALD: 'https://www.ayvens.com/en-cp/investors/',
+  AMUN: 'https://about.amundi.com/investor-relations',
+  BIM: 'https://www.biomerieux.com/en/investors',
+  'BOL.PA': 'https://www.bollore.com/en/investors',
+  EN: 'https://www.bouygues.com/en/finance-shareholders/',
+
+  // Spain
+  ANA: 'https://www.acciona.com/shareholders-investors/',
+  ANE: 'https://www.acciona-energia.com/shareholders-investors/',
+  SAB: 'https://www.grupobancosabadell.com/en/shareholders-and-investors/',
+  BKT: 'https://www.bankinter.com/webcorporativa/en/shareholders-investors',
+
+  // Italy
+  'AMP.MI': 'https://corporate.amplifon.com/en/investors',
+  BGN: 'https://www.bancagenerali.com/en/investor-relations',
+  BMED: 'https://www.bancamediolanum.it/corp/investor-relations',
+  BAMI: 'https://gruppo.bancobpm.it/en/investor-relations/',
+
+  // Netherlands
+  AALB: 'https://aalberts.com/investors',
+  ARCAD: 'https://www.arcadis.com/en/investors',
+  ASRNL: 'https://www.asrnl.com/investor-relations',
+  BESI: 'https://www.besi.com/investor-relations/',
+
+  // Switzerland
+  BALN: 'https://www.baloise.com/en/home/investors.html',
+  BARN: 'https://www.barry-callebaut.com/en-group/investors',
+  BEAN: 'https://www.belimo.com/ch/en_GB/investor-relations',
+  BUCN: 'https://www.bucherindustries.com/en/investors',
+
+  // Sweden
+  AAK: 'https://www.aak.com/investors/',
+  'ASSA B': 'https://www.assaabloy.com/group/en/investors',
+  'ATCO A': 'https://www.atlascopcogroup.com/en/investor-relations',
+  'ATCO B': 'https://www.atlascopcogroup.com/en/investor-relations',
+  BILL: 'https://www.billerud.com/investors',
+  BOL: 'https://www.boliden.com/investor-relations',
+
+  // Denmark
+  MAERSK: 'https://www.maersk.com/investor-relations',
+  'MAERSK A': 'https://www.maersk.com/investor-relations',
+  'MAERSK B': 'https://www.maersk.com/investor-relations',
+  AMBU: 'https://www.ambu.com/investors',
+
+  // Belgium
+  AVH: 'https://www.avh.be/en/investors',
+  AGS: 'https://www.ageas.com/investors',
+  AZE: 'https://www.azelis.com/investors',
+
+  // Ireland
+  AIBG: 'https://aib.ie/investorrelations',
+  BIRG: 'https://investorrelations.bankofireland.com/',
+
+  // Luxembourg
+  APAM: 'https://www.aperam.com/investors/',
+  AT1: 'https://www.aroundtown.de/investor-relations/',
+
+  // Poland
+  ALE: 'https://allegro.eu/investors',
+
+  // Faroe Islands
+  BAKKA: 'https://www.bakkafrost.com/en/investor-relations/',
 };
 
 /**
