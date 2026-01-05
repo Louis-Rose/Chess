@@ -11,7 +11,7 @@ SMTP_EMAIL = os.environ.get('SMTP_EMAIL')  # Your Gmail address
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')  # Gmail App Password
 
 
-def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, alert_type: str) -> bool:
+def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, alert_type: str, schedule_info: dict = None) -> bool:
     """
     Send an earnings alert email with a table of upcoming earnings.
 
@@ -19,7 +19,8 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
         to_email: Recipient's email address
         to_name: Recipient's name
         earnings_data: List of dicts with keys: ticker, company_name, next_earnings_date, remaining_days, date_confirmed
-        alert_type: 'weekly' or 'days_before'
+        alert_type: 'weekly', 'days_before', or 'test'
+        schedule_info: Optional dict with keys: weekly_enabled, days_before_enabled, days_before
 
     Returns:
         True if email sent successfully, False otherwise
@@ -35,8 +36,22 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
     # Build email subject
     if alert_type == 'weekly':
         subject = "Weekly Earnings Calendar Summary"
+    elif alert_type == 'test':
+        subject = "Your Earnings Alert Preview"
     else:
         subject = "Upcoming Earnings Alert"
+
+    # Build schedule explanation for test emails
+    schedule_text = None
+    if alert_type == 'test' and schedule_info:
+        schedules = []
+        if schedule_info.get('weekly_enabled'):
+            schedules.append("every Monday at 9 AM")
+        if schedule_info.get('days_before_enabled'):
+            days = schedule_info.get('days_before', 7)
+            schedules.append(f"{days} days before each earnings release")
+        if schedules:
+            schedule_text = " and ".join(schedules)
 
     # Build HTML email body
     html_body = f"""
@@ -157,10 +172,40 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
                 color: #3b82f6;
                 text-decoration: none;
             }}
+            .preview-banner {{
+                background-color: #eff6ff;
+                border: 1px solid #bfdbfe;
+                border-radius: 8px;
+                padding: 16px;
+                margin-bottom: 20px;
+                text-align: center;
+            }}
+            .preview-banner-title {{
+                color: #1d4ed8;
+                font-weight: 600;
+                font-size: 14px;
+                margin-bottom: 4px;
+            }}
+            .preview-banner-text {{
+                color: #3b82f6;
+                font-size: 13px;
+            }}
         </style>
     </head>
     <body>
         <div class="container">
+    """
+
+    # Add preview banner for test emails
+    if schedule_text:
+        html_body += f"""
+            <div class="preview-banner">
+                <p class="preview-banner-title">This is a preview of your earnings alerts</p>
+                <p class="preview-banner-text">You will receive this email {schedule_text}</p>
+            </div>
+        """
+
+    html_body += f"""
             <h1>Upcoming Earnings</h1>
             <p class="subtitle">Hi {to_name}, here are your upcoming earnings releases:</p>
 

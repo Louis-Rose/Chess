@@ -1603,16 +1603,28 @@ def send_earnings_alert_now():
     import yfinance as yf
     from datetime import datetime
 
-    # Get user info
+    # Get user info and alert preferences
     with get_db() as conn:
         cursor = conn.execute('SELECT email, name FROM users WHERE id = ?', (request.user_id,))
         user = cursor.fetchone()
+
+        cursor = conn.execute('SELECT weekly_enabled, days_before_enabled, days_before FROM earnings_alert_preferences WHERE user_id = ?', (request.user_id,))
+        prefs = cursor.fetchone()
 
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
     email = user['email']
     name = user['name'] or 'Investor'
+
+    # Build schedule info from preferences
+    schedule_info = None
+    if prefs:
+        schedule_info = {
+            'weekly_enabled': bool(prefs['weekly_enabled']),
+            'days_before_enabled': bool(prefs['days_before_enabled']),
+            'days_before': prefs['days_before']
+        }
 
     # Get portfolio and watchlist tickers separately
     portfolio_tickers = set()
@@ -1678,8 +1690,8 @@ def send_earnings_alert_now():
     # Sort by remaining days
     earnings_data.sort(key=lambda x: x['remaining_days'])
 
-    # Send email
-    success = send_earnings_alert_email(email, name, earnings_data, 'test')
+    # Send email with schedule info
+    success = send_earnings_alert_email(email, name, earnings_data, 'test', schedule_info)
 
     if success:
         return jsonify({'success': True, 'message': f'Email sent to {email}'})
