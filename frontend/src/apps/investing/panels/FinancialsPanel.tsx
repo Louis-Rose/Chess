@@ -10,6 +10,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { GICS_SECTORS, getStocksBySubIndustry, type GICSSector, type GICSIndustryGroup, type GICSIndustry, type GICSSubIndustry } from '../utils/gics';
+import { addRecentStock } from '../utils/recentStocks';
 
 const fetchWatchlist = async (): Promise<{ symbols: string[] }> => {
   const response = await axios.get('/api/investing/watchlist');
@@ -62,6 +63,7 @@ export function FinancialsPanel() {
   const handleSelectStock = (ticker: string) => {
     setStockSearch('');
     setShowStockDropdown(false);
+    addRecentStock(ticker);
     navigate(`/investing/stock/${ticker}`);
   };
 

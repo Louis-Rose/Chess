@@ -1,13 +1,16 @@
 // Investing app sidebar
 
 import { useState, useEffect } from 'react';
-import { NavLink, Link } from 'react-router-dom';
-import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, BarChart3, Shield, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, BarChart3, Shield, PanelLeftClose, PanelLeftOpen, Clock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { UserMenu } from '../../components/UserMenu';
 import { LanguageToggle } from '../../components/LanguageToggle';
 import { ThemeToggle } from '../../components/ThemeToggle';
+import { getRecentStocks } from './utils/recentStocks';
+import { getCompanyLogoUrl } from './utils/companyLogos';
+import { findStockByTicker } from './utils/allStocks';
 
 const navItems = [
   { path: '/investing', icon: Home, labelEn: 'Welcome', labelFr: 'Accueil', end: true },
@@ -18,6 +21,8 @@ const navItems = [
 ];
 
 export function InvestingSidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { language } = useLanguage();
 
@@ -29,9 +34,17 @@ export function InvestingSidebar() {
     return false;
   });
 
+  // Recent stocks
+  const [recentStocks, setRecentStocks] = useState<string[]>([]);
+
   useEffect(() => {
     localStorage.setItem('sidebar-collapsed', String(isCollapsed));
   }, [isCollapsed]);
+
+  // Load recent stocks and refresh on navigation/focus
+  useEffect(() => {
+    setRecentStocks(getRecentStocks());
+  }, [location.pathname]);
 
   return (
     <div className={`dark ${isCollapsed ? 'w-16' : 'w-64'} bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0 overflow-y-auto transition-all duration-300`}>
@@ -143,6 +156,55 @@ export function InvestingSidebar() {
             <Shield className="w-5 h-5 flex-shrink-0" />
             {!isCollapsed && <span>{language === 'fr' ? 'Administration' : 'Admin'}</span>}
           </NavLink>
+        </div>
+      )}
+
+      {/* Recent Stocks */}
+      {recentStocks.length > 0 && !isCollapsed && (
+        <div className="px-2 py-4 border-b border-slate-700">
+          <div className="flex items-center gap-2 mb-3 text-slate-400">
+            <Clock className="w-4 h-4" />
+            <span className="text-xs font-medium uppercase tracking-wide">
+              {language === 'fr' ? 'Recherches récentes' : 'Recent'}
+            </span>
+          </div>
+          <div className="space-y-1">
+            {recentStocks.map((ticker) => {
+              const stock = findStockByTicker(ticker);
+              const logoUrl = getCompanyLogoUrl(ticker);
+              return (
+                <button
+                  key={ticker}
+                  onClick={() => navigate(`/investing/stock/${ticker}`)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors text-left"
+                >
+                  <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {logoUrl ? (
+                      <img
+                        src={logoUrl}
+                        alt={ticker}
+                        className="w-5 h-5 object-contain"
+                        onError={(e) => {
+                          const parent = e.currentTarget.parentElement;
+                          if (parent) {
+                            parent.innerHTML = `<span class="text-[8px] font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
+                          }
+                        }}
+                      />
+                    ) : (
+                      <span className="text-[8px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-slate-200">{ticker}</span>
+                    {stock && (
+                      <p className="text-xs text-slate-500 truncate">{stock.name}</p>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
