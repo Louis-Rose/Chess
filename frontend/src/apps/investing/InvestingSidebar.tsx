@@ -2,9 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, BarChart3, Shield, PanelLeftClose, PanelLeftOpen, Clock, X } from 'lucide-react';
+import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, Shield, PanelLeftClose, PanelLeftOpen, Clock, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+
+// Custom LUMRA logo matching the favicon
+const LumraLogo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 128 128" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="8" width="112" height="112" rx="20" fill="#16a34a"/>
+    <rect x="32" y="64" width="16" height="40" rx="2" fill="white"/>
+    <rect x="56" y="48" width="16" height="56" rx="2" fill="white"/>
+    <rect x="80" y="32" width="16" height="72" rx="2" fill="white"/>
+  </svg>
+);
 import { UserMenu } from '../../components/UserMenu';
 import { LanguageToggle } from '../../components/LanguageToggle';
 import { ThemeToggle } from '../../components/ThemeToggle';
@@ -53,9 +63,7 @@ export function InvestingSidebar() {
         to="/investing"
         className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-center gap-3'} px-2 pb-4 mb-2 border-b border-slate-700 hover:opacity-80 transition-opacity`}
       >
-        <div className={`${isCollapsed ? 'w-8 h-8 min-w-[2rem] min-h-[2rem]' : 'w-10 h-10'} bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0 transition-all`}>
-          <BarChart3 className={`${isCollapsed ? 'w-5 h-5' : 'w-6 h-6'} text-white`} />
-        </div>
+        <LumraLogo className={`${isCollapsed ? 'w-8 h-8 min-w-[2rem] min-h-[2rem]' : 'w-10 h-10'} flex-shrink-0 transition-all`} />
         {!isCollapsed && <span className="text-xl font-bold text-white tracking-wide">LUMRA</span>}
       </Link>
 
