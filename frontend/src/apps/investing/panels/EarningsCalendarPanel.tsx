@@ -1,7 +1,7 @@
 // Earnings Calendar panel - displays upcoming earnings dates for portfolio holdings and watchlist
 
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye, ExternalLink, Bell, X, Mail } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -64,7 +64,6 @@ function AlertModal({
   const [daysBefore, setDaysBefore] = useState(7);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [isSendingTest, setIsSendingTest] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Fetch existing preferences
@@ -83,41 +82,34 @@ function AlertModal({
     }
   }, [existingPrefs]);
 
-  const saveMutation = useMutation({
-    mutationFn: saveAlertPreferences,
-    onSuccess: () => {
+  const handleSaveAndSend = async () => {
+    setIsSaving(true);
+    setTestResult(null);
+
+    try {
+      // First save preferences
+      await saveAlertPreferences({
+        weekly_enabled: weeklyEnabled,
+        days_before_enabled: daysBeforeEnabled,
+        days_before: daysBefore,
+      });
       queryClient.invalidateQueries({ queryKey: ['earnings-alert-preferences'] });
+
+      // Then send test email
+      const result = await sendTestEmail();
       setSaveSuccess(true);
+      setTestResult({ success: true, message: result.message || 'Email sent!' });
+
       setTimeout(() => {
         setSaveSuccess(false);
+        setTestResult(null);
         onClose();
-      }, 1500);
-    },
-    onSettled: () => {
-      setIsSaving(false);
-    },
-  });
-
-  const handleSave = () => {
-    setIsSaving(true);
-    saveMutation.mutate({
-      weekly_enabled: weeklyEnabled,
-      days_before_enabled: daysBeforeEnabled,
-      days_before: daysBefore,
-    });
-  };
-
-  const handleSendTest = async () => {
-    setIsSendingTest(true);
-    setTestResult(null);
-    try {
-      const result = await sendTestEmail();
-      setTestResult({ success: true, message: result.message || 'Email sent!' });
+      }, 2000);
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
       setTestResult({ success: false, message: err.response?.data?.error || 'Failed to send email' });
     } finally {
-      setIsSendingTest(false);
+      setIsSaving(false);
     }
   };
 
@@ -238,43 +230,29 @@ function AlertModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-700 flex justify-between">
+        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
           <button
-            onClick={handleSendTest}
-            disabled={isSendingTest}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
           >
-            {isSendingTest ? (
+            {language === 'fr' ? 'Annuler' : 'Cancel'}
+          </button>
+          <button
+            onClick={handleSaveAndSend}
+            disabled={isSaving || (!weeklyEnabled && !daysBeforeEnabled)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+          >
+            {isSaving ? (
               <Loader2 className="w-4 h-4 animate-spin" />
+            ) : saveSuccess ? (
+              <CheckCircle2 className="w-4 h-4" />
             ) : (
               <Mail className="w-4 h-4" />
             )}
-            {language === 'fr' ? 'Envoyer maintenant' : 'Send Now'}
+            {saveSuccess
+              ? (language === 'fr' ? 'Envoyé !' : 'Sent!')
+              : (language === 'fr' ? 'Enregistrer et envoyer' : 'Save & send now')}
           </button>
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-            >
-              {language === 'fr' ? 'Annuler' : 'Cancel'}
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving || (!weeklyEnabled && !daysBeforeEnabled)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
-            >
-              {isSaving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : saveSuccess ? (
-                <CheckCircle2 className="w-4 h-4" />
-              ) : (
-                <Bell className="w-4 h-4" />
-              )}
-              {saveSuccess
-                ? (language === 'fr' ? 'Enregistré !' : 'Saved!')
-                : (language === 'fr' ? 'Enregistrer' : 'Save')}
-            </button>
-          </div>
         </div>
       </div>
     </div>
