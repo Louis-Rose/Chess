@@ -1211,6 +1211,15 @@ BANKS = {
         'fx_fee_info_fr': '0.50% (min 30€)',
         'fx_fee_info_en': '0.50% (min €30)',
     },
+    'REVOLUT': {
+        'name': 'Revolut',
+        'order_fee_pct': 0,
+        'order_fee_min': 0,  # Free trades (limited), then €1/trade for Standard
+        'custody_fee_pct_year': 0,
+        'custody_fee_pct_year_pea': None,  # No PEA available
+        'fx_fee_info_fr': '0% (taux interbancaire)',
+        'fx_fee_info_en': '0% (interbank rate)',
+    },
 }
 
 # Account types with tax implications
