@@ -146,24 +146,20 @@ export function InvestingSidebar() {
         </div>
       )}
 
-      {/* Theme & Language Toggles - at bottom */}
+      {/* Theme, Language & Collapse - at bottom */}
       <div className={`mt-auto ${isCollapsed ? 'px-0' : 'px-2'} pt-4 border-t border-slate-700`}>
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-3">
           <ThemeToggle collapsed={isCollapsed} />
           <LanguageToggle collapsed={isCollapsed} />
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm transition-colors"
+            title={isCollapsed ? (language === 'fr' ? 'Développer' : 'Expand') : (language === 'fr' ? 'Réduire' : 'Collapse')}
+          >
+            {isCollapsed ? <PanelLeftOpen className="w-5 h-5 text-slate-400" /> : <PanelLeftClose className="w-5 h-5 text-slate-400" />}
+            {!isCollapsed && <span className="text-slate-200 font-medium">{language === 'fr' ? 'Réduire' : 'Collapse'}</span>}
+          </button>
         </div>
-      </div>
-
-      {/* Collapse Toggle */}
-      <div className="px-2 pt-2 flex justify-center">
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm transition-colors"
-          title={isCollapsed ? (language === 'fr' ? 'Développer' : 'Expand') : (language === 'fr' ? 'Réduire' : 'Collapse')}
-        >
-          {isCollapsed ? <PanelLeftOpen className="w-5 h-5 text-slate-400" /> : <PanelLeftClose className="w-5 h-5 text-slate-400" />}
-          {!isCollapsed && <span className="text-slate-200 font-medium">{language === 'fr' ? 'Réduire' : 'Collapse'}</span>}
-        </button>
       </div>
     </div>
   );
