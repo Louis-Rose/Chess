@@ -293,28 +293,28 @@ STOCK_COLORS = {
     'ABBV': "#071D49",
     'LLY': "#D52B1E",
     # European
-    'ENX': "#1E3A5F",  # Euronext
     'ASML': "#003E7E",
     'SAP': "#008FD3",
     'LVMH': "#8B6914",
     'MC': "#8B6914",  # LVMH ticker
-    # Swiss
+    # Swiss - using vibrant distinct colors
     'NESN': "#7B9A6D",  # Nestle
     'NOVN': "#E55300",  # Novartis
     'ROG': "#0066CC",  # Roche
-    'UHR': "#C8102E",  # Swatch
+    'UHR': "#FF9900",  # Swatch - orange like AMZN
     'UBSG': "#E60000",  # UBS
-    'SQN': "#E4002B",  # Swissquote
+    'SQN': "#76B900",  # Swissquote - green like NVDA
     'ZURN': "#003399",  # Zurich Insurance
     'ABBN': "#FF000F",  # ABB
     'CFR': "#7B3F00",  # Richemont
     'LONN': "#0033A0",  # Lonza
     'SIKA': "#FFCC00",  # Sika
     'GEBN': "#009FE3",  # Geberit
-    'GIVN': "#E4002B",  # Givaudan
+    'GIVN': "#DB4437",  # Givaudan
     'HOLN': "#003366",  # Holcim
     'BAER': "#002B5C",  # Julius Baer
     'LOGN': "#00B8FC",  # Logitech
+    'ENX': "#4267B2",  # Euronext - blue like META
     # Other
     'Cash': "#FFD700",
 }
