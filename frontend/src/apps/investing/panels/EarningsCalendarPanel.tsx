@@ -251,7 +251,7 @@ function AlertModal({
             )}
             {saveSuccess
               ? (language === 'fr' ? 'Envoyé !' : 'Sent!')
-              : (language === 'fr' ? 'Enregistrer et envoyer' : 'Save & send now')}
+              : (language === 'fr' ? 'Enregistrer et envoyer' : 'Save & Send now')}
           </button>
         </div>
       </div>
