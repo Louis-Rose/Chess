@@ -67,7 +67,7 @@ export function InvestingWelcomePanel() {
               <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Stocks Research</h3>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm">
-              P/E ratios, market cap, and earnings growth for your watchlist.
+              Financials and insights on any listed company.
             </p>
           </button>
 
