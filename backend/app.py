@@ -1614,25 +1614,27 @@ def send_earnings_alert_now():
     email = user['email']
     name = user['name'] or 'Investor'
 
-    # Get portfolio and watchlist tickers
-    tickers = set()
+    # Get portfolio and watchlist tickers separately
+    portfolio_tickers = set()
+    watchlist_tickers = set()
     with get_db() as conn:
         cursor = conn.execute('SELECT DISTINCT stock_ticker FROM portfolio_transactions WHERE user_id = ?', (request.user_id,))
         for row in cursor.fetchall():
-            tickers.add(row['stock_ticker'])
+            portfolio_tickers.add(row['stock_ticker'])
 
         cursor = conn.execute('SELECT stock_ticker FROM earnings_watchlist WHERE user_id = ?', (request.user_id,))
         for row in cursor.fetchall():
-            tickers.add(row['stock_ticker'])
+            watchlist_tickers.add(row['stock_ticker'])
 
-    if not tickers:
+    all_tickers = portfolio_tickers | watchlist_tickers
+    if not all_tickers:
         return jsonify({'error': 'No stocks in portfolio or watchlist'}), 400
 
     # Get earnings data
     today = datetime.now().date()
     earnings_data = []
 
-    for ticker in tickers:
+    for ticker in all_tickers:
         with get_db() as conn:
             cursor = conn.execute('SELECT next_earnings_date, date_confirmed FROM earnings_cache WHERE ticker = ?', (ticker,))
             row = cursor.fetchone()
@@ -1651,12 +1653,21 @@ def send_earnings_alert_now():
                         except Exception:
                             company_name = ticker
 
+                        # Determine source
+                        if ticker in portfolio_tickers:
+                            source = 'portfolio'
+                        elif ticker in watchlist_tickers:
+                            source = 'watchlist'
+                        else:
+                            source = 'none'
+
                         earnings_data.append({
                             'ticker': ticker,
                             'company_name': company_name,
                             'next_earnings_date': row['next_earnings_date'],
                             'remaining_days': remaining_days,
-                            'date_confirmed': bool(row['date_confirmed'])
+                            'date_confirmed': bool(row['date_confirmed']),
+                            'source': source
                         })
                 except ValueError:
                     continue

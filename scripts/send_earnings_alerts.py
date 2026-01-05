@@ -44,7 +44,8 @@ def get_user_earnings_data(user_id: int) -> list:
     """Get earnings data for a user's portfolio and watchlist."""
     from database import get_db
 
-    tickers = set()
+    portfolio_tickers = set()
+    watchlist_tickers = set()
 
     with get_db() as conn:
         # Get portfolio tickers
@@ -53,22 +54,23 @@ def get_user_earnings_data(user_id: int) -> list:
             WHERE user_id = ?
         ''', (user_id,))
         for row in cursor.fetchall():
-            tickers.add(row['stock_ticker'])
+            portfolio_tickers.add(row['stock_ticker'])
 
-        # Get watchlist tickers
+        # Get earnings watchlist tickers
         cursor = conn.execute('''
-            SELECT stock_ticker FROM watchlist WHERE user_id = ?
+            SELECT stock_ticker FROM earnings_watchlist WHERE user_id = ?
         ''', (user_id,))
         for row in cursor.fetchall():
-            tickers.add(row['stock_ticker'])
+            watchlist_tickers.add(row['stock_ticker'])
 
-    if not tickers:
+    all_tickers = portfolio_tickers | watchlist_tickers
+    if not all_tickers:
         return []
 
     today = datetime.now().date()
     earnings_data = []
 
-    for ticker in tickers:
+    for ticker in all_tickers:
         with get_db() as conn:
             cursor = conn.execute('''
                 SELECT next_earnings_date, date_confirmed FROM earnings_cache
@@ -82,12 +84,21 @@ def get_user_earnings_data(user_id: int) -> list:
                     remaining_days = (earnings_date - today).days
 
                     if remaining_days >= 0:  # Only future earnings
+                        # Determine source
+                        if ticker in portfolio_tickers:
+                            source = 'portfolio'
+                        elif ticker in watchlist_tickers:
+                            source = 'watchlist'
+                        else:
+                            source = 'none'
+
                         earnings_data.append({
                             'ticker': ticker,
                             'company_name': get_company_name(ticker),
                             'next_earnings_date': row['next_earnings_date'],
                             'remaining_days': remaining_days,
-                            'date_confirmed': bool(row['date_confirmed'])
+                            'date_confirmed': bool(row['date_confirmed']),
+                            'source': source
                         })
                 except ValueError:
                     continue

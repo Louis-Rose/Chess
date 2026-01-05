@@ -124,6 +124,21 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
             .estimated {{
                 color: #94a3b8;
             }}
+            .source {{
+                display: inline-block;
+                padding: 4px 10px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 600;
+            }}
+            .source-portfolio {{
+                background-color: #dcfce7;
+                color: #16a34a;
+            }}
+            .source-watchlist {{
+                background-color: #dbeafe;
+                color: #2563eb;
+            }}
             .footer {{
                 margin-top: 30px;
                 padding-top: 20px;
@@ -148,6 +163,7 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
                     <tr>
                         <th>Ticker</th>
                         <th>Company</th>
+                        <th>Source</th>
                         <th>Earnings Date</th>
                         <th>Days Left</th>
                         <th>Status</th>
@@ -162,6 +178,7 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
         earnings_date = item.get('next_earnings_date', 'N/A')
         remaining_days = item.get('remaining_days')
         date_confirmed = item.get('date_confirmed', False)
+        source = item.get('source', 'none')
 
         # Format the date nicely
         if earnings_date and earnings_date != 'N/A':
@@ -190,10 +207,22 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
         status_class = 'confirmed' if date_confirmed else 'estimated'
         status_text = 'Confirmed' if date_confirmed else 'Estimated'
 
+        # Source styling
+        if source == 'portfolio':
+            source_class = 'source-portfolio'
+            source_text = 'Portfolio'
+        elif source == 'watchlist':
+            source_class = 'source-watchlist'
+            source_text = 'Watchlist'
+        else:
+            source_class = ''
+            source_text = '-'
+
         html_body += f"""
                     <tr>
                         <td><span class="ticker">{ticker}</span></td>
                         <td><span class="company">{company_name}</span></td>
+                        <td><span class="source {source_class}">{source_text}</span></td>
                         <td>{formatted_date}</td>
                         <td><span class="days {days_class}">{days_text}</span></td>
                         <td><span class="{status_class}">{status_text}</span></td>
@@ -228,7 +257,9 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
         earnings_date = item.get('next_earnings_date', 'N/A')
         remaining_days = item.get('remaining_days', '-')
         status = 'Confirmed' if item.get('date_confirmed') else 'Estimated'
-        plain_text += f"- {ticker} ({company_name}): {earnings_date} ({remaining_days} days) - {status}\n"
+        source = item.get('source', 'none')
+        source_text = '[Portfolio]' if source == 'portfolio' else '[Watchlist]' if source == 'watchlist' else ''
+        plain_text += f"- {ticker} ({company_name}) {source_text}: {earnings_date} ({remaining_days} days) - {status}\n"
     plain_text += "\n\nVisit https://improveatchess.io to manage your alerts."
 
     msg.attach(MIMEText(plain_text, 'plain'))
