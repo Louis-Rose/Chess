@@ -667,9 +667,9 @@ export function PortfolioPanel() {
       </div>
 
       <div className="max-w-6xl mx-auto space-y-8">
-        {/* Action Buttons Row */}
+        {/* Accounts Toggle Button */}
         <div className="bg-slate-50 dark:bg-slate-100 backdrop-blur rounded-xl p-4 dark:border dark:border-white/20">
-          <div className="flex flex-wrap justify-center gap-12">
+          <div className="flex flex-wrap justify-center">
             <button
               onClick={() => setShowAccounts(!showAccounts)}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
@@ -679,28 +679,6 @@ export function PortfolioPanel() {
                 ? (language === 'fr' ? 'Masquer comptes' : 'Hide accounts')
                 : (language === 'fr' ? 'Afficher comptes' : 'Show accounts')}
             </button>
-            {selectedAccountId && (
-              <>
-                <button
-                  onClick={() => setShowFees(!showFees)}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
-                >
-                  <Wallet className="w-4 h-4" />
-                  {showFees
-                    ? (language === 'fr' ? 'Masquer frais' : 'Hide fees')
-                    : (language === 'fr' ? 'Afficher frais' : 'Show fees')}
-                </button>
-                <button
-                  onClick={() => setShowTransactions(!showTransactions)}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  {showTransactions
-                    ? (language === 'fr' ? 'Masquer transactions' : 'Hide transactions')
-                    : (language === 'fr' ? 'Afficher transactions' : 'Show transactions')}
-                </button>
-              </>
-            )}
           </div>
         </div>
 
@@ -851,6 +829,32 @@ export function PortfolioPanel() {
                     })}
                   </div>
                 )}
+          </div>
+        )}
+
+        {/* Fees & Transactions Toggle Buttons - only when account selected */}
+        {selectedAccountId && (
+          <div className="bg-slate-50 dark:bg-slate-100 backdrop-blur rounded-xl p-4 dark:border dark:border-white/20">
+            <div className="flex flex-wrap justify-center gap-12">
+              <button
+                onClick={() => setShowFees(!showFees)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+              >
+                <Wallet className="w-4 h-4" />
+                {showFees
+                  ? (language === 'fr' ? 'Masquer frais' : 'Hide fees')
+                  : (language === 'fr' ? 'Afficher frais' : 'Show fees')}
+              </button>
+              <button
+                onClick={() => setShowTransactions(!showTransactions)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                {showTransactions
+                  ? (language === 'fr' ? 'Masquer transactions' : 'Hide transactions')
+                  : (language === 'fr' ? 'Afficher transactions' : 'Show transactions')}
+              </button>
+            </div>
           </div>
         )}
 
