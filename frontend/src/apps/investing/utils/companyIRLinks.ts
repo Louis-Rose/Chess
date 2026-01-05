@@ -1082,6 +1082,90 @@ const TICKER_TO_IR: Record<string, string> = {
 
   // Faroe Islands
   BAKKA: 'https://www.bakkafrost.com/en/investor-relations/',
+
+  // ============================================
+  // Swiss SPI (Additional Swiss stocks)
+  // ============================================
+
+  // Swiss Banks & Financials
+  SQN: 'https://www.swissquote.com/sqweb/company/en/investors',
+  EFGN: 'https://www.efginternational.com/shareholders-investors.html',
+  VONN: 'https://www.vontobel.com/en-ch/about-vontobel/investor-relations/',
+  CMBN: 'https://www.cembra.ch/en/investors',
+  VALN: 'https://www.valiant.ch/en/about-us/investors',
+  VZH: 'https://www.vzch.com/en/investors',
+  BCVN: 'https://www.bcv.ch/en/About-us/Investor-relations',
+  SGKN: 'https://www.sgkb.ch/en/investor-relations',
+  BKBN: 'https://www.bekb.ch/en/investor-relations',
+  THKB: 'https://www.tkb.ch/en/investor-relations',
+  ZUGK: 'https://www.zugerkb.ch/en/investor-relations',
+  GKB: 'https://www.gkb.ch/en/investor-relations',
+  LLBN: 'https://www.llb.li/en/llb/investor-relations',
+  LUKN: 'https://www.lukb.ch/en/investor-relations',
+  BCGE: 'https://www.bcge.ch/en/investor-relations',
+
+  // Swiss Real Estate
+  SPRE: 'https://www.sps.swiss/en/investors',
+  PSPN: 'https://www.psp.info/en/investors.html',
+  MOBN: 'https://www.mobimo.ch/en/investors',
+  ALLH: 'https://www.allreal.ch/en/investors',
+  HIAG: 'https://www.hiag.com/en/investors',
+  WARN: 'https://www.warteck-invest.ch/en/investor-relations',
+  PEHN: 'https://www.peachproperty.com/en/investors',
+
+  // Swiss Healthcare & Pharma
+  MEDN: 'https://www.medacta.com/EN/investors',
+  YPSN: 'https://www.ypsomed.com/yps/en/investors.html',
+  GALN: 'https://www.galenica.com/en/investor-relations',
+  BACH: 'https://www.bachem.com/company/investors/',
+  DOTT: 'https://www.dfrgroup.swiss/en/investor-relations/',
+  // Note: SIE conflicts with Siemens (Germany) - use SIEG for Siegfried if needed
+  BION: 'https://www.bbbiotech.ch/en/investor-relations',
+
+  // Swiss Industrials
+  SUN: 'https://www.sulzer.com/en/investors',
+  SFSG: 'https://www.sfs.biz/en/investors',
+  HUBN: 'https://www.hubersuhner.com/en/company/investors',
+  DMKN: 'https://www.dormakaba.com/en/investors',
+  DAWG: 'https://www.datwyler.com/investors',
+  IFCN: 'https://www.inficon.com/en/investors',
+  ACLN: 'https://www.accelleron-industries.com/investors',
+  SIGG: 'https://www.sig.biz/investors',
+  BOBNN: 'https://www.bobst.com/en/investor-relations',
+  KOMAX: 'https://www.komaxgroup.com/en/Investors',
+  ARYN: 'https://www.aryzta.com/investors',
+  INRN: 'https://www.interroll.com/investors',
+  GURN: 'https://www.gurit.com/en/investors',
+  LISP: 'https://www.landisgyr.com/investors/',
+  COTN: 'https://www.comet-group.com/en/investors',
+  KARN: 'https://www.kardex.com/en/investors',
+  ZEHN: 'https://www.zehndergroup.com/en/investor-relations',
+  VETN: 'https://www.vetropack.com/en/investors/',
+  FORN: 'https://www.forbo.com/corporate/en-gl/investors/',
+  MBTN: 'https://www.meyerburger.com/en/investors',
+
+  // Swiss Consumer & Services
+  DKSH: 'https://www.dksh.com/global-en/investors',
+  AVOL: 'https://www.avoltaworld.com/en/investors',
+  EMMI: 'https://group.emmi.com/en/investors',
+  BELL: 'https://www.bellfoodgroup.com/en/investors/',
+  ORNA: 'https://www.orior.ch/en/investors/',
+  HBLN: 'https://www.hochdorf.com/en/investors',
+  VBSN: 'https://www.valora.com/en/investors/',
+
+  // Swiss Technology
+  ALSN: 'https://www.also.com/ec/cms5/en_6000/6000/investor-relations/index.jsp',
+  SOFTG: 'https://www.softwareone.com/en/investors',
+  UHRN: 'https://www.u-blox.com/en/investors',
+  SENS: 'https://www.sensirion.com/en/company/investors/',
+
+  // Swiss Energy & Transport
+  BKW: 'https://www.bkw.ch/en/about-us/investor-relations',
+  ROMN: 'https://www.romande-energie.ch/investisseurs',
+  FHZN: 'https://www.flughafen-zuerich.ch/en/company/investors',
+
+  // Swiss Other
+  APGN: 'https://www.apgsga.ch/en/investor-relations/',
 };
 
 /**
