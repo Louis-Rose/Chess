@@ -245,8 +245,9 @@ def _save_cached_fx_rate(pair, date_str, rate):
     except Exception as e:
         print(f"Error caching FX rate: {e}")
 
-# Stock color map for pie chart
+# Stock color map for pie chart - brand colors where available
 STOCK_COLORS = {
+    # US Tech
     'NVDA': "#76B900",
     'GOOGL': "#DB4437",
     'GOOG': "#DB4437",
@@ -256,6 +257,65 @@ STOCK_COLORS = {
     'AAPL': "#555555",
     'TSLA': "#CC0000",
     'V': "#1A1F71",
+    'NFLX': "#E50914",
+    'PYPL': "#003087",
+    'INTC': "#0071C5",
+    'AMD': "#ED1C24",
+    'CRM': "#00A1E0",
+    'ADBE': "#FF0000",
+    'ORCL': "#F80000",
+    'IBM': "#0530AD",
+    'CSCO': "#049FD9",
+    # US Finance
+    'JPM': "#0A5CA8",
+    'BAC': "#012169",
+    'GS': "#7399C6",
+    'MS': "#002E5D",
+    'WFC': "#D71E28",
+    'C': "#003DA5",
+    'AXP': "#006FCF",
+    'MA': "#EB001B",
+    'BLK': "#000000",
+    # US Consumer
+    'WMT': "#0071CE",
+    'HD': "#F96302",
+    'NKE': "#111111",
+    'SBUX': "#00704A",
+    'MCD': "#FFC72C",
+    'KO': "#F40009",
+    'PEP': "#004B93",
+    'DIS': "#113CCF",
+    # US Healthcare
+    'JNJ': "#D51900",
+    'PFE': "#0093D0",
+    'UNH': "#002677",
+    'MRK': "#00857C",
+    'ABBV': "#071D49",
+    'LLY': "#D52B1E",
+    # European
+    'ENX': "#1E3A5F",  # Euronext
+    'ASML': "#003E7E",
+    'SAP': "#008FD3",
+    'LVMH': "#8B6914",
+    'MC': "#8B6914",  # LVMH ticker
+    # Swiss
+    'NESN': "#7B9A6D",  # Nestle
+    'NOVN': "#E55300",  # Novartis
+    'ROG': "#0066CC",  # Roche
+    'UHR': "#C8102E",  # Swatch
+    'UBSG': "#E60000",  # UBS
+    'SQN': "#E4002B",  # Swissquote
+    'ZURN': "#003399",  # Zurich Insurance
+    'ABBN': "#FF000F",  # ABB
+    'CFR': "#7B3F00",  # Richemont
+    'LONN': "#0033A0",  # Lonza
+    'SIKA': "#FFCC00",  # Sika
+    'GEBN': "#009FE3",  # Geberit
+    'GIVN': "#E4002B",  # Givaudan
+    'HOLN': "#003366",  # Holcim
+    'BAER': "#002B5C",  # Julius Baer
+    'LOGN': "#00B8FC",  # Logitech
+    # Other
     'Cash': "#FFD700",
 }
 
