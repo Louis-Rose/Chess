@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Briefcase, Eye, Calendar, TrendingUp, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { LoginButton } from '../../../components/LoginButton';
+import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 
 export function InvestingWelcomePanel() {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export function InvestingWelcomePanel() {
             Get insights to make better investment decisions.
           </p>
           <LoginButton />
+          <PWAInstallPrompt className="mt-8 max-w-md" />
         </div>
       </div>
     );
@@ -116,6 +118,8 @@ export function InvestingWelcomePanel() {
             </p>
           </button>
         </div>
+
+        <PWAInstallPrompt className="mt-8 max-w-md mx-auto" />
       </div>
     </>
   );
