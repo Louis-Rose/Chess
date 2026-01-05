@@ -259,33 +259,46 @@ export function PortfolioPanel() {
 
         // Add LUMRA branding in bottom-right corner
         const padding = 20;
-        const logoSize = 32;
-        const fontSize = 18;
-        const brandingWidth = logoSize + 8 + 60; // logo + gap + text width
-        const brandingHeight = logoSize;
+        const logoSize = 36;
+        const fontSize = 20;
+        const brandingWidth = logoSize + 10 + 70; // logo + gap + text width
         const x = canvas.width - brandingWidth - padding;
-        const y = canvas.height - brandingHeight - bottomOffset;
+        const y = canvas.height - logoSize - bottomOffset;
 
-        // Draw logo background (green rounded rect)
+        // Draw logo background (green rounded rect - matching favicon)
         ctx.fillStyle = '#16a34a';
         ctx.beginPath();
-        ctx.roundRect(x, y, logoSize, logoSize, 6);
+        ctx.roundRect(x, y, logoSize, logoSize, logoSize * 0.18); // ~18% corner radius like favicon
         ctx.fill();
 
-        // Draw bar chart icon (white bars)
-        const barWidth = 5;
-        const barGap = 3;
-        const baseY = y + logoSize - 8;
+        // Draw bar chart icon (3 white bars matching favicon proportions)
+        // Favicon: bars at x=32,56,80 out of 128, heights 40,56,72 from bottom
+        const scale = logoSize / 128;
+        const barWidth = 16 * scale;
+        const barRadius = 2 * scale;
+        const baseY = y + logoSize - 24 * scale; // bottom padding
         ctx.fillStyle = 'white';
-        ctx.fillRect(x + 8, baseY - 12, barWidth, 12);
-        ctx.fillRect(x + 8 + barWidth + barGap, baseY - 18, barWidth, 18);
-        ctx.fillRect(x + 8 + 2 * (barWidth + barGap), baseY - 24, barWidth, 24);
+
+        // Left bar (shortest)
+        ctx.beginPath();
+        ctx.roundRect(x + 32 * scale, baseY - 40 * scale, barWidth, 40 * scale, barRadius);
+        ctx.fill();
+
+        // Middle bar
+        ctx.beginPath();
+        ctx.roundRect(x + 56 * scale, baseY - 56 * scale, barWidth, 56 * scale, barRadius);
+        ctx.fill();
+
+        // Right bar (tallest)
+        ctx.beginPath();
+        ctx.roundRect(x + 80 * scale, baseY - 72 * scale, barWidth, 72 * scale, barRadius);
+        ctx.fill();
 
         // Draw LUMRA text
         ctx.fillStyle = '#1e293b';
         ctx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`;
         ctx.textBaseline = 'middle';
-        ctx.fillText('LUMRA', x + logoSize + 8, y + logoSize / 2);
+        ctx.fillText('LUMRA', x + logoSize + 10, y + logoSize / 2);
 
         resolve(canvas.toDataURL('image/png'));
       };
