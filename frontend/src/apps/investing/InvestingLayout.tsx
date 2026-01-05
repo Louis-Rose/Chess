@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../../components/UserMenu';
 import { LanguageToggle } from '../../components/LanguageToggle';
 import { ThemeToggle } from '../../components/ThemeToggle';
+import { PWAInstallPrompt } from '../../components/PWAInstallPrompt';
 
 export function InvestingLayout() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -43,6 +44,8 @@ export function InvestingLayout() {
       </div>
       <main className="flex-1 p-4 md:p-8 pb-20 md:pb-8">
         <Outlet />
+        {/* PWA Install Prompt - shown on all screens */}
+        <PWAInstallPrompt className="mt-8 max-w-md mx-auto" />
       </main>
       {/* Bottom nav: visible on mobile, hidden on md+ */}
       <InvestingBottomNav />
