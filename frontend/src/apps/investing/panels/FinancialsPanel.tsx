@@ -10,6 +10,7 @@ import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { GICS_SECTORS, getStocksBySubIndustry, type GICSSector, type GICSIndustryGroup, type GICSIndustry, type GICSSubIndustry } from '../utils/gics';
 import { addRecentStock, getRecentStocks, removeRecentStock } from '../utils/recentStocks';
+import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 
 export function FinancialsPanel() {
   const navigate = useNavigate();
@@ -122,6 +123,7 @@ export function FinancialsPanel() {
         <p className="text-slate-500 dark:text-slate-400 text-lg italic">
           {language === 'fr' ? 'Recherchez des actions' : 'Search stocks'}
         </p>
+        <PWAInstallPrompt className="max-w-md w-full mt-2" />
       </div>
 
       <div className="max-w-2xl mx-auto space-y-6">

@@ -7,6 +7,7 @@ import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye, ExternalLi
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
+import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
 
 interface AlertPreferences {
@@ -318,6 +319,7 @@ export function EarningsCalendarPanel() {
               ? 'Prochaines publications de résultats'
               : 'Upcoming earnings releases'}
           </p>
+          <PWAInstallPrompt className="max-w-md w-full mt-2" />
         </div>
       </div>
 

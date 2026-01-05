@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Briefcase, Eye, Calendar, TrendingUp, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { LoginButton } from '../../../components/LoginButton';
+import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 
 export function InvestingWelcomePanel() {
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ export function InvestingWelcomePanel() {
     <>
       <div className="text-center space-y-6">
         <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100">Your Investment Dashboard</h1>
+        <PWAInstallPrompt className="max-w-md mx-auto" />
       </div>
 
       <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700 mt-8">

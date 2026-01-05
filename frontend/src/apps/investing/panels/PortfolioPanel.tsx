@@ -17,6 +17,7 @@ import { toPng } from 'html-to-image';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
+import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 
 interface Transaction {
@@ -534,6 +535,7 @@ export function PortfolioPanel() {
         <div className="flex flex-col items-center gap-2">
           <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{t('portfolio.title')}</h2>
           <p className="text-slate-500 dark:text-slate-400 text-lg italic">{t('portfolio.subtitle')}</p>
+          <PWAInstallPrompt className="max-w-md w-full mt-2" />
           <div className="flex items-center gap-4 mt-2">
             {/* Currency Toggle */}
             <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-white/20">
