@@ -236,6 +236,7 @@ export function PortfolioPanel() {
     return undefined; // Will be auto-selected by useEffect when accounts load
   });
   const [showAddAccountForm, setShowAddAccountForm] = useState(false);
+  const [newAccountName, setNewAccountName] = useState('');
   const [newAccountType, setNewAccountType] = useState('');
   const [newAccountBank, setNewAccountBank] = useState('');
   const stockDropdownRef = useRef<HTMLDivElement>(null);
@@ -475,6 +476,7 @@ export function PortfolioPanel() {
     mutationFn: createAccount,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      setNewAccountName('');
       setNewAccountType('');
       setNewAccountBank('');
       setShowAddAccountForm(false);
@@ -572,11 +574,11 @@ export function PortfolioPanel() {
 
   const handleCreateAccount = () => {
     if (newAccountType && newAccountBank) {
-      // Auto-generate name from type and bank
-      const typeName = accountTypes[newAccountType]?.name || newAccountType;
-      const bankName = banks[newAccountBank]?.name || newAccountBank;
+      // Use custom name or default to "ACCOUNT X"
+      const defaultName = language === 'fr' ? `COMPTE ${accounts.length + 1}` : `ACCOUNT ${accounts.length + 1}`;
+      const accountName = newAccountName.trim() || defaultName;
       createAccountMutation.mutate({
-        name: `${typeName} ${bankName}`,
+        name: accountName,
         account_type: newAccountType,
         bank: newAccountBank,
       });
@@ -721,6 +723,16 @@ export function PortfolioPanel() {
                 {showAddAccountForm && (
                   <div className="bg-white rounded-lg p-4 mb-4 border border-slate-200">
                     <div className="flex gap-3 flex-wrap items-end">
+                      <div className="min-w-[140px]">
+                        <label className="block text-sm font-medium text-slate-600 mb-1">{language === 'fr' ? 'Nom' : 'Name'}</label>
+                        <input
+                          type="text"
+                          value={newAccountName}
+                          onChange={(e) => setNewAccountName(e.target.value)}
+                          placeholder={language === 'fr' ? `COMPTE ${accounts.length + 1}` : `ACCOUNT ${accounts.length + 1}`}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
                       <div className="min-w-[160px]">
                         <label className="block text-sm font-medium text-slate-600 mb-1">{t('accounts.accountType')}</label>
                         <select
@@ -756,7 +768,7 @@ export function PortfolioPanel() {
                         {t('accounts.create')}
                       </button>
                       <button
-                        onClick={() => { setShowAddAccountForm(false); setNewAccountType(''); setNewAccountBank(''); }}
+                        onClick={() => { setShowAddAccountForm(false); setNewAccountName(''); setNewAccountType(''); setNewAccountBank(''); }}
                         className="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50"
                       >
                         {t('accounts.cancel')}
