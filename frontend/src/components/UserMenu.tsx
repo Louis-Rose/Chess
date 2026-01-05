@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ChevronDown, LogOut } from 'lucide-react';
 
@@ -7,6 +8,7 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ collapsed = false }: UserMenuProps) {
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -56,6 +58,7 @@ export function UserMenu({ collapsed = false }: UserMenuProps) {
               onClick={() => {
                 logout();
                 setIsOpen(false);
+                navigate('/investing');
               }}
               className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-slate-700 flex items-center gap-2"
             >

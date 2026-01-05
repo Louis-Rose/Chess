@@ -165,7 +165,7 @@ export function InvestingSidebar() {
           <div className="flex items-center gap-2 mb-3 text-slate-400">
             <Clock className="w-4 h-4" />
             <span className="text-xs font-medium uppercase tracking-wide">
-              {language === 'fr' ? 'Recherches récentes' : 'Recent'}
+              {language === 'fr' ? 'Recherches récentes' : 'Recently searched'}
             </span>
           </div>
           <div className="space-y-1">
