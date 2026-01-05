@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { TrendingUp, Search, Eye, ChevronRight, Layers } from 'lucide-react';
+import { Search, Eye, ChevronRight, Layers } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
@@ -229,16 +229,6 @@ export function FinancialsPanel() {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Info */}
-        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-8 text-center shadow-sm dark:shadow-none">
-          <TrendingUp className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-          <p className="text-slate-500 dark:text-slate-400">
-            {language === 'fr'
-              ? 'Recherchez une action pour voir son historique de prix et sa capitalisation boursière.'
-              : 'Search for a stock to see its price history and market cap.'}
-          </p>
         </div>
 
         {/* GICS Industry Search Toggle */}
