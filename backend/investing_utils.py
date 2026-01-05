@@ -13,7 +13,8 @@ CURRENT_PRICE_TTL_MINUTES = 15
 # European stock ticker to yfinance ticker mapping (exchange suffixes)
 # Swiss stocks need .SW, German .DE, French .PA, UK .L, Italian .MI, etc.
 EUROPEAN_TICKER_MAP = {
-    # Swiss stocks (.SW)
+    # Swiss stocks (.SW) - Full SPI Index
+    # Large caps
     'UHR': 'UHR.SW', 'NESN': 'NESN.SW', 'NOVN': 'NOVN.SW', 'ROG': 'ROG.SW',
     'ABBN': 'ABBN.SW', 'ZURN': 'ZURN.SW', 'SREN': 'SREN.SW', 'UBSG': 'UBSG.SW',
     'CSGN': 'CSGN.SW', 'GIVN': 'GIVN.SW', 'LONN': 'LONN.SW', 'SIKA': 'SIKA.SW',
@@ -22,6 +23,37 @@ EUROPEAN_TICKER_MAP = {
     'BARN': 'BARN.SW', 'SGSN': 'SGSN.SW', 'TEMN': 'TEMN.SW', 'HOLN': 'HOLN.SW',
     'LOGN': 'LOGN.SW', 'VACN': 'VACN.SW', 'STMN': 'STMN.SW', 'BEKN': 'BEKN.SW',
     'LAND': 'LAND.SW', 'LHN': 'LHN.SW', 'SPSN': 'SPSN.SW', 'SIGN': 'SIGN.SW',
+    # Mid caps
+    'SCHP': 'SCHP.SW', 'KNIN': 'KNIN.SW', 'LNDN': 'LNDN.SW', 'EMSH': 'EMSH.SW',
+    'BAER': 'BAER.SW', 'CLN': 'CLN.SW', 'GALD': 'GALD.SW', 'SDOZ': 'SDOZ.SW',
+    'ADEN': 'ADEN.SW',
+    # Banks & Financials
+    'SQN': 'SQN.SW', 'EFGN': 'EFGN.SW', 'VONN': 'VONN.SW', 'CMBN': 'CMBN.SW',
+    'VALN': 'VALN.SW', 'VZH': 'VZH.SW', 'BCVN': 'BCVN.SW', 'SGKN': 'SGKN.SW',
+    'BKBN': 'BKBN.SW', 'THKB': 'THKB.SW', 'ZUGK': 'ZUGK.SW', 'GKB': 'GKB.SW',
+    'LLBN': 'LLBN.SW', 'LUKN': 'LUKN.SW', 'BCGE': 'BCGE.SW',
+    # Real estate
+    'SPRE': 'SPRE.SW', 'PSPN': 'PSPN.SW', 'MOBN': 'MOBN.SW', 'ALLH': 'ALLH.SW',
+    'HIAG': 'HIAG.SW', 'WARN': 'WARN.SW', 'PEHN': 'PEHN.SW',
+    # Healthcare & Pharma
+    'MEDN': 'MEDN.SW', 'YPSN': 'YPSN.SW', 'GALN': 'GALN.SW', 'BACH': 'BACH.SW',
+    'DOTT': 'DOTT.SW', 'SIE': 'SIE.SW', 'BION': 'BION.SW',
+    # Industrials
+    'BUCN': 'BUCN.SW', 'GF': 'GF.SW', 'SUN': 'SUN.SW', 'BEAN': 'BEAN.SW',
+    'SFSG': 'SFSG.SW', 'HUBN': 'HUBN.SW', 'DMKN': 'DMKN.SW', 'DAWG': 'DAWG.SW',
+    'IFCN': 'IFCN.SW', 'ACLN': 'ACLN.SW', 'SIGG': 'SIGG.SW', 'BOBNN': 'BOBNN.SW',
+    'KOMAX': 'KOMAX.SW', 'ARYN': 'ARYN.SW', 'INRN': 'INRN.SW', 'GURN': 'GURN.SW',
+    'LISP': 'LISP.SW', 'COTN': 'COTN.SW', 'KARN': 'KARN.SW', 'ZEHN': 'ZEHN.SW',
+    'VETN': 'VETN.SW', 'FORN': 'FORN.SW', 'MBTN': 'MBTN.SW',
+    # Consumer & Services
+    'DKSH': 'DKSH.SW', 'AVOL': 'AVOL.SW', 'EMMI': 'EMMI.SW', 'BELL': 'BELL.SW',
+    'ORNA': 'ORNA.SW', 'HBLN': 'HBLN.SW', 'VBSN': 'VBSN.SW',
+    # Technology
+    'ALSN': 'ALSN.SW', 'SOFTG': 'SOFTG.SW', 'UHRN': 'UHRN.SW', 'SENS': 'SENS.SW',
+    # Energy & Transport
+    'BKW': 'BKW.SW', 'ROMN': 'ROMN.SW', 'FHZN': 'FHZN.SW',
+    # Other
+    'HELN': 'HELN.SW', 'APGN': 'APGN.SW',
     # German stocks (.DE) - Note: many German stocks use .DE on Yahoo
     'ALV': 'ALV.DE', 'BAS': 'BAS.DE', 'BAYN': 'BAYN.DE', 'BMW': 'BMW.DE',
     'CON': 'CON.DE', 'DAI': 'DAI.DE', 'DB1': 'DB1.DE', 'DBK': 'DBK.DE',
