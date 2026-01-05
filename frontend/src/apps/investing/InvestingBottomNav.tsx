@@ -5,10 +5,10 @@ import { Home, Briefcase, Eye, Calendar, TrendingUp } from 'lucide-react';
 
 const navItems = [
   { path: '/investing', icon: Home, label: 'Home', end: true },
+  { path: '/investing/financials', icon: TrendingUp, label: 'Financials' },
   { path: '/investing/portfolio', icon: Briefcase, label: 'Portfolio' },
   { path: '/investing/watchlist', icon: Eye, label: 'Watchlist' },
   { path: '/investing/earnings', icon: Calendar, label: 'Earnings' },
-  { path: '/investing/financials', icon: TrendingUp, label: 'Financials' },
 ];
 
 export function InvestingBottomNav() {

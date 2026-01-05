@@ -11,10 +11,10 @@ import { ThemeToggle } from '../../components/ThemeToggle';
 
 const navItems = [
   { path: '/investing', icon: Home, labelEn: 'Welcome', labelFr: 'Accueil', end: true },
+  { path: '/investing/financials', icon: TrendingUp, labelEn: 'Stocks Research', labelFr: 'Recherche Actions' },
   { path: '/investing/portfolio', icon: Briefcase, labelEn: 'My Portfolio', labelFr: 'Mon Portefeuille' },
   { path: '/investing/watchlist', icon: Eye, labelEn: 'My Watchlist', labelFr: 'Ma Watchlist' },
   { path: '/investing/earnings', icon: Calendar, labelEn: 'Earnings Calendar', labelFr: 'Calendrier des Résultats' },
-  { path: '/investing/financials', icon: TrendingUp, labelEn: 'Stocks Research', labelFr: 'Recherche Actions' },
 ];
 
 export function InvestingSidebar() {
