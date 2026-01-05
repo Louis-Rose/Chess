@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Eye, ChevronRight, Layers } from 'lucide-react';
+import { Search, Eye, ChevronRight, Layers, Loader2, TrendingUp } from 'lucide-react';
+import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { LoginButton } from '../../../components/LoginButton';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { GICS_SECTORS, getStocksBySubIndustry, type GICSSector, type GICSIndustryGroup, type GICSIndustry, type GICSSubIndustry } from '../utils/gics';
@@ -11,6 +13,7 @@ import { addRecentStock, getRecentStocks } from '../utils/recentStocks';
 
 export function FinancialsPanel() {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
   const [stockSearch, setStockSearch] = useState('');
   const [stockResults, setStockResults] = useState<Stock[]>([]);
@@ -81,6 +84,36 @@ export function FinancialsPanel() {
     setSelectedIndustry(null);
     setSelectedSubIndustry(null);
   };
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <Loader2 className="w-10 h-10 text-green-500 animate-spin mb-4" />
+        <p className="text-slate-400">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center py-8 md:py-16">
+        <h1 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 text-center px-4">
+          {language === 'fr' ? 'Recherche Actions' : 'Stocks Research'}
+        </h1>
+        <div className="flex items-start pt-6 md:pt-8 h-[72px] md:h-[144px]">
+          <TrendingUp className="w-24 h-24 md:w-32 md:h-32 text-slate-300 dark:text-slate-600" />
+        </div>
+        <div className="flex flex-col items-center mt-6 md:mt-8 px-4">
+          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-8 md:mb-10 text-center max-w-lg font-light tracking-wide">
+            {language === 'fr'
+              ? 'Connectez-vous pour rechercher des actions et consulter leurs données financières.'
+              : 'Sign in to search stocks and view their financial data.'}
+          </p>
+          <LoginButton />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
