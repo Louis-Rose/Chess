@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown, Calendar, X } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -49,6 +49,10 @@ export function AdminPanel() {
   const [sortColumn, setSortColumn] = useState<SortColumn>('created_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
+  // Date filter state
+  const [filterDate, setFilterDate] = useState<string>('');
+  const [filterColumn, setFilterColumn] = useState<'last_active' | 'created_at'>('last_active');
+
   // Handle column header click
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -59,10 +63,23 @@ export function AdminPanel() {
     }
   };
 
-  // Sorted users
+  // Filtered and sorted users
   const sortedUsers = useMemo(() => {
     if (!data?.users) return [];
-    return [...data.users].sort((a, b) => {
+
+    // Apply date filter
+    let filtered = data.users;
+    if (filterDate) {
+      filtered = data.users.filter((u) => {
+        const dateValue = filterColumn === 'last_active' ? u.last_active : u.created_at;
+        if (!dateValue) return false;
+        const userDate = dateValue.split('T')[0].split(' ')[0]; // Handle both ISO and space-separated formats
+        return userDate === filterDate;
+      });
+    }
+
+    // Sort
+    return [...filtered].sort((a, b) => {
       let comparison = 0;
       switch (sortColumn) {
         case 'id':
@@ -85,7 +102,7 @@ export function AdminPanel() {
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [data?.users, sortColumn, sortDirection]);
+  }, [data?.users, sortColumn, sortDirection, filterDate, filterColumn]);
 
   // Compute cumulative users per day (including all days)
   const chartData = useMemo(() => {
@@ -244,12 +261,46 @@ export function AdminPanel() {
 
         {/* Users List */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-          <div className="flex items-center gap-3 mb-4">
-            <Users className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-              {language === 'fr' ? 'Utilisateurs inscrits' : 'Registered Users'}
-              {data && <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">({data.total})</span>}
-            </h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Users className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                {language === 'fr' ? 'Utilisateurs inscrits' : 'Registered Users'}
+                {data && (
+                  <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">
+                    ({filterDate ? sortedUsers.length : data.total})
+                  </span>
+                )}
+              </h3>
+            </div>
+
+            {/* Date Filter */}
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-slate-400" />
+              <select
+                value={filterColumn}
+                onChange={(e) => setFilterColumn(e.target.value as 'last_active' | 'created_at')}
+                className="text-sm bg-slate-100 dark:bg-slate-600 border-none rounded px-2 py-1 text-slate-700 dark:text-slate-200"
+              >
+                <option value="last_active">{language === 'fr' ? 'Actif le' : 'Active on'}</option>
+                <option value="created_at">{language === 'fr' ? 'Inscrit le' : 'Registered on'}</option>
+              </select>
+              <input
+                type="date"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="text-sm bg-slate-100 dark:bg-slate-600 border-none rounded px-2 py-1 text-slate-700 dark:text-slate-200"
+              />
+              {filterDate && (
+                <button
+                  onClick={() => setFilterDate('')}
+                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-500 rounded"
+                  title={language === 'fr' ? 'Effacer le filtre' : 'Clear filter'}
+                >
+                  <X className="w-4 h-4 text-slate-500 dark:text-slate-300" />
+                </button>
+              )}
+            </div>
           </div>
 
           {isLoading ? (
