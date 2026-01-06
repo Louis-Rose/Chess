@@ -1815,6 +1815,25 @@ def record_stock_view():
     return jsonify({'success': True})
 
 
+@app.route('/api/admin/users/<int:user_id>/stock-views', methods=['GET'])
+@admin_required
+def get_user_stock_views(user_id):
+    """Get stock view statistics for a specific user (admin only)."""
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT stock_ticker,
+                   SUM(view_count) as total_views,
+                   SUM(time_spent_seconds) as total_time_seconds
+            FROM stock_views
+            WHERE user_id = ?
+            GROUP BY stock_ticker
+            ORDER BY total_views DESC
+        ''', (user_id,))
+        views = [dict(row) for row in cursor.fetchall()]
+
+    return jsonify({'views': views})
+
+
 @app.route('/api/admin/stock-views', methods=['GET'])
 @admin_required
 def get_stock_views_stats():

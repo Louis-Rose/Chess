@@ -3,7 +3,7 @@
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowLeft, Loader2, User, Clock, Briefcase, Eye, Download } from 'lucide-react';
+import { ArrowLeft, Loader2, User, Clock, Briefcase, Eye, Download, Search } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -49,6 +49,12 @@ interface GraphDownload {
   downloaded_at: string;
 }
 
+interface StockView {
+  stock_ticker: string;
+  total_views: number;
+  total_time_seconds: number;
+}
+
 const fetchUserDetail = async (userId: string): Promise<UserData> => {
   const response = await axios.get(`/api/admin/users/${userId}`);
   return response.data.user;
@@ -72,6 +78,11 @@ const fetchUserPortfolio = async (userId: string): Promise<PortfolioData> => {
 const fetchUserGraphDownloads = async (userId: string): Promise<GraphDownload[]> => {
   const response = await axios.get(`/api/admin/users/${userId}/graph-downloads`);
   return response.data.downloads;
+};
+
+const fetchUserStockViews = async (userId: string): Promise<StockView[]> => {
+  const response = await axios.get(`/api/admin/users/${userId}/stock-views`);
+  return response.data.views;
 };
 
 const formatTime = (minutes: number): string => {
@@ -119,6 +130,13 @@ export function UserDetailPanel() {
   const { data: graphDownloadsData } = useQuery({
     queryKey: ['admin-user-graph-downloads', userId],
     queryFn: () => fetchUserGraphDownloads(userId!),
+    enabled: !!userId && !!currentUser?.is_admin,
+  });
+
+  // Fetch user stock views
+  const { data: stockViewsData } = useQuery({
+    queryKey: ['admin-user-stock-views', userId],
+    queryFn: () => fetchUserStockViews(userId!),
     enabled: !!userId && !!currentUser?.is_admin,
   });
 
@@ -414,6 +432,79 @@ export function UserDetailPanel() {
           ) : (
             <p className="text-slate-400 text-center py-4">
               {language === 'fr' ? 'Aucun téléchargement' : 'No downloads'}
+            </p>
+          )}
+        </div>
+
+        {/* Stock Searches */}
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <div className="flex items-center gap-2 mb-4">
+            <Search className="w-5 h-5 text-purple-500" />
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              {language === 'fr' ? 'Recherches de stocks' : 'Stock Searches'}
+              {stockViewsData && stockViewsData.length > 0 && (
+                <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">
+                  ({stockViewsData.length})
+                </span>
+              )}
+            </h3>
+          </div>
+          {stockViewsData && stockViewsData.length > 0 ? (
+            <div className="overflow-x-auto max-h-[250px] overflow-y-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
+                  <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b border-slate-300 dark:border-slate-500">
+                    <th className="pb-2 pl-2">Ticker</th>
+                    <th className="pb-2 text-center">{language === 'fr' ? 'Vues' : 'Views'}</th>
+                    <th className="pb-2 text-center">{language === 'fr' ? 'Temps' : 'Time'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stockViewsData.map((view) => {
+                    const logoUrl = getCompanyLogoUrl(view.stock_ticker);
+                    return (
+                      <tr
+                        key={view.stock_ticker}
+                        className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer"
+                        onClick={() => navigate(`/investing/stock/${view.stock_ticker}`)}
+                      >
+                        <td className="py-2 pl-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                              {logoUrl ? (
+                                <img
+                                  src={logoUrl}
+                                  alt={view.stock_ticker}
+                                  className="w-5 h-5 object-contain"
+                                  onError={(e) => {
+                                    const parent = e.currentTarget.parentElement;
+                                    if (parent) {
+                                      parent.innerHTML = `<span class="text-[8px] font-bold text-slate-400">${view.stock_ticker.slice(0, 2)}</span>`;
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-[8px] font-bold text-slate-400">{view.stock_ticker.slice(0, 2)}</span>
+                              )}
+                            </div>
+                            <span className="font-medium text-slate-800 dark:text-slate-100">{view.stock_ticker}</span>
+                          </div>
+                        </td>
+                        <td className="py-2 text-center text-slate-500 dark:text-slate-300">{view.total_views}</td>
+                        <td className="py-2 text-center text-slate-500 dark:text-slate-300">
+                          {view.total_time_seconds >= 60
+                            ? `${Math.floor(view.total_time_seconds / 60)} min`
+                            : `${view.total_time_seconds}s`}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-slate-400 text-center py-4">
+              {language === 'fr' ? 'Aucune recherche' : 'No searches'}
             </p>
           )}
         </div>

@@ -420,7 +420,7 @@ export function AdminPanel() {
             <div className="flex items-center gap-3">
               <Users className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Utilisateurs' : 'Registered Users'}
+                {language === 'fr' ? 'Utilisateurs' : 'Users'}
                 {data && (
                   <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">
                     ({(filterDateStart || filterDateEnd) ? sortedUsers.length : data.total})
