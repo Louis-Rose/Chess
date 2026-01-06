@@ -26,6 +26,7 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
       loginRequired: 'Sign in to send feedback',
       tooltip: 'Feedback',
       cta: 'Got feedback?',
+      screenshotHint: 'To add a screenshot: close this, take your screenshot, reopen and paste (Ctrl+V)',
     },
     fr: {
       title: 'Envoyer un feedback',
@@ -36,6 +37,7 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
       loginRequired: 'Connectez-vous pour envoyer',
       tooltip: 'Feedback',
       cta: 'Un avis ?',
+      screenshotHint: 'Pour ajouter une capture : fermez, prenez votre capture, rouvrez et collez (Ctrl+V)',
     },
   };
 
@@ -129,6 +131,9 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
                     disabled={status === 'sending'}
                     autoFocus
                   />
+                  <p className="text-xs text-slate-400 dark:text-slate-500 italic">
+                    {t.screenshotHint}
+                  </p>
                   <button
                     onClick={handleSubmit}
                     disabled={!message.trim() || status === 'sending'}
