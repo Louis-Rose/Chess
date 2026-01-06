@@ -278,7 +278,10 @@ export function UserDetailPanel() {
                     <span className="font-bold text-slate-800 dark:text-slate-100 w-16">{holding.ticker}</span>
                     <span className="text-slate-500 dark:text-slate-400 text-sm">{holding.quantity} shares</span>
                     <span className="ml-auto text-slate-800 dark:text-slate-100 font-medium">
-                      €{(holding.value_usd / (portfolioData.total_value_usd / portfolioData.total_value_eur)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      €{(portfolioData.total_value_usd && portfolioData.total_value_eur
+                        ? (holding.value_usd / (portfolioData.total_value_usd / portfolioData.total_value_eur))
+                        : 0
+                      ).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </span>
                     <span className={`text-sm font-medium w-16 text-right ${holding.gain_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {holding.gain_pct >= 0 ? '+' : ''}{holding.gain_pct.toFixed(1)}%
