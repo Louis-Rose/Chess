@@ -89,7 +89,7 @@ const formatTime = (minutes: number): string => {
   if (minutes >= 60) {
     return `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}`;
   }
-  return `${minutes}m`;
+  return `${minutes} min`;
 };
 
 export function UserDetailPanel() {
