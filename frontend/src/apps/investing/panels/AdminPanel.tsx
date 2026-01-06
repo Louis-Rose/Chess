@@ -19,6 +19,8 @@ interface AdminUser {
   updated_at: string;
   total_minutes: number;
   last_active: string | null;
+  has_portfolio: boolean;
+  graph_downloads: number;
 }
 
 interface AdminUsersResponse {
@@ -26,7 +28,7 @@ interface AdminUsersResponse {
   total: number;
 }
 
-type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes';
+type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes' | 'has_portfolio' | 'graph_downloads';
 type SortDirection = 'asc' | 'desc';
 
 const fetchUsers = async (): Promise<AdminUsersResponse> => {
@@ -101,6 +103,12 @@ export function AdminPanel() {
           break;
         case 'total_minutes':
           comparison = a.total_minutes - b.total_minutes;
+          break;
+        case 'has_portfolio':
+          comparison = (a.has_portfolio ? 1 : 0) - (b.has_portfolio ? 1 : 0);
+          break;
+        case 'graph_downloads':
+          comparison = a.graph_downloads - b.graph_downloads;
           break;
       }
       return sortDirection === 'asc' ? comparison : -comparison;
@@ -378,6 +386,18 @@ export function AdminPanel() {
                         {sortColumn === 'total_minutes' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
+                    <th className="pb-3 text-center">
+                      <button onClick={() => handleSort('has_portfolio')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white mx-auto">
+                        Portfolio
+                        {sortColumn === 'has_portfolio' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      </button>
+                    </th>
+                    <th className="pb-3 text-center">
+                      <button onClick={() => handleSort('graph_downloads')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white mx-auto">
+                        {language === 'fr' ? 'Téléch.' : 'Downloads'}
+                        {sortColumn === 'graph_downloads' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      </button>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -426,6 +446,16 @@ export function AdminPanel() {
                             ? `${Math.floor(u.total_minutes / 60)}h${String(u.total_minutes % 60).padStart(2, '0')}`
                             : `${u.total_minutes}m`
                         ) : '-'}
+                      </td>
+                      <td className="py-3 text-center text-sm">
+                        {u.has_portfolio ? (
+                          <span className="text-green-600">✓</span>
+                        ) : (
+                          <span className="text-slate-300">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-300">
+                        {u.graph_downloads > 0 ? u.graph_downloads : '-'}
                       </td>
                     </tr>
                   ))}

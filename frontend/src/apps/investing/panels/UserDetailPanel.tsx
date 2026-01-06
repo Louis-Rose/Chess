@@ -3,7 +3,7 @@
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowLeft, Loader2, User, Clock, Briefcase, Eye } from 'lucide-react';
+import { ArrowLeft, Loader2, User, Clock, Briefcase, Eye, Download } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -43,6 +43,12 @@ interface PortfolioData {
   total_value_eur: number;
 }
 
+interface GraphDownload {
+  id: number;
+  graph_type: string;
+  downloaded_at: string;
+}
+
 const fetchUserDetail = async (userId: string): Promise<UserData> => {
   const response = await axios.get(`/api/admin/users/${userId}`);
   return response.data.user;
@@ -61,6 +67,11 @@ const fetchUserWatchlist = async (userId: string): Promise<string[]> => {
 const fetchUserPortfolio = async (userId: string): Promise<PortfolioData> => {
   const response = await axios.get(`/api/admin/users/${userId}/portfolio`);
   return response.data;
+};
+
+const fetchUserGraphDownloads = async (userId: string): Promise<GraphDownload[]> => {
+  const response = await axios.get(`/api/admin/users/${userId}/graph-downloads`);
+  return response.data.downloads;
 };
 
 const formatTime = (minutes: number): string => {
@@ -101,6 +112,13 @@ export function UserDetailPanel() {
   const { data: portfolioData, isLoading: portfolioLoading } = useQuery({
     queryKey: ['admin-user-portfolio', userId],
     queryFn: () => fetchUserPortfolio(userId!),
+    enabled: !!userId && !!currentUser?.is_admin,
+  });
+
+  // Fetch user graph downloads
+  const { data: graphDownloadsData } = useQuery({
+    queryKey: ['admin-user-graph-downloads', userId],
+    queryFn: () => fetchUserGraphDownloads(userId!),
     enabled: !!userId && !!currentUser?.is_admin,
   });
 
@@ -353,6 +371,49 @@ export function UserDetailPanel() {
           ) : (
             <p className="text-slate-400 text-center py-4">
               {language === 'fr' ? 'Watchlist vide' : 'Empty watchlist'}
+            </p>
+          )}
+        </div>
+
+        {/* Graph Downloads */}
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <div className="flex items-center gap-2 mb-4">
+            <Download className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              {language === 'fr' ? 'Téléchargements' : 'Downloads'}
+              {graphDownloadsData && graphDownloadsData.length > 0 && (
+                <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">
+                  ({graphDownloadsData.length})
+                </span>
+              )}
+            </h3>
+          </div>
+          {graphDownloadsData && graphDownloadsData.length > 0 ? (
+            <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              {graphDownloadsData.map((download) => (
+                <div
+                  key={download.id}
+                  className="flex items-center justify-between py-2 px-3 bg-slate-100 dark:bg-slate-600 rounded-lg"
+                >
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    {download.graph_type === 'performance'
+                      ? (language === 'fr' ? 'Performance' : 'Performance')
+                      : download.graph_type === 'composition'
+                      ? (language === 'fr' ? 'Composition' : 'Composition')
+                      : download.graph_type}
+                  </span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {new Date(download.downloaded_at).toLocaleDateString(
+                      language === 'fr' ? 'fr-FR' : 'en-US',
+                      { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-slate-400 text-center py-4">
+              {language === 'fr' ? 'Aucun téléchargement' : 'No downloads'}
             </p>
           )}
         </div>

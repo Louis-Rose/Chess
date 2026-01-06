@@ -332,6 +332,9 @@ export function PortfolioPanel() {
       link.href = brandedDataUrl;
       link.download = `portfolio-performance-${new Date().toISOString().split('T')[0]}.png`;
       link.click();
+
+      // Track download
+      axios.post('/api/investing/graph-download', { graph_type: 'performance' }).catch(() => {});
     } catch (error) {
       console.error('Failed to download chart:', error);
       alert(language === 'fr' ? 'Erreur lors du téléchargement' : 'Download failed');
@@ -361,6 +364,9 @@ export function PortfolioPanel() {
       link.href = brandedDataUrl;
       link.download = `portfolio-positions-${new Date().toISOString().split('T')[0]}.png`;
       link.click();
+
+      // Track download
+      axios.post('/api/investing/graph-download', { graph_type: 'composition' }).catch(() => {});
     } catch (error) {
       console.error('Failed to download positions chart:', error);
       alert(language === 'fr' ? 'Erreur lors du téléchargement' : 'Download failed');

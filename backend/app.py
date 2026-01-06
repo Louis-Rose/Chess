@@ -453,13 +453,25 @@ def list_users():
         cursor = conn.execute('''
             SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at,
                    COALESCE(SUM(a.minutes), 0) as total_minutes,
-                   MAX(a.last_ping) as last_active
+                   MAX(a.last_ping) as last_active,
+                   (SELECT COUNT(*) FROM graph_downloads g WHERE g.user_id = u.id) as graph_downloads
             FROM users u
             LEFT JOIN user_activity a ON u.id = a.user_id
             GROUP BY u.id
             ORDER BY u.created_at DESC
         ''')
         users = [dict(row) for row in cursor.fetchall() if row['email'] not in hidden_emails]
+
+        # Add portfolio value for each user
+        for user in users:
+            cursor = conn.execute('''
+                SELECT SUM(quantity) as total_qty, stock_ticker
+                FROM portfolio_transactions
+                WHERE user_id = ? AND transaction_type = 'BUY'
+                GROUP BY stock_ticker
+            ''', (user['id'],))
+            has_portfolio = cursor.fetchone() is not None
+            user['has_portfolio'] = has_portfolio
 
     return jsonify({'users': users, 'total': len(users)})
 
@@ -535,6 +547,22 @@ def get_user_portfolio(user_id):
         return jsonify(composition)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/users/<int:user_id>/graph-downloads', methods=['GET'])
+@admin_required
+def get_user_graph_downloads(user_id):
+    """Get a user's graph download history (admin only)."""
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT id, graph_type, downloaded_at
+            FROM graph_downloads
+            WHERE user_id = ?
+            ORDER BY downloaded_at DESC
+        ''', (user_id,))
+        downloads = [dict(row) for row in cursor.fetchall()]
+
+    return jsonify({'downloads': downloads})
 
 
 # ============= INVESTING ROUTES =============
@@ -1736,6 +1764,26 @@ def send_earnings_alert_now():
         return jsonify({'success': True, 'message': f'Email sent to {email}'})
     else:
         return jsonify({'error': 'Failed to send email. Check SMTP configuration.'}), 500
+
+
+@app.route('/api/investing/graph-download', methods=['POST'])
+@login_required
+def record_graph_download():
+    """Record a graph download event."""
+    data = request.get_json()
+    graph_type = data.get('graph_type')
+
+    if not graph_type:
+        return jsonify({'error': 'graph_type is required'}), 400
+
+    with get_db() as conn:
+        conn.execute(
+            'INSERT INTO graph_downloads (user_id, graph_type) VALUES (?, ?)',
+            (request.user_id, graph_type)
+        )
+        conn.commit()
+
+    return jsonify({'success': True})
 
 
 if __name__ == '__main__':
