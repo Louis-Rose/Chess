@@ -1,7 +1,10 @@
 import os
 import smtplib
+import base64
+import re
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 from datetime import datetime
 
 # Gmail SMTP configuration
@@ -12,14 +15,15 @@ SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')  # Gmail App Password
 FEEDBACK_EMAIL = 'rose.louis.mail@gmail.com'  # Where to send feedback
 
 
-def send_feedback_email(from_name: str, from_email: str, message: str) -> bool:
+def send_feedback_email(from_name: str, from_email: str, message: str, images: list = None) -> bool:
     """
-    Send user feedback email.
+    Send user feedback email with optional screenshot attachments.
 
     Args:
         from_name: User's name
         from_email: User's email
         message: Feedback message
+        images: List of base64 data URIs (e.g., "data:image/png;base64,...")
 
     Returns:
         True if email sent successfully, False otherwise
@@ -28,7 +32,28 @@ def send_feedback_email(from_name: str, from_email: str, message: str) -> bool:
         print("SMTP credentials not configured")
         return False
 
+    if images is None:
+        images = []
+
     subject = f"[LUMRA Feedback] from {from_name}"
+
+    # Build images HTML section
+    images_html = ""
+    if images:
+        images_html = """
+            <div class="screenshots">
+                <h2>Screenshots</h2>
+                <div class="images">
+        """
+        for i, _ in enumerate(images):
+            images_html += f'<img src="cid:screenshot{i}" alt="Screenshot {i+1}" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; border: 1px solid #e2e8f0;" />'
+        images_html += """
+                </div>
+            </div>
+        """
+
+    # Escape HTML in message
+    escaped_message = message.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;') if message else "(No message)"
 
     html_body = f"""
     <!DOCTYPE html>
@@ -41,7 +66,7 @@ def send_feedback_email(from_name: str, from_email: str, message: str) -> bool:
                 padding: 20px;
             }}
             .container {{
-                max-width: 600px;
+                max-width: 800px;
                 margin: 0 auto;
                 background-color: #ffffff;
                 border-radius: 12px;
@@ -52,6 +77,12 @@ def send_feedback_email(from_name: str, from_email: str, message: str) -> bool:
                 color: #1e293b;
                 font-size: 24px;
                 margin-bottom: 20px;
+            }}
+            h2 {{
+                color: #1e293b;
+                font-size: 18px;
+                margin-top: 25px;
+                margin-bottom: 15px;
             }}
             .info {{
                 background-color: #f1f5f9;
@@ -79,6 +110,14 @@ def send_feedback_email(from_name: str, from_email: str, message: str) -> bool:
                 white-space: pre-wrap;
                 line-height: 1.6;
             }}
+            .screenshots {{
+                margin-top: 25px;
+                padding-top: 20px;
+                border-top: 1px solid #e2e8f0;
+            }}
+            .images {{
+                display: block;
+            }}
         </style>
     </head>
     <body>
@@ -88,32 +127,54 @@ def send_feedback_email(from_name: str, from_email: str, message: str) -> bool:
                 <p><strong>From:</strong> {from_name}</p>
                 <p><strong>Email:</strong> {from_email}</p>
                 <p><strong>Date:</strong> {datetime.now().strftime('%B %d, %Y at %H:%M')}</p>
+                <p><strong>Screenshots:</strong> {len(images)}</p>
             </div>
             <div class="message">
-                <p>{message}</p>
+                <p>{escaped_message}</p>
             </div>
+            {images_html}
         </div>
     </body>
     </html>
     """
 
-    msg = MIMEMultipart('alternative')
+    # Create multipart message with related subtype for inline images
+    msg = MIMEMultipart('related')
     msg['Subject'] = subject
     msg['From'] = f"LUMRA Feedback <{SMTP_EMAIL}>"
     msg['To'] = FEEDBACK_EMAIL
     msg['Reply-To'] = from_email
 
-    plain_text = f"Feedback from {from_name} ({from_email}):\n\n{message}"
+    # Create alternative part for text/html
+    msg_alternative = MIMEMultipart('alternative')
+    msg.attach(msg_alternative)
 
-    msg.attach(MIMEText(plain_text, 'plain'))
-    msg.attach(MIMEText(html_body, 'html'))
+    plain_text = f"Feedback from {from_name} ({from_email}):\n\n{message or '(No message)'}\n\n[{len(images)} screenshot(s) attached]"
+    msg_alternative.attach(MIMEText(plain_text, 'plain'))
+    msg_alternative.attach(MIMEText(html_body, 'html'))
+
+    # Attach images as inline
+    for i, data_uri in enumerate(images):
+        try:
+            # Parse data URI: data:image/png;base64,ABC123...
+            match = re.match(r'data:image/(\w+);base64,(.+)', data_uri)
+            if match:
+                img_type = match.group(1)
+                img_data = base64.b64decode(match.group(2))
+
+                img = MIMEImage(img_data, _subtype=img_type)
+                img.add_header('Content-ID', f'<screenshot{i}>')
+                img.add_header('Content-Disposition', 'inline', filename=f'screenshot{i+1}.{img_type}')
+                msg.attach(img)
+        except Exception as e:
+            print(f"Failed to attach image {i}: {e}")
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
             server.login(SMTP_EMAIL, SMTP_PASSWORD)
             server.send_message(msg)
-        print(f"Feedback email sent successfully from {from_email}")
+        print(f"Feedback email sent successfully from {from_email} with {len(images)} images")
         return True
     except Exception as e:
         print(f"Failed to send feedback email: {e}")

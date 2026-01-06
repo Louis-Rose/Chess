@@ -1,7 +1,8 @@
 // Floating feedback widget - bottom-right corner of the page
 
-import { useState } from 'react';
-import { MessageSquare, Send, Loader2, Check, X } from 'lucide-react';
+import { useState, useRef } from 'react';
+import type { ClipboardEvent } from 'react';
+import { MessageSquare, Send, Loader2, Check, X, Image as ImageIcon } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,8 +14,10 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
   const { isAuthenticated } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const [images, setImages] = useState<string[]>([]); // base64 images
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const texts = {
     en: {
@@ -26,7 +29,9 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
       loginRequired: 'Sign in to send feedback',
       tooltip: 'Feedback',
       cta: 'Got feedback?',
-      screenshotHint: 'To add a screenshot: close this, take your screenshot, reopen and paste (Ctrl+V)',
+      screenshotHint: 'Tip: Close this modal, take a screenshot, reopen and paste it here (Ctrl+V)',
+      imageAdded: 'Screenshot added!',
+      removeImage: 'Remove',
     },
     fr: {
       title: 'Envoyer un feedback',
@@ -37,22 +42,56 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
       loginRequired: 'Connectez-vous pour envoyer',
       tooltip: 'Feedback',
       cta: 'Un avis ?',
-      screenshotHint: 'Pour ajouter une capture : fermez, prenez votre capture, rouvrez et collez (Ctrl+V)',
+      screenshotHint: 'Astuce : Fermez cette fenêtre, prenez une capture, rouvrez et collez-la ici (Ctrl+V)',
+      imageAdded: 'Capture ajoutée !',
+      removeImage: 'Supprimer',
     },
   };
 
   const t = texts[language];
 
+  const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const base64 = event.target?.result as string;
+            if (base64) {
+              setImages((prev) => [...prev, base64]);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+        break;
+      }
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async () => {
-    if (!message.trim() || status === 'sending') return;
+    if ((!message.trim() && images.length === 0) || status === 'sending') return;
 
     setStatus('sending');
     setErrorMessage('');
 
     try {
-      await axios.post('/api/feedback', { message: message.trim() });
+      await axios.post('/api/feedback', {
+        message: message.trim(),
+        images: images
+      });
       setStatus('success');
       setMessage('');
+      setImages([]);
       // Close and reset after 2 seconds
       setTimeout(() => {
         setStatus('idle');
@@ -122,8 +161,10 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
               {(status === 'idle' || status === 'sending' || status === 'error') && (
                 <div className="space-y-4">
                   <textarea
+                    ref={textareaRef}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
+                    onPaste={handlePaste}
                     placeholder={t.placeholder}
                     rows={5}
                     maxLength={5000}
@@ -131,12 +172,37 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
                     disabled={status === 'sending'}
                     autoFocus
                   />
-                  <p className="text-xs text-slate-400 dark:text-slate-500 italic">
+
+                  {/* Image previews */}
+                  {images.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {images.map((img, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={img}
+                            alt={`Screenshot ${index + 1}`}
+                            className="h-20 w-auto rounded-lg border border-slate-300 dark:border-slate-600 object-cover"
+                          />
+                          <button
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            title={t.removeImage}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <p className="text-xs text-slate-400 dark:text-slate-500 italic flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5" />
                     {t.screenshotHint}
                   </p>
+
                   <button
                     onClick={handleSubmit}
-                    disabled={!message.trim() || status === 'sending'}
+                    disabled={(!message.trim() && images.length === 0) || status === 'sending'}
                     className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 disabled:cursor-not-allowed text-white text-base font-medium py-3 rounded-xl transition-colors"
                   >
                     {status === 'sending' ? (
@@ -145,6 +211,11 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
                       <Send className="w-5 h-5" />
                     )}
                     {t.send}
+                    {images.length > 0 && (
+                      <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-sm">
+                        +{images.length} {images.length === 1 ? 'image' : 'images'}
+                      </span>
+                    )}
                   </button>
                 </div>
               )}

@@ -1900,17 +1900,22 @@ def get_time_spent_stats():
 @app.route('/api/feedback', methods=['POST'])
 @login_required
 def submit_feedback():
-    """Submit user feedback via email."""
+    """Submit user feedback via email, with optional screenshot attachments."""
     from email_utils import send_feedback_email
 
     data = request.get_json()
     message = data.get('message', '').strip()
+    images = data.get('images', [])  # List of base64 data URIs
 
-    if not message:
-        return jsonify({'error': 'Message is required'}), 400
+    if not message and not images:
+        return jsonify({'error': 'Message or screenshot is required'}), 400
 
     if len(message) > 5000:
         return jsonify({'error': 'Message too long (max 5000 characters)'}), 400
+
+    # Limit number of images
+    if len(images) > 5:
+        return jsonify({'error': 'Too many images (max 5)'}), 400
 
     # Get user info
     with get_db() as conn:
@@ -1923,7 +1928,7 @@ def submit_feedback():
     user_name = user['name'] or 'Unknown User'
     user_email = user['email']
 
-    success = send_feedback_email(user_name, user_email, message)
+    success = send_feedback_email(user_name, user_email, message, images)
 
     if success:
         return jsonify({'success': True, 'message': 'Feedback sent successfully'})
