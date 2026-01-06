@@ -74,70 +74,78 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      {/* Expanded feedback form */}
+      {/* Expanded feedback form - centered modal */}
       {isOpen && (
-        <div className="absolute bottom-14 right-0 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-green-600 dark:text-green-400" />
-              <span className="font-medium text-slate-800 dark:text-slate-200 text-sm">{t.title}</span>
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setIsOpen(false)}
+          />
+          {/* Modal */}
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] max-w-[90vw] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
+              <div className="flex items-center gap-3">
+                <MessageSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <span className="font-semibold text-slate-800 dark:text-slate-200 text-lg">{t.title}</span>
+              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-            >
-              <X className="w-4 h-4 text-slate-500" />
-            </button>
+
+            {/* Content */}
+            <div className="p-6">
+              {/* Success state */}
+              {status === 'success' && (
+                <div className="flex items-center gap-3 text-green-600 dark:text-green-400 py-6 justify-center">
+                  <Check className="w-6 h-6" />
+                  <span className="font-medium text-lg">{t.success}</span>
+                </div>
+              )}
+
+              {/* Error state */}
+              {status === 'error' && (
+                <div className="flex items-center gap-2 text-red-500 mb-4">
+                  <X className="w-5 h-5" />
+                  <span>{errorMessage || t.error}</span>
+                </div>
+              )}
+
+              {/* Input form */}
+              {(status === 'idle' || status === 'sending' || status === 'error') && (
+                <div className="space-y-4">
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder={t.placeholder}
+                    rows={5}
+                    maxLength={5000}
+                    className="w-full bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-base placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-green-500/50 border border-slate-200 dark:border-slate-600"
+                    disabled={status === 'sending'}
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSubmit}
+                    disabled={!message.trim() || status === 'sending'}
+                    className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 disabled:cursor-not-allowed text-white text-base font-medium py-3 rounded-xl transition-colors"
+                  >
+                    {status === 'sending' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Send className="w-5 h-5" />
+                    )}
+                    {t.send}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* Content */}
-          <div className="p-4">
-            {/* Success state */}
-            {status === 'success' && (
-              <div className="flex items-center gap-2 text-green-600 dark:text-green-400 py-4 justify-center">
-                <Check className="w-5 h-5" />
-                <span className="font-medium">{t.success}</span>
-              </div>
-            )}
-
-            {/* Error state */}
-            {status === 'error' && (
-              <div className="flex items-center gap-2 text-red-500 text-sm mb-3">
-                <X className="w-4 h-4" />
-                <span>{errorMessage || t.error}</span>
-              </div>
-            )}
-
-            {/* Input form */}
-            {(status === 'idle' || status === 'sending' || status === 'error') && (
-              <div className="space-y-3">
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder={t.placeholder}
-                  rows={4}
-                  maxLength={5000}
-                  className="w-full bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-green-500/50 border border-slate-200 dark:border-slate-600"
-                  disabled={status === 'sending'}
-                  autoFocus
-                />
-                <button
-                  onClick={handleSubmit}
-                  disabled={!message.trim() || status === 'sending'}
-                  className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 disabled:cursor-not-allowed text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
-                >
-                  {status === 'sending' ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                  {t.send}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        </>
       )}
 
       {/* Floating button with label */}
