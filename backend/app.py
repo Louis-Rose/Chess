@@ -1897,5 +1897,39 @@ def get_time_spent_stats():
     return jsonify({'daily_stats': daily_stats})
 
 
+@app.route('/api/feedback', methods=['POST'])
+@login_required
+def submit_feedback():
+    """Submit user feedback via email."""
+    from email_utils import send_feedback_email
+
+    data = request.get_json()
+    message = data.get('message', '').strip()
+
+    if not message:
+        return jsonify({'error': 'Message is required'}), 400
+
+    if len(message) > 5000:
+        return jsonify({'error': 'Message too long (max 5000 characters)'}), 400
+
+    # Get user info
+    with get_db() as conn:
+        cursor = conn.execute('SELECT name, email FROM users WHERE id = ?', (request.user_id,))
+        user = cursor.fetchone()
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    user_name = user['name'] or 'Unknown User'
+    user_email = user['email']
+
+    success = send_feedback_email(user_name, user_email, message)
+
+    if success:
+        return jsonify({'success': True, 'message': 'Feedback sent successfully'})
+    else:
+        return jsonify({'error': 'Failed to send feedback. Please try again later.'}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

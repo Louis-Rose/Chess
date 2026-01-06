@@ -9,6 +9,115 @@ SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
 SMTP_EMAIL = os.environ.get('SMTP_EMAIL')  # Your Gmail address
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')  # Gmail App Password
+FEEDBACK_EMAIL = 'rose.louis.mail@gmail.com'  # Where to send feedback
+
+
+def send_feedback_email(from_name: str, from_email: str, message: str) -> bool:
+    """
+    Send user feedback email.
+
+    Args:
+        from_name: User's name
+        from_email: User's email
+        message: Feedback message
+
+    Returns:
+        True if email sent successfully, False otherwise
+    """
+    if not SMTP_EMAIL or not SMTP_PASSWORD:
+        print("SMTP credentials not configured")
+        return False
+
+    subject = f"[LUMRA Feedback] from {from_name}"
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: #f8fafc;
+                padding: 20px;
+            }}
+            .container {{
+                max-width: 600px;
+                margin: 0 auto;
+                background-color: #ffffff;
+                border-radius: 12px;
+                padding: 30px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }}
+            h1 {{
+                color: #1e293b;
+                font-size: 24px;
+                margin-bottom: 20px;
+            }}
+            .info {{
+                background-color: #f1f5f9;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+            }}
+            .info p {{
+                margin: 5px 0;
+                color: #475569;
+                font-size: 14px;
+            }}
+            .info strong {{
+                color: #1e293b;
+            }}
+            .message {{
+                background-color: #fefce8;
+                border-left: 4px solid #eab308;
+                padding: 15px;
+                border-radius: 0 8px 8px 0;
+            }}
+            .message p {{
+                margin: 0;
+                color: #1e293b;
+                white-space: pre-wrap;
+                line-height: 1.6;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>New Feedback Received</h1>
+            <div class="info">
+                <p><strong>From:</strong> {from_name}</p>
+                <p><strong>Email:</strong> {from_email}</p>
+                <p><strong>Date:</strong> {datetime.now().strftime('%B %d, %Y at %H:%M')}</p>
+            </div>
+            <div class="message">
+                <p>{message}</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = f"LUMRA Feedback <{SMTP_EMAIL}>"
+    msg['To'] = FEEDBACK_EMAIL
+    msg['Reply-To'] = from_email
+
+    plain_text = f"Feedback from {from_name} ({from_email}):\n\n{message}"
+
+    msg.attach(MIMEText(plain_text, 'plain'))
+    msg.attach(MIMEText(html_body, 'html'))
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.send_message(msg)
+        print(f"Feedback email sent successfully from {from_email}")
+        return True
+    except Exception as e:
+        print(f"Failed to send feedback email: {e}")
+        return False
 
 
 def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, alert_type: str, schedule_info: dict = None) -> bool:
