@@ -5,6 +5,7 @@ import { NavLink, Link } from 'react-router-dom';
 import { Loader2, Search, ChevronDown, Home, Trophy, BarChart3, TrendingUp, Target, BookOpen, Swords, Crown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../../components/UserMenu';
+import { FeedbackWidget } from '../../components/FeedbackWidget';
 import { useChessData } from './contexts/ChessDataContext';
 
 const navItems = [
@@ -247,6 +248,11 @@ export function ChessSidebar() {
             {item.label}
           </NavLink>
         ))}
+      </div>
+
+      {/* Feedback Widget */}
+      <div className="px-2 py-4">
+        <FeedbackWidget language="en" />
       </div>
     </div>
   );
