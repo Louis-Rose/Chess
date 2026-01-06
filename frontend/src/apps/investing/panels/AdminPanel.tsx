@@ -1,6 +1,6 @@
 // Admin panel - view registered users (admin only)
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
@@ -51,6 +51,7 @@ export function AdminPanel() {
 
   // Date filter state (default to today)
   const [filterDate, setFilterDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Handle column header click
   const handleSort = (column: SortColumn) => {
@@ -274,7 +275,10 @@ export function AdminPanel() {
 
             {/* Date Filter */}
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-600 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors">
+              <button
+                onClick={() => dateInputRef.current?.showPicker()}
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-600 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors"
+              >
                 <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-300" />
                 <span className="text-sm text-slate-600 dark:text-slate-300">
                   {language === 'fr' ? 'Actif le' : 'Active on'}
@@ -288,13 +292,14 @@ export function AdminPanel() {
                       })
                     : language === 'fr' ? 'Tous' : 'All'}
                 </span>
-                <input
-                  type="date"
-                  value={filterDate}
-                  onChange={(e) => setFilterDate(e.target.value)}
-                  className="absolute opacity-0 w-0 h-0"
-                />
-              </label>
+              </button>
+              <input
+                ref={dateInputRef}
+                type="date"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="absolute opacity-0 pointer-events-none"
+              />
               {filterDate && (
                 <button
                   onClick={() => setFilterDate('')}
