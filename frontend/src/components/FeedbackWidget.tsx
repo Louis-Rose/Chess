@@ -160,6 +160,14 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
               {/* Input form */}
               {(status === 'idle' || status === 'sending' || status === 'error') && (
                 <div className="space-y-4">
+                  {/* Screenshot hint - above textarea */}
+                  <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <ImageIcon className="w-4 h-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      {t.screenshotHint}
+                    </p>
+                  </div>
+
                   <textarea
                     ref={textareaRef}
                     value={message}
@@ -194,11 +202,6 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
                       ))}
                     </div>
                   )}
-
-                  <p className="text-xs text-slate-400 dark:text-slate-500 italic flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5" />
-                    {t.screenshotHint}
-                  </p>
 
                   <button
                     onClick={handleSubmit}
