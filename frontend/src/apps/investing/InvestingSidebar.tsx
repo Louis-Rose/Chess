@@ -169,7 +169,7 @@ export function InvestingSidebar() {
 
       {/* Recent Stocks - only show when authenticated */}
       {isAuthenticated && recentStocks.length > 0 && !isCollapsed && (
-        <div className="px-2 py-4 border-b border-slate-700">
+        <div className="px-2 py-4">
           <div className="flex items-center gap-2 mb-3 text-slate-400">
             <Clock className="w-4 h-4" />
             <span className="text-xs font-medium uppercase tracking-wide">
