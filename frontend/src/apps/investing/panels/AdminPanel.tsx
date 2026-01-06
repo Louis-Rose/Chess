@@ -2,9 +2,9 @@
 
 import { useMemo, useState, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown, Calendar, X, ArrowRight, Clock, Search } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown, Calendar, X, ArrowRight, Clock, Search, RefreshCw } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -69,8 +69,18 @@ const fetchStockViews = async (): Promise<StockViewStats> => {
 
 export function AdminPanel() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    await queryClient.invalidateQueries({ queryKey: ['admin-time-spent'] });
+    await queryClient.invalidateQueries({ queryKey: ['admin-stock-views'] });
+    setIsRefreshing(false);
+  };
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-users'],
@@ -270,6 +280,14 @@ export function AdminPanel() {
           <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
             {language === 'fr' ? 'Admin' : 'Admin Panel'}
           </h2>
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing || isLoading}
+            className="p-2 rounded-lg bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 disabled:opacity-50 transition-colors"
+            title={language === 'fr' ? 'Actualiser' : 'Refresh'}
+          >
+            <RefreshCw className={`w-5 h-5 text-slate-600 dark:text-slate-300 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </button>
         </div>
         <p className="text-slate-500 dark:text-slate-400 text-lg italic">
           {language === 'fr' ? 'Gestion des utilisateurs' : 'User management'}

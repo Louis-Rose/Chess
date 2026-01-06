@@ -5,12 +5,15 @@ import { Loader2, BarChart3 } from 'lucide-react';
 import { InvestingSidebar } from './InvestingSidebar';
 import { InvestingBottomNav } from './InvestingBottomNav';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { UserMenu } from '../../components/UserMenu';
 import { LanguageToggle } from '../../components/LanguageToggle';
 import { ThemeToggle } from '../../components/ThemeToggle';
+import { FeedbackWidget } from '../../components/FeedbackWidget';
 
 export function InvestingLayout() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { language } = useLanguage();
 
   return (
     <div className="min-h-screen bg-slate-200 dark:bg-slate-800 font-sans text-slate-900 dark:text-slate-100 flex flex-col md:flex-row">
@@ -46,6 +49,9 @@ export function InvestingLayout() {
       </main>
       {/* Bottom nav: visible on mobile, hidden on md+ */}
       <InvestingBottomNav />
+
+      {/* Floating feedback widget */}
+      <FeedbackWidget language={language} />
     </div>
   );
 }

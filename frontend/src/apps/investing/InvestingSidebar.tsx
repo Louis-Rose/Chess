@@ -18,7 +18,6 @@ const LumraLogo = ({ className }: { className?: string }) => (
 import { UserMenu } from '../../components/UserMenu';
 import { LanguageToggle } from '../../components/LanguageToggle';
 import { ThemeToggle } from '../../components/ThemeToggle';
-import { FeedbackWidget } from '../../components/FeedbackWidget';
 import { getRecentStocks, removeRecentStock } from './utils/recentStocks';
 import { getCompanyLogoUrl } from './utils/companyLogos';
 import { findStockByTicker } from './utils/allStocks';
@@ -227,11 +226,6 @@ export function InvestingSidebar() {
           </div>
         </div>
       )}
-
-      {/* Feedback Widget */}
-      <div className={`${isCollapsed ? 'px-0' : 'px-2'} py-4 border-b border-slate-700`}>
-        <FeedbackWidget collapsed={isCollapsed} language={language} />
-      </div>
 
       {/* Theme, Language & Collapse - at bottom */}
       <div className={`mt-auto ${isCollapsed ? 'px-0' : 'px-2'} pt-4 border-t border-slate-700`}>

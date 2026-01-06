@@ -3,6 +3,7 @@
 import { Outlet } from 'react-router-dom';
 import { ChessDataProvider } from './contexts/ChessDataContext';
 import { ChessSidebar } from './ChessSidebar';
+import { FeedbackWidget } from '../../components/FeedbackWidget';
 
 export function ChessLayout() {
   return (
@@ -12,6 +13,9 @@ export function ChessLayout() {
         <main className="flex-1 p-8 overflow-auto">
           <Outlet />
         </main>
+
+        {/* Floating feedback widget */}
+        <FeedbackWidget language="en" />
       </div>
     </ChessDataProvider>
   );
