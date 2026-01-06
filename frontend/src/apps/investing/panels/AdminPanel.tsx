@@ -298,7 +298,7 @@ export function AdminPanel() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 12, fill: '#e2e8f0' }}
                     tickFormatter={(date) => {
                       const d = new Date(date);
                       return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
@@ -308,7 +308,7 @@ export function AdminPanel() {
                     }}
                   />
                   <YAxis
-                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 12, fill: '#e2e8f0' }}
                     allowDecimals={false}
                     domain={[0, yAxisMax]}
                     ticks={yAxisTicks}
@@ -369,7 +369,7 @@ export function AdminPanel() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 12, fill: '#e2e8f0' }}
                     tickFormatter={(date) => {
                       const d = new Date(date);
                       return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
@@ -379,7 +379,7 @@ export function AdminPanel() {
                     }}
                   />
                   <YAxis
-                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 12, fill: '#e2e8f0' }}
                     allowDecimals={false}
                     domain={[0, timeYAxisMax]}
                     tickFormatter={(value) => `${value} min`}
