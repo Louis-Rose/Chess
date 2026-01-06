@@ -558,10 +558,10 @@ export function AdminPanel() {
                             <img
                               src={u.picture}
                               alt={u.name}
-                              className="w-8 h-8 rounded-full"
+                              className="w-8 h-8 rounded-full bg-white"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-500" />
+                            <div className="w-8 h-8 rounded-full bg-white" />
                           )}
                           <span className="font-medium text-slate-800 dark:text-slate-100">{u.name || '-'}</span>
                         </div>
