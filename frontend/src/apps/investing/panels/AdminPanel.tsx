@@ -4,7 +4,7 @@ import { useMemo, useState, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown, Calendar, X } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown, Calendar, X, ArrowRight } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -49,9 +49,11 @@ export function AdminPanel() {
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_minutes');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  // Date filter state
-  const [filterDate, setFilterDate] = useState<string>('');
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  // Date range filter state
+  const [filterDateStart, setFilterDateStart] = useState<string>('');
+  const [filterDateEnd, setFilterDateEnd] = useState<string>('');
+  const dateStartRef = useRef<HTMLInputElement>(null);
+  const dateEndRef = useRef<HTMLInputElement>(null);
 
   // Handle column header click
   const handleSort = (column: SortColumn) => {
@@ -67,13 +69,15 @@ export function AdminPanel() {
   const sortedUsers = useMemo(() => {
     if (!data?.users) return [];
 
-    // Apply date filter (filter by last_active)
+    // Apply date range filter (filter by last_active)
     let filtered = data.users;
-    if (filterDate) {
+    if (filterDateStart || filterDateEnd) {
       filtered = data.users.filter((u) => {
         if (!u.last_active) return false;
         const userDate = u.last_active.split('T')[0].split(' ')[0]; // Handle both ISO and space-separated formats
-        return userDate === filterDate;
+        if (filterDateStart && userDate < filterDateStart) return false;
+        if (filterDateEnd && userDate > filterDateEnd) return false;
+        return true;
       });
     }
 
@@ -101,7 +105,7 @@ export function AdminPanel() {
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [data?.users, sortColumn, sortDirection, filterDate]);
+  }, [data?.users, sortColumn, sortDirection, filterDateStart, filterDateEnd]);
 
   // Compute cumulative users per day (including all days)
   const chartData = useMemo(() => {
@@ -267,42 +271,60 @@ export function AdminPanel() {
                 {language === 'fr' ? 'Utilisateurs' : 'Registered Users'}
                 {data && (
                   <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">
-                    ({filterDate ? sortedUsers.length : data.total})
+                    ({(filterDateStart || filterDateEnd) ? sortedUsers.length : data.total})
                   </span>
                 )}
               </h3>
             </div>
 
-            {/* Date Filter */}
+            {/* Date Range Filter */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => dateInputRef.current?.showPicker()}
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-600 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors"
-              >
+              <div className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 dark:bg-slate-600 rounded-lg">
                 <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-300" />
                 <span className="text-sm text-slate-600 dark:text-slate-300">
-                  {language === 'fr' ? 'Actif le' : 'Active on'}
+                  {language === 'fr' ? 'Actif' : 'Active'}
                 </span>
-                <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                  {filterDate
-                    ? new Date(filterDate).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                <button
+                  onClick={() => dateStartRef.current?.showPicker()}
+                  className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-green-600 dark:hover:text-green-400 min-w-[70px] text-center"
+                >
+                  {filterDateStart
+                    ? new Date(filterDateStart).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
                         day: 'numeric',
                         month: 'short',
-                        year: 'numeric',
                       })
-                    : ''}
-                </span>
-              </button>
+                    : '—'}
+                </button>
+                <ArrowRight className="w-3 h-3 text-slate-400" />
+                <button
+                  onClick={() => dateEndRef.current?.showPicker()}
+                  className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-green-600 dark:hover:text-green-400 min-w-[70px] text-center"
+                >
+                  {filterDateEnd
+                    ? new Date(filterDateEnd).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                        day: 'numeric',
+                        month: 'short',
+                      })
+                    : '—'}
+                </button>
+              </div>
               <input
-                ref={dateInputRef}
+                ref={dateStartRef}
                 type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
+                value={filterDateStart}
+                onChange={(e) => setFilterDateStart(e.target.value)}
                 className="absolute opacity-0 pointer-events-none"
               />
-              {filterDate && (
+              <input
+                ref={dateEndRef}
+                type="date"
+                value={filterDateEnd}
+                onChange={(e) => setFilterDateEnd(e.target.value)}
+                className="absolute opacity-0 pointer-events-none"
+              />
+              {(filterDateStart || filterDateEnd) && (
                 <button
-                  onClick={() => setFilterDate('')}
+                  onClick={() => { setFilterDateStart(''); setFilterDateEnd(''); }}
                   className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-500 rounded-lg"
                   title={language === 'fr' ? 'Effacer le filtre' : 'Clear filter'}
                 >
