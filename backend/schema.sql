@@ -147,6 +147,19 @@ CREATE TABLE IF NOT EXISTS graph_downloads (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Stock search/view tracking (for analytics)
+CREATE TABLE IF NOT EXISTS stock_views (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    stock_ticker TEXT NOT NULL,
+    view_date TEXT NOT NULL,              -- YYYY-MM-DD
+    view_count INTEGER DEFAULT 1,         -- Number of views that day
+    time_spent_seconds INTEGER DEFAULT 0, -- Time spent viewing that day
+    last_viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(user_id, stock_ticker, view_date)
+);
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -165,3 +178,5 @@ CREATE INDEX IF NOT EXISTS idx_earnings_cache_updated ON earnings_cache(updated_
 CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON user_activity(user_id);
 CREATE INDEX IF NOT EXISTS idx_earnings_alert_preferences_user_id ON earnings_alert_preferences(user_id);
 CREATE INDEX IF NOT EXISTS idx_graph_downloads_user_id ON graph_downloads(user_id);
+CREATE INDEX IF NOT EXISTS idx_stock_views_user_id ON stock_views(user_id);
+CREATE INDEX IF NOT EXISTS idx_stock_views_ticker ON stock_views(stock_ticker);

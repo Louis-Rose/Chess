@@ -4,7 +4,7 @@ import { useMemo, useState, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown, Calendar, X, ArrowRight } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown, Calendar, X, ArrowRight, Clock, Search } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -36,6 +36,37 @@ const fetchUsers = async (): Promise<AdminUsersResponse> => {
   return response.data;
 };
 
+interface TimeSpentData {
+  activity_date: string;
+  total_minutes: number;
+}
+
+interface StockViewStats {
+  by_stock: {
+    stock_ticker: string;
+    unique_users: number;
+    total_views: number;
+    total_time_seconds: number;
+  }[];
+  by_user: {
+    id: number;
+    name: string;
+    stocks_viewed: number;
+    total_views: number;
+    total_time_seconds: number;
+  }[];
+}
+
+const fetchTimeSpent = async (): Promise<TimeSpentData[]> => {
+  const response = await axios.get('/api/admin/time-spent');
+  return response.data.daily_stats;
+};
+
+const fetchStockViews = async (): Promise<StockViewStats> => {
+  const response = await axios.get('/api/admin/stock-views');
+  return response.data;
+};
+
 export function AdminPanel() {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
@@ -44,6 +75,18 @@ export function AdminPanel() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-users'],
     queryFn: fetchUsers,
+    enabled: !!user?.is_admin,
+  });
+
+  const { data: timeSpentData } = useQuery({
+    queryKey: ['admin-time-spent'],
+    queryFn: fetchTimeSpent,
+    enabled: !!user?.is_admin,
+  });
+
+  const { data: stockViewsData } = useQuery({
+    queryKey: ['admin-stock-views'],
+    queryFn: fetchStockViews,
     enabled: !!user?.is_admin,
   });
 
@@ -170,6 +213,41 @@ export function AdminPanel() {
     return [0, step, step * 2, step * 3, step * 4, yAxisMax];
   }, [yAxisMax]);
 
+  // Compute time spent chart data (fill in missing days with 0)
+  const timeSpentChartData = useMemo(() => {
+    if (!timeSpentData || timeSpentData.length === 0) return [];
+
+    // Get date range
+    const sortedDates = timeSpentData.map(d => d.activity_date).sort();
+    const firstDate = new Date(sortedDates[0]);
+    const endDate = new Date(); // Today
+
+    // Create a map for quick lookup
+    const minutesByDate: Record<string, number> = {};
+    timeSpentData.forEach(d => {
+      minutesByDate[d.activity_date] = d.total_minutes;
+    });
+
+    // Generate all dates
+    const allDates: string[] = [];
+    const currentDate = new Date(firstDate);
+    while (currentDate <= endDate) {
+      allDates.push(currentDate.toISOString().split('T')[0]);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return allDates.map(date => ({
+      date,
+      minutes: minutesByDate[date] || 0,
+    }));
+  }, [timeSpentData]);
+
+  // Calculate Y-axis max for time spent chart
+  const timeYAxisMax = useMemo(() => {
+    const maxMinutes = Math.max(...timeSpentChartData.map(d => d.minutes), 0);
+    return Math.ceil(maxMinutes / 30) * 30 + 30; // Round up to nearest 30
+  }, [timeSpentChartData]);
+
   // Redirect non-admins
   if (!authLoading && (!user || !user.is_admin)) {
     return <Navigate to="/investing" replace />;
@@ -263,6 +341,72 @@ export function AdminPanel() {
                     stroke="#f59e0b"
                     strokeWidth={2}
                     fill="url(#userGradient)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Time Spent Chart */}
+        {!isLoading && !error && timeSpentChartData.length > 0 && (
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+            <div className="flex items-center gap-3 mb-4">
+              <Clock className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                {language === 'fr' ? 'Temps passé' : 'Time Spent'}
+              </h3>
+            </div>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={timeSpentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="timeGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    tickFormatter={(date) => {
+                      const d = new Date(date);
+                      return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                        day: 'numeric',
+                        month: 'short',
+                      });
+                    }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    allowDecimals={false}
+                    domain={[0, timeYAxisMax]}
+                    tickFormatter={(value) => `${value} min`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      padding: '8px 12px',
+                    }}
+                    labelStyle={{ color: '#1e293b', fontWeight: 'bold' }}
+                    labelFormatter={(date) =>
+                      new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })
+                    }
+                    formatter={(value) => [`${value} min`, language === 'fr' ? 'Temps total' : 'Total time']}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="minutes"
+                    stroke="#22c55e"
+                    strokeWidth={2}
+                    fill="url(#timeGradient)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -444,7 +588,7 @@ export function AdminPanel() {
                         {u.total_minutes > 0 ? (
                           u.total_minutes >= 60
                             ? `${Math.floor(u.total_minutes / 60)}h${String(u.total_minutes % 60).padStart(2, '0')}`
-                            : `${u.total_minutes}m`
+                            : `${u.total_minutes} min`
                         ) : '-'}
                       </td>
                       <td className="py-3 text-center text-sm">
@@ -468,6 +612,44 @@ export function AdminPanel() {
             </p>
           )}
         </div>
+
+        {/* Stock Views Stats */}
+        {stockViewsData && stockViewsData.by_stock.length > 0 && (
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+            <div className="flex items-center gap-3 mb-4">
+              <Search className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                {language === 'fr' ? 'Recherches de stocks' : 'Stock Searches'}
+              </h3>
+            </div>
+            <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
+                  <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
+                    <th className="pb-3 pl-2">Ticker</th>
+                    <th className="pb-3 text-center">{language === 'fr' ? 'Utilisateurs' : 'Users'}</th>
+                    <th className="pb-3 text-center">{language === 'fr' ? 'Vues' : 'Views'}</th>
+                    <th className="pb-3 text-center">{language === 'fr' ? 'Temps total' : 'Total Time'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stockViewsData.by_stock.map((stock) => (
+                    <tr key={stock.stock_ticker} className="border-b border-slate-200 dark:border-slate-600">
+                      <td className="py-2 pl-2 font-medium text-slate-800 dark:text-slate-100">{stock.stock_ticker}</td>
+                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">{stock.unique_users}</td>
+                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">{stock.total_views}</td>
+                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">
+                        {stock.total_time_seconds >= 60
+                          ? `${Math.floor(stock.total_time_seconds / 60)} min`
+                          : `${stock.total_time_seconds}s`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

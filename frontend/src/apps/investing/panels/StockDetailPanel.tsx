@@ -1,6 +1,6 @@
 // Stock detail panel - view individual stock info and price chart
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
@@ -78,6 +78,25 @@ export function StockDetailPanel() {
     ? stockHistoryData.data[stockHistoryData.data.length - 1].price
     : null;
   const previousClose = stockHistoryData?.previous_close;
+
+  // Track stock view (time spent)
+  const viewStartTime = useRef<number>(Date.now());
+  useEffect(() => {
+    if (!upperTicker) return;
+
+    viewStartTime.current = Date.now();
+
+    return () => {
+      const timeSpentSeconds = Math.round((Date.now() - viewStartTime.current) / 1000);
+      // Only track if spent more than 2 seconds (to filter out quick navigations)
+      if (timeSpentSeconds > 2) {
+        axios.post('/api/investing/stock-view', {
+          ticker: upperTicker,
+          time_spent_seconds: timeSpentSeconds
+        }).catch(() => {});
+      }
+    };
+  }, [upperTicker]);
   const priceChange = currentPrice && previousClose ? currentPrice - previousClose : null;
   const priceChangePercent = priceChange && previousClose ? (priceChange / previousClose) * 100 : null;
 

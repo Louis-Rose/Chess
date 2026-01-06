@@ -1786,5 +1786,97 @@ def record_graph_download():
     return jsonify({'success': True})
 
 
+@app.route('/api/investing/stock-view', methods=['POST'])
+@login_required
+def record_stock_view():
+    """Record a stock view event (view count and time spent)."""
+    data = request.get_json()
+    ticker = data.get('ticker')
+    time_spent = data.get('time_spent_seconds', 0)
+
+    if not ticker:
+        return jsonify({'error': 'ticker is required'}), 400
+
+    from datetime import date
+    today = date.today().isoformat()
+
+    with get_db() as conn:
+        # Upsert: increment view count and add time spent
+        conn.execute('''
+            INSERT INTO stock_views (user_id, stock_ticker, view_date, view_count, time_spent_seconds)
+            VALUES (?, ?, ?, 1, ?)
+            ON CONFLICT(user_id, stock_ticker, view_date) DO UPDATE SET
+                view_count = view_count + 1,
+                time_spent_seconds = time_spent_seconds + excluded.time_spent_seconds,
+                last_viewed_at = CURRENT_TIMESTAMP
+        ''', (request.user_id, ticker, today, time_spent))
+        conn.commit()
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/admin/stock-views', methods=['GET'])
+@admin_required
+def get_stock_views_stats():
+    """Get aggregated stock view statistics (admin only)."""
+    # Hidden accounts
+    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
+
+    with get_db() as conn:
+        # Get aggregated stats by stock (all users except hidden)
+        cursor = conn.execute('''
+            SELECT sv.stock_ticker,
+                   COUNT(DISTINCT sv.user_id) as unique_users,
+                   SUM(sv.view_count) as total_views,
+                   SUM(sv.time_spent_seconds) as total_time_seconds
+            FROM stock_views sv
+            JOIN users u ON sv.user_id = u.id
+            WHERE u.email NOT IN (?, ?, ?)
+            GROUP BY sv.stock_ticker
+            ORDER BY total_views DESC
+        ''', tuple(hidden_emails))
+        by_stock = [dict(row) for row in cursor.fetchall()]
+
+        # Get stats by user
+        cursor = conn.execute('''
+            SELECT u.id, u.name, u.email,
+                   COUNT(DISTINCT sv.stock_ticker) as stocks_viewed,
+                   SUM(sv.view_count) as total_views,
+                   SUM(sv.time_spent_seconds) as total_time_seconds
+            FROM stock_views sv
+            JOIN users u ON sv.user_id = u.id
+            WHERE u.email NOT IN (?, ?, ?)
+            GROUP BY u.id
+            ORDER BY total_views DESC
+        ''', tuple(hidden_emails))
+        by_user = [dict(row) for row in cursor.fetchall()]
+
+    return jsonify({
+        'by_stock': by_stock,
+        'by_user': by_user
+    })
+
+
+@app.route('/api/admin/time-spent', methods=['GET'])
+@admin_required
+def get_time_spent_stats():
+    """Get daily time spent stats for all users (admin only)."""
+    # Hidden accounts
+    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
+
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT a.activity_date, SUM(a.minutes) as total_minutes
+            FROM user_activity a
+            JOIN users u ON a.user_id = u.id
+            WHERE u.email NOT IN (?, ?, ?)
+            GROUP BY a.activity_date
+            ORDER BY a.activity_date ASC
+        ''', tuple(hidden_emails))
+        daily_stats = [dict(row) for row in cursor.fetchall()]
+
+    return jsonify({'daily_stats': daily_stats})
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
