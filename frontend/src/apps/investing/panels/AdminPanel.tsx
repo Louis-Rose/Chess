@@ -45,12 +45,12 @@ export function AdminPanel() {
     enabled: !!user?.is_admin,
   });
 
-  // Sort state (default: most recently registered first)
-  const [sortColumn, setSortColumn] = useState<SortColumn>('created_at');
+  // Sort state (default: most time spent first)
+  const [sortColumn, setSortColumn] = useState<SortColumn>('total_minutes');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  // Date filter state (default to today)
-  const [filterDate, setFilterDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  // Date filter state
+  const [filterDate, setFilterDate] = useState<string>('');
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Handle column header click
@@ -178,7 +178,7 @@ export function AdminPanel() {
         <div className="flex items-center gap-3">
           <Shield className="w-8 h-8 text-amber-500" />
           <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            {language === 'fr' ? 'Administration' : 'Admin Panel'}
+            {language === 'fr' ? 'Admin' : 'Admin Panel'}
           </h2>
         </div>
         <p className="text-slate-500 dark:text-slate-400 text-lg italic">
@@ -290,7 +290,7 @@ export function AdminPanel() {
                         month: 'short',
                         year: 'numeric',
                       })
-                    : language === 'fr' ? 'Tous' : 'All'}
+                    : '_'}
                 </span>
               </button>
               <input
