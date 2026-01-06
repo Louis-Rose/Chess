@@ -290,7 +290,7 @@ export function AdminPanel() {
                         month: 'short',
                         year: 'numeric',
                       })
-                    : '_'}
+                    : ''}
                 </span>
               </button>
               <input
