@@ -1839,7 +1839,7 @@ def get_user_stock_views(user_id):
 def get_stock_views_stats():
     """Get aggregated stock view statistics (admin only)."""
     # Hidden accounts
-    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
+    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com']
 
     with get_db() as conn:
         # Get aggregated stats by stock (all users except hidden)
