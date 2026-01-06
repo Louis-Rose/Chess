@@ -139,7 +139,7 @@ export function UserDetailPanel() {
         className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mb-6 mt-4"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span>{language === 'fr' ? 'Retour à l\'administration' : 'Back to admin'}</span>
+        <span>{language === 'fr' ? 'Retour' : 'Back'}</span>
       </button>
 
       <div className="max-w-4xl mx-auto space-y-6">
