@@ -49,9 +49,8 @@ export function AdminPanel() {
   const [sortColumn, setSortColumn] = useState<SortColumn>('created_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  // Date filter state
-  const [filterDate, setFilterDate] = useState<string>('');
-  const [filterColumn, setFilterColumn] = useState<'last_active' | 'created_at'>('last_active');
+  // Date filter state (default to today)
+  const [filterDate, setFilterDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
   // Handle column header click
   const handleSort = (column: SortColumn) => {
@@ -67,13 +66,12 @@ export function AdminPanel() {
   const sortedUsers = useMemo(() => {
     if (!data?.users) return [];
 
-    // Apply date filter
+    // Apply date filter (filter by last_active)
     let filtered = data.users;
     if (filterDate) {
       filtered = data.users.filter((u) => {
-        const dateValue = filterColumn === 'last_active' ? u.last_active : u.created_at;
-        if (!dateValue) return false;
-        const userDate = dateValue.split('T')[0].split(' ')[0]; // Handle both ISO and space-separated formats
+        if (!u.last_active) return false;
+        const userDate = u.last_active.split('T')[0].split(' ')[0]; // Handle both ISO and space-separated formats
         return userDate === filterDate;
       });
     }
@@ -102,7 +100,7 @@ export function AdminPanel() {
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [data?.users, sortColumn, sortDirection, filterDate, filterColumn]);
+  }, [data?.users, sortColumn, sortDirection, filterDate]);
 
   // Compute cumulative users per day (including all days)
   const chartData = useMemo(() => {
@@ -276,25 +274,31 @@ export function AdminPanel() {
 
             {/* Date Filter */}
             <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-slate-400" />
-              <select
-                value={filterColumn}
-                onChange={(e) => setFilterColumn(e.target.value as 'last_active' | 'created_at')}
-                className="text-sm bg-slate-100 dark:bg-slate-600 border-none rounded px-2 py-1 text-slate-700 dark:text-slate-200"
-              >
-                <option value="last_active">{language === 'fr' ? 'Actif le' : 'Active on'}</option>
-                <option value="created_at">{language === 'fr' ? 'Inscrit le' : 'Registered on'}</option>
-              </select>
-              <input
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="text-sm bg-slate-100 dark:bg-slate-600 border-none rounded px-2 py-1 text-slate-700 dark:text-slate-200"
-              />
+              <label className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-600 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors">
+                <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-300" />
+                <span className="text-sm text-slate-600 dark:text-slate-300">
+                  {language === 'fr' ? 'Actif le' : 'Active on'}
+                </span>
+                <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                  {filterDate
+                    ? new Date(filterDate).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                    : language === 'fr' ? 'Tous' : 'All'}
+                </span>
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  className="absolute opacity-0 w-0 h-0"
+                />
+              </label>
               {filterDate && (
                 <button
                   onClick={() => setFilterDate('')}
-                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-500 rounded"
+                  className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-500 rounded-lg"
                   title={language === 'fr' ? 'Effacer le filtre' : 'Clear filter'}
                 >
                   <X className="w-4 h-4 text-slate-500 dark:text-slate-300" />
