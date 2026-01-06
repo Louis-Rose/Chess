@@ -152,7 +152,7 @@ export function InvestingSidebar() {
         <div className={`${isCollapsed ? 'px-0' : 'px-2'} py-2 border-b border-slate-700`}>
           <NavLink
             to="/investing/admin"
-            title={isCollapsed ? (language === 'fr' ? 'Administration' : 'Admin') : undefined}
+            title={isCollapsed ? 'Admin' : undefined}
             className={({ isActive }) =>
               `flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-lg transition-colors ${
                 isActive
@@ -162,7 +162,7 @@ export function InvestingSidebar() {
             }
           >
             <Shield className="w-5 h-5 flex-shrink-0" />
-            {!isCollapsed && <span>{language === 'fr' ? 'Administration' : 'Admin'}</span>}
+            {!isCollapsed && <span>Admin</span>}
           </NavLink>
         </div>
       )}
