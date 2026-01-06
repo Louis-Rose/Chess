@@ -193,7 +193,7 @@ export function AdminPanel() {
             <div className="flex items-center gap-3 mb-4">
               <TrendingUp className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Croissance des utilisateurs' : 'User Growth'}
+                {language === 'fr' ? 'Nombre d\'utilisateurs' : 'User Growth'}
               </h3>
             </div>
             <div className="h-[250px]">
@@ -264,7 +264,7 @@ export function AdminPanel() {
             <div className="flex items-center gap-3">
               <Users className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Utilisateurs inscrits' : 'Registered Users'}
+                {language === 'fr' ? 'Utilisateurs' : 'Registered Users'}
                 {data && (
                   <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">
                     ({filterDate ? sortedUsers.length : data.total})
