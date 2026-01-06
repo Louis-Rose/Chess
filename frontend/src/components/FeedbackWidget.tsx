@@ -25,6 +25,7 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
       error: 'Failed to send',
       loginRequired: 'Sign in to send feedback',
       tooltip: 'Feedback',
+      cta: 'Got feedback?',
     },
     fr: {
       title: 'Envoyer un feedback',
@@ -34,6 +35,7 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
       error: 'Échec de l\'envoi',
       loginRequired: 'Connectez-vous pour envoyer',
       tooltip: 'Feedback',
+      cta: 'Un avis ?',
     },
   };
 
@@ -138,20 +140,23 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
         </div>
       )}
 
-      {/* Floating button */}
+      {/* Floating button with label */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
+        className={`shadow-lg flex items-center gap-2 transition-all duration-200 ${
           isOpen
-            ? 'bg-slate-600 hover:bg-slate-700 rotate-0'
-            : 'bg-green-600 hover:bg-green-700 hover:scale-105'
+            ? 'w-12 h-12 rounded-full bg-slate-600 hover:bg-slate-700 justify-center'
+            : 'px-4 py-3 rounded-full bg-green-600 hover:bg-green-700 hover:scale-105'
         }`}
         title={t.tooltip}
       >
         {isOpen ? (
           <X className="w-5 h-5 text-white" />
         ) : (
-          <MessageSquare className="w-5 h-5 text-white" />
+          <>
+            <MessageSquare className="w-5 h-5 text-white" />
+            <span className="text-white text-sm font-medium">{t.cta}</span>
+          </>
         )}
       </button>
     </div>
