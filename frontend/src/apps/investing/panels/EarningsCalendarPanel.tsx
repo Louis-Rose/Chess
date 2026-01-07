@@ -37,8 +37,13 @@ interface Account {
   bank: string;
 }
 
-const fetchEarningsCalendar = async (accountId?: number): Promise<EarningsResponse> => {
-  const params = new URLSearchParams({ include_portfolio: 'true', include_watchlist: 'true' });
+type SourceFilter = 'both' | 'portfolio' | 'watchlist';
+
+const fetchEarningsCalendar = async (accountId?: number, sourceFilter: SourceFilter = 'both'): Promise<EarningsResponse> => {
+  const params = new URLSearchParams({
+    include_portfolio: (sourceFilter === 'both' || sourceFilter === 'portfolio') ? 'true' : 'false',
+    include_watchlist: (sourceFilter === 'both' || sourceFilter === 'watchlist') ? 'true' : 'false',
+  });
   if (accountId) params.append('account_id', String(accountId));
   const response = await axios.get(`/api/investing/earnings-calendar?${params}`);
   return response.data;
@@ -278,6 +283,7 @@ export function EarningsCalendarPanel() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('portfolio');
 
   // Sync account selection with Portfolio panel via localStorage
   const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(() => {
@@ -336,9 +342,9 @@ export function EarningsCalendarPanel() {
   }, [selectedAccountId]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['earnings-calendar', selectedAccountId],
-    queryFn: () => fetchEarningsCalendar(selectedAccountId),
-    enabled: isAuthenticated && selectedAccountId !== undefined,
+    queryKey: ['earnings-calendar', selectedAccountId, sourceFilter],
+    queryFn: () => fetchEarningsCalendar(selectedAccountId, sourceFilter),
+    enabled: isAuthenticated && (sourceFilter === 'watchlist' || selectedAccountId !== undefined),
     staleTime: 1000 * 60 * 30, // Cache for 30 minutes
   });
 
@@ -391,9 +397,45 @@ export function EarningsCalendarPanel() {
           </p>
           <PWAInstallPrompt className="max-w-md w-full mt-2" />
 
-          {/* Account selector tabs */}
-          {accounts.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
+          {/* Source filter tabs */}
+          <div className="flex justify-center gap-1 mt-4 bg-slate-100 dark:bg-slate-600 rounded-lg p-1">
+            <button
+              onClick={() => setSourceFilter('portfolio')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${
+                sourceFilter === 'portfolio'
+                  ? 'bg-white dark:bg-slate-700 text-green-600 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              <Briefcase className="w-3.5 h-3.5" />
+              {language === 'fr' ? 'Portefeuille' : 'Portfolio'}
+            </button>
+            <button
+              onClick={() => setSourceFilter('watchlist')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${
+                sourceFilter === 'watchlist'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              Watchlist
+            </button>
+            <button
+              onClick={() => setSourceFilter('both')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                sourceFilter === 'both'
+                  ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              {language === 'fr' ? 'Tout' : 'Both'}
+            </button>
+          </div>
+
+          {/* Account selector tabs - only show when portfolio is included */}
+          {accounts.length > 0 && sourceFilter !== 'watchlist' && (
+            <div className="flex flex-wrap justify-center gap-2 mt-3">
               {accounts.map((account) => {
                 const isSelected = selectedAccountId === account.id;
                 return (
