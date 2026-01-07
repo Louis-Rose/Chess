@@ -1839,7 +1839,7 @@ def get_user_stock_views(user_id):
 def get_stock_views_stats():
     """Get aggregated stock view statistics (admin only)."""
     # Hidden accounts
-    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com']
+    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
     placeholders = ','.join(['?' for _ in hidden_emails])
 
     with get_db() as conn:
@@ -1882,7 +1882,7 @@ def get_stock_views_stats():
 def get_stock_views_detail(ticker):
     """Get detailed view statistics for a specific stock (admin only)."""
     # Hidden accounts
-    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com']
+    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
     placeholders = ','.join(['?' for _ in hidden_emails])
 
     with get_db() as conn:
