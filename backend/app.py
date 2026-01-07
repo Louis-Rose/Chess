@@ -1840,31 +1840,32 @@ def get_stock_views_stats():
     """Get aggregated stock view statistics (admin only)."""
     # Hidden accounts
     hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com']
+    placeholders = ','.join(['?' for _ in hidden_emails])
 
     with get_db() as conn:
         # Get aggregated stats by stock (all users except hidden)
-        cursor = conn.execute('''
+        cursor = conn.execute(f'''
             SELECT sv.stock_ticker,
                    COUNT(DISTINCT sv.user_id) as unique_users,
                    SUM(sv.view_count) as total_views,
                    SUM(sv.time_spent_seconds) as total_time_seconds
             FROM stock_views sv
             JOIN users u ON sv.user_id = u.id
-            WHERE u.email NOT IN (?, ?, ?)
+            WHERE u.email NOT IN ({placeholders})
             GROUP BY sv.stock_ticker
             ORDER BY total_views DESC
         ''', tuple(hidden_emails))
         by_stock = [dict(row) for row in cursor.fetchall()]
 
         # Get stats by user
-        cursor = conn.execute('''
+        cursor = conn.execute(f'''
             SELECT u.id, u.name, u.email,
                    COUNT(DISTINCT sv.stock_ticker) as stocks_viewed,
                    SUM(sv.view_count) as total_views,
                    SUM(sv.time_spent_seconds) as total_time_seconds
             FROM stock_views sv
             JOIN users u ON sv.user_id = u.id
-            WHERE u.email NOT IN (?, ?, ?)
+            WHERE u.email NOT IN ({placeholders})
             GROUP BY u.id
             ORDER BY total_views DESC
         ''', tuple(hidden_emails))
