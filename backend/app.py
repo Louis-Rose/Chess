@@ -1436,9 +1436,12 @@ def remove_from_earnings_watchlist(symbol):
 def fetch_earnings_from_yfinance(ticker):
     """Fetch earnings date from yfinance for a single ticker."""
     import yfinance as yf
+    from investing_utils import get_yfinance_ticker
 
     try:
-        stock = yf.Ticker(ticker)
+        # Convert to yfinance ticker (add exchange suffix for European stocks)
+        yf_ticker = get_yfinance_ticker(ticker)
+        stock = yf.Ticker(yf_ticker)
         calendar = stock.calendar
 
         next_earnings_date = None
@@ -1482,7 +1485,10 @@ def fetch_earnings_from_yfinance(ticker):
 
 
 def get_cached_earnings(ticker):
-    """Get cached earnings data if fresh (< 24 hours old)."""
+    """Get cached earnings data if fresh.
+    Successful lookups (with date) are cached for 24 hours.
+    Failed lookups (null date) are cached for only 1 hour to retry sooner.
+    """
     with get_db() as conn:
         cursor = conn.execute(
             '''SELECT next_earnings_date, date_confirmed, updated_at
@@ -1497,7 +1503,10 @@ def get_cached_earnings(ticker):
         updated_at = datetime.fromisoformat(row['updated_at'])
         age_hours = (datetime.now() - updated_at).total_seconds() / 3600
 
-        if age_hours < 24:
+        # Null results have shorter TTL (1 hour) to retry failed lookups sooner
+        max_age = 24 if row['next_earnings_date'] else 1
+
+        if age_hours < max_age:
             # Cache is fresh
             return row['next_earnings_date'], bool(row['date_confirmed']), True
 
