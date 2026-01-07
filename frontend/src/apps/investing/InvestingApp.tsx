@@ -11,6 +11,7 @@ import { FinancialsPanel } from './panels/FinancialsPanel';
 import { StockDetailPanel } from './panels/StockDetailPanel';
 import { AdminPanel } from './panels/AdminPanel';
 import { UserDetailPanel } from './panels/UserDetailPanel';
+import { StockViewDetailPanel } from './panels/StockViewDetailPanel';
 
 export function InvestingApp() {
   useEffect(() => {
@@ -30,6 +31,7 @@ export function InvestingApp() {
         <Route path="stock/:ticker" element={<StockDetailPanel />} />
         <Route path="admin" element={<AdminPanel />} />
         <Route path="admin/user/:userId" element={<UserDetailPanel />} />
+        <Route path="admin/stock/:ticker" element={<StockViewDetailPanel />} />
       </Route>
     </Routes>
   );

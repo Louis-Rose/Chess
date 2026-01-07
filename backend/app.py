@@ -1877,6 +1877,49 @@ def get_stock_views_stats():
     })
 
 
+@app.route('/api/admin/stock-views/<ticker>', methods=['GET'])
+@admin_required
+def get_stock_views_detail(ticker):
+    """Get detailed view statistics for a specific stock (admin only)."""
+    # Hidden accounts
+    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com']
+    placeholders = ','.join(['?' for _ in hidden_emails])
+
+    with get_db() as conn:
+        # Get all views for this stock by user
+        cursor = conn.execute(f'''
+            SELECT u.id, u.name, u.picture,
+                   sv.view_date,
+                   sv.view_count,
+                   sv.time_spent_seconds,
+                   sv.last_viewed_at
+            FROM stock_views sv
+            JOIN users u ON sv.user_id = u.id
+            WHERE sv.stock_ticker = ?
+              AND u.email NOT IN ({placeholders})
+            ORDER BY sv.view_date DESC
+        ''', (ticker, *hidden_emails))
+        views = [dict(row) for row in cursor.fetchall()]
+
+        # Get totals
+        cursor = conn.execute(f'''
+            SELECT COUNT(DISTINCT sv.user_id) as unique_users,
+                   SUM(sv.view_count) as total_views,
+                   SUM(sv.time_spent_seconds) as total_time_seconds
+            FROM stock_views sv
+            JOIN users u ON sv.user_id = u.id
+            WHERE sv.stock_ticker = ?
+              AND u.email NOT IN ({placeholders})
+        ''', (ticker, *hidden_emails))
+        totals = dict(cursor.fetchone())
+
+    return jsonify({
+        'ticker': ticker,
+        'views': views,
+        'totals': totals
+    })
+
+
 @app.route('/api/admin/time-spent', methods=['GET'])
 @admin_required
 def get_time_spent_stats():

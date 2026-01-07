@@ -4,10 +4,11 @@ import { useMemo, useState, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown, Calendar, X, ArrowRight, Clock, Search, RefreshCw } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown, Calendar, X, ArrowRight, Clock, Search, RefreshCw, ChevronRight } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { getCompanyLogoUrl } from '../utils/companyLogos';
 
 interface AdminUser {
   id: number;
@@ -109,6 +110,12 @@ export function AdminPanel() {
   const [filterDateEnd, setFilterDateEnd] = useState<string>('');
   const dateStartRef = useRef<HTMLInputElement>(null);
   const dateEndRef = useRef<HTMLInputElement>(null);
+
+  // Collapsible panel states
+  const [isUserGrowthExpanded, setIsUserGrowthExpanded] = useState(true);
+  const [isTimeSpentExpanded, setIsTimeSpentExpanded] = useState(true);
+  const [isUsersExpanded, setIsUsersExpanded] = useState(true);
+  const [isStockSearchesExpanded, setIsStockSearchesExpanded] = useState(true);
 
   // Handle column header click
   const handleSort = (column: SortColumn) => {
@@ -298,13 +305,17 @@ export function AdminPanel() {
         {/* User Growth Chart */}
         {!isLoading && !error && chartData.length > 0 && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-            <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => setIsUserGrowthExpanded(!isUserGrowthExpanded)}
+              className="flex items-center gap-3 w-full text-left"
+            >
+              <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isUserGrowthExpanded ? 'rotate-90' : ''}`} />
               <TrendingUp className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
                 {language === 'fr' ? 'Nombre d\'utilisateurs' : 'User Growth'}
               </h3>
-            </div>
-            <div className="h-[250px]">
+            </button>
+            {isUserGrowthExpanded && <div className="h-[250px] mt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <defs>
@@ -362,20 +373,24 @@ export function AdminPanel() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
+            </div>}
           </div>
         )}
 
         {/* Time Spent Chart */}
         {!isLoading && !error && timeSpentChartData.length > 0 && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-            <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => setIsTimeSpentExpanded(!isTimeSpentExpanded)}
+              className="flex items-center gap-3 w-full text-left"
+            >
+              <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isTimeSpentExpanded ? 'rotate-90' : ''}`} />
               <Clock className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
                 {language === 'fr' ? 'Temps passé' : 'Time Spent'}
               </h3>
-            </div>
-            <div className="h-[250px]">
+            </button>
+            {isTimeSpentExpanded && <div className="h-[250px] mt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={timeSpentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <defs>
@@ -428,14 +443,18 @@ export function AdminPanel() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
+            </div>}
           </div>
         )}
 
         {/* Users List */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsUsersExpanded(!isUsersExpanded)}
+              className="flex items-center gap-3"
+            >
+              <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isUsersExpanded ? 'rotate-90' : ''}`} />
               <Users className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
                 {language === 'fr' ? 'Utilisateurs' : 'Users'}
@@ -445,10 +464,10 @@ export function AdminPanel() {
                   </span>
                 )}
               </h3>
-            </div>
+            </button>
 
             {/* Date Range Filter */}
-            <div className="flex items-center gap-2">
+            {isUsersExpanded && <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 dark:bg-slate-600 rounded-lg">
                 <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-300" />
                 <span className="text-sm text-slate-600 dark:text-slate-300">
@@ -501,10 +520,10 @@ export function AdminPanel() {
                   <X className="w-4 h-4 text-slate-500 dark:text-slate-300" />
                 </button>
               )}
-            </div>
+            </div>}
           </div>
 
-          {isLoading ? (
+          {isUsersExpanded && (isLoading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
             </div>
@@ -628,44 +647,67 @@ export function AdminPanel() {
             <p className="text-slate-500 text-center py-8">
               {language === 'fr' ? 'Aucun utilisateur' : 'No users found'}
             </p>
-          )}
+          ))}
         </div>
 
         {/* Stock Views Stats */}
         {stockViewsData && stockViewsData.by_stock.length > 0 && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-            <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => setIsStockSearchesExpanded(!isStockSearchesExpanded)}
+              className="flex items-center gap-3 w-full text-left"
+            >
+              <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isStockSearchesExpanded ? 'rotate-90' : ''}`} />
               <Search className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
                 {language === 'fr' ? 'Recherches de stocks' : 'Stock Searches'}
+                <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">
+                  ({stockViewsData.by_stock.length})
+                </span>
               </h3>
-            </div>
-            <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
-              <table className="w-full">
-                <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
-                  <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
-                    <th className="pb-3 pl-2">Ticker</th>
-                    <th className="pb-3 text-center">{language === 'fr' ? 'Utilisateurs' : 'Users'}</th>
-                    <th className="pb-3 text-center">{language === 'fr' ? 'Vues' : 'Views'}</th>
-                    <th className="pb-3 text-center">{language === 'fr' ? 'Temps total' : 'Total Time'}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stockViewsData.by_stock.map((stock) => (
-                    <tr key={stock.stock_ticker} className="border-b border-slate-200 dark:border-slate-600">
-                      <td className="py-2 pl-2 font-medium text-slate-800 dark:text-slate-100">{stock.stock_ticker}</td>
-                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">{stock.unique_users}</td>
-                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">{stock.total_views}</td>
-                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">
-                        {stock.total_time_seconds >= 60
-                          ? `${Math.floor(stock.total_time_seconds / 60)} min`
-                          : `${stock.total_time_seconds}s`}
-                      </td>
+            </button>
+            {isStockSearchesExpanded && (
+              <div className="overflow-x-auto max-h-[300px] overflow-y-auto mt-4">
+                <table className="w-full">
+                  <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
+                    <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
+                      <th className="pb-3 pl-2">{language === 'fr' ? 'Action' : 'Stock'}</th>
+                      <th className="pb-3 text-center">{language === 'fr' ? 'Utilisateurs' : 'Users'}</th>
+                      <th className="pb-3 text-center">{language === 'fr' ? 'Vues' : 'Views'}</th>
+                      <th className="pb-3 text-center">{language === 'fr' ? 'Temps total' : 'Total Time'}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {stockViewsData.by_stock.map((stock) => (
+                      <tr
+                        key={stock.stock_ticker}
+                        className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer"
+                        onClick={() => navigate(`/investing/admin/stock/${stock.stock_ticker}`)}
+                      >
+                        <td className="py-2 pl-2">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={getCompanyLogoUrl(stock.stock_ticker) || ''}
+                              alt={stock.stock_ticker}
+                              className="w-6 h-6 rounded bg-white"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                            <span className="font-medium text-slate-800 dark:text-slate-100">{stock.stock_ticker}</span>
+                          </div>
+                        </td>
+                        <td className="py-2 text-center text-slate-500 dark:text-slate-300">{stock.unique_users}</td>
+                        <td className="py-2 text-center text-slate-500 dark:text-slate-300">{stock.total_views}</td>
+                        <td className="py-2 text-center text-slate-500 dark:text-slate-300">
+                          {stock.total_time_seconds >= 60
+                            ? `${Math.floor(stock.total_time_seconds / 60)} min`
+                            : `${stock.total_time_seconds}s`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>
