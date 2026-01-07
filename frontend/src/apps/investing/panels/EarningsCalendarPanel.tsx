@@ -30,8 +30,22 @@ interface EarningsResponse {
   message?: string;
 }
 
-const fetchEarningsCalendar = async (): Promise<EarningsResponse> => {
-  const response = await axios.get('/api/investing/earnings-calendar?include_portfolio=true&include_watchlist=true');
+interface Account {
+  id: number;
+  name: string;
+  account_type: string;
+  bank: string;
+}
+
+const fetchEarningsCalendar = async (accountId?: number): Promise<EarningsResponse> => {
+  const params = new URLSearchParams({ include_portfolio: 'true', include_watchlist: 'true' });
+  if (accountId) params.append('account_id', String(accountId));
+  const response = await axios.get(`/api/investing/earnings-calendar?${params}`);
+  return response.data;
+};
+
+const fetchAccounts = async (): Promise<{ accounts: Account[] }> => {
+  const response = await axios.get('/api/investing/accounts');
   return response.data;
 };
 
@@ -265,10 +279,66 @@ export function EarningsCalendarPanel() {
   const { language } = useLanguage();
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['earnings-calendar'],
-    queryFn: fetchEarningsCalendar,
+  // Sync account selection with Portfolio panel via localStorage
+  const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(() => {
+    const saved = localStorage.getItem('selectedAccountId');
+    if (saved === 'none' || !saved) return undefined;
+    const parsed = parseInt(saved, 10);
+    return isNaN(parsed) ? undefined : parsed;
+  });
+
+  // Fetch accounts
+  const { data: accountsData } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: fetchAccounts,
     enabled: isAuthenticated,
+  });
+  const accounts = accountsData?.accounts || [];
+
+  // Listen for localStorage changes from other tabs/panels
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'selectedAccountId') {
+        if (e.newValue === 'none' || !e.newValue) {
+          setSelectedAccountId(undefined);
+        } else {
+          const parsed = parseInt(e.newValue, 10);
+          setSelectedAccountId(isNaN(parsed) ? undefined : parsed);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Auto-select first account if none selected
+  useEffect(() => {
+    if (accounts.length > 0 && selectedAccountId === undefined) {
+      const saved = localStorage.getItem('selectedAccountId');
+      if (saved && saved !== 'none') {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && accounts.find(a => a.id === parsed)) {
+          setSelectedAccountId(parsed);
+          return;
+        }
+      }
+      setSelectedAccountId(accounts[0].id);
+    }
+  }, [accounts, selectedAccountId]);
+
+  // Sync to localStorage when account changes
+  useEffect(() => {
+    if (selectedAccountId === undefined) {
+      localStorage.setItem('selectedAccountId', 'none');
+    } else {
+      localStorage.setItem('selectedAccountId', String(selectedAccountId));
+    }
+  }, [selectedAccountId]);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['earnings-calendar', selectedAccountId],
+    queryFn: () => fetchEarningsCalendar(selectedAccountId),
+    enabled: isAuthenticated && selectedAccountId !== undefined,
     staleTime: 1000 * 60 * 30, // Cache for 30 minutes
   });
 
@@ -320,6 +390,28 @@ export function EarningsCalendarPanel() {
               : 'Upcoming earnings releases'}
           </p>
           <PWAInstallPrompt className="max-w-md w-full mt-2" />
+
+          {/* Account selector tabs */}
+          {accounts.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2 mt-4">
+              {accounts.map((account) => {
+                const isSelected = selectedAccountId === account.id;
+                return (
+                  <button
+                    key={account.id}
+                    onClick={() => setSelectedAccountId(account.id)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      isSelected
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-500'
+                    }`}
+                  >
+                    {account.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

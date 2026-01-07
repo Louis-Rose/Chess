@@ -1523,9 +1523,11 @@ def save_earnings_cache(ticker, next_earnings_date, date_confirmed):
 def get_earnings_calendar():
     """Get upcoming earnings dates for portfolio holdings and watchlist.
     Uses database cache with lazy refresh (updates if > 24 hours old).
+    Optionally filters portfolio by account_id.
     """
     include_portfolio = request.args.get('include_portfolio', 'true').lower() == 'true'
     include_watchlist = request.args.get('include_watchlist', 'true').lower() == 'true'
+    account_id = request.args.get('account_id', type=int)
 
     tickers = set()
     portfolio_tickers = set()
@@ -1533,7 +1535,7 @@ def get_earnings_calendar():
 
     # Get portfolio holdings if include_portfolio is true
     if include_portfolio:
-        holdings = compute_holdings_from_transactions(request.user_id)
+        holdings = compute_holdings_from_transactions(request.user_id, account_id)
         portfolio_tickers = {h['stock_ticker'] for h in holdings if h['quantity'] > 0}
         tickers.update(portfolio_tickers)
 
