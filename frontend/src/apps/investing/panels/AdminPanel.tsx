@@ -612,7 +612,12 @@ export function AdminPanel() {
                       <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-300">
                         {u.last_active ? (
                           (() => {
-                            const days = Math.floor((Date.now() - new Date(u.last_active).getTime()) / (1000 * 60 * 60 * 24));
+                            // Compare calendar dates, not timestamps
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const lastActive = new Date(u.last_active);
+                            lastActive.setHours(0, 0, 0, 0);
+                            const days = Math.round((today.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
                             if (days === 0) return language === 'fr' ? "Aujourd'hui" : 'Today';
                             if (days === 1) return language === 'fr' ? 'Hier' : 'Yesterday';
                             return language === 'fr' ? `${days}j` : `${days}d`;
