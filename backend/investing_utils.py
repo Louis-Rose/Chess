@@ -1013,6 +1013,7 @@ def fetch_channel_videos(channel_id, api_key, max_results=50):
             'channel_id': channel_id,
             'channel_name': snippet['channelTitle'],
             'title': snippet['title'],
+            'description': snippet.get('description', ''),
             'thumbnail_url': snippet['thumbnails'].get('high', {}).get('url') or
                             snippet['thumbnails'].get('medium', {}).get('url') or
                             snippet['thumbnails'].get('default', {}).get('url'),

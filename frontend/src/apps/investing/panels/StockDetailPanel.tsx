@@ -58,6 +58,7 @@ interface Video {
   video_id: string;
   channel_name: string;
   title: string;
+  description?: string;
   thumbnail_url: string;
   published_at: string;
   url: string;
@@ -653,6 +654,11 @@ export function StockDetailPanel() {
                           {formatDate(video.published_at, language)}
                         </span>
                       </div>
+                      {video.description && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2">
+                          {video.description}
+                        </p>
+                      )}
                     </div>
                   </button>
                 ))}
