@@ -806,3 +806,181 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
             'benchmark': benchmark_ticker
         }
     }
+
+
+# =============================================================================
+# YouTube News Feed Functions
+# =============================================================================
+
+import requests
+from youtube_config import YOUTUBE_CHANNELS, get_uploads_playlist_id, matches_company
+
+# Cache TTL for YouTube videos (6 hours)
+YOUTUBE_CACHE_TTL_HOURS = 6
+
+
+def fetch_channel_videos(channel_id, api_key, max_results=20):
+    """
+    Fetch recent videos from a YouTube channel using playlistItems API (1 unit cost).
+    Returns list of video metadata.
+    """
+    uploads_playlist_id = get_uploads_playlist_id(channel_id)
+
+    url = "https://www.googleapis.com/youtube/v3/playlistItems"
+    params = {
+        'part': 'snippet',
+        'playlistId': uploads_playlist_id,
+        'maxResults': max_results,
+        'key': api_key
+    }
+
+    response = requests.get(url, params=params)
+    response.raise_for_status()
+    data = response.json()
+
+    videos = []
+    for item in data.get('items', []):
+        snippet = item['snippet']
+        video_id = snippet['resourceId']['videoId']
+
+        videos.append({
+            'video_id': video_id,
+            'channel_id': channel_id,
+            'channel_name': snippet['channelTitle'],
+            'title': snippet['title'],
+            'thumbnail_url': snippet['thumbnails'].get('high', {}).get('url') or
+                            snippet['thumbnails'].get('medium', {}).get('url') or
+                            snippet['thumbnails'].get('default', {}).get('url'),
+            'published_at': snippet['publishedAt'],
+        })
+
+    return videos
+
+
+def fetch_all_channel_videos(api_key, max_per_channel=20):
+    """
+    Fetch videos from all configured channels.
+    Returns combined list of videos sorted by publish date.
+    """
+    all_videos = []
+
+    for channel_id, channel_info in YOUTUBE_CHANNELS.items():
+        try:
+            videos = fetch_channel_videos(channel_id, api_key, max_per_channel)
+            all_videos.extend(videos)
+        except Exception as e:
+            print(f"Error fetching videos from {channel_info.get('name', channel_id)}: {e}")
+            continue
+
+    # Sort by publish date (most recent first)
+    all_videos.sort(key=lambda x: x['published_at'], reverse=True)
+
+    return all_videos
+
+
+def get_cached_videos(db_getter):
+    """Get all cached videos from database."""
+    with db_getter() as conn:
+        cursor = conn.execute('''
+            SELECT video_id, channel_id, channel_name, title, thumbnail_url,
+                   published_at, view_count, updated_at
+            FROM youtube_videos_cache
+            ORDER BY published_at DESC
+        ''')
+        rows = cursor.fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def save_videos_to_cache(db_getter, videos):
+    """Save videos to cache (upsert)."""
+    with db_getter() as conn:
+        for video in videos:
+            conn.execute('''
+                INSERT INTO youtube_videos_cache
+                    (video_id, channel_id, channel_name, title, thumbnail_url, published_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(video_id) DO UPDATE SET
+                    title = excluded.title,
+                    thumbnail_url = excluded.thumbnail_url,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (
+                video['video_id'],
+                video['channel_id'],
+                video['channel_name'],
+                video['title'],
+                video['thumbnail_url'],
+                video['published_at']
+            ))
+
+
+def should_refresh_cache(db_getter, channel_id):
+    """Check if channel's cache is stale and needs refresh."""
+    with db_getter() as conn:
+        cursor = conn.execute('''
+            SELECT last_fetched_at FROM youtube_channel_fetch_log
+            WHERE channel_id = ?
+        ''', (channel_id,))
+        row = cursor.fetchone()
+
+        if not row:
+            return True
+
+        last_fetched = datetime.fromisoformat(row['last_fetched_at'])
+        age_hours = (datetime.now() - last_fetched).total_seconds() / 3600
+
+        return age_hours >= YOUTUBE_CACHE_TTL_HOURS
+
+
+def mark_channel_fetched(db_getter, channel_id):
+    """Update the fetch timestamp for a channel."""
+    with db_getter() as conn:
+        conn.execute('''
+            INSERT INTO youtube_channel_fetch_log (channel_id, last_fetched_at)
+            VALUES (?, CURRENT_TIMESTAMP)
+            ON CONFLICT(channel_id) DO UPDATE SET
+                last_fetched_at = CURRENT_TIMESTAMP
+        ''', (channel_id,))
+
+
+def get_news_feed_videos(db_getter, api_key, ticker=None, limit=50):
+    """
+    Get news feed videos, refreshing cache if needed.
+    Optionally filters by ticker (company keywords).
+
+    Returns: { 'videos': [...], 'from_cache': bool }
+    """
+    # Check if any channel needs refresh
+    channels_to_refresh = []
+    for channel_id in YOUTUBE_CHANNELS.keys():
+        if should_refresh_cache(db_getter, channel_id):
+            channels_to_refresh.append(channel_id)
+
+    # Refresh stale channels
+    if channels_to_refresh and api_key:
+        for channel_id in channels_to_refresh:
+            try:
+                videos = fetch_channel_videos(channel_id, api_key)
+                save_videos_to_cache(db_getter, videos)
+                mark_channel_fetched(db_getter, channel_id)
+            except Exception as e:
+                print(f"Error refreshing channel {channel_id}: {e}")
+
+    # Get all cached videos
+    all_videos = get_cached_videos(db_getter)
+
+    # Filter by ticker if specified
+    if ticker:
+        filtered = [v for v in all_videos if matches_company(v['title'], ticker)]
+    else:
+        filtered = all_videos
+
+    # Add YouTube URL and limit results
+    for video in filtered[:limit]:
+        video['url'] = f"https://www.youtube.com/watch?v={video['video_id']}"
+
+    return {
+        'videos': filtered[:limit],
+        'total': len(filtered),
+        'from_cache': len(channels_to_refresh) == 0
+    }

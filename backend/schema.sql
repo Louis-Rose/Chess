@@ -160,6 +160,26 @@ CREATE TABLE IF NOT EXISTS stock_views (
     UNIQUE(user_id, stock_ticker, view_date)
 );
 
+-- YouTube videos cache for news feed (refreshed periodically)
+CREATE TABLE IF NOT EXISTS youtube_videos_cache (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    video_id TEXT UNIQUE NOT NULL,
+    channel_id TEXT NOT NULL,
+    channel_name TEXT NOT NULL,
+    title TEXT NOT NULL,
+    thumbnail_url TEXT,
+    published_at TEXT NOT NULL,           -- ISO timestamp
+    view_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Track when each channel was last fetched
+CREATE TABLE IF NOT EXISTS youtube_channel_fetch_log (
+    channel_id TEXT PRIMARY KEY,
+    last_fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -180,3 +200,5 @@ CREATE INDEX IF NOT EXISTS idx_earnings_alert_preferences_user_id ON earnings_al
 CREATE INDEX IF NOT EXISTS idx_graph_downloads_user_id ON graph_downloads(user_id);
 CREATE INDEX IF NOT EXISTS idx_stock_views_user_id ON stock_views(user_id);
 CREATE INDEX IF NOT EXISTS idx_stock_views_ticker ON stock_views(stock_ticker);
+CREATE INDEX IF NOT EXISTS idx_youtube_videos_channel ON youtube_videos_cache(channel_id);
+CREATE INDEX IF NOT EXISTS idx_youtube_videos_published ON youtube_videos_cache(published_at);

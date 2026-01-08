@@ -569,7 +569,7 @@ def get_user_graph_downloads(user_id):
 
 from investing_utils import (
     compute_portfolio_composition, compute_portfolio_performance_from_transactions,
-    fetch_stock_price, get_previous_weekday, set_db_getter
+    fetch_stock_price, get_previous_weekday, set_db_getter, get_news_feed_videos
 )
 
 # Initialize database getter for caching in investing_utils
@@ -1811,6 +1811,21 @@ def send_earnings_alert_now():
         return jsonify({'success': True, 'message': f'Email sent to {email}'})
     else:
         return jsonify({'error': 'Failed to send email. Check SMTP configuration.'}), 500
+
+
+@app.route('/api/investing/news-feed', methods=['GET'])
+def get_news_feed():
+    """Get YouTube news feed videos, optionally filtered by ticker."""
+    ticker = request.args.get('ticker')
+    limit = request.args.get('limit', 50, type=int)
+
+    api_key = os.environ.get('YOUTUBE_API_KEY')
+
+    try:
+        result = get_news_feed_videos(get_db, api_key, ticker=ticker, limit=limit)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/investing/graph-download', methods=['POST'])
