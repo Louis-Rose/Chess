@@ -99,6 +99,7 @@ export function StockDetailPanel() {
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1M');
   const [videoFilter, setVideoFilter] = useState<'1M' | '3M' | 'ALL'>('ALL');
   const [financialsExpanded, setFinancialsExpanded] = useState(true);
+  const [newsFeedExpanded, setNewsFeedExpanded] = useState(true);
   const [question, setQuestion] = useState('');
 
   const upperTicker = ticker?.toUpperCase() || '';
@@ -422,46 +423,57 @@ export function StockDetailPanel() {
         </div>
 
         {/* News Feed */}
-        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Youtube className="w-5 h-5 text-red-500" />
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {language === 'fr' ? 'Actualités' : 'News Feed'}
-              </h2>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Time filter */}
-              <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
-                {(['1M', '3M', 'ALL'] as const).map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setVideoFilter(filter)}
-                    className={`px-2 py-1 text-xs font-medium transition-colors ${
-                      videoFilter === filter
-                        ? 'bg-red-500 text-white'
-                        : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500'
-                    }`}
-                  >
-                    {filter === 'ALL' ? (language === 'fr' ? 'Tout' : 'All') : filter}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => refetchNews()}
-                disabled={newsFetching}
-                className="text-slate-500 hover:text-blue-600 flex items-center gap-1 text-sm disabled:opacity-50"
-              >
-                <RefreshCw className={`w-4 h-4 ${newsFetching ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-          </div>
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none overflow-hidden">
+          {/* Header - clickable to toggle */}
+          <button
+            onClick={() => setNewsFeedExpanded(!newsFeedExpanded)}
+            className="w-full px-6 py-4 flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+          >
+            {newsFeedExpanded ? (
+              <ChevronUp className="w-5 h-5 text-slate-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-slate-500" />
+            )}
+            <Youtube className="w-5 h-5 text-red-500" />
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {language === 'fr' ? 'Actualités' : 'News Feed'}
+            </h2>
+          </button>
 
-          {newsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-            </div>
-          ) : newsData?.videos && newsData.videos.length > 0 ? (() => {
+          {/* Collapsible content */}
+          {newsFeedExpanded && (
+            <div className="px-6 pb-6">
+              <div className="flex items-center justify-end gap-3 mb-4">
+                {/* Time filter */}
+                <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
+                  {(['1M', '3M', 'ALL'] as const).map((filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => setVideoFilter(filter)}
+                      className={`px-2 py-1 text-xs font-medium transition-colors ${
+                        videoFilter === filter
+                          ? 'bg-red-500 text-white'
+                          : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500'
+                      }`}
+                    >
+                      {filter === 'ALL' ? (language === 'fr' ? 'Tout' : 'All') : filter}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => refetchNews()}
+                  disabled={newsFetching}
+                  className="text-slate-500 hover:text-blue-600 flex items-center gap-1 text-sm disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${newsFetching ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+
+              {newsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                </div>
+              ) : newsData?.videos && newsData.videos.length > 0 ? (() => {
             // Filter videos by time period
             const now = new Date();
             const filteredVideos = newsData.videos.filter((video) => {
@@ -538,13 +550,15 @@ export function StockDetailPanel() {
               </div>
             );
           })() : (
-            <div className="text-center py-8">
-              <Youtube className="w-10 h-10 text-slate-400 mx-auto mb-2" />
-              <p className="text-slate-500 dark:text-slate-400 text-sm">
-                {language === 'fr'
-                  ? `Aucune vidéo trouvée pour ${displayName}`
-                  : `No videos found for ${displayName}`}
-              </p>
+                <div className="text-center py-8">
+                  <Youtube className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">
+                    {language === 'fr'
+                      ? `Aucune vidéo trouvée pour ${displayName}`
+                      : `No videos found for ${displayName}`}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
