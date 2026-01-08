@@ -11,6 +11,9 @@ YOUTUBE_CHANNELS = {
     'UCbta0n8i6Rljh0obO7HzG9A': {
         'name': 'Joseph Carlson',
     },
+    'UCrp_UI8XtuYfpiqluWLD7Lw': {
+        'name': 'CNBC Television',
+    },
 }
 
 # Additional keywords for specific companies (optional)
