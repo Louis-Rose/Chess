@@ -13,6 +13,43 @@ import { findStockByTicker } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
 
+/**
+ * Clean up YouTube video description to extract only meaningful content.
+ * Removes URLs, timestamps, disclaimers, and limits to 2 sentences.
+ */
+function cleanDescription(description: string | undefined): string {
+  if (!description) return '';
+
+  let text = description
+    // Remove URLs
+    .replace(/https?:\/\/[^\s]+/g, '')
+    // Remove timestamps like "00:00" or "12:45"
+    .replace(/\b\d{1,2}:\d{2}\b/g, '')
+    // Remove common spam phrases (case insensitive)
+    .replace(/disclaimer/gi, '')
+    .replace(/affiliate links?/gi, '')
+    .replace(/social media/gi, '')
+    .replace(/join here/gi, '')
+    .replace(/subscribe/gi, '')
+    .replace(/follow me/gi, '')
+    .replace(/my .* portfolio/gi, '')
+    .replace(/free content/gi, '')
+    // Remove emoji
+    .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+    // Remove multiple spaces/newlines
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Split into sentences and take first 2 meaningful ones
+  const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.length > 20);
+  const summary = sentences.slice(0, 2).join(' ').trim();
+
+  // If no good sentences found, return empty
+  if (summary.length < 30) return '';
+
+  return summary;
+}
+
 interface StockHistoryData {
   ticker: string;
   period: string;
@@ -654,11 +691,14 @@ export function StockDetailPanel() {
                           {formatDate(video.published_at, language)}
                         </span>
                       </div>
-                      {video.description && (
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                          {video.description}
-                        </p>
-                      )}
+                      {(() => {
+                        const cleaned = cleanDescription(video.description);
+                        return cleaned ? (
+                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                            {cleaned}
+                          </p>
+                        ) : null;
+                      })()}
                     </div>
                   </button>
                 ))}
