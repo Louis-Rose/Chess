@@ -1144,6 +1144,7 @@ def remove_from_watchlist(symbol):
 def get_market_cap():
     """Get market cap for one or more tickers."""
     import yfinance as yf
+    from investing_utils import EUROPEAN_TICKER_MAP
 
     tickers_param = request.args.get('tickers', '')
     if not tickers_param:
@@ -1156,7 +1157,9 @@ def get_market_cap():
     results = {}
     for ticker in tickers:
         try:
-            stock = yf.Ticker(ticker)
+            # Map European tickers to Yahoo Finance format
+            yf_ticker = EUROPEAN_TICKER_MAP.get(ticker, ticker)
+            stock = yf.Ticker(yf_ticker)
             info = stock.info
             market_cap = info.get('marketCap')
             name = info.get('shortName') or info.get('longName') or ticker
@@ -1190,8 +1193,11 @@ def get_market_cap():
 def get_stock_history(ticker):
     """Get historical price data for a stock."""
     import yfinance as yf
+    from investing_utils import EUROPEAN_TICKER_MAP
 
     ticker = ticker.upper()
+    # Map European tickers to Yahoo Finance format
+    yf_ticker = EUROPEAN_TICKER_MAP.get(ticker, ticker)
     period = request.args.get('period', '1M')  # Default to 1 month
 
     # Map period to yfinance parameters
@@ -1209,7 +1215,7 @@ def get_stock_history(ticker):
     config = period_config.get(period.upper(), period_config['1M'])
 
     try:
-        stock = yf.Ticker(ticker)
+        stock = yf.Ticker(yf_ticker)
         hist = stock.history(period=config['period'], interval=config['interval'])
 
         if hist.empty:
