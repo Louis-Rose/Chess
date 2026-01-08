@@ -276,7 +276,7 @@ export function StockDetailPanel() {
 
           {/* Collapsible content */}
           {financialsExpanded && (
-            <div className="px-6 pb-6 space-y-6">
+            <div className="px-6 pt-4 pb-6 space-y-6">
               {/* Metrics */}
               {marketCapLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
@@ -442,7 +442,7 @@ export function StockDetailPanel() {
 
           {/* Collapsible content */}
           {newsFeedExpanded && (
-            <div className="px-6 pb-6">
+            <div className="px-6 pt-4 pb-6">
               <div className="flex items-center justify-end gap-3 mb-4">
                 {/* Time filter */}
                 <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
