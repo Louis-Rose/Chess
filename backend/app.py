@@ -1582,7 +1582,7 @@ def get_earnings_calendar():
             earnings_date = datetime.strptime(next_earnings_date, '%Y-%m-%d').date()
             remaining_days = (earnings_date - today).days
 
-            # Skip past earnings dates
+            # Handle past earnings dates
             if remaining_days < 0:
                 # Cached date is stale, try to refresh
                 next_earnings_date, date_confirmed = fetch_earnings_from_yfinance(ticker)
@@ -1591,9 +1591,25 @@ def get_earnings_calendar():
                     earnings_date = datetime.strptime(next_earnings_date, '%Y-%m-%d').date()
                     remaining_days = (earnings_date - today).days
                     if remaining_days < 0:
-                        continue  # Still in the past, skip
+                        # Still in the past after refresh, show as unavailable
+                        earnings_data.append({
+                            'ticker': ticker,
+                            'next_earnings_date': None,
+                            'remaining_days': None,
+                            'date_confirmed': False,
+                            'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
+                        })
+                        continue
                 else:
-                    continue  # No future date found
+                    # No future date found, show as unavailable
+                    earnings_data.append({
+                        'ticker': ticker,
+                        'next_earnings_date': None,
+                        'remaining_days': None,
+                        'date_confirmed': False,
+                        'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
+                    })
+                    continue
 
             earnings_data.append({
                 'ticker': ticker,
