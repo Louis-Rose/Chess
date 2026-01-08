@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye, ExternalLink, Bell, X, Mail } from 'lucide-react';
+import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye, ExternalLink, Bell, BellOff, X, Mail } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
@@ -66,6 +66,19 @@ const saveAlertPreferences = async (prefs: AlertPreferences): Promise<void> => {
 const sendTestEmail = async (): Promise<{ success: boolean; message?: string; error?: string }> => {
   const response = await axios.post('/api/investing/earnings-alerts/send-now');
   return response.data;
+};
+
+const fetchEarningsWatchlist = async (): Promise<{ tickers: string[] }> => {
+  const response = await axios.get('/api/investing/earnings-watchlist');
+  return response.data;
+};
+
+const addToEarningsWatchlist = async (ticker: string): Promise<void> => {
+  await axios.post('/api/investing/earnings-watchlist', { symbol: ticker });
+};
+
+const removeFromEarningsWatchlist = async (ticker: string): Promise<void> => {
+  await axios.delete(`/api/investing/earnings-watchlist/${ticker}`);
 };
 
 // Alert Configuration Modal
@@ -355,6 +368,29 @@ export function EarningsCalendarPanel() {
     enabled: isAuthenticated,
   });
 
+  // Fetch earnings alert watchlist
+  const queryClient = useQueryClient();
+  const { data: earningsWatchlistData } = useQuery({
+    queryKey: ['earnings-watchlist'],
+    queryFn: fetchEarningsWatchlist,
+    enabled: isAuthenticated,
+  });
+  const earningsWatchlist = earningsWatchlistData?.tickers || [];
+
+  // Toggle alert for a ticker
+  const handleToggleAlert = async (ticker: string) => {
+    try {
+      if (earningsWatchlist.includes(ticker)) {
+        await removeFromEarningsWatchlist(ticker);
+      } else {
+        await addToEarningsWatchlist(ticker);
+      }
+      queryClient.invalidateQueries({ queryKey: ['earnings-watchlist'] });
+    } catch (error) {
+      console.error('Failed to toggle alert:', error);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -490,6 +526,9 @@ export function EarningsCalendarPanel() {
                       <span className="sm:hidden">{language === 'fr' ? 'Conf.' : 'Conf.'}</span>
                     </th>
                     <th className="pb-3 text-center font-semibold">
+                      <Bell className="w-4 h-4 mx-auto" title={language === 'fr' ? 'Alerte' : 'Alert'} />
+                    </th>
+                    <th className="pb-3 text-center font-semibold">
                       <span className="hidden sm:inline">IR</span>
                       <span className="sm:hidden">IR</span>
                     </th>
@@ -552,6 +591,26 @@ export function EarningsCalendarPanel() {
                         )}
                       </td>
                       <td className="py-4 text-center">
+                        <button
+                          onClick={() => handleToggleAlert(item.ticker)}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            earningsWatchlist.includes(item.ticker)
+                              ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                              : 'bg-slate-100 dark:bg-slate-600 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-500'
+                          }`}
+                          title={earningsWatchlist.includes(item.ticker)
+                            ? (language === 'fr' ? 'Retirer des alertes' : 'Remove from alerts')
+                            : (language === 'fr' ? 'Ajouter aux alertes' : 'Add to alerts')
+                          }
+                        >
+                          {earningsWatchlist.includes(item.ticker) ? (
+                            <Bell className="w-4 h-4" />
+                          ) : (
+                            <BellOff className="w-4 h-4" />
+                          )}
+                        </button>
+                      </td>
+                      <td className="py-4 text-center">
                         {(() => {
                           const irUrl = getCompanyIRUrl(item.ticker);
                           return irUrl ? (
@@ -592,6 +651,15 @@ export function EarningsCalendarPanel() {
                 <span className="inline-flex items-center gap-1">
                   <HelpCircle className="w-4 h-4 text-slate-400" />
                   {language === 'fr' ? 'Estimé' : 'Estimated'}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Bell className="w-4 h-4 text-amber-600" />
+                  {language === 'fr' ? 'Alerte activée' : 'Alert enabled'}
+                  {earningsWatchlist.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                      {earningsWatchlist.length}
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
