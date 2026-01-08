@@ -58,10 +58,14 @@ export interface ComputedHolding {
 export interface CompositionItem {
   ticker: string;
   quantity: number;
-  current_price: number;
-  current_value: number;
+  native_currency: string;
+  current_price_native: number;
+  current_price: number;  // In EUR
+  current_value: number;  // In EUR
   cost_basis: number;
-  gain_usd: number;
+  cost_basis_eur: number;
+  gain: number;  // In EUR
+  gain_eur: number;
   gain_pct: number;
   weight: number;
   color: string;

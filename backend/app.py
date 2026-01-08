@@ -1144,7 +1144,7 @@ def remove_from_watchlist(symbol):
 def get_market_cap():
     """Get market cap for one or more tickers."""
     import yfinance as yf
-    from investing_utils import EUROPEAN_TICKER_MAP
+    from investing_utils import EUROPEAN_TICKER_MAP, get_stock_currency
 
     tickers_param = request.args.get('tickers', '')
     if not tickers_param:
@@ -1163,11 +1163,14 @@ def get_market_cap():
             info = stock.info
             market_cap = info.get('marketCap')
             name = info.get('shortName') or info.get('longName') or ticker
+            # Get currency from Yahoo Finance, fallback to exchange-based detection
+            currency = info.get('currency') or get_stock_currency(ticker)
 
             results[ticker] = {
                 'ticker': ticker,
                 'name': name,
                 'market_cap': market_cap,
+                'currency': currency,
                 'trailing_pe': info.get('trailingPE'),
                 'forward_pe': info.get('forwardPE'),
                 'dividend_yield': info.get('dividendYield'),
@@ -1193,7 +1196,7 @@ def get_market_cap():
 def get_stock_history(ticker):
     """Get historical price data for a stock."""
     import yfinance as yf
-    from investing_utils import EUROPEAN_TICKER_MAP
+    from investing_utils import EUROPEAN_TICKER_MAP, get_stock_currency
 
     ticker = ticker.upper()
     # Map European tickers to Yahoo Finance format
@@ -1221,9 +1224,10 @@ def get_stock_history(ticker):
         if hist.empty:
             return jsonify({'error': 'No data available'}), 404
 
-        # Get previous close for reference line
+        # Get previous close and currency for reference
         info = stock.info
         previous_close = info.get('previousClose') or info.get('regularMarketPreviousClose')
+        currency = info.get('currency') or get_stock_currency(ticker)
 
         # Format data for frontend
         data = []
@@ -1237,6 +1241,7 @@ def get_stock_history(ticker):
             'ticker': ticker,
             'period': period.upper(),
             'previous_close': previous_close,
+            'currency': currency,
             'data': data,
         })
     except Exception as e:

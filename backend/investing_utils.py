@@ -469,6 +469,144 @@ def get_yfinance_ticker(ticker):
     # Check mapping
     return EUROPEAN_TICKER_MAP.get(ticker_upper, ticker_upper)
 
+# Exchange suffix to currency mapping
+EXCHANGE_CURRENCY_MAP = {
+    '.SW': 'CHF',   # Swiss Exchange (Zurich)
+    '.DE': 'EUR',   # Xetra (Frankfurt)
+    '.PA': 'EUR',   # Euronext Paris
+    '.AS': 'EUR',   # Euronext Amsterdam
+    '.BR': 'EUR',   # Euronext Brussels
+    '.LS': 'EUR',   # Euronext Lisbon
+    '.MI': 'EUR',   # Borsa Italiana (Milan)
+    '.MC': 'EUR',   # Bolsa de Madrid
+    '.VI': 'EUR',   # Vienna Stock Exchange
+    '.HE': 'EUR',   # Nasdaq Helsinki
+    '.IR': 'EUR',   # Euronext Dublin (Irish)
+    '.L': 'GBP',    # London Stock Exchange
+    '.CO': 'DKK',   # Nasdaq Copenhagen
+    '.ST': 'SEK',   # Nasdaq Stockholm
+    '.OL': 'NOK',   # Oslo Børs
+}
+
+# Currency symbols for display
+CURRENCY_SYMBOLS = {
+    'USD': '$',
+    'EUR': '€',
+    'GBP': '£',
+    'CHF': 'CHF ',
+    'DKK': 'kr ',
+    'SEK': 'kr ',
+    'NOK': 'kr ',
+}
+
+# Yahoo Finance FX pair tickers (quote currency is USD)
+FX_TICKERS = {
+    'EURUSD': 'EURUSD=X',
+    'GBPUSD': 'GBPUSD=X',
+    'CHFUSD': 'CHFUSD=X',
+    'DKKUSD': 'DKKUSD=X',
+    'SEKUSD': 'SEKUSD=X',
+    'NOKUSD': 'NOKUSD=X',
+}
+
+def get_stock_currency(ticker):
+    """
+    Get the trading currency of a stock based on its exchange suffix.
+    Returns 'USD' for US stocks (no suffix) or the appropriate currency for European exchanges.
+    """
+    yf_ticker = get_yfinance_ticker(ticker)
+
+    # Check for exchange suffix
+    for suffix, currency in EXCHANGE_CURRENCY_MAP.items():
+        if yf_ticker.endswith(suffix):
+            return currency
+
+    # Default to USD for US stocks
+    return 'USD'
+
+def get_stock_currency_from_yfinance(ticker):
+    """
+    Get the trading currency directly from Yahoo Finance API.
+    More accurate but slower than suffix-based detection.
+    """
+    try:
+        yf_ticker = get_yfinance_ticker(ticker)
+        stock = yf.Ticker(yf_ticker)
+        info = stock.info
+        return info.get('currency', 'USD')
+    except:
+        return get_stock_currency(ticker)  # Fallback to suffix-based
+
+def get_fx_rate_to_usd(currency):
+    """
+    Get current exchange rate from a currency to USD.
+    Returns how many USD you get for 1 unit of the currency.
+    """
+    if currency == 'USD':
+        return 1.0
+
+    pair = f"{currency}USD"
+    fx_ticker = FX_TICKERS.get(pair)
+
+    if not fx_ticker:
+        print(f"Unknown currency pair: {pair}")
+        return 1.0
+
+    # Check cache first
+    cached = _get_cached_current_fx_rate(pair)
+    if cached is not None:
+        return cached
+
+    try:
+        fx = yf.Ticker(fx_ticker)
+        data = fx.history(period='1d')
+        if data.empty:
+            print(f"No FX data for {pair}")
+            return 1.0
+        rate = float(np.round((data["Open"].iloc[-1] + data["Close"].iloc[-1]) / 2, 6))
+
+        # Cache the rate
+        today = datetime.now().strftime("%Y-%m-%d")
+        _save_cached_fx_rate(pair, today, rate)
+
+        return rate
+    except Exception as e:
+        print(f"Error fetching FX rate {pair}: {e}")
+        return 1.0
+
+def get_fx_rate_to_eur(currency):
+    """
+    Get current exchange rate from a currency to EUR.
+    Returns how many EUR you get for 1 unit of the currency.
+    """
+    if currency == 'EUR':
+        return 1.0
+
+    # Convert via USD
+    rate_to_usd = get_fx_rate_to_usd(currency)
+    eurusd_rate = get_current_eurusd_rate()  # EUR per USD
+
+    # rate_to_usd = USD per 1 unit of currency
+    # eurusd_rate = USD per 1 EUR, so 1/eurusd_rate = EUR per 1 USD
+    return rate_to_usd / eurusd_rate
+
+def convert_price_to_currency(price, from_currency, to_currency):
+    """
+    Convert a price from one currency to another.
+    """
+    if from_currency == to_currency:
+        return price
+
+    if to_currency == 'USD':
+        return price * get_fx_rate_to_usd(from_currency)
+    elif to_currency == 'EUR':
+        return price * get_fx_rate_to_eur(from_currency)
+    else:
+        # Convert via USD
+        price_usd = price * get_fx_rate_to_usd(from_currency)
+        target_rate = get_fx_rate_to_usd(to_currency)
+        return price_usd / target_rate if target_rate else price_usd
+
 def set_db_getter(getter):
     """Set the database getter function from app.py"""
     global _db_getter
@@ -858,52 +996,70 @@ def get_previous_weekday(date=None):
     return current_day.strftime("%Y-%m-%d")
 
 
-def compute_portfolio_composition(holdings):
+def compute_portfolio_composition(holdings, target_currency='EUR'):
     """
     Compute portfolio composition with current values, weights, cost basis and gains.
+    All values are converted to the target currency (EUR or USD).
 
     Args:
         holdings: list of dicts with 'stock_ticker', 'quantity', 'cost_basis' (avg price),
                   'total_cost' (USD), 'total_cost_eur' (EUR at historical rates)
+        target_currency: 'EUR' or 'USD' - currency to display values in
 
     Returns:
         dict with composition data including gains/losses
     """
     composition = []
-    total_value = 0
-    total_cost_basis_usd = 0
+    total_value = 0  # In target currency
     total_cost_basis_eur = 0
 
     # Batch fetch all prices in a single API call
     all_tickers = [h['stock_ticker'] for h in holdings]
     prices = fetch_current_stock_prices_batch(all_tickers)
 
+    # Pre-fetch FX rates for currencies we'll need
+    fx_rates_to_eur = {}  # Cache FX rates
+
     for holding in holdings:
         ticker = holding['stock_ticker']
         quantity = holding['quantity']
         cost_basis_per_share = holding.get('cost_basis', 0)
-        total_cost = holding.get('total_cost', cost_basis_per_share * quantity)
-        total_cost_eur = holding.get('total_cost_eur', total_cost)  # Fallback to USD if not provided
+        total_cost_eur = holding.get('total_cost_eur', holding.get('total_cost', cost_basis_per_share * quantity))
 
-        current_price = prices.get(ticker, 0) or 0
-        current_value = current_price * quantity
-        gain_usd = current_value - total_cost
-        gain_pct = round(100 * gain_usd / total_cost, 1) if total_cost > 0 else 0
+        # Get current price in native currency
+        current_price_native = prices.get(ticker, 0) or 0
+
+        # Get the stock's native currency
+        native_currency = get_stock_currency(ticker)
+
+        # Convert price to target currency
+        if native_currency not in fx_rates_to_eur:
+            fx_rates_to_eur[native_currency] = get_fx_rate_to_eur(native_currency)
+
+        fx_rate = fx_rates_to_eur[native_currency]
+        current_price_eur = current_price_native * fx_rate
+        current_value_eur = current_price_eur * quantity
+
+        # Calculate gain based on EUR cost basis
+        gain_eur = current_value_eur - total_cost_eur
+        gain_pct = round(100 * gain_eur / total_cost_eur, 1) if total_cost_eur > 0 else 0
 
         composition.append({
             'ticker': ticker,
             'quantity': quantity,
-            'current_price': current_price,
-            'current_value': round(current_value, 2),
-            'cost_basis': round(total_cost, 2),
+            'native_currency': native_currency,
+            'current_price_native': round(current_price_native, 2),
+            'current_price': round(current_price_eur, 2),  # In EUR
+            'current_value': round(current_value_eur, 2),  # In EUR
+            'cost_basis': round(total_cost_eur, 2),  # In EUR
             'cost_basis_eur': round(total_cost_eur, 2),
             'avg_cost': round(cost_basis_per_share, 2),
-            'gain_usd': round(gain_usd, 2),
+            'gain': round(gain_eur, 2),  # In EUR
+            'gain_eur': round(gain_eur, 2),
             'gain_pct': gain_pct,
             'color': STOCK_COLORS.get(ticker, '#95A5A6')
         })
-        total_value += current_value
-        total_cost_basis_usd += total_cost
+        total_value += current_value_eur
         total_cost_basis_eur += total_cost_eur
 
     # Calculate weights
@@ -916,21 +1072,23 @@ def compute_portfolio_composition(holdings):
     # Sort by weight descending
     composition.sort(key=lambda x: -x['weight'])
 
-    # Get EUR values
+    # Get EUR/USD rate for reference
     eurusd_rate = get_current_eurusd_rate()
-    total_value_eur = round(total_value / eurusd_rate, 2)
-    total_gain_usd = total_value - total_cost_basis_usd
-    total_gain_pct = round(100 * total_gain_usd / total_cost_basis_usd, 1) if total_cost_basis_usd > 0 else 0
+    total_value_usd = round(total_value * eurusd_rate, 2)
+    total_gain_eur = total_value - total_cost_basis_eur
+    total_gain_pct = round(100 * total_gain_eur / total_cost_basis_eur, 1) if total_cost_basis_eur > 0 else 0
 
     return {
         'holdings': composition,
-        'total_value_usd': round(total_value, 2),
-        'total_value_eur': total_value_eur,
-        'total_cost_basis': round(total_cost_basis_usd, 2),
+        'total_value_eur': round(total_value, 2),
+        'total_value_usd': total_value_usd,
+        'total_cost_basis': round(total_cost_basis_eur, 2),
         'total_cost_basis_eur': round(total_cost_basis_eur, 2),
-        'total_gain_usd': round(total_gain_usd, 2),
+        'total_gain_eur': round(total_gain_eur, 2),
+        'total_gain_usd': round(total_gain_eur * eurusd_rate, 2),
         'total_gain_pct': total_gain_pct,
-        'eurusd_rate': eurusd_rate
+        'eurusd_rate': eurusd_rate,
+        'fx_rates': fx_rates_to_eur,  # Return FX rates used for transparency
     }
 
 

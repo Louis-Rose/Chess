@@ -17,6 +17,7 @@ interface StockHistoryData {
   ticker: string;
   period: string;
   previous_close: number | null;
+  currency: string;
   data: { timestamp: string; price: number }[];
 }
 
@@ -24,6 +25,7 @@ interface MarketCapData {
   ticker: string;
   name: string;
   market_cap: number | null;
+  currency: string;
   trailing_pe: number | null;
   forward_pe: number | null;
   dividend_yield: number | null;
@@ -36,6 +38,21 @@ interface MarketCapData {
   fifty_two_week_low: number | null;
   revenue_growth: number | null;
 }
+
+// Currency symbols for display
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CHF: 'CHF ',
+  DKK: 'kr ',
+  SEK: 'kr ',
+  NOK: 'kr ',
+};
+
+const getCurrencySymbol = (currency: string): string => {
+  return CURRENCY_SYMBOLS[currency] || `${currency} `;
+};
 
 interface Video {
   video_id: string;
@@ -71,12 +88,19 @@ const fetchNewsFeed = async (ticker: string, companyName: string): Promise<NewsF
   return response.data;
 };
 
-const formatMarketCap = (marketCap: number | null): string => {
+const formatMarketCap = (marketCap: number | null, currency: string = 'USD'): string => {
   if (!marketCap) return '-';
-  if (marketCap >= 1e12) return `$${(marketCap / 1e12).toFixed(2)}T`;
-  if (marketCap >= 1e9) return `$${(marketCap / 1e9).toFixed(1)}B`;
-  if (marketCap >= 1e6) return `$${(marketCap / 1e6).toFixed(0)}M`;
-  return `$${marketCap.toLocaleString()}`;
+  const symbol = getCurrencySymbol(currency);
+  if (marketCap >= 1e12) return `${symbol}${(marketCap / 1e12).toFixed(2)}T`;
+  if (marketCap >= 1e9) return `${symbol}${(marketCap / 1e9).toFixed(1)}B`;
+  if (marketCap >= 1e6) return `${symbol}${(marketCap / 1e6).toFixed(0)}M`;
+  return `${symbol}${marketCap.toLocaleString()}`;
+};
+
+const formatPrice = (price: number | null, currency: string = 'USD'): string => {
+  if (price === null || price === undefined) return '-';
+  const symbol = getCurrencySymbol(currency);
+  return `${symbol}${price.toFixed(2)}`;
 };
 
 function formatDate(dateStr: string, language: string): string {
@@ -145,6 +169,9 @@ export function StockDetailPanel() {
     ? stockHistoryData.data[stockHistoryData.data.length - 1].price
     : null;
   const previousClose = stockHistoryData?.previous_close;
+  // Get currency from history data or market cap data, default to USD
+  const currency = stockHistoryData?.currency || marketCapData?.currency || 'USD';
+  const currencySymbol = getCurrencySymbol(currency);
 
   // Track stock view (time spent) - only when authenticated
   const viewStartTime = useRef<number>(Date.now());
@@ -254,11 +281,11 @@ export function StockDetailPanel() {
               {currentPrice !== null && (
                 <>
                   <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                    ${currentPrice.toFixed(2)}
+                    {currencySymbol}{currentPrice.toFixed(2)}
                   </p>
                   {priceChange !== null && priceChangePercent !== null && (
                     <p className={`text-sm font-medium ${priceChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)} ({priceChange >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%)
+                      {priceChange >= 0 ? '+' : ''}{currencySymbol}{Math.abs(priceChange).toFixed(2)} ({priceChange >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%)
                     </p>
                   )}
                 </>
@@ -300,7 +327,7 @@ export function StockDetailPanel() {
                       {language === 'fr' ? 'Cap. boursière' : 'Market Cap'}
                     </p>
                     <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {formatMarketCap(marketCapData?.market_cap ?? null)}
+                      {formatMarketCap(marketCapData?.market_cap ?? null, currency)}
                     </p>
                   </div>
                   <div>
@@ -348,7 +375,7 @@ export function StockDetailPanel() {
                       EPS
                     </p>
                     <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.trailing_eps ? `$${marketCapData.trailing_eps.toFixed(2)}` : '-'}
+                      {marketCapData?.trailing_eps ? `${currencySymbol}${marketCapData.trailing_eps.toFixed(2)}` : '-'}
                     </p>
                   </div>
                   <div>
@@ -380,7 +407,7 @@ export function StockDetailPanel() {
                       52W High
                     </p>
                     <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.fifty_two_week_high ? `$${marketCapData.fifty_two_week_high.toFixed(2)}` : '-'}
+                      {marketCapData?.fifty_two_week_high ? `${currencySymbol}${marketCapData.fifty_two_week_high.toFixed(2)}` : '-'}
                     </p>
                   </div>
                   <div>
@@ -388,7 +415,7 @@ export function StockDetailPanel() {
                       52W Low
                     </p>
                     <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.fifty_two_week_low ? `$${marketCapData.fifty_two_week_low.toFixed(2)}` : '-'}
+                      {marketCapData?.fifty_two_week_low ? `${currencySymbol}${marketCapData.fifty_two_week_low.toFixed(2)}` : '-'}
                     </p>
                   </div>
                 </div>
@@ -470,7 +497,7 @@ export function StockDetailPanel() {
                               day: 'numeric', month: 'long', year: 'numeric'
                             });
                           }}
-                          formatter={(value) => [`$${Number(value).toFixed(2)}`, null]}
+                          formatter={(value) => [`${currencySymbol}${Number(value).toFixed(2)}`, null]}
                           separator=""
                         />
                         {stockHistoryData.previous_close && (

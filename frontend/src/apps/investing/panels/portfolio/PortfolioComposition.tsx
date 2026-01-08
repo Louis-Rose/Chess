@@ -7,6 +7,21 @@ import { useLanguage } from '../../../../contexts/LanguageContext';
 import type { CompositionData, CompositionItem } from './types';
 import { formatEur, addLumraBranding, getScaleFactor } from './utils';
 
+// Currency symbols for display
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CHF: 'CHF ',
+  DKK: 'kr ',
+  SEK: 'kr ',
+  NOK: 'kr ',
+};
+
+const getCurrencySymbol = (currency: string): string => {
+  return CURRENCY_SYMBOLS[currency] || `${currency} `;
+};
+
 interface PortfolioCompositionProps {
   compositionData: CompositionData | undefined;
   isLoading: boolean;
@@ -18,6 +33,7 @@ export function PortfolioComposition({
   compositionData,
   isLoading,
   privateMode,
+  currency,
 }: PortfolioCompositionProps) {
   const { language, t } = useLanguage();
   const positionsChartRef = useRef<HTMLDivElement>(null);
@@ -95,10 +111,14 @@ export function PortfolioComposition({
                   <Tooltip
                     formatter={(value, _name, props) => {
                       const payload = props.payload as CompositionItem;
-                      const valueEur = Math.round(payload.current_value / compositionData.eurusd_rate);
+                      const valueEur = payload.current_value;
+                      const valueInCurrency = currency === 'EUR' ? valueEur : valueEur * compositionData.eurusd_rate;
                       const scaleFactor = getScaleFactor(compositionData.total_cost_basis_eur, privateMode);
-                      const displayValue = Math.round(valueEur * scaleFactor);
-                      return [`${formatEur(displayValue)}€ (${value}%)`, payload.ticker];
+                      const displayValue = Math.round(valueInCurrency * scaleFactor);
+                      const formattedValue = currency === 'EUR'
+                        ? `${formatEur(displayValue)}€`
+                        : `$${displayValue.toLocaleString('en-US')}`;
+                      return [`${formattedValue} (${value}%)`, payload.ticker];
                     }}
                   />
                 </PieChart>
@@ -123,19 +143,29 @@ export function PortfolioComposition({
                     </thead>
                     <tbody>
                       {compositionData.holdings.map((h) => {
-                        const valueEur = Math.round(h.current_value / compositionData.eurusd_rate);
-                        const displayValue = Math.round(valueEur * scaleFactor);
+                        // Value in EUR (already from backend)
+                        const valueEur = h.current_value;
+                        // Convert to USD if needed
+                        const valueInCurrency = currency === 'EUR' ? valueEur : valueEur * compositionData.eurusd_rate;
+                        const displayValue = Math.round(valueInCurrency * scaleFactor);
                         const displayQuantity = privateMode ? Math.round(h.quantity * scaleFactor) : h.quantity;
+                        // Get native currency symbol for price display
+                        const nativeCurrencySymbol = getCurrencySymbol(h.native_currency || 'USD');
+                        const priceToShow = h.current_price_native ?? h.current_price;
                         return (
                           <tr key={h.ticker} className="border-b border-slate-200">
                             <td className="py-2 font-bold" style={{ color: h.color }}>{h.ticker}</td>
                             <td className="py-2 text-right text-slate-600">{displayQuantity}</td>
-                            <td className="py-2 text-right text-slate-600">${h.current_price}</td>
-                            <td className="py-2 text-right text-slate-800 font-medium">
-                              {`${formatEur(displayValue)}€`}
+                            <td className="py-2 text-right text-slate-600">
+                              {nativeCurrencySymbol}{priceToShow.toFixed(2)}
                             </td>
-                            <td className={`py-2 text-right font-medium ${h.gain_usd >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {h.gain_usd >= 0 ? '+' : ''}{h.gain_pct}%
+                            <td className="py-2 text-right text-slate-800 font-medium">
+                              {currency === 'EUR'
+                                ? `${formatEur(displayValue)}€`
+                                : `$${displayValue.toLocaleString('en-US')}`}
+                            </td>
+                            <td className={`py-2 text-right font-medium ${h.gain_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct}%
                             </td>
                           </tr>
                         );
