@@ -1,82 +1,43 @@
-// Combined stock indices for global search
-import { SP500_STOCKS, type Stock } from './sp500';
-import { STOXX600_STOCKS } from './stoxx600';
-import { swissStocks } from './swissStocks';
+/**
+ * Combined stock indices for global search
+ * Now powered by the unified stocks database
+ */
+import {
+  STOCKS_DB,
+  getAllStocks,
+  searchStocks,
+  findStockByTicker as findStock,
+  type Stock,
+  type IndexFilter,
+  type StockInfo,
+} from '../../../data/stocksDb';
 
-// Re-export the Stock type
-export type { Stock };
+// Re-export types
+export type { Stock, IndexFilter, StockInfo };
 
-// Index filter options
-export interface IndexFilter {
-  sp500: boolean;
-  stoxx600: boolean;
-  swiss?: boolean;  // Swiss SPI stocks
-}
+// Combined list of all stocks (for backward compatibility)
+export const ALL_STOCKS: Stock[] = getAllStocks();
 
-// Combined list of all stocks (S&P 500 + STOXX Europe 600 + Swiss SPI)
-// Note: Some companies may appear in multiple indices (e.g., dual-listed)
-export const ALL_STOCKS: Stock[] = [...SP500_STOCKS, ...STOXX600_STOCKS, ...swissStocks];
-
-// Export individual indices for reference
-export { SP500_STOCKS, STOXX600_STOCKS, swissStocks };
+// Legacy exports for backward compatibility
+// These create arrays from the unified DB filtered by region
+export const SP500_STOCKS: Stock[] = getAllStocks({ sp500: true });
+export const STOXX600_STOCKS: Stock[] = getAllStocks({ stoxx600: true });
+export const swissStocks: Stock[] = getAllStocks({ swiss: true });
 
 // Get stocks based on filter
-function getFilteredStocks(filter?: IndexFilter): Stock[] {
-  // Default to all if no filter provided
-  if (!filter) {
-    return ALL_STOCKS;
-  }
-
-  // Return empty if all are unchecked
-  if (!filter.sp500 && !filter.stoxx600 && !filter.swiss) {
-    return [];
-  }
-
-  const stocks: Stock[] = [];
-  if (filter.sp500) stocks.push(...SP500_STOCKS);
-  if (filter.stoxx600) stocks.push(...STOXX600_STOCKS);
-  if (filter.swiss) stocks.push(...swissStocks);
-  return stocks;
+export function getFilteredStocks(filter?: IndexFilter): Stock[] {
+  return getAllStocks(filter);
 }
 
 // Unified search function across selected indices
 export function searchAllStocks(query: string, filter?: IndexFilter): Stock[] {
-  if (!query.trim()) return [];
-
-  const q = query.toLowerCase();
-  const stocksToSearch = getFilteredStocks(filter);
-
-  // Separate matches into priority groups
-  const exact: Stock[] = [];
-  const startsWith: Stock[] = [];
-  const contains: Stock[] = [];
-
-  // Use a Set to avoid duplicates (same ticker from different indices)
-  const seenTickers = new Set<string>();
-
-  for (const stock of stocksToSearch) {
-    if (seenTickers.has(stock.ticker)) continue;
-
-    const tickerLower = stock.ticker.toLowerCase();
-    const nameLower = stock.name.toLowerCase();
-
-    if (tickerLower === q || nameLower === q) {
-      exact.push(stock);
-      seenTickers.add(stock.ticker);
-    } else if (tickerLower.startsWith(q) || nameLower.startsWith(q)) {
-      startsWith.push(stock);
-      seenTickers.add(stock.ticker);
-    } else if (tickerLower.includes(q) || nameLower.includes(q)) {
-      contains.push(stock);
-      seenTickers.add(stock.ticker);
-    }
-  }
-
-  // Return prioritized results: exact > starts with > contains
-  return [...exact, ...startsWith, ...contains].slice(0, 10);
+  return searchStocks(query, filter);
 }
 
 // Find stock by ticker across all indices
 export function findStockByTicker(ticker: string): Stock | undefined {
-  return ALL_STOCKS.find(s => s.ticker === ticker);
+  return findStock(ticker);
 }
+
+// Re-export the database for direct access if needed
+export { STOCKS_DB };
