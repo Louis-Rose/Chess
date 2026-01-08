@@ -1815,14 +1815,15 @@ def send_earnings_alert_now():
 
 @app.route('/api/investing/news-feed', methods=['GET'])
 def get_news_feed():
-    """Get YouTube news feed videos, optionally filtered by ticker."""
+    """Get YouTube news feed videos, optionally filtered by ticker and company name."""
     ticker = request.args.get('ticker')
+    company_name = request.args.get('company_name')
     limit = request.args.get('limit', 50, type=int)
 
     api_key = os.environ.get('YOUTUBE_API_KEY')
 
     try:
-        result = get_news_feed_videos(get_db, api_key, ticker=ticker, limit=limit)
+        result = get_news_feed_videos(get_db, api_key, ticker=ticker, company_name=company_name, limit=limit)
         return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -943,10 +943,10 @@ def mark_channel_fetched(db_getter, channel_id):
         ''', (channel_id,))
 
 
-def get_news_feed_videos(db_getter, api_key, ticker=None, limit=50):
+def get_news_feed_videos(db_getter, api_key, ticker=None, company_name=None, limit=50):
     """
     Get news feed videos, refreshing cache if needed.
-    Optionally filters by ticker (company keywords).
+    Optionally filters by ticker and company_name.
 
     Returns: { 'videos': [...], 'from_cache': bool }
     """
@@ -969,9 +969,9 @@ def get_news_feed_videos(db_getter, api_key, ticker=None, limit=50):
     # Get all cached videos
     all_videos = get_cached_videos(db_getter)
 
-    # Filter by ticker if specified
+    # Filter by ticker/company if specified
     if ticker:
-        filtered = [v for v in all_videos if matches_company(v['title'], ticker)]
+        filtered = [v for v in all_videos if matches_company(v['title'], ticker, company_name)]
     else:
         filtered = all_videos
 

@@ -2,8 +2,8 @@
 # Channel whitelist and company keyword mappings
 
 # Channels to fetch videos from
-# Format: { 'channel_id': { 'name': 'Channel Name', 'uploads_playlist_id': 'UU...' } }
-# Note: uploads_playlist_id is the channel_id with 'UC' replaced by 'UU'
+# Format: { 'channel_id': { 'name': 'Channel Name' } }
+# To find channel ID: go to YouTube channel > View Page Source > search "channelId"
 YOUTUBE_CHANNELS = {
     # Example finance/investing channels (replace with actual channel IDs)
     'UCnMn36GT_H0X-w5_ckLtlgQ': {
@@ -26,81 +26,19 @@ YOUTUBE_CHANNELS = {
     },
 }
 
-# Company keywords mapping
-# Format: { 'TICKER': ['keyword1', 'keyword2', ...] }
-# Video title must contain at least one keyword (case-insensitive) to be shown for that company
-COMPANY_KEYWORDS = {
-    # Big Tech
-    'AAPL': ['Apple', 'iPhone', 'iPad', 'Mac', 'Tim Cook', 'AAPL'],
-    'MSFT': ['Microsoft', 'Windows', 'Azure', 'Satya Nadella', 'MSFT', 'Xbox'],
-    'GOOGL': ['Google', 'Alphabet', 'YouTube', 'Android', 'GOOGL', 'Sundar Pichai'],
-    'AMZN': ['Amazon', 'AWS', 'Jeff Bezos', 'Andy Jassy', 'AMZN', 'Prime'],
-    'META': ['Meta', 'Facebook', 'Instagram', 'WhatsApp', 'Zuckerberg', 'META'],
-    'NVDA': ['Nvidia', 'NVDA', 'Jensen Huang', 'GPU', 'CUDA'],
-    'TSLA': ['Tesla', 'Elon Musk', 'TSLA', 'Cybertruck', 'Model 3', 'Model Y'],
-
-    # Semiconductors
-    'AMD': ['AMD', 'Lisa Su', 'Ryzen', 'Radeon', 'EPYC'],
-    'INTC': ['Intel', 'INTC', 'Pat Gelsinger'],
-    'AVGO': ['Broadcom', 'AVGO'],
-    'QCOM': ['Qualcomm', 'QCOM', 'Snapdragon'],
-    'TSM': ['TSMC', 'Taiwan Semiconductor', 'TSM'],
-    'ASML': ['ASML', 'EUV', 'lithography'],
-
-    # Finance
-    'JPM': ['JPMorgan', 'JP Morgan', 'Jamie Dimon', 'JPM'],
-    'BAC': ['Bank of America', 'BofA', 'BAC'],
-    'GS': ['Goldman Sachs', 'Goldman', 'GS'],
-    'MS': ['Morgan Stanley', 'MS'],
-    'V': ['Visa', 'V'],
-    'MA': ['Mastercard', 'MA'],
-
-    # Healthcare
-    'JNJ': ['Johnson & Johnson', 'J&J', 'JNJ'],
-    'UNH': ['UnitedHealth', 'UNH'],
-    'PFE': ['Pfizer', 'PFE'],
-    'MRK': ['Merck', 'MRK'],
-    'ABBV': ['AbbVie', 'ABBV'],
-    'LLY': ['Eli Lilly', 'Lilly', 'LLY'],
-
-    # Consumer
-    'KO': ['Coca-Cola', 'Coke', 'KO'],
-    'PEP': ['Pepsi', 'PepsiCo', 'PEP'],
-    'WMT': ['Walmart', 'WMT'],
-    'COST': ['Costco', 'COST'],
-    'NKE': ['Nike', 'NKE'],
-    'MCD': ['McDonald', 'MCD'],
-    'SBUX': ['Starbucks', 'SBUX'],
-
-    # Industrial
-    'CAT': ['Caterpillar', 'CAT'],
-    'BA': ['Boeing', 'BA'],
-    'GE': ['General Electric', 'GE'],
-    'HON': ['Honeywell', 'HON'],
-    'UPS': ['UPS', 'United Parcel'],
-
-    # Energy
-    'XOM': ['Exxon', 'ExxonMobil', 'XOM'],
-    'CVX': ['Chevron', 'CVX'],
-
-    # Streaming & Entertainment
-    'NFLX': ['Netflix', 'NFLX'],
-    'DIS': ['Disney', 'DIS'],
-    'WBD': ['Warner Bros', 'WBD', 'HBO'],
-
-    # Retail & E-commerce
-    'TGT': ['Target', 'TGT'],
-    'HD': ['Home Depot', 'HD'],
-    'LOW': ['Lowe\'s', 'Lowes', 'LOW'],
-
-    # Airlines
-    'DAL': ['Delta', 'DAL'],
-    'UAL': ['United Airlines', 'UAL'],
-    'AAL': ['American Airlines', 'AAL'],
-
-    # Crypto-adjacent
-    'COIN': ['Coinbase', 'COIN'],
-    'MSTR': ['MicroStrategy', 'MSTR', 'Saylor'],
+# Additional keywords for specific companies (optional)
+# If a ticker is not in this dict, matching uses the company_name passed from frontend
+# Format: { 'TICKER': ['extra_keyword1', 'extra_keyword2', ...] }
+EXTRA_KEYWORDS = {
+    # Tech giants - add CEO names, product names, etc.
+    'AAPL': ['iPhone', 'iPad', 'Mac', 'Tim Cook', 'AAPL'],
+    'MSFT': ['Azure', 'Windows', 'Satya Nadella', 'MSFT', 'Xbox', 'Copilot'],
+    'GOOGL': ['Alphabet', 'YouTube', 'Android', 'GOOGL', 'Sundar Pichai', 'Gemini'],
+    'AMZN': ['AWS', 'Jeff Bezos', 'Andy Jassy', 'AMZN', 'Prime'],
+    'META': ['Facebook', 'Instagram', 'WhatsApp', 'Zuckerberg', 'META'],
+    'NVDA': ['Jensen Huang', 'GPU', 'CUDA', 'NVDA'],
+    'TSLA': ['Elon Musk', 'TSLA', 'Cybertruck', 'Model 3', 'Model Y'],
+    # Add more as needed...
 }
 
 
@@ -111,12 +49,25 @@ def get_uploads_playlist_id(channel_id):
     return channel_id
 
 
-def matches_company(title, ticker):
-    """Check if a video title matches a company's keywords."""
-    keywords = COMPANY_KEYWORDS.get(ticker, [])
-    if not keywords:
-        # If no keywords defined, match on ticker itself
-        return ticker.upper() in title.upper()
-
+def matches_company(title, ticker, company_name=None):
+    """
+    Check if a video title matches a company.
+    Uses company_name as primary keyword, plus any extra keywords defined for the ticker.
+    """
     title_upper = title.upper()
-    return any(kw.upper() in title_upper for kw in keywords)
+
+    # Check ticker itself
+    if ticker.upper() in title_upper:
+        return True
+
+    # Check company name (primary keyword)
+    if company_name and company_name.upper() in title_upper:
+        return True
+
+    # Check extra keywords if defined
+    extra = EXTRA_KEYWORDS.get(ticker.upper(), [])
+    for kw in extra:
+        if kw.upper() in title_upper:
+            return True
+
+    return False
