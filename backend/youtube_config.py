@@ -17,6 +17,12 @@ YOUTUBE_CHANNELS = {
     'UCEAZeUIeJs0IjQiqTCdVSIg': {
         'name': 'Yahoo Finance',
     },
+    'UCzQ2FFVe7m8yIgzXMZtlSjg': {
+        'name': 'Steve Eisman',
+    },
+    'UCRhQsN8AVIfZuBNeRV1A37w': {
+        'name': 'Norges Bank Investment Management',
+    },
 }
 
 # Additional keywords for specific companies (optional)
