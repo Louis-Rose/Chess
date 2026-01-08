@@ -262,7 +262,10 @@ export function StockDetailPanel() {
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none overflow-hidden">
           {/* Header - clickable to toggle */}
           <button
-            onClick={() => setFinancialsExpanded(!financialsExpanded)}
+            onClick={(e) => {
+              setFinancialsExpanded(!financialsExpanded);
+              setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
+            }}
             className="w-full px-6 py-4 flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
           >
             {financialsExpanded ? (
@@ -427,7 +430,10 @@ export function StockDetailPanel() {
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none overflow-hidden">
           {/* Header - clickable to toggle */}
           <button
-            onClick={() => setNewsFeedExpanded(!newsFeedExpanded)}
+            onClick={(e) => {
+              setNewsFeedExpanded(!newsFeedExpanded);
+              setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
+            }}
             className="w-full px-6 py-4 flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
           >
             {newsFeedExpanded ? (
