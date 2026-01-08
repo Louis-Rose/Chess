@@ -108,6 +108,7 @@ EUROPEAN_TICKER_MAP = {
     # Danish stocks (.CO)
     'NOVO-B': 'NOVO-B.CO', 'NOVOB': 'NOVO-B.CO', 'CARL-B': 'CARL-B.CO',
     'VWS': 'VWS.CO', 'DSV': 'DSV.CO', 'MAERSK-B': 'MAERSK-B.CO', 'ORSTED': 'ORSTED.CO',
+    'PNDORA': 'PNDORA.CO',
     # Finnish stocks (.HE)
     'NOKIA': 'NOKIA.HE', 'NESTE': 'NESTE.HE', 'FORTUM': 'FORTUM.HE',
     'UPM': 'UPM.HE', 'STERV': 'STERV.HE', 'KNEBV': 'KNEBV.HE',
