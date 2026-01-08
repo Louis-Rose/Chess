@@ -26,7 +26,7 @@ EXTRA_KEYWORDS = {
     # Tech giants - add CEO names, product names, etc.
     'AAPL': ['iPhone', 'iPad', 'Mac', 'Tim Cook', 'AAPL'],
     'MSFT': ['Azure', 'Windows', 'Satya Nadella', 'MSFT', 'Xbox', 'Copilot'],
-    'GOOGL': ['Alphabet', 'YouTube', 'Android', 'GOOGL', 'Sundar Pichai', 'Gemini'],
+    'GOOGL': ['Google', 'Alphabet'],
     'AMZN': ['AWS', 'Jeff Bezos', 'Andy Jassy', 'AMZN', 'Prime'],
     'META': ['Facebook', 'Instagram', 'WhatsApp', 'Zuckerberg', 'META'],
     'NVDA': ['Jensen Huang', 'GPU', 'CUDA', 'NVDA'],
