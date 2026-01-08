@@ -1708,6 +1708,9 @@ export function PortfolioPanel() {
                             ? (language === 'fr' ? 'Performance (annualisée)' : 'Performance (annualized)')
                             : (language === 'fr' ? 'Performance (totale)' : 'Performance (all)');
 
+                          const displayBenchmarkPerf = showAnnualized ? Math.round(benchmarkCagr * 10) / 10 : Math.round(benchmarkPerfPct * 10) / 10;
+                          const benchmarkPerfLabel = language === 'fr' ? `Performance ${benchmarkTicker}` : `${benchmarkTicker} performance`;
+
                           const outperfLabel = displayOutperf >= 0
                             ? (language === 'fr' ? `Surperformance (${benchmarkTicker})` : `Outperformance (${benchmarkTicker})`)
                             : (language === 'fr' ? `Sous-performance (${benchmarkTicker})` : `Underperformance (${benchmarkTicker})`);
@@ -1728,6 +1731,9 @@ export function PortfolioPanel() {
                               </p>
                               <p style={{ color: displayPerf >= 0 ? '#16a34a' : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', marginTop: '4px', borderTop: '1px solid #e2e8f0', paddingTop: '4px' }}>
                                 {perfLabel} : {displayPerf >= 0 ? '+' : ''}{displayPerf}%
+                              </p>
+                              <p style={{ color: displayBenchmarkPerf >= 0 ? '#16a34a' : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                                {benchmarkPerfLabel} : {displayBenchmarkPerf >= 0 ? '+' : ''}{displayBenchmarkPerf}%
                               </p>
                               <p style={{ color: displayOutperf >= 0 ? '#16a34a' : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                                 {outperfLabel} : {displayOutperf >= 0 ? '+' : ''}{Math.abs(displayOutperf)}%
