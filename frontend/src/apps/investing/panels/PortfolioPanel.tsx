@@ -1501,6 +1501,8 @@ export function PortfolioPanel() {
                 cagr_eur: cagrPortfolio,
                 cagr_benchmark_eur: cagrBenchmark,
               } : {
+                start_date: allData[0]?.date,
+                end_date: allData[allData.length - 1]?.date,
                 years: performanceData.summary?.years ?? 0,
                 portfolio_return_eur: performanceData.summary?.portfolio_return_eur ?? 0,
                 benchmark_return_eur: performanceData.summary?.benchmark_return_eur ?? 0,
@@ -1544,12 +1546,34 @@ export function PortfolioPanel() {
                         <p className="text-slate-500 text-xs md:text-sm mb-1">{language === 'fr' ? 'Période de détention' : 'Holding period'}</p>
                         <span className="text-sm md:text-lg font-bold text-slate-800">
                           {(() => {
-                            const y = filteredSummary.years;
-                            const fullYears = Math.floor(y);
-                            const months = Math.round((y - fullYears) * 12);
-                            if (months === 0) return `${fullYears} ${fullYears !== 1 ? t('performance.years') : t('performance.year')}`;
-                            if (fullYears === 0) return `${months} ${t('performance.months')}`;
-                            return `${fullYears} ${fullYears !== 1 ? t('performance.years') : t('performance.year')} ${months} ${language === 'fr' ? 'mois' : (months !== 1 ? 'months' : 'month')}`;
+                            const start = new Date(filteredSummary.start_date);
+                            const end = new Date(filteredSummary.end_date);
+
+                            // Calculate years, months, days using calendar logic
+                            let years = end.getFullYear() - start.getFullYear();
+                            let months = end.getMonth() - start.getMonth();
+                            let days = end.getDate() - start.getDate();
+
+                            // Adjust for negative days
+                            if (days < 0) {
+                              months--;
+                              // Get days in previous month
+                              const prevMonth = new Date(end.getFullYear(), end.getMonth(), 0);
+                              days += prevMonth.getDate();
+                            }
+
+                            // Adjust for negative months
+                            if (months < 0) {
+                              years--;
+                              months += 12;
+                            }
+
+                            const parts: string[] = [];
+                            if (years > 0) parts.push(`${years} ${years !== 1 ? t('performance.years') : t('performance.year')}`);
+                            if (months > 0) parts.push(`${months} ${language === 'fr' ? 'mois' : (months !== 1 ? 'months' : 'month')}`);
+                            if (days > 0) parts.push(`${days} ${language === 'fr' ? (days !== 1 ? 'jours' : 'jour') : (days !== 1 ? 'days' : 'day')}`);
+
+                            return parts.length > 0 ? parts.join(' ') : (language === 'fr' ? '0 jour' : '0 days');
                           })()}
                         </span>
                       </div>
@@ -1698,9 +1722,10 @@ export function PortfolioPanel() {
                           const benchmarkTotalReturn = costBasis > 0 ? (benchmarkValue / costBasis) : 1;
                           const benchmarkCagr = years > 0 ? (Math.pow(benchmarkTotalReturn, 1 / years) - 1) * 100 : 0;
 
-                          // Outperformance/Underperformance
-                          const outperfTotal = perfPct - benchmarkPerfPct;
-                          const outperfAnnualized = cagr - benchmarkCagr;
+                          // Outperformance/Underperformance (geometric)
+                          // Formula: (1 + portfolio_return) / (1 + benchmark_return) - 1
+                          const outperfTotal = benchmarkTotalReturn > 0 ? ((totalReturn / benchmarkTotalReturn) - 1) * 100 : 0;
+                          const outperfAnnualized = (1 + benchmarkCagr / 100) > 0 ? (((1 + cagr / 100) / (1 + benchmarkCagr / 100)) - 1) * 100 : 0;
                           const displayOutperf = showAnnualized ? Math.round(outperfAnnualized * 10) / 10 : Math.round(outperfTotal * 10) / 10;
 
                           const displayPerf = showAnnualized ? cagrRounded : perfRounded;
