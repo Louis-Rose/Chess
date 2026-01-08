@@ -261,16 +261,16 @@ export function StockDetailPanel() {
           {/* Header - clickable to toggle */}
           <button
             onClick={() => setFinancialsExpanded(!financialsExpanded)}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+            className="w-full px-6 py-4 flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
           >
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {language === 'fr' ? 'Données financières' : 'Financials'}
-            </h2>
             {financialsExpanded ? (
               <ChevronUp className="w-5 h-5 text-slate-500" />
             ) : (
               <ChevronDown className="w-5 h-5 text-slate-500" />
             )}
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {language === 'fr' ? 'Données financières' : 'Financials'}
+            </h2>
           </button>
 
           {/* Collapsible content */}
