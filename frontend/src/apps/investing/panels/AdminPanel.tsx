@@ -589,7 +589,7 @@ export function AdminPanel() {
                       onClick={() => navigate(`/investing/admin/user/${u.id}`)}
                     >
                       <td className="py-3 pl-2 text-slate-500 dark:text-slate-300">#{u.id}</td>
-                      <td className="py-3 max-w-[120px] sm:max-w-[180px]">
+                      <td className="py-3">
                         <div className="flex items-center gap-2">
                           {u.picture ? (
                             <img
@@ -602,7 +602,18 @@ export function AdminPanel() {
                               {u.name?.charAt(0) || '?'}
                             </div>
                           )}
-                          <span className="font-medium text-slate-800 dark:text-slate-100 truncate">{u.name || '-'}</span>
+                          <div className="flex flex-col sm:flex-row sm:gap-1">
+                            {u.name ? (
+                              <>
+                                <span className="font-medium text-slate-800 dark:text-slate-100 text-xs sm:text-sm">{u.name.split(' ')[0]}</span>
+                                {u.name.split(' ').slice(1).length > 0 && (
+                                  <span className="font-medium text-slate-800 dark:text-slate-100 text-xs sm:text-sm">{u.name.split(' ').slice(1).join(' ')}</span>
+                                )}
+                              </>
+                            ) : (
+                              <span className="font-medium text-slate-800 dark:text-slate-100 text-xs sm:text-sm">-</span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="py-3 text-slate-500 dark:text-slate-300 text-sm">
