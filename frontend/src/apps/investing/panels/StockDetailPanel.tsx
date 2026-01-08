@@ -530,53 +530,56 @@ export function StockDetailPanel() {
 
         {/* News Feed */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none overflow-hidden">
-          {/* Header - clickable to toggle */}
-          <button
-            onClick={(e) => {
-              setNewsFeedExpanded(!newsFeedExpanded);
-              setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
-            }}
-            className="w-full px-6 py-4 flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
-          >
-            {newsFeedExpanded ? (
-              <ChevronUp className="w-5 h-5 text-slate-500" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-slate-500" />
-            )}
-            <Youtube className="w-5 h-5 text-red-500" />
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {language === 'fr' ? 'Actualités' : 'News Feed'}
-            </h2>
-          </button>
+          {/* Header row with toggle and filters */}
+          <div className="px-6 py-4 flex items-center gap-3">
+            <button
+              onClick={(e) => {
+                setNewsFeedExpanded(!newsFeedExpanded);
+                setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
+              }}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
+              {newsFeedExpanded ? (
+                <ChevronUp className="w-5 h-5 text-slate-500" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-slate-500" />
+              )}
+              <Youtube className="w-5 h-5 text-red-500" />
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                {language === 'fr' ? 'Actualités' : 'News Feed'}
+              </h2>
+            </button>
+
+            {/* Time filter and refresh - always visible */}
+            <div className="ml-auto flex items-center gap-3">
+              <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
+                {(['1M', '3M', 'ALL'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setVideoFilter(filter)}
+                    className={`px-2 py-1 text-xs font-medium transition-colors ${
+                      videoFilter === filter
+                        ? 'bg-red-500 text-white'
+                        : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500'
+                    }`}
+                  >
+                    {filter === 'ALL' ? (language === 'fr' ? 'Tout' : 'All') : filter}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => refetchNews()}
+                disabled={newsFetching}
+                className="text-slate-500 hover:text-blue-600 flex items-center gap-1 text-sm disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${newsFetching ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
 
           {/* Collapsible content */}
           {newsFeedExpanded && (
-            <div className="px-6 pt-4 pb-6">
-              <div className="flex items-center justify-end gap-3 mb-4">
-                {/* Time filter */}
-                <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
-                  {(['1M', '3M', 'ALL'] as const).map((filter) => (
-                    <button
-                      key={filter}
-                      onClick={() => setVideoFilter(filter)}
-                      className={`px-2 py-1 text-xs font-medium transition-colors ${
-                        videoFilter === filter
-                          ? 'bg-red-500 text-white'
-                          : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500'
-                      }`}
-                    >
-                      {filter === 'ALL' ? (language === 'fr' ? 'Tout' : 'All') : filter}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={() => refetchNews()}
-                  disabled={newsFetching}
-                  className="text-slate-500 hover:text-blue-600 flex items-center gap-1 text-sm disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-4 h-4 ${newsFetching ? 'animate-spin' : ''}`} />
-                </button>
-              </div>
+            <div className="px-6 pb-6">
 
               {newsLoading ? (
                 <div className="flex items-center justify-center py-8">

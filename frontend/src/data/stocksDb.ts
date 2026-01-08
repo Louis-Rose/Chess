@@ -64,12 +64,12 @@ export function getCompanyLogoDomain(ticker: string): string | null {
 }
 
 /**
- * Get logo URL using Clearbit API
+ * Get logo URL using Google's favicon service (more reliable than Clearbit)
  */
 export function getCompanyLogoUrl(ticker: string): string | null {
   const domain = getCompanyLogoDomain(ticker);
   if (!domain) return null;
-  return `https://logo.clearbit.com/${domain}`;
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
 }
 
 /**
