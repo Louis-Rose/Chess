@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, Shield, PanelLeftClose, PanelLeftOpen, Clock, X, Youtube } from 'lucide-react';
+import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, Shield, PanelLeftClose, PanelLeftOpen, Clock, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -25,7 +25,6 @@ import { findStockByTicker } from './utils/allStocks';
 const navItems = [
   { path: '/investing', icon: Home, labelEn: 'Welcome', labelFr: 'Accueil', end: true },
   { path: '/investing/financials', icon: TrendingUp, labelEn: 'Stocks Research', labelFr: 'Recherche Actions' },
-  { path: '/investing/news', icon: Youtube, labelEn: 'News Feed', labelFr: 'Fil d\'actualités' },
   { path: '/investing/portfolio', icon: Briefcase, labelEn: 'My Portfolio', labelFr: 'Mon Portefeuille' },
   { path: '/investing/watchlist', icon: Eye, labelEn: 'My Watchlist', labelFr: 'Ma Watchlist' },
   { path: '/investing/earnings', icon: Calendar, labelEn: 'Earnings Calendar', labelFr: 'Calendrier des Résultats' },
