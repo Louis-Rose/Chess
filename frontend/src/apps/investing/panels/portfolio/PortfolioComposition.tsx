@@ -5,7 +5,7 @@ import { toPng } from 'html-to-image';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import type { CompositionData, CompositionItem } from './types';
-import { formatEur, addLumraBranding, getScaleFactor, PRIVATE_COST_BASIS } from './utils';
+import { formatEur, addLumraBranding, getScaleFactor } from './utils';
 
 interface PortfolioCompositionProps {
   compositionData: CompositionData | undefined;
