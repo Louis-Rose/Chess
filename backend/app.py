@@ -1167,6 +1167,15 @@ def get_market_cap():
                 'market_cap': market_cap,
                 'trailing_pe': info.get('trailingPE'),
                 'forward_pe': info.get('forwardPE'),
+                'dividend_yield': info.get('dividendYield'),
+                'beta': info.get('beta'),
+                'price_to_book': info.get('priceToBook'),
+                'trailing_eps': info.get('trailingEps'),
+                'profit_margin': info.get('profitMargins'),
+                'return_on_equity': info.get('returnOnEquity'),
+                'fifty_two_week_high': info.get('fiftyTwoWeekHigh'),
+                'fifty_two_week_low': info.get('fiftyTwoWeekLow'),
+                'revenue_growth': info.get('revenueGrowth'),
             }
         except Exception as e:
             results[ticker] = {

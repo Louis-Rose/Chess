@@ -26,6 +26,15 @@ interface MarketCapData {
   market_cap: number | null;
   trailing_pe: number | null;
   forward_pe: number | null;
+  dividend_yield: number | null;
+  beta: number | null;
+  price_to_book: number | null;
+  trailing_eps: number | null;
+  profit_margin: number | null;
+  return_on_equity: number | null;
+  fifty_two_week_high: number | null;
+  fifty_two_week_low: number | null;
+  revenue_growth: number | null;
 }
 
 interface Video {
@@ -285,7 +294,7 @@ export function StockDetailPanel() {
               {marketCapLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
               ) : (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   <div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
                       {language === 'fr' ? 'Cap. boursière' : 'Market Cap'}
@@ -308,6 +317,78 @@ export function StockDetailPanel() {
                     </p>
                     <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                       {marketCapData?.forward_pe ? marketCapData.forward_pe.toFixed(1) : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                      {language === 'fr' ? 'Rendement div.' : 'Div. Yield'}
+                    </p>
+                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      {marketCapData?.dividend_yield ? `${(marketCapData.dividend_yield * 100).toFixed(2)}%` : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                      Beta
+                    </p>
+                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      {marketCapData?.beta ? marketCapData.beta.toFixed(2) : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                      P/B Ratio
+                    </p>
+                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      {marketCapData?.price_to_book ? marketCapData.price_to_book.toFixed(2) : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                      EPS
+                    </p>
+                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      {marketCapData?.trailing_eps ? `$${marketCapData.trailing_eps.toFixed(2)}` : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                      {language === 'fr' ? 'Marge nette' : 'Profit Margin'}
+                    </p>
+                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      {marketCapData?.profit_margin ? `${(marketCapData.profit_margin * 100).toFixed(1)}%` : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                      ROE
+                    </p>
+                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      {marketCapData?.return_on_equity ? `${(marketCapData.return_on_equity * 100).toFixed(1)}%` : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                      {language === 'fr' ? 'Croiss. CA' : 'Rev. Growth'}
+                    </p>
+                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      {marketCapData?.revenue_growth ? `${(marketCapData.revenue_growth * 100).toFixed(1)}%` : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                      52W High
+                    </p>
+                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      {marketCapData?.fifty_two_week_high ? `$${marketCapData.fifty_two_week_high.toFixed(2)}` : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                      52W Low
+                    </p>
+                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      {marketCapData?.fifty_two_week_low ? `$${marketCapData.fifty_two_week_low.toFixed(2)}` : '-'}
                     </p>
                   </div>
                 </div>
