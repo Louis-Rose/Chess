@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Minus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../../utils/allStocks';
@@ -25,6 +26,7 @@ export function TransactionForm({
   addError,
   privateMode,
 }: TransactionFormProps) {
+  const navigate = useNavigate();
   const { language, t } = useLanguage();
 
   // UI state
@@ -383,7 +385,12 @@ export function TransactionForm({
                     <div className={`px-2 py-1 rounded text-xs font-bold ${tx.transaction_type === 'BUY' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {tx.transaction_type === 'BUY' ? t('transactions.buy') : t('transactions.sell')}
                     </div>
-                    <span className="font-bold text-slate-800 w-16">{tx.stock_ticker}</span>
+                    <button
+                      onClick={() => navigate(`/investing/stock/${tx.stock_ticker}`)}
+                      className="font-bold text-slate-800 w-16 hover:text-green-600 hover:underline text-left"
+                    >
+                      {tx.stock_ticker}
+                    </button>
                     <span className="text-slate-600">{privateMode ? '**' : tx.quantity} {t('transactions.shares')}</span>
                     <span className="text-slate-400">@</span>
                     <span className="text-slate-600">${tx.price_per_share.toFixed(2)}</span>
