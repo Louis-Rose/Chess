@@ -384,6 +384,79 @@ def fetch_current_stock_price(stock_ticker):
     return price
 
 
+def fetch_current_stock_prices_batch(tickers):
+    """
+    Fetch current prices for multiple tickers in a single API call.
+    Returns: dict mapping ticker -> price (using original ticker names as keys)
+    """
+    if not tickers:
+        return {}
+
+    prices = {}
+    tickers_to_fetch = []
+    ticker_mapping = {}  # yf_ticker -> original_ticker
+
+    # First check cache for each ticker
+    for ticker in tickers:
+        cached = _get_cached_current_price(ticker)
+        if cached is not None:
+            prices[ticker] = cached
+        else:
+            yf_ticker = get_yfinance_ticker(ticker)
+            tickers_to_fetch.append(yf_ticker)
+            ticker_mapping[yf_ticker] = ticker
+
+    if not tickers_to_fetch:
+        return prices
+
+    try:
+        # Batch download - single API call for all tickers
+        data = yf.download(
+            tickers_to_fetch,
+            period='1d',
+            progress=False,
+            threads=True
+        )
+
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        if len(tickers_to_fetch) == 1:
+            # Single ticker returns different structure
+            yf_ticker = tickers_to_fetch[0]
+            original_ticker = ticker_mapping[yf_ticker]
+            if not data.empty and 'Close' in data.columns:
+                price = round(float(data['Close'].iloc[-1]), 2)
+                prices[original_ticker] = price
+                _save_cached_price(original_ticker, today, price)
+        else:
+            # Multiple tickers - columns are MultiIndex
+            for yf_ticker in tickers_to_fetch:
+                original_ticker = ticker_mapping[yf_ticker]
+                try:
+                    if yf_ticker in data['Close'].columns:
+                        close_val = data['Close'][yf_ticker].iloc[-1]
+                        if not pd.isna(close_val):
+                            price = round(float(close_val), 2)
+                            prices[original_ticker] = price
+                            _save_cached_price(original_ticker, today, price)
+                except (KeyError, IndexError):
+                    pass
+    except Exception as e:
+        print(f"Error in batch price fetch: {e}")
+
+    # Fallback: fetch remaining tickers individually
+    for ticker in tickers:
+        if ticker not in prices:
+            try:
+                price = fetch_current_stock_price(ticker)
+                if price:
+                    prices[ticker] = price
+            except Exception:
+                prices[ticker] = 0
+
+    return prices
+
+
 def fetch_eurusd_rate(date_str):
     """Fetch EUR/USD exchange rate for a given date (with caching)."""
     # Check cache first
@@ -468,6 +541,10 @@ def compute_portfolio_composition(holdings):
     total_cost_basis_usd = 0
     total_cost_basis_eur = 0
 
+    # Batch fetch all prices in a single API call
+    all_tickers = [h['stock_ticker'] for h in holdings]
+    prices = fetch_current_stock_prices_batch(all_tickers)
+
     for holding in holdings:
         ticker = holding['stock_ticker']
         quantity = holding['quantity']
@@ -475,45 +552,26 @@ def compute_portfolio_composition(holdings):
         total_cost = holding.get('total_cost', cost_basis_per_share * quantity)
         total_cost_eur = holding.get('total_cost_eur', total_cost)  # Fallback to USD if not provided
 
-        try:
-            current_price = fetch_current_stock_price(ticker)
-            if current_price is None:
-                current_price = 0
-            current_value = current_price * quantity
-            gain_usd = current_value - total_cost
-            gain_pct = round(100 * gain_usd / total_cost, 1) if total_cost > 0 else 0
+        current_price = prices.get(ticker, 0) or 0
+        current_value = current_price * quantity
+        gain_usd = current_value - total_cost
+        gain_pct = round(100 * gain_usd / total_cost, 1) if total_cost > 0 else 0
 
-            composition.append({
-                'ticker': ticker,
-                'quantity': quantity,
-                'current_price': current_price,
-                'current_value': round(current_value, 2),
-                'cost_basis': round(total_cost, 2),
-                'cost_basis_eur': round(total_cost_eur, 2),
-                'avg_cost': round(cost_basis_per_share, 2),
-                'gain_usd': round(gain_usd, 2),
-                'gain_pct': gain_pct,
-                'color': STOCK_COLORS.get(ticker, '#95A5A6')
-            })
-            total_value += current_value
-            total_cost_basis_usd += total_cost
-            total_cost_basis_eur += total_cost_eur
-        except Exception as e:
-            print(f"Error fetching price for {ticker}: {e}")
-            composition.append({
-                'ticker': ticker,
-                'quantity': quantity,
-                'current_price': 0,
-                'current_value': 0,
-                'cost_basis': round(total_cost, 2),
-                'cost_basis_eur': round(total_cost_eur, 2),
-                'avg_cost': round(cost_basis_per_share, 2),
-                'gain_usd': -total_cost,
-                'gain_pct': -100,
-                'color': STOCK_COLORS.get(ticker, '#95A5A6')
-            })
-            total_cost_basis_usd += total_cost
-            total_cost_basis_eur += total_cost_eur
+        composition.append({
+            'ticker': ticker,
+            'quantity': quantity,
+            'current_price': current_price,
+            'current_value': round(current_value, 2),
+            'cost_basis': round(total_cost, 2),
+            'cost_basis_eur': round(total_cost_eur, 2),
+            'avg_cost': round(cost_basis_per_share, 2),
+            'gain_usd': round(gain_usd, 2),
+            'gain_pct': gain_pct,
+            'color': STOCK_COLORS.get(ticker, '#95A5A6')
+        })
+        total_value += current_value
+        total_cost_basis_usd += total_cost
+        total_cost_basis_eur += total_cost_eur
 
     # Calculate weights
     for item in composition:

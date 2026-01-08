@@ -41,19 +41,21 @@ def get_chess_stats():
         # 1. Fetch Player data
         player_data = utils.fetch_player_data_and_stats(username)
 
-        # 2. Fetch History (weekly) - filtered by time class
-        history = utils.fetch_games_played_per_week(username, time_class=time_class)
-
-        # 3. Fetch Elo history - filtered by time class
-        elo_history, total_games = utils.fetch_elo_per_week(username, time_class=time_class)
-
-        # 4. Fetch Openings (This can be slow, might want to split endpoints later)
+        # 2. Fetch archives once - reuse for all functions
         archives = utils.fetch_player_games_archives(username)
+
+        # 3. Fetch History (weekly) - filtered by time class
+        history = utils.fetch_games_played_per_week(username, time_class=time_class, archives=archives)
+
+        # 4. Fetch Elo history - filtered by time class
+        elo_history, total_games = utils.fetch_elo_per_week(username, time_class=time_class, archives=archives)
+
+        # 5. Fetch Openings
         raw_openings = utils.fetch_all_openings(username, archives)
         processed_openings = utils.process_openings_for_json(raw_openings)
 
-        # 5. Fetch win rate by game number per day
-        game_number_stats = utils.fetch_win_rate_by_game_number(username, time_class=time_class)
+        # 6. Fetch win rate by game number per day
+        game_number_stats = utils.fetch_win_rate_by_game_number(username, time_class=time_class, archives=archives)
 
         return jsonify({
             "player": {

@@ -50,7 +50,7 @@ def fetch_stats_streaming(USERNAME, time_class='rapid', cached_stats=None, last_
         yield chunk
 
 
-def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cached_stats_map=None, last_archive=None):
+def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cached_stats_map=None, last_archive=None, archives=None):
     """
     Generator that fetches stats for ALL time classes (rapid, blitz) in a single pass.
     Yields SSE-formatted progress events and final data for the requested time class.
@@ -58,12 +58,14 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
     Also returns all_time_classes_data in the final message for caching.
 
     cached_stats_map: dict of {time_class: stats_data} for incremental updates
+    archives: optional pre-fetched archives list to avoid redundant API calls
     """
     TIME_CLASSES = ['rapid', 'blitz']
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
 
-    # Step 1: Get archives list
-    archives = fetch_player_games_archives(USERNAME)
+    # Step 1: Get archives list (use provided or fetch)
+    if archives is None:
+        archives = fetch_player_games_archives(USERNAME)
 
     # For incremental updates, filter to only new archives
     archives_to_fetch = archives
@@ -324,9 +326,9 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
     yield f"data: {json.dumps(final_data)}\n\n"
 
 
-def fetch_games_played_per_week(USERNAME, time_class=None):
+def fetch_games_played_per_week(USERNAME, time_class=None, archives=None):
     """Fetch games played per week, optionally filtered by time class."""
-    monthly_archives_urls_list = fetch_player_games_archives(USERNAME)
+    monthly_archives_urls_list = archives if archives is not None else fetch_player_games_archives(USERNAME)
     games_by_week = {}
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
 
@@ -367,11 +369,11 @@ def fetch_games_played_per_week(USERNAME, time_class=None):
 
     return fill_missing_weeks(games_per_week_data)
 
-def fetch_elo_per_week(USERNAME, time_class='rapid'):
+def fetch_elo_per_week(USERNAME, time_class='rapid', archives=None):
     """Fetch the last Elo rating per week for a given time control.
     Returns: (elo_per_week_data, total_games_count)
     """
-    monthly_archives_urls_list = fetch_player_games_archives(USERNAME)
+    monthly_archives_urls_list = archives if archives is not None else fetch_player_games_archives(USERNAME)
     elo_by_week = {}  # {(year, week): {'elo': rating, 'timestamp': end_time}}
     total_games = 0
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
@@ -426,13 +428,13 @@ def fetch_elo_per_week(USERNAME, time_class='rapid'):
 
     return fill_missing_weeks_elo(elo_per_week_data), total_games
 
-def fetch_win_rate_by_game_number(USERNAME, time_class='rapid'):
+def fetch_win_rate_by_game_number(USERNAME, time_class='rapid', archives=None):
     """
     Calculate win rate by game number per day.
     E.g., what's the win rate for the 1st game of the day, 2nd game, etc.
     Returns: list of {game_number, win_rate, sample_size}
     """
-    monthly_archives_urls_list = fetch_player_games_archives(USERNAME)
+    monthly_archives_urls_list = archives if archives is not None else fetch_player_games_archives(USERNAME)
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
 
     # Collect all games with their date and timestamp
@@ -1242,7 +1244,7 @@ def fetch_youtube_videos(opening, side, api_key, max_results=3, use_transcript_s
     return selected_videos
 
 
-def compute_fatigue_analysis(USERNAME, time_class='rapid'):
+def compute_fatigue_analysis(USERNAME, time_class='rapid', archives=None):
     """
     Analyze how fatigue affects your chess performance.
     Uses logistic regression to understand the impact of:
@@ -1250,7 +1252,7 @@ def compute_fatigue_analysis(USERNAME, time_class='rapid'):
     - Time between games
     - Total time spent playing
     """
-    monthly_archives_urls_list = fetch_player_games_archives(USERNAME)
+    monthly_archives_urls_list = archives if archives is not None else fetch_player_games_archives(USERNAME)
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
 
     # Collect all games with timestamps
@@ -1455,14 +1457,14 @@ def compute_fatigue_analysis(USERNAME, time_class='rapid'):
     }
 
 
-def compute_win_prediction_analysis_streaming(USERNAME, time_class='rapid'):
+def compute_win_prediction_analysis_streaming(USERNAME, time_class='rapid', archives=None):
     """
     Streaming version: Analyze if the result of the immediately preceding game (from the same day)
     predicts the outcome of the current game using logistic regression.
 
     Yields SSE-formatted progress events and final data.
     """
-    monthly_archives_urls_list = fetch_player_games_archives(USERNAME)
+    monthly_archives_urls_list = archives if archives is not None else fetch_player_games_archives(USERNAME)
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
     total_archives = len(monthly_archives_urls_list)
 
