@@ -695,7 +695,6 @@ export function PortfolioPanel() {
                   <div className="flex items-center gap-3">
                     <Building2 className="w-5 h-5 text-slate-600 dark:text-slate-600" />
                     <h3 className="text-xl font-bold text-slate-800">{t('accounts.title')}</h3>
-                    <span className="text-slate-500 text-sm">({accounts.length})</span>
                   </div>
                   {!showAddAccountForm && (
                     <button
