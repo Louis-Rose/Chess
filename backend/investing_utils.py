@@ -937,14 +937,20 @@ def fetch_all_channel_videos(api_key, max_per_channel=20):
 
 
 def get_cached_videos(db_getter):
-    """Get all cached videos from database."""
+    """Get cached videos from database, filtered to allowed channels only."""
+    allowed_channel_ids = list(YOUTUBE_CHANNELS.keys())
+    if not allowed_channel_ids:
+        return []
+
+    placeholders = ','.join('?' * len(allowed_channel_ids))
     with db_getter() as conn:
-        cursor = conn.execute('''
+        cursor = conn.execute(f'''
             SELECT video_id, channel_id, channel_name, title, thumbnail_url,
                    published_at, view_count, updated_at
             FROM youtube_videos_cache
+            WHERE channel_id IN ({placeholders})
             ORDER BY published_at DESC
-        ''')
+        ''', allowed_channel_ids)
         rows = cursor.fetchall()
 
     return [dict(row) for row in rows]
