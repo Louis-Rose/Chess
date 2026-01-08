@@ -23,14 +23,15 @@ YOUTUBE_CHANNELS = {
 # If a ticker is not in this dict, matching uses the company_name passed from frontend
 # Format: { 'TICKER': ['extra_keyword1', 'extra_keyword2', ...] }
 EXTRA_KEYWORDS = {
-    # Tech giants - add CEO names, product names, etc.
-    'AAPL': ['iPhone', 'iPad', 'Mac', 'Tim Cook', 'AAPL'],
-    'MSFT': ['Azure', 'Windows', 'Satya Nadella', 'MSFT', 'Xbox', 'Copilot'],
-    'GOOGL': ['Google', 'Alphabet'],
-    'AMZN': ['AWS', 'Jeff Bezos', 'Andy Jassy', 'AMZN', 'Prime'],
-    'META': ['Facebook', 'Instagram', 'WhatsApp', 'Zuckerberg', 'META'],
-    'NVDA': ['Jensen Huang', 'GPU', 'CUDA', 'NVDA'],
-    'TSLA': ['Elon Musk', 'TSLA', 'Cybertruck', 'Model 3', 'Model Y'],
+    # Tech giants
+    'AAPL': ['Apple', 'iPhone', 'iPad', 'Mac', 'Tim Cook'],
+    'MSFT': ['Microsoft', 'Azure', 'Windows', 'Satya Nadella', 'Xbox', 'Copilot'],
+    'GOOGL': ['Google', 'Alphabet', 'YouTube', 'Android', 'Sundar Pichai', 'Gemini'],
+    'GOOG': ['Google', 'Alphabet', 'YouTube', 'Android', 'Sundar Pichai', 'Gemini'],
+    'AMZN': ['Amazon', 'AWS', 'Jeff Bezos', 'Andy Jassy', 'Prime'],
+    'META': ['Meta', 'Facebook', 'Instagram', 'WhatsApp', 'Zuckerberg'],
+    'NVDA': ['Nvidia', 'Jensen Huang', 'GPU', 'CUDA'],
+    'TSLA': ['Tesla', 'Elon Musk', 'Cybertruck', 'Model 3', 'Model Y'],
     # Add more as needed...
 }
 
