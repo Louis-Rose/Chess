@@ -931,6 +931,7 @@ const TICKER_TO_IR: Record<string, string> = {
   GN: 'https://www.gn.com/investors',
   ISS: 'https://inv.issworld.com/',
   JYSK: 'https://www.jyskebank.com/investorrelations',
+  PNDORA: 'https://pandoragroup.com/investor',
 
   // Sweden Companies
   CAST: 'https://www.castellum.com/investors/',
@@ -1166,6 +1167,55 @@ const TICKER_TO_IR: Record<string, string> = {
 
   // Swiss Other
   APGN: 'https://www.apgsga.ch/en/investor-relations/',
+  UHR: 'https://www.swatchgroup.com/en/investors',
+
+  // ============================================
+  // Additional European companies (from ticker map)
+  // ============================================
+
+  // Spain
+  BBVA: 'https://www.bbva.com/en/shareholders-and-investors/',
+
+  // Austria
+  OMV: 'https://www.omv.com/en/investors',
+  VOE: 'https://www.voestalpine.com/group/en/investors/',
+
+  // Norway
+  MOWI: 'https://mowi.com/investors/',
+  ORK: 'https://www.orkla.com/investors/',
+
+  // Finland
+  NESTE: 'https://www.neste.com/investors',
+  STERV: 'https://www.stora-enso.com/investors',
+
+  // Netherlands
+  ABN: 'https://www.abnamro.com/en/investor-relations',
+  UNA: 'https://www.unilever.com/investor-relations/',
+
+  // Sweden
+  'VOLV-B': 'https://www.volvogroup.com/en/investors.html',
+  'SEB-A': 'https://sebgroup.com/about-seb/investor-relations',
+  'SKA-B': 'https://www.skanska.com/investors/',
+  'INVE-B': 'https://www.investorab.com/investors-media/',
+
+  // UK (additional)
+  NWG: 'https://www.natwestgroup.com/investors.html',
+
+  // Germany (additional)
+  TKA: 'https://www.thyssenkrupp.com/en/investors',
+  PAH3: 'https://www.porsche-se.com/en/investor-relations',
+
+  // France (additional)
+  ML: 'https://www.michelin.com/en/finance/',
+  ATO: 'https://www.atos.net/en/investors',
+
+  // Italy (additional)
+  SRG: 'https://www.snamretegas.it/en/investor-relations/',
+  SPM: 'https://www.saipem.com/en/investors',
+  MB: 'https://www.mediobanca.com/en/investor-relations.html',
+
+  // Ireland
+  CRG: 'https://www.crh.com/investors',
 };
 
 /**
