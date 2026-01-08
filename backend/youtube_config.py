@@ -5,24 +5,8 @@
 # Format: { 'channel_id': { 'name': 'Channel Name' } }
 # To find channel ID: go to YouTube channel > View Page Source > search "channelId"
 YOUTUBE_CHANNELS = {
-    # Example finance/investing channels (replace with actual channel IDs)
-    'UCnMn36GT_H0X-w5_ckLtlgQ': {
-        'name': 'The Motley Fool',
-    },
-    'UCV6KDgJskWaEckne5aPA0aQ': {
-        'name': 'Graham Stephan',
-    },
-    'UCGy7SkBjcIAgTiwkXEtPnYg': {
-        'name': 'Andrei Jikh',
-    },
-    'UCfMiRVQJuTj3NpZZP1tKShQ': {
-        'name': 'Meet Kevin',
-    },
-    'UCbta5YGaQFTkEA5Ac6_Ut_Q': {
-        'name': 'CNBC',
-    },
-    'UCIALMKvObZNtJ6AmdCLP7Lg': {
-        'name': 'Bloomberg Television',
+    'UCfCT7SSFEWyG4th9ZmaGYqQ': {
+        'name': 'Joseph Carlson After Hours',
     },
 }
 
