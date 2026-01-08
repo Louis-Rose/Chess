@@ -1701,15 +1701,15 @@ export function PortfolioPanel() {
                           return (
                             <div style={{ backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e2e8f0', padding: '6px 10px', fontSize: '12px' }}>
                               <p style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
-                                {new Date(String(label)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+                                {new Date(String(label)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                               </p>
-                              <p style={{ color: '#64748b', fontSize: '11px', padding: '1px 0' }}>
+                              <p style={{ color: '#64748b', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                                 {t('performance.invested')} : {formatEur(Math.round(costBasis))}€
                               </p>
-                              <p style={{ color: '#8A8EFF', fontSize: '11px', padding: '1px 0' }}>
+                              <p style={{ color: '#8A8EFF', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                                 {benchmarkTicker} : {formatEur(Math.round(benchmarkValue))}€
                               </p>
-                              <p style={{ color: '#16a34a', fontSize: '11px', padding: '1px 0' }}>
+                              <p style={{ color: '#16a34a', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                                 {t('performance.portfolio')} : {formatEur(Math.round(portfolioValue))}€
                               </p>
                               <p style={{ color: displayPerf >= 0 ? '#16a34a' : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', marginTop: '4px', borderTop: '1px solid #e2e8f0', paddingTop: '4px' }}>
