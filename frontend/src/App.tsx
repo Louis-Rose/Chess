@@ -1,4 +1,5 @@
 // Root app with routing
+// TODO: Add analytics tracking for route changes
 
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { LandingPage } from './pages/LandingPage';
