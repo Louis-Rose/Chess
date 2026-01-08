@@ -595,7 +595,7 @@ export function EarningsCalendarPanel() {
                           onClick={() => handleToggleAlert(item.ticker)}
                           className={`p-1.5 rounded-lg transition-colors ${
                             earningsWatchlist.includes(item.ticker)
-                              ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                              ? 'bg-green-100 text-green-600 hover:bg-green-200'
                               : 'bg-slate-100 dark:bg-slate-600 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-500'
                           }`}
                           title={earningsWatchlist.includes(item.ticker)
@@ -653,10 +653,10 @@ export function EarningsCalendarPanel() {
                   {language === 'fr' ? 'Estimé' : 'Estimated'}
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <Bell className="w-4 h-4 text-amber-600" />
-                  {language === 'fr' ? 'Alerte activée' : 'Alert enabled'}
+                  <Bell className="w-4 h-4 text-green-600" />
+                  {language === 'fr' ? 'Alertes activées' : 'Alerts enabled'}
                   {earningsWatchlist.length > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                    <span className="ml-1 px-1.5 py-0.5 bg-green-600 text-white rounded-full text-xs font-medium">
                       {earningsWatchlist.length}
                     </span>
                   )}
