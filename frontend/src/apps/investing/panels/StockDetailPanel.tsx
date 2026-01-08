@@ -97,12 +97,6 @@ const formatMarketCap = (marketCap: number | null, currency: string = 'USD'): st
   return `${symbol}${marketCap.toLocaleString()}`;
 };
 
-const formatPrice = (price: number | null, currency: string = 'USD'): string => {
-  if (price === null || price === undefined) return '-';
-  const symbol = getCurrencySymbol(currency);
-  return `${symbol}${price.toFixed(2)}`;
-};
-
 function formatDate(dateStr: string, language: string): string {
   const date = new Date(dateStr);
   const now = new Date();
