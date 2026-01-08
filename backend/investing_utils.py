@@ -53,7 +53,7 @@ EUROPEAN_TICKER_MAP = {
     # Energy & Transport
     'BKW': 'BKW.SW', 'ROMN': 'ROMN.SW', 'FHZN': 'FHZN.SW',
     # Other
-    'HELN': 'HELN.SW', 'APGN': 'APGN.SW',
+    'HELN': 'HELN.SW', 'APGN': 'APGN.SW', 'VAHN': 'VAHN.SW',
     # German stocks (.DE) - Note: many German stocks use .DE on Yahoo
     'ALV': 'ALV.DE', 'BAS': 'BAS.DE', 'BAYN': 'BAYN.DE', 'BMW': 'BMW.DE',
     'CON': 'CON.DE', 'DAI': 'DAI.DE', 'DB1': 'DB1.DE', 'DBK': 'DBK.DE',
@@ -76,7 +76,7 @@ EUROPEAN_TICKER_MAP = {
     'DSY': 'DSY.PA', 'STM': 'STM.PA', 'LR': 'LR.PA', 'ERF': 'ERF.PA',
     'RMS': 'RMS.PA', 'EL': 'EL.PA', 'BN': 'BN.PA', 'TEP': 'TEP.PA',
     'TTE': 'TTE.PA', 'SAF': 'SAF.PA', 'AM': 'AM.PA', 'AC': 'AC.PA',
-    'ENX': 'ENX.PA',
+    'ENX': 'ENX.PA', 'RBO': 'RBO.PA',
     # UK stocks (.L)
     'SHEL': 'SHEL.L', 'HSBA': 'HSBA.L', 'BP': 'BP.L', 'AZN': 'AZN.L',
     'GSK': 'GSK.L', 'RIO': 'RIO.L', 'ULVR': 'ULVR.L', 'DGE': 'DGE.L',

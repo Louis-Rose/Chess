@@ -1168,6 +1168,7 @@ const TICKER_TO_IR: Record<string, string> = {
   // Swiss Other
   APGN: 'https://www.apgsga.ch/en/investor-relations/',
   UHR: 'https://www.swatchgroup.com/en/investors',
+  VAHN: 'https://www.vaudoise.ch/en/group/investor-relations',
 
   // ============================================
   // Additional European companies (from ticker map)
@@ -1208,6 +1209,7 @@ const TICKER_TO_IR: Record<string, string> = {
   // France (additional)
   ML: 'https://www.michelin.com/en/finance/',
   'ATO.PA': 'https://www.atos.net/en/investors',
+  RBO: 'https://finance.rfrochebobois.com/',
 
   // Italy (additional)
   SRG: 'https://www.snamretegas.it/en/investor-relations/',
