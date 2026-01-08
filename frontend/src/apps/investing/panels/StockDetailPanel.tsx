@@ -97,6 +97,7 @@ export function StockDetailPanel() {
   const { language } = useLanguage();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1M');
+  const [videoFilter, setVideoFilter] = useState<'1M' | '3M' | 'ALL'>('ALL');
   const [financialsExpanded, setFinancialsExpanded] = useState(true);
   const [question, setQuestion] = useState('');
 
@@ -429,70 +430,114 @@ export function StockDetailPanel() {
                 {language === 'fr' ? 'Actualités' : 'News Feed'}
               </h2>
             </div>
-            <button
-              onClick={() => refetchNews()}
-              disabled={newsFetching}
-              className="text-slate-500 hover:text-blue-600 flex items-center gap-1 text-sm disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${newsFetching ? 'animate-spin' : ''}`} />
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Time filter */}
+              <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
+                {(['1M', '3M', 'ALL'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setVideoFilter(filter)}
+                    className={`px-2 py-1 text-xs font-medium transition-colors ${
+                      videoFilter === filter
+                        ? 'bg-red-500 text-white'
+                        : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500'
+                    }`}
+                  >
+                    {filter === 'ALL' ? (language === 'fr' ? 'Tout' : 'All') : filter}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => refetchNews()}
+                disabled={newsFetching}
+                className="text-slate-500 hover:text-blue-600 flex items-center gap-1 text-sm disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${newsFetching ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
 
           {newsLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
             </div>
-          ) : newsData?.videos && newsData.videos.length > 0 ? (
-            <div className="space-y-3">
-              {newsData.videos.map((video) => (
-                <a
-                  key={video.video_id}
-                  href={video.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors group"
-                >
-                  {/* Thumbnail */}
-                  <div className="relative w-32 h-20 flex-shrink-0 rounded-md overflow-hidden bg-slate-200 dark:bg-slate-600">
-                    {video.thumbnail_url ? (
-                      <img
-                        src={video.thumbnail_url}
-                        alt={video.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Youtube className="w-8 h-8 text-slate-400" />
-                      </div>
-                    )}
-                    {/* Play icon overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
-                      <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <svg className="w-3 h-3 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
+          ) : newsData?.videos && newsData.videos.length > 0 ? (() => {
+            // Filter videos by time period
+            const now = new Date();
+            const filteredVideos = newsData.videos.filter((video) => {
+              if (videoFilter === 'ALL') return true;
+              const publishedDate = new Date(video.published_at);
+              const diffDays = Math.floor((now.getTime() - publishedDate.getTime()) / (1000 * 60 * 60 * 24));
+              if (videoFilter === '1M') return diffDays <= 30;
+              if (videoFilter === '3M') return diffDays <= 90;
+              return true;
+            });
 
-                  {/* Video info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-slate-800 dark:text-slate-100 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      {video.title}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      <span>{video.channel_name}</span>
-                      <span>·</span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {formatDate(video.published_at, language)}
-                      </span>
+            if (filteredVideos.length === 0) {
+              return (
+                <div className="text-center py-8">
+                  <Youtube className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">
+                    {language === 'fr'
+                      ? `Aucune vidéo des ${videoFilter === '1M' ? '30' : '90'} derniers jours`
+                      : `No videos from the last ${videoFilter === '1M' ? '30' : '90'} days`}
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-3">
+                {filteredVideos.map((video) => (
+                  <a
+                    key={video.video_id}
+                    href={video.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors group"
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative w-32 h-20 flex-shrink-0 rounded-md overflow-hidden bg-slate-200 dark:bg-slate-600">
+                      {video.thumbnail_url ? (
+                        <img
+                          src={video.thumbnail_url}
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Youtube className="w-8 h-8 text-slate-400" />
+                        </div>
+                      )}
+                      {/* Play icon overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+                        <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="w-3 h-3 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </a>
-              ))}
-            </div>
-          ) : (
+
+                    {/* Video info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-medium text-slate-800 dark:text-slate-100 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {video.title}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">{video.channel_name}</span>
+                        <span className="text-slate-400 dark:text-slate-500">·</span>
+                        <span className="flex items-center gap-1 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-600 px-2 py-0.5 rounded">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(video.published_at, language)}
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            );
+          })() : (
             <div className="text-center py-8">
               <Youtube className="w-10 h-10 text-slate-400 mx-auto mb-2" />
               <p className="text-slate-500 dark:text-slate-400 text-sm">
