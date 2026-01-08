@@ -7,6 +7,8 @@ import axios from 'axios';
 import { ArrowLeft, Loader2, TrendingUp, ExternalLink, MessageSquare, Send, ChevronDown, ChevronUp, Youtube, Calendar, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useAuth } from '../../../contexts/AuthContext';
+import { LoginButton } from '../../../components/LoginButton';
 import { findStockByTicker } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
@@ -93,6 +95,7 @@ export function StockDetailPanel() {
   const { ticker } = useParams<{ ticker: string }>();
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1M');
   const [financialsExpanded, setFinancialsExpanded] = useState(true);
   const [question, setQuestion] = useState('');
@@ -102,27 +105,27 @@ export function StockDetailPanel() {
   const logoUrl = getCompanyLogoUrl(upperTicker);
   const irLink = getCompanyIRUrl(upperTicker);
 
-  // Fetch stock history
+  // Fetch stock history - only when authenticated
   const { data: stockHistoryData, isLoading: stockHistoryLoading } = useQuery({
     queryKey: ['stockHistory', upperTicker, chartPeriod],
     queryFn: () => fetchStockHistory(upperTicker, chartPeriod),
-    enabled: !!upperTicker,
+    enabled: !!upperTicker && isAuthenticated,
   });
 
-  // Fetch market cap
+  // Fetch market cap - only when authenticated
   const { data: marketCapData, isLoading: marketCapLoading } = useQuery({
     queryKey: ['marketCap', upperTicker],
     queryFn: () => fetchMarketCap(upperTicker),
-    enabled: !!upperTicker,
+    enabled: !!upperTicker && isAuthenticated,
   });
 
   const displayName = marketCapData?.name || stock?.name || upperTicker;
 
-  // Fetch news feed
+  // Fetch news feed - only when authenticated
   const { data: newsData, isLoading: newsLoading, refetch: refetchNews, isFetching: newsFetching } = useQuery({
     queryKey: ['newsFeed', upperTicker, displayName],
     queryFn: () => fetchNewsFeed(upperTicker, displayName),
-    enabled: !!upperTicker && !!displayName,
+    enabled: !!upperTicker && !!displayName && isAuthenticated,
     staleTime: 1000 * 60 * 15,
   });
 
@@ -131,10 +134,10 @@ export function StockDetailPanel() {
     : null;
   const previousClose = stockHistoryData?.previous_close;
 
-  // Track stock view (time spent)
+  // Track stock view (time spent) - only when authenticated
   const viewStartTime = useRef<number>(Date.now());
   useEffect(() => {
-    if (!upperTicker) return;
+    if (!upperTicker || !isAuthenticated) return;
 
     viewStartTime.current = Date.now();
 
@@ -147,10 +150,36 @@ export function StockDetailPanel() {
         }).catch(() => {});
       }
     };
-  }, [upperTicker]);
+  }, [upperTicker, isAuthenticated]);
 
   const priceChange = currentPrice && previousClose ? currentPrice - previousClose : null;
   const priceChangePercent = priceChange && previousClose ? (priceChange / previousClose) * 100 : null;
+
+  // Auth loading state
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <Loader2 className="w-10 h-10 text-green-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // Not authenticated - show sign-in prompt
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center py-8 md:py-16">
+        <h1 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 text-center px-4">
+          {language === 'fr' ? 'Recherche Actions' : 'Stocks Research'}
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-4 text-center px-4">
+          {language === 'fr' ? 'Connectez-vous pour accéder à la recherche' : 'Sign in to access stock research'}
+        </p>
+        <div className="mt-8">
+          <LoginButton />
+        </div>
+      </div>
+    );
+  }
 
   if (!ticker) {
     return (
