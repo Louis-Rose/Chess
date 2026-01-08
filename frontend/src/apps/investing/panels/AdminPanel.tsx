@@ -449,7 +449,7 @@ export function AdminPanel() {
 
         {/* Users List */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <button
               onClick={() => setIsUsersExpanded(!isUsersExpanded)}
               className="flex items-center gap-3"
@@ -469,13 +469,13 @@ export function AdminPanel() {
             {/* Date Range Filter */}
             {isUsersExpanded && <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 dark:bg-slate-600 rounded-lg">
-                <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-300" />
-                <span className="text-sm text-slate-600 dark:text-slate-300">
+                <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-300 flex-shrink-0" />
+                <span className="text-sm text-slate-600 dark:text-slate-300 hidden sm:inline">
                   {language === 'fr' ? 'Actif' : 'Active'}
                 </span>
                 <button
                   onClick={() => dateStartRef.current?.showPicker()}
-                  className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-green-600 dark:hover:text-green-400 min-w-[70px] text-center"
+                  className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-green-600 dark:hover:text-green-400 min-w-[60px] text-center"
                 >
                   {filterDateStart
                     ? new Date(filterDateStart).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
@@ -484,10 +484,10 @@ export function AdminPanel() {
                       })
                     : '—'}
                 </button>
-                <ArrowRight className="w-3 h-3 text-slate-400" />
+                <ArrowRight className="w-3 h-3 text-slate-400 flex-shrink-0" />
                 <button
                   onClick={() => dateEndRef.current?.showPicker()}
-                  className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-green-600 dark:hover:text-green-400 min-w-[70px] text-center"
+                  className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-green-600 dark:hover:text-green-400 min-w-[60px] text-center"
                 >
                   {filterDateEnd
                     ? new Date(filterDateEnd).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
@@ -589,18 +589,20 @@ export function AdminPanel() {
                       onClick={() => navigate(`/investing/admin/user/${u.id}`)}
                     >
                       <td className="py-3 pl-2 text-slate-500 dark:text-slate-300">#{u.id}</td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-3">
+                      <td className="py-3 max-w-[120px] sm:max-w-[180px]">
+                        <div className="flex items-center gap-2">
                           {u.picture ? (
                             <img
                               src={u.picture}
                               alt={u.name}
-                              className="w-8 h-8 rounded-full bg-white"
+                              className="w-8 h-8 rounded-full bg-white flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-white" />
+                            <div className="w-8 h-8 rounded-full bg-green-600 flex-shrink-0 flex items-center justify-center text-white font-bold text-sm">
+                              {u.name?.charAt(0) || '?'}
+                            </div>
                           )}
-                          <span className="font-medium text-slate-800 dark:text-slate-100">{u.name || '-'}</span>
+                          <span className="font-medium text-slate-800 dark:text-slate-100 truncate">{u.name || '-'}</span>
                         </div>
                       </td>
                       <td className="py-3 text-slate-500 dark:text-slate-300 text-sm">
