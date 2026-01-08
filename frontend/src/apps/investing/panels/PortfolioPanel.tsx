@@ -12,7 +12,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Legend, Brush
 } from 'recharts';
-import { Briefcase, Plus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet, Download, ChevronRight } from 'lucide-react';
+import { Briefcase, Plus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet, Download } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -675,28 +675,37 @@ export function PortfolioPanel() {
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Investment Accounts Section */}
         <div className="bg-slate-50 dark:bg-slate-100 rounded-xl p-6">
-          <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+          {/* Toggle button - centered */}
+          <div className="flex justify-center mb-4">
             <button
               onClick={() => setShowAccounts(!showAccounts)}
-              className="flex items-center gap-3"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
             >
-              <ChevronRight className={`w-5 h-5 text-slate-500 transition-transform ${showAccounts ? 'rotate-90' : ''}`} />
-              <Building2 className="w-5 h-5 text-slate-600" />
-              <h3 className="text-xl font-bold text-slate-800">{t('accounts.title')}</h3>
+              <Building2 className="w-4 h-4" />
+              {showAccounts
+                ? (language === 'fr' ? 'Masquer comptes' : 'Hide accounts')
+                : (language === 'fr' ? 'Afficher comptes' : 'Show accounts')}
             </button>
-            {showAccounts && !showAddAccountForm && (
-              <button
-                onClick={() => setShowAddAccountForm(true)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                {t('accounts.addAccount')}
-              </button>
-            )}
           </div>
 
           {showAccounts && (
             <>
+              {/* Header with title and add button */}
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                  <Building2 className="w-5 h-5 text-slate-600" />
+                  <h3 className="text-xl font-bold text-slate-800">{t('accounts.title')}</h3>
+                </div>
+                {!showAddAccountForm && (
+                  <button
+                    onClick={() => setShowAddAccountForm(true)}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {t('accounts.addAccount')}
+                  </button>
+                )}
+              </div>
 
                 {/* Add Account Form */}
                 {showAddAccountForm && (
@@ -841,56 +850,64 @@ export function PortfolioPanel() {
 
           return (
             <div className="bg-slate-50 dark:bg-slate-100 rounded-xl p-6">
-              <button
-                onClick={() => setShowFees(!showFees)}
-                className="flex items-center gap-3 w-full"
-              >
-                <ChevronRight className={`w-5 h-5 text-slate-500 transition-transform ${showFees ? 'rotate-90' : ''}`} />
-                <Wallet className="w-5 h-5 text-amber-600" />
-                <h3 className="text-xl font-bold text-slate-800">
-                  {language === 'fr' ? 'Frais et Impôts' : 'Fees & Taxes'}
-                </h3>
-                <span className="text-slate-500 text-sm font-normal">
-                  ({selectedAccount.bank_info.name} - {selectedAccount.account_type})
-                </span>
-              </button>
+              {/* Toggle button - centered */}
+              <div className="flex justify-center mb-4">
+                <button
+                  onClick={() => setShowFees(!showFees)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+                >
+                  <Wallet className="w-4 h-4" />
+                  {showFees
+                    ? (language === 'fr' ? 'Masquer frais' : 'Hide fees')
+                    : (language === 'fr' ? 'Afficher frais' : 'Show fees')}
+                </button>
+              </div>
 
               {showFees && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-4">
-                  <div>
-                    <p className="text-amber-600 font-medium">
-                      {language === 'fr' ? 'Frais de transaction' : 'Transaction fees'}
-                    </p>
-                    <p className="text-amber-800">
-                      {bankInfo.order_fee_pct}%
-                      <span className="text-amber-600 text-xs ml-1">(min {bankInfo.order_fee_min}€)</span>
-                    </p>
+                <>
+                  {/* Header */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <Wallet className="w-5 h-5 text-amber-600" />
+                    <h4 className="font-semibold text-amber-800">
+                      {language === 'fr' ? 'Frais et Impôts' : 'Fees & Taxes'} ({selectedAccount.bank_info.name} - {selectedAccount.account_type})
+                    </h4>
                   </div>
-                  <div>
-                    <p className="text-amber-600 font-medium">
-                      {language === 'fr' ? 'Droits de garde (annuels)' : 'Custody fees (yearly)'}
-                    </p>
-                    <p className="text-amber-800">
-                      {custodyFeeRate}%{isPEA ? ` (${language === 'fr' ? 'plafonné' : 'capped'})` : ''}
-                    </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-amber-600 font-medium">
+                        {language === 'fr' ? 'Frais de transaction' : 'Transaction fees'}
+                      </p>
+                      <p className="text-amber-800">
+                        {bankInfo.order_fee_pct}%
+                        <span className="text-amber-600 text-xs ml-1">(min {bankInfo.order_fee_min}€)</span>
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-amber-600 font-medium">
+                        {language === 'fr' ? 'Droits de garde (annuels)' : 'Custody fees (yearly)'}
+                      </p>
+                      <p className="text-amber-800">
+                        {custodyFeeRate}%{isPEA ? ` (${language === 'fr' ? 'plafonné' : 'capped'})` : ''}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-amber-600 font-medium">
+                        {language === 'fr' ? 'Frais de change' : 'FX fees'}
+                      </p>
+                      <p className="text-amber-800 text-xs">
+                        {language === 'fr' ? bankInfo.fx_fee_info_fr : bankInfo.fx_fee_info_en}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-amber-600 font-medium">
+                        {language === 'fr' ? 'Fiscalité' : 'Taxation'}
+                      </p>
+                      <p className="text-amber-800">
+                        {typeInfo?.tax_rate}% {language === 'fr' ? 'sur plus-values' : 'on gains'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-amber-600 font-medium">
-                      {language === 'fr' ? 'Frais de change' : 'FX fees'}
-                    </p>
-                    <p className="text-amber-800 text-xs">
-                      {language === 'fr' ? bankInfo.fx_fee_info_fr : bankInfo.fx_fee_info_en}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-amber-600 font-medium">
-                      {language === 'fr' ? 'Fiscalité' : 'Taxation'}
-                    </p>
-                    <p className="text-amber-800">
-                      {typeInfo?.tax_rate}% {language === 'fr' ? 'sur plus-values' : 'on gains'}
-                    </p>
-                  </div>
-                </div>
+                </>
               )}
             </div>
           );
@@ -899,30 +916,40 @@ export function PortfolioPanel() {
         {/* Transaction History - Only when account selected */}
         {selectedAccountId && (
         <div className="bg-slate-50 dark:bg-slate-100 rounded-xl p-6">
-          <div className="flex flex-wrap justify-between items-center gap-3">
+          {/* Toggle button - centered */}
+          <div className="flex justify-center mb-4">
             <button
               onClick={() => setShowTransactions(!showTransactions)}
-              className="flex items-center gap-3"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
             >
-              <ChevronRight className={`w-5 h-5 text-slate-500 transition-transform ${showTransactions ? 'rotate-90' : ''}`} />
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-800">{t('transactions.title')}</h3>
+              <Plus className="w-4 h-4" />
+              {showTransactions
+                ? (language === 'fr' ? 'Masquer transactions' : 'Hide transactions')
+                : (language === 'fr' ? 'Afficher transactions' : 'Show transactions')}
             </button>
-            {showTransactions && (
-              <div className="flex items-center gap-3">
-                {uniqueTickers.length > 0 && (
-                  <select
-                    value={filterTicker}
-                    onChange={(e) => setFilterTicker(e.target.value)}
-                    className="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="">{t('transactions.allStocks')}</option>
-                    {uniqueTickers.map(ticker => {
-                      const stock = findStockByTicker(ticker);
-                      const label = stock ? `${stock.name} (${ticker})` : ticker;
-                      return <option key={ticker} value={ticker}>{label}</option>;
-                    })}
-                  </select>
-                )}
+          </div>
+
+          {showTransactions && (
+            <>
+              {/* Header with title, filter and add button */}
+              <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+                <div className="flex items-center gap-4">
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-800">{t('transactions.title')}</h3>
+                  {uniqueTickers.length > 0 && (
+                    <select
+                      value={filterTicker}
+                      onChange={(e) => setFilterTicker(e.target.value)}
+                      className="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="">{t('transactions.allStocks')}</option>
+                      {uniqueTickers.map(ticker => {
+                        const stock = findStockByTicker(ticker);
+                        const label = stock ? `${stock.name} (${ticker})` : ticker;
+                        return <option key={ticker} value={ticker}>{label}</option>;
+                      })}
+                    </select>
+                  )}
+                </div>
                 {!showAddForm && (
                   <button
                     onClick={() => setShowAddForm(true)}
@@ -933,11 +960,9 @@ export function PortfolioPanel() {
                   </button>
                 )}
               </div>
-            )}
-          </div>
 
-          {/* Add Transaction Form */}
-          {showTransactions && showAddForm && (
+              {/* Add Transaction Form */}
+              {showAddForm && (
             <div className="bg-white rounded-lg p-4 mb-6 border border-slate-200">
               {/* Index Filter Toggles */}
               <div className="flex items-center gap-4 mb-3">
@@ -1096,18 +1121,16 @@ export function PortfolioPanel() {
                   {t('common.error')}: {(addMutation.error as Error)?.message || 'Failed to add transaction'}
                 </p>
               )}
-            </div>
-          )}
+              </div>
+              )}
 
-          {/* Transactions List */}
-          {showTransactions && (
-            <>
+              {/* Transactions List */}
               {accountTransactions.length === 0 ? (
-                <p className="text-slate-500 text-center py-8 mt-4">{t('transactions.noTransactions')}</p>
+                <p className="text-slate-500 text-center py-8">{t('transactions.noTransactions')}</p>
               ) : filteredTransactions.length === 0 ? (
-                <p className="text-slate-500 text-center py-8 mt-4">{language === 'fr' ? `Aucune transaction pour ${filterTicker}.` : `No transactions for ${filterTicker}.`}</p>
+                <p className="text-slate-500 text-center py-8">{language === 'fr' ? `Aucune transaction pour ${filterTicker}.` : `No transactions for ${filterTicker}.`}</p>
               ) : (
-                <div className="space-y-2 max-h-[200px] overflow-auto mt-4">
+                <div className="space-y-2 max-h-[200px] overflow-auto">
                   {filteredTransactions.map((tx) => (
                     <div key={tx.id} className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
                       <div className="flex items-center gap-4">
