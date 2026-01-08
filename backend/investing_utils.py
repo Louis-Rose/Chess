@@ -282,6 +282,54 @@ def _save_cached_fx_rate(pair, date_str, rate):
         print(f"Error caching FX rate: {e}")
 
 # Stock color map for pie chart - brand colors where available
+# Vibrant color palette for stocks without a defined color
+VIBRANT_COLORS = [
+    "#E53935",  # Red
+    "#D81B60",  # Pink
+    "#8E24AA",  # Purple
+    "#5E35B1",  # Deep Purple
+    "#3949AB",  # Indigo
+    "#1E88E5",  # Blue
+    "#039BE5",  # Light Blue
+    "#00ACC1",  # Cyan
+    "#00897B",  # Teal
+    "#43A047",  # Green
+    "#7CB342",  # Light Green
+    "#C0CA33",  # Lime
+    "#FDD835",  # Yellow
+    "#FFB300",  # Amber
+    "#FB8C00",  # Orange
+    "#F4511E",  # Deep Orange
+    "#6D4C41",  # Brown
+    "#546E7A",  # Blue Grey
+    "#EC407A",  # Pink 400
+    "#AB47BC",  # Purple 400
+    "#7E57C2",  # Deep Purple 400
+    "#5C6BC0",  # Indigo 400
+    "#42A5F5",  # Blue 400
+    "#29B6F6",  # Light Blue 400
+    "#26C6DA",  # Cyan 400
+    "#26A69A",  # Teal 400
+    "#66BB6A",  # Green 400
+    "#9CCC65",  # Light Green 400
+    "#D4E157",  # Lime 400
+    "#FFEE58",  # Yellow 400
+    "#FFCA28",  # Amber 400
+    "#FFA726",  # Orange 400
+    "#FF7043",  # Deep Orange 400
+]
+
+
+def get_stock_color(ticker: str) -> str:
+    """Get a consistent vibrant color for any stock ticker."""
+    # Check if we have a predefined color
+    if ticker in STOCK_COLORS:
+        return STOCK_COLORS[ticker]
+    # Generate a consistent color based on ticker hash
+    hash_val = sum(ord(c) * (i + 1) for i, c in enumerate(ticker.upper()))
+    return VIBRANT_COLORS[hash_val % len(VIBRANT_COLORS)]
+
+
 STOCK_COLORS = {
     # US Tech
     'NVDA': "#76B900",
@@ -290,7 +338,7 @@ STOCK_COLORS = {
     'AMZN': "#FF9900",
     'META': "#4267B2",
     'MSFT': "#00A4EF",
-    'AAPL': "#555555",
+    'AAPL': "#A3AAAE",  # Silver (Apple's product color)
     'TSLA': "#CC0000",
     'V': "#1A1F71",
     'NFLX': "#E50914",
@@ -311,11 +359,11 @@ STOCK_COLORS = {
     'C': "#003DA5",
     'AXP': "#006FCF",
     'MA': "#EB001B",
-    'BLK': "#000000",
+    'BLK': "#5A5A5A",  # Dark gray instead of pure black
     # US Consumer
     'WMT': "#0071CE",
     'HD': "#F96302",
-    'NKE': "#111111",
+    'NKE': "#F97316",  # Orange (swoosh energy)
     'SBUX': "#00704A",
     'MCD': "#FFC72C",
     'KO': "#F40009",
@@ -333,6 +381,7 @@ STOCK_COLORS = {
     'SAP': "#008FD3",
     'LVMH': "#8B6914",
     'MC': "#8B6914",  # LVMH ticker
+    'PNDORA': "#D4A5C9",  # Pandora pink
     # Swiss - using vibrant distinct colors
     'NESN': "#7B9A6D",  # Nestle
     'NOVN': "#E55300",  # Novartis
@@ -351,6 +400,8 @@ STOCK_COLORS = {
     'BAER': "#002B5C",  # Julius Baer
     'LOGN': "#00B8FC",  # Logitech
     'ENX': "#4267B2",  # Euronext - blue like META
+    'VAHN': "#1E88E5",  # Vaudoise - blue
+    'RBO': "#8E24AA",  # Roche Bobois - purple
     # Other
     'Cash': "#FFD700",
 }
@@ -622,7 +673,7 @@ def compute_portfolio_composition(holdings, target_currency='EUR'):
             'gain': round(gain_eur, 2),  # In EUR
             'gain_eur': round(gain_eur, 2),
             'gain_pct': gain_pct,
-            'color': STOCK_COLORS.get(ticker, '#95A5A6')
+            'color': get_stock_color(ticker)
         })
         total_value += current_value_eur
         total_cost_basis_eur += total_cost_eur
