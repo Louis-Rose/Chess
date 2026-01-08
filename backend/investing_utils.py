@@ -877,7 +877,7 @@ from youtube_config import YOUTUBE_CHANNELS, get_uploads_playlist_id, matches_co
 YOUTUBE_CACHE_TTL_HOURS = 6
 
 
-def fetch_channel_videos(channel_id, api_key, max_results=20):
+def fetch_channel_videos(channel_id, api_key, max_results=50):
     """
     Fetch recent videos from a YouTube channel using playlistItems API (1 unit cost).
     Returns list of video metadata.
@@ -915,7 +915,7 @@ def fetch_channel_videos(channel_id, api_key, max_results=20):
     return videos
 
 
-def fetch_all_channel_videos(api_key, max_per_channel=20):
+def fetch_all_channel_videos(api_key, max_per_channel=50):
     """
     Fetch videos from all configured channels.
     Returns combined list of videos sorted by publish date.
