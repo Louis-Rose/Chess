@@ -1207,7 +1207,7 @@ const TICKER_TO_IR: Record<string, string> = {
 
   // France (additional)
   ML: 'https://www.michelin.com/en/finance/',
-  ATO: 'https://www.atos.net/en/investors',
+  'ATO.PA': 'https://www.atos.net/en/investors',
 
   // Italy (additional)
   SRG: 'https://www.snamretegas.it/en/investor-relations/',
