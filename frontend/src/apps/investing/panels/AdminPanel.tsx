@@ -534,48 +534,53 @@ export function AdminPanel() {
             </div>
           ) : data?.users && data.users.length > 0 ? (
             <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-              <table className="w-full">
+              <table className="w-full text-xs sm:text-sm">
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
-                  <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
-                    <th className="pb-3 pl-2">
-                      <button onClick={() => handleSort('id')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white">
-                        ID
+                  <tr className="text-left text-slate-600 dark:text-slate-300 border-b-2 border-slate-300 dark:border-slate-500">
+                    <th className="pb-2 pl-2 w-8">
+                      <button onClick={() => handleSort('id')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white">
+                        #
                         {sortColumn === 'id' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
-                    <th className="pb-3">
-                      <button onClick={() => handleSort('name')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white">
+                    <th className="pb-2">
+                      <button onClick={() => handleSort('name')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white">
                         {language === 'fr' ? 'Utilisateur' : 'User'}
                         {sortColumn === 'name' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
-                    <th className="pb-3">
-                      <button onClick={() => handleSort('created_at')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white">
-                        {language === 'fr' ? 'Inscrit le' : 'Registered'}
+                    <th className="pb-2 whitespace-nowrap">
+                      <button onClick={() => handleSort('created_at')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white">
+                        <span className="hidden sm:inline">{language === 'fr' ? 'Inscrit' : 'Registered'}</span>
+                        <span className="sm:hidden">{language === 'fr' ? 'Inscr.' : 'Reg.'}</span>
                         {sortColumn === 'created_at' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
-                    <th className="pb-3 text-center">
-                      <button onClick={() => handleSort('last_active')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white mx-auto">
-                        {language === 'fr' ? 'Dernière activité' : 'Last Active'}
+                    <th className="pb-2 text-center whitespace-nowrap">
+                      <button onClick={() => handleSort('last_active')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                        <span className="hidden sm:inline">{language === 'fr' ? 'Actif' : 'Active'}</span>
+                        <span className="sm:hidden">{language === 'fr' ? 'Act.' : 'Act.'}</span>
                         {sortColumn === 'last_active' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
-                    <th className="pb-3 text-center">
-                      <button onClick={() => handleSort('total_minutes')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white mx-auto">
-                        {language === 'fr' ? 'Temps passé' : 'Time Spent'}
+                    <th className="pb-2 text-center whitespace-nowrap">
+                      <button onClick={() => handleSort('total_minutes')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                        <span className="hidden sm:inline">{language === 'fr' ? 'Temps' : 'Time'}</span>
+                        <span className="sm:hidden"><Clock className="w-3 h-3" /></span>
                         {sortColumn === 'total_minutes' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
-                    <th className="pb-3 text-center">
-                      <button onClick={() => handleSort('has_portfolio')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white mx-auto">
-                        Portfolio
+                    <th className="pb-2 text-center whitespace-nowrap">
+                      <button onClick={() => handleSort('has_portfolio')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                        <span className="hidden sm:inline">Portf.</span>
+                        <span className="sm:hidden">P</span>
                         {sortColumn === 'has_portfolio' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
-                    <th className="pb-3 text-center">
-                      <button onClick={() => handleSort('graph_downloads')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white mx-auto">
-                        {language === 'fr' ? 'Téléch.' : 'Downloads'}
+                    <th className="pb-2 text-center whitespace-nowrap">
+                      <button onClick={() => handleSort('graph_downloads')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                        <span className="hidden sm:inline">{language === 'fr' ? 'Téléch.' : 'DL'}</span>
+                        <span className="sm:hidden">DL</span>
                         {sortColumn === 'graph_downloads' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
@@ -588,72 +593,71 @@ export function AdminPanel() {
                       className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer"
                       onClick={() => navigate(`/investing/admin/user/${u.id}`)}
                     >
-                      <td className="py-3 pl-2 text-slate-500 dark:text-slate-300">#{u.id}</td>
-                      <td className="py-3">
+                      <td className="py-2 pl-2 text-slate-500 dark:text-slate-300">{u.id}</td>
+                      <td className="py-2">
                         <div className="flex items-center gap-2">
                           {u.picture ? (
                             <img
                               src={u.picture}
                               alt={u.name}
-                              className="w-8 h-8 rounded-full bg-white flex-shrink-0"
+                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-green-600 flex-shrink-0 flex items-center justify-center text-white font-bold text-sm">
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green-600 flex-shrink-0 flex items-center justify-center text-white font-bold text-xs">
                               {u.name?.charAt(0) || '?'}
                             </div>
                           )}
                           <div className="flex flex-col sm:flex-row sm:gap-1">
                             {u.name ? (
                               <>
-                                <span className="font-medium text-slate-800 dark:text-slate-100 text-xs sm:text-sm">{u.name.split(' ')[0]}</span>
+                                <span className="font-medium text-slate-800 dark:text-slate-100">{u.name.split(' ')[0]}</span>
                                 {u.name.split(' ').slice(1).length > 0 && (
-                                  <span className="font-medium text-slate-800 dark:text-slate-100 text-xs sm:text-sm">{u.name.split(' ').slice(1).join(' ')}</span>
+                                  <span className="font-medium text-slate-800 dark:text-slate-100">{u.name.split(' ').slice(1).join(' ')}</span>
                                 )}
                               </>
                             ) : (
-                              <span className="font-medium text-slate-800 dark:text-slate-100 text-xs sm:text-sm">-</span>
+                              <span className="font-medium text-slate-800 dark:text-slate-100">-</span>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 text-slate-500 dark:text-slate-300 text-sm">
+                      <td className="py-2 text-slate-500 dark:text-slate-300 whitespace-nowrap">
                         {new Date(u.created_at).toLocaleDateString(
                           language === 'fr' ? 'fr-FR' : 'en-US',
-                          { day: 'numeric', month: 'short', year: 'numeric' }
+                          { day: 'numeric', month: 'short' }
                         )}
                       </td>
-                      <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-300">
+                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">
                         {u.last_active ? (
                           (() => {
-                            // Compare calendar dates, not timestamps
                             const today = new Date();
                             today.setHours(0, 0, 0, 0);
                             const lastActive = new Date(u.last_active);
                             lastActive.setHours(0, 0, 0, 0);
                             const days = Math.round((today.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
-                            if (days === 0) return language === 'fr' ? "Aujourd'hui" : 'Today';
-                            if (days === 1) return language === 'fr' ? 'Hier' : 'Yesterday';
-                            return language === 'fr' ? `${days}j` : `${days}d`;
+                            if (days === 0) return language === 'fr' ? "Auj." : 'Today';
+                            if (days === 1) return language === 'fr' ? 'Hier' : '1d';
+                            return `${days}d`;
                           })()
                         ) : (
                           <span className="text-slate-300">-</span>
                         )}
                       </td>
-                      <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-300">
+                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">
                         {u.total_minutes > 0 ? (
                           u.total_minutes >= 60
                             ? `${Math.floor(u.total_minutes / 60)}h${String(u.total_minutes % 60).padStart(2, '0')}`
-                            : `${u.total_minutes} min`
+                            : `${u.total_minutes}m`
                         ) : '-'}
                       </td>
-                      <td className="py-3 text-center text-sm">
+                      <td className="py-2 text-center">
                         {u.has_portfolio ? (
                           <span className="text-green-600">✓</span>
                         ) : (
                           <span className="text-slate-300">-</span>
                         )}
                       </td>
-                      <td className="py-3 text-center text-sm text-slate-500 dark:text-slate-300">
+                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">
                         {u.graph_downloads > 0 ? u.graph_downloads : '-'}
                       </td>
                     </tr>
