@@ -1693,10 +1693,24 @@ export function PortfolioPanel() {
                           const cagr = years > 0 ? (Math.pow(totalReturn, 1 / years) - 1) * 100 : 0;
                           const cagrRounded = Math.round(cagr * 10) / 10;
 
+                          // Benchmark performance
+                          const benchmarkPerfPct = costBasis > 0 ? ((benchmarkValue - costBasis) / costBasis * 100) : 0;
+                          const benchmarkTotalReturn = costBasis > 0 ? (benchmarkValue / costBasis) : 1;
+                          const benchmarkCagr = years > 0 ? (Math.pow(benchmarkTotalReturn, 1 / years) - 1) * 100 : 0;
+
+                          // Outperformance/Underperformance
+                          const outperfTotal = perfPct - benchmarkPerfPct;
+                          const outperfAnnualized = cagr - benchmarkCagr;
+                          const displayOutperf = showAnnualized ? Math.round(outperfAnnualized * 10) / 10 : Math.round(outperfTotal * 10) / 10;
+
                           const displayPerf = showAnnualized ? cagrRounded : perfRounded;
                           const perfLabel = showAnnualized
                             ? (language === 'fr' ? 'Performance (annualisée)' : 'Performance (annualized)')
                             : (language === 'fr' ? 'Performance (totale)' : 'Performance (all)');
+
+                          const outperfLabel = displayOutperf >= 0
+                            ? (language === 'fr' ? `Surperformance (${benchmarkTicker})` : `Outperformance (${benchmarkTicker})`)
+                            : (language === 'fr' ? `Sous-performance (${benchmarkTicker})` : `Underperformance (${benchmarkTicker})`);
 
                           return (
                             <div style={{ backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e2e8f0', padding: '6px 10px', fontSize: '12px' }}>
@@ -1714,6 +1728,9 @@ export function PortfolioPanel() {
                               </p>
                               <p style={{ color: displayPerf >= 0 ? '#16a34a' : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', marginTop: '4px', borderTop: '1px solid #e2e8f0', paddingTop: '4px' }}>
                                 {perfLabel} : {displayPerf >= 0 ? '+' : ''}{displayPerf}%
+                              </p>
+                              <p style={{ color: displayOutperf >= 0 ? '#16a34a' : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                                {outperfLabel} : {displayOutperf >= 0 ? '+' : ''}{Math.abs(displayOutperf)}%
                               </p>
                             </div>
                           );
