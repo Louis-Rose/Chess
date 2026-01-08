@@ -159,7 +159,7 @@ export function InvestingWelcomePanel() {
         </div>
 
         {/* Stock Search Section */}
-        <div className="max-w-2xl mx-auto mt-[20vh]">
+        <div className="max-w-2xl mx-auto mt-[10vh]">
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
               {language === 'fr' ? 'Rechercher une action' : 'Search for a stock'}
