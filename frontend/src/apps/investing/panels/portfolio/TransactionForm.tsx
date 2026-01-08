@@ -3,7 +3,55 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Minus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../../utils/allStocks';
+import { STOCKS_DB } from '../../../../data/stocksDb';
 import type { Transaction, NewTransaction } from './types';
+
+// Currency symbols for display
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CHF: 'CHF ',
+  DKK: 'kr ',
+  SEK: 'kr ',
+  NOK: 'kr ',
+};
+
+// Exchange suffix to currency mapping
+const EXCHANGE_CURRENCY_MAP: Record<string, string> = {
+  '.SW': 'CHF',
+  '.DE': 'EUR',
+  '.PA': 'EUR',
+  '.AS': 'EUR',
+  '.BR': 'EUR',
+  '.LS': 'EUR',
+  '.MI': 'EUR',
+  '.MC': 'EUR',
+  '.VI': 'EUR',
+  '.HE': 'EUR',
+  '.IR': 'EUR',
+  '.L': 'GBP',
+  '.CO': 'DKK',
+  '.ST': 'SEK',
+  '.OL': 'NOK',
+};
+
+// Get currency for a stock ticker
+const getStockCurrency = (ticker: string): string => {
+  const stockInfo = STOCKS_DB[ticker.toUpperCase()];
+  if (stockInfo?.yfinance) {
+    for (const [suffix, currency] of Object.entries(EXCHANGE_CURRENCY_MAP)) {
+      if (stockInfo.yfinance.endsWith(suffix)) {
+        return currency;
+      }
+    }
+  }
+  return 'USD';
+};
+
+const getCurrencySymbol = (currency: string): string => {
+  return CURRENCY_SYMBOLS[currency] || `${currency} `;
+};
 
 interface TransactionFormProps {
   transactions: Transaction[];
@@ -393,7 +441,7 @@ export function TransactionForm({
                     </button>
                     <span className="text-slate-600">{privateMode ? '**' : tx.quantity} {t('transactions.shares')}</span>
                     <span className="text-slate-400">@</span>
-                    <span className="text-slate-600">${tx.price_per_share.toFixed(2)}</span>
+                    <span className="text-slate-600">{getCurrencySymbol(getStockCurrency(tx.stock_ticker))}{tx.price_per_share.toFixed(2)}</span>
                     <span className="text-slate-400 text-sm">
                       {new Date(tx.transaction_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </span>
