@@ -1704,27 +1704,34 @@ def send_earnings_alert_now():
             'days_before': prefs['days_before']
         }
 
-    # Get portfolio and watchlist tickers separately
+    # Get tickers from earnings_watchlist (bell-activated stocks only)
     portfolio_tickers = set()
     watchlist_tickers = set()
+    alert_tickers = set()
     with get_db() as conn:
+        # Get all bell-activated tickers
+        cursor = conn.execute('SELECT stock_ticker FROM earnings_watchlist WHERE user_id = ?', (request.user_id,))
+        for row in cursor.fetchall():
+            alert_tickers.add(row['stock_ticker'])
+
+        # Get portfolio tickers (for source info)
         cursor = conn.execute('SELECT DISTINCT stock_ticker FROM portfolio_transactions WHERE user_id = ?', (request.user_id,))
         for row in cursor.fetchall():
             portfolio_tickers.add(row['stock_ticker'])
 
+        # Get watchlist tickers (for source info)
         cursor = conn.execute('SELECT stock_ticker FROM watchlist WHERE user_id = ?', (request.user_id,))
         for row in cursor.fetchall():
             watchlist_tickers.add(row['stock_ticker'])
 
-    all_tickers = portfolio_tickers | watchlist_tickers
-    if not all_tickers:
-        return jsonify({'error': 'No stocks in portfolio or watchlist'}), 400
+    if not alert_tickers:
+        return jsonify({'error': 'No stocks with alerts enabled. Click the bell icon next to stocks to enable alerts.'}), 400
 
     # Get earnings data
     today = datetime.now().date()
     earnings_data = []
 
-    for ticker in all_tickers:
+    for ticker in alert_tickers:
         with get_db() as conn:
             cursor = conn.execute('SELECT next_earnings_date, date_confirmed FROM earnings_cache WHERE ticker = ?', (ticker,))
             row = cursor.fetchone()

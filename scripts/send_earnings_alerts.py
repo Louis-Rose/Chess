@@ -41,14 +41,23 @@ def get_company_name(ticker: str) -> str:
 
 
 def get_user_earnings_data(user_id: int) -> list:
-    """Get earnings data for a user's portfolio and watchlist."""
+    """Get earnings data for a user's bell-activated stocks (earnings_watchlist)."""
     from database import get_db
 
     portfolio_tickers = set()
     watchlist_tickers = set()
+    alert_tickers = set()
 
     with get_db() as conn:
-        # Get portfolio tickers
+        # Get bell-activated tickers from earnings_watchlist
+        cursor = conn.execute('''
+            SELECT stock_ticker FROM earnings_watchlist
+            WHERE user_id = ?
+        ''', (user_id,))
+        for row in cursor.fetchall():
+            alert_tickers.add(row['stock_ticker'])
+
+        # Get portfolio tickers (for source info)
         cursor = conn.execute('''
             SELECT DISTINCT stock_ticker FROM portfolio_transactions
             WHERE user_id = ?
@@ -56,21 +65,20 @@ def get_user_earnings_data(user_id: int) -> list:
         for row in cursor.fetchall():
             portfolio_tickers.add(row['stock_ticker'])
 
-        # Get watchlist tickers
+        # Get watchlist tickers (for source info)
         cursor = conn.execute('''
             SELECT stock_ticker FROM watchlist WHERE user_id = ?
         ''', (user_id,))
         for row in cursor.fetchall():
             watchlist_tickers.add(row['stock_ticker'])
 
-    all_tickers = portfolio_tickers | watchlist_tickers
-    if not all_tickers:
+    if not alert_tickers:
         return []
 
     today = datetime.now().date()
     earnings_data = []
 
-    for ticker in all_tickers:
+    for ticker in alert_tickers:
         with get_db() as conn:
             cursor = conn.execute('''
                 SELECT next_earnings_date, date_confirmed FROM earnings_cache
