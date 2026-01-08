@@ -12,7 +12,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Legend, Brush
 } from 'recharts';
-import { Briefcase, Plus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet, Download } from 'lucide-react';
+import { Briefcase, Plus, Minus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Eye, EyeOff, Building2, Wallet, Download } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -681,7 +681,7 @@ export function PortfolioPanel() {
               onClick={() => setShowAccounts(!showAccounts)}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
             >
-              <Building2 className="w-4 h-4" />
+              {showAccounts ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               {showAccounts
                 ? (language === 'fr' ? 'Masquer comptes' : 'Hide accounts')
                 : (language === 'fr' ? 'Afficher comptes' : 'Show accounts')}
@@ -856,7 +856,7 @@ export function PortfolioPanel() {
                   onClick={() => setShowFees(!showFees)}
                   className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
                 >
-                  <Wallet className="w-4 h-4" />
+                  {showFees ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                   {showFees
                     ? (language === 'fr' ? 'Masquer frais' : 'Hide fees')
                     : (language === 'fr' ? 'Afficher frais' : 'Show fees')}
@@ -922,7 +922,7 @@ export function PortfolioPanel() {
               onClick={() => setShowTransactions(!showTransactions)}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
             >
-              <Plus className="w-4 h-4" />
+              {showTransactions ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               {showTransactions
                 ? (language === 'fr' ? 'Masquer transactions' : 'Hide transactions')
                 : (language === 'fr' ? 'Afficher transactions' : 'Show transactions')}
