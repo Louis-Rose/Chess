@@ -654,7 +654,7 @@ export function EarningsCalendarPanel() {
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <Bell className="w-4 h-4 text-green-600" />
-                  {language === 'fr' ? 'Alertes activées' : 'Alerts enabled'}
+                  {language === 'fr' ? 'Alertes mail activées' : 'Mail alerts enabled'}
                   {earningsWatchlist.length > 0 && (
                     <span className="ml-1 px-1.5 py-0.5 bg-green-600 text-white rounded-full text-xs font-medium">
                       {earningsWatchlist.length}
@@ -670,7 +670,7 @@ export function EarningsCalendarPanel() {
                 className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
               >
                 <Bell className="w-5 h-5" />
-                {language === 'fr' ? 'Recevoir des alertes personnalisées' : 'Get custom alerts'}
+                {language === 'fr' ? 'Recevoir des alertes mail' : 'Get mail alerts'}
               </button>
               {(alertPrefs?.weekly_enabled || alertPrefs?.days_before_enabled) && (
                 <div className="text-sm text-green-600 dark:text-green-400 flex flex-col items-center gap-1">
