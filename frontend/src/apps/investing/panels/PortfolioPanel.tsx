@@ -1665,26 +1665,59 @@ export function PortfolioPanel() {
                         })()}
                       />
                       <Tooltip
-                        contentStyle={{ backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e2e8f0', padding: '6px 10px', fontSize: '12px' }}
-                        labelStyle={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '2px', fontSize: '11px' }}
-                        itemStyle={{ padding: '1px 0', fontSize: '11px' }}
-                        labelFormatter={(date) => new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
-                        formatter={(value, name) => {
-                          const numValue = Math.round(Number(value));
-                          const nameStr = String(name);
-                          // Skip fill areas in tooltip
-                          if (nameStr.includes('outperformance') || nameStr.includes('underperformance') || nameStr.includes('area_base') || nameStr.includes('fill')) {
-                            return null;
-                          }
-                          const benchmarkTicker = benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY');
-                          let label: string = benchmarkTicker;
-                          if (nameStr.includes('Portfolio')) label = t('performance.portfolio');
-                          else if (nameStr.includes('Invested')) label = t('performance.invested');
-                          return [`${formatEur(numValue)}€`, label];
-                        }}
                         wrapperStyle={{ zIndex: 100 }}
                         allowEscapeViewBox={{ x: false, y: true }}
                         offset={10}
+                        content={({ active, payload, label }) => {
+                          if (!active || !payload || payload.length === 0) return null;
+                          const data = payload[0]?.payload;
+                          if (!data) return null;
+
+                          const benchmarkTicker = benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY');
+                          const portfolioValue = data.portfolio_value_eur;
+                          const costBasis = data.cost_basis_eur;
+                          const benchmarkValue = data.benchmark_value_eur;
+
+                          // Calculate performance percentage
+                          const perfPct = costBasis > 0 ? ((portfolioValue - costBasis) / costBasis * 100) : 0;
+                          const perfRounded = Math.round(perfPct * 10) / 10;
+
+                          // Calculate days from first data point to this date for annualized
+                          const firstDate = new Date(chartData[0]?.date);
+                          const currentDate = new Date(data.date);
+                          const daysDiff = Math.max(1, Math.round((currentDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
+                          const years = daysDiff / 365;
+
+                          // Annualized return (CAGR)
+                          const totalReturn = costBasis > 0 ? (portfolioValue / costBasis) : 1;
+                          const cagr = years > 0 ? (Math.pow(totalReturn, 1 / years) - 1) * 100 : 0;
+                          const cagrRounded = Math.round(cagr * 10) / 10;
+
+                          const displayPerf = showAnnualized ? cagrRounded : perfRounded;
+                          const perfLabel = showAnnualized
+                            ? (language === 'fr' ? 'Performance (annualisée)' : 'Performance (annualized)')
+                            : (language === 'fr' ? 'Performance (totale)' : 'Performance (all)');
+
+                          return (
+                            <div style={{ backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e2e8f0', padding: '6px 10px', fontSize: '12px' }}>
+                              <p style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
+                                {new Date(String(label)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+                              </p>
+                              <p style={{ color: '#64748b', fontSize: '11px', padding: '1px 0' }}>
+                                {t('performance.invested')} : {formatEur(Math.round(costBasis))}€
+                              </p>
+                              <p style={{ color: '#8A8EFF', fontSize: '11px', padding: '1px 0' }}>
+                                {benchmarkTicker} : {formatEur(Math.round(benchmarkValue))}€
+                              </p>
+                              <p style={{ color: '#16a34a', fontSize: '11px', padding: '1px 0' }}>
+                                {t('performance.portfolio')} : {formatEur(Math.round(portfolioValue))}€
+                              </p>
+                              <p style={{ color: displayPerf >= 0 ? '#16a34a' : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', marginTop: '4px', borderTop: '1px solid #e2e8f0', paddingTop: '4px' }}>
+                                {perfLabel} : {displayPerf >= 0 ? '+' : ''}{displayPerf}%
+                              </p>
+                            </div>
+                          );
+                        }}
                       />
                       <Legend
                         content={() => (
