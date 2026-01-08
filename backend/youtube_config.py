@@ -14,6 +14,9 @@ YOUTUBE_CHANNELS = {
     'UCrp_UI8XtuYfpiqluWLD7Lw': {
         'name': 'CNBC Television',
     },
+    'UCEAZeUIeJs0IjQiqTCdVSIg': {
+        'name': 'Yahoo Finance',
+    },
 }
 
 # Additional keywords for specific companies (optional)
