@@ -1,49 +1,17 @@
 // Investing Welcome panel
 
-import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, Eye, Calendar, TrendingUp, Loader2, Search } from 'lucide-react';
+import { Briefcase, Eye, Calendar, TrendingUp, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
-import { searchAllStocks, type Stock, type IndexFilter } from '../utils/allStocks';
+import { StockSearchBar } from '../components/StockSearchBar';
 
 export function InvestingWelcomePanel() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { language } = useLanguage();
-
-  // Stock search state
-  const [stockSearch, setStockSearch] = useState('');
-  const [stockResults, setStockResults] = useState<Stock[]>([]);
-  const [showStockDropdown, setShowStockDropdown] = useState(false);
-  const [indexFilter, setIndexFilter] = useState<IndexFilter>({ sp500: true, stoxx600: true, swiss: true });
-  const stockDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Stock search effect
-  useEffect(() => {
-    const results = searchAllStocks(stockSearch, indexFilter);
-    setStockResults(results);
-    setShowStockDropdown(results.length > 0 && stockSearch.length > 0);
-  }, [stockSearch, indexFilter]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (stockDropdownRef.current && !stockDropdownRef.current.contains(event.target as Node)) {
-        setShowStockDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSelectStock = (stock: Stock) => {
-    setStockSearch('');
-    setShowStockDropdown(false);
-    navigate(`/investing/stock/${stock.ticker}`);
-  };
 
   if (authLoading) {
     return (
@@ -160,73 +128,7 @@ export function InvestingWelcomePanel() {
 
         {/* Stock Search Section */}
         <div className="max-w-2xl mx-auto mt-[10vh]">
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
-              {language === 'fr' ? 'Rechercher une action' : 'Search for a stock'}
-            </h3>
-
-            {/* Index Filter Toggles */}
-            <div className="flex items-center gap-4 mb-3">
-              <span className="text-sm text-slate-500 dark:text-slate-400">{language === 'fr' ? 'Indices:' : 'Indices:'}</span>
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={indexFilter.sp500}
-                  onChange={(e) => setIndexFilter({ ...indexFilter, sp500: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
-                />
-                <span className="text-sm text-slate-700 dark:text-slate-300">S&P 500</span>
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={indexFilter.stoxx600}
-                  onChange={(e) => setIndexFilter({ ...indexFilter, stoxx600: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
-                />
-                <span className="text-sm text-slate-700 dark:text-slate-300">STOXX Europe 600</span>
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={indexFilter.swiss}
-                  onChange={(e) => setIndexFilter({ ...indexFilter, swiss: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
-                />
-                <span className="text-sm text-slate-700 dark:text-slate-300">Swiss SPI</span>
-              </label>
-            </div>
-
-            {/* Search Input */}
-            <div className="relative" ref={stockDropdownRef}>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
-                  value={stockSearch}
-                  onChange={(e) => setStockSearch(e.target.value)}
-                  onFocus={() => stockSearch && setShowStockDropdown(stockResults.length > 0)}
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              {showStockDropdown && stockResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
-                  {stockResults.map((stock) => (
-                    <button
-                      key={stock.ticker}
-                      type="button"
-                      onClick={() => handleSelectStock(stock)}
-                      className="w-full px-4 py-2 text-left hover:bg-purple-50 flex items-center gap-3 border-b border-slate-100 last:border-b-0"
-                    >
-                      <span className="font-bold text-slate-800 w-16">{stock.ticker}</span>
-                      <span className="text-slate-600 text-sm truncate">{stock.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <StockSearchBar />
         </div>
       </div>
     </>
