@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowLeft, Loader2, TrendingUp, ExternalLink, MessageSquare, Send, ChevronDown, ChevronUp, Youtube, Calendar, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, TrendingUp, ExternalLink, MessageSquare, Send, ChevronDown, ChevronUp, Youtube, Calendar, RefreshCw, X } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -100,6 +100,7 @@ export function StockDetailPanel() {
   const [videoFilter, setVideoFilter] = useState<'1M' | '3M' | 'ALL'>('ALL');
   const [financialsExpanded, setFinancialsExpanded] = useState(true);
   const [newsFeedExpanded, setNewsFeedExpanded] = useState(true);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [question, setQuestion] = useState('');
 
   const upperTicker = ticker?.toUpperCase() || '';
@@ -501,12 +502,10 @@ export function StockDetailPanel() {
             return (
               <div className="space-y-3">
                 {filteredVideos.map((video) => (
-                  <a
+                  <button
                     key={video.video_id}
-                    href={video.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors group"
+                    onClick={() => setSelectedVideo(video)}
+                    className="w-full flex gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors group text-left"
                   >
                     {/* Thumbnail */}
                     <div className="relative w-32 h-20 flex-shrink-0 rounded-md overflow-hidden bg-slate-200 dark:bg-slate-600">
@@ -544,7 +543,7 @@ export function StockDetailPanel() {
                         </span>
                       </div>
                     </div>
-                  </a>
+                  </button>
                 ))}
               </div>
             );
@@ -592,6 +591,58 @@ export function StockDetailPanel() {
           </p>
         </div>
       </div>
+
+      {/* Video Modal */}
+      {selectedVideo && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedVideo(null)}
+        >
+          <div
+            className="relative w-full max-w-4xl bg-slate-900 rounded-xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setSelectedVideo(null)}
+              className="absolute top-3 right-3 z-10 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+
+            {/* YouTube Embed */}
+            <div className="relative pt-[56.25%]">
+              <iframe
+                className="absolute inset-0 w-full h-full"
+                src={`https://www.youtube.com/embed/${selectedVideo.video_id}?autoplay=1`}
+                title={selectedVideo.title}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+
+            {/* Video info */}
+            <div className="p-4">
+              <h3 className="text-lg font-semibold text-white mb-2">{selectedVideo.title}</h3>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-slate-300">{selectedVideo.channel_name}</span>
+                <span className="text-slate-500">·</span>
+                <span className="text-sm text-slate-400">{formatDate(selectedVideo.published_at, language)}</span>
+                <a
+                  href={selectedVideo.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto text-sm text-red-400 hover:text-red-300 flex items-center gap-1"
+                >
+                  <Youtube className="w-4 h-4" />
+                  {language === 'fr' ? 'Ouvrir sur YouTube' : 'Open on YouTube'}
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
