@@ -1233,7 +1233,7 @@ export function PortfolioPanel() {
                           ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
                           : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
                         {' '}
-                        <span className="text-xs md:text-base">({displayPct >= 0 ? '+' : ''}{displayPct}%)</span>
+                        ({displayPct >= 0 ? '+' : ''}{displayPct}%)
                       </p>
                     </div>
                     {/* Gains réalisés (Realized Gains) */}
@@ -1246,7 +1246,7 @@ export function PortfolioPanel() {
                           ? `${displayRealizedGain >= 0 ? '+' : ''}${formatEur(displayRealizedGain)}€`
                           : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
                         {' '}
-                        <span className="text-xs md:text-base">({realizedGainPct >= 0 ? '+' : ''}{realizedGainPct}%)</span>
+                        ({realizedGainPct >= 0 ? '+' : ''}{realizedGainPct}%)
                       </p>
                     </div>
                   </>
@@ -1586,8 +1586,7 @@ export function PortfolioPanel() {
                             </>
                           ) : (
                             <>
-                              {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€{' '}
-                              <span className="text-sm md:text-lg">({filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}{filteredSummary.portfolio_return_eur}%)</span>
+                              {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€ ({filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}{filteredSummary.portfolio_return_eur}%)
                             </>
                           )}
                         </span>
@@ -1601,8 +1600,7 @@ export function PortfolioPanel() {
                             </>
                           ) : (
                             <>
-                              {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€{' '}
-                              <span className="text-sm md:text-lg">({filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}{filteredSummary.benchmark_return_eur}%)</span>
+                              {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€ ({filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}{filteredSummary.benchmark_return_eur}%)
                             </>
                           )}
                         </span>
