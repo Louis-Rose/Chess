@@ -160,8 +160,8 @@ export function InvestingWelcomePanel() {
 
         {/* Stock Search Section */}
         <div className="max-w-2xl mx-auto mt-8">
-          <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-3">
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
               {language === 'fr' ? 'Rechercher une action' : 'Search for a stock'}
             </h3>
 
@@ -173,7 +173,7 @@ export function InvestingWelcomePanel() {
                   type="checkbox"
                   checked={indexFilter.sp500}
                   onChange={(e) => setIndexFilter({ ...indexFilter, sp500: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
                 />
                 <span className="text-sm text-slate-700 dark:text-slate-300">S&P 500</span>
               </label>
@@ -182,7 +182,7 @@ export function InvestingWelcomePanel() {
                   type="checkbox"
                   checked={indexFilter.stoxx600}
                   onChange={(e) => setIndexFilter({ ...indexFilter, stoxx600: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
                 />
                 <span className="text-sm text-slate-700 dark:text-slate-300">STOXX Europe 600</span>
               </label>
@@ -191,7 +191,7 @@ export function InvestingWelcomePanel() {
                   type="checkbox"
                   checked={indexFilter.swiss}
                   onChange={(e) => setIndexFilter({ ...indexFilter, swiss: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
                 />
                 <span className="text-sm text-slate-700 dark:text-slate-300">Swiss SPI</span>
               </label>
@@ -200,27 +200,27 @@ export function InvestingWelcomePanel() {
             {/* Search Input */}
             <div className="relative" ref={stockDropdownRef}>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder={language === 'fr' ? 'Rechercher des actions...' : 'Search stocks...'}
+                  placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
                   value={stockSearch}
                   onChange={(e) => setStockSearch(e.target.value)}
                   onFocus={() => stockSearch && setShowStockDropdown(stockResults.length > 0)}
-                  className="w-full pl-11 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
               {showStockDropdown && stockResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
                   {stockResults.map((stock) => (
                     <button
                       key={stock.ticker}
                       type="button"
                       onClick={() => handleSelectStock(stock)}
-                      className="w-full px-4 py-2 text-left hover:bg-blue-50 dark:hover:bg-slate-600 flex items-center gap-3 border-b border-slate-100 dark:border-slate-600 last:border-b-0"
+                      className="w-full px-4 py-2 text-left hover:bg-purple-50 flex items-center gap-3 border-b border-slate-100 last:border-b-0"
                     >
-                      <span className="font-bold text-slate-800 dark:text-slate-100 w-16">{stock.ticker}</span>
-                      <span className="text-slate-600 dark:text-slate-300 text-sm truncate">{stock.name}</span>
+                      <span className="font-bold text-slate-800 w-16">{stock.ticker}</span>
+                      <span className="text-slate-600 text-sm truncate">{stock.name}</span>
                     </button>
                   ))}
                 </div>

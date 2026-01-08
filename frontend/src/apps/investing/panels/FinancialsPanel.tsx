@@ -19,7 +19,7 @@ export function FinancialsPanel() {
   const [stockSearch, setStockSearch] = useState('');
   const [stockResults, setStockResults] = useState<Stock[]>([]);
   const [showStockDropdown, setShowStockDropdown] = useState(false);
-  const [indexFilter, setIndexFilter] = useState<IndexFilter>({ sp500: true, stoxx600: true });
+  const [indexFilter, setIndexFilter] = useState<IndexFilter>({ sp500: true, stoxx600: true, swiss: true });
   const stockDropdownRef = useRef<HTMLDivElement>(null);
 
   // GICS state
@@ -152,6 +152,15 @@ export function FinancialsPanel() {
                 className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
               />
               <span className="text-sm text-slate-700 dark:text-slate-300">STOXX Europe 600</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={indexFilter.swiss}
+                onChange={(e) => setIndexFilter({ ...indexFilter, swiss: e.target.checked })}
+                className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">Swiss SPI</span>
             </label>
           </div>
           <div className="relative" ref={stockDropdownRef}>
