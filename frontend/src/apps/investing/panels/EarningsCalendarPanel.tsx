@@ -526,7 +526,7 @@ export function EarningsCalendarPanel() {
                       <span className="sm:hidden">{language === 'fr' ? 'Conf.' : 'Conf.'}</span>
                     </th>
                     <th className="pb-3 text-center font-semibold">
-                      <Bell className="w-4 h-4 mx-auto" title={language === 'fr' ? 'Alerte' : 'Alert'} />
+                      <span title={language === 'fr' ? 'Alerte' : 'Alert'}><Bell className="w-4 h-4 mx-auto" /></span>
                     </th>
                     <th className="pb-3 text-center font-semibold">
                       <span className="hidden sm:inline">IR</span>
