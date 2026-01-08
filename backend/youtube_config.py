@@ -8,6 +8,9 @@ YOUTUBE_CHANNELS = {
     'UCfCT7SSFEWyG4th9ZmaGYqQ': {
         'name': 'Joseph Carlson After Hours',
     },
+    'UCbta0n8i6Rljh0obO7HzG9A': {
+        'name': 'Joseph Carlson',
+    },
 }
 
 # Additional keywords for specific companies (optional)
