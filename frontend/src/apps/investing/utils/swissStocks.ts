@@ -17,6 +17,7 @@ export const swissStocks: Stock[] = [
   { ticker: 'ZURN', name: 'Zurich Insurance' },
   { ticker: 'HOLN', name: 'Holcim' },
   { ticker: 'SREN', name: 'Swiss Re' },
+  { ticker: 'VAHN', name: 'Vaudoise Assurances' },
   { ticker: 'LONN', name: 'Lonza Group' },
   { ticker: 'ALC', name: 'Alcon' },
   { ticker: 'GIVN', name: 'Givaudan' },

@@ -411,6 +411,7 @@ export const STOXX600_STOCKS: Stock[] = [
   { ticker: 'RMV', name: 'Rightmove' },
   { ticker: 'RIO', name: 'Rio Tinto' },
   { ticker: 'ROG', name: 'Roche' },
+  { ticker: 'RBO', name: 'Roche Bobois' },
   { ticker: 'ROCK B', name: 'Rockwool' },
   { ticker: 'RR.', name: 'Rolls-Royce' },
   { ticker: 'ROR', name: 'Rotork' },
