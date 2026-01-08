@@ -2026,6 +2026,15 @@ def get_time_spent_stats():
     return jsonify({'daily_stats': daily_stats})
 
 
+@app.route('/api/admin/clear-video-cache', methods=['POST'])
+@admin_required
+def clear_video_cache():
+    """Clear YouTube video cache to force refresh with descriptions (admin only)."""
+    with get_db() as conn:
+        conn.execute('DELETE FROM youtube_videos_cache')
+    return jsonify({'success': True, 'message': 'Video cache cleared. Videos will be re-fetched with descriptions.'})
+
+
 @app.route('/api/feedback', methods=['POST'])
 @login_required
 def submit_feedback():

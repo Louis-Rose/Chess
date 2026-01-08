@@ -1052,8 +1052,14 @@ def get_cached_videos(db_getter):
 
     placeholders = ','.join('?' * len(allowed_channel_ids))
     with db_getter() as conn:
+        # Ensure description column exists
+        try:
+            conn.execute('ALTER TABLE youtube_videos_cache ADD COLUMN description TEXT')
+        except Exception:
+            pass  # Column already exists
+
         cursor = conn.execute(f'''
-            SELECT video_id, channel_id, channel_name, title, thumbnail_url,
+            SELECT video_id, channel_id, channel_name, title, description, thumbnail_url,
                    published_at, view_count, updated_at
             FROM youtube_videos_cache
             WHERE channel_id IN ({placeholders})
@@ -1067,13 +1073,20 @@ def get_cached_videos(db_getter):
 def save_videos_to_cache(db_getter, videos):
     """Save videos to cache (upsert)."""
     with db_getter() as conn:
+        # Ensure description column exists
+        try:
+            conn.execute('ALTER TABLE youtube_videos_cache ADD COLUMN description TEXT')
+        except Exception:
+            pass  # Column already exists
+
         for video in videos:
             conn.execute('''
                 INSERT INTO youtube_videos_cache
-                    (video_id, channel_id, channel_name, title, thumbnail_url, published_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    (video_id, channel_id, channel_name, title, description, thumbnail_url, published_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(video_id) DO UPDATE SET
                     title = excluded.title,
+                    description = excluded.description,
                     thumbnail_url = excluded.thumbnail_url,
                     updated_at = CURRENT_TIMESTAMP
             ''', (
@@ -1081,6 +1094,7 @@ def save_videos_to_cache(db_getter, videos):
                 video['channel_id'],
                 video['channel_name'],
                 video['title'],
+                video.get('description', ''),
                 video['thumbnail_url'],
                 video['published_at']
             ))
