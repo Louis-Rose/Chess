@@ -306,7 +306,10 @@ export function AdminPanel() {
         {!isLoading && !error && chartData.length > 0 && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <button
-              onClick={() => setIsUserGrowthExpanded(!isUserGrowthExpanded)}
+              onClick={(e) => {
+                setIsUserGrowthExpanded(!isUserGrowthExpanded);
+                setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
+              }}
               className="flex items-center gap-3 w-full text-left"
             >
               <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isUserGrowthExpanded ? 'rotate-90' : ''}`} />
@@ -381,7 +384,10 @@ export function AdminPanel() {
         {!isLoading && !error && timeSpentChartData.length > 0 && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <button
-              onClick={() => setIsTimeSpentExpanded(!isTimeSpentExpanded)}
+              onClick={(e) => {
+                setIsTimeSpentExpanded(!isTimeSpentExpanded);
+                setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
+              }}
               className="flex items-center gap-3 w-full text-left"
             >
               <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isTimeSpentExpanded ? 'rotate-90' : ''}`} />
@@ -451,7 +457,10 @@ export function AdminPanel() {
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <button
-              onClick={() => setIsUsersExpanded(!isUsersExpanded)}
+              onClick={(e) => {
+                setIsUsersExpanded(!isUsersExpanded);
+                setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
+              }}
               className="flex items-center gap-3"
             >
               <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isUsersExpanded ? 'rotate-90' : ''}`} />
@@ -676,7 +685,10 @@ export function AdminPanel() {
         {stockViewsData && stockViewsData.by_stock.length > 0 && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <button
-              onClick={() => setIsStockSearchesExpanded(!isStockSearchesExpanded)}
+              onClick={(e) => {
+                setIsStockSearchesExpanded(!isStockSearchesExpanded);
+                setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
+              }}
               className="flex items-center gap-3 w-full text-left"
             >
               <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isStockSearchesExpanded ? 'rotate-90' : ''}`} />

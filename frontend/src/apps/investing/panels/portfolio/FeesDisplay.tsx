@@ -20,7 +20,10 @@ export function FeesDisplay({ selectedAccount, language }: FeesDisplayProps) {
       {/* Toggle button - centered */}
       <div className="flex justify-center mb-4">
         <button
-          onClick={() => setShowFees(!showFees)}
+          onClick={(e) => {
+            setShowFees(!showFees);
+            setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
+          }}
           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
         >
           {showFees ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
