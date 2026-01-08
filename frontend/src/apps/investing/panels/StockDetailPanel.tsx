@@ -537,8 +537,7 @@ export function StockDetailPanel() {
                         {video.title}
                       </h3>
                       <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-xs text-slate-500 dark:text-slate-400">{video.channel_name}</span>
-                        <span className="text-slate-400 dark:text-slate-500">·</span>
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-600 px-2 py-0.5 rounded">{video.channel_name}</span>
                         <span className="flex items-center gap-1 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-600 px-2 py-0.5 rounded">
                           <Calendar className="w-3 h-3" />
                           {formatDate(video.published_at, language)}
