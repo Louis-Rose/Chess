@@ -303,6 +303,10 @@ export function TransactionForm({
                       onChange={(e) => {
                         setStockSearch(e.target.value);
                         setNewTicker(e.target.value.toUpperCase());
+                        // Clear filter when search is cleared
+                        if (!e.target.value) {
+                          setFilterTicker('');
+                        }
                       }}
                       onFocus={() => stockSearch && setShowStockDropdown(stockResults.length > 0)}
                       className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
