@@ -68,7 +68,7 @@ const sendTestEmail = async (): Promise<{ success: boolean; message?: string; er
   return response.data;
 };
 
-const fetchEarningsWatchlist = async (): Promise<{ tickers: string[] }> => {
+const fetchEarningsWatchlist = async (): Promise<{ symbols: string[] }> => {
   const response = await axios.get('/api/investing/earnings-watchlist');
   return response.data;
 };
@@ -375,7 +375,7 @@ export function EarningsCalendarPanel() {
     queryFn: fetchEarningsWatchlist,
     enabled: isAuthenticated,
   });
-  const earningsWatchlist = earningsWatchlistData?.tickers || [];
+  const earningsWatchlist = earningsWatchlistData?.symbols || [];
 
   // Toggle alert for a ticker
   const handleToggleAlert = async (ticker: string) => {
