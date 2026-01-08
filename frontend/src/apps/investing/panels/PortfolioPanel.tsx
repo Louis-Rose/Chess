@@ -1720,10 +1720,10 @@ export function PortfolioPanel() {
                           const benchmarkTotalReturn = costBasis > 0 ? (benchmarkValue / costBasis) : 1;
                           const benchmarkCagr = years > 0 ? (Math.pow(benchmarkTotalReturn, 1 / years) - 1) * 100 : 0;
 
-                          // Outperformance/Underperformance (geometric)
-                          // Formula: (1 + portfolio_return) / (1 + benchmark_return) - 1
-                          const outperfTotal = benchmarkTotalReturn > 0 ? ((totalReturn / benchmarkTotalReturn) - 1) * 100 : 0;
-                          const outperfAnnualized = (1 + benchmarkCagr / 100) > 0 ? (((1 + cagr / 100) / (1 + benchmarkCagr / 100)) - 1) * 100 : 0;
+                          // Outperformance/Underperformance (gains-based)
+                          // Formula: portfolio_gains / benchmark_gains - 1
+                          const outperfTotal = benchmarkPerfPct !== 0 ? ((perfPct / benchmarkPerfPct) - 1) * 100 : 0;
+                          const outperfAnnualized = benchmarkCagr !== 0 ? ((cagr / benchmarkCagr) - 1) * 100 : 0;
                           const displayOutperf = showAnnualized ? Math.round(outperfAnnualized * 10) / 10 : Math.round(outperfTotal * 10) / 10;
 
                           const displayPerf = showAnnualized ? cagrRounded : perfRounded;
@@ -1743,14 +1743,14 @@ export function PortfolioPanel() {
                               <p style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
                                 {new Date(String(label)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                               </p>
-                              <p style={{ color: '#64748b', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                              <p style={{ color: '#64748b', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '4px' }}>
                                 {t('performance.invested')} : {formatEur(Math.round(costBasis))}€
-                              </p>
-                              <p style={{ color: '#8A8EFF', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
-                                {benchmarkTicker} : {formatEur(Math.round(benchmarkValue))}€
                               </p>
                               <p style={{ color: '#16a34a', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                                 {t('performance.portfolio')} : {formatEur(Math.round(portfolioValue))}€
+                              </p>
+                              <p style={{ color: '#8A8EFF', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                                {benchmarkTicker} : {formatEur(Math.round(benchmarkValue))}€
                               </p>
                               <p style={{ color: displayPerf >= 0 ? '#16a34a' : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', marginTop: '4px', borderTop: '1px solid #e2e8f0', paddingTop: '4px' }}>
                                 {perfLabel} : {displayPerf >= 0 ? '+' : ''}{displayPerf}%
