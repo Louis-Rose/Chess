@@ -1720,11 +1720,11 @@ export function PortfolioPanel() {
                           const benchmarkTotalReturn = costBasis > 0 ? (benchmarkValue / costBasis) : 1;
                           const benchmarkCagr = years > 0 ? (Math.pow(benchmarkTotalReturn, 1 / years) - 1) * 100 : 0;
 
-                          // Outperformance/Underperformance (gains-based)
-                          // Formula: portfolio_gains / benchmark_gains - 1
-                          const outperfTotal = benchmarkPerfPct !== 0 ? ((perfPct / benchmarkPerfPct) - 1) * 100 : 0;
-                          const outperfAnnualized = benchmarkCagr !== 0 ? ((cagr / benchmarkCagr) - 1) * 100 : 0;
-                          const displayOutperf = showAnnualized ? Math.round(outperfAnnualized * 10) / 10 : Math.round(outperfTotal * 10) / 10;
+                          // Outperformance ratio (gains-based)
+                          // Formula: portfolio_gains / benchmark_gains
+                          const outperfRatioTotal = benchmarkPerfPct !== 0 ? (perfPct / benchmarkPerfPct) : 0;
+                          const outperfRatioAnnualized = benchmarkCagr !== 0 ? (cagr / benchmarkCagr) : 0;
+                          const displayOutperfRatio = showAnnualized ? Math.round(outperfRatioAnnualized * 10) / 10 : Math.round(outperfRatioTotal * 10) / 10;
 
                           const displayPerf = showAnnualized ? cagrRounded : perfRounded;
                           const perfLabel = showAnnualized
@@ -1734,9 +1734,7 @@ export function PortfolioPanel() {
                           const displayBenchmarkPerf = showAnnualized ? Math.round(benchmarkCagr * 10) / 10 : Math.round(benchmarkPerfPct * 10) / 10;
                           const benchmarkPerfLabel = language === 'fr' ? `Performance ${benchmarkTicker}` : `${benchmarkTicker} performance`;
 
-                          const outperfLabel = displayOutperf >= 0
-                            ? (language === 'fr' ? `Surperformance (${benchmarkTicker})` : `Outperformance (${benchmarkTicker})`)
-                            : (language === 'fr' ? `Sous-performance (${benchmarkTicker})` : `Underperformance (${benchmarkTicker})`);
+                          const outperfLabel = language === 'fr' ? `vs ${benchmarkTicker}` : `vs ${benchmarkTicker}`;
 
                           return (
                             <div style={{ backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e2e8f0', padding: '6px 10px', fontSize: '12px' }}>
@@ -1758,8 +1756,8 @@ export function PortfolioPanel() {
                               <p style={{ color: '#8A8EFF', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                                 {benchmarkPerfLabel} : {displayBenchmarkPerf >= 0 ? '+' : ''}{displayBenchmarkPerf}%
                               </p>
-                              <p style={{ color: displayOutperf >= 0 ? '#16a34a' : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
-                                {outperfLabel} : {displayOutperf >= 0 ? '+' : ''}{Math.abs(displayOutperf)}%
+                              <p style={{ color: displayOutperfRatio >= 1 ? '#16a34a' : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                                {outperfLabel} : x{displayOutperfRatio}
                               </p>
                             </div>
                           );
