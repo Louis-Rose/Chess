@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import {
-  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Legend, Brush,
+  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Brush,
   ResponsiveContainer, Tooltip
 } from 'recharts';
 import { Loader2, Download, Info } from 'lucide-react';
@@ -341,17 +341,17 @@ export function PerformanceChart({
                   <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center relative group flex flex-col justify-center">
                     <div className="flex flex-col gap-2">
                       <div>
-                        <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold mb-0.5">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
-                        <span className="text-sm md:text-base font-bold text-slate-800 dark:text-slate-100">
+                        <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-bold mb-0.5">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
+                        <span className="text-xs md:text-sm text-slate-700 dark:text-slate-200">
                           {formatHoldingPeriod(filteredSummary.start_date, filteredSummary.end_date)}
                         </span>
                       </div>
                       <div className="border-t border-slate-300 dark:border-slate-500 pt-2">
-                        <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold mb-0.5 flex items-center justify-center gap-1">
+                        <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-bold mb-0.5 flex items-center justify-center gap-1">
                           {language === 'fr' ? 'Periode ponderee' : 'Weighted period'}
                           <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
                         </p>
-                        <span className="text-sm md:text-base font-bold text-slate-800 dark:text-slate-100">
+                        <span className="text-xs md:text-sm text-slate-700 dark:text-slate-200">
                           {calculateWeightedPeriod()}
                         </span>
                       </div>
@@ -444,7 +444,7 @@ export function PerformanceChart({
                       })()}
                     />
                     <YAxis
-                      tick={{ fontSize: 15, fill: colors.tickFill }}
+                      tick={{ fontSize: 15, fill: colors.tickFill, fontWeight: 600 }}
                       stroke={colors.axisStroke}
                       tickFormatter={(val) => {
                         // For private mode with small values, don't use k€ format
@@ -566,34 +566,6 @@ export function PerformanceChart({
                         onChange={handleBrushChange}
                       />
                     )}
-                    <Legend
-                      verticalAlign="bottom"
-                      wrapperStyle={{ paddingTop: '5px' }}
-                      content={() => (
-                        <div className="flex justify-center gap-6 text-sm flex-wrap">
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-4 h-0.5 bg-green-600"></div>
-                            <span className="text-slate-600 dark:text-slate-300">{t('performance.portfolio')}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-4 h-0.5 bg-[#60a5fa]" style={{ borderStyle: 'dashed', borderWidth: '1px', borderColor: '#60a5fa', height: 0 }}></div>
-                            <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Indice de ref.' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-4 h-0.5 bg-slate-400"></div>
-                            <span className="text-slate-600 dark:text-slate-300">{t('performance.invested')}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 bg-green-400/50 border border-green-400"></div>
-                            <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Surperformance' : 'Outperformance'}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 bg-red-500/30 border border-red-500"></div>
-                            <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Sous-performance' : 'Underperformance'}</span>
-                          </div>
-                        </div>
-                      )}
-                    />
                     <Area
                       type="monotone"
                       dataKey="area_base"
@@ -654,9 +626,9 @@ export function PerformanceChart({
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-              {/* Custom brush date labels */}
+              {/* Custom brush date labels - right under the slider */}
               {!isDownloading && (
-                <div className="flex justify-between px-[50px] -mt-1">
+                <div className="flex justify-between px-[50px] mt-1">
                   <div className="text-center text-green-500 font-semibold text-sm">
                     <div>{(() => {
                       const startIdx = brushRange?.startIndex ?? 0;
@@ -685,9 +657,32 @@ export function PerformanceChart({
                   </div>
                 </div>
               )}
+              {/* Legend - below slider labels */}
+              <div className="flex justify-center gap-6 text-sm flex-wrap mt-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-0.5 bg-green-600"></div>
+                  <span className="text-slate-600 dark:text-slate-300">{t('performance.portfolio')}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-0.5 bg-[#60a5fa]" style={{ borderStyle: 'dashed', borderWidth: '1px', borderColor: '#60a5fa', height: 0 }}></div>
+                  <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Indice de ref.' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-0.5 bg-slate-400"></div>
+                  <span className="text-slate-600 dark:text-slate-300">{t('performance.invested')}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 bg-green-400/50 border border-green-400"></div>
+                  <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Surperformance' : 'Outperformance'}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 bg-red-500/30 border border-red-500"></div>
+                  <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Sous-performance' : 'Underperformance'}</span>
+                </div>
+              </div>
               {/* LUMRA branding - hidden during download since addLumraBranding adds it */}
               {!isDownloading && (
-                <div className="flex items-center justify-end gap-2 mt-1 mr-2">
+                <div className="flex items-center justify-end gap-2 mt-2 mr-2">
                   <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
                     <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
                       <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
