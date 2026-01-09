@@ -130,7 +130,8 @@ export function PortfolioPanel() {
     e.preventDefault();
   };
 
-  const handleDrop = (targetPanel: 'holdings' | 'performance') => {
+  const handleDrop = (e: React.DragEvent, targetPanel: 'holdings' | 'performance') => {
+    e.preventDefault();
     if (draggedPanel && draggedPanel !== targetPanel) {
       setPanelOrder([targetPanel, draggedPanel]);
     }
@@ -437,7 +438,7 @@ export function PortfolioPanel() {
                 draggable
                 onDragStart={() => handleDragStart('holdings')}
                 onDragOver={handleDragOver}
-                onDrop={() => handleDrop('holdings')}
+                onDrop={(e) => handleDrop(e, 'holdings')}
                 onDragEnd={handleDragEnd}
                 className={`bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none transition-opacity ${draggedPanel === 'holdings' ? 'opacity-50' : ''}`}
               >
@@ -471,7 +472,7 @@ export function PortfolioPanel() {
                 draggable
                 onDragStart={() => handleDragStart('performance')}
                 onDragOver={handleDragOver}
-                onDrop={() => handleDrop('performance')}
+                onDrop={(e) => handleDrop(e, 'performance')}
                 onDragEnd={handleDragEnd}
                 className={`bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none transition-opacity ${draggedPanel === 'performance' ? 'opacity-50' : ''}`}
               >
