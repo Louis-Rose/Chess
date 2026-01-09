@@ -100,7 +100,12 @@ export function PortfolioComposition({
                     cx="50%"
                     cy="50%"
                     outerRadius="50%"
-                    label={({ name, value }) => `${name} ${value}%`}
+                    label={({ name, value, x, y, textAnchor }) => (
+                      <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" fontSize={12}>
+                        <tspan fontWeight="bold">{name}</tspan>
+                        <tspan> {value}%</tspan>
+                      </text>
+                    )}
                     labelLine={true}
                     isAnimationActive={!isDownloading}
                   >
