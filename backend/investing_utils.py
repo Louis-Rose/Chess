@@ -885,41 +885,62 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
             # Calculate portfolio value at this date
             # Use current prices for the last data point to match composition endpoint
             is_last_date = (date_str == weekly_dates[-1])
-            portfolio_value = 0
-            for ticker, qty in holdings_at_date.items():
-                if qty > 0:
-                    if is_last_date:
-                        price = fetch_current_stock_price(ticker)
-                    else:
-                        price = fetch_stock_price(ticker, date_str)
-                    portfolio_value += price * qty
 
-            # Calculate benchmark value (what if we'd invested in benchmark instead)
-            if is_last_date:
-                benchmark_price = fetch_current_stock_price(benchmark_ticker)
-            else:
-                benchmark_price = fetch_stock_price(benchmark_ticker, date_str)
-            benchmark_value = benchmark_shares_at_date * benchmark_price
-
-            # EUR conversion - use current rate for last date
+            # Get EUR/USD rate for this date (used for USD stocks and benchmark)
             if is_last_date:
                 eurusd = get_current_eurusd_rate()
             else:
                 eurusd = fetch_eurusd_rate(date_str)
-            portfolio_value_eur = portfolio_value / eurusd
-            benchmark_value_eur = benchmark_value / eurusd
+
+            # Calculate portfolio value in EUR, handling multi-currency stocks
+            portfolio_value_eur = 0
+            portfolio_value_usd = 0  # Keep USD value for reference
+            for ticker, qty in holdings_at_date.items():
+                if qty > 0:
+                    if is_last_date:
+                        price_native = fetch_current_stock_price(ticker)
+                    else:
+                        price_native = fetch_stock_price(ticker, date_str)
+
+                    # Get stock's native currency and convert to EUR
+                    native_currency = get_stock_currency(ticker)
+                    if native_currency == 'EUR':
+                        price_eur = price_native
+                    elif native_currency == 'USD':
+                        price_eur = price_native / eurusd
+                    else:
+                        # Other currencies (GBP, CHF, etc.) - convert via current rate
+                        fx_rate_to_eur = get_fx_rate_to_eur(native_currency)
+                        price_eur = price_native * fx_rate_to_eur
+
+                    portfolio_value_eur += price_eur * qty
+                    portfolio_value_usd += (price_eur * eurusd) * qty  # Convert back to USD for reference
+
+            # Calculate benchmark value (what if we'd invested in benchmark instead)
+            # Benchmark is always in USD (QQQ, SPY, etc.) or EUR-denominated ETF
+            if is_last_date:
+                benchmark_price = fetch_current_stock_price(benchmark_ticker)
+            else:
+                benchmark_price = fetch_stock_price(benchmark_ticker, date_str)
+
+            benchmark_currency = get_stock_currency(benchmark_ticker)
+            if benchmark_currency == 'EUR':
+                benchmark_value_eur = benchmark_shares_at_date * benchmark_price
+            else:
+                benchmark_value_eur = benchmark_shares_at_date * benchmark_price / eurusd
+            benchmark_value_usd = benchmark_value_eur * eurusd
             # Use the EUR amount invested at transaction dates (doesn't fluctuate with FX)
             cost_basis_eur = cost_basis_eur_at_date
 
-            # Growth percentages
-            portfolio_growth = 100 * portfolio_value / cost_basis_at_date if cost_basis_at_date > 0 else 100
-            benchmark_growth = 100 * benchmark_value / cost_basis_at_date if cost_basis_at_date > 0 else 100
+            # Growth percentages (using EUR values)
+            portfolio_growth = 100 * portfolio_value_eur / cost_basis_eur if cost_basis_eur > 0 else 100
+            benchmark_growth = 100 * benchmark_value_eur / cost_basis_eur if cost_basis_eur > 0 else 100
 
             performance_data.append({
                 'date': date_str,
-                'portfolio_value_usd': round(portfolio_value, 2),
+                'portfolio_value_usd': round(portfolio_value_usd, 2),
                 'portfolio_value_eur': round(portfolio_value_eur, 2),
-                'benchmark_value_usd': round(benchmark_value, 2),
+                'benchmark_value_usd': round(benchmark_value_usd, 2),
                 'benchmark_value_eur': round(benchmark_value_eur, 2),
                 'cost_basis_usd': round(cost_basis_at_date, 2),
                 'cost_basis_eur': round(cost_basis_eur, 2),
