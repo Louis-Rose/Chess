@@ -372,7 +372,7 @@ export function AdminPanel() {
               <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isUserGrowthExpanded ? 'rotate-90' : ''}`} />
               <TrendingUp className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Nombre d\'utilisateurs' : 'User Growth'}
+                {language === 'fr' ? 'Utilisateurs' : 'Users'}
               </h3>
             </button>
             {isUserGrowthExpanded && <div className="h-[250px] mt-4">
