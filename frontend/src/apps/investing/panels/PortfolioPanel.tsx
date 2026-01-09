@@ -440,7 +440,22 @@ export function PortfolioPanel() {
         )}
 
         {/* Portfolio Composition & Performance - Draggable panels */}
-        {selectedAccountId && accountHasHoldings && panelOrder.map((panel) => {
+        {selectedAccountId && accountHasHoldings && (
+          <div
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDrop={(e) => {
+              e.preventDefault();
+              const sourcePanel = e.dataTransfer.getData('text/plain') as 'holdings' | 'performance';
+              if (sourcePanel) {
+                // Swap panels when dropping anywhere in this container
+                setPanelOrder(prev => [prev[1], prev[0]]);
+              }
+              setDraggedPanel(null);
+            }}
+            className="space-y-8"
+          >
+          {panelOrder.map((panel) => {
           if (panel === 'holdings') {
             return (
               <div
@@ -529,6 +544,8 @@ export function PortfolioPanel() {
             );
           }
         })}
+          </div>
+        )}
       </div>
     </div>
   );
