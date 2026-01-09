@@ -326,18 +326,18 @@ export function PerformanceChart({
 
               {filteredSummary && (
                 <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
-                  {/* Combined Holding Periods - side by side */}
-                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 relative group flex items-center justify-center">
-                    <div className="flex items-center gap-4 md:gap-6">
-                      <div className="text-center">
-                        <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-0.5">{language === 'fr' ? 'Periode' : 'Period'}</p>
+                  {/* Combined Holding Periods - stacked vertically */}
+                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center relative group flex flex-col justify-center">
+                    <div className="flex flex-col gap-2">
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-0.5">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
                         <span className="text-sm md:text-base font-bold text-slate-800 dark:text-slate-100">
                           {formatHoldingPeriod(filteredSummary.start_date, filteredSummary.end_date)}
                         </span>
                       </div>
-                      <div className="border-l border-slate-200 dark:border-slate-500 pl-4 md:pl-6 text-center">
+                      <div className="border-t border-slate-200 dark:border-slate-500 pt-2">
                         <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-0.5 flex items-center justify-center gap-1">
-                          {language === 'fr' ? 'Ponderee' : 'Weighted'}
+                          {language === 'fr' ? 'Periode ponderee' : 'Weighted period'}
                           <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
                         </p>
                         <span className="text-sm md:text-base font-bold text-slate-800 dark:text-slate-100">
