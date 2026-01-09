@@ -341,17 +341,17 @@ export function PerformanceChart({
                   <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center relative group flex flex-col justify-center">
                     <div className="flex flex-col gap-2">
                       <div>
-                        <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-bold mb-0.5">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
-                        <span className="text-xs md:text-sm text-slate-700 dark:text-slate-200">
+                        <p className="text-slate-700 dark:text-white text-sm md:text-base font-bold mb-0.5">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
+                        <span className="text-xs md:text-sm text-slate-600 dark:text-slate-300">
                           {formatHoldingPeriod(filteredSummary.start_date, filteredSummary.end_date)}
                         </span>
                       </div>
                       <div className="border-t border-slate-300 dark:border-slate-500 pt-2">
-                        <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-bold mb-0.5 flex items-center justify-center gap-1">
+                        <p className="text-slate-700 dark:text-white text-sm md:text-base font-bold mb-0.5 flex items-center justify-center gap-1">
                           {language === 'fr' ? 'Periode ponderee' : 'Weighted period'}
                           <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
                         </p>
-                        <span className="text-xs md:text-sm text-slate-700 dark:text-slate-200">
+                        <span className="text-xs md:text-sm text-slate-600 dark:text-slate-300">
                           {calculateWeightedPeriod()}
                         </span>
                       </div>
