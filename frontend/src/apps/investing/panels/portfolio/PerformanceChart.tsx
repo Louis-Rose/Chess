@@ -388,7 +388,7 @@ export function PerformanceChart({
 
               <div className="h-[380px] md:h-[480px] relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 10, right: 60, left: 60, bottom: 80 }}>
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 50, left: 50, bottom: 80 }}>
                     <defs>
                       <linearGradient id="outperformanceGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#4ade80" stopOpacity={0.5} />
@@ -402,15 +402,24 @@ export function PerformanceChart({
                     <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} />
                     <XAxis
                       dataKey="date"
-                      tickFormatter={(date) => {
-                        const d = new Date(date);
+                      tick={(props) => {
+                        const { x, y, payload } = props;
+                        const d = new Date(payload.value);
                         const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
                         const year = d.getFullYear().toString();
-                        return `${month.charAt(0).toUpperCase() + month.slice(1)} ${year}`;
+                        return (
+                          <g transform={`translate(${x},${y})`}>
+                            <text x={0} y={0} dy={12} textAnchor="middle" fill={colors.tickFill} fontSize={13}>
+                              {month.charAt(0).toUpperCase() + month.slice(1)}
+                            </text>
+                            <text x={0} y={0} dy={26} textAnchor="middle" fill={colors.tickFill} fontSize={12}>
+                              {year}
+                            </text>
+                          </g>
+                        );
                       }}
-                      tick={{ fontSize: 14, fill: colors.tickFill }}
                       stroke={colors.axisStroke}
-                      tickMargin={8}
+                      height={45}
                       ticks={(() => {
                         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
                         const targetTicks = isMobile ? 4 : 8;
@@ -583,9 +592,9 @@ export function PerformanceChart({
                         endIndex={brushRange?.endIndex ?? chartData.length - 1}
                         tickFormatter={(date) => {
                           const d = new Date(date);
-                          const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
-                          const year = d.getFullYear().toString();
-                          return `${month.charAt(0).toUpperCase() + month.slice(1)} ${year}`;
+                          const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
+                          const year = d.getFullYear().toString().slice(-2);
+                          return `${month.charAt(0).toUpperCase() + month.slice(1)} '${year}`;
                         }}
                         onChange={handleBrushChange}
                       />
