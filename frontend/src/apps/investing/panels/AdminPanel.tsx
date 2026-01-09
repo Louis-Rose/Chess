@@ -1,10 +1,10 @@
 // Admin panel - view registered users (admin only)
 
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, ChevronUp, ChevronDown, Calendar, X, ArrowRight, Clock, Search, RefreshCw, ChevronRight, Sun, Moon, Settings, Globe } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, ChevronUp, ChevronDown, Clock, Search, RefreshCw, ChevronRight, Sun, Moon, Settings, Globe } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -140,12 +140,6 @@ export function AdminPanel() {
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_minutes');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  // Date range filter state
-  const [filterDateStart, setFilterDateStart] = useState<string>('');
-  const [filterDateEnd, setFilterDateEnd] = useState<string>('');
-  const dateStartRef = useRef<HTMLInputElement>(null);
-  const dateEndRef = useRef<HTMLInputElement>(null);
-
   // Collapsible panel states
   const [isTimeSpentExpanded, setIsTimeSpentExpanded] = useState(true);
   const [isUsersExpanded, setIsUsersExpanded] = useState(true);
@@ -162,24 +156,11 @@ export function AdminPanel() {
     }
   };
 
-  // Filtered and sorted users
+  // Sorted users
   const sortedUsers = useMemo(() => {
     if (!data?.users) return [];
 
-    // Apply date range filter (filter by last_active)
-    let filtered = data.users;
-    if (filterDateStart || filterDateEnd) {
-      filtered = data.users.filter((u) => {
-        if (!u.last_active) return false;
-        const userDate = u.last_active.split('T')[0].split(' ')[0]; // Handle both ISO and space-separated formats
-        if (filterDateStart && userDate < filterDateStart) return false;
-        if (filterDateEnd && userDate > filterDateEnd) return false;
-        return true;
-      });
-    }
-
-    // Sort
-    return [...filtered].sort((a, b) => {
+    return [...data.users].sort((a, b) => {
       let comparison = 0;
       switch (sortColumn) {
         case 'id':
@@ -208,7 +189,7 @@ export function AdminPanel() {
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [data?.users, sortColumn, sortDirection, filterDateStart, filterDateEnd]);
+  }, [data?.users, sortColumn, sortDirection]);
 
   // Compute cumulative users per day (including all days)
   const chartData = useMemo(() => {
@@ -419,67 +400,11 @@ export function AdminPanel() {
                 {language === 'fr' ? 'Utilisateurs' : 'Users'}
                 {data && (
                   <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">
-                    ({(filterDateStart || filterDateEnd) ? sortedUsers.length : data.total})
+                    ({data.total})
                   </span>
                 )}
               </h3>
             </button>
-
-            {/* Date Range Filter */}
-            {isUsersExpanded && <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 dark:bg-slate-600 rounded-lg">
-                <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-300 flex-shrink-0" />
-                <span className="text-sm text-slate-600 dark:text-slate-300 hidden sm:inline">
-                  {language === 'fr' ? 'Actif' : 'Active'}
-                </span>
-                <button
-                  onClick={() => dateStartRef.current?.showPicker()}
-                  className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-green-600 dark:hover:text-green-400 min-w-[60px] text-center"
-                >
-                  {filterDateStart
-                    ? new Date(filterDateStart).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                        day: 'numeric',
-                        month: 'short',
-                      })
-                    : '—'}
-                </button>
-                <ArrowRight className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                <button
-                  onClick={() => dateEndRef.current?.showPicker()}
-                  className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-green-600 dark:hover:text-green-400 min-w-[60px] text-center"
-                >
-                  {filterDateEnd
-                    ? new Date(filterDateEnd).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                        day: 'numeric',
-                        month: 'short',
-                      })
-                    : '—'}
-                </button>
-              </div>
-              <input
-                ref={dateStartRef}
-                type="date"
-                value={filterDateStart}
-                onChange={(e) => setFilterDateStart(e.target.value)}
-                className="absolute opacity-0 pointer-events-none"
-              />
-              <input
-                ref={dateEndRef}
-                type="date"
-                value={filterDateEnd}
-                onChange={(e) => setFilterDateEnd(e.target.value)}
-                className="absolute opacity-0 pointer-events-none"
-              />
-              {(filterDateStart || filterDateEnd) && (
-                <button
-                  onClick={() => { setFilterDateStart(''); setFilterDateEnd(''); }}
-                  className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-500 rounded-lg"
-                  title={language === 'fr' ? 'Effacer le filtre' : 'Clear filter'}
-                >
-                  <X className="w-4 h-4 text-slate-500 dark:text-slate-300" />
-                </button>
-              )}
-            </div>}
           </div>
 
           {isUsersExpanded && (
