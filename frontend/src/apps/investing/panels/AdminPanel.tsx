@@ -478,7 +478,7 @@ export function AdminPanel() {
             </div>
             {isTimeSpentExpanded && <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={timeSpentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }} onClick={(e) => { const ev = e as unknown as { activePayload?: { payload: { date: string } }[] }; if (ev?.activePayload?.[0]?.payload) handleTimeSpentBarClick(ev.activePayload[0].payload); }}>
+                <BarChart data={timeSpentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="date"
@@ -530,6 +530,7 @@ export function AdminPanel() {
                     fill="#22c55e"
                     radius={[4, 4, 0, 0]}
                     cursor="pointer"
+                    onClick={(data) => handleTimeSpentBarClick(data as unknown as { date: string })}
                   />
                 </BarChart>
               </ResponsiveContainer>
