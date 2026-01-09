@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Briefcase, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, GripVertical } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
@@ -100,6 +100,46 @@ export function PortfolioPanel() {
     if (saved && saved !== 'none') return parseInt(saved, 10);
     return undefined;
   });
+
+  // Panel state: collapsed and order
+  const [isHoldingsExpanded, setIsHoldingsExpanded] = useState(true);
+  const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(true);
+  const [panelOrder, setPanelOrder] = useState<['holdings' | 'performance', 'holdings' | 'performance']>(() => {
+    const saved = localStorage.getItem('portfolioPanelOrder');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return ['holdings', 'performance'];
+      }
+    }
+    return ['holdings', 'performance'];
+  });
+  const [draggedPanel, setDraggedPanel] = useState<'holdings' | 'performance' | null>(null);
+
+  // Save panel order to localStorage
+  useEffect(() => {
+    localStorage.setItem('portfolioPanelOrder', JSON.stringify(panelOrder));
+  }, [panelOrder]);
+
+  const handleDragStart = (panel: 'holdings' | 'performance') => {
+    setDraggedPanel(panel);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (targetPanel: 'holdings' | 'performance') => {
+    if (draggedPanel && draggedPanel !== targetPanel) {
+      setPanelOrder([targetPanel, draggedPanel]);
+    }
+    setDraggedPanel(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedPanel(null);
+  };
 
   // Queries
   const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
@@ -388,29 +428,82 @@ export function PortfolioPanel() {
           </div>
         )}
 
-        {/* Portfolio Composition */}
-        {selectedAccountId && accountHasHoldings && (
-          <PortfolioComposition
-            compositionData={compositionData}
-            isLoading={compositionLoading}
-            privateMode={privateMode}
-            currency={currency}
-          />
-        )}
-
-        {/* Performance Chart */}
-        {selectedAccountId && accountHasHoldings && (
-          <PerformanceChart
-            performanceData={performanceData}
-            isLoading={performanceLoading}
-            benchmark={benchmark}
-            currency={currency}
-            privateMode={privateMode}
-            showAnnualized={showAnnualized}
-            onBenchmarkChange={setBenchmark}
-            onShowAnnualizedChange={setShowAnnualized}
-          />
-        )}
+        {/* Portfolio Composition & Performance - Draggable panels */}
+        {selectedAccountId && accountHasHoldings && panelOrder.map((panel) => {
+          if (panel === 'holdings') {
+            return (
+              <div
+                key="holdings"
+                draggable
+                onDragStart={() => handleDragStart('holdings')}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop('holdings')}
+                onDragEnd={handleDragEnd}
+                className={`bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none transition-opacity ${draggedPanel === 'holdings' ? 'opacity-50' : ''}`}
+              >
+                <button
+                  onClick={() => setIsHoldingsExpanded(!isHoldingsExpanded)}
+                  className="w-full flex items-center gap-3 p-4 text-left"
+                >
+                  <GripVertical className="w-5 h-5 text-slate-400 cursor-grab" />
+                  <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isHoldingsExpanded ? 'rotate-90' : ''}`} />
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                    {language === 'fr' ? 'Positions actuelles' : 'Current Holdings'}
+                  </h3>
+                </button>
+                {isHoldingsExpanded && (
+                  <div className="px-4 pb-4">
+                    <PortfolioComposition
+                      compositionData={compositionData}
+                      isLoading={compositionLoading}
+                      privateMode={privateMode}
+                      currency={currency}
+                      hideTitle
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          } else {
+            return (
+              <div
+                key="performance"
+                draggable
+                onDragStart={() => handleDragStart('performance')}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop('performance')}
+                onDragEnd={handleDragEnd}
+                className={`bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none transition-opacity ${draggedPanel === 'performance' ? 'opacity-50' : ''}`}
+              >
+                <button
+                  onClick={() => setIsPerformanceExpanded(!isPerformanceExpanded)}
+                  className="w-full flex items-center gap-3 p-4 text-left"
+                >
+                  <GripVertical className="w-5 h-5 text-slate-400 cursor-grab" />
+                  <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isPerformanceExpanded ? 'rotate-90' : ''}`} />
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                    {language === 'fr' ? 'Performance du portefeuille' : 'Portfolio Performance'}
+                  </h3>
+                </button>
+                {isPerformanceExpanded && (
+                  <div className="px-4 pb-4">
+                    <PerformanceChart
+                      performanceData={performanceData}
+                      isLoading={performanceLoading}
+                      benchmark={benchmark}
+                      currency={currency}
+                      privateMode={privateMode}
+                      showAnnualized={showAnnualized}
+                      onBenchmarkChange={setBenchmark}
+                      onShowAnnualizedChange={setShowAnnualized}
+                      hideTitle
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          }
+        })}
       </div>
     </div>
   );

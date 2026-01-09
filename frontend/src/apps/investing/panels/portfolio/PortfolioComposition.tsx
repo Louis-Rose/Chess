@@ -29,6 +29,7 @@ interface PortfolioCompositionProps {
   isLoading: boolean;
   privateMode: boolean;
   currency: 'EUR' | 'USD';
+  hideTitle?: boolean;
 }
 
 export function PortfolioComposition({
@@ -36,6 +37,7 @@ export function PortfolioComposition({
   isLoading,
   privateMode,
   currency,
+  hideTitle = false,
 }: PortfolioCompositionProps) {
   const navigate = useNavigate();
   const { language, t } = useLanguage();
@@ -74,20 +76,35 @@ export function PortfolioComposition({
     }
   };
 
-  return (
-    <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
-      <div className="flex items-center justify-center gap-3 mb-6">
-        <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('holdings.title')}</h3>
-        <button
-          onClick={downloadPositionsChart}
-          disabled={isDownloading || isLoading}
-          className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors text-sm"
-          title={language === 'fr' ? 'Telecharger le graphique' : 'Download chart'}
-        >
-          {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-          <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
-        </button>
-      </div>
+  const content = (
+    <>
+      {!hideTitle && (
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('holdings.title')}</h3>
+          <button
+            onClick={downloadPositionsChart}
+            disabled={isDownloading || isLoading}
+            className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors text-sm"
+            title={language === 'fr' ? 'Telecharger le graphique' : 'Download chart'}
+          >
+            {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
+          </button>
+        </div>
+      )}
+      {hideTitle && (
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={downloadPositionsChart}
+            disabled={isDownloading || isLoading}
+            className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors text-sm"
+            title={language === 'fr' ? 'Telecharger le graphique' : 'Download chart'}
+          >
+            {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
+          </button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -230,6 +247,16 @@ export function PortfolioComposition({
       ) : (
         <p className="text-slate-500 text-center py-8">No holdings data available.</p>
       )}
+    </>
+  );
+
+  if (hideTitle) {
+    return content;
+  }
+
+  return (
+    <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+      {content}
     </div>
   );
 }

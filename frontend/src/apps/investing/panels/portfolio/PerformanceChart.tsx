@@ -20,6 +20,7 @@ interface PerformanceChartProps {
   showAnnualized: boolean;
   onBenchmarkChange: (benchmark: 'NASDAQ' | 'SP500') => void;
   onShowAnnualizedChange: (show: boolean) => void;
+  hideTitle?: boolean;
 }
 
 export function PerformanceChart({
@@ -31,6 +32,7 @@ export function PerformanceChart({
   showAnnualized,
   onBenchmarkChange,
   onShowAnnualizedChange,
+  hideTitle = false,
 }: PerformanceChartProps) {
   const { language, t } = useLanguage();
   const { resolvedTheme } = useTheme();
@@ -93,12 +95,26 @@ export function PerformanceChart({
     }
   };
 
-  return (
-    <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 md:p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex-1"></div>
-        <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">{t('performance.title')}</h3>
-        <div className="flex-1 flex justify-end">
+  const content = (
+    <>
+      {!hideTitle ? (
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex-1"></div>
+          <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">{t('performance.title')}</h3>
+          <div className="flex-1 flex justify-end">
+            <button
+              onClick={downloadChart}
+              disabled={isDownloading}
+              className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors text-sm"
+              title={language === 'fr' ? 'Telecharger le graphique' : 'Download chart'}
+            >
+              {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-end mb-4">
           <button
             onClick={downloadChart}
             disabled={isDownloading}
@@ -109,7 +125,7 @@ export function PerformanceChart({
             <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
           </button>
         </div>
-      </div>
+      )}
       <div className="flex flex-wrap items-end justify-center gap-3 md:gap-4 mb-4 md:mb-6">
         {/* Toggle: Total vs Annualized */}
         <div className="flex rounded-lg overflow-hidden border border-slate-300">
@@ -709,6 +725,16 @@ export function PerformanceChart({
           {performanceData?.error || 'No performance data available.'}
         </p>
       )}
+    </>
+  );
+
+  if (hideTitle) {
+    return content;
+  }
+
+  return (
+    <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 md:p-6">
+      {content}
     </div>
   );
 }
