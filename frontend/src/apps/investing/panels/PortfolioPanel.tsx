@@ -135,8 +135,9 @@ export function PortfolioPanel() {
 
   const handleDrop = (e: React.DragEvent, targetPanel: 'holdings' | 'performance') => {
     e.preventDefault();
-    if (draggedPanel && draggedPanel !== targetPanel) {
-      setPanelOrder([targetPanel, draggedPanel]);
+    const sourcePanel = e.dataTransfer.getData('text/plain') as 'holdings' | 'performance';
+    if (sourcePanel && sourcePanel !== targetPanel) {
+      setPanelOrder([targetPanel, sourcePanel]);
     }
     setDraggedPanel(null);
   };
