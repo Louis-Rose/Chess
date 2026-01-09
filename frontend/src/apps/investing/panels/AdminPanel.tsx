@@ -277,6 +277,33 @@ export function AdminPanel() {
     return [0, step, step * 2, step * 3, step * 4, yAxisMax];
   }, [yAxisMax]);
 
+  // Calculate geometric growth rates for Users chart
+  const usersGrowthRates = useMemo(() => {
+    if (chartData.length < 2) return null;
+
+    const periods = [1, 2, 3, 5];
+    const rates: { period: number; rate: number | null }[] = [];
+
+    const currentValue = chartData[chartData.length - 1].users;
+
+    periods.forEach(n => {
+      if (chartData.length > n) {
+        const pastValue = chartData[chartData.length - 1 - n].users;
+        if (pastValue > 0) {
+          // Geometric growth rate: (current/past)^(1/n) - 1
+          const rate = (Math.pow(currentValue / pastValue, 1 / n) - 1) * 100;
+          rates.push({ period: n, rate });
+        } else {
+          rates.push({ period: n, rate: null });
+        }
+      } else {
+        rates.push({ period: n, rate: null });
+      }
+    });
+
+    return rates;
+  }, [chartData]);
+
   // Compute time spent chart data (supports days/weeks/months with sum)
   const timeSpentChartData = useMemo(() => {
     if (!timeSpentData || timeSpentData.length === 0) return [];
@@ -549,6 +576,25 @@ export function AdminPanel() {
                       />
                     </BarChart>
                   </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Growth Rates */}
+              {usersGrowthRates && (
+                <div className="flex items-center justify-center gap-4 text-xs text-slate-500 dark:text-slate-400 mb-4">
+                  <span className="font-medium">{language === 'fr' ? 'Croissance' : 'Growth'}:</span>
+                  {usersGrowthRates.map(({ period, rate }) => (
+                    <span key={period}>
+                      {period}{usersUnit === 'days' ? 'd' : usersUnit === 'weeks' ? 'w' : 'm'}:{' '}
+                      {rate !== null ? (
+                        <span className={rate >= 0 ? 'text-green-500' : 'text-red-500'}>
+                          {rate >= 0 ? '+' : ''}{rate.toFixed(1)}%
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </span>
+                  ))}
                 </div>
               )}
 
