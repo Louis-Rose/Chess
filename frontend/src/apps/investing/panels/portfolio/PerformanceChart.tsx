@@ -628,7 +628,7 @@ export function PerformanceChart({
               </div>
               {/* Custom brush date labels - right under the slider */}
               {!isDownloading && (
-                <div className="flex justify-between px-[50px] mt-1">
+                <div className="flex justify-between px-[50px] -mt-6">
                   <div className="text-center text-green-500 font-semibold text-sm">
                     <div>{(() => {
                       const startIdx = brushRange?.startIndex ?? 0;
