@@ -7,6 +7,7 @@ import { Loader2, Download } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
+import { useTheme } from '../../../../contexts/ThemeContext';
 import type { PerformanceData } from './types';
 import { formatEur, addLumraBranding, getScaleFactor } from './utils';
 
@@ -32,11 +33,21 @@ export function PerformanceChart({
   onShowAnnualizedChange,
 }: PerformanceChartProps) {
   const { language, t } = useLanguage();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const brushDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [brushRange, setBrushRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Theme-aware colors
+  const colors = {
+    background: isDark ? '#1e293b' : '#f1f5f9',
+    gridStroke: isDark ? '#475569' : '#cbd5e1',
+    tickFill: isDark ? '#94a3b8' : '#64748b',
+    brushFill: isDark ? '#334155' : '#e2e8f0',
+  };
 
   const handleBrushChange = useCallback((range: { startIndex?: number; endIndex?: number }) => {
     if (brushDebounceRef.current) {
@@ -58,7 +69,7 @@ export function PerformanceChart({
     await new Promise(resolve => setTimeout(resolve, 100));
     try {
       const dataUrl = await toPng(chartContainerRef.current, {
-        backgroundColor: '#f1f5f9',
+        backgroundColor: colors.background,
         pixelRatio: 2,
       });
 
@@ -316,7 +327,7 @@ export function PerformanceChart({
                         <stop offset="100%" stopColor="#dc2626" stopOpacity={0.1} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} />
                     <XAxis
                       dataKey="date"
                       tickFormatter={(date) => {
@@ -324,7 +335,7 @@ export function PerformanceChart({
                         const formatted = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
                         return formatted.charAt(0).toUpperCase() + formatted.slice(1);
                       }}
-                      tick={{ fontSize: 14, fill: '#64748b' }}
+                      tick={{ fontSize: 14, fill: colors.tickFill }}
                       ticks={(() => {
                         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
                         const targetTicks = isMobile ? 5 : 10;
@@ -349,7 +360,7 @@ export function PerformanceChart({
                       })()}
                     />
                     <YAxis
-                      tick={{ fontSize: 14, fill: '#64748b' }}
+                      tick={{ fontSize: 14, fill: colors.tickFill }}
                       tickFormatter={(val) => {
                         return `${formatEur(val / 1000)}k€`;
                       }}
@@ -480,7 +491,7 @@ export function PerformanceChart({
                         dataKey="date"
                         height={40}
                         stroke="#16a34a"
-                        fill="#e2e8f0"
+                        fill={colors.brushFill}
                         travellerWidth={12}
                         startIndex={brushRange?.startIndex ?? 0}
                         endIndex={brushRange?.endIndex ?? chartData.length - 1}

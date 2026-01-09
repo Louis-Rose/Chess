@@ -4,6 +4,7 @@ import { Loader2, Download } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
+import { useTheme } from '../../../../contexts/ThemeContext';
 import type { CompositionData, CompositionItem } from './types';
 import { formatEur, addLumraBranding, getScaleFactor } from './utils';
 
@@ -36,6 +37,8 @@ export function PortfolioComposition({
   currency,
 }: PortfolioCompositionProps) {
   const { language, t } = useLanguage();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   const positionsChartRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -48,7 +51,7 @@ export function PortfolioComposition({
     await new Promise(resolve => setTimeout(resolve, 100));
     try {
       const dataUrl = await toPng(positionsChartRef.current, {
-        backgroundColor: '#f1f5f9',
+        backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
         pixelRatio: 2,
       });
 
