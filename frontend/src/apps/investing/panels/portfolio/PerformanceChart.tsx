@@ -355,26 +355,22 @@ export function PerformanceChart({
                   {/* Portfolio Gains */}
                   <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
                     <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-1">{showAnnualized ? 'CAGR' : (language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains')}</p>
-                    <div className={`font-bold text-lg md:text-2xl ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€
-                      <br />
-                      ({showAnnualized
+                    <span className={`font-bold text-lg md:text-2xl ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€ ({showAnnualized
                         ? `${filteredSummary.cagr_eur >= 0 ? '+' : ''}${filteredSummary.cagr_eur}%`
                         : `${filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}${filteredSummary.portfolio_return_eur}%`
                       })
-                    </div>
+                    </span>
                   </div>
                   {/* Benchmark */}
                   <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
                     <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-1">Benchmark</p>
-                    <div className={`font-bold text-lg md:text-2xl ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
-                      {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€
-                      <br />
-                      ({showAnnualized
+                    <span className={`font-bold text-lg md:text-2xl ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
+                      {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€ ({showAnnualized
                         ? `${filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}${filteredSummary.cagr_benchmark_eur}%`
                         : `${filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}${filteredSummary.benchmark_return_eur}%`
                       })
-                    </div>
+                    </span>
                   </div>
                 </div>
               )}
