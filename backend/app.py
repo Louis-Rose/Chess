@@ -2175,6 +2175,60 @@ def get_time_spent_stats():
     return jsonify({'daily_stats': daily_stats})
 
 
+@app.route('/api/admin/time-spent/<period>', methods=['GET'])
+@admin_required
+def get_time_spent_details(period):
+    """Get users' time spent for a specific date, week, or month (admin only).
+
+    Period formats:
+    - Date: YYYY-MM-DD
+    - Week: YYYY-WXX
+    - Month: YYYY-MM
+    """
+    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
+    placeholders = ','.join(['?' for _ in hidden_emails])
+
+    with get_db() as conn:
+        if '-W' in period:
+            # Week format: YYYY-WXX
+            year, week = period.split('-W')
+            cursor = conn.execute(f'''
+                SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                FROM user_activity a
+                JOIN users u ON a.user_id = u.id
+                WHERE u.email NOT IN ({placeholders})
+                  AND strftime('%Y', a.activity_date) = ?
+                  AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
+                GROUP BY u.id
+                ORDER BY minutes DESC
+            ''', (*hidden_emails, year, int(week)))
+        elif len(period) == 7:
+            # Month format: YYYY-MM
+            cursor = conn.execute(f'''
+                SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                FROM user_activity a
+                JOIN users u ON a.user_id = u.id
+                WHERE u.email NOT IN ({placeholders})
+                  AND strftime('%Y-%m', a.activity_date) = ?
+                GROUP BY u.id
+                ORDER BY minutes DESC
+            ''', (*hidden_emails, period))
+        else:
+            # Date format: YYYY-MM-DD
+            cursor = conn.execute(f'''
+                SELECT u.id, u.name, u.picture, a.minutes
+                FROM user_activity a
+                JOIN users u ON a.user_id = u.id
+                WHERE u.email NOT IN ({placeholders})
+                  AND a.activity_date = ?
+                ORDER BY a.minutes DESC
+            ''', (*hidden_emails, period))
+
+        users = [dict(row) for row in cursor.fetchall()]
+
+    return jsonify({'users': users, 'period': period})
+
+
 @app.route('/api/admin/clear-video-cache', methods=['POST'])
 @admin_required
 def clear_video_cache():

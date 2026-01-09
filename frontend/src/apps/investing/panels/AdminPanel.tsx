@@ -42,6 +42,13 @@ interface TimeSpentData {
   total_minutes: number;
 }
 
+interface TimeSpentUser {
+  id: number;
+  name: string;
+  picture: string;
+  minutes: number;
+}
+
 interface StockViewStats {
   by_stock: {
     stock_ticker: string;
@@ -135,6 +142,11 @@ export function AdminPanel() {
   const [timeSpentUnit, setTimeSpentUnit] = useState<TimeUnit>('days');
   const [usersUnit, setUsersUnit] = useState<TimeUnit>('days');
 
+  // Time spent details (users for selected period)
+  const [selectedTimeSpentPeriod, setSelectedTimeSpentPeriod] = useState<string | null>(null);
+  const [timeSpentUsers, setTimeSpentUsers] = useState<TimeSpentUser[]>([]);
+  const [isLoadingTimeSpentUsers, setIsLoadingTimeSpentUsers] = useState(false);
+
   // Helper to get week key (ISO week)
   const getWeekKey = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -148,6 +160,28 @@ export function AdminPanel() {
   const getMonthKey = (dateStr: string) => {
     const date = new Date(dateStr);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  // Handle time spent bar click
+  const handleTimeSpentBarClick = async (data: { date: string }) => {
+    const period = data.date;
+    if (selectedTimeSpentPeriod === period) {
+      // Toggle off if clicking same bar
+      setSelectedTimeSpentPeriod(null);
+      setTimeSpentUsers([]);
+      return;
+    }
+    setSelectedTimeSpentPeriod(period);
+    setIsLoadingTimeSpentUsers(true);
+    try {
+      const response = await axios.get(`/api/admin/time-spent/${period}`);
+      setTimeSpentUsers(response.data.users);
+    } catch (err) {
+      console.error('Failed to fetch time spent details:', err);
+      setTimeSpentUsers([]);
+    } finally {
+      setIsLoadingTimeSpentUsers(false);
+    }
   };
 
   // Handle column header click
@@ -425,7 +459,11 @@ export function AdminPanel() {
                   {(['days', 'weeks', 'months'] as const).map((unit) => (
                     <button
                       key={unit}
-                      onClick={() => setTimeSpentUnit(unit)}
+                      onClick={() => {
+                        setTimeSpentUnit(unit);
+                        setSelectedTimeSpentPeriod(null);
+                        setTimeSpentUsers([]);
+                      }}
                       className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
                         timeSpentUnit === unit
                           ? 'bg-green-600 text-white'
@@ -440,7 +478,7 @@ export function AdminPanel() {
             </div>
             {isTimeSpentExpanded && <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={timeSpentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <BarChart data={timeSpentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }} onClick={(e) => e?.activePayload?.[0]?.payload && handleTimeSpentBarClick(e.activePayload[0].payload)}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="date"
@@ -491,6 +529,7 @@ export function AdminPanel() {
                     dataKey="minutes"
                     fill="#22c55e"
                     radius={[4, 4, 0, 0]}
+                    cursor="pointer"
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -513,6 +552,70 @@ export function AdminPanel() {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+            {/* Users for selected period */}
+            {isTimeSpentExpanded && selectedTimeSpentPeriod && (
+              <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-600 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    {(() => {
+                      if (selectedTimeSpentPeriod.includes('-W')) {
+                        const [year, week] = selectedTimeSpentPeriod.split('-W');
+                        return `${language === 'fr' ? 'Semaine' : 'Week'} ${parseInt(week)}, ${year}`;
+                      }
+                      if (selectedTimeSpentPeriod.match(/^\d{4}-\d{2}$/)) {
+                        const [year, month] = selectedTimeSpentPeriod.split('-');
+                        return new Date(Number(year), Number(month) - 1).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: 'numeric' });
+                      }
+                      return new Date(selectedTimeSpentPeriod).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+                    })()}
+                  </h4>
+                  <button
+                    onClick={() => {
+                      setSelectedTimeSpentPeriod(null);
+                      setTimeSpentUsers([]);
+                    }}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {isLoadingTimeSpentUsers ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+                  </div>
+                ) : timeSpentUsers.length > 0 ? (
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                    {timeSpentUsers.map((u) => (
+                      <div
+                        key={u.id}
+                        className="flex items-center justify-between py-1 px-2 rounded hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
+                        onClick={() => navigate(`/investing/admin/user/${u.id}`)}
+                      >
+                        <div className="flex items-center gap-2">
+                          {u.picture ? (
+                            <img src={u.picture} alt={u.name} className="w-6 h-6 rounded-full" />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
+                              {u.name?.charAt(0) || '?'}
+                            </div>
+                          )}
+                          <span className="text-sm text-slate-700 dark:text-slate-200">{u.name}</span>
+                        </div>
+                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                          {u.minutes >= 60
+                            ? `${Math.floor(u.minutes / 60)}h${String(u.minutes % 60).padStart(2, '0')}`
+                            : `${u.minutes}m`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 text-center py-2">
+                    {language === 'fr' ? 'Aucune activité' : 'No activity'}
+                  </p>
+                )}
               </div>
             )}
           </div>
