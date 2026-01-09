@@ -20,7 +20,6 @@ import { LanguageToggle } from '../../components/LanguageToggle';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { getRecentStocks, removeRecentStock } from './utils/recentStocks';
 import { getCompanyLogoUrl } from './utils/companyLogos';
-import { findStockByTicker } from './utils/allStocks';
 
 const navItems = [
   { path: '/investing', icon: Home, labelEn: 'Welcome', labelFr: 'Accueil', end: true },
@@ -57,18 +56,18 @@ export function InvestingSidebar() {
   }, [location.pathname]);
 
   return (
-    <div className={`dark ${isCollapsed ? 'w-16' : 'w-64'} bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0 overflow-y-auto transition-all duration-300`}>
+    <div className={`dark ${isCollapsed ? 'w-16' : 'w-64'} bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0 transition-all duration-300`}>
       {/* LUMRA Logo */}
       <Link
         to="/investing"
-        className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-center gap-3'} px-2 pb-4 mb-2 border-b border-slate-700 hover:opacity-80 transition-opacity`}
+        className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-center gap-3'} px-2 pb-4 mb-2 border-b border-slate-700 hover:opacity-80 transition-opacity flex-shrink-0`}
       >
         <LumraLogo className={`${isCollapsed ? 'w-8 h-8 min-w-[2rem] min-h-[2rem]' : 'w-10 h-10'} flex-shrink-0 transition-all`} />
         {!isCollapsed && <span className="text-xl font-bold text-white tracking-wide">LUMRA</span>}
       </Link>
 
       {/* User Menu */}
-      <div className={`flex justify-center mb-4 ${isCollapsed ? 'px-0' : 'px-2'} pb-4 border-b border-slate-700`}>
+      <div className={`flex justify-center mb-4 ${isCollapsed ? 'px-0' : 'px-2'} pb-4 border-b border-slate-700 flex-shrink-0`}>
         {isAuthenticated ? (
           authLoading ? (
             <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
@@ -126,7 +125,7 @@ export function InvestingSidebar() {
       */}
 
       {/* Navigation */}
-      <div className={`flex flex-col gap-1 ${isCollapsed ? 'px-0' : 'px-2'} py-4 border-b border-slate-700`}>
+      <div className={`flex flex-col gap-1 ${isCollapsed ? 'px-0' : 'px-2'} py-4 border-b border-slate-700 flex-shrink-0`}>
         {navItems.map((item) => (
           <NavLink
             key={item.path}
@@ -149,7 +148,7 @@ export function InvestingSidebar() {
 
       {/* Admin Link - only visible to admins */}
       {user?.is_admin && (
-        <div className={`${isCollapsed ? 'px-0' : 'px-2'} py-2 border-b border-slate-700`}>
+        <div className={`${isCollapsed ? 'px-0' : 'px-2'} py-2 border-b border-slate-700 flex-shrink-0`}>
           <NavLink
             to="/investing/admin"
             title={isCollapsed ? 'Admin' : undefined}
@@ -167,55 +166,49 @@ export function InvestingSidebar() {
         </div>
       )}
 
-      {/* Recent Stocks - only show when authenticated */}
+      {/* Recent Stocks - only show when authenticated, scrollable section */}
       {isAuthenticated && recentStocks.length > 0 && !isCollapsed && (
-        <div className="px-2 py-4">
+        <div className="px-2 py-4 flex-1 min-h-0 overflow-y-auto">
           <div className="flex items-center gap-2 mb-3 text-slate-400">
             <Clock className="w-4 h-4" />
             <span className="text-xs font-medium uppercase tracking-wide">
               {language === 'fr' ? 'Recherches récentes' : 'Recently searched'}
             </span>
           </div>
-          <div className="space-y-1 max-h-48 overflow-y-auto">
+          <div className="grid grid-cols-2 gap-1.5">
             {recentStocks.map((ticker) => {
-              const stock = findStockByTicker(ticker);
               const logoUrl = getCompanyLogoUrl(ticker);
               return (
                 <div
                   key={ticker}
                   onClick={() => navigate(`/investing/stock/${ticker}`)}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors text-left cursor-pointer group"
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer group"
                 >
-                  <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                     {logoUrl ? (
                       <img
                         src={logoUrl}
                         alt={ticker}
-                        className="w-5 h-5 object-contain"
+                        className="w-4 h-4 object-contain"
                         onError={(e) => {
                           const parent = e.currentTarget.parentElement;
                           if (parent) {
-                            parent.innerHTML = `<span class="text-[8px] font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
+                            parent.innerHTML = `<span class="text-[7px] font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
                           }
                         }}
                       />
                     ) : (
-                      <span className="text-[8px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
+                      <span className="text-[7px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium text-slate-200">{ticker}</span>
-                    {stock && (
-                      <p className="text-xs text-slate-500 truncate">{stock.name}</p>
-                    )}
-                  </div>
+                  <span className="text-xs font-medium text-slate-200 truncate">{ticker}</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       removeRecentStock(ticker);
                       setRecentStocks(getRecentStocks());
                     }}
-                    className="p-1 rounded hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="p-0.5 rounded hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
                     title={language === 'fr' ? 'Supprimer' : 'Remove'}
                   >
                     <X className="w-3 h-3 text-slate-400" />
@@ -228,7 +221,7 @@ export function InvestingSidebar() {
       )}
 
       {/* Theme, Language & Collapse - at bottom */}
-      <div className={`mt-auto ${isCollapsed ? 'px-0' : 'px-2'} pt-4 border-t border-slate-700`}>
+      <div className={`mt-auto flex-shrink-0 ${isCollapsed ? 'px-0' : 'px-2'} pt-4 border-t border-slate-700`}>
         <div className="flex flex-col items-center gap-3">
           <ThemeToggle collapsed={isCollapsed} />
           <LanguageToggle collapsed={isCollapsed} />
