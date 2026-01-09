@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, GripVertical } from 'lucide-react';
+import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, ArrowUpDown } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
@@ -115,41 +115,13 @@ export function PortfolioPanel() {
     }
     return ['holdings', 'performance'];
   });
-  const [draggedPanel, setDraggedPanel] = useState<'holdings' | 'performance' | null>(null);
-
   // Save panel order to localStorage
   useEffect(() => {
     localStorage.setItem('portfolioPanelOrder', JSON.stringify(panelOrder));
   }, [panelOrder]);
 
-  const handleDragStart = (e: React.DragEvent, panel: 'holdings' | 'performance') => {
-    e.dataTransfer.setData('text/plain', panel);
-    e.dataTransfer.effectAllowed = 'move';
-    setDraggedPanel(panel);
-  };
-
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e: React.DragEvent, targetPanel: 'holdings' | 'performance') => {
-    e.preventDefault();
-    e.stopPropagation();
-    const sourcePanel = e.dataTransfer.getData('text/plain') as 'holdings' | 'performance';
-    if (sourcePanel && sourcePanel !== targetPanel) {
-      setPanelOrder([targetPanel, sourcePanel]);
-    }
-    setDraggedPanel(null);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedPanel(null);
+  const swapPanels = () => {
+    setPanelOrder(prev => [prev[1], prev[0]]);
   };
 
   // Queries
@@ -439,41 +411,22 @@ export function PortfolioPanel() {
           </div>
         )}
 
-        {/* Portfolio Composition & Performance - Draggable panels */}
-        {selectedAccountId && accountHasHoldings && (
-          <div
-            onDragEnter={handleDragEnter}
-            onDragOver={handleDragOver}
-            onDrop={(e) => {
-              e.preventDefault();
-              const sourcePanel = e.dataTransfer.getData('text/plain') as 'holdings' | 'performance';
-              if (sourcePanel) {
-                // Swap panels when dropping anywhere in this container
-                setPanelOrder(prev => [prev[1], prev[0]]);
-              }
-              setDraggedPanel(null);
-            }}
-            className="space-y-8"
-          >
-          {panelOrder.map((panel) => {
+        {/* Portfolio Composition & Performance - Reorderable panels */}
+        {selectedAccountId && accountHasHoldings && panelOrder.map((panel) => {
           if (panel === 'holdings') {
             return (
               <div
                 key="holdings"
-                onDragEnter={handleDragEnter}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, 'holdings')}
-                className={`bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none transition-opacity ${draggedPanel === 'holdings' ? 'opacity-50' : ''} ${draggedPanel ? 'cursor-move' : ''}`}
+                className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none"
               >
                 <div className="flex items-center gap-1 p-4">
-                  <div
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, 'holdings')}
-                    onDragEnd={handleDragEnd}
-                    className="cursor-grab active:cursor-grabbing p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                  <button
+                    onClick={swapPanels}
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                    title={language === 'fr' ? 'Inverser l\'ordre des panneaux' : 'Swap panel order'}
                   >
-                    <GripVertical className="w-5 h-5 text-slate-400" />
-                  </div>
+                    <ArrowUpDown className="w-5 h-5 text-slate-400" />
+                  </button>
                   <button
                     onClick={() => setIsHoldingsExpanded(!isHoldingsExpanded)}
                     className="flex items-center gap-3 text-left flex-1"
@@ -485,7 +438,7 @@ export function PortfolioPanel() {
                   </button>
                 </div>
                 {isHoldingsExpanded && (
-                  <div className={`px-4 pb-4 ${draggedPanel ? 'pointer-events-none' : ''}`}>
+                  <div className="px-4 pb-4">
                     <PortfolioComposition
                       compositionData={compositionData}
                       isLoading={compositionLoading}
@@ -501,20 +454,16 @@ export function PortfolioPanel() {
             return (
               <div
                 key="performance"
-                onDragEnter={handleDragEnter}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, 'performance')}
-                className={`bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none transition-opacity ${draggedPanel === 'performance' ? 'opacity-50' : ''} ${draggedPanel ? 'cursor-move' : ''}`}
+                className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none"
               >
                 <div className="flex items-center gap-1 p-4">
-                  <div
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, 'performance')}
-                    onDragEnd={handleDragEnd}
-                    className="cursor-grab active:cursor-grabbing p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                  <button
+                    onClick={swapPanels}
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                    title={language === 'fr' ? 'Inverser l\'ordre des panneaux' : 'Swap panel order'}
                   >
-                    <GripVertical className="w-5 h-5 text-slate-400" />
-                  </div>
+                    <ArrowUpDown className="w-5 h-5 text-slate-400" />
+                  </button>
                   <button
                     onClick={() => setIsPerformanceExpanded(!isPerformanceExpanded)}
                     className="flex items-center gap-3 text-left flex-1"
@@ -526,7 +475,7 @@ export function PortfolioPanel() {
                   </button>
                 </div>
                 {isPerformanceExpanded && (
-                  <div className={`px-4 pb-4 ${draggedPanel ? 'pointer-events-none' : ''}`}>
+                  <div className="px-4 pb-4">
                     <PerformanceChart
                       performanceData={performanceData}
                       isLoading={performanceLoading}
@@ -544,8 +493,6 @@ export function PortfolioPanel() {
             );
           }
         })}
-          </div>
-        )}
       </div>
     </div>
   );
