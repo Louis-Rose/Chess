@@ -5,7 +5,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown, Calendar, X, ArrowRight, Clock, Search, RefreshCw, ChevronRight, Sun, Moon } from 'lucide-react';
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
@@ -377,13 +377,7 @@ export function AdminPanel() {
             </button>
             {isUserGrowthExpanded && <div className="h-[250px] mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="userGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.05} />
-                    </linearGradient>
-                  </defs>
+                <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="date"
@@ -403,6 +397,7 @@ export function AdminPanel() {
                     ticks={yAxisTicks}
                   />
                   <Tooltip
+                    cursor={false}
                     contentStyle={{
                       backgroundColor: '#1e293b',
                       borderRadius: '8px',
@@ -424,14 +419,12 @@ export function AdminPanel() {
                       return [value, String(name)];
                     }}
                   />
-                  <Area
-                    type="monotone"
+                  <Bar
                     dataKey="users"
-                    stroke="#f59e0b"
-                    strokeWidth={2}
-                    fill="url(#userGradient)"
+                    fill="#f59e0b"
+                    radius={[4, 4, 0, 0]}
                   />
-                </AreaChart>
+                </BarChart>
               </ResponsiveContainer>
             </div>}
           </div>
