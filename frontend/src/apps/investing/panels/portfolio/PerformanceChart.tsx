@@ -38,9 +38,7 @@ export function PerformanceChart({
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Visual brush position (immediate) for smooth label following
-  const [visualBrushRange, setVisualBrushRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
-  // Calculated brush range (debounced) for expensive summary computations
+  // Brush range - only updated after user stops dragging (debounced)
   const [brushRange, setBrushRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -55,16 +53,13 @@ export function PerformanceChart({
 
   const handleBrushChange = useCallback((range: { startIndex?: number; endIndex?: number }) => {
     if (typeof range.startIndex === 'number' && typeof range.endIndex === 'number') {
-      // Update visual position immediately for smooth label following
-      setVisualBrushRange({ startIndex: range.startIndex, endIndex: range.endIndex });
-
-      // Debounce expensive summary calculations
+      // Only update after user stops dragging (debounced)
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
       debounceRef.current = setTimeout(() => {
         setBrushRange({ startIndex: range.startIndex!, endIndex: range.endIndex! });
-      }, 800);
+      }, 500);
     }
   }, []);
 
@@ -572,8 +567,6 @@ export function PerformanceChart({
                         stroke="#16a34a"
                         fill={colors.brushFill}
                         travellerWidth={12}
-                        startIndex={brushRange?.startIndex ?? 0}
-                        endIndex={brushRange?.endIndex ?? chartData.length - 1}
                         tickFormatter={() => ''}
                         onChange={handleBrushChange}
                       />
@@ -638,11 +631,10 @@ export function PerformanceChart({
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-              {/* Custom brush date labels - follow slider handles */}
+              {/* Custom brush date labels - show selected range */}
               {!isDownloading && (() => {
-                // Use visualBrushRange for immediate label updates (smooth following)
-                const startIdx = visualBrushRange?.startIndex ?? 0;
-                const endIdx = visualBrushRange?.endIndex ?? chartData.length - 1;
+                const startIdx = brushRange?.startIndex ?? 0;
+                const endIdx = brushRange?.endIndex ?? chartData.length - 1;
                 const startPct = (startIdx / (chartData.length - 1)) * 100;
                 const endPct = (endIdx / (chartData.length - 1)) * 100;
                 const startDate = new Date(chartData[startIdx]?.date);
