@@ -230,7 +230,7 @@ export function TransactionForm({
           {/* Header with title, filter and add button */}
           <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
             <div className="flex items-center gap-4">
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-800">{t('transactions.title')}</h3>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('transactions.title')}</h3>
               {uniqueTickers.length > 0 && (
                 <select
                   value={filterTicker}

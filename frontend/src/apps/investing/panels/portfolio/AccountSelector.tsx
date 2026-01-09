@@ -76,8 +76,8 @@ export function AccountSelector({
           {/* Header with title and add button */}
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-3">
-              <Building2 className="w-5 h-5 text-slate-600" />
-              <h3 className="text-xl font-bold text-slate-800">{t('accounts.title')}</h3>
+              <Building2 className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('accounts.title')}</h3>
             </div>
             {!showAddAccountForm && (
               <button

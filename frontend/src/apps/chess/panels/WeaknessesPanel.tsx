@@ -47,19 +47,19 @@ export function WeaknessesPanel() {
 
         {fatigueAnalysis && !fatigueAnalysis.error && (
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-            <h3 className="text-xl font-bold text-slate-800 mb-4">Fatigue Analysis</h3>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 dark:text-slate-100 mb-4">Fatigue Analysis</h3>
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="text-center p-4 bg-white rounded-lg">
-                <p className="text-2xl font-bold text-slate-800">{fatigueAnalysis.baseline_win_rate?.toFixed(1)}%</p>
-                <p className="text-slate-500 text-sm">Baseline Win Rate</p>
+                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 dark:text-slate-100">{fatigueAnalysis.baseline_win_rate?.toFixed(1)}%</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Baseline Win Rate</p>
               </div>
               <div className="text-center p-4 bg-white rounded-lg">
                 <p className="text-2xl font-bold text-green-600">{fatigueAnalysis.best_win_rate?.toFixed(1)}%</p>
-                <p className="text-slate-500 text-sm">Best (Game #{fatigueAnalysis.best_game_number})</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Best (Game #{fatigueAnalysis.best_game_number})</p>
               </div>
               <div className="text-center p-4 bg-white rounded-lg">
                 <p className="text-2xl font-bold text-red-600">{fatigueAnalysis.worst_win_rate?.toFixed(1)}%</p>
-                <p className="text-slate-500 text-sm">Worst (Game #{fatigueAnalysis.worst_game_number})</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Worst (Game #{fatigueAnalysis.worst_game_number})</p>
               </div>
             </div>
 
@@ -71,8 +71,8 @@ export function WeaknessesPanel() {
                     insight.type === 'positive' ? 'bg-green-50 border-l-4 border-green-500' :
                     'bg-blue-50 border-l-4 border-blue-500'
                   }`}>
-                    <p className="font-bold text-slate-800">{insight.title}</p>
-                    <p className="text-slate-600 text-sm">{insight.message}</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-100">{insight.title}</p>
+                    <p className="text-slate-600 dark:text-slate-300 text-sm">{insight.message}</p>
                     <p className="text-slate-500 text-xs mt-1 italic">{insight.recommendation}</p>
                   </div>
                 ))}

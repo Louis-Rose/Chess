@@ -334,23 +334,23 @@ export function PortfolioPanel() {
                 return (
                   <>
                     <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
-                      <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
-                      <p className="text-sm md:text-xl font-bold text-slate-800">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
+                      <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">
                         {currency === 'EUR'
                           ? `${formatEur(displayCostBasis)}€`
                           : `$${Math.round(displayCostBasis).toLocaleString('en-US')}`}
                       </p>
                     </div>
                     <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
-                      <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
-                      <p className="text-sm md:text-xl font-bold text-slate-800">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
+                      <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">
                         {currency === 'EUR'
                           ? `${formatEur(displayTotalValue)}€`
                           : `$${Math.round(displayTotalValue).toLocaleString('en-US')}`}
                       </p>
                     </div>
                     <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
-                      <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
                         {language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}
                       </p>
                       <p className={`text-sm md:text-xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -362,7 +362,7 @@ export function PortfolioPanel() {
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
                         {language === 'fr' ? 'Plus-value realisee (brut)' : 'Realized Gains (gross)'}
                       </p>
                       <p className={`text-sm md:text-xl font-bold ${displayRealizedGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>

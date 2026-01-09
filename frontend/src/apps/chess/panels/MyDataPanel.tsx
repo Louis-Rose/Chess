@@ -62,22 +62,22 @@ export function MyDataPanel() {
         {/* Stats Summary */}
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
-            <p className="text-3xl font-bold text-slate-800">{data.total_games?.toLocaleString() || 0}</p>
-            <p className="text-slate-500 text-sm">Total Games</p>
+            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_games?.toLocaleString() || 0}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Total Games</p>
           </div>
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
-            <p className="text-3xl font-bold text-slate-800">{data.total_rapid?.toLocaleString() || 0}</p>
-            <p className="text-slate-500 text-sm">Rapid Games</p>
+            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_rapid?.toLocaleString() || 0}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Rapid Games</p>
           </div>
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
-            <p className="text-3xl font-bold text-slate-800">{data.total_blitz?.toLocaleString() || 0}</p>
-            <p className="text-slate-500 text-sm">Blitz Games</p>
+            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_blitz?.toLocaleString() || 0}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Blitz Games</p>
           </div>
         </div>
 
         {/* ELO History Chart */}
         <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-slate-800 mb-4">ELO History</h3>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">ELO History</h3>
           {eloData.length > 0 ? (
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -115,7 +115,7 @@ export function MyDataPanel() {
 
         {/* Games Played Chart */}
         <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-slate-800 mb-4">Games Played</h3>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">Games Played</h3>
           {gamesData.length > 0 ? (
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">

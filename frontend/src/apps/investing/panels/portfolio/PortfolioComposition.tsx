@@ -135,7 +135,7 @@ export function PortfolioComposition({
                 return (
                   <table className="w-full">
                     <thead>
-                      <tr className="text-left text-slate-600 text-sm border-b border-slate-300">
+                      <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b border-slate-300 dark:border-slate-500">
                         <th className="pb-2">{t('holdings.stock')}</th>
                         <th className="pb-2 text-right">{t('holdings.shares')}</th>
                         <th className="pb-2 text-right">{t('holdings.price')}</th>
@@ -155,13 +155,13 @@ export function PortfolioComposition({
                         const nativeCurrencySymbol = getCurrencySymbol(h.native_currency || 'USD');
                         const priceToShow = h.current_price_native ?? h.current_price;
                         return (
-                          <tr key={h.ticker} className="border-b border-slate-200">
+                          <tr key={h.ticker} className="border-b border-slate-200 dark:border-slate-600">
                             <td className="py-2 font-bold" style={{ color: h.color }}>{h.ticker}</td>
-                            <td className="py-2 text-right text-slate-600">{displayQuantity}</td>
-                            <td className="py-2 text-right text-slate-600">
+                            <td className="py-2 text-right text-slate-600 dark:text-slate-300">{displayQuantity}</td>
+                            <td className="py-2 text-right text-slate-600 dark:text-slate-300">
                               {nativeCurrencySymbol}{priceToShow.toFixed(2)}
                             </td>
-                            <td className="py-2 text-right text-slate-800 font-medium">
+                            <td className="py-2 text-right text-slate-800 dark:text-slate-100 font-medium">
                               {currency === 'EUR'
                                 ? `${formatEur(displayValue)}€`
                                 : `$${displayValue.toLocaleString('en-US')}`}

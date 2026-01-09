@@ -72,7 +72,7 @@ export function ProsTipsPanel() {
 
             {/* Tips */}
             <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-              <h3 className="text-xl font-bold text-slate-800 mb-4">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 dark:text-slate-100 mb-4">
                 Key Tips from {player.name}
               </h3>
               <div className="space-y-4">
@@ -82,8 +82,8 @@ export function ProsTipsPanel() {
                       {idx + 1}
                     </div>
                     <div>
-                      <p className="font-bold text-slate-800">{tip.title}</p>
-                      <p className="text-slate-600 text-sm">{tip.description}</p>
+                      <p className="font-bold text-slate-800 dark:text-slate-100">{tip.title}</p>
+                      <p className="text-slate-600 dark:text-slate-300 text-sm">{tip.description}</p>
                     </div>
                   </div>
                 ))}

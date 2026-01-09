@@ -30,18 +30,18 @@ export function OpeningsPanel() {
         {/* Opening Charts */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-            <h3 className="text-xl font-bold text-slate-800 mb-4 text-center">Openings as White</h3>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4 text-center">Openings as White</h3>
             <OpeningsChart data={data.openings.white} />
           </div>
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-            <h3 className="text-xl font-bold text-slate-800 mb-4 text-center">Openings as Black</h3>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4 text-center">Openings as Black</h3>
             <OpeningsChart data={data.openings.black} />
           </div>
         </div>
 
         {/* Learn Openings */}
         <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-slate-800 mb-4">Learn an Opening</h3>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">Learn an Opening</h3>
           <select
             value={selectedOpening}
             onChange={(e) => handleOpeningSelect(e.target.value)}

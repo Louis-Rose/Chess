@@ -31,21 +31,21 @@ export function WinPredictionPanel() {
         {/* Win rates after previous results */}
         {wp && (
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-            <h3 className="text-xl font-bold text-slate-800 mb-4">Win Rate After Previous Result</h3>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 dark:text-slate-100 mb-4">Win Rate After Previous Result</h3>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center p-4 bg-white rounded-lg">
                 <p className="text-2xl font-bold text-green-600">{wp.win_rate_after_win?.toFixed(1)}%</p>
-                <p className="text-slate-500 text-sm">After Win</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">After Win</p>
                 <p className="text-slate-400 text-xs">{wp.games_after_win} games</p>
               </div>
               <div className="text-center p-4 bg-white rounded-lg">
                 <p className="text-2xl font-bold text-red-600">{wp.win_rate_after_loss?.toFixed(1)}%</p>
-                <p className="text-slate-500 text-sm">After Loss</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">After Loss</p>
                 <p className="text-slate-400 text-xs">{wp.games_after_loss} games</p>
               </div>
               <div className="text-center p-4 bg-white rounded-lg">
                 <p className="text-2xl font-bold text-yellow-600">{wp.win_rate_after_draw?.toFixed(1)}%</p>
-                <p className="text-slate-500 text-sm">After Draw</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">After Draw</p>
                 <p className="text-slate-400 text-xs">{wp.games_after_draw} games</p>
               </div>
             </div>
@@ -55,7 +55,7 @@ export function WinPredictionPanel() {
         {/* Insights */}
         {wp?.insights && wp.insights.length > 0 && (
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-            <h3 className="text-xl font-bold text-slate-800 mb-4">Insights</h3>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 dark:text-slate-100 mb-4">Insights</h3>
             <div className="space-y-3">
               {wp.insights.map((insight, idx) => (
                 <div key={idx} className={`p-4 rounded-lg ${
@@ -63,8 +63,8 @@ export function WinPredictionPanel() {
                   insight.type === 'positive' ? 'bg-green-50 border-l-4 border-green-500' :
                   'bg-blue-50 border-l-4 border-blue-500'
                 }`}>
-                  <p className="font-bold text-slate-800">{insight.title}</p>
-                  <p className="text-slate-600 text-sm">{insight.message}</p>
+                  <p className="font-bold text-slate-800 dark:text-slate-100">{insight.title}</p>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm">{insight.message}</p>
                   <p className="text-slate-500 text-xs mt-1 italic">{insight.recommendation}</p>
                 </div>
               ))}

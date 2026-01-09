@@ -109,7 +109,7 @@ export function PerformanceChart({
         </div>
         {/* Benchmark Toggle */}
         <div className="flex flex-col items-center">
-          <span className="text-xs text-slate-500 mb-1">Benchmark:</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 mb-1">Benchmark:</span>
           <div className="flex rounded-lg overflow-hidden border border-slate-300">
             <button
               onClick={() => onBenchmarkChange('NASDAQ')}
@@ -453,23 +453,23 @@ export function PerformanceChart({
                         <div className="flex justify-center gap-6 mt-2 text-sm flex-wrap">
                           <div className="flex items-center gap-1.5">
                             <div className="w-4 h-0.5 bg-green-600"></div>
-                            <span className="text-slate-600">{t('performance.portfolio')}</span>
+                            <span className="text-slate-600 dark:text-slate-300">{t('performance.portfolio')}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <div className="w-4 h-0.5 bg-[#8A8EFF]" style={{ borderStyle: 'dashed', borderWidth: '1px', borderColor: '#8A8EFF', height: 0 }}></div>
-                            <span className="text-slate-600">{language === 'fr' ? 'Indice de ref.' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})</span>
+                            <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Indice de ref.' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})</span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <div className="w-4 h-0.5 bg-slate-400"></div>
-                            <span className="text-slate-600">{t('performance.invested')}</span>
+                            <span className="text-slate-600 dark:text-slate-300">{t('performance.invested')}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <div className="w-3 h-3 bg-green-500/30 border border-green-500"></div>
-                            <span className="text-slate-600">{language === 'fr' ? 'Surperformance' : 'Outperformance'}</span>
+                            <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Surperformance' : 'Outperformance'}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <div className="w-3 h-3 bg-red-500/30 border border-red-500"></div>
-                            <span className="text-slate-600">{language === 'fr' ? 'Sous-performance' : 'Underperformance'}</span>
+                            <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Sous-performance' : 'Underperformance'}</span>
                           </div>
                         </div>
                       )}
