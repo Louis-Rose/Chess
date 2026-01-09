@@ -580,19 +580,21 @@ export function AdminPanel() {
 
               {/* Growth Rates */}
               {usersGrowthRates && (
-                <div className="flex items-center justify-center gap-4 text-xs text-slate-500 dark:text-slate-400 mb-4">
-                  <span className="font-medium">{language === 'fr' ? 'Croissance' : 'Growth'}:</span>
+                <div className="flex items-center justify-center gap-2 mb-4">
                   {usersGrowthRates.map(({ period, rate }) => (
-                    <span key={period}>
-                      {period}{usersUnit === 'days' ? 'd' : usersUnit === 'weeks' ? 'w' : 'm'}:{' '}
+                    <div key={period} className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-sm">
+                      <span className="text-slate-100 font-medium">
+                        {period}{usersUnit === 'days' ? 'd' : usersUnit === 'weeks' ? 'w' : 'm'}
+                      </span>
+                      <span className="mx-1 text-slate-400">·</span>
                       {rate !== null ? (
-                        <span className={rate >= 0 ? 'text-green-500' : 'text-red-500'}>
+                        <span className={`font-bold ${rate >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                           {rate >= 0 ? '+' : ''}{rate.toFixed(1)}%
                         </span>
                       ) : (
                         <span className="text-slate-400">—</span>
                       )}
-                    </span>
+                    </div>
                   ))}
                 </div>
               )}
