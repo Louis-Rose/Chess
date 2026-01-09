@@ -388,7 +388,7 @@ export function PerformanceChart({
 
               <div className="h-[380px] md:h-[480px] relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 80 }}>
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 60, left: 60, bottom: 80 }}>
                     <defs>
                       <linearGradient id="outperformanceGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#4ade80" stopOpacity={0.5} />
@@ -402,9 +402,37 @@ export function PerformanceChart({
                     <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} />
                     <XAxis
                       dataKey="date"
-                      tick={false}
+                      tickFormatter={(date) => {
+                        const d = new Date(date);
+                        const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
+                        const year = d.getFullYear().toString();
+                        return `${month.charAt(0).toUpperCase() + month.slice(1)} ${year}`;
+                      }}
+                      tick={{ fontSize: 14, fill: colors.tickFill }}
                       stroke={colors.axisStroke}
-                      height={10}
+                      tickMargin={8}
+                      ticks={(() => {
+                        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+                        const targetTicks = isMobile ? 4 : 8;
+
+                        if (chartData.length <= targetTicks) {
+                          return chartData.map(d => d.date);
+                        }
+
+                        const interval = Math.ceil(chartData.length / (targetTicks - 1));
+                        const ticks: string[] = [];
+
+                        for (let i = 0; i < chartData.length; i += interval) {
+                          ticks.push(chartData[i].date);
+                        }
+
+                        const lastDate = chartData[chartData.length - 1]?.date;
+                        if (lastDate && !ticks.includes(lastDate)) {
+                          ticks.push(lastDate);
+                        }
+
+                        return ticks;
+                      })()}
                     />
                     <YAxis
                       tick={{ fontSize: 15, fill: colors.tickFill }}
