@@ -128,6 +128,11 @@ export function PortfolioPanel() {
     setDraggedPanel(panel);
   };
 
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -135,6 +140,7 @@ export function PortfolioPanel() {
 
   const handleDrop = (e: React.DragEvent, targetPanel: 'holdings' | 'performance') => {
     e.preventDefault();
+    e.stopPropagation();
     const sourcePanel = e.dataTransfer.getData('text/plain') as 'holdings' | 'performance';
     if (sourcePanel && sourcePanel !== targetPanel) {
       setPanelOrder([targetPanel, sourcePanel]);
@@ -439,9 +445,10 @@ export function PortfolioPanel() {
             return (
               <div
                 key="holdings"
+                onDragEnter={handleDragEnter}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'holdings')}
-                className={`bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none transition-opacity ${draggedPanel === 'holdings' ? 'opacity-50' : ''}`}
+                className={`bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none transition-opacity ${draggedPanel === 'holdings' ? 'opacity-50' : ''} ${draggedPanel ? 'cursor-move' : ''}`}
               >
                 <div className="flex items-center gap-1 p-4">
                   <div
@@ -463,7 +470,7 @@ export function PortfolioPanel() {
                   </button>
                 </div>
                 {isHoldingsExpanded && (
-                  <div className="px-4 pb-4">
+                  <div className={`px-4 pb-4 ${draggedPanel ? 'pointer-events-none' : ''}`}>
                     <PortfolioComposition
                       compositionData={compositionData}
                       isLoading={compositionLoading}
@@ -479,9 +486,10 @@ export function PortfolioPanel() {
             return (
               <div
                 key="performance"
+                onDragEnter={handleDragEnter}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'performance')}
-                className={`bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none transition-opacity ${draggedPanel === 'performance' ? 'opacity-50' : ''}`}
+                className={`bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none transition-opacity ${draggedPanel === 'performance' ? 'opacity-50' : ''} ${draggedPanel ? 'cursor-move' : ''}`}
               >
                 <div className="flex items-center gap-1 p-4">
                   <div
@@ -503,7 +511,7 @@ export function PortfolioPanel() {
                   </button>
                 </div>
                 {isPerformanceExpanded && (
-                  <div className="px-4 pb-4">
+                  <div className={`px-4 pb-4 ${draggedPanel ? 'pointer-events-none' : ''}`}>
                     <PerformanceChart
                       performanceData={performanceData}
                       isLoading={performanceLoading}
