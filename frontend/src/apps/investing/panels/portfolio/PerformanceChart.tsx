@@ -3,7 +3,7 @@ import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Legend, Brush,
   ResponsiveContainer, Tooltip
 } from 'recharts';
-import { Loader2, Download } from 'lucide-react';
+import { Loader2, Download, Info } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
@@ -45,7 +45,7 @@ export function PerformanceChart({
   const colors = {
     background: isDark ? '#334155' : '#f1f5f9', // slate-700 (lighter gray)
     gridStroke: isDark ? '#475569' : '#cbd5e1',
-    tickFill: isDark ? '#94a3b8' : '#64748b',
+    tickFill: isDark ? '#e2e8f0' : '#64748b', // Lighter font in dark mode for visibility
     brushFill: isDark ? '#1e293b' : '#e2e8f0',
   };
 
@@ -252,7 +252,7 @@ export function PerformanceChart({
               </h4>
 
               {filteredSummary && (
-                <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
+                <div className="grid grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
                   <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center">
                     <p className="text-slate-500 dark:text-slate-300 text-xs md:text-sm mb-1">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
                     <span className="text-sm md:text-lg font-bold text-slate-800 dark:text-slate-100">
@@ -280,7 +280,64 @@ export function PerformanceChart({
                         if (months > 0) parts.push(`${months} ${language === 'fr' ? 'mois' : (months !== 1 ? 'months' : 'month')}`);
                         if (days > 0) parts.push(`${days} ${language === 'fr' ? (days !== 1 ? 'jours' : 'jour') : (days !== 1 ? 'days' : 'day')}`);
 
-                        return parts.length > 0 ? parts.join(' ') : (language === 'fr' ? '0 jour' : '0 days');
+                        // Format with commas and "and"
+                        if (parts.length === 0) return language === 'fr' ? '0 jour' : '0 days';
+                        if (parts.length === 1) return parts[0];
+                        if (parts.length === 2) return parts.join(language === 'fr' ? ' et ' : ' and ');
+                        return parts.slice(0, -1).join(', ') + (language === 'fr' ? ' et ' : ' and ') + parts[parts.length - 1];
+                      })()}
+                    </span>
+                  </div>
+                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center relative group">
+                    <p className="text-slate-500 dark:text-slate-300 text-xs md:text-sm mb-1 flex items-center justify-center gap-1">
+                      {language === 'fr' ? 'Periode ponderee' : 'Weighted period'}
+                      <Info className="w-3 h-3 text-slate-400 cursor-help" />
+                    </p>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left">
+                      {language === 'fr'
+                        ? 'Periode moyenne ponderee par le capital investi. Tient compte du fait que le capital a ete investi progressivement.'
+                        : 'Average holding period weighted by invested capital. Accounts for the fact that capital was invested progressively.'}
+                    </div>
+                    <span className="text-sm md:text-lg font-bold text-slate-800 dark:text-slate-100">
+                      {(() => {
+                        // Calculate weighted holding period based on capital additions
+                        const endDate = new Date(filteredSummary.end_date);
+                        let weightedDays = 0;
+                        let totalCapital = 0;
+
+                        // Use the selected range data for calculation
+                        const rangeData = brushRange
+                          ? allData.slice(brushRange.startIndex, brushRange.endIndex + 1)
+                          : allData;
+
+                        for (let i = 0; i < rangeData.length; i++) {
+                          const currentCostBasis = rangeData[i].cost_basis_eur;
+                          const prevCostBasis = i > 0 ? rangeData[i - 1].cost_basis_eur : 0;
+                          const capitalAdded = currentCostBasis - prevCostBasis;
+
+                          if (capitalAdded > 0) {
+                            const investDate = new Date(rangeData[i].date);
+                            const daysHeld = (endDate.getTime() - investDate.getTime()) / (1000 * 60 * 60 * 24);
+                            weightedDays += capitalAdded * daysHeld;
+                            totalCapital += capitalAdded;
+                          }
+                        }
+
+                        const avgDays = totalCapital > 0 ? weightedDays / totalCapital : 0;
+                        const avgYears = Math.floor(avgDays / 365);
+                        const avgMonths = Math.floor((avgDays % 365) / 30);
+                        const avgDaysRemainder = Math.round(avgDays % 30);
+
+                        const parts: string[] = [];
+                        if (avgYears > 0) parts.push(`${avgYears} ${avgYears !== 1 ? t('performance.years') : t('performance.year')}`);
+                        if (avgMonths > 0) parts.push(`${avgMonths} ${language === 'fr' ? 'mois' : (avgMonths !== 1 ? 'months' : 'month')}`);
+                        if (avgDaysRemainder > 0 || parts.length === 0) parts.push(`${avgDaysRemainder} ${language === 'fr' ? (avgDaysRemainder !== 1 ? 'jours' : 'jour') : (avgDaysRemainder !== 1 ? 'days' : 'day')}`);
+
+                        // Format with commas and "and"
+                        if (parts.length === 1) return parts[0];
+                        if (parts.length === 2) return parts.join(language === 'fr' ? ' et ' : ' and ');
+                        return parts.slice(0, -1).join(', ') + (language === 'fr' ? ' et ' : ' and ') + parts[parts.length - 1];
                       })()}
                     </span>
                   </div>
@@ -434,6 +491,10 @@ export function PerformanceChart({
                           ? (language === 'fr' ? `Surperformance vs ${benchmarkTicker}` : `Outperformance vs ${benchmarkTicker}`)
                           : (language === 'fr' ? `Sous-performance vs ${benchmarkTicker}` : `Underperformance vs ${benchmarkTicker}`);
 
+                        // Consistent colors: green #4ade80, blue #60a5fa
+                        const greenColor = '#4ade80';
+                        const blueColor = '#60a5fa';
+
                         return (
                           <div style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '6px 10px', fontSize: '12px' }}>
                             <p style={{ color: '#f1f5f9', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
@@ -442,19 +503,19 @@ export function PerformanceChart({
                             <p style={{ color: '#94a3b8', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', borderBottom: '1px solid #475569', paddingBottom: '4px', marginBottom: '4px' }}>
                               {t('performance.invested')} : {formatEur(Math.round(costBasis))}€
                             </p>
-                            <p style={{ color: '#4ade80', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                            <p style={{ color: greenColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                               {t('performance.portfolio')} : {formatEur(Math.round(portfolioValue))}€
                             </p>
-                            <p style={{ color: '#a5b4fc', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                            <p style={{ color: blueColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                               {benchmarkTicker} : {formatEur(Math.round(benchmarkValue))}€
                             </p>
-                            <p style={{ color: displayPerf >= 0 ? '#4ade80' : '#f87171', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', marginTop: '4px', borderTop: '1px solid #475569', paddingTop: '4px' }}>
+                            <p style={{ color: displayPerf >= 0 ? greenColor : '#f87171', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', marginTop: '4px', borderTop: '1px solid #475569', paddingTop: '4px' }}>
                               {perfLabel} : {displayPerf >= 0 ? '+' : ''}{displayPerf}%
                             </p>
-                            <p style={{ color: '#8A8EFF', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                            <p style={{ color: blueColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                               {benchmarkPerfLabel} : {displayBenchmarkPerf >= 0 ? '+' : ''}{displayBenchmarkPerf}%
                             </p>
-                            <p style={{ color: displayOutperfRatio >= 1 ? '#16a34a' : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                            <p style={{ color: displayOutperfRatio >= 1 ? greenColor : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                               {outperfLabel} : x{displayOutperfRatio}
                             </p>
                           </div>
@@ -469,7 +530,7 @@ export function PerformanceChart({
                             <span className="text-slate-600 dark:text-slate-300">{t('performance.portfolio')}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <div className="w-4 h-0.5 bg-[#8A8EFF]" style={{ borderStyle: 'dashed', borderWidth: '1px', borderColor: '#8A8EFF', height: 0 }}></div>
+                            <div className="w-4 h-0.5 bg-[#60a5fa]" style={{ borderStyle: 'dashed', borderWidth: '1px', borderColor: '#60a5fa', height: 0 }}></div>
                             <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Indice de ref.' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})</span>
                           </div>
                           <div className="flex items-center gap-1.5">
@@ -548,7 +609,7 @@ export function PerformanceChart({
                       type="monotone"
                       dataKey="benchmark_value_eur"
                       name={`${benchmark} (EUR)`}
-                      stroke="#8A8EFF"
+                      stroke="#60a5fa"
                       strokeWidth={2}
                       strokeDasharray="5 5"
                       dot={false}
