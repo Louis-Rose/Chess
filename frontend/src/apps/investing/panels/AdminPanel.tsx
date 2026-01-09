@@ -476,7 +476,7 @@ export function AdminPanel() {
                 </div>
               )}
             </div>
-            {isTimeSpentExpanded && <div className="h-[250px]">
+            {isTimeSpentExpanded && <div className="h-[250px] [&_svg]:outline-none">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={timeSpentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
