@@ -248,8 +248,9 @@ export function UserDetailPanel() {
                   />
                   <YAxis tick={{ fontSize: 11 }} stroke="#cbd5e1" />
                   <Tooltip
-                    contentStyle={{ backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e2e8f0', padding: '2px 8px', fontSize: '12px' }}
-                    labelStyle={{ marginBottom: '-2px' }}
+                    cursor={false}
+                    contentStyle={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '2px 8px', fontSize: '12px' }}
+                    labelStyle={{ marginBottom: '-2px', color: '#f1f5f9' }}
                     labelFormatter={(date) => new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
                     formatter={(value) => {
                       const mins = Number(value);

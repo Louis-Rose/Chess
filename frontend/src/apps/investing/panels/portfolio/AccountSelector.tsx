@@ -54,7 +54,7 @@ export function AccountSelector({
   const selectedAccount = accounts.find(a => a.id === selectedAccountId);
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-100 rounded-xl p-6">
+    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6">
       {/* Toggle button - centered */}
       <div className="flex justify-center mb-4">
         <button

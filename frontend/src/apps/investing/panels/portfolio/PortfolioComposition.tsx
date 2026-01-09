@@ -69,9 +69,9 @@ export function PortfolioComposition({
   };
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-100 rounded-xl p-6">
+    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6">
       <div className="flex items-center justify-center gap-3 mb-6">
-        <h3 className="text-xl font-bold text-slate-800 dark:text-slate-800">{t('holdings.title')}</h3>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('holdings.title')}</h3>
         <button
           onClick={downloadPositionsChart}
           disabled={isDownloading || isLoading}
@@ -87,7 +87,7 @@ export function PortfolioComposition({
           <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
         </div>
       ) : compositionData?.holdings && compositionData.holdings.length > 0 ? (
-        <div ref={positionsChartRef} className="bg-slate-100 rounded-xl p-4 overflow-visible">
+        <div ref={positionsChartRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4 overflow-visible">
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 overflow-visible">
             {/* Pie Chart */}
             <div className="w-full md:w-1/2 h-[280px] md:h-[380px] overflow-visible">
@@ -109,6 +109,8 @@ export function PortfolioComposition({
                     ))}
                   </Pie>
                   <Tooltip
+                    contentStyle={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '8px 12px' }}
+                    itemStyle={{ color: '#f1f5f9' }}
                     formatter={(value, _name, props) => {
                       const payload = props.payload as CompositionItem;
                       const valueEur = payload.current_value;

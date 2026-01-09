@@ -252,20 +252,20 @@ export function PortfolioPanel() {
             <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-white/20">
               <button
                 onClick={() => setCurrency('EUR')}
-                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-100 text-slate-600 dark:text-slate-600 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500'}`}
               >
                 EUR €
               </button>
               <button
                 onClick={() => setCurrency('USD')}
-                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-100 text-slate-600 dark:text-slate-600 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${currency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500'}`}
               >
                 USD $
               </button>
             </div>
             <button
               onClick={() => setPrivateMode(!privateMode)}
-              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${privateMode ? 'bg-slate-300 dark:bg-slate-200 text-slate-700 dark:text-slate-700' : 'bg-slate-200 dark:bg-slate-100 text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-700'}`}
+              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${privateMode ? 'bg-slate-300 dark:bg-slate-500 text-slate-700 dark:text-slate-200' : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100'}`}
             >
               {privateMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               <span>{t('portfolio.privateMode')}</span>
@@ -304,7 +304,7 @@ export function PortfolioPanel() {
 
         {/* Summary Cards */}
         {selectedAccountId && compositionData && accountHasHoldings && (
-          <div className="bg-slate-50 dark:bg-slate-100 rounded-xl p-4">
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {(() => {
                 const PRIVATE_COST_BASIS = 10000;

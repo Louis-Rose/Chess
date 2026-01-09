@@ -79,9 +79,9 @@ export function PerformanceChart({
   };
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-100 rounded-xl p-4 md:p-6">
+    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 md:p-6">
       <div className="flex items-center justify-center gap-3 mb-4">
-        <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-800">{t('performance.title')}</h3>
+        <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">{t('performance.title')}</h3>
         <button
           onClick={downloadChart}
           disabled={isDownloading}
@@ -233,16 +233,16 @@ export function PerformanceChart({
 
         return (
           <>
-            <div ref={chartContainerRef} className="bg-slate-100 dark:bg-slate-100 rounded-xl p-4">
-              <h4 className="text-lg font-bold text-slate-800 dark:text-slate-800 text-center mb-4">
+            <div ref={chartContainerRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
+              <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
                 {language === 'fr' ? 'Performance du Portefeuille' : 'Portfolio Performance'}
               </h4>
 
               {filteredSummary && (
                 <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
-                  <div className="bg-white rounded-lg p-2 md:p-4 text-center">
-                    <p className="text-slate-500 text-xs md:text-sm mb-1">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
-                    <span className="text-sm md:text-lg font-bold text-slate-800">
+                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center">
+                    <p className="text-slate-500 dark:text-slate-300 text-xs md:text-sm mb-1">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
+                    <span className="text-sm md:text-lg font-bold text-slate-800 dark:text-slate-100">
                       {(() => {
                         const start = new Date(filteredSummary.start_date);
                         const end = new Date(filteredSummary.end_date);
@@ -271,8 +271,8 @@ export function PerformanceChart({
                       })()}
                     </span>
                   </div>
-                  <div className="bg-white rounded-lg p-2 md:p-4 text-center">
-                    <p className="text-slate-500 text-xs md:text-sm mb-1">{showAnnualized ? 'CAGR' : t('performance.totalReturn')}</p>
+                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center">
+                    <p className="text-slate-500 dark:text-slate-300 text-xs md:text-sm mb-1">{showAnnualized ? 'CAGR' : t('performance.totalReturn')}</p>
                     <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {showAnnualized ? (
                         <>
@@ -285,8 +285,8 @@ export function PerformanceChart({
                       )}
                     </span>
                   </div>
-                  <div className="bg-white rounded-lg p-2 md:p-4 text-center">
-                    <p className="text-slate-500 text-xs md:text-sm mb-1">Benchmark</p>
+                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center">
+                    <p className="text-slate-500 dark:text-slate-300 text-xs md:text-sm mb-1">Benchmark</p>
                     <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
                       {showAnnualized ? (
                         <>
@@ -422,20 +422,20 @@ export function PerformanceChart({
                           : (language === 'fr' ? `Sous-performance vs ${benchmarkTicker}` : `Underperformance vs ${benchmarkTicker}`);
 
                         return (
-                          <div style={{ backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e2e8f0', padding: '6px 10px', fontSize: '12px' }}>
-                            <p style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
+                          <div style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '6px 10px', fontSize: '12px' }}>
+                            <p style={{ color: '#f1f5f9', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
                               {new Date(String(label)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                             </p>
-                            <p style={{ color: '#64748b', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '4px' }}>
+                            <p style={{ color: '#94a3b8', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', borderBottom: '1px solid #475569', paddingBottom: '4px', marginBottom: '4px' }}>
                               {t('performance.invested')} : {formatEur(Math.round(costBasis))}€
                             </p>
-                            <p style={{ color: '#16a34a', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                            <p style={{ color: '#4ade80', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                               {t('performance.portfolio')} : {formatEur(Math.round(portfolioValue))}€
                             </p>
-                            <p style={{ color: '#8A8EFF', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                            <p style={{ color: '#a5b4fc', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                               {benchmarkTicker} : {formatEur(Math.round(benchmarkValue))}€
                             </p>
-                            <p style={{ color: displayPerf >= 0 ? '#16a34a' : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', marginTop: '4px', borderTop: '1px solid #e2e8f0', paddingTop: '4px' }}>
+                            <p style={{ color: displayPerf >= 0 ? '#4ade80' : '#f87171', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', marginTop: '4px', borderTop: '1px solid #475569', paddingTop: '4px' }}>
                               {perfLabel} : {displayPerf >= 0 ? '+' : ''}{displayPerf}%
                             </p>
                             <p style={{ color: '#8A8EFF', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>

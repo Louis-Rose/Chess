@@ -30,7 +30,7 @@ export function WinPredictionPanel() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Win rates after previous results */}
         {wp && (
-          <div className="bg-slate-100 rounded-xl p-6">
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
             <h3 className="text-xl font-bold text-slate-800 mb-4">Win Rate After Previous Result</h3>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center p-4 bg-white rounded-lg">
@@ -54,7 +54,7 @@ export function WinPredictionPanel() {
 
         {/* Insights */}
         {wp?.insights && wp.insights.length > 0 && (
-          <div className="bg-slate-100 rounded-xl p-6">
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
             <h3 className="text-xl font-bold text-slate-800 mb-4">Insights</h3>
             <div className="space-y-3">
               {wp.insights.map((insight, idx) => (

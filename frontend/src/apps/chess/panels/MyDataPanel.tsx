@@ -61,22 +61,22 @@ export function MyDataPanel() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Stats Summary */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-slate-100 rounded-xl p-6 text-center">
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
             <p className="text-3xl font-bold text-slate-800">{data.total_games?.toLocaleString() || 0}</p>
             <p className="text-slate-500 text-sm">Total Games</p>
           </div>
-          <div className="bg-slate-100 rounded-xl p-6 text-center">
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
             <p className="text-3xl font-bold text-slate-800">{data.total_rapid?.toLocaleString() || 0}</p>
             <p className="text-slate-500 text-sm">Rapid Games</p>
           </div>
-          <div className="bg-slate-100 rounded-xl p-6 text-center">
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
             <p className="text-3xl font-bold text-slate-800">{data.total_blitz?.toLocaleString() || 0}</p>
             <p className="text-slate-500 text-sm">Blitz Games</p>
           </div>
         </div>
 
         {/* ELO History Chart */}
-        <div className="bg-slate-100 rounded-xl p-6">
+        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
           <h3 className="text-xl font-bold text-slate-800 mb-4">ELO History</h3>
           {eloData.length > 0 ? (
             <div className="h-[300px]">
@@ -93,7 +93,9 @@ export function MyDataPanel() {
                     domain={['dataMin - 50', 'dataMax + 50']}
                   />
                   <Tooltip
-                    contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                    contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155' }}
+                    labelStyle={{ color: '#f1f5f9' }}
+                    itemStyle={{ color: '#f1f5f9' }}
                     formatter={(value) => [value ?? 0, 'ELO']}
                   />
                   <Line
@@ -112,7 +114,7 @@ export function MyDataPanel() {
         </div>
 
         {/* Games Played Chart */}
-        <div className="bg-slate-100 rounded-xl p-6">
+        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
           <h3 className="text-xl font-bold text-slate-800 mb-4">Games Played</h3>
           {gamesData.length > 0 ? (
             <div className="h-[300px]">
@@ -128,7 +130,10 @@ export function MyDataPanel() {
                     tick={{ fontSize: 12, fill: '#64748b' }}
                   />
                   <Tooltip
-                    contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                    cursor={false}
+                    contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155' }}
+                    labelStyle={{ color: '#f1f5f9' }}
+                    itemStyle={{ color: '#f1f5f9' }}
                     formatter={(value) => [value ?? 0, 'Games']}
                   />
                   <Bar

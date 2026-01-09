@@ -46,7 +46,7 @@ export function WeaknessesPanel() {
         )}
 
         {fatigueAnalysis && !fatigueAnalysis.error && (
-          <div className="bg-slate-100 rounded-xl p-6">
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
             <h3 className="text-xl font-bold text-slate-800 mb-4">Fatigue Analysis</h3>
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="text-center p-4 bg-white rounded-lg">

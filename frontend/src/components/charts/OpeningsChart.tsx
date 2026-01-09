@@ -27,12 +27,12 @@ export const OpeningsChart = ({ data }: OpeningsChartProps) => {
             interval={0}
           />
           <Tooltip
-            cursor={{fill: '#f1f5f9'}}
+            cursor={false}
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
                 const d = payload[0].payload;
                 return (
-                  <div className="bg-white p-3 border border-slate-200 shadow-xl rounded text-sm text-slate-800 z-50">
+                  <div className="bg-slate-800 p-3 border border-slate-600 shadow-xl rounded text-sm text-slate-100 z-50">
                     <p className="font-bold text-base mb-1">{d.opening}</p>
                     <p>Games Played: <span className="font-mono">{formatNumber(d.games)}</span></p>
                     <p>Win Rate: <span className="font-mono font-bold" style={{color: getBarColor(d.win_rate)}}>{d.win_rate}%</span></p>

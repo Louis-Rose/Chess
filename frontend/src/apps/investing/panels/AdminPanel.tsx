@@ -347,12 +347,12 @@ export function AdminPanel() {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'white',
+                      backgroundColor: '#1e293b',
                       borderRadius: '8px',
-                      border: '1px solid #e2e8f0',
+                      border: '1px solid #334155',
                       padding: '8px 12px',
                     }}
-                    labelStyle={{ color: '#1e293b', fontWeight: 'bold' }}
+                    labelStyle={{ color: '#f1f5f9', fontWeight: 'bold' }}
                     labelFormatter={(date) =>
                       new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
                         day: 'numeric',
@@ -418,6 +418,7 @@ export function AdminPanel() {
                     tickFormatter={(value) => `${value} min`}
                   />
                   <Tooltip
+                    cursor={false}
                     contentStyle={{
                       backgroundColor: '#1e293b',
                       borderRadius: '8px',
