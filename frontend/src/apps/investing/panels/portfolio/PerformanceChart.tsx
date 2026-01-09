@@ -388,7 +388,7 @@ export function PerformanceChart({
 
               <div className="h-[380px] md:h-[480px] relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 60 }}>
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 100 }}>
                     <defs>
                       <linearGradient id="outperformanceGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#4ade80" stopOpacity={0.5} />
@@ -581,7 +581,7 @@ export function PerformanceChart({
                         stroke="#16a34a"
                         fill={colors.brushFill}
                         travellerWidth={12}
-                        gap={10}
+                        gap={25}
                         startIndex={brushRange?.startIndex ?? 0}
                         endIndex={brushRange?.endIndex ?? chartData.length - 1}
                         tickFormatter={(date) => {
