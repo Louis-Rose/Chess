@@ -64,7 +64,7 @@ export function PerformanceChart({
       }
       debounceRef.current = setTimeout(() => {
         setBrushRange({ startIndex: range.startIndex!, endIndex: range.endIndex! });
-      }, 300);
+      }, 800);
     }
   }, []);
 
@@ -653,7 +653,7 @@ export function PerformanceChart({
                 const startMonth = startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
                 const endMonth = endDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
                 return (
-                  <div className="relative h-12 -mt-10 mx-[50px]">
+                  <div className="relative h-12 -mt-14 mx-[44px]">
                     <div
                       className="absolute text-center text-green-500 font-semibold text-sm -translate-x-1/2"
                       style={{ left: `${startPct}%` }}
