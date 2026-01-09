@@ -434,10 +434,11 @@ export function PortfolioPanel() {
                   <button
                     onClick={() => compositionRef.current?.download()}
                     disabled={compositionRef.current?.isDownloading}
-                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                    className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors text-sm"
                     title={language === 'fr' ? 'Télécharger' : 'Download'}
                   >
-                    <Download className="w-5 h-5 text-slate-400" />
+                    <Download className="w-4 h-4" />
+                    <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
                   </button>
                   <button
                     onClick={swapPanels}
@@ -481,10 +482,11 @@ export function PortfolioPanel() {
                   <button
                     onClick={() => performanceRef.current?.download()}
                     disabled={performanceRef.current?.isDownloading}
-                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                    className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors text-sm"
                     title={language === 'fr' ? 'Télécharger' : 'Download'}
                   >
-                    <Download className="w-5 h-5 text-slate-400" />
+                    <Download className="w-4 h-4" />
+                    <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
                   </button>
                   <button
                     onClick={swapPanels}
