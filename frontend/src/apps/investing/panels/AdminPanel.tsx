@@ -459,14 +459,16 @@ export function AdminPanel() {
                       padding: '8px 12px',
                     }}
                     labelStyle={{ color: '#f1f5f9', fontWeight: 'bold' }}
-                    labelFormatter={(date) =>
-                      new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })
-                    }
-                    formatter={(value) => [`${value} min`, '']}
+                    labelFormatter={(date) => {
+                      const dateStr = String(date);
+                      if (dateStr.includes('-W')) return dateStr; // Week format
+                      if (dateStr.match(/^\d{4}-\d{2}$/)) { // Month format
+                        const [year, month] = dateStr.split('-');
+                        return new Date(Number(year), Number(month) - 1).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: 'numeric' });
+                      }
+                      return new Date(dateStr).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+                    }}
+                    formatter={(value) => [`${value} min`]}
                   />
                   <Bar
                     dataKey="minutes"
@@ -555,14 +557,16 @@ export function AdminPanel() {
                           padding: '8px 12px',
                         }}
                         labelStyle={{ color: '#f1f5f9', fontWeight: 'bold' }}
-                        labelFormatter={(date) =>
-                          new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                          })
-                        }
-                        formatter={(value) => [value, '']}
+                        labelFormatter={(date) => {
+                          const dateStr = String(date);
+                          if (dateStr.includes('-W')) return dateStr; // Week format
+                          if (dateStr.match(/^\d{4}-\d{2}$/)) { // Month format
+                            const [year, month] = dateStr.split('-');
+                            return new Date(Number(year), Number(month) - 1).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: 'numeric' });
+                          }
+                          return new Date(dateStr).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+                        }}
+                        formatter={(value) => [value]}
                       />
                       <Bar
                         dataKey="users"
