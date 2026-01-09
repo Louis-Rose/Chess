@@ -153,6 +153,7 @@ export function AdminPanel() {
   const [isUsersTableExpanded, setIsUsersTableExpanded] = useState(false);
   const [isStockSearchesExpanded, setIsStockSearchesExpanded] = useState(true);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(true);
+  const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(false);
 
   // Time unit for charts
   type TimeUnit = 'days' | 'weeks' | 'months';
@@ -638,46 +639,54 @@ export function AdminPanel() {
             )}
             {/* Page Breakdown */}
             {isTimeSpentExpanded && (
-              <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-600 rounded-lg">
-                <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">
-                  {language === 'fr' ? 'Répartition par section' : 'Breakdown by Section'}
-                </h4>
-                <div className="space-y-2">
-                  {(() => {
-                    const pageLabels: Record<string, { en: string; fr: string }> = {
-                      portfolio: { en: 'Portfolio', fr: 'Portfolio' },
-                      watchlist: { en: 'Watchlist', fr: 'Watchlist' },
-                      earnings: { en: 'Earnings Calendar', fr: 'Calendrier des résultats' },
-                      financials: { en: 'Financials', fr: 'Données financières' },
-                      stock: { en: 'Company Pages', fr: 'Pages entreprises' },
-                    };
-                    const allPages = ['portfolio', 'watchlist', 'earnings', 'financials', 'stock'];
-                    const breakdownMap = new Map(pageBreakdown?.breakdown.map(b => [b.page, b.total_minutes]) || []);
-                    const total = pageBreakdown?.total_minutes || 0;
+              <div className="mt-4">
+                <button
+                  onClick={() => setIsBreakdownExpanded(!isBreakdownExpanded)}
+                  className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                >
+                  <ChevronRight className={`w-4 h-4 transition-transform ${isBreakdownExpanded ? 'rotate-90' : ''}`} />
+                  {language === 'fr' ? 'Voir la répartition' : 'See Breakdown'}
+                </button>
+                {isBreakdownExpanded && (
+                  <div className="mt-3 p-3 bg-slate-100 dark:bg-slate-600 rounded-lg">
+                    <div className="space-y-2">
+                      {(() => {
+                        const pageLabels: Record<string, { en: string; fr: string }> = {
+                          portfolio: { en: 'Portfolio', fr: 'Portfolio' },
+                          watchlist: { en: 'Watchlist', fr: 'Watchlist' },
+                          earnings: { en: 'Earnings Calendar', fr: 'Calendrier des résultats' },
+                          financials: { en: 'Financials', fr: 'Données financières' },
+                          stock: { en: 'Company Pages', fr: 'Pages entreprises' },
+                        };
+                        const allPages = ['portfolio', 'watchlist', 'earnings', 'financials', 'stock'];
+                        const breakdownMap = new Map(pageBreakdown?.breakdown.map(b => [b.page, b.total_minutes]) || []);
+                        const total = pageBreakdown?.total_minutes || 0;
 
-                    return allPages.map((page) => {
-                      const minutes = breakdownMap.get(page) || 0;
-                      const percentage = total > 0 ? Math.round((minutes / total) * 100) : 0;
-                      const label = pageLabels[page]?.[language === 'fr' ? 'fr' : 'en'] || page;
-                      return (
-                        <div key={page} className="flex items-center gap-3">
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm text-slate-700 dark:text-slate-200">{label}</span>
-                              <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{percentage}%</span>
+                        return allPages.map((page) => {
+                          const minutes = breakdownMap.get(page) || 0;
+                          const percentage = total > 0 ? Math.round((minutes / total) * 100) : 0;
+                          const label = pageLabels[page]?.[language === 'fr' ? 'fr' : 'en'] || page;
+                          return (
+                            <div key={page} className="flex items-center gap-3">
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm text-slate-700 dark:text-slate-200">{label}</span>
+                                  <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{percentage}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-200 dark:bg-slate-500 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-green-500 rounded-full transition-all"
+                                    style={{ width: `${percentage}%` }}
+                                  />
+                                </div>
+                              </div>
                             </div>
-                            <div className="h-2 bg-slate-200 dark:bg-slate-500 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-green-500 rounded-full transition-all"
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
