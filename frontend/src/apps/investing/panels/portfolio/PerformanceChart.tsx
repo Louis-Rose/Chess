@@ -36,7 +36,11 @@ export function PerformanceChart({
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Visual brush position (immediate) for smooth label following
+  const [visualBrushRange, setVisualBrushRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
+  // Calculated brush range (debounced) for expensive summary computations
   const [brushRange, setBrushRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -51,8 +55,16 @@ export function PerformanceChart({
 
   const handleBrushChange = useCallback((range: { startIndex?: number; endIndex?: number }) => {
     if (typeof range.startIndex === 'number' && typeof range.endIndex === 'number') {
-      // Update immediately for responsive ticks, debounce only expensive summary calculations
-      setBrushRange({ startIndex: range.startIndex, endIndex: range.endIndex });
+      // Update visual position immediately for smooth label following
+      setVisualBrushRange({ startIndex: range.startIndex, endIndex: range.endIndex });
+
+      // Debounce expensive summary calculations
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      debounceRef.current = setTimeout(() => {
+        setBrushRange({ startIndex: range.startIndex!, endIndex: range.endIndex! });
+      }, 300);
     }
   }, []);
 
@@ -631,12 +643,9 @@ export function PerformanceChart({
               </div>
               {/* Custom brush date labels - follow slider handles */}
               {!isDownloading && (() => {
-                const startIdx = brushRange?.startIndex ?? 0;
-                const endIdx = brushRange?.endIndex ?? chartData.length - 1;
-                // Account for brush traveller width (12px) - effective track is slightly inset
-                const travellerOffset = 6; // half of travellerWidth
-                const chartMargin = 50;
-                const effectiveMargin = chartMargin + travellerOffset;
+                // Use visualBrushRange for immediate label updates (smooth following)
+                const startIdx = visualBrushRange?.startIndex ?? 0;
+                const endIdx = visualBrushRange?.endIndex ?? chartData.length - 1;
                 const startPct = (startIdx / (chartData.length - 1)) * 100;
                 const endPct = (endIdx / (chartData.length - 1)) * 100;
                 const startDate = new Date(chartData[startIdx]?.date);
@@ -644,16 +653,16 @@ export function PerformanceChart({
                 const startMonth = startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
                 const endMonth = endDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
                 return (
-                  <div className="relative h-12 -mt-16" style={{ marginLeft: effectiveMargin, marginRight: effectiveMargin }}>
+                  <div className="relative h-12 -mt-10 mx-[50px]">
                     <div
-                      className="absolute text-center text-green-500 font-semibold text-sm -translate-x-1/2 -translate-y-1/2"
+                      className="absolute text-center text-green-500 font-semibold text-sm -translate-x-1/2"
                       style={{ left: `${startPct}%` }}
                     >
                       <div>{startMonth.charAt(0).toUpperCase() + startMonth.slice(1)}</div>
                       <div>{startDate.getFullYear()}</div>
                     </div>
                     <div
-                      className="absolute text-center text-green-500 font-semibold text-sm -translate-x-1/2 -translate-y-1/2"
+                      className="absolute text-center text-green-500 font-semibold text-sm -translate-x-1/2"
                       style={{ left: `${endPct}%` }}
                     >
                       <div>{endMonth.charAt(0).toUpperCase() + endMonth.slice(1)}</div>
