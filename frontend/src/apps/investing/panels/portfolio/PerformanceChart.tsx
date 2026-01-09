@@ -568,6 +568,8 @@ export function PerformanceChart({
                         fill={colors.brushFill}
                         travellerWidth={12}
                         tickFormatter={() => ''}
+                        startIndex={brushRange?.startIndex}
+                        endIndex={brushRange?.endIndex}
                         onChange={handleBrushChange}
                       />
                     )}
