@@ -1,9 +1,9 @@
 // Portfolio panel with transactions, composition and performance
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, ArrowUpDown } from 'lucide-react';
+import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, ArrowUpDown, Download } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
@@ -12,8 +12,8 @@ import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 // Sub-components
 import { AccountSelector } from './portfolio/AccountSelector';
 import { TransactionForm } from './portfolio/TransactionForm';
-import { PortfolioComposition } from './portfolio/PortfolioComposition';
-import { PerformanceChart } from './portfolio/PerformanceChart';
+import { PortfolioComposition, type PortfolioCompositionHandle } from './portfolio/PortfolioComposition';
+import { PerformanceChart, type PerformanceChartHandle } from './portfolio/PerformanceChart';
 import { formatEur } from './portfolio/utils';
 
 // Types
@@ -104,6 +104,8 @@ export function PortfolioPanel() {
   // Panel state: collapsed and order
   const [isHoldingsExpanded, setIsHoldingsExpanded] = useState(true);
   const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(true);
+  const compositionRef = useRef<PortfolioCompositionHandle>(null);
+  const performanceRef = useRef<PerformanceChartHandle>(null);
   const [panelOrder, setPanelOrder] = useState<['holdings' | 'performance', 'holdings' | 'performance']>(() => {
     const saved = localStorage.getItem('portfolioPanelOrder');
     if (saved) {
@@ -430,6 +432,14 @@ export function PortfolioPanel() {
                     </h3>
                   </button>
                   <button
+                    onClick={() => compositionRef.current?.download()}
+                    disabled={compositionRef.current?.isDownloading}
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                    title={language === 'fr' ? 'Télécharger' : 'Download'}
+                  >
+                    <Download className="w-5 h-5 text-slate-400" />
+                  </button>
+                  <button
                     onClick={swapPanels}
                     className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
                     title={language === 'fr' ? 'Inverser l\'ordre des panneaux' : 'Swap panel order'}
@@ -440,11 +450,13 @@ export function PortfolioPanel() {
                 {isHoldingsExpanded && (
                   <div className="px-4 pb-4">
                     <PortfolioComposition
+                      ref={compositionRef}
                       compositionData={compositionData}
                       isLoading={compositionLoading}
                       privateMode={privateMode}
                       currency={currency}
                       hideTitle
+                      hideDownloadButton
                     />
                   </div>
                 )}
@@ -467,6 +479,14 @@ export function PortfolioPanel() {
                     </h3>
                   </button>
                   <button
+                    onClick={() => performanceRef.current?.download()}
+                    disabled={performanceRef.current?.isDownloading}
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                    title={language === 'fr' ? 'Télécharger' : 'Download'}
+                  >
+                    <Download className="w-5 h-5 text-slate-400" />
+                  </button>
+                  <button
                     onClick={swapPanels}
                     className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
                     title={language === 'fr' ? 'Inverser l\'ordre des panneaux' : 'Swap panel order'}
@@ -477,6 +497,7 @@ export function PortfolioPanel() {
                 {isPerformanceExpanded && (
                   <div className="px-4 pb-4">
                     <PerformanceChart
+                      ref={performanceRef}
                       performanceData={performanceData}
                       isLoading={performanceLoading}
                       benchmark={benchmark}
@@ -486,6 +507,7 @@ export function PortfolioPanel() {
                       onBenchmarkChange={setBenchmark}
                       onShowAnnualizedChange={setShowAnnualized}
                       hideTitle
+                      hideDownloadButton
                     />
                   </div>
                 )}

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Loader2, Download } from 'lucide-react';
@@ -8,6 +8,11 @@ import { useLanguage } from '../../../../contexts/LanguageContext';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import type { CompositionData, CompositionItem } from './types';
 import { formatEur, addLumraBranding, getScaleFactor } from './utils';
+
+export interface PortfolioCompositionHandle {
+  download: () => Promise<void>;
+  isDownloading: boolean;
+}
 
 // Currency symbols for display
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -30,15 +35,17 @@ interface PortfolioCompositionProps {
   privateMode: boolean;
   currency: 'EUR' | 'USD';
   hideTitle?: boolean;
+  hideDownloadButton?: boolean;
 }
 
-export function PortfolioComposition({
+export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, PortfolioCompositionProps>(({
   compositionData,
   isLoading,
   privateMode,
   currency,
   hideTitle = false,
-}: PortfolioCompositionProps) {
+  hideDownloadButton = false,
+}, ref) => {
   const navigate = useNavigate();
   const { language, t } = useLanguage();
   const { resolvedTheme } = useTheme();
@@ -76,23 +83,31 @@ export function PortfolioComposition({
     }
   };
 
+  // Expose download function to parent via ref
+  useImperativeHandle(ref, () => ({
+    download: downloadPositionsChart,
+    isDownloading,
+  }));
+
   const content = (
     <>
       {!hideTitle && (
         <div className="flex items-center justify-center gap-3 mb-6">
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('holdings.title')}</h3>
-          <button
-            onClick={downloadPositionsChart}
-            disabled={isDownloading || isLoading}
-            className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors text-sm"
-            title={language === 'fr' ? 'Telecharger le graphique' : 'Download chart'}
-          >
-            {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
-          </button>
+          {!hideDownloadButton && (
+            <button
+              onClick={downloadPositionsChart}
+              disabled={isDownloading || isLoading}
+              className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors text-sm"
+              title={language === 'fr' ? 'Telecharger le graphique' : 'Download chart'}
+            >
+              {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
+            </button>
+          )}
         </div>
       )}
-      {hideTitle && (
+      {hideTitle && !hideDownloadButton && (
         <div className="flex justify-end mb-4">
           <button
             onClick={downloadPositionsChart}
@@ -259,4 +274,4 @@ export function PortfolioComposition({
       {content}
     </div>
   );
-}
+});

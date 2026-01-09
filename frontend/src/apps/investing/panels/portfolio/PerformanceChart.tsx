@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Brush,
   ResponsiveContainer, Tooltip
@@ -11,6 +11,11 @@ import { useTheme } from '../../../../contexts/ThemeContext';
 import type { PerformanceData } from './types';
 import { formatEur, addLumraBranding, getScaleFactor, PRIVATE_COST_BASIS } from './utils';
 
+export interface PerformanceChartHandle {
+  download: () => Promise<void>;
+  isDownloading: boolean;
+}
+
 interface PerformanceChartProps {
   performanceData: PerformanceData | undefined;
   isLoading: boolean;
@@ -21,9 +26,10 @@ interface PerformanceChartProps {
   onBenchmarkChange: (benchmark: 'NASDAQ' | 'SP500') => void;
   onShowAnnualizedChange: (show: boolean) => void;
   hideTitle?: boolean;
+  hideDownloadButton?: boolean;
 }
 
-export function PerformanceChart({
+export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceChartProps>(({
   performanceData,
   isLoading,
   benchmark,
@@ -33,7 +39,8 @@ export function PerformanceChart({
   onBenchmarkChange,
   onShowAnnualizedChange,
   hideTitle = false,
-}: PerformanceChartProps) {
+  hideDownloadButton = false,
+}, ref) => {
   const { language, t } = useLanguage();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -95,6 +102,12 @@ export function PerformanceChart({
     }
   };
 
+  // Expose download function to parent via ref
+  useImperativeHandle(ref, () => ({
+    download: downloadChart,
+    isDownloading,
+  }));
+
   const content = (
     <>
       {!hideTitle ? (
@@ -102,6 +115,7 @@ export function PerformanceChart({
           <div className="flex-1"></div>
           <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">{t('performance.title')}</h3>
           <div className="flex-1 flex justify-end">
+            {!hideDownloadButton && (
             <button
               onClick={downloadChart}
               disabled={isDownloading}
@@ -111,9 +125,11 @@ export function PerformanceChart({
               {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
             </button>
+            )}
           </div>
         </div>
       ) : (
+        !hideDownloadButton && (
         <div className="flex justify-end mb-4">
           <button
             onClick={downloadChart}
@@ -125,6 +141,7 @@ export function PerformanceChart({
             <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
           </button>
         </div>
+        )
       )}
       <div className="flex flex-wrap items-end justify-center gap-3 md:gap-4 mb-4 md:mb-6">
         {/* Toggle: Total vs Annualized */}
@@ -737,4 +754,4 @@ export function PerformanceChart({
       {content}
     </div>
   );
-}
+});
