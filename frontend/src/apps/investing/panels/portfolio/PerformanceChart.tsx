@@ -336,7 +336,7 @@ export function PerformanceChart({
               )}
 
               {filteredSummary && (
-                <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6 items-stretch">
+                <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6 auto-rows-fr">
                   {/* Combined Holding Periods - stacked vertically */}
                   <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center relative group flex flex-col justify-center">
                     <div className="flex flex-col gap-2">
@@ -364,7 +364,7 @@ export function PerformanceChart({
                     </div>
                   </div>
                   {/* Portfolio Gains */}
-                  <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center h-full">
+                  <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
                     <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold">{showAnnualized ? 'CAGR' : (language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains')}</p>
                     <span className={`font-bold text-base md:text-xl ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€ ({showAnnualized
@@ -374,7 +374,7 @@ export function PerformanceChart({
                     </span>
                   </div>
                   {/* Benchmark */}
-                  <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center h-full">
+                  <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
                     <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold">Benchmark</p>
                     <span className={`font-bold text-base md:text-xl ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
                       {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€ ({showAnnualized
