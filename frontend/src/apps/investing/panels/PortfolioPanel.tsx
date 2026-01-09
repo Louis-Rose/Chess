@@ -122,12 +122,15 @@ export function PortfolioPanel() {
     localStorage.setItem('portfolioPanelOrder', JSON.stringify(panelOrder));
   }, [panelOrder]);
 
-  const handleDragStart = (panel: 'holdings' | 'performance') => {
+  const handleDragStart = (e: React.DragEvent, panel: 'holdings' | 'performance') => {
+    e.dataTransfer.setData('text/plain', panel);
+    e.dataTransfer.effectAllowed = 'move';
     setDraggedPanel(panel);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   };
 
   const handleDrop = (e: React.DragEvent, targetPanel: 'holdings' | 'performance') => {
@@ -436,7 +439,7 @@ export function PortfolioPanel() {
               <div
                 key="holdings"
                 draggable
-                onDragStart={() => handleDragStart('holdings')}
+                onDragStart={(e) => handleDragStart(e, 'holdings')}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'holdings')}
                 onDragEnd={handleDragEnd}
@@ -470,7 +473,7 @@ export function PortfolioPanel() {
               <div
                 key="performance"
                 draggable
-                onDragStart={() => handleDragStart('performance')}
+                onDragStart={(e) => handleDragStart(e, 'performance')}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'performance')}
                 onDragEnd={handleDragEnd}
