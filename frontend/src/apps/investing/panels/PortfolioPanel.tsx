@@ -380,6 +380,14 @@ export function PortfolioPanel() {
           </div>
         )}
 
+        {/* Loading state for composition/performance */}
+        {selectedAccountId && compositionLoading && !compositionData && (
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="w-12 h-12 text-green-500 animate-spin mb-4" />
+            <p className="text-slate-400 text-lg">{language === 'fr' ? 'Chargement des données...' : 'Loading data...'}</p>
+          </div>
+        )}
+
         {/* Portfolio Composition */}
         {selectedAccountId && accountHasHoldings && (
           <PortfolioComposition
