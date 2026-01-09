@@ -642,7 +642,7 @@ export function AdminPanel() {
               <div className="mt-4">
                 <button
                   onClick={() => setIsBreakdownExpanded(!isBreakdownExpanded)}
-                  className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                  className="w-full py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center gap-2 transition-colors"
                 >
                   <ChevronRight className={`w-4 h-4 transition-transform ${isBreakdownExpanded ? 'rotate-90' : ''}`} />
                   {language === 'fr' ? 'Voir la répartition' : 'See Breakdown'}
