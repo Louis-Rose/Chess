@@ -438,23 +438,29 @@ export function PortfolioPanel() {
             return (
               <div
                 key="holdings"
-                draggable
-                onDragStart={(e) => handleDragStart(e, 'holdings')}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'holdings')}
-                onDragEnd={handleDragEnd}
                 className={`bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none transition-opacity ${draggedPanel === 'holdings' ? 'opacity-50' : ''}`}
               >
-                <button
-                  onClick={() => setIsHoldingsExpanded(!isHoldingsExpanded)}
-                  className="w-full flex items-center gap-3 p-4 text-left"
-                >
-                  <GripVertical className="w-5 h-5 text-slate-400 cursor-grab" />
-                  <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isHoldingsExpanded ? 'rotate-90' : ''}`} />
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                    {language === 'fr' ? 'Positions actuelles' : 'Current Holdings'}
-                  </h3>
-                </button>
+                <div className="flex items-center gap-1 p-4">
+                  <div
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'holdings')}
+                    onDragEnd={handleDragEnd}
+                    className="cursor-grab active:cursor-grabbing p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                  >
+                    <GripVertical className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <button
+                    onClick={() => setIsHoldingsExpanded(!isHoldingsExpanded)}
+                    className="flex items-center gap-3 text-left flex-1"
+                  >
+                    <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isHoldingsExpanded ? 'rotate-90' : ''}`} />
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                      {language === 'fr' ? 'Positions actuelles' : 'Current Holdings'}
+                    </h3>
+                  </button>
+                </div>
                 {isHoldingsExpanded && (
                   <div className="px-4 pb-4">
                     <PortfolioComposition
@@ -472,23 +478,29 @@ export function PortfolioPanel() {
             return (
               <div
                 key="performance"
-                draggable
-                onDragStart={(e) => handleDragStart(e, 'performance')}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'performance')}
-                onDragEnd={handleDragEnd}
                 className={`bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none transition-opacity ${draggedPanel === 'performance' ? 'opacity-50' : ''}`}
               >
-                <button
-                  onClick={() => setIsPerformanceExpanded(!isPerformanceExpanded)}
-                  className="w-full flex items-center gap-3 p-4 text-left"
-                >
-                  <GripVertical className="w-5 h-5 text-slate-400 cursor-grab" />
-                  <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isPerformanceExpanded ? 'rotate-90' : ''}`} />
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                    {language === 'fr' ? 'Performance du portefeuille' : 'Portfolio Performance'}
-                  </h3>
-                </button>
+                <div className="flex items-center gap-1 p-4">
+                  <div
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'performance')}
+                    onDragEnd={handleDragEnd}
+                    className="cursor-grab active:cursor-grabbing p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                  >
+                    <GripVertical className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <button
+                    onClick={() => setIsPerformanceExpanded(!isPerformanceExpanded)}
+                    className="flex items-center gap-3 text-left flex-1"
+                  >
+                    <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isPerformanceExpanded ? 'rotate-90' : ''}`} />
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                      {language === 'fr' ? 'Performance du portefeuille' : 'Portfolio Performance'}
+                    </h3>
+                  </button>
+                </div>
                 {isPerformanceExpanded && (
                   <div className="px-4 pb-4">
                     <PerformanceChart
