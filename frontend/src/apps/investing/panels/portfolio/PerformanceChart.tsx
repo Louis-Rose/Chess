@@ -85,10 +85,11 @@ export function PerformanceChart({
         <button
           onClick={downloadChart}
           disabled={isDownloading}
-          className="p-1.5 text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+          className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors text-sm"
           title={language === 'fr' ? 'Telecharger le graphique' : 'Download chart'}
         >
           {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
         </button>
       </div>
       <div className="flex flex-wrap items-end justify-center gap-3 md:gap-4 mb-4 md:mb-6">
