@@ -442,7 +442,63 @@ def activity_heartbeat():
     return jsonify({'success': True})
 
 
+@app.route('/api/theme', methods=['POST'])
+@login_required
+def record_theme():
+    """Record user's theme preference for analytics."""
+    data = request.get_json()
+    theme = data.get('theme')  # 'light', 'dark', 'system'
+    resolved_theme = data.get('resolved_theme')  # 'light' or 'dark'
+
+    if not theme or not resolved_theme:
+        return jsonify({'error': 'theme and resolved_theme required'}), 400
+
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO theme_usage (user_id, theme, resolved_theme, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                theme = excluded.theme,
+                resolved_theme = excluded.resolved_theme,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (request.user_id, theme, resolved_theme))
+
+    return jsonify({'success': True})
+
+
 # ============= ADMIN ROUTES =============
+
+@app.route('/api/admin/theme-stats', methods=['GET'])
+@admin_required
+def get_theme_stats():
+    """Get theme usage statistics (admin only)."""
+    with get_db() as conn:
+        # Get counts by resolved theme (actual display)
+        cursor = conn.execute('''
+            SELECT resolved_theme, COUNT(*) as count
+            FROM theme_usage
+            GROUP BY resolved_theme
+        ''')
+        by_resolved = {row['resolved_theme']: row['count'] for row in cursor.fetchall()}
+
+        # Get counts by theme setting (includes 'system')
+        cursor = conn.execute('''
+            SELECT theme, COUNT(*) as count
+            FROM theme_usage
+            GROUP BY theme
+        ''')
+        by_setting = {row['theme']: row['count'] for row in cursor.fetchall()}
+
+        # Get total users with theme data
+        cursor = conn.execute('SELECT COUNT(*) as total FROM theme_usage')
+        total = cursor.fetchone()['total']
+
+    return jsonify({
+        'total': total,
+        'by_resolved': by_resolved,
+        'by_setting': by_setting
+    })
+
 
 @app.route('/api/admin/users', methods=['GET'])
 @admin_required

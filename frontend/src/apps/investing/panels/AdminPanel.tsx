@@ -4,7 +4,7 @@ import { useMemo, useState, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown, Calendar, X, ArrowRight, Clock, Search, RefreshCw, ChevronRight } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown, Calendar, X, ArrowRight, Clock, Search, RefreshCw, ChevronRight, Sun, Moon } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -68,6 +68,17 @@ const fetchStockViews = async (): Promise<StockViewStats> => {
   return response.data;
 };
 
+interface ThemeStats {
+  total: number;
+  by_resolved: Record<string, number>;
+  by_setting: Record<string, number>;
+}
+
+const fetchThemeStats = async (): Promise<ThemeStats> => {
+  const response = await axios.get('/api/admin/theme-stats');
+  return response.data;
+};
+
 export function AdminPanel() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -80,6 +91,7 @@ export function AdminPanel() {
     await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-time-spent'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-stock-views'] });
+    await queryClient.invalidateQueries({ queryKey: ['admin-theme-stats'] });
     setIsRefreshing(false);
   };
 
@@ -98,6 +110,12 @@ export function AdminPanel() {
   const { data: stockViewsData } = useQuery({
     queryKey: ['admin-stock-views'],
     queryFn: fetchStockViews,
+    enabled: !!user?.is_admin,
+  });
+
+  const { data: themeStats } = useQuery({
+    queryKey: ['admin-theme-stats'],
+    queryFn: fetchThemeStats,
     enabled: !!user?.is_admin,
   });
 
@@ -302,6 +320,45 @@ export function AdminPanel() {
       </div>
 
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Theme Stats */}
+        {themeStats && themeStats.total > 0 && (
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 shadow-sm dark:shadow-none">
+            <div className="flex items-center justify-center gap-8">
+              <div className="flex items-center gap-2">
+                <Moon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                <span className="text-sm text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Mode sombre' : 'Dark mode'}</span>
+                <span className="font-bold text-slate-800 dark:text-slate-100">
+                  {themeStats.by_resolved.dark || 0}
+                </span>
+                <span className="text-sm text-slate-500">
+                  ({Math.round(((themeStats.by_resolved.dark || 0) / themeStats.total) * 100)}%)
+                </span>
+              </div>
+              <div className="w-px h-6 bg-slate-300 dark:bg-slate-500"></div>
+              <div className="flex items-center gap-2">
+                <Sun className="w-5 h-5 text-amber-500" />
+                <span className="text-sm text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Mode clair' : 'Light mode'}</span>
+                <span className="font-bold text-slate-800 dark:text-slate-100">
+                  {themeStats.by_resolved.light || 0}
+                </span>
+                <span className="text-sm text-slate-500">
+                  ({Math.round(((themeStats.by_resolved.light || 0) / themeStats.total) * 100)}%)
+                </span>
+              </div>
+              {themeStats.by_setting.system && themeStats.by_setting.system > 0 && (
+                <>
+                  <div className="w-px h-6 bg-slate-300 dark:bg-slate-500"></div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-500 dark:text-slate-400">
+                      ({themeStats.by_setting.system} {language === 'fr' ? 'en auto' : 'on auto'})
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* User Growth Chart */}
         {!isLoading && !error && chartData.length > 0 && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">

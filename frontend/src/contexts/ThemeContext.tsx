@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
+import axios from 'axios';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -49,12 +50,24 @@ if (typeof window !== 'undefined') {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(initialTheme);
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(initialResolved);
+  const hasRecordedInitial = useRef(false);
+
+  // Record theme to backend for analytics
+  const recordTheme = (t: Theme, resolved: 'light' | 'dark') => {
+    axios.post('/api/theme', { theme: t, resolved_theme: resolved }).catch(() => {});
+  };
 
   // Apply theme on mount and when theme changes
   useEffect(() => {
     const newResolvedTheme = theme === 'system' ? getSystemTheme() : theme;
     setResolvedTheme(newResolvedTheme);
     applyTheme(newResolvedTheme);
+
+    // Record initial theme on first load
+    if (!hasRecordedInitial.current) {
+      hasRecordedInitial.current = true;
+      recordTheme(theme, newResolvedTheme);
+    }
   }, [theme]);
 
   // Listen for system theme changes when in 'system' mode
@@ -66,6 +79,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const newTheme = e.matches ? 'dark' : 'light';
       setResolvedTheme(newTheme);
       applyTheme(newTheme);
+      recordTheme(theme, newTheme);
     };
 
     mediaQuery.addEventListener('change', handleChange);
@@ -75,6 +89,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem('theme', newTheme);
+    const resolved = newTheme === 'system' ? getSystemTheme() : newTheme;
+    recordTheme(newTheme, resolved);
   };
 
   return (

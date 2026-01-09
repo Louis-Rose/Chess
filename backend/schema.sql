@@ -180,6 +180,16 @@ CREATE TABLE IF NOT EXISTS youtube_channel_fetch_log (
     last_fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Theme preferences tracking (for analytics)
+CREATE TABLE IF NOT EXISTS theme_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER UNIQUE NOT NULL,
+    theme TEXT NOT NULL,             -- 'light', 'dark', or 'system'
+    resolved_theme TEXT NOT NULL,    -- 'light' or 'dark' (actual display)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
