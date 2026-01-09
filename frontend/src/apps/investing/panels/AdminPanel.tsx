@@ -89,6 +89,17 @@ const fetchLanguageStats = async (): Promise<LanguageStats> => {
   return response.data;
 };
 
+interface SettingsCrosstab {
+  crosstab: Record<string, { users: number; minutes: number }>;
+  total_minutes: number;
+  total_users: number;
+}
+
+const fetchSettingsCrosstab = async (): Promise<SettingsCrosstab> => {
+  const response = await axios.get('/api/admin/settings-crosstab');
+  return response.data;
+};
+
 export function AdminPanel() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -103,6 +114,7 @@ export function AdminPanel() {
     await queryClient.invalidateQueries({ queryKey: ['admin-stock-views'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-theme-stats'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-language-stats'] });
+    await queryClient.invalidateQueries({ queryKey: ['admin-settings-crosstab'] });
     setIsRefreshing(false);
   };
 
@@ -136,6 +148,12 @@ export function AdminPanel() {
     enabled: !!user?.is_admin,
   });
 
+  const { data: settingsCrosstab } = useQuery({
+    queryKey: ['admin-settings-crosstab'],
+    queryFn: fetchSettingsCrosstab,
+    enabled: !!user?.is_admin,
+  });
+
   // Sort state (default: most time spent first)
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_minutes');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -143,6 +161,7 @@ export function AdminPanel() {
   // Collapsible panel states
   const [isTimeSpentExpanded, setIsTimeSpentExpanded] = useState(true);
   const [isUsersExpanded, setIsUsersExpanded] = useState(true);
+  const [isUsersTableExpanded, setIsUsersTableExpanded] = useState(false);
   const [isStockSearchesExpanded, setIsStockSearchesExpanded] = useState(true);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(true);
 
@@ -435,7 +454,10 @@ export function AdminPanel() {
                     dataKey="date"
                     tick={{ fontSize: 12, fill: '#e2e8f0' }}
                     tickFormatter={(date) => {
-                      if (timeSpentUnit === 'weeks') return date; // 2024-W01
+                      if (timeSpentUnit === 'weeks') {
+                        const weekNum = date.split('-W')[1];
+                        return `${language === 'fr' ? 'SEM' : 'WEEK'} ${parseInt(weekNum)}`;
+                      }
                       if (timeSpentUnit === 'months') {
                         const [year, month] = date.split('-');
                         return new Date(Number(year), Number(month) - 1).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
@@ -461,8 +483,11 @@ export function AdminPanel() {
                     labelStyle={{ color: '#f1f5f9', fontWeight: 'bold' }}
                     labelFormatter={(date) => {
                       const dateStr = String(date);
-                      if (dateStr.includes('-W')) return dateStr; // Week format
-                      if (dateStr.match(/^\d{4}-\d{2}$/)) { // Month format
+                      if (dateStr.includes('-W')) {
+                        const [year, week] = dateStr.split('-W');
+                        return `${language === 'fr' ? 'Semaine' : 'Week'} ${parseInt(week)}, ${year}`;
+                      }
+                      if (dateStr.match(/^\d{4}-\d{2}$/)) {
                         const [year, month] = dateStr.split('-');
                         return new Date(Number(year), Number(month) - 1).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: 'numeric' });
                       }
@@ -533,7 +558,10 @@ export function AdminPanel() {
                         dataKey="date"
                         tick={{ fontSize: 12, fill: '#e2e8f0' }}
                         tickFormatter={(date) => {
-                          if (usersUnit === 'weeks') return date; // 2024-W01
+                          if (usersUnit === 'weeks') {
+                            const weekNum = date.split('-W')[1];
+                            return `${language === 'fr' ? 'SEM' : 'WEEK'} ${parseInt(weekNum)}`;
+                          }
                           if (usersUnit === 'months') {
                             const [year, month] = date.split('-');
                             return new Date(Number(year), Number(month) - 1).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
@@ -559,8 +587,11 @@ export function AdminPanel() {
                         labelStyle={{ color: '#f1f5f9', fontWeight: 'bold' }}
                         labelFormatter={(date) => {
                           const dateStr = String(date);
-                          if (dateStr.includes('-W')) return dateStr; // Week format
-                          if (dateStr.match(/^\d{4}-\d{2}$/)) { // Month format
+                          if (dateStr.includes('-W')) {
+                            const [year, week] = dateStr.split('-W');
+                            return `${language === 'fr' ? 'Semaine' : 'Week'} ${parseInt(week)}, ${year}`;
+                          }
+                          if (dateStr.match(/^\d{4}-\d{2}$/)) {
                             const [year, month] = dateStr.split('-');
                             return new Date(Number(year), Number(month) - 1).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: 'numeric' });
                           }
@@ -584,7 +615,7 @@ export function AdminPanel() {
                   {usersGrowthRates.map(({ period, rate }) => (
                     <div key={period} className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-sm">
                       <span className="text-slate-100 font-medium">
-                        {period}{usersUnit === 'days' ? 'd' : usersUnit === 'weeks' ? 'w' : 'm'}
+                        {period}{usersUnit === 'days' ? 'D' : usersUnit === 'weeks' ? 'W' : 'M'}
                       </span>
                       <span className="mx-1 text-slate-400">·</span>
                       {rate !== null ? (
@@ -599,8 +630,17 @@ export function AdminPanel() {
                 </div>
               )}
 
+              {/* Users Table Toggle */}
+              <button
+                onClick={() => setIsUsersTableExpanded(!isUsersTableExpanded)}
+                className="w-full py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center gap-2 transition-colors"
+              >
+                <ChevronRight className={`w-4 h-4 transition-transform ${isUsersTableExpanded ? 'rotate-90' : ''}`} />
+                {language === 'fr' ? 'Voir les utilisateurs' : 'See Users'}
+              </button>
+
               {/* Users Table */}
-              {isLoading ? (
+              {isUsersTableExpanded && (isLoading ? (
                 <div className="flex justify-center py-12">
                   <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
                 </div>
@@ -713,8 +753,8 @@ export function AdminPanel() {
                             lastActive.setHours(0, 0, 0, 0);
                             const days = Math.round((today.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
                             if (days === 0) return language === 'fr' ? "Auj." : 'Today';
-                            if (days === 1) return language === 'fr' ? 'Hier' : '1d';
-                            return `${days}d`;
+                            if (days === 1) return language === 'fr' ? 'Hier' : '1D';
+                            return `${days}D`;
                           })()
                         ) : (
                           <span className="text-slate-300">-</span>
@@ -746,7 +786,7 @@ export function AdminPanel() {
                 <p className="text-slate-500 text-center py-8">
                   {language === 'fr' ? 'Aucun utilisateur' : 'No users found'}
                 </p>
-              )}
+              ))}
             </>
           )}
         </div>
@@ -831,66 +871,96 @@ export function AdminPanel() {
             </h3>
           </button>
           {isSettingsExpanded && (
-            <div className="mt-4 space-y-4">
-              {/* Theme Stats */}
-              {themeStats && themeStats.total > 0 && (
-                <div className="flex items-center gap-6 p-3 bg-slate-100 dark:bg-slate-600 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Moon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                    <span className="text-sm text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Sombre' : 'Dark'}</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-100">
-                      {themeStats.by_resolved.dark || 0}
-                    </span>
-                    <span className="text-sm text-slate-500">
-                      ({Math.round(((themeStats.by_resolved.dark || 0) / themeStats.total) * 100)}%)
-                    </span>
-                  </div>
-                  <div className="w-px h-5 bg-slate-300 dark:bg-slate-500"></div>
-                  <div className="flex items-center gap-2">
-                    <Sun className="w-5 h-5 text-amber-500" />
-                    <span className="text-sm text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Clair' : 'Light'}</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-100">
-                      {themeStats.by_resolved.light || 0}
-                    </span>
-                    <span className="text-sm text-slate-500">
-                      ({Math.round(((themeStats.by_resolved.light || 0) / themeStats.total) * 100)}%)
-                    </span>
-                  </div>
-                  {themeStats.by_setting.system && themeStats.by_setting.system > 0 && (
-                    <>
-                      <div className="w-px h-5 bg-slate-300 dark:bg-slate-500"></div>
-                      <span className="text-sm text-slate-500 dark:text-slate-400">
-                        ({themeStats.by_setting.system} auto)
-                      </span>
-                    </>
-                  )}
-                </div>
-              )}
+            <div className="mt-4">
+              {/* Cross-tabulation: Theme x Language (weighted by time) */}
+              {settingsCrosstab && settingsCrosstab.total_minutes > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-300 dark:border-slate-500">
+                        <th className="py-2 px-3 text-left text-slate-500 dark:text-slate-400"></th>
+                        <th className="py-2 px-3 text-center text-slate-600 dark:text-slate-300">
+                          <div className="flex items-center justify-center gap-1">
+                            <Moon className="w-4 h-4" />
+                            {language === 'fr' ? 'Sombre' : 'Dark'}
+                          </div>
+                        </th>
+                        <th className="py-2 px-3 text-center text-slate-600 dark:text-slate-300">
+                          <div className="flex items-center justify-center gap-1">
+                            <Sun className="w-4 h-4 text-amber-500" />
+                            {language === 'fr' ? 'Clair' : 'Light'}
+                          </div>
+                        </th>
+                        <th className="py-2 px-3 text-center text-slate-500 dark:text-slate-400 font-normal">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const ct = settingsCrosstab.crosstab;
+                        const total = settingsCrosstab.total_minutes;
+                        const darkEn = ct['dark_en']?.minutes || 0;
+                        const darkFr = ct['dark_fr']?.minutes || 0;
+                        const lightEn = ct['light_en']?.minutes || 0;
+                        const lightFr = ct['light_fr']?.minutes || 0;
+                        const enTotal = darkEn + lightEn;
+                        const frTotal = darkFr + lightFr;
+                        const darkTotal = darkEn + darkFr;
+                        const lightTotal = lightEn + lightFr;
 
-              {/* Language Stats */}
-              {languageStats && languageStats.total > 0 && (
-                <div className="flex items-center gap-6 p-3 bg-slate-100 dark:bg-slate-600 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Globe className="w-5 h-5 text-blue-500" />
-                    <span className="text-sm text-slate-600 dark:text-slate-300">English</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-100">
-                      {languageStats.by_language.en || 0}
-                    </span>
-                    <span className="text-sm text-slate-500">
-                      ({Math.round(((languageStats.by_language.en || 0) / languageStats.total) * 100)}%)
-                    </span>
-                  </div>
-                  <div className="w-px h-5 bg-slate-300 dark:bg-slate-500"></div>
-                  <div className="flex items-center gap-2">
-                    <Globe className="w-5 h-5 text-blue-500" />
-                    <span className="text-sm text-slate-600 dark:text-slate-300">Français</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-100">
-                      {languageStats.by_language.fr || 0}
-                    </span>
-                    <span className="text-sm text-slate-500">
-                      ({Math.round(((languageStats.by_language.fr || 0) / languageStats.total) * 100)}%)
-                    </span>
-                  </div>
+                        return (
+                          <>
+                            <tr className="border-b border-slate-200 dark:border-slate-600">
+                              <td className="py-2 px-3 text-slate-600 dark:text-slate-300">
+                                <div className="flex items-center gap-1">
+                                  <Globe className="w-4 h-4 text-blue-500" />
+                                  English
+                                </div>
+                              </td>
+                              <td className="py-2 px-3 text-center font-medium text-slate-800 dark:text-slate-100">
+                                {total > 0 ? Math.round((darkEn / total) * 100) : 0}%
+                              </td>
+                              <td className="py-2 px-3 text-center font-medium text-slate-800 dark:text-slate-100">
+                                {total > 0 ? Math.round((lightEn / total) * 100) : 0}%
+                              </td>
+                              <td className="py-2 px-3 text-center text-slate-500 dark:text-slate-400">
+                                {total > 0 ? Math.round((enTotal / total) * 100) : 0}%
+                              </td>
+                            </tr>
+                            <tr className="border-b border-slate-200 dark:border-slate-600">
+                              <td className="py-2 px-3 text-slate-600 dark:text-slate-300">
+                                <div className="flex items-center gap-1">
+                                  <Globe className="w-4 h-4 text-blue-500" />
+                                  Français
+                                </div>
+                              </td>
+                              <td className="py-2 px-3 text-center font-medium text-slate-800 dark:text-slate-100">
+                                {total > 0 ? Math.round((darkFr / total) * 100) : 0}%
+                              </td>
+                              <td className="py-2 px-3 text-center font-medium text-slate-800 dark:text-slate-100">
+                                {total > 0 ? Math.round((lightFr / total) * 100) : 0}%
+                              </td>
+                              <td className="py-2 px-3 text-center text-slate-500 dark:text-slate-400">
+                                {total > 0 ? Math.round((frTotal / total) * 100) : 0}%
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-2 px-3 text-slate-500 dark:text-slate-400">Total</td>
+                              <td className="py-2 px-3 text-center text-slate-500 dark:text-slate-400">
+                                {total > 0 ? Math.round((darkTotal / total) * 100) : 0}%
+                              </td>
+                              <td className="py-2 px-3 text-center text-slate-500 dark:text-slate-400">
+                                {total > 0 ? Math.round((lightTotal / total) * 100) : 0}%
+                              </td>
+                              <td className="py-2 px-3 text-center text-slate-500 dark:text-slate-400">100%</td>
+                            </tr>
+                          </>
+                        );
+                      })()}
+                    </tbody>
+                  </table>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 text-center mt-2">
+                    {language === 'fr' ? 'Pondéré par temps passé' : 'Weighted by time spent'}
+                  </p>
                 </div>
               )}
             </div>
