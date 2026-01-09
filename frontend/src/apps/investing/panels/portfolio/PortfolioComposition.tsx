@@ -112,16 +112,31 @@ export function PortfolioComposition({
                     cy="50%"
                     outerRadius="50%"
                     label={({ name, value, x, y, textAnchor, fill }) => (
-                      <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" fontSize={12} fill={fill}>
+                      <text
+                        x={x}
+                        y={y}
+                        textAnchor={textAnchor}
+                        dominantBaseline="central"
+                        fontSize={12}
+                        fill={fill}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => navigate(`/investing/stock/${name}`)}
+                      >
                         <tspan fontWeight="bold">{name}</tspan>
                         <tspan> {value}%</tspan>
                       </text>
                     )}
                     labelLine={true}
                     isAnimationActive={!isDownloading}
+                    onClick={(data) => {
+                      if (data?.ticker) {
+                        navigate(`/investing/stock/${data.ticker}`);
+                      }
+                    }}
+                    style={{ cursor: 'pointer' }}
                   >
                     {compositionData.holdings.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell key={`cell-${index}`} fill={entry.color} style={{ cursor: 'pointer' }} />
                     ))}
                   </Pie>
                   <Tooltip
