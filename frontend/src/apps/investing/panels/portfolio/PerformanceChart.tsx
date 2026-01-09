@@ -353,9 +353,9 @@ export function PerformanceChart({
                     </div>
                   </div>
                   {/* Portfolio Gains */}
-                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
-                    <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-1">{showAnnualized ? 'CAGR' : (language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains')}</p>
-                    <span className={`font-bold text-base md:text-xl ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col">
+                    <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-2">{showAnnualized ? 'CAGR' : (language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains')}</p>
+                    <span className={`font-bold text-base md:text-xl flex-1 flex items-center justify-center ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€ ({showAnnualized
                         ? `${filteredSummary.cagr_eur >= 0 ? '+' : ''}${filteredSummary.cagr_eur}%`
                         : `${filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}${filteredSummary.portfolio_return_eur}%`
@@ -363,9 +363,9 @@ export function PerformanceChart({
                     </span>
                   </div>
                   {/* Benchmark */}
-                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
-                    <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-1">Benchmark</p>
-                    <span className={`font-bold text-base md:text-xl ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
+                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col">
+                    <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-2">Benchmark</p>
+                    <span className={`font-bold text-base md:text-xl flex-1 flex items-center justify-center ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
                       {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€ ({showAnnualized
                         ? `${filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}${filteredSummary.cagr_benchmark_eur}%`
                         : `${filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}${filteredSummary.benchmark_return_eur}%`
@@ -393,10 +393,10 @@ export function PerformanceChart({
                       dataKey="date"
                       tickFormatter={(date) => {
                         const d = new Date(date);
-                        const formatted = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
+                        const formatted = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: '2-digit' });
                         return formatted.charAt(0).toUpperCase() + formatted.slice(1);
                       }}
-                      tick={{ fontSize: 14, fill: colors.tickFill }}
+                      tick={{ fontSize: 15, fill: colors.tickFill }}
                       stroke={colors.axisStroke}
                       ticks={(() => {
                         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -422,7 +422,7 @@ export function PerformanceChart({
                       })()}
                     />
                     <YAxis
-                      tick={{ fontSize: 14, fill: colors.tickFill }}
+                      tick={{ fontSize: 15, fill: colors.tickFill }}
                       stroke={colors.axisStroke}
                       tickFormatter={(val) => {
                         return `${formatEur(val / 1000)}k€`;
