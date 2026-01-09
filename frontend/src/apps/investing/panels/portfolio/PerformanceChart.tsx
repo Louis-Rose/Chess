@@ -43,10 +43,10 @@ export function PerformanceChart({
 
   // Theme-aware colors
   const colors = {
-    background: isDark ? '#1e293b' : '#f1f5f9',
+    background: isDark ? '#334155' : '#f1f5f9', // slate-700 (lighter gray)
     gridStroke: isDark ? '#475569' : '#cbd5e1',
     tickFill: isDark ? '#94a3b8' : '#64748b',
-    brushFill: isDark ? '#334155' : '#e2e8f0',
+    brushFill: isDark ? '#1e293b' : '#e2e8f0',
   };
 
   const handleBrushChange = useCallback((range: { startIndex?: number; endIndex?: number }) => {
@@ -71,6 +71,7 @@ export function PerformanceChart({
       const dataUrl = await toPng(chartContainerRef.current, {
         backgroundColor: colors.background,
         pixelRatio: 2,
+        skipFonts: true, // Skip fonts to avoid CORS issues with external stylesheets
       });
 
       const brandedDataUrl = await addLumraBranding(dataUrl, 70);

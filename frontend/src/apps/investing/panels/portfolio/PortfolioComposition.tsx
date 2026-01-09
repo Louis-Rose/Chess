@@ -51,8 +51,9 @@ export function PortfolioComposition({
     await new Promise(resolve => setTimeout(resolve, 100));
     try {
       const dataUrl = await toPng(positionsChartRef.current, {
-        backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+        backgroundColor: isDark ? '#334155' : '#f1f5f9', // slate-700 (lighter gray)
         pixelRatio: 2,
+        skipFonts: true, // Skip fonts to avoid CORS issues with external stylesheets
       });
 
       const brandedDataUrl = await addLumraBranding(dataUrl);
@@ -91,7 +92,11 @@ export function PortfolioComposition({
           <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
         </div>
       ) : compositionData?.holdings && compositionData.holdings.length > 0 ? (
-        <div ref={positionsChartRef} className="bg-slate-100 dark:bg-slate-800 rounded-xl p-4 overflow-visible">
+        <div ref={positionsChartRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4 overflow-visible">
+          {/* Title for download capture - only visible during download */}
+          {isDownloading && (
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-4">{t('holdings.title')}</h3>
+          )}
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 overflow-visible">
             {/* Pie Chart */}
             <div className="w-full md:w-1/2 h-[280px] md:h-[380px] overflow-visible">

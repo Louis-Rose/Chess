@@ -19,10 +19,11 @@ export const addLumraBranding = async (dataUrl: string, bottomOffset = 20): Prom
       ctx.drawImage(img, 0, 0);
 
       // Add LUMRA branding in bottom-right corner
-      const padding = 20;
-      const logoSize = 36;
-      const fontSize = 20;
-      const brandingWidth = logoSize + 10 + 70; // logo + gap + text width
+      const padding = 30;
+      const logoSize = 48; // Larger logo
+      const fontSize = 28; // Larger text
+      const textWidth = 100;
+      const brandingWidth = logoSize + 14 + textWidth; // logo + gap + text width
       const x = canvas.width - brandingWidth - padding;
       const y = canvas.height - logoSize - bottomOffset;
 
@@ -55,11 +56,11 @@ export const addLumraBranding = async (dataUrl: string, bottomOffset = 20): Prom
       ctx.roundRect(x + 80 * scale, baseY - 72 * scale, barWidth, 72 * scale, barRadius);
       ctx.fill();
 
-      // Draw LUMRA text
-      ctx.fillStyle = '#1e293b';
+      // Draw LUMRA text (white for dark backgrounds)
+      ctx.fillStyle = '#f1f5f9';
       ctx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`;
       ctx.textBaseline = 'middle';
-      ctx.fillText('LUMRA', x + logoSize + 10, y + logoSize / 2);
+      ctx.fillText('LUMRA', x + logoSize + 14, y + logoSize / 2);
 
       resolve(canvas.toDataURL('image/png'));
     };
