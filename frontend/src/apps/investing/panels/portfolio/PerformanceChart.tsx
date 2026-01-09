@@ -422,7 +422,16 @@ export function PerformanceChart({
                       height={55}
                       ticks={(() => {
                         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-                        const targetTicks = isMobile ? 4 : 7;
+                        const maxTicks = isMobile ? 5 : 8;
+
+                        // Use selected range for tick calculation
+                        const startIdx = brushRange?.startIndex ?? 0;
+                        const endIdx = brushRange?.endIndex ?? chartData.length - 1;
+                        const rangeLength = endIdx - startIdx + 1;
+
+                        // More ticks when zoomed in (shorter range)
+                        const zoomFactor = chartData.length / rangeLength;
+                        const targetTicks = Math.min(maxTicks, Math.max(3, Math.round(maxTicks * Math.min(zoomFactor, 2))));
 
                         if (chartData.length <= targetTicks) {
                           return chartData.map(d => d.date);
@@ -626,37 +635,35 @@ export function PerformanceChart({
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-              {/* Custom brush date labels - right under the slider */}
-              {!isDownloading && (
-                <div className="flex justify-between px-[50px] -mt-6">
-                  <div className="text-center text-green-500 font-semibold text-sm">
-                    <div>{(() => {
-                      const startIdx = brushRange?.startIndex ?? 0;
-                      const startDate = new Date(chartData[startIdx]?.date);
-                      const month = startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
-                      return month.charAt(0).toUpperCase() + month.slice(1);
-                    })()}</div>
-                    <div>{(() => {
-                      const startIdx = brushRange?.startIndex ?? 0;
-                      const startDate = new Date(chartData[startIdx]?.date);
-                      return startDate.getFullYear();
-                    })()}</div>
+              {/* Custom brush date labels - follow slider handles */}
+              {!isDownloading && (() => {
+                const startIdx = brushRange?.startIndex ?? 0;
+                const endIdx = brushRange?.endIndex ?? chartData.length - 1;
+                const startPct = (startIdx / (chartData.length - 1)) * 100;
+                const endPct = (endIdx / (chartData.length - 1)) * 100;
+                const startDate = new Date(chartData[startIdx]?.date);
+                const endDate = new Date(chartData[endIdx]?.date);
+                const startMonth = startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
+                const endMonth = endDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
+                return (
+                  <div className="relative h-12 mx-[50px] -mt-12">
+                    <div
+                      className="absolute text-center text-green-500 font-semibold text-sm -translate-x-1/2"
+                      style={{ left: `${startPct}%` }}
+                    >
+                      <div>{startMonth.charAt(0).toUpperCase() + startMonth.slice(1)}</div>
+                      <div>{startDate.getFullYear()}</div>
+                    </div>
+                    <div
+                      className="absolute text-center text-green-500 font-semibold text-sm -translate-x-1/2"
+                      style={{ left: `${endPct}%` }}
+                    >
+                      <div>{endMonth.charAt(0).toUpperCase() + endMonth.slice(1)}</div>
+                      <div>{endDate.getFullYear()}</div>
+                    </div>
                   </div>
-                  <div className="text-center text-green-500 font-semibold text-sm">
-                    <div>{(() => {
-                      const endIdx = brushRange?.endIndex ?? chartData.length - 1;
-                      const endDate = new Date(chartData[endIdx]?.date);
-                      const month = endDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
-                      return month.charAt(0).toUpperCase() + month.slice(1);
-                    })()}</div>
-                    <div>{(() => {
-                      const endIdx = brushRange?.endIndex ?? chartData.length - 1;
-                      const endDate = new Date(chartData[endIdx]?.date);
-                      return endDate.getFullYear();
-                    })()}</div>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
               {/* Legend - below slider labels */}
               <div className="flex justify-center gap-6 text-sm flex-wrap mt-3">
                 <div className="flex items-center gap-1.5">
