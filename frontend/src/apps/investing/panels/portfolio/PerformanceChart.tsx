@@ -79,13 +79,13 @@ export function PerformanceChart({
   };
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 md:p-6">
+    <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 md:p-6">
       <div className="flex items-center justify-center gap-3 mb-4">
         <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">{t('performance.title')}</h3>
         <button
           onClick={downloadChart}
           disabled={isDownloading}
-          className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+          className="p-1.5 text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
           title={language === 'fr' ? 'Telecharger le graphique' : 'Download chart'}
         >
           {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
@@ -307,8 +307,8 @@ export function PerformanceChart({
                   <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 40 }}>
                     <defs>
                       <linearGradient id="outperformanceGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#16a34a" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="#16a34a" stopOpacity={0.1} />
+                        <stop offset="0%" stopColor="#4ade80" stopOpacity={0.5} />
+                        <stop offset="100%" stopColor="#4ade80" stopOpacity={0.15} />
                       </linearGradient>
                       <linearGradient id="underperformanceGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#dc2626" stopOpacity={0.3} />
@@ -464,7 +464,7 @@ export function PerformanceChart({
                             <span className="text-slate-600 dark:text-slate-300">{t('performance.invested')}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 bg-green-500/30 border border-green-500"></div>
+                            <div className="w-3 h-3 bg-green-400/50 border border-green-400"></div>
                             <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Surperformance' : 'Outperformance'}</span>
                           </div>
                           <div className="flex items-center gap-1.5">

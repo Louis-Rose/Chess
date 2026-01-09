@@ -69,13 +69,13 @@ export function PortfolioComposition({
   };
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6">
+    <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
       <div className="flex items-center justify-center gap-3 mb-6">
         <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('holdings.title')}</h3>
         <button
           onClick={downloadPositionsChart}
           disabled={isDownloading || isLoading}
-          className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+          className="p-1.5 text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
           title={language === 'fr' ? 'Telecharger le graphique' : 'Download chart'}
         >
           {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
@@ -87,7 +87,7 @@ export function PortfolioComposition({
           <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
         </div>
       ) : compositionData?.holdings && compositionData.holdings.length > 0 ? (
-        <div ref={positionsChartRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4 overflow-visible">
+        <div ref={positionsChartRef} className="bg-slate-100 dark:bg-slate-800 rounded-xl p-4 overflow-visible">
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 overflow-visible">
             {/* Pie Chart */}
             <div className="w-full md:w-1/2 h-[280px] md:h-[380px] overflow-visible">
