@@ -146,6 +146,26 @@ export function AdminPanel() {
   const [isStockSearchesExpanded, setIsStockSearchesExpanded] = useState(true);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(true);
 
+  // Time unit for charts
+  type TimeUnit = 'days' | 'weeks' | 'months';
+  const [timeSpentUnit, setTimeSpentUnit] = useState<TimeUnit>('days');
+  const [usersUnit, setUsersUnit] = useState<TimeUnit>('days');
+
+  // Helper to get week key (ISO week)
+  const getWeekKey = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const jan1 = new Date(date.getFullYear(), 0, 1);
+    const days = Math.floor((date.getTime() - jan1.getTime()) / 86400000);
+    const week = Math.ceil((days + jan1.getDay() + 1) / 7);
+    return `${date.getFullYear()}-W${String(week).padStart(2, '0')}`;
+  };
+
+  // Helper to get month key
+  const getMonthKey = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  };
+
   // Handle column header click
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -191,29 +211,25 @@ export function AdminPanel() {
     });
   }, [data?.users, sortColumn, sortDirection]);
 
-  // Compute cumulative users per day (including all days)
+  // Compute cumulative users data (supports days/weeks/months)
   const chartData = useMemo(() => {
     if (!data?.users || data.users.length === 0) return [];
 
-    // Exclude fake/test users from chart
-    const excludeFromChart = ['fake.test@example.com'];
-    const realUsers = data.users.filter(u => !excludeFromChart.includes(u.email));
-
     // Group users by date
     const usersByDate: Record<string, number> = {};
-    realUsers.forEach((u) => {
-      const date = u.created_at.split('T')[0].split(' ')[0]; // Handle both ISO and space-separated formats
+    data.users.forEach((u) => {
+      const date = u.created_at.split('T')[0].split(' ')[0];
       usersByDate[date] = (usersByDate[date] || 0) + 1;
     });
 
-    // Get date range (from one day before first registration to today)
+    // Get date range
     const sortedRegistrationDates = Object.keys(usersByDate).sort();
     const firstRegistration = new Date(sortedRegistrationDates[0]);
     const startDate = new Date(firstRegistration);
-    startDate.setDate(startDate.getDate() - 1); // Day before first registration (starts at 0)
-    const endDate = new Date(); // Today
+    startDate.setDate(startDate.getDate() - 1);
+    const endDate = new Date();
 
-    // Generate all dates between start and end
+    // Generate all dates
     const allDates: string[] = [];
     const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
@@ -223,16 +239,31 @@ export function AdminPanel() {
 
     // Compute cumulative for all dates
     let cumulative = 0;
-    return allDates.map((date) => {
+    const dailyData = allDates.map((date) => {
       const newUsers = usersByDate[date] || 0;
       cumulative += newUsers;
-      return {
-        date,
-        users: cumulative,
-        newUsers,
-      };
+      return { date, users: cumulative, newUsers };
     });
-  }, [data?.users]);
+
+    if (usersUnit === 'days') return dailyData;
+
+    // Aggregate by week or month (take average of cumulative users in period)
+    const grouped: Record<string, { sum: number; count: number }> = {};
+    dailyData.forEach(({ date, users }) => {
+      const key = usersUnit === 'weeks' ? getWeekKey(date) : getMonthKey(date);
+      if (!grouped[key]) grouped[key] = { sum: 0, count: 0 };
+      grouped[key].sum += users;
+      grouped[key].count += 1;
+    });
+
+    return Object.entries(grouped)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, { sum, count }]) => ({
+        date: key,
+        users: Math.round(sum / count), // Average
+        newUsers: 0,
+      }));
+  }, [data?.users, usersUnit, getWeekKey, getMonthKey]);
 
   // Calculate Y-axis max (first multiple of 50 strictly greater than current users)
   const yAxisMax = useMemo(() => {
@@ -246,14 +277,14 @@ export function AdminPanel() {
     return [0, step, step * 2, step * 3, step * 4, yAxisMax];
   }, [yAxisMax]);
 
-  // Compute time spent chart data (fill in missing days with 0)
+  // Compute time spent chart data (supports days/weeks/months with sum)
   const timeSpentChartData = useMemo(() => {
     if (!timeSpentData || timeSpentData.length === 0) return [];
 
     // Get date range
     const sortedDates = timeSpentData.map(d => d.activity_date).sort();
     const firstDate = new Date(sortedDates[0]);
-    const endDate = new Date(); // Today
+    const endDate = new Date();
 
     // Create a map for quick lookup
     const minutesByDate: Record<string, number> = {};
@@ -269,11 +300,27 @@ export function AdminPanel() {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    return allDates.map(date => ({
+    const dailyData = allDates.map(date => ({
       date,
       minutes: minutesByDate[date] || 0,
     }));
-  }, [timeSpentData]);
+
+    if (timeSpentUnit === 'days') return dailyData;
+
+    // Aggregate by week or month (sum minutes)
+    const grouped: Record<string, number> = {};
+    dailyData.forEach(({ date, minutes }) => {
+      const key = timeSpentUnit === 'weeks' ? getWeekKey(date) : getMonthKey(date);
+      grouped[key] = (grouped[key] || 0) + minutes;
+    });
+
+    return Object.entries(grouped)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, minutes]) => ({
+        date: key,
+        minutes,
+      }));
+  }, [timeSpentData, timeSpentUnit, getWeekKey, getMonthKey]);
 
   // Calculate Y-axis max for time spent chart
   const timeYAxisMax = useMemo(() => {
@@ -321,20 +368,39 @@ export function AdminPanel() {
         {/* 1. Time Spent Chart */}
         {!isLoading && !error && timeSpentChartData.length > 0 && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-            <button
-              onClick={(e) => {
-                setIsTimeSpentExpanded(!isTimeSpentExpanded);
-                setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
-              }}
-              className="flex items-center gap-3 w-full text-left"
-            >
-              <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isTimeSpentExpanded ? 'rotate-90' : ''}`} />
-              <Clock className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Temps passé' : 'Time Spent'}
-              </h3>
-            </button>
-            {isTimeSpentExpanded && <div className="h-[250px] mt-4">
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={(e) => {
+                  setIsTimeSpentExpanded(!isTimeSpentExpanded);
+                  setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
+                }}
+                className="flex items-center gap-3"
+              >
+                <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isTimeSpentExpanded ? 'rotate-90' : ''}`} />
+                <Clock className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                  {language === 'fr' ? 'Temps passé' : 'Time Spent'}
+                </h3>
+              </button>
+              {isTimeSpentExpanded && (
+                <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-600 rounded-lg p-1">
+                  {(['days', 'weeks', 'months'] as const).map((unit) => (
+                    <button
+                      key={unit}
+                      onClick={() => setTimeSpentUnit(unit)}
+                      className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                        timeSpentUnit === unit
+                          ? 'bg-green-600 text-white'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
+                      }`}
+                    >
+                      {unit === 'days' ? (language === 'fr' ? 'J' : 'D') : unit === 'weeks' ? (language === 'fr' ? 'S' : 'W') : 'M'}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {isTimeSpentExpanded && <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={timeSpentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -342,11 +408,13 @@ export function AdminPanel() {
                     dataKey="date"
                     tick={{ fontSize: 12, fill: '#e2e8f0' }}
                     tickFormatter={(date) => {
+                      if (timeSpentUnit === 'weeks') return date; // 2024-W01
+                      if (timeSpentUnit === 'months') {
+                        const [year, month] = date.split('-');
+                        return new Date(Number(year), Number(month) - 1).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
+                      }
                       const d = new Date(date);
-                      return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                        day: 'numeric',
-                        month: 'short',
-                      });
+                      return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
                     }}
                   />
                   <YAxis
@@ -405,6 +473,23 @@ export function AdminPanel() {
                 )}
               </h3>
             </button>
+            {isUsersExpanded && (
+              <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-600 rounded-lg p-1">
+                {(['days', 'weeks', 'months'] as const).map((unit) => (
+                  <button
+                    key={unit}
+                    onClick={() => setUsersUnit(unit)}
+                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                      usersUnit === unit
+                        ? 'bg-green-600 text-white'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
+                    }`}
+                  >
+                    {unit === 'days' ? (language === 'fr' ? 'J' : 'D') : unit === 'weeks' ? (language === 'fr' ? 'S' : 'W') : 'M'}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {isUsersExpanded && (
@@ -419,11 +504,13 @@ export function AdminPanel() {
                         dataKey="date"
                         tick={{ fontSize: 12, fill: '#e2e8f0' }}
                         tickFormatter={(date) => {
+                          if (usersUnit === 'weeks') return date; // 2024-W01
+                          if (usersUnit === 'months') {
+                            const [year, month] = date.split('-');
+                            return new Date(Number(year), Number(month) - 1).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
+                          }
                           const d = new Date(date);
-                          return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                            day: 'numeric',
-                            month: 'short',
-                          });
+                          return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
                         }}
                       />
                       <YAxis
