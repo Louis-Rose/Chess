@@ -388,7 +388,7 @@ export function PerformanceChart({
 
               <div className="h-[380px] md:h-[480px] relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 10, right: 50, left: 50, bottom: 80 }}>
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 50, left: 50, bottom: 70 }}>
                     <defs>
                       <linearGradient id="outperformanceGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#4ade80" stopOpacity={0.5} />
@@ -409,20 +409,20 @@ export function PerformanceChart({
                         const year = d.getFullYear().toString();
                         return (
                           <g transform={`translate(${x},${y})`}>
-                            <text x={0} y={0} dy={12} textAnchor="middle" fill={colors.tickFill} fontSize={13}>
+                            <text x={0} y={0} dy={14} textAnchor="middle" fill={colors.tickFill} fontSize={14} fontWeight="600">
                               {month.charAt(0).toUpperCase() + month.slice(1)}
                             </text>
-                            <text x={0} y={0} dy={26} textAnchor="middle" fill={colors.tickFill} fontSize={12}>
+                            <text x={0} y={0} dy={30} textAnchor="middle" fill={colors.tickFill} fontSize={13} fontWeight="600">
                               {year}
                             </text>
                           </g>
                         );
                       }}
                       stroke={colors.axisStroke}
-                      height={45}
+                      height={55}
                       ticks={(() => {
                         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-                        const targetTicks = isMobile ? 4 : 8;
+                        const targetTicks = isMobile ? 4 : 7;
 
                         if (chartData.length <= targetTicks) {
                           return chartData.map(d => d.date);
@@ -553,9 +553,22 @@ export function PerformanceChart({
                         );
                       }}
                     />
+                    {!isDownloading && (
+                      <Brush
+                        dataKey="date"
+                        height={40}
+                        stroke="#16a34a"
+                        fill={colors.brushFill}
+                        travellerWidth={12}
+                        startIndex={brushRange?.startIndex ?? 0}
+                        endIndex={brushRange?.endIndex ?? chartData.length - 1}
+                        tickFormatter={() => ''}
+                        onChange={handleBrushChange}
+                      />
+                    )}
                     <Legend
                       verticalAlign="bottom"
-                      wrapperStyle={{ paddingTop: '20px' }}
+                      wrapperStyle={{ paddingTop: '5px' }}
                       content={() => (
                         <div className="flex justify-center gap-6 text-sm flex-wrap">
                           <div className="flex items-center gap-1.5">
@@ -581,24 +594,6 @@ export function PerformanceChart({
                         </div>
                       )}
                     />
-                    {!isDownloading && (
-                      <Brush
-                        dataKey="date"
-                        height={40}
-                        stroke="#16a34a"
-                        fill={colors.brushFill}
-                        travellerWidth={12}
-                        startIndex={brushRange?.startIndex ?? 0}
-                        endIndex={brushRange?.endIndex ?? chartData.length - 1}
-                        tickFormatter={(date) => {
-                          const d = new Date(date);
-                          const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
-                          const year = d.getFullYear().toString().slice(-2);
-                          return `${month.charAt(0).toUpperCase() + month.slice(1)} '${year}`;
-                        }}
-                        onChange={handleBrushChange}
-                      />
-                    )}
                     <Area
                       type="monotone"
                       dataKey="area_base"
@@ -659,9 +654,40 @@ export function PerformanceChart({
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
+              {/* Custom brush date labels */}
+              {!isDownloading && (
+                <div className="flex justify-between px-[50px] -mt-1">
+                  <div className="text-center text-green-500 font-semibold text-sm">
+                    <div>{(() => {
+                      const startIdx = brushRange?.startIndex ?? 0;
+                      const startDate = new Date(chartData[startIdx]?.date);
+                      const month = startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
+                      return month.charAt(0).toUpperCase() + month.slice(1);
+                    })()}</div>
+                    <div>{(() => {
+                      const startIdx = brushRange?.startIndex ?? 0;
+                      const startDate = new Date(chartData[startIdx]?.date);
+                      return startDate.getFullYear();
+                    })()}</div>
+                  </div>
+                  <div className="text-center text-green-500 font-semibold text-sm">
+                    <div>{(() => {
+                      const endIdx = brushRange?.endIndex ?? chartData.length - 1;
+                      const endDate = new Date(chartData[endIdx]?.date);
+                      const month = endDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
+                      return month.charAt(0).toUpperCase() + month.slice(1);
+                    })()}</div>
+                    <div>{(() => {
+                      const endIdx = brushRange?.endIndex ?? chartData.length - 1;
+                      const endDate = new Date(chartData[endIdx]?.date);
+                      return endDate.getFullYear();
+                    })()}</div>
+                  </div>
+                </div>
+              )}
               {/* LUMRA branding - hidden during download since addLumraBranding adds it */}
               {!isDownloading && (
-                <div className="flex items-center justify-end gap-2 mt-3 mr-2">
+                <div className="flex items-center justify-end gap-2 mt-1 mr-2">
                   <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
                     <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
                       <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
