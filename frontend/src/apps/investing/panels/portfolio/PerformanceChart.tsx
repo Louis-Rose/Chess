@@ -286,23 +286,20 @@ export function PerformanceChart({
           return parts.slice(0, -1).join(', ') + (language === 'fr' ? ' et ' : ' and ') + parts[parts.length - 1];
         };
 
-        // Calculate weighted holding period
+        // Calculate weighted holding period - always uses full data range
         const calculateWeightedPeriod = () => {
-          const endDate = new Date(filteredSummary.end_date);
+          const endDate = new Date(allData[allData.length - 1].date);
           let weightedDays = 0;
           let totalCapital = 0;
 
-          const rangeData = brushRange
-            ? allData.slice(brushRange.startIndex, brushRange.endIndex + 1)
-            : allData;
-
-          for (let i = 0; i < rangeData.length; i++) {
-            const currentCostBasis = rangeData[i].cost_basis_eur;
-            const prevCostBasis = i > 0 ? rangeData[i - 1].cost_basis_eur : 0;
+          // Always use full data range - slider is only for visualization
+          for (let i = 0; i < allData.length; i++) {
+            const currentCostBasis = allData[i].cost_basis_eur;
+            const prevCostBasis = i > 0 ? allData[i - 1].cost_basis_eur : 0;
             const capitalAdded = currentCostBasis - prevCostBasis;
 
             if (capitalAdded > 0) {
-              const investDate = new Date(rangeData[i].date);
+              const investDate = new Date(allData[i].date);
               const daysHeld = (endDate.getTime() - investDate.getTime()) / (1000 * 60 * 60 * 24);
               weightedDays += capitalAdded * daysHeld;
               totalCapital += capitalAdded;
@@ -350,7 +347,7 @@ export function PerformanceChart({
                       <div>
                         <p className="text-slate-700 dark:text-white text-sm md:text-base font-bold mb-0.5">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
                         <span className="text-xs md:text-sm text-slate-600 dark:text-slate-300">
-                          {formatHoldingPeriod(filteredSummary.start_date, filteredSummary.end_date)}
+                          {formatHoldingPeriod(allData[0].date, allData[allData.length - 1].date)}
                         </span>
                       </div>
                       <div className="border-t border-slate-300 dark:border-slate-500 pt-2">
