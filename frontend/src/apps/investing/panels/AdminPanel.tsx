@@ -466,7 +466,7 @@ export function AdminPanel() {
                         year: 'numeric',
                       })
                     }
-                    formatter={(value) => [`${value} min`, language === 'fr' ? 'Temps total' : 'Total time']}
+                    formatter={(value) => [`${value} min`, '']}
                   />
                   <Bar
                     dataKey="minutes"
@@ -562,12 +562,7 @@ export function AdminPanel() {
                             year: 'numeric',
                           })
                         }
-                        formatter={(value, name) => {
-                          if (name === 'users') {
-                            return [value, language === 'fr' ? 'Total utilisateurs' : 'Total users'];
-                          }
-                          return [value, String(name)];
-                        }}
+                        formatter={(value) => [value, '']}
                       />
                       <Bar
                         dataKey="users"
