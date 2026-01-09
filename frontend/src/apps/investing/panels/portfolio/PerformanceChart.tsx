@@ -375,7 +375,7 @@ export function PerformanceChart({
                   </div>
                   {/* Benchmark */}
                   <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
-                    <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold">Benchmark ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})</p>
+                    <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold">Benchmark ({benchmark === 'NASDAQ' ? 'Nasdaq' : 'S&P 500'})</p>
                     <span className={`font-bold text-base md:text-xl ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
                       {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€ ({showAnnualized
                         ? `${filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}${filteredSummary.cagr_benchmark_eur}%`
@@ -388,7 +388,7 @@ export function PerformanceChart({
 
               <div className="h-[380px] md:h-[480px] relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 100 }}>
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 70 }}>
                     <defs>
                       <linearGradient id="outperformanceGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#4ade80" stopOpacity={0.5} />
@@ -414,7 +414,8 @@ export function PerformanceChart({
                       }}
                       tick={{ fontSize: 15, fill: colors.tickFill }}
                       stroke={colors.axisStroke}
-                      tickMargin={20}
+                      tickMargin={8}
+                      height={50}
                       ticks={(() => {
                         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
                         const targetTicks = isMobile ? 5 : 10;
@@ -581,7 +582,6 @@ export function PerformanceChart({
                         stroke="#16a34a"
                         fill={colors.brushFill}
                         travellerWidth={12}
-                        gap={25}
                         startIndex={brushRange?.startIndex ?? 0}
                         endIndex={brushRange?.endIndex ?? chartData.length - 1}
                         tickFormatter={(date) => {
