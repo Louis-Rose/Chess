@@ -543,6 +543,56 @@ def get_language_stats():
     })
 
 
+@app.route('/api/admin/settings-crosstab', methods=['GET'])
+@admin_required
+def get_settings_crosstab():
+    """Get cross-tabulation of theme x language, weighted by time spent."""
+    with get_db() as conn:
+        # Join theme_usage, language_usage, and user activity to get weighted crosstab
+        cursor = conn.execute('''
+            SELECT
+                t.resolved_theme,
+                l.language,
+                COUNT(*) as user_count,
+                COALESCE(SUM(u.total_minutes), 0) as total_minutes
+            FROM theme_usage t
+            INNER JOIN language_usage l ON t.user_id = l.user_id
+            LEFT JOIN (
+                SELECT user_id, SUM(duration_minutes) as total_minutes
+                FROM user_activity
+                GROUP BY user_id
+            ) u ON t.user_id = u.user_id
+            GROUP BY t.resolved_theme, l.language
+        ''')
+
+        results = cursor.fetchall()
+
+        # Build crosstab data
+        crosstab = {}
+        total_minutes = 0
+        total_users = 0
+
+        for row in results:
+            theme = row['resolved_theme']
+            lang = row['language']
+            minutes = row['total_minutes']
+            users = row['user_count']
+
+            key = f"{theme}_{lang}"
+            crosstab[key] = {
+                'users': users,
+                'minutes': minutes
+            }
+            total_minutes += minutes
+            total_users += users
+
+    return jsonify({
+        'crosstab': crosstab,
+        'total_minutes': total_minutes,
+        'total_users': total_users
+    })
+
+
 @app.route('/api/admin/users', methods=['GET'])
 @admin_required
 def list_users():
