@@ -466,6 +466,28 @@ def record_theme():
     return jsonify({'success': True})
 
 
+@app.route('/api/language', methods=['POST'])
+@login_required
+def record_language():
+    """Record user's language preference for analytics."""
+    data = request.get_json()
+    language = data.get('language')  # 'en' or 'fr'
+
+    if not language:
+        return jsonify({'error': 'language required'}), 400
+
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO language_usage (user_id, language, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                language = excluded.language,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (request.user_id, language))
+
+    return jsonify({'success': True})
+
+
 # ============= ADMIN ROUTES =============
 
 @app.route('/api/admin/theme-stats', methods=['GET'])
@@ -497,6 +519,27 @@ def get_theme_stats():
         'total': total,
         'by_resolved': by_resolved,
         'by_setting': by_setting
+    })
+
+
+@app.route('/api/admin/language-stats', methods=['GET'])
+@admin_required
+def get_language_stats():
+    """Get language usage statistics (admin only)."""
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT language, COUNT(*) as count
+            FROM language_usage
+            GROUP BY language
+        ''')
+        by_language = {row['language']: row['count'] for row in cursor.fetchall()}
+
+        cursor = conn.execute('SELECT COUNT(*) as total FROM language_usage')
+        total = cursor.fetchone()['total']
+
+    return jsonify({
+        'total': total,
+        'by_language': by_language
     })
 
 

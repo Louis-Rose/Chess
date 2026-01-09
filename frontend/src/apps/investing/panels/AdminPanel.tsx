@@ -4,7 +4,7 @@ import { useMemo, useState, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, TrendingUp, ChevronUp, ChevronDown, Calendar, X, ArrowRight, Clock, Search, RefreshCw, ChevronRight, Sun, Moon } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, ChevronUp, ChevronDown, Calendar, X, ArrowRight, Clock, Search, RefreshCw, ChevronRight, Sun, Moon, Settings, Globe } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -74,8 +74,18 @@ interface ThemeStats {
   by_setting: Record<string, number>;
 }
 
+interface LanguageStats {
+  total: number;
+  by_language: Record<string, number>;
+}
+
 const fetchThemeStats = async (): Promise<ThemeStats> => {
   const response = await axios.get('/api/admin/theme-stats');
+  return response.data;
+};
+
+const fetchLanguageStats = async (): Promise<LanguageStats> => {
+  const response = await axios.get('/api/admin/language-stats');
   return response.data;
 };
 
@@ -92,6 +102,7 @@ export function AdminPanel() {
     await queryClient.invalidateQueries({ queryKey: ['admin-time-spent'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-stock-views'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-theme-stats'] });
+    await queryClient.invalidateQueries({ queryKey: ['admin-language-stats'] });
     setIsRefreshing(false);
   };
 
@@ -119,6 +130,12 @@ export function AdminPanel() {
     enabled: !!user?.is_admin,
   });
 
+  const { data: languageStats } = useQuery({
+    queryKey: ['admin-language-stats'],
+    queryFn: fetchLanguageStats,
+    enabled: !!user?.is_admin,
+  });
+
   // Sort state (default: most time spent first)
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_minutes');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -130,10 +147,10 @@ export function AdminPanel() {
   const dateEndRef = useRef<HTMLInputElement>(null);
 
   // Collapsible panel states
-  const [isUserGrowthExpanded, setIsUserGrowthExpanded] = useState(true);
   const [isTimeSpentExpanded, setIsTimeSpentExpanded] = useState(true);
   const [isUsersExpanded, setIsUsersExpanded] = useState(true);
   const [isStockSearchesExpanded, setIsStockSearchesExpanded] = useState(true);
+  const [isSettingsExpanded, setIsSettingsExpanded] = useState(true);
 
   // Handle column header click
   const handleSort = (column: SortColumn) => {
@@ -320,117 +337,7 @@ export function AdminPanel() {
       </div>
 
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Theme Stats */}
-        {themeStats && themeStats.total > 0 && (
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 shadow-sm dark:shadow-none">
-            <div className="flex items-center justify-center gap-8">
-              <div className="flex items-center gap-2">
-                <Moon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                <span className="text-sm text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Mode sombre' : 'Dark mode'}</span>
-                <span className="font-bold text-slate-800 dark:text-slate-100">
-                  {themeStats.by_resolved.dark || 0}
-                </span>
-                <span className="text-sm text-slate-500">
-                  ({Math.round(((themeStats.by_resolved.dark || 0) / themeStats.total) * 100)}%)
-                </span>
-              </div>
-              <div className="w-px h-6 bg-slate-300 dark:bg-slate-500"></div>
-              <div className="flex items-center gap-2">
-                <Sun className="w-5 h-5 text-amber-500" />
-                <span className="text-sm text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Mode clair' : 'Light mode'}</span>
-                <span className="font-bold text-slate-800 dark:text-slate-100">
-                  {themeStats.by_resolved.light || 0}
-                </span>
-                <span className="text-sm text-slate-500">
-                  ({Math.round(((themeStats.by_resolved.light || 0) / themeStats.total) * 100)}%)
-                </span>
-              </div>
-              {themeStats.by_setting.system && themeStats.by_setting.system > 0 && (
-                <>
-                  <div className="w-px h-6 bg-slate-300 dark:bg-slate-500"></div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                      ({themeStats.by_setting.system} {language === 'fr' ? 'en auto' : 'on auto'})
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* User Growth Chart */}
-        {!isLoading && !error && chartData.length > 0 && (
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-            <button
-              onClick={(e) => {
-                setIsUserGrowthExpanded(!isUserGrowthExpanded);
-                setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
-              }}
-              className="flex items-center gap-3 w-full text-left"
-            >
-              <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isUserGrowthExpanded ? 'rotate-90' : ''}`} />
-              <TrendingUp className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Utilisateurs' : 'Users'}
-              </h3>
-            </button>
-            {isUserGrowthExpanded && <div className="h-[250px] mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12, fill: '#e2e8f0' }}
-                    tickFormatter={(date) => {
-                      const d = new Date(date);
-                      return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                        day: 'numeric',
-                        month: 'short',
-                      });
-                    }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#e2e8f0' }}
-                    allowDecimals={false}
-                    domain={[0, yAxisMax]}
-                    ticks={yAxisTicks}
-                  />
-                  <Tooltip
-                    cursor={false}
-                    contentStyle={{
-                      backgroundColor: '#1e293b',
-                      borderRadius: '8px',
-                      border: '1px solid #334155',
-                      padding: '8px 12px',
-                    }}
-                    labelStyle={{ color: '#f1f5f9', fontWeight: 'bold' }}
-                    labelFormatter={(date) =>
-                      new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })
-                    }
-                    formatter={(value, name) => {
-                      if (name === 'users') {
-                        return [value, language === 'fr' ? 'Total utilisateurs' : 'Total users'];
-                      }
-                      return [value, String(name)];
-                    }}
-                  />
-                  <Bar
-                    dataKey="users"
-                    fill="#f59e0b"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>}
-          </div>
-        )}
-
-        {/* Time Spent Chart */}
+        {/* 1. Time Spent Chart */}
         {!isLoading && !error && timeSpentChartData.length > 0 && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <button
@@ -496,7 +403,7 @@ export function AdminPanel() {
           </div>
         )}
 
-        {/* Users List */}
+        {/* 2. Users (Chart + Table combined) */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <button
@@ -575,17 +482,76 @@ export function AdminPanel() {
             </div>}
           </div>
 
-          {isUsersExpanded && (isLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
-            </div>
-          ) : error ? (
-            <div className="flex items-center gap-3 p-4 bg-red-50 rounded-lg text-red-700">
-              <AlertCircle className="w-5 h-5" />
-              <span>{language === 'fr' ? 'Erreur lors du chargement' : 'Error loading users'}</span>
-            </div>
-          ) : data?.users && data.users.length > 0 ? (
-            <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+          {isUsersExpanded && (
+            <>
+              {/* User Growth Chart */}
+              {chartData.length > 0 && (
+                <div className="h-[200px] mb-6">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 12, fill: '#e2e8f0' }}
+                        tickFormatter={(date) => {
+                          const d = new Date(date);
+                          return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                            day: 'numeric',
+                            month: 'short',
+                          });
+                        }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#e2e8f0' }}
+                        allowDecimals={false}
+                        domain={[0, yAxisMax]}
+                        ticks={yAxisTicks}
+                      />
+                      <Tooltip
+                        cursor={false}
+                        contentStyle={{
+                          backgroundColor: '#1e293b',
+                          borderRadius: '8px',
+                          border: '1px solid #334155',
+                          padding: '8px 12px',
+                        }}
+                        labelStyle={{ color: '#f1f5f9', fontWeight: 'bold' }}
+                        labelFormatter={(date) =>
+                          new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })
+                        }
+                        formatter={(value, name) => {
+                          if (name === 'users') {
+                            return [value, language === 'fr' ? 'Total utilisateurs' : 'Total users'];
+                          }
+                          return [value, String(name)];
+                        }}
+                      />
+                      <Bar
+                        dataKey="users"
+                        fill="#f59e0b"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Users Table */}
+              {isLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+                </div>
+              ) : error ? (
+                <div className="flex items-center gap-3 p-4 bg-red-50 rounded-lg text-red-700">
+                  <AlertCircle className="w-5 h-5" />
+                  <span>{language === 'fr' ? 'Erreur lors du chargement' : 'Error loading users'}</span>
+                </div>
+              ) : data?.users && data.users.length > 0 ? (
+                <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
               <table className="w-full text-xs sm:text-sm">
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
                   <tr className="text-left text-slate-600 dark:text-slate-300 border-b-2 border-slate-300 dark:border-slate-500">
@@ -716,15 +682,17 @@ export function AdminPanel() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          ) : (
-            <p className="text-slate-500 text-center py-8">
-              {language === 'fr' ? 'Aucun utilisateur' : 'No users found'}
-            </p>
-          ))}
+                </div>
+              ) : (
+                <p className="text-slate-500 text-center py-8">
+                  {language === 'fr' ? 'Aucun utilisateur' : 'No users found'}
+                </p>
+              )}
+            </>
+          )}
         </div>
 
-        {/* Stock Views Stats */}
+        {/* 3. Stock Searches */}
         {stockViewsData && stockViewsData.by_stock.length > 0 && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <button
@@ -787,6 +755,88 @@ export function AdminPanel() {
             )}
           </div>
         )}
+
+        {/* 4. Settings (Theme + Language) */}
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <button
+            onClick={(e) => {
+              setIsSettingsExpanded(!isSettingsExpanded);
+              setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
+            }}
+            className="flex items-center gap-3 w-full text-left"
+          >
+            <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isSettingsExpanded ? 'rotate-90' : ''}`} />
+            <Settings className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+              {language === 'fr' ? 'Paramètres' : 'Settings'}
+            </h3>
+          </button>
+          {isSettingsExpanded && (
+            <div className="mt-4 space-y-4">
+              {/* Theme Stats */}
+              {themeStats && themeStats.total > 0 && (
+                <div className="flex items-center gap-6 p-3 bg-slate-100 dark:bg-slate-600 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Moon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                    <span className="text-sm text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Sombre' : 'Dark'}</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-100">
+                      {themeStats.by_resolved.dark || 0}
+                    </span>
+                    <span className="text-sm text-slate-500">
+                      ({Math.round(((themeStats.by_resolved.dark || 0) / themeStats.total) * 100)}%)
+                    </span>
+                  </div>
+                  <div className="w-px h-5 bg-slate-300 dark:bg-slate-500"></div>
+                  <div className="flex items-center gap-2">
+                    <Sun className="w-5 h-5 text-amber-500" />
+                    <span className="text-sm text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Clair' : 'Light'}</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-100">
+                      {themeStats.by_resolved.light || 0}
+                    </span>
+                    <span className="text-sm text-slate-500">
+                      ({Math.round(((themeStats.by_resolved.light || 0) / themeStats.total) * 100)}%)
+                    </span>
+                  </div>
+                  {themeStats.by_setting.system && themeStats.by_setting.system > 0 && (
+                    <>
+                      <div className="w-px h-5 bg-slate-300 dark:bg-slate-500"></div>
+                      <span className="text-sm text-slate-500 dark:text-slate-400">
+                        ({themeStats.by_setting.system} auto)
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Language Stats */}
+              {languageStats && languageStats.total > 0 && (
+                <div className="flex items-center gap-6 p-3 bg-slate-100 dark:bg-slate-600 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-blue-500" />
+                    <span className="text-sm text-slate-600 dark:text-slate-300">English</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-100">
+                      {languageStats.by_language.en || 0}
+                    </span>
+                    <span className="text-sm text-slate-500">
+                      ({Math.round(((languageStats.by_language.en || 0) / languageStats.total) * 100)}%)
+                    </span>
+                  </div>
+                  <div className="w-px h-5 bg-slate-300 dark:bg-slate-500"></div>
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-blue-500" />
+                    <span className="text-sm text-slate-600 dark:text-slate-300">Français</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-100">
+                      {languageStats.by_language.fr || 0}
+                    </span>
+                    <span className="text-sm text-slate-500">
+                      ({Math.round(((languageStats.by_language.fr || 0) / languageStats.total) * 100)}%)
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
