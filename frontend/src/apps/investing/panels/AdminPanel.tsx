@@ -339,6 +339,33 @@ export function AdminPanel() {
     return Math.ceil(maxMinutes / 30) * 30 + 30; // Round up to nearest 30
   }, [timeSpentChartData]);
 
+  // Calculate geometric growth rates for Time Spent chart
+  const timeSpentGrowthRates = useMemo(() => {
+    if (timeSpentChartData.length < 2) return null;
+
+    const periods = [1, 2, 3, 5];
+    const rates: { period: number; rate: number | null }[] = [];
+
+    const currentValue = timeSpentChartData[timeSpentChartData.length - 1].minutes;
+
+    periods.forEach(n => {
+      if (timeSpentChartData.length > n) {
+        const pastValue = timeSpentChartData[timeSpentChartData.length - 1 - n].minutes;
+        if (pastValue > 0) {
+          // Geometric growth rate: (current/past)^(1/n) - 1
+          const rate = (Math.pow(currentValue / pastValue, 1 / n) - 1) * 100;
+          rates.push({ period: n, rate });
+        } else {
+          rates.push({ period: n, rate: null });
+        }
+      } else {
+        rates.push({ period: n, rate: null });
+      }
+    });
+
+    return rates;
+  }, [timeSpentChartData]);
+
   // Redirect non-admins
   if (!authLoading && (!user || !user.is_admin)) {
     return <Navigate to="/investing" replace />;
@@ -468,6 +495,26 @@ export function AdminPanel() {
                 </BarChart>
               </ResponsiveContainer>
             </div>}
+            {/* Growth Rates */}
+            {isTimeSpentExpanded && timeSpentGrowthRates && (
+              <div className="flex items-center justify-center gap-2 mt-4">
+                {timeSpentGrowthRates.map(({ period, rate }) => (
+                  <div key={period} className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-sm">
+                    <span className="text-slate-100 font-medium">
+                      {period}{timeSpentUnit === 'days' ? 'D' : timeSpentUnit === 'weeks' ? 'W' : 'M'}
+                    </span>
+                    <span className="mx-1 text-slate-400">·</span>
+                    {rate !== null ? (
+                      <span className={`font-bold ${rate >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {rate >= 0 ? '+' : ''}{rate.toFixed(1)}%
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
