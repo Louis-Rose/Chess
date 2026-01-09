@@ -327,16 +327,16 @@ export function PerformanceChart({
               {filteredSummary && (
                 <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
                   {/* Combined Holding Periods - stacked vertically */}
-                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center relative group flex flex-col justify-center">
+                  <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center relative group flex flex-col justify-center">
                     <div className="flex flex-col gap-2">
                       <div>
-                        <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-0.5">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
+                        <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold mb-0.5">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
                         <span className="text-sm md:text-base font-bold text-slate-800 dark:text-slate-100">
                           {formatHoldingPeriod(filteredSummary.start_date, filteredSummary.end_date)}
                         </span>
                       </div>
-                      <div className="border-t border-slate-200 dark:border-slate-500 pt-2">
-                        <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-0.5 flex items-center justify-center gap-1">
+                      <div className="border-t border-slate-300 dark:border-slate-500 pt-2">
+                        <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold mb-0.5 flex items-center justify-center gap-1">
                           {language === 'fr' ? 'Periode ponderee' : 'Weighted period'}
                           <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
                         </p>
@@ -353,8 +353,8 @@ export function PerformanceChart({
                     </div>
                   </div>
                   {/* Portfolio Gains */}
-                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col">
-                    <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-2">{showAnnualized ? 'CAGR' : (language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains')}</p>
+                  <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col">
+                    <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold mb-2">{showAnnualized ? 'CAGR' : (language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains')}</p>
                     <span className={`font-bold text-base md:text-xl flex-1 flex items-center justify-center ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€ ({showAnnualized
                         ? `${filteredSummary.cagr_eur >= 0 ? '+' : ''}${filteredSummary.cagr_eur}%`
@@ -363,8 +363,8 @@ export function PerformanceChart({
                     </span>
                   </div>
                   {/* Benchmark */}
-                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col">
-                    <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-2">Benchmark</p>
+                  <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col">
+                    <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold mb-2">Benchmark</p>
                     <span className={`font-bold text-base md:text-xl flex-1 flex items-center justify-center ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
                       {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€ ({showAnnualized
                         ? `${filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}${filteredSummary.cagr_benchmark_eur}%`
@@ -393,11 +393,13 @@ export function PerformanceChart({
                       dataKey="date"
                       tickFormatter={(date) => {
                         const d = new Date(date);
-                        const formatted = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: '2-digit' });
-                        return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+                        const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
+                        const year = d.getFullYear().toString();
+                        return `${month.charAt(0).toUpperCase() + month.slice(1)} ${year}`;
                       }}
                       tick={{ fontSize: 15, fill: colors.tickFill }}
                       stroke={colors.axisStroke}
+                      tickMargin={12}
                       ticks={(() => {
                         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
                         const targetTicks = isMobile ? 5 : 10;
