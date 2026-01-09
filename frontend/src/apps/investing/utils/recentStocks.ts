@@ -1,7 +1,7 @@
 // Manage recently searched stocks in localStorage
 
 const STORAGE_KEY = 'recent-stocks';
-const MAX_RECENT = 5;
+const MAX_RECENT = 10;
 
 export function getRecentStocks(): string[] {
   if (typeof window === 'undefined') return [];

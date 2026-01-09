@@ -12,6 +12,7 @@ import { LoginButton } from '../../../components/LoginButton';
 import { findStockByTicker } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
+import { addRecentStock } from '../utils/recentStocks';
 
 interface StockHistoryData {
   ticker: string;
@@ -135,6 +136,13 @@ export function StockDetailPanel() {
   const stock = findStockByTicker(upperTicker);
   const logoUrl = getCompanyLogoUrl(upperTicker);
   const irLink = getCompanyIRUrl(upperTicker);
+
+  // Track stock visit in recently searched
+  useEffect(() => {
+    if (upperTicker) {
+      addRecentStock(upperTicker);
+    }
+  }, [upperTicker]);
 
   // Fetch stock history - only when authenticated
   const { data: stockHistoryData, isLoading: stockHistoryLoading } = useQuery({
