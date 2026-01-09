@@ -431,7 +431,17 @@ def update_preferences():
 def activity_heartbeat():
     """Record a heartbeat for activity tracking (called every 60s by frontend)."""
     today = datetime.now().strftime('%Y-%m-%d')
+    data = request.get_json() or {}
+    page = data.get('page', 'other')
+
+    # Normalize page names to categories
+    if page.startswith('stock/'):
+        page = 'stock'  # Aggregate all company pages
+    elif page not in ('portfolio', 'watchlist', 'earnings', 'financials', 'admin'):
+        page = 'other'
+
     with get_db() as conn:
+        # Track daily activity
         conn.execute('''
             INSERT INTO user_activity (user_id, activity_date, minutes, last_ping)
             VALUES (?, ?, 1, CURRENT_TIMESTAMP)
@@ -439,6 +449,15 @@ def activity_heartbeat():
                 minutes = minutes + 1,
                 last_ping = CURRENT_TIMESTAMP
         ''', (request.user_id, today))
+
+        # Track page-level activity
+        conn.execute('''
+            INSERT INTO page_activity (user_id, page, minutes)
+            VALUES (?, ?, 1)
+            ON CONFLICT(user_id, page) DO UPDATE SET
+                minutes = minutes + 1
+        ''', (request.user_id, page))
+
     return jsonify({'success': True})
 
 
@@ -2227,6 +2246,32 @@ def get_time_spent_details(period):
         users = [dict(row) for row in cursor.fetchall()]
 
     return jsonify({'users': users, 'period': period})
+
+
+@app.route('/api/admin/page-breakdown', methods=['GET'])
+@admin_required
+def get_page_breakdown():
+    """Get aggregated time spent by page/section (admin only)."""
+    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
+    placeholders = ','.join(['?' for _ in hidden_emails])
+
+    with get_db() as conn:
+        cursor = conn.execute(f'''
+            SELECT p.page, SUM(p.minutes) as total_minutes
+            FROM page_activity p
+            JOIN users u ON p.user_id = u.id
+            WHERE u.email NOT IN ({placeholders})
+            GROUP BY p.page
+            ORDER BY total_minutes DESC
+        ''', tuple(hidden_emails))
+
+        breakdown = [dict(row) for row in cursor.fetchall()]
+        total = sum(item['total_minutes'] for item in breakdown)
+
+    return jsonify({
+        'breakdown': breakdown,
+        'total_minutes': total
+    })
 
 
 @app.route('/api/admin/clear-video-cache', methods=['POST'])

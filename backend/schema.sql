@@ -126,6 +126,16 @@ CREATE TABLE IF NOT EXISTS user_activity (
     UNIQUE(user_id, activity_date)
 );
 
+-- Page-level activity tracking (for section breakdown)
+CREATE TABLE IF NOT EXISTS page_activity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    page TEXT NOT NULL,  -- portfolio, watchlist, earnings, financials, stock, admin, other
+    minutes INTEGER DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(user_id, page)
+);
+
 -- Earnings alert preferences (email notifications)
 CREATE TABLE IF NOT EXISTS earnings_alert_preferences (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

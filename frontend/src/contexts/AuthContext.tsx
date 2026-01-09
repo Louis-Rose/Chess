@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 
 interface UserPreferences {
   chess_username: string | null;
@@ -31,6 +32,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const locationRef = useRef(location.pathname);
+
+  // Keep ref updated with latest location
+  useEffect(() => {
+    locationRef.current = location.pathname;
+  }, [location.pathname]);
 
   // Check auth status on mount
   useEffect(() => {
@@ -41,11 +49,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) return;
 
+    const getPageFromPath = (path: string): string => {
+      // Extract page from path like /investing/portfolio -> portfolio
+      const parts = path.split('/').filter(Boolean);
+      if (parts[0] === 'investing' && parts[1]) {
+        // Handle stock/:ticker -> stock/AAPL
+        if (parts[1] === 'stock' && parts[2]) {
+          return `stock/${parts[2]}`;
+        }
+        return parts[1];
+      }
+      return 'other';
+    };
+
     const sendHeartbeat = () => {
       if (document.visibilityState === 'visible') {
+        const page = getPageFromPath(locationRef.current);
         fetch('/api/activity/heartbeat', {
           method: 'POST',
-          credentials: 'include'
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page })
         }).catch(() => {}); // Silently fail
       }
     };

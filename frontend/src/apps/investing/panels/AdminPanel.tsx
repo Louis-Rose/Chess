@@ -86,6 +86,16 @@ const fetchSettingsCrosstab = async (): Promise<SettingsCrosstab> => {
   return response.data;
 };
 
+interface PageBreakdown {
+  breakdown: { page: string; total_minutes: number }[];
+  total_minutes: number;
+}
+
+const fetchPageBreakdown = async (): Promise<PageBreakdown> => {
+  const response = await axios.get('/api/admin/page-breakdown');
+  return response.data;
+};
+
 export function AdminPanel() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -99,6 +109,7 @@ export function AdminPanel() {
     await queryClient.invalidateQueries({ queryKey: ['admin-time-spent'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-stock-views'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-settings-crosstab'] });
+    await queryClient.invalidateQueries({ queryKey: ['admin-page-breakdown'] });
     setIsRefreshing(false);
   };
 
@@ -123,6 +134,12 @@ export function AdminPanel() {
   const { data: settingsCrosstab } = useQuery({
     queryKey: ['admin-settings-crosstab'],
     queryFn: fetchSettingsCrosstab,
+    enabled: !!user?.is_admin,
+  });
+
+  const { data: pageBreakdown } = useQuery({
+    queryKey: ['admin-page-breakdown'],
+    queryFn: fetchPageBreakdown,
     enabled: !!user?.is_admin,
   });
 
@@ -617,6 +634,45 @@ export function AdminPanel() {
                     {language === 'fr' ? 'Aucune activité' : 'No activity'}
                   </p>
                 )}
+              </div>
+            )}
+            {/* Page Breakdown */}
+            {isTimeSpentExpanded && pageBreakdown && pageBreakdown.total_minutes > 0 && (
+              <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-600 rounded-lg">
+                <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">
+                  {language === 'fr' ? 'Répartition par section' : 'Breakdown by Section'}
+                </h4>
+                <div className="space-y-2">
+                  {pageBreakdown.breakdown.map(({ page, total_minutes }) => {
+                    const percentage = Math.round((total_minutes / pageBreakdown.total_minutes) * 100);
+                    const pageLabels: Record<string, { en: string; fr: string }> = {
+                      portfolio: { en: 'Portfolio', fr: 'Portfolio' },
+                      watchlist: { en: 'Watchlist', fr: 'Watchlist' },
+                      earnings: { en: 'Earnings Calendar', fr: 'Calendrier des résultats' },
+                      financials: { en: 'Financials', fr: 'Données financières' },
+                      stock: { en: 'Company Pages', fr: 'Pages entreprises' },
+                      admin: { en: 'Admin', fr: 'Admin' },
+                      other: { en: 'Other', fr: 'Autre' },
+                    };
+                    const label = pageLabels[page]?.[language === 'fr' ? 'fr' : 'en'] || page;
+                    return (
+                      <div key={page} className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm text-slate-700 dark:text-slate-200">{label}</span>
+                            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{percentage}%</span>
+                          </div>
+                          <div className="h-2 bg-slate-200 dark:bg-slate-500 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-green-500 rounded-full transition-all"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
