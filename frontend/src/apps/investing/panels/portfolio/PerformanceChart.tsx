@@ -44,8 +44,9 @@ export function PerformanceChart({
   // Theme-aware colors
   const colors = {
     background: isDark ? '#334155' : '#f1f5f9', // slate-700 (lighter gray)
-    gridStroke: isDark ? '#475569' : '#cbd5e1',
+    gridStroke: isDark ? '#64748b' : '#cbd5e1', // Lighter grid
     tickFill: isDark ? '#e2e8f0' : '#64748b', // Lighter font in dark mode for visibility
+    axisStroke: isDark ? '#94a3b8' : '#94a3b8', // Lighter axis lines
     brushFill: isDark ? '#1e293b' : '#e2e8f0',
   };
 
@@ -244,130 +245,144 @@ export function PerformanceChart({
           };
         });
 
+        // Helper function to format holding period
+        const formatHoldingPeriod = (startDateStr: string, endDateStr: string) => {
+          const start = new Date(startDateStr);
+          const end = new Date(endDateStr);
+
+          let years = end.getFullYear() - start.getFullYear();
+          let months = end.getMonth() - start.getMonth();
+          let days = end.getDate() - start.getDate();
+
+          if (days < 0) {
+            months--;
+            const prevMonth = new Date(end.getFullYear(), end.getMonth(), 0);
+            days += prevMonth.getDate();
+          }
+
+          if (months < 0) {
+            years--;
+            months += 12;
+          }
+
+          const parts: string[] = [];
+          if (years > 0) parts.push(`${years} ${years !== 1 ? t('performance.years') : t('performance.year')}`);
+          if (months > 0) parts.push(`${months} ${language === 'fr' ? 'mois' : (months !== 1 ? 'months' : 'month')}`);
+          if (days > 0) parts.push(`${days} ${language === 'fr' ? (days !== 1 ? 'jours' : 'jour') : (days !== 1 ? 'days' : 'day')}`);
+
+          if (parts.length === 0) return language === 'fr' ? '0 jour' : '0 days';
+          if (parts.length === 1) return parts[0];
+          if (parts.length === 2) return parts.join(language === 'fr' ? ' et ' : ' and ');
+          return parts.slice(0, -1).join(', ') + (language === 'fr' ? ' et ' : ' and ') + parts[parts.length - 1];
+        };
+
+        // Calculate weighted holding period
+        const calculateWeightedPeriod = () => {
+          const endDate = new Date(filteredSummary.end_date);
+          let weightedDays = 0;
+          let totalCapital = 0;
+
+          const rangeData = brushRange
+            ? allData.slice(brushRange.startIndex, brushRange.endIndex + 1)
+            : allData;
+
+          for (let i = 0; i < rangeData.length; i++) {
+            const currentCostBasis = rangeData[i].cost_basis_eur;
+            const prevCostBasis = i > 0 ? rangeData[i - 1].cost_basis_eur : 0;
+            const capitalAdded = currentCostBasis - prevCostBasis;
+
+            if (capitalAdded > 0) {
+              const investDate = new Date(rangeData[i].date);
+              const daysHeld = (endDate.getTime() - investDate.getTime()) / (1000 * 60 * 60 * 24);
+              weightedDays += capitalAdded * daysHeld;
+              totalCapital += capitalAdded;
+            }
+          }
+
+          const avgDays = totalCapital > 0 ? weightedDays / totalCapital : 0;
+          const avgYears = Math.floor(avgDays / 365);
+          const avgMonths = Math.floor((avgDays % 365) / 30);
+          const avgDaysRemainder = Math.round(avgDays % 30);
+
+          const parts: string[] = [];
+          if (avgYears > 0) parts.push(`${avgYears} ${avgYears !== 1 ? t('performance.years') : t('performance.year')}`);
+          if (avgMonths > 0) parts.push(`${avgMonths} ${language === 'fr' ? 'mois' : (avgMonths !== 1 ? 'months' : 'month')}`);
+          if (avgDaysRemainder > 0 || parts.length === 0) parts.push(`${avgDaysRemainder} ${language === 'fr' ? (avgDaysRemainder !== 1 ? 'jours' : 'jour') : (avgDaysRemainder !== 1 ? 'days' : 'day')}`);
+
+          if (parts.length === 1) return parts[0];
+          if (parts.length === 2) return parts.join(language === 'fr' ? ' et ' : ' and ');
+          return parts.slice(0, -1).join(', ') + (language === 'fr' ? ' et ' : ' and ') + parts[parts.length - 1];
+        };
+
         return (
           <>
             <div ref={chartContainerRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
-              <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
-                {language === 'fr' ? 'Performance du Portefeuille' : 'Portfolio Performance'}
-              </h4>
+              {/* Title only visible during download */}
+              {isDownloading && (
+                <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
+                  {language === 'fr' ? 'Performance du Portefeuille' : 'Portfolio Performance'}
+                </h4>
+              )}
 
               {filteredSummary && (
-                <div className="grid grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
-                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center">
-                    <p className="text-slate-500 dark:text-slate-300 text-xs md:text-sm mb-1">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
-                    <span className="text-sm md:text-lg font-bold text-slate-800 dark:text-slate-100">
-                      {(() => {
-                        const start = new Date(filteredSummary.start_date);
-                        const end = new Date(filteredSummary.end_date);
-
-                        let years = end.getFullYear() - start.getFullYear();
-                        let months = end.getMonth() - start.getMonth();
-                        let days = end.getDate() - start.getDate();
-
-                        if (days < 0) {
-                          months--;
-                          const prevMonth = new Date(end.getFullYear(), end.getMonth(), 0);
-                          days += prevMonth.getDate();
-                        }
-
-                        if (months < 0) {
-                          years--;
-                          months += 12;
-                        }
-
-                        const parts: string[] = [];
-                        if (years > 0) parts.push(`${years} ${years !== 1 ? t('performance.years') : t('performance.year')}`);
-                        if (months > 0) parts.push(`${months} ${language === 'fr' ? 'mois' : (months !== 1 ? 'months' : 'month')}`);
-                        if (days > 0) parts.push(`${days} ${language === 'fr' ? (days !== 1 ? 'jours' : 'jour') : (days !== 1 ? 'days' : 'day')}`);
-
-                        // Format with commas and "and"
-                        if (parts.length === 0) return language === 'fr' ? '0 jour' : '0 days';
-                        if (parts.length === 1) return parts[0];
-                        if (parts.length === 2) return parts.join(language === 'fr' ? ' et ' : ' and ');
-                        return parts.slice(0, -1).join(', ') + (language === 'fr' ? ' et ' : ' and ') + parts[parts.length - 1];
-                      })()}
-                    </span>
-                  </div>
+                <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
+                  {/* Combined Holding Periods */}
                   <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center relative group">
-                    <p className="text-slate-500 dark:text-slate-300 text-xs md:text-sm mb-1 flex items-center justify-center gap-1">
-                      {language === 'fr' ? 'Periode ponderee' : 'Weighted period'}
-                      <Info className="w-3 h-3 text-slate-400 cursor-help" />
-                    </p>
+                    <div className="flex flex-col gap-2">
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-0.5">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
+                        <span className="text-sm md:text-base font-bold text-slate-800 dark:text-slate-100">
+                          {formatHoldingPeriod(filteredSummary.start_date, filteredSummary.end_date)}
+                        </span>
+                      </div>
+                      <div className="border-t border-slate-200 dark:border-slate-500 pt-2">
+                        <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-0.5 flex items-center justify-center gap-1">
+                          {language === 'fr' ? 'Periode ponderee' : 'Weighted period'}
+                          <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                        </p>
+                        <span className="text-sm md:text-base font-bold text-slate-800 dark:text-slate-100">
+                          {calculateWeightedPeriod()}
+                        </span>
+                      </div>
+                    </div>
                     {/* Tooltip */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left">
                       {language === 'fr'
                         ? 'Periode moyenne ponderee par le capital investi. Tient compte du fait que le capital a ete investi progressivement.'
                         : 'Average holding period weighted by invested capital. Accounts for the fact that capital was invested progressively.'}
                     </div>
-                    <span className="text-sm md:text-lg font-bold text-slate-800 dark:text-slate-100">
-                      {(() => {
-                        // Calculate weighted holding period based on capital additions
-                        const endDate = new Date(filteredSummary.end_date);
-                        let weightedDays = 0;
-                        let totalCapital = 0;
-
-                        // Use the selected range data for calculation
-                        const rangeData = brushRange
-                          ? allData.slice(brushRange.startIndex, brushRange.endIndex + 1)
-                          : allData;
-
-                        for (let i = 0; i < rangeData.length; i++) {
-                          const currentCostBasis = rangeData[i].cost_basis_eur;
-                          const prevCostBasis = i > 0 ? rangeData[i - 1].cost_basis_eur : 0;
-                          const capitalAdded = currentCostBasis - prevCostBasis;
-
-                          if (capitalAdded > 0) {
-                            const investDate = new Date(rangeData[i].date);
-                            const daysHeld = (endDate.getTime() - investDate.getTime()) / (1000 * 60 * 60 * 24);
-                            weightedDays += capitalAdded * daysHeld;
-                            totalCapital += capitalAdded;
-                          }
-                        }
-
-                        const avgDays = totalCapital > 0 ? weightedDays / totalCapital : 0;
-                        const avgYears = Math.floor(avgDays / 365);
-                        const avgMonths = Math.floor((avgDays % 365) / 30);
-                        const avgDaysRemainder = Math.round(avgDays % 30);
-
-                        const parts: string[] = [];
-                        if (avgYears > 0) parts.push(`${avgYears} ${avgYears !== 1 ? t('performance.years') : t('performance.year')}`);
-                        if (avgMonths > 0) parts.push(`${avgMonths} ${language === 'fr' ? 'mois' : (avgMonths !== 1 ? 'months' : 'month')}`);
-                        if (avgDaysRemainder > 0 || parts.length === 0) parts.push(`${avgDaysRemainder} ${language === 'fr' ? (avgDaysRemainder !== 1 ? 'jours' : 'jour') : (avgDaysRemainder !== 1 ? 'days' : 'day')}`);
-
-                        // Format with commas and "and"
-                        if (parts.length === 1) return parts[0];
-                        if (parts.length === 2) return parts.join(language === 'fr' ? ' et ' : ' and ');
-                        return parts.slice(0, -1).join(', ') + (language === 'fr' ? ' et ' : ' and ') + parts[parts.length - 1];
-                      })()}
-                    </span>
                   </div>
+                  {/* Portfolio Gains */}
                   <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center">
-                    <p className="text-slate-500 dark:text-slate-300 text-xs md:text-sm mb-1">{showAnnualized ? 'CAGR' : t('performance.totalReturn')}</p>
-                    <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {showAnnualized ? (
-                        <>
-                          {filteredSummary.cagr_eur >= 0 ? '+' : ''}{filteredSummary.cagr_eur}%
-                        </>
-                      ) : (
-                        <>
-                          {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€ ({filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}{filteredSummary.portfolio_return_eur}%)
-                        </>
-                      )}
-                    </span>
+                    <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-1">{showAnnualized ? 'CAGR' : (language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains')}</p>
+                    <div className={`font-bold ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      <span className="text-lg md:text-2xl">
+                        {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€
+                      </span>
+                      <br />
+                      <span className="text-base md:text-xl">
+                        ({showAnnualized
+                          ? `${filteredSummary.cagr_eur >= 0 ? '+' : ''}${filteredSummary.cagr_eur}%`
+                          : `${filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}${filteredSummary.portfolio_return_eur}%`
+                        })
+                      </span>
+                    </div>
                   </div>
+                  {/* Benchmark */}
                   <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center">
-                    <p className="text-slate-500 dark:text-slate-300 text-xs md:text-sm mb-1">Benchmark</p>
-                    <span className={`text-base md:text-2xl font-bold ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                      {showAnnualized ? (
-                        <>
-                          {filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}{filteredSummary.cagr_benchmark_eur}%
-                        </>
-                      ) : (
-                        <>
-                          {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€ ({filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}{filteredSummary.benchmark_return_eur}%)
-                        </>
-                      )}
-                    </span>
+                    <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-1">Benchmark</p>
+                    <div className={`font-bold ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
+                      <span className="text-lg md:text-2xl">
+                        {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€
+                      </span>
+                      <br />
+                      <span className="text-base md:text-xl">
+                        ({showAnnualized
+                          ? `${filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}${filteredSummary.cagr_benchmark_eur}%`
+                          : `${filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}${filteredSummary.benchmark_return_eur}%`
+                        })
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -394,6 +409,7 @@ export function PerformanceChart({
                         return formatted.charAt(0).toUpperCase() + formatted.slice(1);
                       }}
                       tick={{ fontSize: 14, fill: colors.tickFill }}
+                      stroke={colors.axisStroke}
                       ticks={(() => {
                         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
                         const targetTicks = isMobile ? 5 : 10;
@@ -419,6 +435,7 @@ export function PerformanceChart({
                     />
                     <YAxis
                       tick={{ fontSize: 14, fill: colors.tickFill }}
+                      stroke={colors.axisStroke}
                       tickFormatter={(val) => {
                         return `${formatEur(val / 1000)}k€`;
                       }}
