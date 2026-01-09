@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Loader2, Download } from 'lucide-react';
 import { toPng } from 'html-to-image';
@@ -36,6 +37,7 @@ export function PortfolioComposition({
   privateMode,
   currency,
 }: PortfolioCompositionProps) {
+  const navigate = useNavigate();
   const { language, t } = useLanguage();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -169,7 +171,11 @@ export function PortfolioComposition({
                         const nativeCurrencySymbol = getCurrencySymbol(h.native_currency || 'USD');
                         const priceToShow = h.current_price_native ?? h.current_price;
                         return (
-                          <tr key={h.ticker} className="border-b border-slate-200 dark:border-slate-600">
+                          <tr
+                            key={h.ticker}
+                            onClick={() => navigate(`/investing/stock/${h.ticker}`)}
+                            className="border-b border-slate-200 dark:border-slate-600 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                          >
                             <td className="py-2 font-bold" style={{ color: h.color }}>{h.ticker}</td>
                             <td className="py-2 text-right text-slate-600 dark:text-slate-300">{displayQuantity}</td>
                             <td className="py-2 text-right text-slate-600 dark:text-slate-300">
