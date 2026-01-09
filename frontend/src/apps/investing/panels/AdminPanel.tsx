@@ -68,27 +68,6 @@ const fetchStockViews = async (): Promise<StockViewStats> => {
   return response.data;
 };
 
-interface ThemeStats {
-  total: number;
-  by_resolved: Record<string, number>;
-  by_setting: Record<string, number>;
-}
-
-interface LanguageStats {
-  total: number;
-  by_language: Record<string, number>;
-}
-
-const fetchThemeStats = async (): Promise<ThemeStats> => {
-  const response = await axios.get('/api/admin/theme-stats');
-  return response.data;
-};
-
-const fetchLanguageStats = async (): Promise<LanguageStats> => {
-  const response = await axios.get('/api/admin/language-stats');
-  return response.data;
-};
-
 interface SettingsCrosstab {
   crosstab: Record<string, { users: number; minutes: number }>;
   total_minutes: number;
@@ -112,8 +91,6 @@ export function AdminPanel() {
     await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-time-spent'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-stock-views'] });
-    await queryClient.invalidateQueries({ queryKey: ['admin-theme-stats'] });
-    await queryClient.invalidateQueries({ queryKey: ['admin-language-stats'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-settings-crosstab'] });
     setIsRefreshing(false);
   };
@@ -133,18 +110,6 @@ export function AdminPanel() {
   const { data: stockViewsData } = useQuery({
     queryKey: ['admin-stock-views'],
     queryFn: fetchStockViews,
-    enabled: !!user?.is_admin,
-  });
-
-  const { data: themeStats } = useQuery({
-    queryKey: ['admin-theme-stats'],
-    queryFn: fetchThemeStats,
-    enabled: !!user?.is_admin,
-  });
-
-  const { data: languageStats } = useQuery({
-    queryKey: ['admin-language-stats'],
-    queryFn: fetchLanguageStats,
     enabled: !!user?.is_admin,
   });
 
