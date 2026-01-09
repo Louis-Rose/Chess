@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useLocation } from 'react-router-dom';
 
 interface UserPreferences {
   chess_username: string | null;
@@ -32,13 +31,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const queryClient = useQueryClient();
-  const location = useLocation();
-  const locationRef = useRef(location.pathname);
-
-  // Keep ref updated with latest location
-  useEffect(() => {
-    locationRef.current = location.pathname;
-  }, [location.pathname]);
 
   // Check auth status on mount
   useEffect(() => {
@@ -64,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const sendHeartbeat = () => {
       if (document.visibilityState === 'visible') {
-        const page = getPageFromPath(locationRef.current);
+        const page = getPageFromPath(window.location.pathname);
         fetch('/api/activity/heartbeat', {
           method: 'POST',
           credentials: 'include',
