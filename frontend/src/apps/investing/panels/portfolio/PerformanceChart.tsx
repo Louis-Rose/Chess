@@ -355,7 +355,7 @@ export function PerformanceChart({
                   {/* Portfolio Gains */}
                   <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
                     <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-1">{showAnnualized ? 'CAGR' : (language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains')}</p>
-                    <span className={`font-bold text-lg md:text-2xl ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    <span className={`font-bold text-base md:text-xl ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€ ({showAnnualized
                         ? `${filteredSummary.cagr_eur >= 0 ? '+' : ''}${filteredSummary.cagr_eur}%`
                         : `${filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}${filteredSummary.portfolio_return_eur}%`
@@ -365,7 +365,7 @@ export function PerformanceChart({
                   {/* Benchmark */}
                   <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
                     <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-1">Benchmark</p>
-                    <span className={`font-bold text-lg md:text-2xl ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
+                    <span className={`font-bold text-base md:text-xl ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
                       {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€ ({showAnnualized
                         ? `${filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}${filteredSummary.cagr_benchmark_eur}%`
                         : `${filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}${filteredSummary.benchmark_return_eur}%`
@@ -629,6 +629,17 @@ export function PerformanceChart({
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
+              </div>
+              {/* LUMRA branding */}
+              <div className="flex items-center justify-end gap-2 mt-3 mr-2">
+                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
+                  <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
+                    <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
+                    <rect x="56" y="48" width="16" height="56" rx="2" fill="white" />
+                    <rect x="84" y="32" width="16" height="72" rx="2" fill="white" />
+                  </svg>
+                </div>
+                <span className="text-lg font-bold text-slate-300">LUMRA</span>
               </div>
             </div>
           </>
