@@ -419,14 +419,7 @@ export function PortfolioPanel() {
                 key="holdings"
                 className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none"
               >
-                <div className="flex items-center gap-1 p-4">
-                  <button
-                    onClick={swapPanels}
-                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
-                    title={language === 'fr' ? 'Inverser l\'ordre des panneaux' : 'Swap panel order'}
-                  >
-                    <ArrowUpDown className="w-5 h-5 text-slate-400" />
-                  </button>
+                <div className="flex items-center p-4">
                   <button
                     onClick={() => setIsHoldingsExpanded(!isHoldingsExpanded)}
                     className="flex items-center gap-3 text-left flex-1"
@@ -435,6 +428,13 @@ export function PortfolioPanel() {
                     <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
                       {language === 'fr' ? 'Positions actuelles' : 'Current Holdings'}
                     </h3>
+                  </button>
+                  <button
+                    onClick={swapPanels}
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                    title={language === 'fr' ? 'Inverser l\'ordre des panneaux' : 'Swap panel order'}
+                  >
+                    <ArrowUpDown className="w-5 h-5 text-slate-400" />
                   </button>
                 </div>
                 {isHoldingsExpanded && (
@@ -456,14 +456,7 @@ export function PortfolioPanel() {
                 key="performance"
                 className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none"
               >
-                <div className="flex items-center gap-1 p-4">
-                  <button
-                    onClick={swapPanels}
-                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
-                    title={language === 'fr' ? 'Inverser l\'ordre des panneaux' : 'Swap panel order'}
-                  >
-                    <ArrowUpDown className="w-5 h-5 text-slate-400" />
-                  </button>
+                <div className="flex items-center p-4">
                   <button
                     onClick={() => setIsPerformanceExpanded(!isPerformanceExpanded)}
                     className="flex items-center gap-3 text-left flex-1"
@@ -472,6 +465,13 @@ export function PortfolioPanel() {
                     <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
                       {language === 'fr' ? 'Performance du portefeuille' : 'Portfolio Performance'}
                     </h3>
+                  </button>
+                  <button
+                    onClick={swapPanels}
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                    title={language === 'fr' ? 'Inverser l\'ordre des panneaux' : 'Swap panel order'}
+                  >
+                    <ArrowUpDown className="w-5 h-5 text-slate-400" />
                   </button>
                 </div>
                 {isPerformanceExpanded && (
