@@ -69,7 +69,7 @@ export const addLumraBranding = async (dataUrl: string, bottomOffset = 20): Prom
 };
 
 // Private mode scale factor calculation
-export const PRIVATE_COST_BASIS = 10000;
+export const PRIVATE_COST_BASIS = 100;
 
 export const getScaleFactor = (actualCostBasis: number, privateMode: boolean): number => {
   return privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;

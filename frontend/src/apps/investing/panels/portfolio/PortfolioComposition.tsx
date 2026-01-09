@@ -192,17 +192,19 @@ export function PortfolioComposition({
               })()}
             </div>
           </div>
-          {/* LUMRA branding */}
-          <div className="flex items-center justify-end gap-2 mt-3 mr-2">
-            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
-              <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
-                <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
-                <rect x="56" y="48" width="16" height="56" rx="2" fill="white" />
-                <rect x="84" y="32" width="16" height="72" rx="2" fill="white" />
-              </svg>
+          {/* LUMRA branding - hidden during download since addLumraBranding adds it */}
+          {!isDownloading && (
+            <div className="flex items-center justify-end gap-2 mt-3 mr-2">
+              <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
+                <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
+                  <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
+                  <rect x="56" y="48" width="16" height="56" rx="2" fill="white" />
+                  <rect x="84" y="32" width="16" height="72" rx="2" fill="white" />
+                </svg>
+              </div>
+              <span className="text-lg font-bold text-slate-300">LUMRA</span>
             </div>
-            <span className="text-lg font-bold text-slate-300">LUMRA</span>
-          </div>
+          )}
         </div>
       ) : (
         <p className="text-slate-500 text-center py-8">No holdings data available.</p>

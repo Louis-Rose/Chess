@@ -9,7 +9,7 @@ import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import type { PerformanceData } from './types';
-import { formatEur, addLumraBranding, getScaleFactor } from './utils';
+import { formatEur, addLumraBranding, getScaleFactor, PRIVATE_COST_BASIS } from './utils';
 
 interface PerformanceChartProps {
   performanceData: PerformanceData | undefined;
@@ -93,17 +93,20 @@ export function PerformanceChart({
 
   return (
     <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 md:p-6">
-      <div className="flex items-center justify-center gap-3 mb-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex-1"></div>
         <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">{t('performance.title')}</h3>
-        <button
-          onClick={downloadChart}
-          disabled={isDownloading}
-          className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors text-sm"
-          title={language === 'fr' ? 'Telecharger le graphique' : 'Download chart'}
-        >
-          {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-          <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
-        </button>
+        <div className="flex-1 flex justify-end">
+          <button
+            onClick={downloadChart}
+            disabled={isDownloading}
+            className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors text-sm"
+            title={language === 'fr' ? 'Telecharger le graphique' : 'Download chart'}
+          >
+            {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
+          </button>
+        </div>
       </div>
       <div className="flex flex-wrap items-end justify-center gap-3 md:gap-4 mb-4 md:mb-6">
         {/* Toggle: Total vs Annualized */}
@@ -323,6 +326,14 @@ export function PerformanceChart({
                   {language === 'fr' ? 'Performance du Portefeuille' : 'Portfolio Performance'}
                 </h4>
               )}
+              {/* Private mode indicator */}
+              {privateMode && (
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-600 px-2 py-1 rounded">
+                    {language === 'fr' ? `Mode privé (base: ${PRIVATE_COST_BASIS}€)` : `Private mode (base: ${PRIVATE_COST_BASIS}€)`}
+                  </span>
+                </div>
+              )}
 
               {filteredSummary && (
                 <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
@@ -353,9 +364,9 @@ export function PerformanceChart({
                     </div>
                   </div>
                   {/* Portfolio Gains */}
-                  <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col">
-                    <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold mb-2">{showAnnualized ? 'CAGR' : (language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains')}</p>
-                    <span className={`font-bold text-base md:text-xl flex-1 flex items-center justify-center ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
+                    <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold">{showAnnualized ? 'CAGR' : (language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains')}</p>
+                    <span className={`font-bold text-base md:text-xl ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€ ({showAnnualized
                         ? `${filteredSummary.cagr_eur >= 0 ? '+' : ''}${filteredSummary.cagr_eur}%`
                         : `${filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}${filteredSummary.portfolio_return_eur}%`
@@ -363,9 +374,9 @@ export function PerformanceChart({
                     </span>
                   </div>
                   {/* Benchmark */}
-                  <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col">
-                    <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold mb-2">Benchmark</p>
-                    <span className={`font-bold text-base md:text-xl flex-1 flex items-center justify-center ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
+                  <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
+                    <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold">Benchmark</p>
+                    <span className={`font-bold text-base md:text-xl ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
                       {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€ ({showAnnualized
                         ? `${filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}${filteredSummary.cagr_benchmark_eur}%`
                         : `${filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}${filteredSummary.benchmark_return_eur}%`
@@ -377,7 +388,7 @@ export function PerformanceChart({
 
               <div className="h-[380px] md:h-[480px] relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 40 }}>
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 60 }}>
                     <defs>
                       <linearGradient id="outperformanceGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#4ade80" stopOpacity={0.5} />
@@ -393,13 +404,17 @@ export function PerformanceChart({
                       dataKey="date"
                       tickFormatter={(date) => {
                         const d = new Date(date);
-                        const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
+                        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+                        const numTicks = isMobile ? 5 : 10;
+                        // Use abbreviated month format when there are many data points
+                        const useShortMonth = chartData.length > numTicks * 2;
+                        const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: useShortMonth ? 'short' : 'long' });
                         const year = d.getFullYear().toString();
                         return `${month.charAt(0).toUpperCase() + month.slice(1)} ${year}`;
                       }}
                       tick={{ fontSize: 15, fill: colors.tickFill }}
                       stroke={colors.axisStroke}
-                      tickMargin={12}
+                      tickMargin={20}
                       ticks={(() => {
                         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
                         const targetTicks = isMobile ? 5 : 10;
@@ -427,21 +442,25 @@ export function PerformanceChart({
                       tick={{ fontSize: 15, fill: colors.tickFill }}
                       stroke={colors.axisStroke}
                       tickFormatter={(val) => {
+                        // For private mode with small values, don't use k€ format
+                        if (privateMode) {
+                          return `${formatEur(val)}€`;
+                        }
                         return `${formatEur(val / 1000)}k€`;
                       }}
                       domain={[
                         (dataMin: number) => {
-                          const increment = privateMode ? 5000 : 10000;
+                          const increment = privateMode ? 50 : 10000;
                           return Math.floor(dataMin / increment) * increment;
                         },
                         (dataMax: number) => {
-                          const increment = privateMode ? 5000 : 10000;
+                          const increment = privateMode ? 50 : 10000;
                           return Math.ceil(dataMax / increment) * increment;
                         }
                       ]}
                       allowDecimals={false}
                       ticks={(() => {
-                        const increment = privateMode ? 5000 : 10000;
+                        const increment = privateMode ? 50 : 10000;
                         const values = chartData.map(d => Math.max(d.portfolio_value_eur, d.benchmark_value_eur, d.cost_basis_eur));
                         const minVal = Math.floor(Math.min(...values) / increment) * increment;
                         const maxVal = Math.ceil(Math.max(...values) / increment) * increment;
@@ -632,17 +651,19 @@ export function PerformanceChart({
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-              {/* LUMRA branding */}
-              <div className="flex items-center justify-end gap-2 mt-3 mr-2">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
-                  <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
-                    <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
-                    <rect x="56" y="48" width="16" height="56" rx="2" fill="white" />
-                    <rect x="84" y="32" width="16" height="72" rx="2" fill="white" />
-                  </svg>
+              {/* LUMRA branding - hidden during download since addLumraBranding adds it */}
+              {!isDownloading && (
+                <div className="flex items-center justify-end gap-2 mt-3 mr-2">
+                  <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
+                    <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
+                      <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
+                      <rect x="56" y="48" width="16" height="56" rx="2" fill="white" />
+                      <rect x="84" y="32" width="16" height="72" rx="2" fill="white" />
+                    </svg>
+                  </div>
+                  <span className="text-lg font-bold text-slate-300">LUMRA</span>
                 </div>
-                <span className="text-lg font-bold text-slate-300">LUMRA</span>
-              </div>
+              )}
             </div>
           </>
         );
