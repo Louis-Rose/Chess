@@ -36,7 +36,6 @@ export function PerformanceChart({
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const brushDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [brushRange, setBrushRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -51,13 +50,9 @@ export function PerformanceChart({
   };
 
   const handleBrushChange = useCallback((range: { startIndex?: number; endIndex?: number }) => {
-    if (brushDebounceRef.current) {
-      clearTimeout(brushDebounceRef.current);
-    }
     if (typeof range.startIndex === 'number' && typeof range.endIndex === 'number') {
-      brushDebounceRef.current = setTimeout(() => {
-        setBrushRange({ startIndex: range.startIndex!, endIndex: range.endIndex! });
-      }, 1000);
+      // Update immediately for responsive ticks, debounce only expensive summary calculations
+      setBrushRange({ startIndex: range.startIndex, endIndex: range.endIndex });
     }
   }, []);
 
@@ -424,27 +419,26 @@ export function PerformanceChart({
                         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
                         const maxTicks = isMobile ? 5 : 8;
 
-                        // Use selected range for tick calculation
+                        // Generate ticks within the visible range only
                         const startIdx = brushRange?.startIndex ?? 0;
                         const endIdx = brushRange?.endIndex ?? chartData.length - 1;
                         const rangeLength = endIdx - startIdx + 1;
 
-                        // More ticks when zoomed in (shorter range)
-                        const zoomFactor = chartData.length / rangeLength;
-                        const targetTicks = Math.min(maxTicks, Math.max(3, Math.round(maxTicks * Math.min(zoomFactor, 2))));
-
-                        if (chartData.length <= targetTicks) {
-                          return chartData.map(d => d.date);
+                        // If range is small enough, show all dates
+                        if (rangeLength <= maxTicks) {
+                          return chartData.slice(startIdx, endIdx + 1).map(d => d.date);
                         }
 
-                        const interval = Math.ceil(chartData.length / (targetTicks - 1));
+                        // Evenly distribute ticks across the visible range
+                        const interval = Math.ceil(rangeLength / (maxTicks - 1));
                         const ticks: string[] = [];
 
-                        for (let i = 0; i < chartData.length; i += interval) {
+                        for (let i = startIdx; i <= endIdx; i += interval) {
                           ticks.push(chartData[i].date);
                         }
 
-                        const lastDate = chartData[chartData.length - 1]?.date;
+                        // Always include the last visible date
+                        const lastDate = chartData[endIdx]?.date;
                         if (lastDate && !ticks.includes(lastDate)) {
                           ticks.push(lastDate);
                         }
@@ -639,6 +633,10 @@ export function PerformanceChart({
               {!isDownloading && (() => {
                 const startIdx = brushRange?.startIndex ?? 0;
                 const endIdx = brushRange?.endIndex ?? chartData.length - 1;
+                // Account for brush traveller width (12px) - effective track is slightly inset
+                const travellerOffset = 6; // half of travellerWidth
+                const chartMargin = 50;
+                const effectiveMargin = chartMargin + travellerOffset;
                 const startPct = (startIdx / (chartData.length - 1)) * 100;
                 const endPct = (endIdx / (chartData.length - 1)) * 100;
                 const startDate = new Date(chartData[startIdx]?.date);
@@ -646,16 +644,16 @@ export function PerformanceChart({
                 const startMonth = startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
                 const endMonth = endDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
                 return (
-                  <div className="relative h-12 mx-[50px] -mt-12">
+                  <div className="relative h-12 -mt-16" style={{ marginLeft: effectiveMargin, marginRight: effectiveMargin }}>
                     <div
-                      className="absolute text-center text-green-500 font-semibold text-sm -translate-x-1/2"
+                      className="absolute text-center text-green-500 font-semibold text-sm -translate-x-1/2 -translate-y-1/2"
                       style={{ left: `${startPct}%` }}
                     >
                       <div>{startMonth.charAt(0).toUpperCase() + startMonth.slice(1)}</div>
                       <div>{startDate.getFullYear()}</div>
                     </div>
                     <div
-                      className="absolute text-center text-green-500 font-semibold text-sm -translate-x-1/2"
+                      className="absolute text-center text-green-500 font-semibold text-sm -translate-x-1/2 -translate-y-1/2"
                       style={{ left: `${endPct}%` }}
                     >
                       <div>{endMonth.charAt(0).toUpperCase() + endMonth.slice(1)}</div>
