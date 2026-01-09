@@ -114,7 +114,7 @@ export function PortfolioPanel() {
     enabled: isAuthenticated,
   });
 
-  const { data: accountsData } = useQuery({
+  const { data: accountsData, isLoading: accountsLoading } = useQuery({
     queryKey: ['accounts'],
     queryFn: fetchAccounts,
     enabled: isAuthenticated,
@@ -228,11 +228,11 @@ export function PortfolioPanel() {
     );
   }
 
-  if (transactionsLoading) {
+  if (transactionsLoading || accountsLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className="w-10 h-10 text-green-500 animate-spin mb-4" />
-        <p className="text-slate-400">{t('common.loading')}</p>
+        <Loader2 className="w-12 h-12 text-green-500 animate-spin mb-4" />
+        <p className="text-slate-400 text-lg">{language === 'fr' ? 'Chargement de votre portefeuille...' : 'Loading your portfolio...'}</p>
       </div>
     );
   }
