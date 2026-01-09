@@ -304,7 +304,7 @@ export function PortfolioPanel() {
 
         {/* Summary Cards */}
         {selectedAccountId && compositionData && accountHasHoldings && (
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {(() => {
                 const PRIVATE_COST_BASIS = 10000;

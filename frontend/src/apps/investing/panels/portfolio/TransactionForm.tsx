@@ -208,7 +208,7 @@ export function TransactionForm({
     : accountTransactions;
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6">
+    <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
       {/* Toggle button - centered */}
       <div className="flex justify-center mb-4">
         <button

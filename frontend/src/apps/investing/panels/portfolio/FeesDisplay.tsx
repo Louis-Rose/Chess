@@ -16,7 +16,7 @@ export function FeesDisplay({ selectedAccount, language }: FeesDisplayProps) {
   const custodyFeeRate = isPEA ? bankInfo.custody_fee_pct_year_pea : bankInfo.custody_fee_pct_year;
 
   return (
-    <div className="mt-6 pt-6 border-t border-slate-200">
+    <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-600">
       {/* Toggle button - centered */}
       <div className="flex justify-center mb-4">
         <button
@@ -38,7 +38,7 @@ export function FeesDisplay({ selectedAccount, language }: FeesDisplayProps) {
           {/* Header */}
           <div className="flex items-center gap-2 mb-3">
             <Wallet className="w-5 h-5 text-amber-600" />
-            <h4 className="font-semibold text-amber-800">
+            <h4 className="font-semibold text-amber-800 dark:text-amber-500">
               {language === 'fr' ? 'Frais et Impôts' : 'Fees & Taxes'} ({selectedAccount.bank_info.name} - {selectedAccount.account_type})
             </h4>
           </div>
@@ -47,7 +47,7 @@ export function FeesDisplay({ selectedAccount, language }: FeesDisplayProps) {
               <p className="text-amber-600 font-medium">
                 {language === 'fr' ? 'Frais de transaction' : 'Transaction fees'}
               </p>
-              <p className="text-amber-800">
+              <p className="text-amber-800 dark:text-amber-400">
                 {bankInfo.order_fee_pct}%
                 <span className="text-amber-600 text-xs ml-1">(min {bankInfo.order_fee_min}€)</span>
               </p>
@@ -56,7 +56,7 @@ export function FeesDisplay({ selectedAccount, language }: FeesDisplayProps) {
               <p className="text-amber-600 font-medium">
                 {language === 'fr' ? 'Droits de garde (annuels)' : 'Custody fees (yearly)'}
               </p>
-              <p className="text-amber-800">
+              <p className="text-amber-800 dark:text-amber-400">
                 {custodyFeeRate}%{isPEA ? ` (${language === 'fr' ? 'plafonné' : 'capped'})` : ''}
               </p>
             </div>
@@ -64,7 +64,7 @@ export function FeesDisplay({ selectedAccount, language }: FeesDisplayProps) {
               <p className="text-amber-600 font-medium">
                 {language === 'fr' ? 'Frais de change' : 'FX fees'}
               </p>
-              <p className="text-amber-800 text-xs">
+              <p className="text-amber-800 dark:text-amber-400 text-xs">
                 {language === 'fr' ? bankInfo.fx_fee_info_fr : bankInfo.fx_fee_info_en}
               </p>
             </div>
@@ -72,7 +72,7 @@ export function FeesDisplay({ selectedAccount, language }: FeesDisplayProps) {
               <p className="text-amber-600 font-medium">
                 {language === 'fr' ? 'Fiscalité' : 'Taxation'}
               </p>
-              <p className="text-amber-800">
+              <p className="text-amber-800 dark:text-amber-400">
                 {typeInfo?.tax_rate}% {language === 'fr' ? 'sur plus-values' : 'on gains'}
               </p>
             </div>
