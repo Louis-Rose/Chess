@@ -326,18 +326,18 @@ export function PerformanceChart({
 
               {filteredSummary && (
                 <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
-                  {/* Combined Holding Periods */}
-                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center relative group">
-                    <div className="flex flex-col gap-2">
-                      <div>
-                        <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-0.5">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
+                  {/* Combined Holding Periods - side by side */}
+                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 relative group flex items-center justify-center">
+                    <div className="flex items-center gap-4 md:gap-6">
+                      <div className="text-center">
+                        <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-0.5">{language === 'fr' ? 'Periode' : 'Period'}</p>
                         <span className="text-sm md:text-base font-bold text-slate-800 dark:text-slate-100">
                           {formatHoldingPeriod(filteredSummary.start_date, filteredSummary.end_date)}
                         </span>
                       </div>
-                      <div className="border-t border-slate-200 dark:border-slate-500 pt-2">
+                      <div className="border-l border-slate-200 dark:border-slate-500 pl-4 md:pl-6 text-center">
                         <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-0.5 flex items-center justify-center gap-1">
-                          {language === 'fr' ? 'Periode ponderee' : 'Weighted period'}
+                          {language === 'fr' ? 'Ponderee' : 'Weighted'}
                           <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
                         </p>
                         <span className="text-sm md:text-base font-bold text-slate-800 dark:text-slate-100">
@@ -353,35 +353,27 @@ export function PerformanceChart({
                     </div>
                   </div>
                   {/* Portfolio Gains */}
-                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center">
+                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
                     <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-1">{showAnnualized ? 'CAGR' : (language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains')}</p>
-                    <div className={`font-bold ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      <span className="text-lg md:text-2xl">
-                        {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€
-                      </span>
+                    <div className={`font-bold text-lg md:text-2xl ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€
                       <br />
-                      <span className="text-base md:text-xl">
-                        ({showAnnualized
-                          ? `${filteredSummary.cagr_eur >= 0 ? '+' : ''}${filteredSummary.cagr_eur}%`
-                          : `${filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}${filteredSummary.portfolio_return_eur}%`
-                        })
-                      </span>
+                      ({showAnnualized
+                        ? `${filteredSummary.cagr_eur >= 0 ? '+' : ''}${filteredSummary.cagr_eur}%`
+                        : `${filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}${filteredSummary.portfolio_return_eur}%`
+                      })
                     </div>
                   </div>
                   {/* Benchmark */}
-                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center">
+                  <div className="bg-white dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
                     <p className="text-slate-500 dark:text-slate-300 text-sm md:text-base mb-1">Benchmark</p>
-                    <div className={`font-bold ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
-                      <span className="text-lg md:text-2xl">
-                        {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€
-                      </span>
+                    <div className={`font-bold text-lg md:text-2xl ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
+                      {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€
                       <br />
-                      <span className="text-base md:text-xl">
-                        ({showAnnualized
-                          ? `${filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}${filteredSummary.cagr_benchmark_eur}%`
-                          : `${filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}${filteredSummary.benchmark_return_eur}%`
-                        })
-                      </span>
+                      ({showAnnualized
+                        ? `${filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}${filteredSummary.cagr_benchmark_eur}%`
+                        : `${filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}${filteredSummary.benchmark_return_eur}%`
+                      })
                     </div>
                   </div>
                 </div>
