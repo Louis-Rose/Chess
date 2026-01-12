@@ -177,9 +177,14 @@ export function AdminPanel() {
     enabled: !!user?.is_admin,
   });
 
-  // Sort state (default: most time spent first)
+  // Sort state for Users table (default: most time spent first)
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_minutes');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  // Sort state for Stock Searches table
+  type StockSortColumn = 'stock_ticker' | 'unique_users' | 'total_views' | 'total_time_seconds';
+  const [stockSortColumn, setStockSortColumn] = useState<StockSortColumn>('total_views');
+  const [stockSortDirection, setStockSortDirection] = useState<SortDirection>('desc');
 
   // Collapsible panel states
   const [isTimeSpentExpanded, setIsTimeSpentExpanded] = useState(true);
@@ -264,7 +269,7 @@ export function AdminPanel() {
     }
   };
 
-  // Handle column header click
+  // Handle column header click for Users table
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -273,6 +278,40 @@ export function AdminPanel() {
       setSortDirection('asc');
     }
   };
+
+  // Handle column header click for Stock Searches table
+  const handleStockSort = (column: StockSortColumn) => {
+    if (stockSortColumn === column) {
+      setStockSortDirection(stockSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setStockSortColumn(column);
+      setStockSortDirection('desc');
+    }
+  };
+
+  // Sorted stock views
+  const sortedStockViews = useMemo(() => {
+    if (!stockViewsData?.by_stock) return [];
+
+    return [...stockViewsData.by_stock].sort((a, b) => {
+      let comparison = 0;
+      switch (stockSortColumn) {
+        case 'stock_ticker':
+          comparison = a.stock_ticker.localeCompare(b.stock_ticker);
+          break;
+        case 'unique_users':
+          comparison = a.unique_users - b.unique_users;
+          break;
+        case 'total_views':
+          comparison = a.total_views - b.total_views;
+          break;
+        case 'total_time_seconds':
+          comparison = a.total_time_seconds - b.total_time_seconds;
+          break;
+      }
+      return stockSortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [stockViewsData?.by_stock, stockSortColumn, stockSortDirection]);
 
   // Sorted users
   const sortedUsers = useMemo(() => {
@@ -1073,14 +1112,34 @@ export function AdminPanel() {
                 <table className="w-full">
                   <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
                     <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
-                      <th className="pb-3 pl-2">{language === 'fr' ? 'Action' : 'Stock'}</th>
-                      <th className="pb-3 text-center">{language === 'fr' ? 'Utilisateurs' : 'Users'}</th>
-                      <th className="pb-3 text-center">{language === 'fr' ? 'Vues' : 'Views'}</th>
-                      <th className="pb-3 text-center">{language === 'fr' ? 'Temps total' : 'Total Time'}</th>
+                      <th className="pb-3 pl-2">
+                        <button onClick={() => handleStockSort('stock_ticker')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white">
+                          {language === 'fr' ? 'Action' : 'Stock'}
+                          {stockSortColumn === 'stock_ticker' && (stockSortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                        </button>
+                      </th>
+                      <th className="pb-3 text-center">
+                        <button onClick={() => handleStockSort('unique_users')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                          {language === 'fr' ? 'Utilisateurs' : 'Users'}
+                          {stockSortColumn === 'unique_users' && (stockSortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                        </button>
+                      </th>
+                      <th className="pb-3 text-center">
+                        <button onClick={() => handleStockSort('total_views')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                          {language === 'fr' ? 'Vues' : 'Views'}
+                          {stockSortColumn === 'total_views' && (stockSortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                        </button>
+                      </th>
+                      <th className="pb-3 text-center">
+                        <button onClick={() => handleStockSort('total_time_seconds')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                          {language === 'fr' ? 'Temps total' : 'Total Time'}
+                          {stockSortColumn === 'total_time_seconds' && (stockSortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                        </button>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {stockViewsData.by_stock.map((stock) => (
+                    {sortedStockViews.map((stock) => (
                       <tr
                         key={stock.stock_ticker}
                         className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer"
