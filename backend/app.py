@@ -747,7 +747,7 @@ def list_users():
 
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at,
+            SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at, u.sign_in_count,
                    COALESCE(SUM(a.minutes), 0) as total_minutes,
                    MAX(a.last_ping) as last_active,
                    (SELECT COUNT(*) FROM graph_downloads g WHERE g.user_id = u.id) as graph_downloads

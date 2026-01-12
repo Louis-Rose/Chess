@@ -22,6 +22,7 @@ interface AdminUser {
   last_active: string | null;
   has_portfolio: boolean;
   graph_downloads: number;
+  sign_in_count: number;
 }
 
 interface AdminUsersResponse {
@@ -29,7 +30,7 @@ interface AdminUsersResponse {
   total: number;
 }
 
-type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes' | 'has_portfolio' | 'graph_downloads';
+type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes' | 'has_portfolio' | 'graph_downloads' | 'sign_in_count';
 type SortDirection = 'asc' | 'desc';
 
 const fetchUsers = async (): Promise<AdminUsersResponse> => {
@@ -342,6 +343,9 @@ export function AdminPanel() {
           break;
         case 'graph_downloads':
           comparison = a.graph_downloads - b.graph_downloads;
+          break;
+        case 'sign_in_count':
+          comparison = (a.sign_in_count || 0) - (b.sign_in_count || 0);
           break;
       }
       return sortDirection === 'asc' ? comparison : -comparison;
@@ -1000,6 +1004,13 @@ export function AdminPanel() {
                         {sortColumn === 'graph_downloads' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
+                    <th className="pb-2 text-center whitespace-nowrap">
+                      <button onClick={() => handleSort('sign_in_count')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                        <span className="hidden sm:inline">{language === 'fr' ? 'Connex.' : 'Logins'}</span>
+                        <span className="sm:hidden">L</span>
+                        {sortColumn === 'sign_in_count' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      </button>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1075,6 +1086,9 @@ export function AdminPanel() {
                       </td>
                       <td className="py-2 text-center text-slate-500 dark:text-slate-300">
                         {u.graph_downloads > 0 ? u.graph_downloads : '-'}
+                      </td>
+                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">
+                        {u.sign_in_count > 0 ? u.sign_in_count : '-'}
                       </td>
                     </tr>
                   ))}

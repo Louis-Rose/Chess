@@ -72,17 +72,17 @@ def get_or_create_user(google_user: dict) -> int:
         row = cursor.fetchone()
 
         if row:
-            # Update user info
+            # Update user info and increment sign-in count
             conn.execute('''
-                UPDATE users SET email = ?, name = ?, picture = ?, updated_at = CURRENT_TIMESTAMP
+                UPDATE users SET email = ?, name = ?, picture = ?, sign_in_count = sign_in_count + 1, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             ''', (google_user['email'], google_user['name'], google_user['picture'], row['id']))
             return row['id']
 
-        # Create new user
+        # Create new user with sign_in_count = 1
         cursor = conn.execute('''
-            INSERT INTO users (google_id, email, name, picture)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO users (google_id, email, name, picture, sign_in_count)
+            VALUES (?, ?, ?, ?, 1)
         ''', (google_user['google_id'], google_user['email'], google_user['name'], google_user['picture']))
         user_id = cursor.lastrowid
 
