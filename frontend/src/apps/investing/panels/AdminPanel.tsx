@@ -403,23 +403,33 @@ export function AdminPanel() {
   }, [chartData]);
 
   // Compute time spent chart data (supports days/weeks/months with sum)
+  // Uses the same date range as users chart for consistency
   const timeSpentChartData = useMemo(() => {
-    if (!timeSpentData || timeSpentData.length === 0) return [];
+    if (!data?.users || data.users.length === 0) return [];
 
-    // Get date range
-    const sortedDates = timeSpentData.map(d => d.activity_date).sort();
-    const firstDate = new Date(sortedDates[0]);
+    // Get the same start date as users chart (first registration - 1 day)
+    const usersByDate: Record<string, number> = {};
+    data.users.forEach((u) => {
+      const date = u.created_at.split('T')[0].split(' ')[0];
+      usersByDate[date] = (usersByDate[date] || 0) + 1;
+    });
+    const sortedRegistrationDates = Object.keys(usersByDate).sort();
+    const firstRegistration = new Date(sortedRegistrationDates[0]);
+    const startDate = new Date(firstRegistration);
+    startDate.setDate(startDate.getDate() - 1);
     const endDate = new Date();
 
-    // Create a map for quick lookup
+    // Create a map for quick lookup of time spent data
     const minutesByDate: Record<string, number> = {};
-    timeSpentData.forEach(d => {
-      minutesByDate[d.activity_date] = d.total_minutes;
-    });
+    if (timeSpentData) {
+      timeSpentData.forEach(d => {
+        minutesByDate[d.activity_date] = d.total_minutes;
+      });
+    }
 
-    // Generate all dates
+    // Generate all dates from the same start as users chart
     const allDates: string[] = [];
-    const currentDate = new Date(firstDate);
+    const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
       allDates.push(currentDate.toISOString().split('T')[0]);
       currentDate.setDate(currentDate.getDate() + 1);
@@ -445,7 +455,7 @@ export function AdminPanel() {
         date: key,
         minutes,
       }));
-  }, [timeSpentData, chartUnit, getWeekKey, getMonthKey]);
+  }, [data?.users, timeSpentData, chartUnit, getWeekKey, getMonthKey]);
 
   // Calculate Y-axis max for time spent chart
   const timeYAxisMax = useMemo(() => {
