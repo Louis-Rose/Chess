@@ -605,6 +605,66 @@ def get_device_stats():
     })
 
 
+@app.route('/api/admin/users-by-theme/<theme>', methods=['GET'])
+@admin_required
+def get_users_by_theme(theme):
+    """Get list of users with a specific theme setting (admin only)."""
+    if theme not in ('dark', 'light'):
+        return jsonify({'error': 'Invalid theme'}), 400
+
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT u.id, u.name, u.picture
+            FROM users u
+            INNER JOIN theme_usage t ON u.id = t.user_id
+            WHERE t.resolved_theme = ?
+            ORDER BY u.name
+        ''', (theme,))
+        users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture']} for row in cursor.fetchall()]
+
+    return jsonify({'users': users})
+
+
+@app.route('/api/admin/users-by-language/<lang>', methods=['GET'])
+@admin_required
+def get_users_by_language(lang):
+    """Get list of users with a specific language setting (admin only)."""
+    if lang not in ('en', 'fr'):
+        return jsonify({'error': 'Invalid language'}), 400
+
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT u.id, u.name, u.picture
+            FROM users u
+            INNER JOIN language_usage l ON u.id = l.user_id
+            WHERE l.language = ?
+            ORDER BY u.name
+        ''', (lang,))
+        users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture']} for row in cursor.fetchall()]
+
+    return jsonify({'users': users})
+
+
+@app.route('/api/admin/users-by-device/<device>', methods=['GET'])
+@admin_required
+def get_users_by_device(device):
+    """Get list of users with a specific device type (admin only)."""
+    if device not in ('mobile', 'desktop'):
+        return jsonify({'error': 'Invalid device type'}), 400
+
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT u.id, u.name, u.picture
+            FROM users u
+            INNER JOIN device_usage d ON u.id = d.user_id
+            WHERE d.device_type = ?
+            ORDER BY u.name
+        ''', (device,))
+        users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture']} for row in cursor.fetchall()]
+
+    return jsonify({'users': users})
+
+
 @app.route('/api/admin/settings-crosstab', methods=['GET'])
 @admin_required
 def get_settings_crosstab():
