@@ -35,7 +35,7 @@ def send_feedback_email(from_name: str, from_email: str, message: str, images: l
     if images is None:
         images = []
 
-    subject = f"[LUMRA Feedback] from {from_name}"
+    subject = f"[LUMNA Feedback] from {from_name}"
 
     # Build images HTML section
     images_html = ""
@@ -141,7 +141,7 @@ def send_feedback_email(from_name: str, from_email: str, message: str, images: l
     # Create multipart message with related subtype for inline images
     msg = MIMEMultipart('related')
     msg['Subject'] = subject
-    msg['From'] = f"LUMRA Feedback <{SMTP_EMAIL}>"
+    msg['From'] = f"LUMNA Feedback <{SMTP_EMAIL}>"
     msg['To'] = FEEDBACK_EMAIL
     msg['Reply-To'] = from_email
 
@@ -463,7 +463,7 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
 
             <div class="footer">
                 <p>You received this email because you subscribed to earnings alerts on
-                <a href="https://improveatchess.io">improveatchess.io</a></p>
+                <a href="https://lumna.co">lumna.co</a></p>
                 <p>To manage your alert preferences, visit the Earnings Calendar page.</p>
             </div>
         </div>
@@ -474,7 +474,7 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
     # Create message
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
-    msg['From'] = f"Improve At Chess <{SMTP_EMAIL}>"
+    msg['From'] = f"LUMNA <{SMTP_EMAIL}>"
     msg['To'] = to_email
 
     # Plain text fallback
@@ -488,7 +488,7 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
         source = item.get('source', 'none')
         source_text = '[Portfolio]' if source == 'portfolio' else '[Watchlist]' if source == 'watchlist' else ''
         plain_text += f"- {ticker} ({company_name}) {source_text}: {earnings_date} ({remaining_days} days) - {status}\n"
-    plain_text += "\n\nVisit https://improveatchess.io to manage your alerts."
+    plain_text += "\n\nVisit https://lumna.co to manage your alerts."
 
     msg.attach(MIMEText(plain_text, 'plain'))
     msg.attach(MIMEText(html_body, 'html'))

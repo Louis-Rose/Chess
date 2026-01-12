@@ -3,7 +3,7 @@
 > **Note to self**: Keep this file updated when significant changes are made (new features, deployment changes, architecture updates).
 
 ## Overview
-Chess Stats App — web app for visualizing Chess.com player statistics.
+LUMNA — web app for tracking investment portfolios and Chess.com statistics.
 
 ## Architecture
 - **Frontend**: React + Vite + TypeScript + Tailwind (port 5173 dev, built to `frontend/dist/`)
@@ -12,7 +12,7 @@ Chess Stats App — web app for visualizing Chess.com player statistics.
 
 ## Deployment
 - **VM**: Azure Ubuntu at `20.86.130.108`
-- **Domain**: improveatchess.io
+- **Domain**: lumna.co
 - **User**: azureuser
 - **Repo path on VM**: `/home/azureuser/Chess`
 

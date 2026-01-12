@@ -1,6 +1,6 @@
 {
-  "name": "LUMRA - Investment Tracker",
-  "short_name": "LUMRA",
+  "name": "LUMNA - Investment Tracker",
+  "short_name": "LUMNA",
   "description": "Track your investment portfolio and watchlist",
   "start_url": "/investing",
   "display": "standalone",

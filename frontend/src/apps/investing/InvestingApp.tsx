@@ -15,7 +15,7 @@ import { StockViewDetailPanel } from './panels/StockViewDetailPanel';
 
 export function InvestingApp() {
   useEffect(() => {
-    document.title = 'LUMRA';
+    document.title = 'LUMNA';
     const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (link) link.href = '/favicon-lumra.svg';
   }, []);
