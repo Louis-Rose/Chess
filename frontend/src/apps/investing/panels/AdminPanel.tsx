@@ -618,9 +618,9 @@ export function AdminPanel() {
             </div>}
             {/* Growth Rates */}
             {isTimeSpentExpanded && timeSpentGrowthRates && (
-              <div className="flex items-center justify-center gap-2 mt-4">
+              <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mt-4">
                 {timeSpentGrowthRates.map(({ period, rate }) => (
-                  <div key={period} className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-sm">
+                  <div key={period} className="px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-xs sm:text-sm">
                     <span className="text-slate-100 font-medium">
                       {period}{timeSpentUnit === 'days' ? 'D' : timeSpentUnit === 'weeks' ? 'W' : 'M'}
                     </span>
@@ -860,9 +860,9 @@ export function AdminPanel() {
 
               {/* Growth Rates */}
               {usersGrowthRates && (
-                <div className="flex items-center justify-center gap-2 mb-4">
+                <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mb-4">
                   {usersGrowthRates.map(({ period, rate }) => (
-                    <div key={period} className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-sm">
+                    <div key={period} className="px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-xs sm:text-sm">
                       <span className="text-slate-100 font-medium">
                         {period}{usersUnit === 'days' ? 'D' : usersUnit === 'weeks' ? 'W' : 'M'}
                       </span>
