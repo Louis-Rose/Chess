@@ -310,8 +310,11 @@ export function AdminPanel() {
   }, [data?.users, sortColumn, sortDirection]);
 
   // Compute cumulative users data (supports days/weeks/months)
+  // Only shows data from 2026 onwards
   const chartData = useMemo(() => {
     if (!data?.users || data.users.length === 0) return [];
+
+    const CHART_START_DATE = '2026-01-01';
 
     // Group users by date
     const usersByDate: Record<string, number> = {};
@@ -320,14 +323,19 @@ export function AdminPanel() {
       usersByDate[date] = (usersByDate[date] || 0) + 1;
     });
 
-    // Get date range
-    const sortedRegistrationDates = Object.keys(usersByDate).sort();
-    const firstRegistration = new Date(sortedRegistrationDates[0]);
-    const startDate = new Date(firstRegistration);
-    startDate.setDate(startDate.getDate() - 1);
+    // Count users registered before 2026 (for initial cumulative value)
+    let usersBeforeStart = 0;
+    Object.entries(usersByDate).forEach(([date, count]) => {
+      if (date < CHART_START_DATE) {
+        usersBeforeStart += count;
+      }
+    });
+
+    // Start from 2026-01-01
+    const startDate = new Date(CHART_START_DATE);
     const endDate = new Date();
 
-    // Generate all dates
+    // Generate all dates from 2026 onwards
     const allDates: string[] = [];
     const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
@@ -335,8 +343,8 @@ export function AdminPanel() {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Compute cumulative for all dates
-    let cumulative = 0;
+    // Compute cumulative for all dates (starting with users before 2026)
+    let cumulative = usersBeforeStart;
     const dailyData = allDates.map((date) => {
       const newUsers = usersByDate[date] || 0;
       cumulative += newUsers;
@@ -403,20 +411,12 @@ export function AdminPanel() {
   }, [chartData]);
 
   // Compute time spent chart data (supports days/weeks/months with sum)
-  // Uses the same date range as users chart for consistency
+  // Only shows data from 2026 onwards (same as users chart)
   const timeSpentChartData = useMemo(() => {
-    if (!data?.users || data.users.length === 0) return [];
+    const CHART_START_DATE = '2026-01-01';
 
-    // Get the same start date as users chart (first registration - 1 day)
-    const usersByDate: Record<string, number> = {};
-    data.users.forEach((u) => {
-      const date = u.created_at.split('T')[0].split(' ')[0];
-      usersByDate[date] = (usersByDate[date] || 0) + 1;
-    });
-    const sortedRegistrationDates = Object.keys(usersByDate).sort();
-    const firstRegistration = new Date(sortedRegistrationDates[0]);
-    const startDate = new Date(firstRegistration);
-    startDate.setDate(startDate.getDate() - 1);
+    // Start from 2026-01-01
+    const startDate = new Date(CHART_START_DATE);
     const endDate = new Date();
 
     // Create a map for quick lookup of time spent data
@@ -427,7 +427,7 @@ export function AdminPanel() {
       });
     }
 
-    // Generate all dates from the same start as users chart
+    // Generate all dates from 2026 onwards
     const allDates: string[] = [];
     const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
@@ -455,7 +455,7 @@ export function AdminPanel() {
         date: key,
         minutes,
       }));
-  }, [data?.users, timeSpentData, chartUnit, getWeekKey, getMonthKey]);
+  }, [timeSpentData, chartUnit, getWeekKey, getMonthKey]);
 
   // Calculate Y-axis max for time spent chart
   const timeYAxisMax = useMemo(() => {
