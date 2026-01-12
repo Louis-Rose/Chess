@@ -57,16 +57,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     axios.post('/api/theme', { theme: t, resolved_theme: resolved }).catch(() => {});
   };
 
+  // Detect device type (mobile vs desktop)
+  const detectDeviceType = (): 'mobile' | 'desktop' => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(userAgent);
+    return isMobile ? 'mobile' : 'desktop';
+  };
+
+  // Record device type to backend for analytics
+  const recordDevice = () => {
+    const deviceType = detectDeviceType();
+    axios.post('/api/device', { device_type: deviceType }).catch(() => {});
+  };
+
   // Apply theme on mount and when theme changes
   useEffect(() => {
     const newResolvedTheme = theme === 'system' ? getSystemTheme() : theme;
     setResolvedTheme(newResolvedTheme);
     applyTheme(newResolvedTheme);
 
-    // Record initial theme on first load
+    // Record initial theme and device type on first load
     if (!hasRecordedInitial.current) {
       hasRecordedInitial.current = true;
       recordTheme(theme, newResolvedTheme);
+      recordDevice();
     }
   }, [theme]);
 

@@ -209,6 +209,15 @@ CREATE TABLE IF NOT EXISTS language_usage (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Device type tracking (for analytics)
+CREATE TABLE IF NOT EXISTS device_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER UNIQUE NOT NULL,
+    device_type TEXT NOT NULL,       -- 'mobile' or 'desktop'
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);

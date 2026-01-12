@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, ChevronUp, ChevronDown, Clock, Search, RefreshCw, ChevronRight, Sun, Moon, Settings, Globe } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, ChevronUp, ChevronDown, Clock, Search, RefreshCw, ChevronRight, Sun, Moon, Settings, Globe, Smartphone, Monitor } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -81,8 +81,39 @@ interface SettingsCrosstab {
   total_users: number;
 }
 
+interface ThemeStats {
+  total: number;
+  by_resolved: Record<string, number>;
+  by_setting: Record<string, number>;
+}
+
+interface LanguageStats {
+  total: number;
+  by_language: Record<string, number>;
+}
+
+interface DeviceStats {
+  total: number;
+  by_device: Record<string, number>;
+}
+
 const fetchSettingsCrosstab = async (): Promise<SettingsCrosstab> => {
   const response = await axios.get('/api/admin/settings-crosstab');
+  return response.data;
+};
+
+const fetchThemeStats = async (): Promise<ThemeStats> => {
+  const response = await axios.get('/api/admin/theme-stats');
+  return response.data;
+};
+
+const fetchLanguageStats = async (): Promise<LanguageStats> => {
+  const response = await axios.get('/api/admin/language-stats');
+  return response.data;
+};
+
+const fetchDeviceStats = async (): Promise<DeviceStats> => {
+  const response = await axios.get('/api/admin/device-stats');
   return response.data;
 };
 
@@ -110,6 +141,9 @@ export function AdminPanel() {
     await queryClient.invalidateQueries({ queryKey: ['admin-stock-views'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-settings-crosstab'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-page-breakdown'] });
+    await queryClient.invalidateQueries({ queryKey: ['admin-theme-stats'] });
+    await queryClient.invalidateQueries({ queryKey: ['admin-language-stats'] });
+    await queryClient.invalidateQueries({ queryKey: ['admin-device-stats'] });
     setIsRefreshing(false);
   };
 
@@ -134,6 +168,24 @@ export function AdminPanel() {
   const { data: settingsCrosstab } = useQuery({
     queryKey: ['admin-settings-crosstab'],
     queryFn: fetchSettingsCrosstab,
+    enabled: !!user?.is_admin,
+  });
+
+  const { data: themeStats } = useQuery({
+    queryKey: ['admin-theme-stats'],
+    queryFn: fetchThemeStats,
+    enabled: !!user?.is_admin,
+  });
+
+  const { data: languageStats } = useQuery({
+    queryKey: ['admin-language-stats'],
+    queryFn: fetchLanguageStats,
+    enabled: !!user?.is_admin,
+  });
+
+  const { data: deviceStats } = useQuery({
+    queryKey: ['admin-device-stats'],
+    queryFn: fetchDeviceStats,
     enabled: !!user?.is_admin,
   });
 
@@ -927,7 +979,7 @@ export function AdminPanel() {
                       <td className="py-2 text-slate-500 dark:text-slate-300 whitespace-nowrap">
                         {new Date(u.created_at).toLocaleDateString(
                           language === 'fr' ? 'fr-FR' : 'en-US',
-                          { day: 'numeric', month: 'short' }
+                          { day: 'numeric', month: 'short', year: '2-digit' }
                         )}
                       </td>
                       <td className="py-2 text-center text-slate-500 dark:text-slate-300">
@@ -939,8 +991,8 @@ export function AdminPanel() {
                             lastActive.setHours(0, 0, 0, 0);
                             const days = Math.round((today.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
                             if (days === 0) return language === 'fr' ? "Auj." : 'Today';
-                            if (days === 1) return language === 'fr' ? 'Hier' : '1D';
-                            return `${days}D`;
+                            if (days === 1) return language === 'fr' ? 'Hier' : '1d';
+                            return `${days}d`;
                           })()
                         ) : (
                           <span className="text-slate-300">-</span>
@@ -1057,97 +1109,125 @@ export function AdminPanel() {
             </h3>
           </button>
           {isSettingsExpanded && (
-            <div className="mt-4">
-              {/* Cross-tabulation: Theme x Language (weighted by time) */}
-              {settingsCrosstab && settingsCrosstab.total_minutes > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-300 dark:border-slate-500">
-                        <th className="py-2 px-3 text-left text-slate-500 dark:text-slate-400"></th>
-                        <th className="py-2 px-3 text-center text-slate-600 dark:text-slate-300">
-                          <div className="flex items-center justify-center gap-1">
-                            <Moon className="w-4 h-4" />
-                            {language === 'fr' ? 'Sombre' : 'Dark'}
+            <div className="mt-4 space-y-4">
+              {/* Theme Stats */}
+              {themeStats && themeStats.total > 0 && (
+                <div className="bg-slate-100 dark:bg-slate-600 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                    <Moon className="w-4 h-4" />
+                    {language === 'fr' ? 'Thème' : 'Theme'}
+                  </h4>
+                  <div className="space-y-2">
+                    {(() => {
+                      const dark = themeStats.by_resolved['dark'] || 0;
+                      const light = themeStats.by_resolved['light'] || 0;
+                      const total = dark + light;
+                      return (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Moon className="w-4 h-4 text-slate-400" />
+                              <span className="text-sm text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Sombre' : 'Dark'}</span>
+                            </div>
+                            <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                              {total > 0 ? Math.round((dark / total) * 100) : 0}% ({dark})
+                            </span>
                           </div>
-                        </th>
-                        <th className="py-2 px-3 text-center text-slate-600 dark:text-slate-300">
-                          <div className="flex items-center justify-center gap-1">
-                            <Sun className="w-4 h-4 text-amber-500" />
-                            {language === 'fr' ? 'Clair' : 'Light'}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Sun className="w-4 h-4 text-amber-500" />
+                              <span className="text-sm text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Clair' : 'Light'}</span>
+                            </div>
+                            <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                              {total > 0 ? Math.round((light / total) * 100) : 0}% ({light})
+                            </span>
                           </div>
-                        </th>
-                        <th className="py-2 px-3 text-center text-slate-500 dark:text-slate-400 font-normal">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const ct = settingsCrosstab.crosstab;
-                        const total = settingsCrosstab.total_minutes;
-                        const darkEn = ct['dark_en']?.minutes || 0;
-                        const darkFr = ct['dark_fr']?.minutes || 0;
-                        const lightEn = ct['light_en']?.minutes || 0;
-                        const lightFr = ct['light_fr']?.minutes || 0;
-                        const enTotal = darkEn + lightEn;
-                        const frTotal = darkFr + lightFr;
-                        const darkTotal = darkEn + darkFr;
-                        const lightTotal = lightEn + lightFr;
-
-                        return (
-                          <>
-                            <tr className="border-b border-slate-200 dark:border-slate-600">
-                              <td className="py-2 px-3 text-slate-600 dark:text-slate-300">
-                                <div className="flex items-center gap-1">
-                                  <Globe className="w-4 h-4 text-blue-500" />
-                                  English
-                                </div>
-                              </td>
-                              <td className="py-2 px-3 text-center font-medium text-slate-800 dark:text-slate-100">
-                                {total > 0 ? Math.round((darkEn / total) * 100) : 0}%
-                              </td>
-                              <td className="py-2 px-3 text-center font-medium text-slate-800 dark:text-slate-100">
-                                {total > 0 ? Math.round((lightEn / total) * 100) : 0}%
-                              </td>
-                              <td className="py-2 px-3 text-center text-slate-500 dark:text-slate-400">
-                                {total > 0 ? Math.round((enTotal / total) * 100) : 0}%
-                              </td>
-                            </tr>
-                            <tr className="border-b border-slate-200 dark:border-slate-600">
-                              <td className="py-2 px-3 text-slate-600 dark:text-slate-300">
-                                <div className="flex items-center gap-1">
-                                  <Globe className="w-4 h-4 text-blue-500" />
-                                  Français
-                                </div>
-                              </td>
-                              <td className="py-2 px-3 text-center font-medium text-slate-800 dark:text-slate-100">
-                                {total > 0 ? Math.round((darkFr / total) * 100) : 0}%
-                              </td>
-                              <td className="py-2 px-3 text-center font-medium text-slate-800 dark:text-slate-100">
-                                {total > 0 ? Math.round((lightFr / total) * 100) : 0}%
-                              </td>
-                              <td className="py-2 px-3 text-center text-slate-500 dark:text-slate-400">
-                                {total > 0 ? Math.round((frTotal / total) * 100) : 0}%
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className="py-2 px-3 text-slate-500 dark:text-slate-400">Total</td>
-                              <td className="py-2 px-3 text-center text-slate-500 dark:text-slate-400">
-                                {total > 0 ? Math.round((darkTotal / total) * 100) : 0}%
-                              </td>
-                              <td className="py-2 px-3 text-center text-slate-500 dark:text-slate-400">
-                                {total > 0 ? Math.round((lightTotal / total) * 100) : 0}%
-                              </td>
-                              <td className="py-2 px-3 text-center text-slate-500 dark:text-slate-400">100%</td>
-                            </tr>
-                          </>
-                        );
-                      })()}
-                    </tbody>
-                  </table>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 text-center mt-2">
-                    {language === 'fr' ? 'Pondéré par temps passé' : 'Weighted by time spent'}
-                  </p>
+                        </>
+                      );
+                    })()}
+                  </div>
                 </div>
+              )}
+
+              {/* Language Stats */}
+              {languageStats && languageStats.total > 0 && (
+                <div className="bg-slate-100 dark:bg-slate-600 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-blue-500" />
+                    {language === 'fr' ? 'Langue' : 'Language'}
+                  </h4>
+                  <div className="space-y-2">
+                    {(() => {
+                      const en = languageStats.by_language['en'] || 0;
+                      const fr = languageStats.by_language['fr'] || 0;
+                      const total = en + fr;
+                      return (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-600 dark:text-slate-300">English</span>
+                            <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                              {total > 0 ? Math.round((en / total) * 100) : 0}% ({en})
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-600 dark:text-slate-300">Français</span>
+                            <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                              {total > 0 ? Math.round((fr / total) * 100) : 0}% ({fr})
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* Device Stats */}
+              {deviceStats && deviceStats.total > 0 && (
+                <div className="bg-slate-100 dark:bg-slate-600 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-green-500" />
+                    {language === 'fr' ? 'Appareil' : 'Device'}
+                  </h4>
+                  <div className="space-y-2">
+                    {(() => {
+                      const mobile = deviceStats.by_device['mobile'] || 0;
+                      const desktop = deviceStats.by_device['desktop'] || 0;
+                      const total = mobile + desktop;
+                      return (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Monitor className="w-4 h-4 text-slate-400" />
+                              <span className="text-sm text-slate-600 dark:text-slate-300">Desktop</span>
+                            </div>
+                            <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                              {total > 0 ? Math.round((desktop / total) * 100) : 0}% ({desktop})
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Smartphone className="w-4 h-4 text-slate-400" />
+                              <span className="text-sm text-slate-600 dark:text-slate-300">Mobile</span>
+                            </div>
+                            <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                              {total > 0 ? Math.round((mobile / total) * 100) : 0}% ({mobile})
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* Show message if no data */}
+              {(!themeStats || themeStats.total === 0) &&
+               (!languageStats || languageStats.total === 0) &&
+               (!deviceStats || deviceStats.total === 0) && (
+                <p className="text-sm text-slate-500 text-center py-4">
+                  {language === 'fr' ? 'Aucune donnée disponible' : 'No data available'}
+                </p>
               )}
             </div>
           )}

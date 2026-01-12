@@ -507,6 +507,28 @@ def record_language():
     return jsonify({'success': True})
 
 
+@app.route('/api/device', methods=['POST'])
+@login_required
+def record_device():
+    """Record user's device type for analytics."""
+    data = request.get_json()
+    device_type = data.get('device_type')  # 'mobile' or 'desktop'
+
+    if device_type not in ('mobile', 'desktop'):
+        return jsonify({'error': 'device_type must be mobile or desktop'}), 400
+
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO device_usage (user_id, device_type, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                device_type = excluded.device_type,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (request.user_id, device_type))
+
+    return jsonify({'success': True})
+
+
 # ============= ADMIN ROUTES =============
 
 @app.route('/api/admin/theme-stats', methods=['GET'])
@@ -559,6 +581,27 @@ def get_language_stats():
     return jsonify({
         'total': total,
         'by_language': by_language
+    })
+
+
+@app.route('/api/admin/device-stats', methods=['GET'])
+@admin_required
+def get_device_stats():
+    """Get device type usage statistics (admin only)."""
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT device_type, COUNT(*) as count
+            FROM device_usage
+            GROUP BY device_type
+        ''')
+        by_device = {row['device_type']: row['count'] for row in cursor.fetchall()}
+
+        cursor = conn.execute('SELECT COUNT(*) as total FROM device_usage')
+        total = cursor.fetchone()['total']
+
+    return jsonify({
+        'total': total,
+        'by_device': by_device
     })
 
 
