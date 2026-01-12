@@ -534,26 +534,35 @@ def record_device():
 @app.route('/api/admin/theme-stats', methods=['GET'])
 @admin_required
 def get_theme_stats():
-    """Get theme usage statistics (admin only)."""
+    """Get theme usage statistics (admin only), excluding admin users."""
     with get_db() as conn:
-        # Get counts by resolved theme (actual display)
+        # Get counts by resolved theme (actual display), excluding admins
         cursor = conn.execute('''
-            SELECT resolved_theme, COUNT(*) as count
-            FROM theme_usage
-            GROUP BY resolved_theme
+            SELECT t.resolved_theme, COUNT(*) as count
+            FROM theme_usage t
+            INNER JOIN users u ON t.user_id = u.id
+            WHERE u.is_admin = 0
+            GROUP BY t.resolved_theme
         ''')
         by_resolved = {row['resolved_theme']: row['count'] for row in cursor.fetchall()}
 
-        # Get counts by theme setting (includes 'system')
+        # Get counts by theme setting (includes 'system'), excluding admins
         cursor = conn.execute('''
-            SELECT theme, COUNT(*) as count
-            FROM theme_usage
-            GROUP BY theme
+            SELECT t.theme, COUNT(*) as count
+            FROM theme_usage t
+            INNER JOIN users u ON t.user_id = u.id
+            WHERE u.is_admin = 0
+            GROUP BY t.theme
         ''')
         by_setting = {row['theme']: row['count'] for row in cursor.fetchall()}
 
-        # Get total users with theme data
-        cursor = conn.execute('SELECT COUNT(*) as total FROM theme_usage')
+        # Get total users with theme data, excluding admins
+        cursor = conn.execute('''
+            SELECT COUNT(*) as total
+            FROM theme_usage t
+            INNER JOIN users u ON t.user_id = u.id
+            WHERE u.is_admin = 0
+        ''')
         total = cursor.fetchone()['total']
 
     return jsonify({
@@ -566,16 +575,23 @@ def get_theme_stats():
 @app.route('/api/admin/language-stats', methods=['GET'])
 @admin_required
 def get_language_stats():
-    """Get language usage statistics (admin only)."""
+    """Get language usage statistics (admin only), excluding admin users."""
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT language, COUNT(*) as count
-            FROM language_usage
-            GROUP BY language
+            SELECT l.language, COUNT(*) as count
+            FROM language_usage l
+            INNER JOIN users u ON l.user_id = u.id
+            WHERE u.is_admin = 0
+            GROUP BY l.language
         ''')
         by_language = {row['language']: row['count'] for row in cursor.fetchall()}
 
-        cursor = conn.execute('SELECT COUNT(*) as total FROM language_usage')
+        cursor = conn.execute('''
+            SELECT COUNT(*) as total
+            FROM language_usage l
+            INNER JOIN users u ON l.user_id = u.id
+            WHERE u.is_admin = 0
+        ''')
         total = cursor.fetchone()['total']
 
     return jsonify({
@@ -587,16 +603,23 @@ def get_language_stats():
 @app.route('/api/admin/device-stats', methods=['GET'])
 @admin_required
 def get_device_stats():
-    """Get device type usage statistics (admin only)."""
+    """Get device type usage statistics (admin only), excluding admin users."""
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT device_type, COUNT(*) as count
-            FROM device_usage
-            GROUP BY device_type
+            SELECT d.device_type, COUNT(*) as count
+            FROM device_usage d
+            INNER JOIN users u ON d.user_id = u.id
+            WHERE u.is_admin = 0
+            GROUP BY d.device_type
         ''')
         by_device = {row['device_type']: row['count'] for row in cursor.fetchall()}
 
-        cursor = conn.execute('SELECT COUNT(*) as total FROM device_usage')
+        cursor = conn.execute('''
+            SELECT COUNT(*) as total
+            FROM device_usage d
+            INNER JOIN users u ON d.user_id = u.id
+            WHERE u.is_admin = 0
+        ''')
         total = cursor.fetchone()['total']
 
     return jsonify({
@@ -608,7 +631,7 @@ def get_device_stats():
 @app.route('/api/admin/users-by-theme/<theme>', methods=['GET'])
 @admin_required
 def get_users_by_theme(theme):
-    """Get list of users with a specific theme setting (admin only)."""
+    """Get list of users with a specific theme setting (admin only), excluding admins."""
     if theme not in ('dark', 'light'):
         return jsonify({'error': 'Invalid theme'}), 400
 
@@ -617,7 +640,7 @@ def get_users_by_theme(theme):
             SELECT u.id, u.name, u.picture
             FROM users u
             INNER JOIN theme_usage t ON u.id = t.user_id
-            WHERE t.resolved_theme = ?
+            WHERE t.resolved_theme = ? AND u.is_admin = 0
             ORDER BY u.name
         ''', (theme,))
         users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture']} for row in cursor.fetchall()]
@@ -628,7 +651,7 @@ def get_users_by_theme(theme):
 @app.route('/api/admin/users-by-language/<lang>', methods=['GET'])
 @admin_required
 def get_users_by_language(lang):
-    """Get list of users with a specific language setting (admin only)."""
+    """Get list of users with a specific language setting (admin only), excluding admins."""
     if lang not in ('en', 'fr'):
         return jsonify({'error': 'Invalid language'}), 400
 
@@ -637,7 +660,7 @@ def get_users_by_language(lang):
             SELECT u.id, u.name, u.picture
             FROM users u
             INNER JOIN language_usage l ON u.id = l.user_id
-            WHERE l.language = ?
+            WHERE l.language = ? AND u.is_admin = 0
             ORDER BY u.name
         ''', (lang,))
         users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture']} for row in cursor.fetchall()]
@@ -648,7 +671,7 @@ def get_users_by_language(lang):
 @app.route('/api/admin/users-by-device/<device>', methods=['GET'])
 @admin_required
 def get_users_by_device(device):
-    """Get list of users with a specific device type (admin only)."""
+    """Get list of users with a specific device type (admin only), excluding admins."""
     if device not in ('mobile', 'desktop'):
         return jsonify({'error': 'Invalid device type'}), 400
 
@@ -657,7 +680,7 @@ def get_users_by_device(device):
             SELECT u.id, u.name, u.picture
             FROM users u
             INNER JOIN device_usage d ON u.id = d.user_id
-            WHERE d.device_type = ?
+            WHERE d.device_type = ? AND u.is_admin = 0
             ORDER BY u.name
         ''', (device,))
         users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture']} for row in cursor.fetchall()]
