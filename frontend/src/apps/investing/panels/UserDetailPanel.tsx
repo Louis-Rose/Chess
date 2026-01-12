@@ -162,10 +162,37 @@ export function UserDetailPanel() {
     );
   }
 
-  // Filter activity to last 3 months
+  // Filter activity to last 3 months and fill in missing days
   const threeMonthsAgo = new Date();
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-  const filteredActivity = activityData?.filter(d => new Date(d.activity_date) >= threeMonthsAgo) || [];
+  const rawActivity = activityData?.filter(d => new Date(d.activity_date) >= threeMonthsAgo) || [];
+
+  // Fill in missing days with 0 minutes
+  const filteredActivity = (() => {
+    if (rawActivity.length === 0) return [];
+
+    // Create a map of existing activity
+    const activityMap = new Map(rawActivity.map(d => [d.activity_date, d.minutes]));
+
+    // Find date range (from first activity to today)
+    const dates = rawActivity.map(d => new Date(d.activity_date));
+    const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+    const maxDate = new Date(); // Today
+
+    // Generate all dates in range
+    const filledActivity: DailyActivity[] = [];
+    const current = new Date(minDate);
+    while (current <= maxDate) {
+      const dateStr = current.toISOString().split('T')[0];
+      filledActivity.push({
+        activity_date: dateStr,
+        minutes: activityMap.get(dateStr) || 0
+      });
+      current.setDate(current.getDate() + 1);
+    }
+
+    return filledActivity;
+  })();
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
