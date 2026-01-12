@@ -365,7 +365,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                     </svg>
-                    {language === 'fr' ? `Mode privé (base: ${PRIVATE_COST_BASIS}€)` : `Private mode (base: ${PRIVATE_COST_BASIS}€)`}
+                    {language === 'fr' ? `Mode privé (base: ${currency === 'EUR' ? `${PRIVATE_COST_BASIS}€` : `$${PRIVATE_COST_BASIS}`})` : `Private mode (base: ${currency === 'EUR' ? `${PRIVATE_COST_BASIS}€` : `$${PRIVATE_COST_BASIS}`})`}
                   </span>
                 </div>
               )}
@@ -402,7 +402,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
                     <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold">{showAnnualized ? 'CAGR' : (language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains')}</p>
                     <span className={`font-bold text-base md:text-xl ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.portfolio_gains_eur)}€ ({showAnnualized
+                      {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{currency === 'EUR' ? `${formatEur(filteredSummary.portfolio_gains_eur)}€` : `$${formatEur(filteredSummary.portfolio_gains_eur)}`} ({showAnnualized
                         ? `${filteredSummary.cagr_eur >= 0 ? '+' : ''}${filteredSummary.cagr_eur}%`
                         : `${filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}${filteredSummary.portfolio_return_eur}%`
                       })
@@ -412,7 +412,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
                     <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold">Benchmark ({benchmark === 'NASDAQ' ? 'Nasdaq' : 'S&P 500'})</p>
                     <span className={`font-bold text-base md:text-xl ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
-                      {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{formatEur(filteredSummary.benchmark_gains_eur)}€ ({showAnnualized
+                      {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{currency === 'EUR' ? `${formatEur(filteredSummary.benchmark_gains_eur)}€` : `$${formatEur(filteredSummary.benchmark_gains_eur)}`} ({showAnnualized
                         ? `${filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}${filteredSummary.cagr_benchmark_eur}%`
                         : `${filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}${filteredSummary.benchmark_return_eur}%`
                       })
@@ -490,11 +490,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       tick={{ fontSize: 15, fill: colors.tickFill, fontWeight: 600 }}
                       stroke={colors.axisStroke}
                       tickFormatter={(val) => {
-                        // For private mode with small values, don't use k€ format
+                        const sym = currency === 'EUR' ? '€' : '$';
+                        // For private mode with small values, don't use k format
                         if (privateMode) {
-                          return `${formatEur(val)}€`;
+                          return currency === 'EUR' ? `${formatEur(val)}${sym}` : `${sym}${formatEur(val)}`;
                         }
-                        return `${formatEur(val / 1000)}k€`;
+                        return currency === 'EUR' ? `${formatEur(val / 1000)}k${sym}` : `${sym}${formatEur(val / 1000)}k`;
                       }}
                       domain={[
                         (dataMin: number) => {
@@ -575,13 +576,13 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                               {new Date(String(label)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                             </p>
                             <p style={{ color: '#94a3b8', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', borderBottom: '1px solid #475569', paddingBottom: '4px', marginBottom: '4px' }}>
-                              {t('performance.invested')} : {formatEur(Math.round(costBasis))}€
+                              {t('performance.invested')} : {currency === 'EUR' ? `${formatEur(Math.round(costBasis))}€` : `$${formatEur(Math.round(costBasis))}`}
                             </p>
                             <p style={{ color: greenColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
-                              {t('performance.portfolio')} : {formatEur(Math.round(portfolioValue))}€
+                              {t('performance.portfolio')} : {currency === 'EUR' ? `${formatEur(Math.round(portfolioValue))}€` : `$${formatEur(Math.round(portfolioValue))}`}
                             </p>
                             <p style={{ color: blueColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
-                              {benchmarkTicker} : {formatEur(Math.round(benchmarkValue))}€
+                              {benchmarkTicker} : {currency === 'EUR' ? `${formatEur(Math.round(benchmarkValue))}€` : `$${formatEur(Math.round(benchmarkValue))}`}
                             </p>
                             <p style={{ color: displayPerf >= 0 ? greenColor : '#f87171', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', marginTop: '4px', borderTop: '1px solid #475569', paddingTop: '4px' }}>
                               {perfLabel} : {displayPerf >= 0 ? '+' : ''}{displayPerf}%
