@@ -89,7 +89,10 @@ export function StockViewDetailPanel() {
           <span>{language === 'fr' ? 'Retour' : 'Back'}</span>
         </button>
 
-        <div className="flex items-center gap-4">
+        <div
+          className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => navigate(`/investing/stock/${ticker}`)}
+        >
           <img
             src={getCompanyLogoUrl(ticker!) || ''}
             alt={ticker}
