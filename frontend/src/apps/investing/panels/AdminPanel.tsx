@@ -659,6 +659,7 @@ export function AdminPanel() {
                     fill="#22c55e"
                     radius={[4, 4, 0, 0]}
                     cursor="pointer"
+                    activeBar={false}
                     onClick={(data) => handleTimeSpentBarClick(data as unknown as { date: string })}
                   />
                 </BarChart>
@@ -900,6 +901,7 @@ export function AdminPanel() {
                         dataKey="users"
                         fill="#f59e0b"
                         radius={[4, 4, 0, 0]}
+                        activeBar={false}
                       />
                     </BarChart>
                   </ResponsiveContainer>
