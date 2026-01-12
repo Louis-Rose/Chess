@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
     picture TEXT,
     is_admin INTEGER DEFAULT 0,
     sign_in_count INTEGER DEFAULT 0,
+    session_count INTEGER DEFAULT 0,
+    last_session_ping TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

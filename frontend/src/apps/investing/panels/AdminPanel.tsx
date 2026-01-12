@@ -23,6 +23,7 @@ interface AdminUser {
   has_portfolio: boolean;
   graph_downloads: number;
   sign_in_count: number;
+  session_count: number;
 }
 
 interface AdminUsersResponse {
@@ -30,7 +31,7 @@ interface AdminUsersResponse {
   total: number;
 }
 
-type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes' | 'has_portfolio' | 'graph_downloads' | 'sign_in_count';
+type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes' | 'has_portfolio' | 'graph_downloads' | 'session_count';
 type SortDirection = 'asc' | 'desc';
 
 const fetchUsers = async (): Promise<AdminUsersResponse> => {
@@ -344,8 +345,8 @@ export function AdminPanel() {
         case 'graph_downloads':
           comparison = a.graph_downloads - b.graph_downloads;
           break;
-        case 'sign_in_count':
-          comparison = (a.sign_in_count || 0) - (b.sign_in_count || 0);
+        case 'session_count':
+          comparison = (a.session_count || 0) - (b.session_count || 0);
           break;
       }
       return sortDirection === 'asc' ? comparison : -comparison;
@@ -1005,10 +1006,10 @@ export function AdminPanel() {
                       </button>
                     </th>
                     <th className="pb-2 text-center whitespace-nowrap">
-                      <button onClick={() => handleSort('sign_in_count')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
-                        <span className="hidden sm:inline">{language === 'fr' ? 'Connex.' : 'Logins'}</span>
-                        <span className="sm:hidden">L</span>
-                        {sortColumn === 'sign_in_count' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      <button onClick={() => handleSort('session_count')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                        <span className="hidden sm:inline">Sessions</span>
+                        <span className="sm:hidden">S</span>
+                        {sortColumn === 'session_count' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
                   </tr>
@@ -1088,7 +1089,7 @@ export function AdminPanel() {
                         {u.graph_downloads > 0 ? u.graph_downloads : '-'}
                       </td>
                       <td className="py-2 text-center text-slate-500 dark:text-slate-300">
-                        {u.sign_in_count > 0 ? u.sign_in_count : '-'}
+                        {u.session_count > 0 ? u.session_count : '-'}
                       </td>
                     </tr>
                   ))}

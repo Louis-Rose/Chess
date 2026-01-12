@@ -441,6 +441,35 @@ def activity_heartbeat():
         page = 'other'
 
     with get_db() as conn:
+        # Check if this is a new session (30+ min since last ping)
+        cursor = conn.execute(
+            'SELECT last_session_ping FROM users WHERE id = ?',
+            (request.user_id,)
+        )
+        row = cursor.fetchone()
+        last_ping = row['last_session_ping'] if row else None
+
+        is_new_session = True
+        if last_ping:
+            try:
+                last_ping_time = datetime.fromisoformat(last_ping.replace('Z', '+00:00')) if isinstance(last_ping, str) else last_ping
+                minutes_since_last = (datetime.utcnow() - last_ping_time.replace(tzinfo=None)).total_seconds() / 60
+                is_new_session = minutes_since_last > 30
+            except:
+                is_new_session = True
+
+        # Update session tracking
+        if is_new_session:
+            conn.execute('''
+                UPDATE users SET session_count = COALESCE(session_count, 0) + 1, last_session_ping = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (request.user_id,))
+        else:
+            conn.execute('''
+                UPDATE users SET last_session_ping = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (request.user_id,))
+
         # Track daily activity
         conn.execute('''
             INSERT INTO user_activity (user_id, activity_date, minutes, last_ping)
@@ -747,7 +776,7 @@ def list_users():
 
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at, u.sign_in_count,
+            SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at, u.sign_in_count, u.session_count,
                    COALESCE(SUM(a.minutes), 0) as total_minutes,
                    MAX(a.last_ping) as last_active,
                    (SELECT COUNT(*) FROM graph_downloads g WHERE g.user_id = u.id) as graph_downloads
