@@ -189,10 +189,9 @@ export function AdminPanel() {
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(true);
   const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(false);
 
-  // Time unit for charts
+  // Time unit for charts (shared between Time Spent and Users)
   type TimeUnit = 'days' | 'weeks' | 'months';
-  const [timeSpentUnit, setTimeSpentUnit] = useState<TimeUnit>('days');
-  const [usersUnit, setUsersUnit] = useState<TimeUnit>('days');
+  const [chartUnit, setChartUnit] = useState<TimeUnit>('days');
 
   // Time spent details (users for selected period)
   const [selectedTimeSpentPeriod, setSelectedTimeSpentPeriod] = useState<string | null>(null);
@@ -344,12 +343,12 @@ export function AdminPanel() {
       return { date, users: cumulative, newUsers };
     });
 
-    if (usersUnit === 'days') return dailyData;
+    if (chartUnit === 'days') return dailyData;
 
     // Aggregate by week or month (take average of cumulative users in period)
     const grouped: Record<string, { sum: number; count: number }> = {};
     dailyData.forEach(({ date, users }) => {
-      const key = usersUnit === 'weeks' ? getWeekKey(date) : getMonthKey(date);
+      const key = chartUnit === 'weeks' ? getWeekKey(date) : getMonthKey(date);
       if (!grouped[key]) grouped[key] = { sum: 0, count: 0 };
       grouped[key].sum += users;
       grouped[key].count += 1;
@@ -362,7 +361,7 @@ export function AdminPanel() {
         users: Math.round(sum / count), // Average
         newUsers: 0,
       }));
-  }, [data?.users, usersUnit, getWeekKey, getMonthKey]);
+  }, [data?.users, chartUnit, getWeekKey, getMonthKey]);
 
   // Calculate Y-axis max (first multiple of 50 strictly greater than current users)
   const yAxisMax = useMemo(() => {
@@ -431,12 +430,12 @@ export function AdminPanel() {
       minutes: minutesByDate[date] || 0,
     }));
 
-    if (timeSpentUnit === 'days') return dailyData;
+    if (chartUnit === 'days') return dailyData;
 
     // Aggregate by week or month (sum minutes)
     const grouped: Record<string, number> = {};
     dailyData.forEach(({ date, minutes }) => {
-      const key = timeSpentUnit === 'weeks' ? getWeekKey(date) : getMonthKey(date);
+      const key = chartUnit === 'weeks' ? getWeekKey(date) : getMonthKey(date);
       grouped[key] = (grouped[key] || 0) + minutes;
     });
 
@@ -446,7 +445,7 @@ export function AdminPanel() {
         date: key,
         minutes,
       }));
-  }, [timeSpentData, timeSpentUnit, getWeekKey, getMonthKey]);
+  }, [timeSpentData, chartUnit, getWeekKey, getMonthKey]);
 
   // Calculate Y-axis max for time spent chart
   const timeYAxisMax = useMemo(() => {
@@ -541,12 +540,12 @@ export function AdminPanel() {
                     <button
                       key={unit}
                       onClick={() => {
-                        setTimeSpentUnit(unit);
+                        setChartUnit(unit);
                         setSelectedTimeSpentPeriod(null);
                         setTimeSpentUsers([]);
                       }}
                       className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                        timeSpentUnit === unit
+                        chartUnit === unit
                           ? 'bg-green-600 text-white'
                           : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
                       }`}
@@ -565,11 +564,11 @@ export function AdminPanel() {
                     dataKey="date"
                     tick={{ fontSize: 12, fill: '#e2e8f0' }}
                     tickFormatter={(date) => {
-                      if (timeSpentUnit === 'weeks') {
+                      if (chartUnit === 'weeks') {
                         const weekNum = date.split('-W')[1];
                         return `${language === 'fr' ? 'SEM' : 'WEEK'} ${parseInt(weekNum)}`;
                       }
-                      if (timeSpentUnit === 'months') {
+                      if (chartUnit === 'months') {
                         const [year, month] = date.split('-');
                         return new Date(Number(year), Number(month) - 1).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
                       }
@@ -622,7 +621,7 @@ export function AdminPanel() {
                 {timeSpentGrowthRates.map(({ period, rate }) => (
                   <div key={period} className="px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-xs sm:text-sm">
                     <span className="text-slate-100 font-medium">
-                      {period}{timeSpentUnit === 'days' ? 'D' : timeSpentUnit === 'weeks' ? 'W' : 'M'}
+                      {period}{chartUnit === 'days' ? 'D' : chartUnit === 'weeks' ? 'W' : 'M'}
                     </span>
                     <span className="mx-1 text-slate-400">·</span>
                     {rate !== null ? (
@@ -781,9 +780,9 @@ export function AdminPanel() {
                 {(['days', 'weeks', 'months'] as const).map((unit) => (
                   <button
                     key={unit}
-                    onClick={() => setUsersUnit(unit)}
+                    onClick={() => setChartUnit(unit)}
                     className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                      usersUnit === unit
+                      chartUnit === unit
                         ? 'bg-green-600 text-white'
                         : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
                     }`}
@@ -807,11 +806,11 @@ export function AdminPanel() {
                         dataKey="date"
                         tick={{ fontSize: 12, fill: '#e2e8f0' }}
                         tickFormatter={(date) => {
-                          if (usersUnit === 'weeks') {
+                          if (chartUnit === 'weeks') {
                             const weekNum = date.split('-W')[1];
                             return `${language === 'fr' ? 'SEM' : 'WEEK'} ${parseInt(weekNum)}`;
                           }
-                          if (usersUnit === 'months') {
+                          if (chartUnit === 'months') {
                             const [year, month] = date.split('-');
                             return new Date(Number(year), Number(month) - 1).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
                           }
@@ -864,7 +863,7 @@ export function AdminPanel() {
                   {usersGrowthRates.map(({ period, rate }) => (
                     <div key={period} className="px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-xs sm:text-sm">
                       <span className="text-slate-100 font-medium">
-                        {period}{usersUnit === 'days' ? 'D' : usersUnit === 'weeks' ? 'W' : 'M'}
+                        {period}{chartUnit === 'days' ? 'D' : chartUnit === 'weeks' ? 'W' : 'M'}
                       </span>
                       <span className="mx-1 text-slate-400">·</span>
                       {rate !== null ? (
