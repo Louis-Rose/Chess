@@ -605,9 +605,9 @@ export function AdminPanel() {
                 </div>
               )}
             </div>
-            {isTimeSpentExpanded && <div className="h-[250px] [&_svg]:outline-none">
+            {isTimeSpentExpanded && <div className="h-[250px] select-none [&_svg]:outline-none [&_*]:outline-none [&_.recharts-surface]:focus:outline-none [&_.recharts-wrapper]:focus:outline-none">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={timeSpentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <BarChart data={timeSpentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }} accessibilityLayer={false}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="date"
@@ -848,9 +848,9 @@ export function AdminPanel() {
             <>
               {/* User Growth Chart */}
               {chartData.length > 0 && (
-                <div className="h-[200px] mb-6">
+                <div className="h-[200px] mb-6 select-none [&_svg]:outline-none [&_*]:outline-none">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }} accessibilityLayer={false}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis
                         dataKey="date"
