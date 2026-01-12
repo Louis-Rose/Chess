@@ -744,10 +744,13 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
     if weekly_dates[-1] != end_date_str:
         weekly_dates.append(end_date_str)
 
-    # Track benchmark shares bought (as if we invested the same EUR in benchmark at each transaction)
+    # Track benchmark shares bought (as if we invested the same amount in benchmark at each transaction)
     # Pre-calculate: for each transaction, how many benchmark shares we'd get
     tx_benchmark_info = []
     transaction_events = []  # For chart markers
+
+    # Get benchmark currency once (used to properly convert investment amounts)
+    benchmark_currency = get_stock_currency(benchmark_ticker)
 
     for tx in sorted_txs:
         tx_date = tx['transaction_date']
@@ -760,8 +763,12 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
                 tx_cost_eur = tx_cost_usd / eurusd_at_tx
 
                 benchmark_price_at_tx = fetch_stock_price(benchmark_ticker, tx_date)
-                # Buy benchmark with the same USD amount (to compare apples to apples)
-                benchmark_shares_bought = tx_cost_usd / benchmark_price_at_tx
+                # Buy benchmark with the same amount in the benchmark's currency
+                # If benchmark is EUR-denominated, convert USD to EUR first
+                if benchmark_currency == 'EUR':
+                    benchmark_shares_bought = tx_cost_eur / benchmark_price_at_tx
+                else:
+                    benchmark_shares_bought = tx_cost_usd / benchmark_price_at_tx
 
                 tx_benchmark_info.append({
                     'date': tx_date,
@@ -793,9 +800,12 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
                 eurusd_at_tx = fetch_eurusd_rate(tx_date)
                 tx_proceeds_eur = tx_cost_usd / eurusd_at_tx
 
-                # Also sell equivalent USD worth of benchmark shares
+                # Also sell equivalent worth of benchmark shares (in benchmark's currency)
                 benchmark_price_at_tx = fetch_stock_price(benchmark_ticker, tx_date)
-                benchmark_shares_sold = tx_cost_usd / benchmark_price_at_tx
+                if benchmark_currency == 'EUR':
+                    benchmark_shares_sold = tx_proceeds_eur / benchmark_price_at_tx
+                else:
+                    benchmark_shares_sold = tx_cost_usd / benchmark_price_at_tx
             except:
                 tx_proceeds_eur = tx_cost_usd  # Fallback
                 benchmark_shares_sold = 0
