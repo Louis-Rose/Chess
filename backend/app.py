@@ -2438,6 +2438,32 @@ def clear_video_cache():
     return jsonify({'success': True, 'message': 'Video cache cleared. Videos will be re-fetched with descriptions.'})
 
 
+@app.route('/api/admin/backfill-sessions', methods=['POST'])
+@admin_required
+def backfill_session_counts():
+    """Backfill session_count for existing users based on their activity history (admin only).
+
+    Counts distinct activity days as sessions (one session per day minimum).
+    """
+    with get_db() as conn:
+        # Update session_count for all users based on their distinct activity days
+        cursor = conn.execute('''
+            UPDATE users
+            SET session_count = COALESCE((
+                SELECT COUNT(DISTINCT activity_date)
+                FROM user_activity
+                WHERE user_activity.user_id = users.id
+            ), 0)
+            WHERE session_count = 0 OR session_count IS NULL
+        ''')
+        updated = cursor.rowcount
+
+    return jsonify({
+        'success': True,
+        'message': f'Backfilled session counts for {updated} users based on activity history.'
+    })
+
+
 @app.route('/api/feedback', methods=['POST'])
 @login_required
 def submit_feedback():
