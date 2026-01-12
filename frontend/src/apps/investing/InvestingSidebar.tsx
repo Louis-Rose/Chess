@@ -6,8 +6,8 @@ import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, Shield, PanelLeftC
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-// Custom LUMRA logo matching the favicon
-const LumraLogo = ({ className }: { className?: string }) => (
+// Custom LUMNA logo matching the favicon
+const LumnaLogo = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 128 128" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="8" y="8" width="112" height="112" rx="20" fill="#16a34a"/>
     <rect x="32" y="64" width="16" height="40" rx="2" fill="white"/>
@@ -57,13 +57,13 @@ export function InvestingSidebar() {
 
   return (
     <div className={`dark ${isCollapsed ? 'w-16' : 'w-64'} bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0 transition-all duration-300`}>
-      {/* LUMRA Logo */}
+      {/* LUMNA Logo */}
       <Link
         to="/investing"
         className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-center gap-3'} px-2 pb-4 mb-2 border-b border-slate-700 hover:opacity-80 transition-opacity flex-shrink-0`}
       >
-        <LumraLogo className={`${isCollapsed ? 'w-8 h-8 min-w-[2rem] min-h-[2rem]' : 'w-10 h-10'} flex-shrink-0 transition-all`} />
-        {!isCollapsed && <span className="text-xl font-bold text-white tracking-wide">LUMRA</span>}
+        <LumnaLogo className={`${isCollapsed ? 'w-8 h-8 min-w-[2rem] min-h-[2rem]' : 'w-10 h-10'} flex-shrink-0 transition-all`} />
+        {!isCollapsed && <span className="text-xl font-bold text-white tracking-wide">LUMNA</span>}
       </Link>
 
       {/* User Menu */}

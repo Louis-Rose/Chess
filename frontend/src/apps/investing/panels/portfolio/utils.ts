@@ -5,8 +5,8 @@ export const formatEur = (num: number): string => {
   return Math.round(num).toLocaleString('fr-FR').replace(/\u202F/g, ' ');
 };
 
-// Add LUMRA branding to an image
-export const addLumraBranding = async (dataUrl: string, bottomOffset = 20): Promise<string> => {
+// Add LUMNA branding to an image
+export const addLumnaBranding = async (dataUrl: string, bottomOffset = 20): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
@@ -18,7 +18,7 @@ export const addLumraBranding = async (dataUrl: string, bottomOffset = 20): Prom
       // Draw the original image
       ctx.drawImage(img, 0, 0);
 
-      // Add LUMRA branding in bottom-right corner
+      // Add LUMNA branding in bottom-right corner
       const padding = 30;
       const logoSize = 48; // Larger logo
       const fontSize = 28; // Larger text
@@ -56,11 +56,11 @@ export const addLumraBranding = async (dataUrl: string, bottomOffset = 20): Prom
       ctx.roundRect(x + 80 * scale, baseY - 72 * scale, barWidth, 72 * scale, barRadius);
       ctx.fill();
 
-      // Draw LUMRA text (white for dark backgrounds)
+      // Draw LUMNA text (white for dark backgrounds)
       ctx.fillStyle = '#f1f5f9';
       ctx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`;
       ctx.textBaseline = 'middle';
-      ctx.fillText('LUMRA', x + logoSize + 14, y + logoSize / 2);
+      ctx.fillText('LUMNA', x + logoSize + 14, y + logoSize / 2);
 
       resolve(canvas.toDataURL('image/png'));
     };

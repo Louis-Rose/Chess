@@ -9,7 +9,7 @@ import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import type { PerformanceData } from './types';
-import { formatEur, addLumraBranding, getScaleFactor, PRIVATE_COST_BASIS } from './utils';
+import { formatEur, addLumnaBranding, getScaleFactor, PRIVATE_COST_BASIS } from './utils';
 
 export interface PerformanceChartHandle {
   download: () => Promise<void>;
@@ -86,7 +86,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
         skipFonts: true, // Skip fonts to avoid CORS issues with external stylesheets
       });
 
-      const brandedDataUrl = await addLumraBranding(dataUrl, 70);
+      const brandedDataUrl = await addLumnaBranding(dataUrl, 70);
 
       const link = document.createElement('a');
       link.href = brandedDataUrl;
@@ -721,7 +721,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Sous-performance' : 'Underperformance'}</span>
                 </div>
               </div>
-              {/* LUMRA branding - hidden during download since addLumraBranding adds it */}
+              {/* LUMNA branding - hidden during download since addLumnaBranding adds it */}
               {!isDownloading && (
                 <div className="flex items-center justify-end gap-2 mt-2 mr-2">
                   <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
@@ -731,7 +731,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       <rect x="84" y="32" width="16" height="72" rx="2" fill="white" />
                     </svg>
                   </div>
-                  <span className="text-lg font-bold text-slate-300">LUMRA</span>
+                  <span className="text-lg font-bold text-slate-300">LUMNA</span>
                 </div>
               )}
             </div>
