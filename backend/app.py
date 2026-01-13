@@ -776,24 +776,14 @@ def list_users():
             SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at, u.sign_in_count, u.session_count,
                    COALESCE(SUM(a.minutes), 0) as total_minutes,
                    MAX(a.last_ping) as last_active,
-                   (SELECT COUNT(*) FROM graph_downloads g WHERE g.user_id = u.id) as graph_downloads
+                   (SELECT COUNT(*) FROM graph_downloads g WHERE g.user_id = u.id) as graph_downloads,
+                   (SELECT COUNT(*) FROM investment_accounts ia WHERE ia.user_id = u.id) as account_count
             FROM users u
             LEFT JOIN user_activity a ON u.id = a.user_id
             GROUP BY u.id
             ORDER BY u.created_at DESC
         ''')
         users = [dict(row) for row in cursor.fetchall() if row['email'] not in hidden_emails]
-
-        # Add portfolio value for each user
-        for user in users:
-            cursor = conn.execute('''
-                SELECT SUM(quantity) as total_qty, stock_ticker
-                FROM portfolio_transactions
-                WHERE user_id = ? AND transaction_type = 'BUY'
-                GROUP BY stock_ticker
-            ''', (user['id'],))
-            has_portfolio = cursor.fetchone() is not None
-            user['has_portfolio'] = has_portfolio
 
     return jsonify({'users': users, 'total': len(users)})
 
@@ -812,6 +802,22 @@ def get_user_activity(user_id):
         activity = [dict(row) for row in cursor.fetchall()]
 
     return jsonify({'activity': activity})
+
+
+@app.route('/api/admin/users/<int:user_id>/accounts', methods=['GET'])
+@admin_required
+def get_user_accounts(user_id):
+    """Get investment accounts for a user (admin only)."""
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT id, name, account_type, bank, created_at
+            FROM investment_accounts
+            WHERE user_id = ?
+            ORDER BY created_at ASC
+        ''', (user_id,))
+        accounts = [dict(row) for row in cursor.fetchall()]
+
+    return jsonify({'accounts': accounts})
 
 
 @app.route('/api/admin/users/<int:user_id>', methods=['GET'])

@@ -3,7 +3,7 @@
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowLeft, Loader2, User, Clock, Briefcase, Eye, Download, Search } from 'lucide-react';
+import { ArrowLeft, Loader2, User, Clock, Briefcase, Eye, Download, Search, Wallet } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -55,6 +55,14 @@ interface StockView {
   total_time_seconds: number;
 }
 
+interface InvestmentAccount {
+  id: number;
+  name: string;
+  account_type: string;
+  bank: string;
+  created_at: string;
+}
+
 const fetchUserDetail = async (userId: string): Promise<UserData> => {
   const response = await axios.get(`/api/admin/users/${userId}`);
   return response.data.user;
@@ -83,6 +91,11 @@ const fetchUserGraphDownloads = async (userId: string): Promise<GraphDownload[]>
 const fetchUserStockViews = async (userId: string): Promise<StockView[]> => {
   const response = await axios.get(`/api/admin/users/${userId}/stock-views`);
   return response.data.views;
+};
+
+const fetchUserAccounts = async (userId: string): Promise<InvestmentAccount[]> => {
+  const response = await axios.get(`/api/admin/users/${userId}/accounts`);
+  return response.data.accounts;
 };
 
 const formatTime = (minutes: number): string => {
@@ -137,6 +150,13 @@ export function UserDetailPanel() {
   const { data: stockViewsData } = useQuery({
     queryKey: ['admin-user-stock-views', userId],
     queryFn: () => fetchUserStockViews(userId!),
+    enabled: !!userId && !!currentUser?.is_admin,
+  });
+
+  // Fetch user investment accounts
+  const { data: accountsData } = useQuery({
+    queryKey: ['admin-user-accounts', userId],
+    queryFn: () => fetchUserAccounts(userId!),
     enabled: !!userId && !!currentUser?.is_admin,
   });
 
@@ -355,6 +375,45 @@ export function UserDetailPanel() {
           ) : (
             <p className="text-slate-400 text-center py-8">
               {language === 'fr' ? 'Aucune position' : 'No holdings'}
+            </p>
+          )}
+        </div>
+
+        {/* Investment Accounts */}
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <div className="flex items-center gap-2 mb-4">
+            <Wallet className="w-5 h-5 text-purple-500" />
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+              {language === 'fr' ? 'Comptes' : 'Accounts'}
+            </h2>
+            {accountsData && accountsData.length > 0 && (
+              <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">
+                ({accountsData.length})
+              </span>
+            )}
+          </div>
+          {accountsData && accountsData.length > 0 ? (
+            <div className="space-y-2">
+              {accountsData.map((account) => (
+                <div
+                  key={account.id}
+                  className="flex items-center gap-3 bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-3"
+                >
+                  <div className="flex-1">
+                    <div className="font-medium text-slate-800 dark:text-slate-100">{account.name}</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">
+                      {account.account_type} • {account.bank.replace(/_/g, ' ')}
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    {new Date(account.created_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric' })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-slate-400 text-center py-8">
+              {language === 'fr' ? 'Aucun compte' : 'No accounts'}
             </p>
           )}
         </div>

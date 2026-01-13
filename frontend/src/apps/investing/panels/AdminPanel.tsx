@@ -20,7 +20,7 @@ interface AdminUser {
   updated_at: string;
   total_minutes: number;
   last_active: string | null;
-  has_portfolio: boolean;
+  account_count: number;
   graph_downloads: number;
   sign_in_count: number;
   session_count: number;
@@ -31,7 +31,7 @@ interface AdminUsersResponse {
   total: number;
 }
 
-type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes' | 'has_portfolio' | 'graph_downloads' | 'session_count';
+type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes' | 'account_count' | 'graph_downloads' | 'session_count';
 type SortDirection = 'asc' | 'desc';
 
 const fetchUsers = async (): Promise<AdminUsersResponse> => {
@@ -339,8 +339,8 @@ export function AdminPanel() {
         case 'total_minutes':
           comparison = a.total_minutes - b.total_minutes;
           break;
-        case 'has_portfolio':
-          comparison = (a.has_portfolio ? 1 : 0) - (b.has_portfolio ? 1 : 0);
+        case 'account_count':
+          comparison = a.account_count - b.account_count;
           break;
         case 'graph_downloads':
           comparison = a.graph_downloads - b.graph_downloads;
@@ -992,10 +992,10 @@ export function AdminPanel() {
                       </button>
                     </th>
                     <th className="pb-2 text-center whitespace-nowrap">
-                      <button onClick={() => handleSort('has_portfolio')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
-                        <span className="hidden sm:inline">Portf.</span>
-                        <span className="sm:hidden">P</span>
-                        {sortColumn === 'has_portfolio' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      <button onClick={() => handleSort('account_count')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                        <span className="hidden sm:inline">{language === 'fr' ? 'Comptes' : 'Accounts'}</span>
+                        <span className="sm:hidden">A</span>
+                        {sortColumn === 'account_count' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
                     <th className="pb-2 text-center whitespace-nowrap">
@@ -1078,12 +1078,8 @@ export function AdminPanel() {
                             : `${u.total_minutes}m`
                         ) : '-'}
                       </td>
-                      <td className="py-2 text-center">
-                        {u.has_portfolio ? (
-                          <span className="text-green-600">✓</span>
-                        ) : (
-                          <span className="text-slate-300">-</span>
-                        )}
+                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">
+                        {u.account_count > 0 ? u.account_count : '-'}
                       </td>
                       <td className="py-2 text-center text-slate-500 dark:text-slate-300">
                         {u.graph_downloads > 0 ? u.graph_downloads : '-'}
