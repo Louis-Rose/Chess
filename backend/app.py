@@ -661,7 +661,7 @@ def get_device_stats():
 @admin_required
 def get_users_by_theme(theme):
     """Get list of users with a specific theme setting (admin only), excluding admins."""
-    if theme not in ('dark', 'light'):
+    if theme not in ('system', 'dark', 'light'):
         return jsonify({'error': 'Invalid theme'}), 400
 
     with get_db() as conn:
@@ -669,7 +669,7 @@ def get_users_by_theme(theme):
             SELECT u.id, u.name, u.picture
             FROM users u
             INNER JOIN theme_usage t ON u.id = t.user_id
-            WHERE t.resolved_theme = ? AND u.is_admin = 0
+            WHERE t.theme = ? AND u.is_admin = 0
             ORDER BY u.name
         ''', (theme,))
         users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture']} for row in cursor.fetchall()]

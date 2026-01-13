@@ -206,7 +206,7 @@ export function AdminPanel() {
   const [isLoadingTimeSpentUsers, setIsLoadingTimeSpentUsers] = useState(false);
 
   // Settings user lists
-  type SettingsSelection = { type: 'theme'; value: 'dark' | 'light' } | { type: 'language'; value: 'en' | 'fr' } | { type: 'device'; value: 'mobile' | 'desktop' } | null;
+  type SettingsSelection = { type: 'theme'; value: 'system' | 'dark' | 'light' } | { type: 'language'; value: 'en' | 'fr' } | { type: 'device'; value: 'mobile' | 'desktop' } | null;
   const [selectedSetting, setSelectedSetting] = useState<SettingsSelection>(null);
   const [settingsUsers, setSettingsUsers] = useState<{ id: number; name: string; picture: string }[]>([]);
   const [isLoadingSettingsUsers, setIsLoadingSettingsUsers] = useState(false);
@@ -1215,11 +1215,28 @@ export function AdminPanel() {
                   </h4>
                   <div className="space-y-1">
                     {(() => {
-                      const dark = themeStats.by_resolved['dark'] || 0;
-                      const light = themeStats.by_resolved['light'] || 0;
-                      const total = dark + light;
+                      const system = themeStats.by_setting['system'] || 0;
+                      const dark = themeStats.by_setting['dark'] || 0;
+                      const light = themeStats.by_setting['light'] || 0;
+                      const total = system + dark + light;
                       return (
                         <>
+                          <button
+                            onClick={() => handleSettingClick('theme', 'system')}
+                            className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors ${
+                              selectedSetting?.type === 'theme' && selectedSetting?.value === 'system'
+                                ? 'bg-slate-200 dark:bg-slate-500'
+                                : 'hover:bg-slate-200 dark:hover:bg-slate-500'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Monitor className="w-4 h-4 text-blue-500" />
+                              <span className="text-sm text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Système' : 'System'}</span>
+                            </div>
+                            <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                              {total > 0 ? Math.round((system / total) * 100) : 0}% ({system})
+                            </span>
+                          </button>
                           <button
                             onClick={() => handleSettingClick('theme', 'dark')}
                             className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors ${
