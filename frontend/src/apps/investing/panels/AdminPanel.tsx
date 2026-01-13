@@ -1449,26 +1449,6 @@ export function AdminPanel() {
                 </p>
               )}
 
-              {/* Admin Actions */}
-              <div className="bg-slate-100 dark:bg-slate-600 rounded-lg p-4 mt-4">
-                <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">
-                  {language === 'fr' ? 'Actions admin' : 'Admin Actions'}
-                </h4>
-                <button
-                  onClick={async () => {
-                    try {
-                      const res = await axios.post('/api/admin/backfill-sessions');
-                      alert(res.data.message);
-                      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-                    } catch (err) {
-                      alert('Failed to backfill sessions');
-                    }
-                  }}
-                  className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  {language === 'fr' ? 'Recalculer les sessions' : 'Backfill Sessions'}
-                </button>
-              </div>
             </div>
           )}
         </div>
