@@ -63,7 +63,13 @@ def verify_google_token(token: str) -> dict:
 
 def get_or_create_user(google_user: dict) -> int:
     """Get existing user or create new one, return user_id."""
+    from database import DATABASE_PATH
+    print(f"DEBUG: Using database at {DATABASE_PATH}")
     with get_db() as conn:
+        # Debug: check if sign_in_count column exists
+        cursor = conn.execute("PRAGMA table_info(users)")
+        cols = [row[1] for row in cursor.fetchall()]
+        print(f"DEBUG: Users table columns: {cols}")
         # Try to find existing user
         cursor = conn.execute(
             'SELECT id FROM users WHERE google_id = ?',

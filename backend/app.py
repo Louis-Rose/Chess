@@ -565,7 +565,8 @@ def record_device():
 def get_theme_stats():
     """Get theme usage statistics (admin only)."""
     with get_db() as conn:
-        # Get counts by resolved theme (actual display)        cursor = conn.execute('''
+        # Get counts by resolved theme (actual display)
+        cursor = conn.execute('''
             SELECT t.resolved_theme, COUNT(*) as count
             FROM theme_usage t
             INNER JOIN users u ON t.user_id = u.id
@@ -574,7 +575,8 @@ def get_theme_stats():
         ''')
         by_resolved = {row['resolved_theme']: row['count'] for row in cursor.fetchall()}
 
-        # Get counts by theme setting (includes 'system')        cursor = conn.execute('''
+        # Get counts by theme setting (includes 'system')
+        cursor = conn.execute('''
             SELECT t.theme, COUNT(*) as count
             FROM theme_usage t
             INNER JOIN users u ON t.user_id = u.id
@@ -583,7 +585,8 @@ def get_theme_stats():
         ''')
         by_setting = {row['theme']: row['count'] for row in cursor.fetchall()}
 
-        # Get total users with theme data        cursor = conn.execute('''
+        # Get total users with theme data
+        cursor = conn.execute('''
             SELECT COUNT(*) as total
             FROM theme_usage t
             INNER JOIN users u ON t.user_id = u.id
