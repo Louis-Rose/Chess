@@ -43,6 +43,16 @@ def init_db():
             if 'account_id' not in columns:
                 conn.execute('ALTER TABLE portfolio_transactions ADD COLUMN account_id INTEGER')
 
+        # Migration: Update device_usage table to support minutes tracking per device type
+        # Old schema had (user_id UNIQUE), new schema has (user_id, device_type UNIQUE) with minutes
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='device_usage'")
+        if cursor.fetchone():
+            cursor = conn.execute("PRAGMA table_info(device_usage)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'minutes' not in columns:
+                # Drop old table and let schema recreate it (old data is minimal/not useful)
+                conn.execute('DROP TABLE device_usage')
+
         # Now run full schema (creates new tables and indexes)
         with open(schema_path, 'r') as f:
             conn.executescript(f.read())

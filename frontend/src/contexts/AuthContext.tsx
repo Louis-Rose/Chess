@@ -93,11 +93,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const sendHeartbeat = () => {
       if (document.visibilityState === 'visible') {
         const page = getPageFromPath(window.location.pathname);
+
+        // Include settings data for tracking
+        const theme = localStorage.getItem('theme') || 'system';
+        const getSystemTheme = (): 'light' | 'dark' => {
+          if (typeof window !== 'undefined' && window.matchMedia) {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          return 'dark';
+        };
+        const resolved_theme = theme === 'system' ? getSystemTheme() : theme;
+        const language = localStorage.getItem('language') || 'en';
+        const userAgent = navigator.userAgent.toLowerCase();
+        const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(userAgent);
+        const device_type = isMobile ? 'mobile' : 'desktop';
+
         fetch('/api/activity/heartbeat', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ page })
+          body: JSON.stringify({ page, theme, resolved_theme, language, device_type })
         }).catch(() => {}); // Silently fail
       }
     };

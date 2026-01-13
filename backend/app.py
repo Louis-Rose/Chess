@@ -434,6 +434,12 @@ def activity_heartbeat():
     data = request.get_json() or {}
     page = data.get('page', 'other')
 
+    # Settings data (optional, sent with heartbeat)
+    theme = data.get('theme')
+    resolved_theme = data.get('resolved_theme')
+    language = data.get('language')
+    device_type = data.get('device_type')
+
     # Normalize page names to categories
     if page.startswith('stock/'):
         page = 'stock'  # Aggregate all company pages
@@ -486,6 +492,37 @@ def activity_heartbeat():
             ON CONFLICT(user_id, page) DO UPDATE SET
                 minutes = minutes + 1
         ''', (request.user_id, page))
+
+        # Track theme preference (if provided)
+        if theme and resolved_theme:
+            conn.execute('''
+                INSERT INTO theme_usage (user_id, theme, resolved_theme, updated_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    theme = excluded.theme,
+                    resolved_theme = excluded.resolved_theme,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (request.user_id, theme, resolved_theme))
+
+        # Track language preference (if provided)
+        if language:
+            conn.execute('''
+                INSERT INTO language_usage (user_id, language, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    language = excluded.language,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (request.user_id, language))
+
+        # Track device usage minutes (if provided)
+        if device_type in ('mobile', 'desktop'):
+            conn.execute('''
+                INSERT INTO device_usage (user_id, device_type, minutes, updated_at)
+                VALUES (?, ?, 1, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id, device_type) DO UPDATE SET
+                    minutes = minutes + 1,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (request.user_id, device_type))
 
     return jsonify({'success': True})
 
@@ -634,25 +671,29 @@ def get_language_stats():
 def get_device_stats():
     """Get device type usage statistics (admin only)."""
     with get_db() as conn:
+        # Get total minutes per device type
         cursor = conn.execute('''
-            SELECT d.device_type, COUNT(*) as count
+            SELECT d.device_type, SUM(d.minutes) as total_minutes
             FROM device_usage d
             INNER JOIN users u ON d.user_id = u.id
-            WHERE 1=1
             GROUP BY d.device_type
         ''')
-        by_device = {row['device_type']: row['count'] for row in cursor.fetchall()}
+        by_device = {row['device_type']: row['total_minutes'] for row in cursor.fetchall()}
 
+        # Get total users with device data
         cursor = conn.execute('''
-            SELECT COUNT(*) as total
+            SELECT COUNT(DISTINCT d.user_id) as total
             FROM device_usage d
             INNER JOIN users u ON d.user_id = u.id
-            WHERE 1=1
         ''')
         total = cursor.fetchone()['total']
 
+        # Calculate total minutes for percentage
+        total_minutes = sum(by_device.values())
+
     return jsonify({
         'total': total,
+        'total_minutes': total_minutes,
         'by_device': by_device
     })
 

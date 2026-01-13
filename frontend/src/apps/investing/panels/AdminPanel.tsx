@@ -91,7 +91,8 @@ interface LanguageStats {
 
 interface DeviceStats {
   total: number;
-  by_device: Record<string, number>;
+  total_minutes: number;
+  by_device: Record<string, number>;  // Now contains minutes per device type
 }
 
 const fetchThemeStats = async (): Promise<ThemeStats> => {
@@ -1346,12 +1347,14 @@ export function AdminPanel() {
                   <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
                     <Smartphone className="w-4 h-4 text-green-500" />
                     {language === 'fr' ? 'Appareil' : 'Device'}
+                    <span className="text-xs text-slate-400 font-normal">({deviceStats.total} users)</span>
                   </h4>
                   <div className="space-y-1">
                     {(() => {
-                      const mobile = deviceStats.by_device['mobile'] || 0;
-                      const desktop = deviceStats.by_device['desktop'] || 0;
-                      const total = mobile + desktop;
+                      const mobileMinutes = deviceStats.by_device['mobile'] || 0;
+                      const desktopMinutes = deviceStats.by_device['desktop'] || 0;
+                      const totalMinutes = mobileMinutes + desktopMinutes;
+                      const formatMinutes = (m: number) => m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` : `${m}m`;
                       return (
                         <>
                           <button
@@ -1367,7 +1370,7 @@ export function AdminPanel() {
                               <span className="text-sm text-slate-600 dark:text-slate-300">Desktop</span>
                             </div>
                             <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                              {total > 0 ? Math.round((desktop / total) * 100) : 0}% ({desktop})
+                              {totalMinutes > 0 ? Math.round((desktopMinutes / totalMinutes) * 100) : 0}% ({formatMinutes(desktopMinutes)})
                             </span>
                           </button>
                           <button
@@ -1383,7 +1386,7 @@ export function AdminPanel() {
                               <span className="text-sm text-slate-600 dark:text-slate-300">Mobile</span>
                             </div>
                             <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                              {total > 0 ? Math.round((mobile / total) * 100) : 0}% ({mobile})
+                              {totalMinutes > 0 ? Math.round((mobileMinutes / totalMinutes) * 100) : 0}% ({formatMinutes(mobileMinutes)})
                             </span>
                           </button>
                         </>

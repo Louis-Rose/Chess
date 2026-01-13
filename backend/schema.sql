@@ -212,13 +212,15 @@ CREATE TABLE IF NOT EXISTS language_usage (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Device type tracking (for analytics)
+-- Device type tracking (for analytics) - tracks minutes per device type
 CREATE TABLE IF NOT EXISTS device_usage (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER UNIQUE NOT NULL,
+    user_id INTEGER NOT NULL,
     device_type TEXT NOT NULL,       -- 'mobile' or 'desktop'
+    minutes INTEGER DEFAULT 0,       -- Total minutes spent on this device type
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(user_id, device_type)
 );
 
 -- Indexes for faster lookups
