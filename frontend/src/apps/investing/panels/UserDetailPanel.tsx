@@ -37,9 +37,20 @@ interface PortfolioHolding {
   gain_pct: number;
 }
 
-interface PortfolioData {
+interface AccountWithHoldings {
+  account: {
+    id: number;
+    name: string;
+    account_type: string;
+    bank: string;
+    created_at: string;
+  };
   holdings: PortfolioHolding[];
-  total_value_usd: number;
+  total_value_eur: number;
+}
+
+interface PortfolioData {
+  accounts: AccountWithHoldings[];
   total_value_eur: number;
 }
 
@@ -55,13 +66,6 @@ interface StockView {
   total_time_seconds: number;
 }
 
-interface InvestmentAccount {
-  id: number;
-  name: string;
-  account_type: string;
-  bank: string;
-  created_at: string;
-}
 
 const fetchUserDetail = async (userId: string): Promise<UserData> => {
   const response = await axios.get(`/api/admin/users/${userId}`);
@@ -91,11 +95,6 @@ const fetchUserGraphDownloads = async (userId: string): Promise<GraphDownload[]>
 const fetchUserStockViews = async (userId: string): Promise<StockView[]> => {
   const response = await axios.get(`/api/admin/users/${userId}/stock-views`);
   return response.data.views;
-};
-
-const fetchUserAccounts = async (userId: string): Promise<InvestmentAccount[]> => {
-  const response = await axios.get(`/api/admin/users/${userId}/accounts`);
-  return response.data.accounts;
 };
 
 const formatTime = (minutes: number): string => {
@@ -150,13 +149,6 @@ export function UserDetailPanel() {
   const { data: stockViewsData } = useQuery({
     queryKey: ['admin-user-stock-views', userId],
     queryFn: () => fetchUserStockViews(userId!),
-    enabled: !!userId && !!currentUser?.is_admin,
-  });
-
-  // Fetch user investment accounts
-  const { data: accountsData } = useQuery({
-    queryKey: ['admin-user-accounts', userId],
-    queryFn: () => fetchUserAccounts(userId!),
     enabled: !!userId && !!currentUser?.is_admin,
   });
 
@@ -316,14 +308,14 @@ export function UserDetailPanel() {
           )}
         </div>
 
-        {/* Portfolio */}
+        {/* Portfolio by Account */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <div className="flex items-center gap-2 mb-4">
             <Briefcase className="w-5 h-5 text-green-500" />
             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
               {language === 'fr' ? 'Portefeuille' : 'Portfolio'}
             </h2>
-            {portfolioData && portfolioData.holdings.length > 0 && (
+            {portfolioData && portfolioData.total_value_eur > 0 && (
               <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">
                 (€{portfolioData.total_value_eur?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || '0'})
               </span>
@@ -333,81 +325,68 @@ export function UserDetailPanel() {
             <div className="h-[100px] flex items-center justify-center">
               <Loader2 className="w-6 h-6 animate-spin text-green-500" />
             </div>
-          ) : portfolioData && portfolioData.holdings.length > 0 ? (
-            <div className="space-y-2">
-              {portfolioData.holdings.map((holding) => {
-                const logoUrl = getCompanyLogoUrl(holding.ticker);
-                return (
-                  <div
-                    key={holding.ticker}
-                    onClick={() => navigate(`/investing/stock/${holding.ticker}`)}
-                    className="flex items-center gap-3 bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-2 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors"
-                  >
-                    <div className="w-8 h-8 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {logoUrl ? (
-                        <img
-                          src={logoUrl}
-                          alt={holding.ticker}
-                          className="w-7 h-7 object-contain"
-                          onError={(e) => {
-                            const parent = e.currentTarget.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `<span class="text-xs font-bold text-slate-400">${holding.ticker.slice(0, 2)}</span>`;
-                            }
-                          }}
-                        />
-                      ) : (
-                        <span className="text-xs font-bold text-slate-400">{holding.ticker.slice(0, 2)}</span>
-                      )}
-                    </div>
-                    <span className="font-bold text-slate-800 dark:text-slate-100 w-16">{holding.ticker}</span>
-                    <span className="text-slate-500 dark:text-slate-400 text-sm">{holding.quantity} shares</span>
-                    <span className="ml-auto text-slate-800 dark:text-slate-100 font-medium">
-                      €{(portfolioData.total_value_eur * (holding.weight / 100)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+          ) : portfolioData && portfolioData.accounts.length > 0 ? (
+            <div className="space-y-4">
+              {portfolioData.accounts.map((accountData) => (
+                <div key={accountData.account.id} className="space-y-2">
+                  {/* Account Header */}
+                  <div className="flex items-center gap-2 px-2">
+                    <Wallet className="w-4 h-4 text-purple-500" />
+                    <span className="font-medium text-slate-700 dark:text-slate-200">{accountData.account.name}</span>
+                    <span className="text-xs text-slate-400">
+                      {accountData.account.account_type} • {accountData.account.bank.replace(/_/g, ' ')}
                     </span>
-                    <span className={`text-sm font-medium w-16 text-right ${holding.gain_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {holding.gain_pct >= 0 ? '+' : ''}{holding.gain_pct.toFixed(1)}%
-                    </span>
+                    {accountData.total_value_eur > 0 && (
+                      <span className="ml-auto text-sm text-slate-500 dark:text-slate-400">
+                        €{accountData.total_value_eur.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </span>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-slate-400 text-center py-8">
-              {language === 'fr' ? 'Aucune position' : 'No holdings'}
-            </p>
-          )}
-        </div>
-
-        {/* Investment Accounts */}
-        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-          <div className="flex items-center gap-2 mb-4">
-            <Wallet className="w-5 h-5 text-purple-500" />
-            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-              {language === 'fr' ? 'Comptes' : 'Accounts'}
-            </h2>
-            {accountsData && accountsData.length > 0 && (
-              <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">
-                ({accountsData.length})
-              </span>
-            )}
-          </div>
-          {accountsData && accountsData.length > 0 ? (
-            <div className="space-y-2">
-              {accountsData.map((account) => (
-                <div
-                  key={account.id}
-                  className="flex items-center gap-3 bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-3"
-                >
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-800 dark:text-slate-100">{account.name}</div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">
-                      {account.account_type} • {account.bank.replace(/_/g, ' ')}
+                  {/* Holdings */}
+                  {accountData.holdings.length > 0 ? (
+                    <div className="space-y-1 ml-6">
+                      {accountData.holdings.map((holding) => {
+                        const logoUrl = getCompanyLogoUrl(holding.ticker);
+                        return (
+                          <div
+                            key={holding.ticker}
+                            onClick={() => navigate(`/investing/stock/${holding.ticker}`)}
+                            className="flex items-center gap-3 bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-2 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors"
+                          >
+                            <div className="w-7 h-7 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                              {logoUrl ? (
+                                <img
+                                  src={logoUrl}
+                                  alt={holding.ticker}
+                                  className="w-6 h-6 object-contain"
+                                  onError={(e) => {
+                                    const parent = e.currentTarget.parentElement;
+                                    if (parent) {
+                                      parent.innerHTML = `<span class="text-xs font-bold text-slate-400">${holding.ticker.slice(0, 2)}</span>`;
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-xs font-bold text-slate-400">{holding.ticker.slice(0, 2)}</span>
+                              )}
+                            </div>
+                            <span className="font-bold text-slate-800 dark:text-slate-100 w-14 text-sm">{holding.ticker}</span>
+                            <span className="text-slate-500 dark:text-slate-400 text-xs">{holding.quantity} shares</span>
+                            <span className="ml-auto text-slate-800 dark:text-slate-100 font-medium text-sm">
+                              €{(accountData.total_value_eur * (holding.weight / 100)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </span>
+                            <span className={`text-xs font-medium w-14 text-right ${holding.gain_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {holding.gain_pct >= 0 ? '+' : ''}{holding.gain_pct.toFixed(1)}%
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
-                  <div className="text-xs text-slate-400">
-                    {new Date(account.created_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric' })}
-                  </div>
+                  ) : (
+                    <p className="text-slate-400 text-sm ml-6 py-2">
+                      {language === 'fr' ? 'Aucune position' : 'No holdings'}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

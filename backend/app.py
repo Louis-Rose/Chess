@@ -785,6 +785,18 @@ def list_users():
         ''')
         users = [dict(row) for row in cursor.fetchall() if row['email'] not in hidden_emails]
 
+    # Compute total invested value for each user
+    for user in users:
+        holdings = compute_holdings_from_transactions(user['id'])
+        if holdings:
+            try:
+                composition = compute_portfolio_composition(holdings)
+                user['total_invested_eur'] = composition.get('total_value_eur', 0)
+            except:
+                user['total_invested_eur'] = 0
+        else:
+            user['total_invested_eur'] = 0
+
     return jsonify({'users': users, 'total': len(users)})
 
 
@@ -860,21 +872,49 @@ def get_user_watchlist(user_id):
 @app.route('/api/admin/users/<int:user_id>/portfolio', methods=['GET'])
 @admin_required
 def get_user_portfolio(user_id):
-    """Get a user's portfolio composition (admin only)."""
-    holdings = compute_holdings_from_transactions(user_id)
+    """Get a user's portfolio composition grouped by account (admin only)."""
+    # Get all accounts for this user
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT id, name, account_type, bank, created_at
+            FROM investment_accounts
+            WHERE user_id = ?
+            ORDER BY created_at ASC
+        ''', (user_id,))
+        accounts = [dict(row) for row in cursor.fetchall()]
 
-    if not holdings:
-        return jsonify({
-            'holdings': [],
-            'total_value_usd': 0,
-            'total_value_eur': 0,
-        })
+    result = []
+    total_value_eur = 0
 
-    try:
-        composition = compute_portfolio_composition(holdings)
-        return jsonify(composition)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    for account in accounts:
+        holdings = compute_holdings_from_transactions(user_id, account['id'])
+        if holdings:
+            try:
+                composition = compute_portfolio_composition(holdings)
+                account_data = {
+                    'account': account,
+                    'holdings': composition.get('holdings', []),
+                    'total_value_eur': composition.get('total_value_eur', 0)
+                }
+                total_value_eur += composition.get('total_value_eur', 0)
+            except:
+                account_data = {
+                    'account': account,
+                    'holdings': [],
+                    'total_value_eur': 0
+                }
+        else:
+            account_data = {
+                'account': account,
+                'holdings': [],
+                'total_value_eur': 0
+            }
+        result.append(account_data)
+
+    return jsonify({
+        'accounts': result,
+        'total_value_eur': total_value_eur
+    })
 
 
 @app.route('/api/admin/users/<int:user_id>/graph-downloads', methods=['GET'])
