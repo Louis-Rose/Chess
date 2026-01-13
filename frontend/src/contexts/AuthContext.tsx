@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 
 interface UserPreferences {
   chess_username: string | null;
@@ -31,11 +32,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const queryClient = useQueryClient();
+  const hasRecordedSettings = useRef(false);
+
+  // Record theme and device for analytics (only once per session when user is authenticated)
+  const recordUserSettings = () => {
+    if (hasRecordedSettings.current) return;
+    hasRecordedSettings.current = true;
+
+    // Get theme from localStorage
+    const theme = localStorage.getItem('theme') || 'system';
+    const getSystemTheme = (): 'light' | 'dark' => {
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      return 'dark';
+    };
+    const resolvedTheme = theme === 'system' ? getSystemTheme() : theme;
+    axios.post('/api/theme', { theme, resolved_theme: resolvedTheme }).catch(() => {});
+
+    // Get language from localStorage
+    const language = localStorage.getItem('language') || 'en';
+    axios.post('/api/language', { language }).catch(() => {});
+
+    // Detect device type
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(userAgent);
+    const deviceType = isMobile ? 'mobile' : 'desktop';
+    axios.post('/api/device', { device_type: deviceType }).catch(() => {});
+  };
 
   // Check auth status on mount
   useEffect(() => {
     checkAuth();
   }, []);
+
+  // Record settings when user becomes authenticated
+  useEffect(() => {
+    if (user && !isLoading) {
+      recordUserSettings();
+    }
+  }, [user, isLoading]);
 
   // Heartbeat for activity tracking (every 60s when logged in and tab visible)
   useEffect(() => {

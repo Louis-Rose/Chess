@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import axios from 'axios';
 
@@ -50,24 +50,10 @@ if (typeof window !== 'undefined') {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(initialTheme);
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(initialResolved);
-  const hasRecordedInitial = useRef(false);
 
-  // Record theme to backend for analytics
+  // Record theme to backend for analytics (called when user changes theme)
   const recordTheme = (t: Theme, resolved: 'light' | 'dark') => {
     axios.post('/api/theme', { theme: t, resolved_theme: resolved }).catch(() => {});
-  };
-
-  // Detect device type (mobile vs desktop)
-  const detectDeviceType = (): 'mobile' | 'desktop' => {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(userAgent);
-    return isMobile ? 'mobile' : 'desktop';
-  };
-
-  // Record device type to backend for analytics
-  const recordDevice = () => {
-    const deviceType = detectDeviceType();
-    axios.post('/api/device', { device_type: deviceType }).catch(() => {});
   };
 
   // Apply theme on mount and when theme changes
@@ -75,13 +61,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const newResolvedTheme = theme === 'system' ? getSystemTheme() : theme;
     setResolvedTheme(newResolvedTheme);
     applyTheme(newResolvedTheme);
-
-    // Record initial theme and device type on first load
-    if (!hasRecordedInitial.current) {
-      hasRecordedInitial.current = true;
-      recordTheme(theme, newResolvedTheme);
-      recordDevice();
-    }
   }, [theme]);
 
   // Listen for system theme changes when in 'system' mode

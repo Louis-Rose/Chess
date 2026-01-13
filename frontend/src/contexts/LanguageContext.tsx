@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import axios from 'axios';
 
@@ -166,20 +166,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('language');
     return (saved as Language) || 'en';
   });
-  const hasRecordedInitial = useRef(false);
 
-  // Record language to backend for analytics
+  // Record language to backend for analytics (called when user changes language)
   const recordLanguage = (lang: Language) => {
     axios.post('/api/language', { language: lang }).catch(() => {});
   };
-
-  // Record initial language on first load
-  useEffect(() => {
-    if (!hasRecordedInitial.current) {
-      hasRecordedInitial.current = true;
-      recordLanguage(language);
-    }
-  }, [language]);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
