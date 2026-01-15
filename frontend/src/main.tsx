@@ -38,6 +38,7 @@ const options = {
   // This explicitly handles the property causing your error
   person_profiles: 'identified_only', 
   // Remove 'defaults' - it is not a valid PostHog config
+  session_idle_timeout_seconds: 20,
 } as const
 
 createRoot(document.getElementById('root')!).render(
