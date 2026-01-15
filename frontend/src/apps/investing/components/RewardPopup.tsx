@@ -5,7 +5,7 @@ import { Gift, X, Loader2, Check, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { getAllStocks, type Stock } from '../utils/allStocks';
+import { ALL_STOCKS, type Stock } from '../utils/allStocks';
 
 export function RewardPopup() {
   const { isAuthenticated } = useAuth();
@@ -44,7 +44,7 @@ export function RewardPopup() {
 
   // Load all stocks on mount
   useEffect(() => {
-    setAllStocks(getAllStocks());
+    setAllStocks(ALL_STOCKS);
   }, []);
 
   // Check eligibility on mount
