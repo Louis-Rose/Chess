@@ -189,10 +189,26 @@ export function CGUPage() {
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-slate-200 mb-2">3.5 Cookies</h3>
+                <h3 className="text-lg font-semibold text-slate-200 mb-2">3.5 Cookies et Traceurs</h3>
+                <p className="mb-3">La Plateforme utilise deux types de cookies :</p>
+                <ul className="list-disc list-inside space-y-2 ml-2 mb-3">
+                  <li>
+                    <strong className="text-slate-200">Cookies techniques (Essentiels) :</strong>{' '}
+                    Nécessaires au maintien de votre connexion sécurisée. Ils ne requièrent pas de
+                    consentement.
+                  </li>
+                  <li>
+                    <strong className="text-slate-200">Cookies d'analyse (PostHog) :</strong> Nous
+                    permettent de comprendre comment la Plateforme est utilisée (pages visitées,
+                    erreurs rencontrées) afin d'améliorer l'expérience utilisateur.
+                  </li>
+                </ul>
                 <p>
-                  Le site utilise uniquement des cookies techniques nécessaires au fonctionnement
-                  (session). Aucun traceur publicitaire n'est utilisé.
+                  Ces données sont hébergées dans l'Union Européenne (PostHog EU). Vous pouvez à
+                  tout moment accepter ou refuser ces cookies d'analyse via le panneau de
+                  configuration des cookies disponible en bas de page, ou en configurant votre
+                  navigateur. En cas de refus, votre navigation ne sera pas suivie, mais
+                  l'expérience utilisateur reste identique.
                 </p>
               </div>
             </div>
