@@ -8,7 +8,7 @@ export function CGUPage() {
     <div className="min-h-screen bg-slate-800 py-12 px-4">
       <div className="max-w-3xl mx-auto">
         <Link
-          to="/"
+          to="/investing"
           className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-200 mb-8 transition-colors"
         >
           <ArrowLeft size={20} />
