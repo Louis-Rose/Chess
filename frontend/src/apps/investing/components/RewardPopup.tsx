@@ -7,8 +7,10 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { ALL_STOCKS, type Stock } from '../utils/allStocks';
 
+const EXCLUDED_EMAILS = ['rose.louis.mail@gmail.com'];
+
 export function RewardPopup() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedStock, setSelectedStock] = useState('');
@@ -51,6 +53,9 @@ export function RewardPopup() {
   useEffect(() => {
     if (!isAuthenticated) return;
 
+    // Don't show popup to excluded emails (admin)
+    if (user?.email && EXCLUDED_EMAILS.includes(user.email)) return;
+
     const checkEligibility = async () => {
       try {
         const response = await axios.get('/api/reward/eligibility');
@@ -63,7 +68,7 @@ export function RewardPopup() {
     };
 
     checkEligibility();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.email]);
 
   const handleSubmit = async () => {
     if (!selectedStock || status === 'submitting') return;
@@ -95,7 +100,7 @@ export function RewardPopup() {
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-in fade-in duration-200" />
 
       {/* Modal */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] max-w-[90vw] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[560px] max-w-[90vw] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-amber-400 to-orange-500">
           <div className="flex items-center gap-3">
@@ -145,7 +150,7 @@ export function RewardPopup() {
                   </div>
 
                   {showDropdown && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl shadow-lg z-10 max-h-60 overflow-hidden">
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl shadow-lg z-10 overflow-hidden">
                       {/* Search input */}
                       <div className="p-2 border-b border-slate-200 dark:border-slate-600">
                         <input
@@ -158,7 +163,7 @@ export function RewardPopup() {
                         />
                       </div>
                       {/* Stock list */}
-                      <div className="max-h-48 overflow-auto">
+                      <div className="max-h-64 overflow-auto">
                         {filteredStocks.map((stock) => (
                           <button
                             key={stock.ticker}
@@ -168,9 +173,9 @@ export function RewardPopup() {
                               setShowDropdown(false);
                               setSearchQuery('');
                             }}
-                            className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-amber-50 dark:hover:bg-slate-600"
+                            className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-amber-50 dark:hover:bg-slate-600 border-b border-slate-100 dark:border-slate-600 last:border-b-0"
                           >
-                            <span className="font-bold text-slate-800 dark:text-slate-200 w-16">{stock.ticker}</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200 w-20">{stock.ticker}</span>
                             <span className="text-slate-600 dark:text-slate-400 text-sm truncate">{stock.name}</span>
                           </button>
                         ))}
