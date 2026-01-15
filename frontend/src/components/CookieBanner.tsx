@@ -16,8 +16,8 @@ export function CookieBanner() {
       <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <p className="text-slate-300 text-sm text-center sm:text-left">
           {language === 'fr'
-            ? 'Nous utilisons des cookies pour analyser l\'utilisation de la plateforme et l\'améliorer. Acceptez-vous le suivi anonyme de votre navigation ?'
-            : 'We use cookies to analyze platform usage and improve it. Do you accept anonymous tracking of your browsing?'}
+            ? 'Nous utilisons des cookies pour analyser l\'utilisation de la plateforme et l\'améliorer. Acceptez-vous le suivi de votre navigation ?'
+            : 'We use cookies to analyze platform usage and improve it. Do you accept tracking of your browsing?'}
         </p>
         <div className="flex gap-3 flex-shrink-0">
           <button
