@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import posthog from 'posthog-js';
 import axios from 'axios';
 
 interface UserPreferences {
@@ -133,6 +134,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       const data = await response.json();
       setUser(data.user);
+
+      // Identify returning user in PostHog
+      if (data.user) {
+        posthog.identify(data.user.email, {
+          name: data.user.name,
+          email: data.user.email,
+        });
+      }
     } catch (error) {
       setUser(null);
     } finally {
@@ -156,6 +165,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await response.json();
     queryClient.clear(); // Clear cache from previous user
     setUser(data.user);
+
+    // Identify user in PostHog
+    if (data.user) {
+      posthog.identify(data.user.email, {
+        name: data.user.name,
+        email: data.user.email,
+      });
+    }
   };
 
   const logout = async () => {
@@ -169,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUser(null);
     queryClient.clear();
+    posthog.reset(); // Clear PostHog identity
   };
 
   const updatePreferences = async (prefs: Partial<UserPreferences>) => {
