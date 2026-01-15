@@ -503,3 +503,124 @@ def send_earnings_alert_email(to_email: str, to_name: str, earnings_data: list, 
     except Exception as e:
         print(f"Failed to send email to {to_email}: {e}")
         return False
+
+
+def send_reward_notification_email(winner_name: str, winner_email: str, selected_company: str) -> bool:
+    """
+    Send an email notification when someone claims the first visitor reward.
+
+    Args:
+        winner_name: Name of the user who claimed the reward
+        winner_email: Email of the user who claimed the reward
+        selected_company: Ticker of the company they selected for analysis
+
+    Returns:
+        True if email sent successfully, False otherwise
+    """
+    if not SMTP_EMAIL or not SMTP_PASSWORD:
+        print("SMTP credentials not configured")
+        return False
+
+    subject = "🎉 First 5-Visit Reward Claimed!"
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: #f8fafc;
+                padding: 20px;
+            }}
+            .container {{
+                max-width: 500px;
+                margin: 0 auto;
+                background-color: #ffffff;
+                border-radius: 12px;
+                padding: 30px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }}
+            h1 {{
+                color: #1e293b;
+                font-size: 24px;
+                margin-bottom: 20px;
+                text-align: center;
+            }}
+            .info {{
+                background-color: #f0fdf4;
+                border: 1px solid #bbf7d0;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 20px;
+            }}
+            .info p {{
+                margin: 10px 0;
+                color: #166534;
+                font-size: 16px;
+            }}
+            .info strong {{
+                color: #14532d;
+            }}
+            .company {{
+                text-align: center;
+                background-color: #fef3c7;
+                border: 1px solid #fcd34d;
+                border-radius: 8px;
+                padding: 15px;
+            }}
+            .company-label {{
+                font-size: 14px;
+                color: #92400e;
+                margin-bottom: 5px;
+            }}
+            .company-ticker {{
+                font-size: 28px;
+                font-weight: 700;
+                color: #78350f;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🎉 Reward Claimed!</h1>
+            <div class="info">
+                <p><strong>Winner:</strong> {winner_name}</p>
+                <p><strong>Email:</strong> {winner_email}</p>
+                <p><strong>Date:</strong> {datetime.now().strftime('%B %d, %Y at %H:%M')}</p>
+            </div>
+            <div class="company">
+                <p class="company-label">Selected Company for Analysis</p>
+                <p class="company-ticker">{selected_company}</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = f"LUMNA <{SMTP_EMAIL}>"
+    msg['To'] = FEEDBACK_EMAIL  # rose.louis.mail@gmail.com
+
+    plain_text = f"""First 5-Visit Reward Claimed!
+
+Winner: {winner_name}
+Email: {winner_email}
+Selected Company: {selected_company}
+Date: {datetime.now().strftime('%B %d, %Y at %H:%M')}
+"""
+
+    msg.attach(MIMEText(plain_text, 'plain'))
+    msg.attach(MIMEText(html_body, 'html'))
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.send_message(msg)
+        print(f"Reward notification email sent successfully for {winner_name}")
+        return True
+    except Exception as e:
+        print(f"Failed to send reward notification email: {e}")
+        return False

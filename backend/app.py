@@ -2522,6 +2522,72 @@ def clear_video_cache():
     return jsonify({'success': True, 'message': 'Video cache cleared. Videos will be re-fetched with descriptions.'})
 
 
+@app.route('/api/reward/eligibility', methods=['GET'])
+@login_required
+def check_reward_eligibility():
+    """Check if user is eligible for the first visitor reward (5+ sessions, reward unclaimed)."""
+    with get_db() as conn:
+        # Check if reward has already been claimed by anyone
+        cursor = conn.execute('SELECT id FROM first_visitor_reward LIMIT 1')
+        if cursor.fetchone():
+            return jsonify({'eligible': False, 'reason': 'already_claimed'})
+
+        # Check if current user has 5+ sessions
+        cursor = conn.execute('SELECT session_count FROM users WHERE id = ?', (request.user_id,))
+        user = cursor.fetchone()
+
+        if not user:
+            return jsonify({'eligible': False, 'reason': 'user_not_found'})
+
+        if user['session_count'] >= 5:
+            return jsonify({'eligible': True})
+        else:
+            return jsonify({'eligible': False, 'reason': 'not_enough_sessions', 'current_sessions': user['session_count']})
+
+
+@app.route('/api/reward/claim', methods=['POST'])
+@login_required
+def claim_reward():
+    """Claim the first visitor reward by selecting a company for analysis."""
+    from email_utils import send_reward_notification_email
+
+    data = request.get_json()
+    selected_company = data.get('company', '').strip().upper()
+
+    if not selected_company:
+        return jsonify({'error': 'Company ticker is required'}), 400
+
+    with get_db() as conn:
+        # Double-check reward hasn't been claimed (race condition protection)
+        cursor = conn.execute('SELECT id FROM first_visitor_reward LIMIT 1')
+        if cursor.fetchone():
+            return jsonify({'error': 'Reward has already been claimed'}), 409
+
+        # Check user has 5+ sessions
+        cursor = conn.execute('SELECT session_count, name, email FROM users WHERE id = ?', (request.user_id,))
+        user = cursor.fetchone()
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        if user['session_count'] < 5:
+            return jsonify({'error': 'Not enough sessions to claim reward'}), 403
+
+        user_name = user['name'] or 'Unknown User'
+        user_email = user['email']
+
+        # Claim the reward
+        conn.execute('''
+            INSERT INTO first_visitor_reward (user_id, user_name, user_email, selected_company)
+            VALUES (?, ?, ?, ?)
+        ''', (request.user_id, user_name, user_email, selected_company))
+
+        # Send notification email
+        send_reward_notification_email(user_name, user_email, selected_company)
+
+    return jsonify({'success': True, 'message': 'Reward claimed successfully!'})
+
+
 @app.route('/api/feedback', methods=['POST'])
 @login_required
 def submit_feedback():

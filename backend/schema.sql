@@ -223,6 +223,17 @@ CREATE TABLE IF NOT EXISTS device_usage (
     UNIQUE(user_id, device_type)
 );
 
+-- First visitor reward tracking (one-time reward for first user to reach 5 visits)
+CREATE TABLE IF NOT EXISTS first_visitor_reward (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    user_name TEXT NOT NULL,
+    user_email TEXT NOT NULL,
+    selected_company TEXT NOT NULL,  -- Ticker chosen by the winner
+    claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);

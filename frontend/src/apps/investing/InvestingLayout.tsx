@@ -10,6 +10,7 @@ import { UserMenu } from '../../components/UserMenu';
 import { LanguageToggle } from '../../components/LanguageToggle';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { FeedbackWidget } from '../../components/FeedbackWidget';
+import { RewardPopup } from './components/RewardPopup';
 
 export function InvestingLayout() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -52,6 +53,9 @@ export function InvestingLayout() {
 
       {/* Floating feedback widget */}
       <FeedbackWidget language={language} />
+
+      {/* First visitor reward popup */}
+      <RewardPopup />
     </div>
   );
 }
