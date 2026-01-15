@@ -481,7 +481,7 @@ def activity_heartbeat():
             INSERT INTO user_activity (user_id, activity_date, minutes, last_ping)
             VALUES (?, ?, 1, CURRENT_TIMESTAMP)
             ON CONFLICT(user_id, activity_date) DO UPDATE SET
-                minutes = minutes + 1,
+                minutes = user_activity.minutes + 1,
                 last_ping = CURRENT_TIMESTAMP
         ''', (request.user_id, today))
 
@@ -490,7 +490,7 @@ def activity_heartbeat():
             INSERT INTO page_activity (user_id, page, minutes)
             VALUES (?, ?, 1)
             ON CONFLICT(user_id, page) DO UPDATE SET
-                minutes = minutes + 1
+                minutes = page_activity.minutes + 1
         ''', (request.user_id, page))
 
         # Track theme preference (if provided)
@@ -520,7 +520,7 @@ def activity_heartbeat():
                 INSERT INTO device_usage (user_id, device_type, minutes, updated_at)
                 VALUES (?, ?, 1, CURRENT_TIMESTAMP)
                 ON CONFLICT(user_id, device_type) DO UPDATE SET
-                    minutes = minutes + 1,
+                    minutes = device_usage.minutes + 1,
                     updated_at = CURRENT_TIMESTAMP
             ''', (request.user_id, device_type))
 
@@ -2300,8 +2300,8 @@ def record_stock_view():
             INSERT INTO stock_views (user_id, stock_ticker, view_date, view_count, time_spent_seconds)
             VALUES (?, ?, ?, 1, ?)
             ON CONFLICT(user_id, stock_ticker, view_date) DO UPDATE SET
-                view_count = view_count + 1,
-                time_spent_seconds = time_spent_seconds + excluded.time_spent_seconds,
+                view_count = stock_views.view_count + 1,
+                time_spent_seconds = stock_views.time_spent_seconds + excluded.time_spent_seconds,
                 last_viewed_at = CURRENT_TIMESTAMP
         ''', (request.user_id, ticker, today, time_spent))
         conn.commit()
