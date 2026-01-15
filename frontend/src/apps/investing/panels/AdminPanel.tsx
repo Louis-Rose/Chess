@@ -1435,7 +1435,7 @@ export function AdminPanel() {
                             )}
                             <span className="text-sm text-slate-700 dark:text-slate-200 flex-1">{u.name}</span>
                             {u.minutes !== undefined && (
-                              <span className="text-xs text-slate-500 dark:text-slate-400">{formatMins(u.minutes)}</span>
+                              <span className="text-xs text-slate-400 dark:text-slate-300">{formatMins(u.minutes)}</span>
                             )}
                           </div>
                         );
