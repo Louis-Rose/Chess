@@ -826,7 +826,19 @@ def list_users():
             GROUP BY u.id
             ORDER BY u.created_at DESC
         ''')
-        users = [dict(row) for row in cursor.fetchall() if row['email'] not in hidden_emails]
+        users = []
+        for row in cursor.fetchall():
+            if row['email'] in hidden_emails:
+                continue
+            user = dict(row)
+            # Convert datetime objects to ISO strings for consistent JSON serialization
+            if user.get('created_at') and hasattr(user['created_at'], 'isoformat'):
+                user['created_at'] = user['created_at'].isoformat()
+            if user.get('updated_at') and hasattr(user['updated_at'], 'isoformat'):
+                user['updated_at'] = user['updated_at'].isoformat()
+            if user.get('last_active') and hasattr(user['last_active'], 'isoformat'):
+                user['last_active'] = user['last_active'].isoformat()
+            users.append(user)
 
     # Compute total invested value for each user
     for user in users:
