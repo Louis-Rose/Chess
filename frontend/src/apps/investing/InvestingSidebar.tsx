@@ -220,11 +220,19 @@ export function InvestingSidebar() {
         </div>
       )}
 
-      {/* Theme, Language & Collapse - at bottom */}
+      {/* Theme, Language, Legal & Collapse - at bottom */}
       <div className={`mt-auto flex-shrink-0 ${isCollapsed ? 'px-0' : 'px-2'} pt-4 border-t border-slate-700`}>
         <div className="flex flex-col items-center gap-3">
           <ThemeToggle collapsed={isCollapsed} />
           <LanguageToggle collapsed={isCollapsed} />
+          {!isCollapsed && (
+            <Link
+              to="/cgu"
+              className="text-slate-500 hover:text-slate-300 text-xs transition-colors"
+            >
+              {language === 'fr' ? 'Mentions légales' : 'Legal notices'}
+            </Link>
+          )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm transition-colors"
