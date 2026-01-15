@@ -66,6 +66,15 @@ export function LandingPage() {
           </p>
         </div>
       )}
+
+      <footer className="mt-auto pt-16">
+        <Link
+          to="/cgu"
+          className="text-slate-500 hover:text-slate-300 text-sm transition-colors"
+        >
+          Mentions Légales, CGUs & Confidentialité
+        </Link>
+      </footer>
     </div>
   );
 }
