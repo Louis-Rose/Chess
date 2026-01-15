@@ -1070,8 +1070,9 @@ def add_transaction():
         cursor = conn.execute('''
             INSERT INTO portfolio_transactions (user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share)
             VALUES (?, ?, ?, ?, ?, ?, ?)
+            RETURNING id
         ''', (request.user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share))
-        transaction_id = cursor.lastrowid
+        transaction_id = cursor.fetchone()['id']
 
     return jsonify({
         'success': True,
@@ -1785,8 +1786,9 @@ def create_account():
         cursor = conn.execute('''
             INSERT INTO investment_accounts (user_id, name, account_type, bank)
             VALUES (?, ?, ?, ?)
+            RETURNING id
         ''', (request.user_id, name, account_type, bank))
-        account_id = cursor.lastrowid
+        account_id = cursor.fetchone()['id']
 
     return jsonify({
         'success': True,
