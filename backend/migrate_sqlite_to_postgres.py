@@ -160,6 +160,12 @@ def main():
     sqlite_conn = get_sqlite_conn()
     pg_conn = get_pg_conn()
 
+    # Disable foreign key checks for migration
+    pg_cursor = pg_conn.cursor()
+    pg_cursor.execute("SET session_replication_role = replica;")
+    pg_conn.commit()
+    print("Foreign key checks disabled for migration.")
+
     print("\nMigrating tables:")
     total_rows = 0
     for table in TABLES:
@@ -168,6 +174,11 @@ def main():
             total_rows += rows
         except Exception as e:
             print(f"  {table}: ERROR - {e}")
+
+    # Re-enable foreign key checks
+    pg_cursor.execute("SET session_replication_role = DEFAULT;")
+    pg_conn.commit()
+    print("\nForeign key checks re-enabled.")
 
     sqlite_conn.close()
     pg_conn.close()
