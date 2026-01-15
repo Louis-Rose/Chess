@@ -27,9 +27,17 @@ const queryClient = new QueryClient({
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
 
+// const options = {
+//   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+//   defaults: '2025-11-30',
+// } as const
+
+// 👇 UPDATED OPTIONS
 const options = {
   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-  defaults: '2025-11-30',
+  // This explicitly handles the property causing your error
+  person_profiles: 'identified_only', 
+  // Remove 'defaults' - it is not a valid PostHog config
 } as const
 
 createRoot(document.getElementById('root')!).render(
