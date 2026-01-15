@@ -5,6 +5,7 @@ After=network.target
 [Service]
 User=azureuser
 WorkingDirectory=/home/azureuser/Chess/backend
+EnvironmentFile=/home/azureuser/Chess/backend/.env.prod
 Environment="FLASK_ENV=prod"
 ExecStart=/home/azureuser/Chess/backend/venv/bin/gunicorn --bind 127.0.0.1:5001 --worker-class gevent --timeout 300 app:app
 Restart=always
