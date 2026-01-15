@@ -585,10 +585,9 @@ def record_device():
 
     with get_db() as conn:
         conn.execute('''
-            INSERT INTO device_usage (user_id, device_type, updated_at)
-            VALUES (?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(user_id) DO UPDATE SET
-                device_type = excluded.device_type,
+            INSERT INTO device_usage (user_id, device_type, minutes, updated_at)
+            VALUES (?, ?, 0, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id, device_type) DO UPDATE SET
                 updated_at = CURRENT_TIMESTAMP
         ''', (request.user_id, device_type))
 
