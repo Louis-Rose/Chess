@@ -26,13 +26,15 @@ const queryClient = new QueryClient({
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
-const posthogOptions = {
+
+const options = {
   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-}
+  defaults: '2025-11-30',
+} as const
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <PostHogProvider apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY} options={posthogOptions}>
+    <PostHogProvider apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY} options={options}>
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
@@ -47,5 +49,6 @@ createRoot(document.getElementById('root')!).render(
         </QueryClientProvider>
       </GoogleOAuthProvider>
     </PostHogProvider>
-  </StrictMode>,
+  </StrictMode>
 )
+
