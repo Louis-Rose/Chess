@@ -210,7 +210,7 @@ export function AdminPanel() {
   // Settings user lists
   type SettingsSelection = { type: 'theme'; value: 'system' | 'dark' | 'light' } | { type: 'language'; value: 'en' | 'fr' } | { type: 'device'; value: 'mobile' | 'desktop' } | null;
   const [selectedSetting, setSelectedSetting] = useState<SettingsSelection>(null);
-  const [settingsUsers, setSettingsUsers] = useState<{ id: number; name: string; picture: string }[]>([]);
+  const [settingsUsers, setSettingsUsers] = useState<{ id: number; name: string; picture: string; minutes?: number }[]>([]);
   const [isLoadingSettingsUsers, setIsLoadingSettingsUsers] = useState(false);
 
   const handleSettingClick = async (type: 'theme' | 'language' | 'device', value: string) => {
@@ -1418,22 +1418,28 @@ export function AdminPanel() {
                     </div>
                   ) : settingsUsers.length > 0 ? (
                     <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {settingsUsers.map((u) => (
-                        <div
-                          key={u.id}
-                          className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-300 dark:hover:bg-slate-400 cursor-pointer"
-                          onClick={() => navigate(`/investing/admin/user/${u.id}`)}
-                        >
-                          {u.picture ? (
-                            <img src={u.picture} alt={u.name} className="w-6 h-6 rounded-full" />
-                          ) : (
-                            <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
-                              {u.name?.charAt(0) || '?'}
-                            </div>
-                          )}
-                          <span className="text-sm text-slate-700 dark:text-slate-200">{u.name}</span>
-                        </div>
-                      ))}
+                      {settingsUsers.map((u) => {
+                        const formatMins = (m: number) => m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` : `${m}m`;
+                        return (
+                          <div
+                            key={u.id}
+                            className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-300 dark:hover:bg-slate-400 cursor-pointer"
+                            onClick={() => navigate(`/investing/admin/user/${u.id}`)}
+                          >
+                            {u.picture ? (
+                              <img src={u.picture} alt={u.name} className="w-6 h-6 rounded-full" />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
+                                {u.name?.charAt(0) || '?'}
+                              </div>
+                            )}
+                            <span className="text-sm text-slate-700 dark:text-slate-200 flex-1">{u.name}</span>
+                            {u.minutes !== undefined && (
+                              <span className="text-xs text-slate-500 dark:text-slate-400">{formatMins(u.minutes)}</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-sm text-slate-500 text-center py-2">

@@ -744,12 +744,13 @@ def get_users_by_device(device):
 
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT u.id, u.name, u.picture
+            SELECT u.id, u.name, u.picture, d.minutes
             FROM users u
             INNER JOIN device_usage d ON u.id = d.user_id
-            WHERE d.device_type = ?             ORDER BY u.name
+            WHERE d.device_type = ?
+            ORDER BY d.minutes DESC
         ''', (device,))
-        users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture']} for row in cursor.fetchall()]
+        users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture'], 'minutes': row['minutes']} for row in cursor.fetchall()]
 
     return jsonify({'users': users})
 
