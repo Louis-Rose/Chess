@@ -306,8 +306,10 @@ def refresh_auth():
         if not row:
             return jsonify({'error': 'Invalid refresh token'}), 401
 
-        expires_at = datetime.fromisoformat(row['expires_at'])
-        if expires_at < datetime.utcnow():
+        expires_at = row['expires_at']
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
+        if expires_at.replace(tzinfo=None) < datetime.utcnow():
             # Delete expired token
             conn.execute('DELETE FROM refresh_tokens WHERE token_hash = ?', (token_hash,))
             return jsonify({'error': 'Refresh token expired'}), 401
@@ -1931,8 +1933,10 @@ def get_cached_earnings(ticker):
         if not row:
             return None, None, False  # Not in cache
 
-        updated_at = datetime.fromisoformat(row['updated_at'])
-        age_hours = (datetime.now() - updated_at).total_seconds() / 3600
+        updated_at = row['updated_at']
+        if isinstance(updated_at, str):
+            updated_at = datetime.fromisoformat(updated_at)
+        age_hours = (datetime.now() - updated_at.replace(tzinfo=None)).total_seconds() / 3600
 
         # Null results have shorter TTL (1 hour) to retry failed lookups sooner
         max_age = 24 if row['next_earnings_date'] else 1
