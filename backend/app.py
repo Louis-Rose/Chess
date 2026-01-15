@@ -2525,10 +2525,10 @@ def clear_video_cache():
 @app.route('/api/reward/eligibility', methods=['GET'])
 @login_required
 def check_reward_eligibility():
-    """Check if user is eligible for the first visitor reward (5+ sessions, reward unclaimed)."""
+    """Check if user is eligible for the 5th visit reward (5+ sessions, not yet claimed by this user)."""
     with get_db() as conn:
-        # Check if reward has already been claimed by anyone
-        cursor = conn.execute('SELECT id FROM first_visitor_reward LIMIT 1')
+        # Check if this user has already claimed the reward
+        cursor = conn.execute('SELECT id FROM first_visitor_reward WHERE user_id = ?', (request.user_id,))
         if cursor.fetchone():
             return jsonify({'eligible': False, 'reason': 'already_claimed'})
 
@@ -2548,7 +2548,7 @@ def check_reward_eligibility():
 @app.route('/api/reward/claim', methods=['POST'])
 @login_required
 def claim_reward():
-    """Claim the first visitor reward by selecting a company for analysis."""
+    """Claim the 5th visit reward by selecting a company for analysis."""
     from email_utils import send_reward_notification_email
 
     data = request.get_json()
@@ -2558,10 +2558,10 @@ def claim_reward():
         return jsonify({'error': 'Company ticker is required'}), 400
 
     with get_db() as conn:
-        # Double-check reward hasn't been claimed (race condition protection)
-        cursor = conn.execute('SELECT id FROM first_visitor_reward LIMIT 1')
+        # Check if this user already claimed
+        cursor = conn.execute('SELECT id FROM first_visitor_reward WHERE user_id = ?', (request.user_id,))
         if cursor.fetchone():
-            return jsonify({'error': 'Reward has already been claimed'}), 409
+            return jsonify({'error': 'You have already claimed this reward'}), 409
 
         # Check user has 5+ sessions
         cursor = conn.execute('SELECT session_count, name, email FROM users WHERE id = ?', (request.user_id,))
