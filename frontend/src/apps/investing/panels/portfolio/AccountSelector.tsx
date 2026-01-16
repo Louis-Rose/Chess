@@ -94,6 +94,32 @@ export function AccountSelector({
           {showAddAccountForm && (
             <div className="bg-white rounded-lg p-4 mb-4 border border-slate-200">
               <div className="flex gap-3 flex-wrap items-end">
+                <div className="min-w-[180px]">
+                  <label className="block text-sm font-medium text-slate-600 mb-1">{t('accounts.bank')}</label>
+                  <select
+                    value={newAccountBank}
+                    onChange={(e) => setNewAccountBank(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="">{t('accounts.selectBank')}</option>
+                    {Object.entries(banks).map(([key, info]) => (
+                      <option key={key} value={key}>{info.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="min-w-[160px]">
+                  <label className="block text-sm font-medium text-slate-600 mb-1">{t('accounts.accountType')}</label>
+                  <select
+                    value={newAccountType}
+                    onChange={(e) => setNewAccountType(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="">{t('accounts.selectType')}</option>
+                    {Object.entries(accountTypes).map(([key, info]) => (
+                      <option key={key} value={key}>{info.name}</option>
+                    ))}
+                  </select>
+                </div>
                 <div className="min-w-[140px]">
                   <label className="block text-sm font-medium text-slate-600 mb-1">{language === 'fr' ? 'Nom' : 'Name'}</label>
                   <input
@@ -109,32 +135,6 @@ export function AccountSelector({
                     placeholder={language === 'fr' ? `COMPTE ${accounts.length + 1}` : `ACCOUNT ${accounts.length + 1}`}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
-                </div>
-                <div className="min-w-[160px]">
-                  <label className="block text-sm font-medium text-slate-600 mb-1">{t('accounts.accountType')}</label>
-                  <select
-                    value={newAccountType}
-                    onChange={(e) => setNewAccountType(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="">{t('accounts.selectType')}</option>
-                    {Object.entries(accountTypes).map(([key, info]) => (
-                      <option key={key} value={key}>{info.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="min-w-[180px]">
-                  <label className="block text-sm font-medium text-slate-600 mb-1">{t('accounts.bank')}</label>
-                  <select
-                    value={newAccountBank}
-                    onChange={(e) => setNewAccountBank(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="">{t('accounts.selectBank')}</option>
-                    {Object.entries(banks).map(([key, info]) => (
-                      <option key={key} value={key}>{info.name}</option>
-                    ))}
-                  </select>
                 </div>
                 <button
                   onClick={handleCreateAccount}
