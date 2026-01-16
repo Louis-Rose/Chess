@@ -4,6 +4,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { LandingPage } from './pages/LandingPage';
 import { CGUPage } from './pages/CGUPage';
+import { MobileUpload } from './pages/MobileUpload';
 import { ChessApp } from './apps/chess/ChessApp';
 import { InvestingApp } from './apps/investing/InvestingApp';
 
@@ -12,6 +13,7 @@ function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/cgu" element={<CGUPage />} />
+      <Route path="/upload/:token" element={<MobileUpload />} />
       <Route path="/chess/*" element={<ChessApp />} />
       <Route path="/investing/*" element={<InvestingApp />} />
       <Route path="*" element={<Navigate to="/" replace />} />

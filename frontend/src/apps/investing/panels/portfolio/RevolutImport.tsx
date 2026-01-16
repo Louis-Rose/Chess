@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Upload, FileText, X, Check, AlertCircle, Loader2, Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Upload, FileText, X, Check, AlertCircle, Loader2, Trash2, Smartphone, Monitor } from 'lucide-react';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 
@@ -21,6 +21,16 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
   const { language } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Mode: 'choose' | 'desktop' | 'qr'
+  const [mode, setMode] = useState<'choose' | 'desktop' | 'qr'>('choose');
+
+  // QR code state
+  const [qrToken, setQrToken] = useState<string | null>(null);
+  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Direct upload state
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
@@ -30,6 +40,71 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const [importErrors, setImportErrors] = useState<string[]>([]);
+
+  // Generate QR token
+  const generateQrToken = useCallback(async () => {
+    setIsGeneratingToken(true);
+    try {
+      const response = await axios.post('/api/investing/import/create-token');
+      setQrToken(response.data.token);
+      setIsPolling(true);
+    } catch {
+      setParseError(language === 'fr' ? 'Erreur lors de la génération du QR code' : 'Failed to generate QR code');
+    } finally {
+      setIsGeneratingToken(false);
+    }
+  }, [language]);
+
+  // Poll for upload status
+  useEffect(() => {
+    if (!isPolling || !qrToken) return;
+
+    const pollStatus = async () => {
+      try {
+        const response = await axios.get(`/api/investing/import/status/${qrToken}`);
+        if (response.data.status === 'uploaded') {
+          setIsPolling(false);
+          setParsedTransactions(response.data.transactions);
+          setSelectedTransactions(new Set(response.data.transactions.map((_: ParsedTransaction, i: number) => i)));
+          setMode('desktop'); // Switch to review mode
+        } else if (response.data.status === 'error') {
+          setIsPolling(false);
+          setParseError(response.data.error);
+        }
+      } catch {
+        // Token might have expired
+        setIsPolling(false);
+        setParseError(language === 'fr' ? 'Le lien a expiré' : 'Link expired');
+      }
+    };
+
+    // Check immediately, then poll every 2 seconds
+    pollStatus();
+    pollingRef.current = setInterval(pollStatus, 2000);
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [isPolling, qrToken, language]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
+
+  // Start QR mode
+  const startQrMode = () => {
+    setMode('qr');
+    generateQrToken();
+  };
+
+  // Get QR code URL
+  const getQrCodeUrl = () => {
+    if (!qrToken) return '';
+    const uploadUrl = `${window.location.origin}/upload/${qrToken}`;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(uploadUrl)}`;
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -150,6 +225,13 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
     setSelectedTransactions(new Set());
     setParseError(null);
     setImportErrors([]);
+    setMode('choose');
+    setQrToken(null);
+    setIsPolling(false);
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -180,8 +262,85 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
         </button>
       </div>
 
-      {/* Upload Area */}
-      {!file && !isParsing && (
+      {/* Mode Selection */}
+      {mode === 'choose' && !parseError && (
+        <div className="space-y-3">
+          <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-4">
+            {language === 'fr' ? 'Comment souhaitez-vous importer ?' : 'How would you like to import?'}
+          </p>
+          <button
+            onClick={() => setMode('desktop')}
+            className="w-full flex items-center gap-4 p-4 border border-slate-200 dark:border-slate-600 rounded-xl hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+          >
+            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+              <Monitor className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-slate-800 dark:text-slate-100">
+                {language === 'fr' ? 'Depuis cet ordinateur' : 'From this computer'}
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {language === 'fr' ? 'J\'ai le PDF sur cet appareil' : 'I have the PDF on this device'}
+              </p>
+            </div>
+          </button>
+          <button
+            onClick={startQrMode}
+            className="w-full flex items-center gap-4 p-4 border border-slate-200 dark:border-slate-600 rounded-xl hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+          >
+            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+              <Smartphone className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-slate-800 dark:text-slate-100">
+                {language === 'fr' ? 'Depuis mon téléphone' : 'From my phone'}
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {language === 'fr' ? 'Scanner un QR code pour uploader' : 'Scan QR code to upload'}
+              </p>
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* QR Code Mode */}
+      {mode === 'qr' && !parsedTransactions.length && (
+        <div className="text-center py-4">
+          {isGeneratingToken ? (
+            <div className="py-8">
+              <Loader2 className="w-10 h-10 text-green-500 animate-spin mx-auto mb-4" />
+              <p className="text-slate-600 dark:text-slate-300">
+                {language === 'fr' ? 'Génération du QR code...' : 'Generating QR code...'}
+              </p>
+            </div>
+          ) : qrToken ? (
+            <>
+              <p className="text-slate-600 dark:text-slate-300 mb-4">
+                {language === 'fr' ? 'Scannez ce QR code avec votre téléphone' : 'Scan this QR code with your phone'}
+              </p>
+              <div className="inline-block p-4 bg-white rounded-xl shadow-lg mb-4">
+                <img src={getQrCodeUrl()} alt="QR Code" className="w-48 h-48" />
+              </div>
+              <div className="flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>{language === 'fr' ? 'En attente de l\'upload...' : 'Waiting for upload...'}</span>
+              </div>
+              <p className="text-slate-400 text-xs mt-4">
+                {language === 'fr' ? 'Le lien expire dans 5 minutes' : 'Link expires in 5 minutes'}
+              </p>
+              <button
+                onClick={() => { setMode('choose'); setQrToken(null); setIsPolling(false); }}
+                className="mt-4 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-sm underline"
+              >
+                {language === 'fr' ? 'Annuler' : 'Cancel'}
+              </button>
+            </>
+          ) : null}
+        </div>
+      )}
+
+      {/* Upload Area (Desktop mode) */}
+      {mode === 'desktop' && !file && !isParsing && !parsedTransactions.length && (
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -244,7 +403,9 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-slate-500" />
-              <span className="text-slate-600 dark:text-slate-300 font-medium">{file?.name}</span>
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                {file?.name || (language === 'fr' ? 'Uploadé depuis le téléphone' : 'Uploaded from phone')}
+              </span>
               <button onClick={reset} className="text-slate-400 hover:text-red-500 p-1">
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -384,7 +545,7 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
       )}
 
       {/* Help text */}
-      {!file && !isParsing && !parseError && (
+      {mode === 'desktop' && !file && !isParsing && !parseError && !parsedTransactions.length && (
         <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-2 font-medium">
             {language === 'fr' ? 'Comment obtenir votre relevé Revolut :' : 'How to get your Revolut statement:'}
