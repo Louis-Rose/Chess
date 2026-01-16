@@ -4,6 +4,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import posthog from 'posthog-js';
 import axios from 'axios';
 
+// Emails excluded from PostHog tracking (e.g., admin/developer accounts)
+const POSTHOG_EXCLUDED_EMAILS = ['rose.louis.mail@gmail.com'];
+
 interface UserPreferences {
   chess_username: string | null;
   preferred_time_class: 'rapid' | 'blitz' | 'bullet';
@@ -141,6 +144,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name: data.user.name,
           email: data.user.email,
         });
+        // Opt out excluded emails from tracking
+        if (POSTHOG_EXCLUDED_EMAILS.includes(data.user.email)) {
+          posthog.opt_out_capturing();
+        }
       }
     } catch (error) {
       setUser(null);
@@ -172,6 +179,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: data.user.name,
         email: data.user.email,
       });
+      // Opt out excluded emails from tracking
+      if (POSTHOG_EXCLUDED_EMAILS.includes(data.user.email)) {
+        posthog.opt_out_capturing();
+      }
     }
   };
 
