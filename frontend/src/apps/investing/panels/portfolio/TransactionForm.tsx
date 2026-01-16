@@ -495,15 +495,17 @@ export function TransactionForm({
             </div>
           )}
 
-          {/* Done button - centered below transactions */}
-          <div className="flex justify-center mt-6">
-            <button
-              onClick={closeForm}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              {t('transactions.done')}
-            </button>
-          </div>
+          {/* Done button - only show when adding/importing */}
+          {(showAddForm || showRevolutImport) && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={closeForm}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                {t('transactions.done')}
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
