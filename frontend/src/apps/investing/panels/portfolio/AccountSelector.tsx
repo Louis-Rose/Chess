@@ -29,7 +29,7 @@ export function AccountSelector({
 }: AccountSelectorProps) {
   const { language, t } = useLanguage();
 
-  const [showAccounts, setShowAccounts] = useState(false);
+  const [showAccounts, setShowAccounts] = useState(true);
   const [showAddAccountForm, setShowAddAccountForm] = useState(false);
   const [newAccountName, setNewAccountName] = useState('');
   const [newAccountType, setNewAccountType] = useState('');
