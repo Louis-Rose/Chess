@@ -1885,6 +1885,15 @@ BANKS = {
         'fx_fee_info_fr': '0% (taux interbancaire)',
         'fx_fee_info_en': '0% (interbank rate)',
     },
+    'FORTUNEO': {
+        'name': 'Fortuneo',
+        'order_fee_pct': 0.35,  # 0.35% for orders <2k€, then 0.20% for 2-10k€
+        'order_fee_min': 1.95,  # Optimum plan
+        'custody_fee_pct_year': 0,
+        'custody_fee_pct_year_pea': 0,  # No custody fees on PEA
+        'fx_fee_info_fr': '0.10%',
+        'fx_fee_info_en': '0.10%',
+    },
 }
 
 # Account types with tax implications
