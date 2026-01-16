@@ -360,32 +360,47 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
 
       {/* Upload Area (Desktop mode) */}
       {mode === 'desktop' && !file && !isParsing && !parsedTransactions.length && (
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-            isDragging
-              ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-              : 'border-slate-300 dark:border-slate-600 hover:border-green-400 dark:hover:border-green-500'
-          }`}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            onChange={handleFileInputChange}
-            className="hidden"
-          />
-          <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-green-500' : 'text-slate-400'}`} />
-          <p className="text-slate-600 dark:text-slate-300 font-medium mb-2">
-            {language === 'fr' ? 'Glissez votre PDF ici' : 'Drag your PDF here'}
-          </p>
-          <p className="text-slate-400 text-sm">
-            {language === 'fr' ? 'ou cliquez pour sélectionner' : 'or click to select'}
-          </p>
-        </div>
+        <>
+          {/* Instructions - shown above upload area */}
+          <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-2 font-medium">
+              {language === 'fr' ? 'Comment obtenir votre relevé Revolut :' : 'How to get your Revolut statement:'}
+            </p>
+            <ol className="text-sm text-slate-500 dark:text-slate-400 space-y-1 list-decimal list-inside">
+              <li>{language === 'fr' ? 'Ouvrez l\'app Revolut → Onglet Investir' : 'Open Revolut app → Invest tab'}</li>
+              <li>{language === 'fr' ? 'Appuyez sur ... (Plus) → Documents' : 'Tap ... (More) → Documents'}</li>
+              <li>{language === 'fr' ? 'Sélectionnez Compte de courtage → Relevé de compte' : 'Select Brokerage account → Account statement'}</li>
+              <li>{language === 'fr' ? 'Choisissez Période : Depuis le début et téléchargez le PDF' : 'Choose Period: Since the beginning and download the PDF'}</li>
+            </ol>
+          </div>
+
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+              isDragging
+                ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                : 'border-slate-300 dark:border-slate-600 hover:border-green-400 dark:hover:border-green-500'
+            }`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
+            <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-green-500' : 'text-slate-400'}`} />
+            <p className="text-slate-600 dark:text-slate-300 font-medium mb-2">
+              {language === 'fr' ? 'Glissez votre PDF ici' : 'Drag your PDF here'}
+            </p>
+            <p className="text-slate-400 text-sm">
+              {language === 'fr' ? 'ou cliquez pour sélectionner' : 'or click to select'}
+            </p>
+          </div>
+        </>
       )}
 
       {/* Parsing State */}
@@ -563,20 +578,6 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
         </div>
       )}
 
-      {/* Help text */}
-      {mode === 'desktop' && !file && !isParsing && !parseError && !parsedTransactions.length && (
-        <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2 font-medium">
-            {language === 'fr' ? 'Comment obtenir votre relevé Revolut :' : 'How to get your Revolut statement:'}
-          </p>
-          <ol className="text-sm text-slate-500 dark:text-slate-400 space-y-1 list-decimal list-inside">
-            <li>{language === 'fr' ? 'Ouvrez l\'app Revolut → Onglet Investir' : 'Open Revolut app → Invest tab'}</li>
-            <li>{language === 'fr' ? 'Appuyez sur ... (Plus) → Documents' : 'Tap ... (More) → Documents'}</li>
-            <li>{language === 'fr' ? 'Sélectionnez Compte de courtage → Relevé de compte' : 'Select Brokerage account → Account statement'}</li>
-            <li>{language === 'fr' ? 'Choisissez Période : Depuis le début et téléchargez le PDF' : 'Choose Period: Since the beginning and download the PDF'}</li>
-          </ol>
-        </div>
-      )}
     </div>
   );
 }
