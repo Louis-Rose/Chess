@@ -193,21 +193,23 @@ export function AccountSelector({
                         : 'bg-white border border-slate-200 hover:border-green-300 hover:shadow-sm'
                     }`}
                   >
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onDeleteAccount(account.id); }}
-                      disabled={isDeleting}
-                      className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2">
                       <Wallet className={`w-4 h-4 ${isSelected ? 'text-green-600' : 'text-slate-400'}`} />
                       <span className={`font-bold ${isSelected ? 'text-green-700' : 'text-slate-800'}`}>{account.name}</span>
-                      {isSelected && (
-                        <span className="ml-auto text-xs bg-green-600 text-white px-2 py-0.5 rounded">
-                          {language === 'fr' ? 'Sélectionné' : 'Selected'}
-                        </span>
-                      )}
+                      <div className="ml-auto flex items-center gap-2">
+                        {isSelected && (
+                          <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded">
+                            {language === 'fr' ? 'Sélectionné' : 'Selected'}
+                          </span>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onDeleteAccount(account.id); }}
+                          disabled={isDeleting}
+                          className="text-red-400 hover:text-red-600 transition-colors p-1 -m-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                     <div className="text-sm text-slate-600 space-y-1">
                       <p><span className="text-slate-400">{t('accounts.type')}:</span> {account.type_info.name}</p>
