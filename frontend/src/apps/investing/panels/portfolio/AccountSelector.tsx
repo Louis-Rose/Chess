@@ -81,7 +81,12 @@ export function AccountSelector({
             </div>
             {!showAddAccountForm && (
               <button
-                onClick={() => setShowAddAccountForm(true)}
+                onClick={() => {
+                  setNewAccountBank('');
+                  setNewAccountType('');
+                  setNewAccountName('');
+                  setShowAddAccountForm(true);
+                }}
                 className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
               >
                 <Plus className="w-4 h-4" />
