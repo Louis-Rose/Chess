@@ -196,8 +196,9 @@ export function PortfolioPanel() {
 
   const createAccountMutation = useMutation({
     mutationFn: createAccount,
-    onSuccess: () => {
+    onSuccess: (newAccount) => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      setSelectedAccountId(newAccount.id);
     },
   });
 
