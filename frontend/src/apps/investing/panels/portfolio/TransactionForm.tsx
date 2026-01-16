@@ -57,6 +57,7 @@ const getCurrencySymbol = (currency: string): string => {
 interface TransactionFormProps {
   transactions: Transaction[];
   selectedAccountId: number | undefined;
+  selectedAccountBank?: string;
   onAddTransaction: (transaction: NewTransaction) => void;
   onDeleteTransaction: (id: number) => void;
   onRefresh: () => void;
@@ -69,6 +70,7 @@ interface TransactionFormProps {
 export function TransactionForm({
   transactions,
   selectedAccountId,
+  selectedAccountBank,
   onAddTransaction,
   onDeleteTransaction,
   onRefresh,
@@ -263,8 +265,8 @@ export function TransactionForm({
             )}
           </div>
 
-          {/* Revolut Import Button - Centered */}
-          {!showAddForm && !showRevolutImport && (
+          {/* Revolut Import Button - Only for Revolut accounts */}
+          {!showAddForm && !showRevolutImport && selectedAccountBank === 'Revolut' && (
             <div className="flex justify-center mb-6">
               <button
                 onClick={() => setShowRevolutImport(true)}

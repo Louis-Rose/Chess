@@ -319,6 +319,7 @@ export function PortfolioPanel() {
           <TransactionForm
             transactions={transactions}
             selectedAccountId={selectedAccountId}
+            selectedAccountBank={accounts.find(a => a.id === selectedAccountId)?.bank}
             onAddTransaction={(tx) => addMutation.mutate(tx)}
             onDeleteTransaction={(id) => deleteMutation.mutate(id)}
             onRefresh={() => {
