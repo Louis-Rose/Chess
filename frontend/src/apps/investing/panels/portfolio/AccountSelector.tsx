@@ -101,7 +101,7 @@ export function AccountSelector({
                     onChange={(e) => setNewAccountBank(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
-                    <option value="">{t('accounts.selectBank')}</option>
+                    <option value="" disabled hidden>{t('accounts.selectBank')}</option>
                     {Object.entries(banks).map(([key, info]) => (
                       <option key={key} value={key}>{info.name}</option>
                     ))}
@@ -114,7 +114,7 @@ export function AccountSelector({
                     onChange={(e) => setNewAccountType(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
-                    <option value="">{t('accounts.selectType')}</option>
+                    <option value="" disabled hidden>{t('accounts.selectType')}</option>
                     {Object.entries(accountTypes).map(([key, info]) => (
                       <option key={key} value={key}>{info.name}</option>
                     ))}
