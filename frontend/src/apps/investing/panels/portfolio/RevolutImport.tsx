@@ -64,9 +64,14 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
         const response = await axios.get(`/api/investing/import/status/${qrToken}`);
         if (response.data.status === 'uploaded') {
           setIsPolling(false);
-          setParsedTransactions(response.data.transactions);
-          setSelectedTransactions(new Set(response.data.transactions.map((_: ParsedTransaction, i: number) => i)));
-          setMode('desktop'); // Switch to review mode
+          if (response.data.transactions.length === 0) {
+            setParseError(language === 'fr'
+              ? 'Aucune transaction trouvée dans ce PDF. Assurez-vous d\'utiliser un relevé de trading Revolut.'
+              : 'No transactions found in this PDF. Make sure you\'re using a Revolut trading statement.');
+          } else {
+            setParsedTransactions(response.data.transactions);
+            setSelectedTransactions(new Set(response.data.transactions.map((_: ParsedTransaction, i: number) => i)));
+          }
         } else if (response.data.status === 'error') {
           setIsPolling(false);
           setParseError(response.data.error);

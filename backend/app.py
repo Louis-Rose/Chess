@@ -1212,7 +1212,8 @@ def _parse_revolut_pdf_bytes(pdf_bytes):
                 date_col = next((i for i, h in enumerate(header) if 'date' in h and 'settle' not in h), None)
                 ticker_col = next((i for i, h in enumerate(header) if 'symbol' in h or 'ticker' in h), None)
                 instrument_col = next((i for i, h in enumerate(header) if 'instrument' in h or 'name' in h), None)
-                type_col = next((i for i, h in enumerate(header) if 'type' in h or 'side' in h or 'activity' in h), None)
+                type_col = next((i for i, h in enumerate(header) if h == 'type' or 'activity' in h), None)
+                side_col = next((i for i, h in enumerate(header) if 'side' in h), None)
                 qty_col = next((i for i, h in enumerate(header) if 'quantity' in h or 'qty' in h or 'shares' in h), None)
                 price_col = next((i for i, h in enumerate(header) if 'price' in h and 'total' not in h), None)
 
@@ -1230,12 +1231,23 @@ def _parse_revolut_pdf_bytes(pdf_bytes):
                         # Parse date (Revolut uses various formats)
                         parsed_date = None
                         date_str = str(date_str).strip()
-                        for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y', '%d %b %Y', '%d %B %Y']:
+
+                        # Try formats with time first (e.g., "17 Nov 2022 19:00:16 GMT")
+                        for fmt in ['%d %b %Y %H:%M:%S GMT', '%d %b %Y %H:%M:%S', '%d %B %Y %H:%M:%S GMT', '%d %B %Y %H:%M:%S']:
                             try:
-                                parsed_date = datetime.strptime(date_str.split()[0], fmt).strftime('%Y-%m-%d')
+                                parsed_date = datetime.strptime(date_str, fmt).strftime('%Y-%m-%d')
                                 break
                             except:
                                 pass
+
+                        # Try date-only formats
+                        if not parsed_date:
+                            for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y', '%d %b %Y', '%d %B %Y']:
+                                try:
+                                    parsed_date = datetime.strptime(date_str, fmt).strftime('%Y-%m-%d')
+                                    break
+                                except:
+                                    pass
 
                         if not parsed_date:
                             # Try to extract date with regex
@@ -1243,13 +1255,33 @@ def _parse_revolut_pdf_bytes(pdf_bytes):
                             if date_match:
                                 parsed_date = date_match.group(0)
                             else:
-                                continue
+                                # Try "DD Mon YYYY" pattern from longer string
+                                date_match = re.search(r'(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})', date_str)
+                                if date_match:
+                                    try:
+                                        parsed_date = datetime.strptime(f"{date_match.group(1)} {date_match.group(2)} {date_match.group(3)}", '%d %b %Y').strftime('%Y-%m-%d')
+                                    except:
+                                        pass
+
+                        if not parsed_date:
+                            continue
 
                         # Extract ticker
                         ticker = None
                         if ticker_col is not None and ticker_col < len(row) and row[ticker_col]:
-                            ticker = str(row[ticker_col]).strip().upper()
-                        elif instrument_col is not None and instrument_col < len(row) and row[instrument_col]:
+                            ticker_cell = str(row[ticker_col]).strip().upper()
+                            # Handle merged columns - extract first word if it looks like a ticker
+                            # Ticker should be 1-5 uppercase letters
+                            ticker_match = re.match(r'^([A-Z]{1,5})\b', ticker_cell)
+                            if ticker_match:
+                                ticker = ticker_match.group(1)
+                            else:
+                                # Also try to find ticker anywhere in the cell
+                                ticker_search = re.search(r'\b([A-Z]{1,5})\b', ticker_cell)
+                                if ticker_search:
+                                    ticker = ticker_search.group(1)
+
+                        if not ticker and instrument_col is not None and instrument_col < len(row) and row[instrument_col]:
                             # Try to extract ticker from instrument name
                             inst = str(row[instrument_col]).strip()
                             # Common pattern: "AAPL - Apple Inc" or "Apple Inc (AAPL)"
@@ -1260,9 +1292,24 @@ def _parse_revolut_pdf_bytes(pdf_bytes):
                         if not ticker:
                             continue
 
-                        # Extract transaction type
-                        tx_type = 'BUY'
+                        # Skip non-trade rows (Cash top-up, Custody fee, Dividend, etc.)
                         if type_col is not None and type_col < len(row) and row[type_col]:
+                            type_str = str(row[type_col]).strip().upper()
+                            if 'TRADE' not in type_str and 'MARKET' not in type_str and 'LIMIT' not in type_str:
+                                # Check if it's a non-trade transaction
+                                if any(skip in type_str for skip in ['CASH', 'FEE', 'DIVIDEND', 'TRANSFER', 'TOP-UP', 'TOP UP', 'CUSTODY']):
+                                    continue
+
+                        # Extract transaction type (Buy/Sell) - prefer Side column
+                        tx_type = 'BUY'
+                        if side_col is not None and side_col < len(row) and row[side_col]:
+                            side_str = str(row[side_col]).strip().upper()
+                            if 'SELL' in side_str or 'SOLD' in side_str:
+                                tx_type = 'SELL'
+                            elif 'BUY' in side_str or 'BOUGHT' in side_str:
+                                tx_type = 'BUY'
+                        elif type_col is not None and type_col < len(row) and row[type_col]:
+                            # Fallback to type column if no side column
                             type_str = str(row[type_col]).strip().upper()
                             if 'SELL' in type_str or 'SOLD' in type_str:
                                 tx_type = 'SELL'
@@ -1296,6 +1343,39 @@ def _parse_revolut_pdf_bytes(pdf_bytes):
 
                     except Exception as e:
                         errors.append(f"Row parse error: {str(e)}")
+
+    # If table extraction failed, try text-based extraction
+    if not transactions:
+        pdf_file.seek(0)
+        with pdfplumber.open(pdf_file) as pdf:
+            full_text = ""
+            for page in pdf.pages:
+                full_text += page.extract_text() or ""
+
+            # Pattern: date followed by ticker, Trade - Market, quantity, price, Buy/Sell
+            # Example: "17 Nov 2022 19:00:16 GMT META Trade - Market 2 US$112.12 Buy US$224.24"
+            pattern = r'(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})\s+\d{2}:\d{2}:\d{2}\s+GMT\s+([A-Z]{1,5})\s+Trade\s*-\s*Market\s+(\d+(?:\.\d+)?)\s+US\$[\d.]+\s+(Buy|Sell)'
+
+            for match in re.finditer(pattern, full_text):
+                try:
+                    date_part = match.group(1)  # "17 Nov 2022"
+                    ticker = match.group(2)     # "META"
+                    qty = float(match.group(3)) # "2"
+                    side = match.group(4)       # "Buy" or "Sell"
+
+                    # Parse date
+                    parsed_date = datetime.strptime(date_part, '%d %b %Y').strftime('%Y-%m-%d')
+                    tx_type = 'BUY' if side.upper() == 'BUY' else 'SELL'
+
+                    transactions.append({
+                        'stock_ticker': ticker,
+                        'transaction_type': tx_type,
+                        'quantity': int(qty) if qty == int(qty) else qty,
+                        'transaction_date': parsed_date,
+                        'price_per_share': None,
+                    })
+                except Exception as e:
+                    errors.append(f"Text parse error: {str(e)}")
 
     # Deduplicate transactions (same ticker, date, type, qty)
     seen = set()
