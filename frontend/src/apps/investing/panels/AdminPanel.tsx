@@ -193,10 +193,10 @@ export function AdminPanel() {
   // Collapsible panel states
   const [isTimeSpentExpanded, setIsTimeSpentExpanded] = useState(true);
   const [isUsersExpanded, setIsUsersExpanded] = useState(true);
-  const [isUsersTableExpanded, setIsUsersTableExpanded] = useState(false);
+  const [isUsersTableExpanded, setIsUsersTableExpanded] = useState(true);
   const [isStockSearchesExpanded, setIsStockSearchesExpanded] = useState(true);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(true);
-  const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(false);
+  const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(true);
 
   // Time unit for charts (shared between Time Spent and Users)
   type TimeUnit = 'days' | 'weeks' | 'months';
