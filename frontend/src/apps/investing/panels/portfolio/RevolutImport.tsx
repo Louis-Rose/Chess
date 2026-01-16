@@ -390,10 +390,10 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
             {language === 'fr' ? 'Comment obtenir votre relevé Revolut :' : 'How to get your Revolut statement:'}
           </p>
           <ol className="text-sm text-slate-500 dark:text-slate-400 space-y-1 list-decimal list-inside">
-            <li>{language === 'fr' ? 'Ouvrez l\'app Revolut → Investissements' : 'Open Revolut app → Investments'}</li>
-            <li>{language === 'fr' ? 'Appuyez sur ⋯ → Relevés' : 'Tap ⋯ → Statements'}</li>
-            <li>{language === 'fr' ? 'Sélectionnez "Relevé de trading" et la période' : 'Select "Trading statement" and period'}</li>
-            <li>{language === 'fr' ? 'Téléchargez le PDF' : 'Download the PDF'}</li>
+            <li>{language === 'fr' ? 'Ouvrez l\'app Revolut → Onglet Investir' : 'Open Revolut app → Invest tab'}</li>
+            <li>{language === 'fr' ? 'Appuyez sur ... (Plus) → Documents' : 'Tap ... (More) → Documents'}</li>
+            <li>{language === 'fr' ? 'Sélectionnez Compte de courtage → Relevé de compte' : 'Select Brokerage account → Account statement'}</li>
+            <li>{language === 'fr' ? 'Choisissez Période : Depuis le début et téléchargez le PDF' : 'Choose Period: Since the beginning and download the PDF'}</li>
           </ol>
         </div>
       )}
