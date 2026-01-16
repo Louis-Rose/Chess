@@ -25,9 +25,11 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isNewUser: boolean;
   login: (credential: string) => Promise<void>;
   logout: () => Promise<void>;
   updatePreferences: (prefs: Partial<UserPreferences>) => Promise<void>;
+  clearNewUserFlag: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,6 +37,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNewUser, setIsNewUser] = useState(false);
   const queryClient = useQueryClient();
   const hasRecordedSettings = useRef(false);
 
@@ -172,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await response.json();
     queryClient.clear(); // Clear cache from previous user
     setUser(data.user);
+    setIsNewUser(data.is_new_user || false);
 
     // Identify user in PostHog
     if (data.user) {
@@ -184,6 +188,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         posthog.opt_out_capturing();
       }
     }
+  };
+
+  const clearNewUserFlag = () => {
+    setIsNewUser(false);
   };
 
   const logout = async () => {
@@ -224,9 +232,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isLoading,
       isAuthenticated: !!user,
+      isNewUser,
       login,
       logout,
-      updatePreferences
+      updatePreferences,
+      clearNewUserFlag
     }}>
       {children}
     </AuthContext.Provider>

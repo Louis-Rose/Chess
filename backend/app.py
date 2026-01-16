@@ -285,7 +285,8 @@ def google_auth():
                 'chess_username': user['chess_username'],
                 'preferred_time_class': user['preferred_time_class']
             }
-        }
+        },
+        'is_new_user': user.get('sign_in_count') == 1
     }))
 
     set_auth_cookies(response, access_token, refresh_token)

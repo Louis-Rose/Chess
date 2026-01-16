@@ -1,7 +1,7 @@
 // Investing Welcome panel
 
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, Eye, Calendar, TrendingUp, Loader2 } from 'lucide-react';
+import { Briefcase, Eye, Calendar, TrendingUp, Loader2, PartyPopper, X } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
@@ -10,7 +10,7 @@ import { StockSearchBar } from '../components/StockSearchBar';
 
 export function InvestingWelcomePanel() {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user, isNewUser, clearNewUserFlag } = useAuth();
   const { language } = useLanguage();
 
   if (authLoading) {
@@ -52,6 +52,33 @@ export function InvestingWelcomePanel() {
         </h1>
         <PWAInstallPrompt className="max-w-md mx-auto" />
       </div>
+
+      {/* New user welcome banner */}
+      {isNewUser && (
+        <div className="max-w-2xl mx-auto mt-6 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl p-6 relative">
+          <button
+            onClick={clearNewUserFlag}
+            className="absolute top-3 right-3 p-1 rounded-lg hover:bg-green-500/20 transition-colors"
+          >
+            <X className="w-4 h-4 text-green-400" />
+          </button>
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-green-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
+              <PartyPopper className="w-6 h-6 text-green-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-green-400 mb-1">
+                {language === 'fr' ? 'Bienvenue sur LUMNA !' : 'Welcome to LUMNA!'}
+              </h3>
+              <p className="text-slate-300 text-sm">
+                {language === 'fr'
+                  ? 'Votre compte a été créé avec succès. Commencez par ajouter vos transactions pour suivre la performance de votre portefeuille.'
+                  : 'Your account has been created successfully. Start by adding your transactions to track your portfolio performance.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700 mt-8">
         <div className="text-center mb-8">
