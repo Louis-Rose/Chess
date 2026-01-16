@@ -339,6 +339,20 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
               >
                 {language === 'fr' ? 'Annuler' : 'Cancel'}
               </button>
+
+              {/* Instructions - shown on desktop while waiting for mobile upload */}
+              <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg text-left">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2 font-medium">
+                  {language === 'fr' ? 'Comment obtenir votre relevé Revolut :' : 'How to get your Revolut statement:'}
+                </p>
+                <ol className="text-sm text-slate-500 dark:text-slate-400 space-y-1 list-decimal list-inside">
+                  <li>{language === 'fr' ? 'Ouvrez l\'app Revolut → Onglet Investir' : 'Open Revolut app → Invest tab'}</li>
+                  <li>{language === 'fr' ? 'Appuyez sur ... (Plus) → Documents' : 'Tap ... (More) → Documents'}</li>
+                  <li>{language === 'fr' ? 'Sélectionnez Compte de courtage → Relevé de compte' : 'Select Brokerage account → Account statement'}</li>
+                  <li>{language === 'fr' ? 'Choisissez Période : Depuis le début et téléchargez le PDF' : 'Choose Period: Since the beginning and download the PDF'}</li>
+                  <li>{language === 'fr' ? 'Uploadez le PDF via le lien QR code' : 'Upload the PDF via the QR code link'}</li>
+                </ol>
+              </div>
             </>
           ) : null}
         </div>
