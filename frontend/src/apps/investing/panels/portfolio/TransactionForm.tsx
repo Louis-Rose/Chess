@@ -259,16 +259,22 @@ export function TransactionForm({
                   <Plus className="w-4 h-4" />
                   {t('transactions.addTransaction')}
                 </button>
-                <button
-                  onClick={() => setShowRevolutImport(true)}
-                  className="bg-[#0666eb] text-white px-4 py-2 rounded-lg hover:bg-[#0555cc] flex items-center gap-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  {language === 'fr' ? 'Importer Revolut' : 'Import Revolut'}
-                </button>
               </div>
             )}
           </div>
+
+          {/* Revolut Import Button - Centered */}
+          {!showAddForm && !showRevolutImport && (
+            <div className="flex justify-center mb-6">
+              <button
+                onClick={() => setShowRevolutImport(true)}
+                className="bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+              >
+                <Upload className="w-5 h-5" />
+                {language === 'fr' ? 'Importer depuis Revolut' : 'Import from Revolut'}
+              </button>
+            </div>
+          )}
 
           {/* Add Transaction Form */}
           {showAddForm && (
