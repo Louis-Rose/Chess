@@ -97,10 +97,14 @@ export function InvestingWelcomePanel() {
               <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Stocks Research</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                {language === 'fr' ? 'Recherche Actions' : 'Stocks Research'}
+              </h3>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm">
-              Financials and insights on any listed company.
+              {language === 'fr'
+                ? 'Données financières et analyses sur toute entreprise cotée.'
+                : 'Financials and insights on any listed company.'}
             </p>
           </button>
 
@@ -113,10 +117,14 @@ export function InvestingWelcomePanel() {
               <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
                 <Briefcase className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">My Portfolio</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
+              </h3>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm">
-              View your holdings, track performance, and analyze your investment distribution.
+              {language === 'fr'
+                ? 'Consultez vos positions, suivez la performance et analysez la répartition de vos investissements.'
+                : 'View your holdings, track performance, and analyze your investment distribution.'}
             </p>
           </button>
 
@@ -129,10 +137,14 @@ export function InvestingWelcomePanel() {
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                 <Eye className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">My Watchlist</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                {language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}
+              </h3>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm">
-              Manage the list of stocks you want to follow.
+              {language === 'fr'
+                ? 'Gérez la liste des actions que vous souhaitez suivre.'
+                : 'Manage the list of stocks you want to follow.'}
             </p>
           </button>
 
@@ -145,10 +157,14 @@ export function InvestingWelcomePanel() {
               <div className="w-10 h-10 bg-amber-600 rounded-lg flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Earnings Calendar</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                {language === 'fr' ? 'Calendrier des Résultats' : 'Earnings Calendar'}
+              </h3>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm">
-              Track upcoming earnings releases for your holdings.
+              {language === 'fr'
+                ? 'Suivez les prochaines publications de résultats de vos positions.'
+                : 'Track upcoming earnings releases for your holdings.'}
             </p>
           </button>
         </div>
