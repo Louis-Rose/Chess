@@ -348,6 +348,21 @@ def logout():
     return response
 
 
+@app.route('/api/auth/account', methods=['DELETE'])
+@login_required
+def delete_account():
+    """Delete user account and all associated data."""
+    user_id = request.user_id
+
+    with get_db() as conn:
+        # Delete user (cascades to all related tables)
+        conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+
+    response = make_response(jsonify({'success': True}))
+    clear_auth_cookies(response)
+    return response
+
+
 @app.route('/api/auth/me', methods=['GET'])
 def get_current_user_info():
     """Get current user info if authenticated."""

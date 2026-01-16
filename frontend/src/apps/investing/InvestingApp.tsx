@@ -12,6 +12,7 @@ import { StockDetailPanel } from './panels/StockDetailPanel';
 import { AdminPanel } from './panels/AdminPanel';
 import { UserDetailPanel } from './panels/UserDetailPanel';
 import { StockViewDetailPanel } from './panels/StockViewDetailPanel';
+import { DeleteAccountPanel } from './panels/DeleteAccountPanel';
 
 export function InvestingApp() {
   useEffect(() => {
@@ -32,6 +33,7 @@ export function InvestingApp() {
         <Route path="admin" element={<AdminPanel />} />
         <Route path="admin/user/:userId" element={<UserDetailPanel />} />
         <Route path="admin/stock/:ticker" element={<StockViewDetailPanel />} />
+        <Route path="settings/delete-account" element={<DeleteAccountPanel />} />
       </Route>
     </Routes>
   );
