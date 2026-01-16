@@ -906,7 +906,16 @@ def get_user_detail(user_id):
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
-    return jsonify({'user': dict(user)})
+    user_dict = dict(user)
+    # Convert datetime objects to ISO strings for JSON serialization
+    if user_dict.get('created_at') and hasattr(user_dict['created_at'], 'isoformat'):
+        user_dict['created_at'] = user_dict['created_at'].isoformat()
+    if user_dict.get('updated_at') and hasattr(user_dict['updated_at'], 'isoformat'):
+        user_dict['updated_at'] = user_dict['updated_at'].isoformat()
+    if user_dict.get('last_active') and hasattr(user_dict['last_active'], 'isoformat'):
+        user_dict['last_active'] = user_dict['last_active'].isoformat()
+
+    return jsonify({'user': user_dict})
 
 
 @app.route('/api/admin/users/<int:user_id>/watchlist', methods=['GET'])
