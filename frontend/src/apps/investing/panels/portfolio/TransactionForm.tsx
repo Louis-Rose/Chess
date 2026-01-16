@@ -81,7 +81,7 @@ export function TransactionForm({
   const { language, t } = useLanguage();
 
   // UI state
-  const [showTransactions, setShowTransactions] = useState(false);
+  const [showTransactions, setShowTransactions] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showRevolutImport, setShowRevolutImport] = useState(false);
   const [filterTicker, setFilterTicker] = useState('');
