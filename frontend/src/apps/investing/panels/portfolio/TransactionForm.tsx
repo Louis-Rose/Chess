@@ -266,7 +266,7 @@ export function TransactionForm({
           </div>
 
           {/* Revolut Import Button - Only for Revolut accounts */}
-          {!showAddForm && !showRevolutImport && selectedAccountBank === 'Revolut' && (
+          {!showAddForm && !showRevolutImport && selectedAccountBank?.toUpperCase() === 'REVOLUT' && (
             <div className="flex justify-center mb-6">
               <button
                 onClick={() => setShowRevolutImport(true)}
