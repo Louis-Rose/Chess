@@ -350,7 +350,7 @@ def logout():
 
 @app.route('/api/auth/account', methods=['DELETE'])
 @login_required
-def delete_account():
+def delete_user_account():
     """Delete user account and all associated data."""
     user_id = request.user_id
 
