@@ -124,7 +124,7 @@ export function StockDetailPanel() {
   const { ticker } = useParams<{ ticker: string }>();
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1M');
   const [videoFilter, setVideoFilter] = useState<'1M' | '3M' | 'ALL'>('ALL');
   const [financialsExpanded, setFinancialsExpanded] = useState(true);
@@ -139,10 +139,10 @@ export function StockDetailPanel() {
 
   // Track stock visit in recently searched
   useEffect(() => {
-    if (upperTicker) {
-      addRecentStock(upperTicker);
+    if (upperTicker && user?.id) {
+      addRecentStock(upperTicker, user.id);
     }
-  }, [upperTicker]);
+  }, [upperTicker, user?.id]);
 
   // Fetch stock history - only when authenticated
   const { data: stockHistoryData, isLoading: stockHistoryLoading } = useQuery({

@@ -54,8 +54,8 @@ export function InvestingSidebar() {
 
   // Load recent stocks and refresh on navigation/focus
   useEffect(() => {
-    setRecentStocks(getRecentStocks());
-  }, [location.pathname]);
+    setRecentStocks(getRecentStocks(user?.id));
+  }, [location.pathname, user?.id]);
 
   return (
     <div className={`dark ${isCollapsed ? 'w-16' : 'w-64'} bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0 transition-all duration-300`}>
@@ -207,8 +207,8 @@ export function InvestingSidebar() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeRecentStock(ticker);
-                      setRecentStocks(getRecentStocks());
+                      removeRecentStock(ticker, user?.id);
+                      setRecentStocks(getRecentStocks(user?.id));
                     }}
                     className="p-0.5 rounded hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
                     title={language === 'fr' ? 'Supprimer' : 'Remove'}

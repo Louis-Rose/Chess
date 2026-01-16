@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Eye, X } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { addRecentStock, getRecentStocks, removeRecentStock } from '../utils/recentStocks';
@@ -15,6 +16,7 @@ interface StockSearchBarProps {
 export function StockSearchBar({ className = '' }: StockSearchBarProps) {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const [stockSearch, setStockSearch] = useState('');
   const [stockResults, setStockResults] = useState<Stock[]>([]);
   const [showStockDropdown, setShowStockDropdown] = useState(false);
@@ -22,7 +24,7 @@ export function StockSearchBar({ className = '' }: StockSearchBarProps) {
   const stockDropdownRef = useRef<HTMLDivElement>(null);
 
   // Recent stocks state - refresh when dropdown opens
-  const [recentStocks, setRecentStocks] = useState<string[]>(() => getRecentStocks());
+  const [recentStocks, setRecentStocks] = useState<string[]>(() => getRecentStocks(user?.id));
 
   // Stock search effect
   useEffect(() => {
@@ -44,7 +46,7 @@ export function StockSearchBar({ className = '' }: StockSearchBarProps) {
   const handleSelectStock = (ticker: string) => {
     setStockSearch('');
     setShowStockDropdown(false);
-    addRecentStock(ticker);
+    addRecentStock(ticker, user?.id);
     navigate(`/investing/stock/${ticker}`);
   };
 
@@ -95,7 +97,7 @@ export function StockSearchBar({ className = '' }: StockSearchBarProps) {
             placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
             value={stockSearch}
             onChange={(e) => setStockSearch(e.target.value)}
-            onFocus={() => { setRecentStocks(getRecentStocks()); setShowStockDropdown(true); }}
+            onFocus={() => { setRecentStocks(getRecentStocks(user?.id)); setShowStockDropdown(true); }}
             className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
         </div>
@@ -144,8 +146,8 @@ export function StockSearchBar({ className = '' }: StockSearchBarProps) {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          removeRecentStock(ticker);
-                          setRecentStocks(getRecentStocks());
+                          removeRecentStock(ticker, user?.id);
+                          setRecentStocks(getRecentStocks(user?.id));
                         }}
                         className="p-1 rounded hover:bg-slate-200 opacity-0 group-hover:opacity-100 transition-opacity"
                         title={language === 'fr' ? 'Supprimer' : 'Remove'}
