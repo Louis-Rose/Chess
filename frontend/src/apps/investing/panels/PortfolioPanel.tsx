@@ -320,6 +320,12 @@ export function PortfolioPanel() {
             selectedAccountId={selectedAccountId}
             onAddTransaction={(tx) => addMutation.mutate(tx)}
             onDeleteTransaction={(id) => deleteMutation.mutate(id)}
+            onRefresh={() => {
+              queryClient.invalidateQueries({ queryKey: ['transactions'] });
+              queryClient.invalidateQueries({ queryKey: ['holdings'] });
+              queryClient.invalidateQueries({ queryKey: ['composition'] });
+              queryClient.invalidateQueries({ queryKey: ['performance'] });
+            }}
             isAdding={addMutation.isPending}
             isDeleting={deleteMutation.isPending}
             addError={addMutation.error as Error | null}

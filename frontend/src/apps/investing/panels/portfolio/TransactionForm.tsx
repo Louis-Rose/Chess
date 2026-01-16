@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Minus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { Plus, Minus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Upload } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../../utils/allStocks';
 import { STOCKS_DB } from '../../../../data/stocksDb';
 import type { Transaction, NewTransaction } from './types';
+import { RevolutImport } from './RevolutImport';
 
 // Currency symbols for display
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -58,6 +59,7 @@ interface TransactionFormProps {
   selectedAccountId: number | undefined;
   onAddTransaction: (transaction: NewTransaction) => void;
   onDeleteTransaction: (id: number) => void;
+  onRefresh: () => void;
   isAdding: boolean;
   isDeleting: boolean;
   addError?: Error | null;
@@ -69,6 +71,7 @@ export function TransactionForm({
   selectedAccountId,
   onAddTransaction,
   onDeleteTransaction,
+  onRefresh,
   isAdding,
   isDeleting,
   addError,
@@ -80,6 +83,7 @@ export function TransactionForm({
   // UI state
   const [showTransactions, setShowTransactions] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showRevolutImport, setShowRevolutImport] = useState(false);
   const [filterTicker, setFilterTicker] = useState('');
 
   // Form state
@@ -246,14 +250,23 @@ export function TransactionForm({
                 </select>
               )}
             </div>
-            {!showAddForm && (
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                {t('transactions.addTransaction')}
-              </button>
+            {!showAddForm && !showRevolutImport && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  {t('transactions.addTransaction')}
+                </button>
+                <button
+                  onClick={() => setShowRevolutImport(true)}
+                  className="bg-[#0666eb] text-white px-4 py-2 rounded-lg hover:bg-[#0555cc] flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  {language === 'fr' ? 'Importer Revolut' : 'Import Revolut'}
+                </button>
+              </div>
             )}
           </div>
 
@@ -421,6 +434,20 @@ export function TransactionForm({
                   {t('common.error')}: {addError.message || 'Failed to add transaction'}
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Revolut Import */}
+          {showRevolutImport && (
+            <div className="mb-6">
+              <RevolutImport
+                selectedAccountId={selectedAccountId}
+                onImportComplete={() => {
+                  setShowRevolutImport(false);
+                  onRefresh();
+                }}
+                onClose={() => setShowRevolutImport(false)}
+              />
             </div>
           )}
 

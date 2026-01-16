@@ -1170,6 +1170,160 @@ def bulk_add_transactions():
     })
 
 
+@app.route('/api/investing/import/revolut', methods=['POST'])
+@login_required
+def parse_revolut_pdf():
+    """Parse a Revolut trading statement PDF and return extracted transactions."""
+    import pdfplumber
+    import io
+    import re
+
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    if not file.filename.lower().endswith('.pdf'):
+        return jsonify({'error': 'File must be a PDF'}), 400
+
+    try:
+        pdf_bytes = file.read()
+        pdf_file = io.BytesIO(pdf_bytes)
+
+        transactions = []
+        errors = []
+
+        with pdfplumber.open(pdf_file) as pdf:
+            for page_num, page in enumerate(pdf.pages):
+                tables = page.extract_tables()
+
+                for table in tables:
+                    if not table or len(table) < 2:
+                        continue
+
+                    # Find header row
+                    header = None
+                    header_idx = 0
+                    for i, row in enumerate(table):
+                        row_lower = [str(cell).lower() if cell else '' for cell in row]
+                        # Look for Revolut trading statement headers
+                        if any('date' in cell for cell in row_lower) and \
+                           any('symbol' in cell or 'ticker' in cell or 'instrument' in cell for cell in row_lower):
+                            header = row_lower
+                            header_idx = i
+                            break
+
+                    if not header:
+                        continue
+
+                    # Map column indices
+                    date_col = next((i for i, h in enumerate(header) if 'date' in h and 'settle' not in h), None)
+                    ticker_col = next((i for i, h in enumerate(header) if 'symbol' in h or 'ticker' in h), None)
+                    instrument_col = next((i for i, h in enumerate(header) if 'instrument' in h or 'name' in h), None)
+                    type_col = next((i for i, h in enumerate(header) if 'type' in h or 'side' in h or 'activity' in h), None)
+                    qty_col = next((i for i, h in enumerate(header) if 'quantity' in h or 'qty' in h or 'shares' in h), None)
+                    price_col = next((i for i, h in enumerate(header) if 'price' in h and 'total' not in h), None)
+
+                    # Process data rows
+                    for row in table[header_idx + 1:]:
+                        if not row or all(not cell for cell in row):
+                            continue
+
+                        try:
+                            # Extract date
+                            date_str = row[date_col] if date_col is not None and date_col < len(row) else None
+                            if not date_str:
+                                continue
+
+                            # Parse date (Revolut uses various formats)
+                            parsed_date = None
+                            date_str = str(date_str).strip()
+                            for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y', '%d %b %Y', '%d %B %Y']:
+                                try:
+                                    parsed_date = datetime.strptime(date_str.split()[0], fmt).strftime('%Y-%m-%d')
+                                    break
+                                except:
+                                    pass
+
+                            if not parsed_date:
+                                # Try to extract date with regex
+                                date_match = re.search(r'(\d{4})-(\d{2})-(\d{2})', date_str)
+                                if date_match:
+                                    parsed_date = date_match.group(0)
+                                else:
+                                    continue
+
+                            # Extract ticker
+                            ticker = None
+                            if ticker_col is not None and ticker_col < len(row) and row[ticker_col]:
+                                ticker = str(row[ticker_col]).strip().upper()
+                            elif instrument_col is not None and instrument_col < len(row) and row[instrument_col]:
+                                # Try to extract ticker from instrument name
+                                inst = str(row[instrument_col]).strip()
+                                # Common pattern: "AAPL - Apple Inc" or "Apple Inc (AAPL)"
+                                ticker_match = re.search(r'\b([A-Z]{1,5})\b', inst)
+                                if ticker_match:
+                                    ticker = ticker_match.group(1)
+
+                            if not ticker:
+                                continue
+
+                            # Extract transaction type
+                            tx_type = 'BUY'
+                            if type_col is not None and type_col < len(row) and row[type_col]:
+                                type_str = str(row[type_col]).strip().upper()
+                                if 'SELL' in type_str or 'SOLD' in type_str:
+                                    tx_type = 'SELL'
+
+                            # Extract quantity
+                            qty = None
+                            if qty_col is not None and qty_col < len(row) and row[qty_col]:
+                                qty_str = str(row[qty_col]).replace(',', '.').strip()
+                                qty_match = re.search(r'[\d.]+', qty_str)
+                                if qty_match:
+                                    qty = float(qty_match.group())
+
+                            if not qty or qty <= 0:
+                                continue
+
+                            # Extract price (optional - will be fetched if not provided)
+                            price = None
+                            if price_col is not None and price_col < len(row) and row[price_col]:
+                                price_str = str(row[price_col]).replace(',', '.').replace('$', '').replace('€', '').strip()
+                                price_match = re.search(r'[\d.]+', price_str)
+                                if price_match:
+                                    price = float(price_match.group())
+
+                            transactions.append({
+                                'stock_ticker': ticker,
+                                'transaction_type': tx_type,
+                                'quantity': int(qty) if qty == int(qty) else qty,
+                                'transaction_date': parsed_date,
+                                'price_per_share': price,
+                            })
+
+                        except Exception as e:
+                            errors.append(f"Row parse error: {str(e)}")
+
+        # Deduplicate transactions (same ticker, date, type, qty)
+        seen = set()
+        unique_transactions = []
+        for tx in transactions:
+            key = (tx['stock_ticker'], tx['transaction_date'], tx['transaction_type'], tx['quantity'])
+            if key not in seen:
+                seen.add(key)
+                unique_transactions.append(tx)
+
+        return jsonify({
+            'success': True,
+            'transactions': unique_transactions,
+            'count': len(unique_transactions),
+            'warnings': errors if errors else None
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to parse PDF: {str(e)}'}), 400
+
+
 @app.route('/api/investing/transactions/<int:transaction_id>', methods=['DELETE'])
 @login_required
 def delete_transaction(transaction_id):
