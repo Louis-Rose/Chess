@@ -17,6 +17,7 @@ const LumnaLogo = ({ className }: { className?: string }) => (
   </svg>
 );
 import { UserMenu } from '../../components/UserMenu';
+import { LoginButton } from '../../components/LoginButton';
 import { LanguageToggle } from '../../components/LanguageToggle';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { getRecentStocks, removeRecentStock } from './utils/recentStocks';
@@ -77,10 +78,7 @@ export function InvestingSidebar() {
             <UserMenu collapsed={isCollapsed} />
           )
         ) : (
-          <Link to="/" className="flex items-center gap-2 text-slate-500 hover:text-slate-300 transition-colors">
-            <div className="w-8 h-8 rounded-full bg-slate-700" />
-            {!isCollapsed && <span className="text-sm">{language === 'fr' ? 'Non connecté' : 'Not signed in'}</span>}
-          </Link>
+          <LoginButton />
         )}
       </div>
 
