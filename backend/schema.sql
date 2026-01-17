@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
     sign_in_count INTEGER DEFAULT 0,
     session_count INTEGER DEFAULT 0,
     last_session_ping TIMESTAMP,
+    cookie_consent TEXT,              -- 'accepted' or NULL (refused/pending are not stored)
+    cookie_consent_at TIMESTAMP,      -- When consent was given
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

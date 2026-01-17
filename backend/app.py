@@ -281,6 +281,7 @@ def google_auth():
             'name': user['name'],
             'picture': user['picture'],
             'is_admin': bool(user.get('is_admin')),
+            'cookie_consent': user.get('cookie_consent'),  # 'accepted' or None
             'preferences': {
                 'chess_username': user['chess_username'],
                 'preferred_time_class': user['preferred_time_class']
@@ -393,6 +394,7 @@ def get_current_user_info():
             'name': user['name'],
             'picture': user['picture'],
             'is_admin': bool(user.get('is_admin')),
+            'cookie_consent': user.get('cookie_consent'),  # 'accepted' or None
             'preferences': {
                 'chess_username': user['chess_username'],
                 'preferred_time_class': user['preferred_time_class']
@@ -594,6 +596,31 @@ def record_language():
         ''', (request.user_id, language))
 
     return jsonify({'success': True})
+
+
+@app.route('/api/cookie-consent', methods=['POST'])
+@login_required
+def save_cookie_consent():
+    """Save user's cookie consent. Only 'accepted' is persisted; refusals are not stored."""
+    data = request.get_json()
+    consent = data.get('consent')  # 'accepted' or 'refused'
+
+    if consent not in ('accepted', 'refused'):
+        return jsonify({'error': 'consent must be "accepted" or "refused"'}), 400
+
+    with get_db() as conn:
+        if consent == 'accepted':
+            # Store acceptance permanently
+            conn.execute('''
+                UPDATE users SET cookie_consent = 'accepted', cookie_consent_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (request.user_id,))
+        else:
+            # For refusal, we don't store anything (keep NULL)
+            # This ensures they'll be asked again next session
+            pass
+
+    return jsonify({'success': True, 'consent': consent if consent == 'accepted' else None})
 
 
 @app.route('/api/device', methods=['POST'])

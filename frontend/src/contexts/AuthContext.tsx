@@ -5,7 +5,7 @@ import posthog from 'posthog-js';
 import axios from 'axios';
 
 // Emails excluded from PostHog tracking (e.g., admin/developer accounts)
-const POSTHOG_EXCLUDED_EMAILS = ['rose.louis.mail@gmail.com'];
+const POSTHOG_EXCLUDED_EMAILS = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com'];
 
 interface UserPreferences {
   chess_username: string | null;
@@ -18,6 +18,7 @@ interface User {
   name: string;
   picture: string;
   is_admin: boolean;
+  cookie_consent: string | null;  // 'accepted' or null
   preferences: UserPreferences;
 }
 

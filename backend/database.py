@@ -154,6 +154,16 @@ def init_db():
                 if 'minutes' not in columns:
                     conn.execute('DROP TABLE device_usage')
 
+            # Migration: Add cookie_consent columns to users table
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+            if cursor.fetchone():
+                cursor = conn.execute("PRAGMA table_info(users)")
+                columns = [row['name'] for row in cursor.fetchall()]
+                if 'cookie_consent' not in columns:
+                    conn.execute('ALTER TABLE users ADD COLUMN cookie_consent TEXT')
+                if 'cookie_consent_at' not in columns:
+                    conn.execute('ALTER TABLE users ADD COLUMN cookie_consent_at TIMESTAMP')
+
             # Run full schema
             with open(schema_path, 'r') as f:
                 conn.executescript(f.read())
