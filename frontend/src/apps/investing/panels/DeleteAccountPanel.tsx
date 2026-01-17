@@ -13,12 +13,15 @@ export function DeleteAccountPanel() {
   const { user, logout } = useAuth();
   const { language } = useLanguage();
   const queryClient = useQueryClient();
-  const [confirmed, setConfirmed] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const requiredText = language === 'fr' ? 'supprimer mon compte' : 'delete my account';
+  const isConfirmed = confirmText.toLowerCase() === requiredText;
+
   const handleDelete = async () => {
-    if (!confirmed) return;
+    if (!isConfirmed) return;
 
     setIsDeleting(true);
     setError(null);
@@ -90,19 +93,20 @@ export function DeleteAccountPanel() {
           </ul>
         </div>
 
-        <label className="flex items-start gap-3 cursor-pointer mb-6">
-          <input
-            type="checkbox"
-            checked={confirmed}
-            onChange={(e) => setConfirmed(e.target.checked)}
-            className="mt-1 w-4 h-4 rounded border-slate-600 bg-slate-700 text-red-500 focus:ring-red-500 focus:ring-offset-slate-800"
-          />
-          <span className="text-slate-300 text-sm">
+        <div className="mb-6">
+          <label className="block text-slate-300 text-sm mb-2">
             {language === 'fr'
-              ? 'Je comprends que cette action est définitive et que toutes mes données seront supprimées.'
-              : 'I understand this action is permanent and all my data will be deleted.'}
-          </span>
-        </label>
+              ? <>Pour confirmer, tapez <span className="font-mono text-red-400">supprimer mon compte</span> ci-dessous :</>
+              : <>To confirm, type <span className="font-mono text-red-400">delete my account</span> below:</>}
+          </label>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder={requiredText}
+            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          />
+        </div>
 
         {error && (
           <p className="text-red-400 text-sm mb-4">{error}</p>
@@ -110,7 +114,7 @@ export function DeleteAccountPanel() {
 
         <button
           onClick={handleDelete}
-          disabled={!confirmed || isDeleting}
+          disabled={!isConfirmed || isDeleting}
           className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium py-3 px-4 rounded-lg transition-colors"
         >
           {isDeleting ? (
