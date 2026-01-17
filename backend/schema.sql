@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     last_session_ping TIMESTAMP,
     cookie_consent TEXT,              -- 'accepted' or NULL (refused/pending are not stored)
     cookie_consent_at TIMESTAMP,      -- When consent was given
+    cookie_refusal_count INTEGER DEFAULT 0,  -- How many times user refused before accepting
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

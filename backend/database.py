@@ -163,6 +163,8 @@ def init_db():
                     conn.execute('ALTER TABLE users ADD COLUMN cookie_consent TEXT')
                 if 'cookie_consent_at' not in columns:
                     conn.execute('ALTER TABLE users ADD COLUMN cookie_consent_at TIMESTAMP')
+                if 'cookie_refusal_count' not in columns:
+                    conn.execute('ALTER TABLE users ADD COLUMN cookie_refusal_count INTEGER DEFAULT 0')
 
             # Run full schema
             with open(schema_path, 'r') as f:

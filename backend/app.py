@@ -601,7 +601,7 @@ def record_language():
 @app.route('/api/cookie-consent', methods=['POST'])
 @login_required
 def save_cookie_consent():
-    """Save user's cookie consent. Only 'accepted' is persisted; refusals are not stored."""
+    """Save user's cookie consent. Only 'accepted' is persisted; refusals increment a counter."""
     data = request.get_json()
     consent = data.get('consent')  # 'accepted' or 'refused'
 
@@ -616,9 +616,11 @@ def save_cookie_consent():
                 WHERE id = ?
             ''', (request.user_id,))
         else:
-            # For refusal, we don't store anything (keep NULL)
-            # This ensures they'll be asked again next session
-            pass
+            # Increment refusal count (but don't set cookie_consent, so they'll be asked again)
+            conn.execute('''
+                UPDATE users SET cookie_refusal_count = COALESCE(cookie_refusal_count, 0) + 1
+                WHERE id = ?
+            ''', (request.user_id,))
 
     return jsonify({'success': True, 'consent': consent if consent == 'accepted' else None})
 
