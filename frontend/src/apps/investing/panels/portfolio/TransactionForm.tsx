@@ -278,7 +278,7 @@ export function TransactionForm({
                   {t('transactions.importRevolut')}
                 </button>
               )}
-              {selectedAccountBank?.toUpperCase() === 'CRÉDIT MUTUEL' && (
+              {(selectedAccountBank?.toLowerCase().includes('crédit mutuel') || selectedAccountBank?.toLowerCase().includes('credit mutuel')) && (
                 <button
                   onClick={() => setShowCreditMutuelImport(true)}
                   className="w-80 bg-[#0b4a3e] text-white px-6 py-3 rounded-xl hover:bg-[#093d33] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
