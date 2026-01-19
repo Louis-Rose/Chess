@@ -2,9 +2,11 @@
 import json
 import yfinance as yf
 import numpy as np
+import pandas as pd
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from pathlib import Path
+from database import USE_POSTGRES
 
 # Global database connection (set by app.py)
 _db_getter = None
@@ -222,10 +224,19 @@ def _save_cached_price(ticker, date_str, price):
         return
     try:
         with _db_getter() as conn:
-            conn.execute(
-                'INSERT OR REPLACE INTO historical_prices (ticker, date, close_price, created_at) VALUES (?, ?, ?, ?)',
-                (ticker, date_str, price, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-            )
+            if USE_POSTGRES:
+                conn.execute(
+                    '''INSERT INTO historical_prices (ticker, date, close_price, created_at)
+                       VALUES (%s, %s, %s, %s)
+                       ON CONFLICT (ticker, date) DO UPDATE SET
+                       close_price = EXCLUDED.close_price, created_at = EXCLUDED.created_at''',
+                    (ticker, date_str, price, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                )
+            else:
+                conn.execute(
+                    'INSERT OR REPLACE INTO historical_prices (ticker, date, close_price, created_at) VALUES (?, ?, ?, ?)',
+                    (ticker, date_str, price, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                )
     except Exception as e:
         print(f"Error caching price: {e}")
 
@@ -274,10 +285,19 @@ def _save_cached_fx_rate(pair, date_str, rate):
         return
     try:
         with _db_getter() as conn:
-            conn.execute(
-                'INSERT OR REPLACE INTO historical_fx_rates (pair, date, rate, created_at) VALUES (?, ?, ?, ?)',
-                (pair, date_str, rate, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-            )
+            if USE_POSTGRES:
+                conn.execute(
+                    '''INSERT INTO historical_fx_rates (pair, date, rate, created_at)
+                       VALUES (%s, %s, %s, %s)
+                       ON CONFLICT (pair, date) DO UPDATE SET
+                       rate = EXCLUDED.rate, created_at = EXCLUDED.created_at''',
+                    (pair, date_str, rate, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                )
+            else:
+                conn.execute(
+                    'INSERT OR REPLACE INTO historical_fx_rates (pair, date, rate, created_at) VALUES (?, ?, ?, ?)',
+                    (pair, date_str, rate, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                )
     except Exception as e:
         print(f"Error caching FX rate: {e}")
 

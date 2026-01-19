@@ -207,20 +207,47 @@ export function AdminPanel() {
   const [timeSpentUsers, setTimeSpentUsers] = useState<TimeSpentUser[]>([]);
   const [isLoadingTimeSpentUsers, setIsLoadingTimeSpentUsers] = useState(false);
 
-  // Settings user lists
-  type SettingsSelection = { type: 'theme'; value: 'system' | 'dark' | 'light' } | { type: 'language'; value: 'en' | 'fr' } | { type: 'device'; value: 'mobile' | 'desktop' } | null;
-  const [selectedSetting, setSelectedSetting] = useState<SettingsSelection>(null);
+  // Settings user lists - separate state for each section so list appears under clicked section
+  type ThemeSelection = 'dark' | 'light' | null;
+  type LanguageSelection = 'en' | 'fr' | null;
+  type DeviceSelection = 'mobile' | 'desktop' | null;
+  const [selectedTheme, setSelectedTheme] = useState<ThemeSelection>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageSelection>(null);
+  const [selectedDevice, setSelectedDevice] = useState<DeviceSelection>(null);
   const [settingsUsers, setSettingsUsers] = useState<{ id: number; name: string; picture: string; minutes?: number }[]>([]);
   const [isLoadingSettingsUsers, setIsLoadingSettingsUsers] = useState(false);
 
   const handleSettingClick = async (type: 'theme' | 'language' | 'device', value: string) => {
-    // Toggle off if clicking same setting
-    if (selectedSetting?.type === type && selectedSetting?.value === value) {
-      setSelectedSetting(null);
-      setSettingsUsers([]);
-      return;
+    // Clear other selections when clicking a new type
+    if (type === 'theme') {
+      setSelectedLanguage(null);
+      setSelectedDevice(null);
+      if (selectedTheme === value) {
+        setSelectedTheme(null);
+        setSettingsUsers([]);
+        return;
+      }
+      setSelectedTheme(value as ThemeSelection);
+    } else if (type === 'language') {
+      setSelectedTheme(null);
+      setSelectedDevice(null);
+      if (selectedLanguage === value) {
+        setSelectedLanguage(null);
+        setSettingsUsers([]);
+        return;
+      }
+      setSelectedLanguage(value as LanguageSelection);
+    } else {
+      setSelectedTheme(null);
+      setSelectedLanguage(null);
+      if (selectedDevice === value) {
+        setSelectedDevice(null);
+        setSettingsUsers([]);
+        return;
+      }
+      setSelectedDevice(value as DeviceSelection);
     }
-    setSelectedSetting({ type, value } as SettingsSelection);
+
     setIsLoadingSettingsUsers(true);
     try {
       const endpoint = type === 'theme' ? `/api/admin/users-by-theme/${value}` :
@@ -1224,7 +1251,7 @@ export function AdminPanel() {
           </button>
           {isSettingsExpanded && (
             <div className="mt-4 space-y-4">
-              {/* Theme Stats */}
+              {/* Theme Stats - using resolved theme (actual dark/light) */}
               {themeStats && themeStats.total > 0 && (
                 <div className="bg-slate-100 dark:bg-slate-600 rounded-lg p-4">
                   <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
@@ -1233,32 +1260,15 @@ export function AdminPanel() {
                   </h4>
                   <div className="space-y-1">
                     {(() => {
-                      const system = themeStats.by_setting['system'] || 0;
-                      const dark = themeStats.by_setting['dark'] || 0;
-                      const light = themeStats.by_setting['light'] || 0;
-                      const total = system + dark + light;
+                      const dark = themeStats.by_resolved['dark'] || 0;
+                      const light = themeStats.by_resolved['light'] || 0;
+                      const total = dark + light;
                       return (
                         <>
                           <button
-                            onClick={() => handleSettingClick('theme', 'system')}
-                            className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors ${
-                              selectedSetting?.type === 'theme' && selectedSetting?.value === 'system'
-                                ? 'bg-slate-200 dark:bg-slate-500'
-                                : 'hover:bg-slate-200 dark:hover:bg-slate-500'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Monitor className="w-4 h-4 text-blue-500" />
-                              <span className="text-sm text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Système' : 'System'}</span>
-                            </div>
-                            <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                              {total > 0 ? Math.round((system / total) * 100) : 0}% ({system})
-                            </span>
-                          </button>
-                          <button
                             onClick={() => handleSettingClick('theme', 'dark')}
                             className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors ${
-                              selectedSetting?.type === 'theme' && selectedSetting?.value === 'dark'
+                              selectedTheme === 'dark'
                                 ? 'bg-slate-200 dark:bg-slate-500'
                                 : 'hover:bg-slate-200 dark:hover:bg-slate-500'
                             }`}
@@ -1274,7 +1284,7 @@ export function AdminPanel() {
                           <button
                             onClick={() => handleSettingClick('theme', 'light')}
                             className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors ${
-                              selectedSetting?.type === 'theme' && selectedSetting?.value === 'light'
+                              selectedTheme === 'light'
                                 ? 'bg-slate-200 dark:bg-slate-500'
                                 : 'hover:bg-slate-200 dark:hover:bg-slate-500'
                             }`}
@@ -1291,6 +1301,50 @@ export function AdminPanel() {
                       );
                     })()}
                   </div>
+                  {/* User list for theme - appears right under Theme section */}
+                  {selectedTheme && (
+                    <div className="mt-3 bg-slate-200 dark:bg-slate-500 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                          {selectedTheme === 'dark' ? (language === 'fr' ? 'Sombre' : 'Dark') : (language === 'fr' ? 'Clair' : 'Light')}
+                        </h4>
+                        <button
+                          onClick={() => { setSelectedTheme(null); setSettingsUsers([]); }}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {isLoadingSettingsUsers ? (
+                        <div className="flex justify-center py-4">
+                          <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+                        </div>
+                      ) : settingsUsers.length > 0 ? (
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                          {settingsUsers.map((u) => (
+                            <div
+                              key={u.id}
+                              className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-300 dark:hover:bg-slate-400 cursor-pointer"
+                              onClick={() => navigate(`/investing/admin/user/${u.id}`)}
+                            >
+                              {u.picture ? (
+                                <img src={u.picture} alt={u.name} className="w-6 h-6 rounded-full" />
+                              ) : (
+                                <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
+                                  {u.name?.charAt(0) || '?'}
+                                </div>
+                              )}
+                              <span className="text-sm text-slate-700 dark:text-slate-200 flex-1">{u.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500 text-center py-2">
+                          {language === 'fr' ? 'Aucun utilisateur' : 'No users'}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1311,7 +1365,7 @@ export function AdminPanel() {
                           <button
                             onClick={() => handleSettingClick('language', 'en')}
                             className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors ${
-                              selectedSetting?.type === 'language' && selectedSetting?.value === 'en'
+                              selectedLanguage === 'en'
                                 ? 'bg-slate-200 dark:bg-slate-500'
                                 : 'hover:bg-slate-200 dark:hover:bg-slate-500'
                             }`}
@@ -1324,7 +1378,7 @@ export function AdminPanel() {
                           <button
                             onClick={() => handleSettingClick('language', 'fr')}
                             className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors ${
-                              selectedSetting?.type === 'language' && selectedSetting?.value === 'fr'
+                              selectedLanguage === 'fr'
                                 ? 'bg-slate-200 dark:bg-slate-500'
                                 : 'hover:bg-slate-200 dark:hover:bg-slate-500'
                             }`}
@@ -1338,6 +1392,50 @@ export function AdminPanel() {
                       );
                     })()}
                   </div>
+                  {/* User list for language - appears right under Language section */}
+                  {selectedLanguage && (
+                    <div className="mt-3 bg-slate-200 dark:bg-slate-500 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                          {selectedLanguage === 'en' ? 'English' : 'Français'}
+                        </h4>
+                        <button
+                          onClick={() => { setSelectedLanguage(null); setSettingsUsers([]); }}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {isLoadingSettingsUsers ? (
+                        <div className="flex justify-center py-4">
+                          <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+                        </div>
+                      ) : settingsUsers.length > 0 ? (
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                          {settingsUsers.map((u) => (
+                            <div
+                              key={u.id}
+                              className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-300 dark:hover:bg-slate-400 cursor-pointer"
+                              onClick={() => navigate(`/investing/admin/user/${u.id}`)}
+                            >
+                              {u.picture ? (
+                                <img src={u.picture} alt={u.name} className="w-6 h-6 rounded-full" />
+                              ) : (
+                                <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
+                                  {u.name?.charAt(0) || '?'}
+                                </div>
+                              )}
+                              <span className="text-sm text-slate-700 dark:text-slate-200 flex-1">{u.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500 text-center py-2">
+                          {language === 'fr' ? 'Aucun utilisateur' : 'No users'}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1360,7 +1458,7 @@ export function AdminPanel() {
                           <button
                             onClick={() => handleSettingClick('device', 'desktop')}
                             className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors ${
-                              selectedSetting?.type === 'device' && selectedSetting?.value === 'desktop'
+                              selectedDevice === 'desktop'
                                 ? 'bg-slate-200 dark:bg-slate-500'
                                 : 'hover:bg-slate-200 dark:hover:bg-slate-500'
                             }`}
@@ -1376,7 +1474,7 @@ export function AdminPanel() {
                           <button
                             onClick={() => handleSettingClick('device', 'mobile')}
                             className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors ${
-                              selectedSetting?.type === 'device' && selectedSetting?.value === 'mobile'
+                              selectedDevice === 'mobile'
                                 ? 'bg-slate-200 dark:bg-slate-500'
                                 : 'hover:bg-slate-200 dark:hover:bg-slate-500'
                             }`}
@@ -1393,58 +1491,55 @@ export function AdminPanel() {
                       );
                     })()}
                   </div>
-                </div>
-              )}
-
-              {/* User list for selected setting */}
-              {selectedSetting && (
-                <div className="bg-slate-200 dark:bg-slate-500 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                      {selectedSetting.type === 'theme' && (selectedSetting.value === 'dark' ? (language === 'fr' ? 'Sombre' : 'Dark') : (language === 'fr' ? 'Clair' : 'Light'))}
-                      {selectedSetting.type === 'language' && (selectedSetting.value === 'en' ? 'English' : 'Français')}
-                      {selectedSetting.type === 'device' && (selectedSetting.value === 'desktop' ? 'Desktop' : 'Mobile')}
-                    </h4>
-                    <button
-                      onClick={() => { setSelectedSetting(null); setSettingsUsers([]); }}
-                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  {isLoadingSettingsUsers ? (
-                    <div className="flex justify-center py-4">
-                      <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
-                    </div>
-                  ) : settingsUsers.length > 0 ? (
-                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {settingsUsers.map((u) => {
-                        const formatMins = (m: number) => m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` : `${m}m`;
-                        return (
-                          <div
-                            key={u.id}
-                            className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-300 dark:hover:bg-slate-400 cursor-pointer"
-                            onClick={() => navigate(`/investing/admin/user/${u.id}`)}
-                          >
-                            {u.picture ? (
-                              <img src={u.picture} alt={u.name} className="w-6 h-6 rounded-full" />
-                            ) : (
-                              <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
-                                {u.name?.charAt(0) || '?'}
+                  {/* User list for device - appears right under Device section */}
+                  {selectedDevice && (
+                    <div className="mt-3 bg-slate-200 dark:bg-slate-500 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                          {selectedDevice === 'desktop' ? 'Desktop' : 'Mobile'}
+                        </h4>
+                        <button
+                          onClick={() => { setSelectedDevice(null); setSettingsUsers([]); }}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {isLoadingSettingsUsers ? (
+                        <div className="flex justify-center py-4">
+                          <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+                        </div>
+                      ) : settingsUsers.length > 0 ? (
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                          {settingsUsers.map((u) => {
+                            const formatMins = (m: number) => m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` : `${m}m`;
+                            return (
+                              <div
+                                key={u.id}
+                                className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-300 dark:hover:bg-slate-400 cursor-pointer"
+                                onClick={() => navigate(`/investing/admin/user/${u.id}`)}
+                              >
+                                {u.picture ? (
+                                  <img src={u.picture} alt={u.name} className="w-6 h-6 rounded-full" />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
+                                    {u.name?.charAt(0) || '?'}
+                                  </div>
+                                )}
+                                <span className="text-sm text-slate-700 dark:text-slate-200 flex-1">{u.name}</span>
+                                {u.minutes !== undefined && (
+                                  <span className="text-xs text-slate-400 dark:text-slate-300">{formatMins(u.minutes)}</span>
+                                )}
                               </div>
-                            )}
-                            <span className="text-sm text-slate-700 dark:text-slate-200 flex-1">{u.name}</span>
-                            {u.minutes !== undefined && (
-                              <span className="text-xs text-slate-400 dark:text-slate-300">{formatMins(u.minutes)}</span>
-                            )}
-                          </div>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500 text-center py-2">
+                          {language === 'fr' ? 'Aucun utilisateur' : 'No users'}
+                        </p>
+                      )}
                     </div>
-                  ) : (
-                    <p className="text-sm text-slate-500 text-center py-2">
-                      {language === 'fr' ? 'Aucun utilisateur' : 'No users'}
-                    </p>
                   )}
                 </div>
               )}
