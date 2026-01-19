@@ -145,16 +145,21 @@ export function TransactionForm({
     const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 1;
     const maxDay = isCurrentMonth ? today.getDate() : daysInCurrentMonth;
 
-    const grid: Array<{ day: number; isCurrentMonth: boolean; isSelectable: boolean }> = [];
+    const grid: Array<{ day: number; isCurrentMonth: boolean; isSelectable: boolean; isWeekend: boolean }> = [];
 
     // Add previous month's days (greyed out)
     for (let i = startOffset - 1; i >= 0; i--) {
-      grid.push({ day: daysInPrevMonth - i, isCurrentMonth: false, isSelectable: false });
+      const gridPosition = startOffset - 1 - i;
+      const isWeekend = gridPosition % 7 === 5 || gridPosition % 7 === 6; // Sat or Sun
+      grid.push({ day: daysInPrevMonth - i, isCurrentMonth: false, isSelectable: false, isWeekend });
     }
 
     // Add current month's days
     for (let d = 1; d <= daysInCurrentMonth; d++) {
-      grid.push({ day: d, isCurrentMonth: true, isSelectable: d <= maxDay });
+      const gridPosition = startOffset + d - 1;
+      const isWeekend = gridPosition % 7 === 5 || gridPosition % 7 === 6; // Sat or Sun (market closed)
+      const isSelectable = d <= maxDay && !isWeekend;
+      grid.push({ day: d, isCurrentMonth: true, isSelectable, isWeekend });
     }
 
     return grid;
