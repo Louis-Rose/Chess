@@ -259,41 +259,12 @@ export function TransactionForm({
 
       {showTransactions && (
         <>
-          {/* Header with title and filter */}
-          <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-            <div className="flex items-center gap-4">
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('transactions.title')}</h3>
-              {uniqueTickers.length > 0 && (
-                <>
-                  <select
-                    value={filterTicker}
-                    onChange={(e) => setFilterTicker(e.target.value)}
-                    className="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="">{t('transactions.allStocks')}</option>
-                    {uniqueTickers.map(ticker => {
-                      const stock = findStockByTicker(ticker);
-                      const label = stock ? `${stock.name} (${ticker})` : ticker;
-                      return <option key={ticker} value={ticker}>{label}</option>;
-                    })}
-                  </select>
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value as 'ALL' | 'BUY' | 'SELL')}
-                    className="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="ALL">{language === 'fr' ? 'Tous types' : 'All types'}</option>
-                    <option value="BUY">{language === 'fr' ? 'Achats' : 'Buys'}</option>
-                    <option value="SELL">{language === 'fr' ? 'Ventes' : 'Sells'}</option>
-                  </select>
-                </>
-              )}
-            </div>
-          </div>
+          {/* Header with title */}
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">{t('transactions.title')}</h3>
 
           {/* Action buttons - Import from Revolut and Add manually */}
           {!showAddForm && !showRevolutImport && (
-            <div className="flex flex-col items-center gap-3 mb-6">
+            <div className="flex flex-col items-center gap-3 mb-4">
               {selectedAccountBank?.toUpperCase() === 'REVOLUT' && (
                 <button
                   onClick={() => setShowRevolutImport(true)}
@@ -310,6 +281,33 @@ export function TransactionForm({
                 <Plus className="w-5 h-5" />
                 {t('transactions.addTransaction')}
               </button>
+            </div>
+          )}
+
+          {/* Filters - shown below buttons when not adding/importing */}
+          {!showAddForm && !showRevolutImport && uniqueTickers.length > 0 && (
+            <div className="flex justify-center gap-3 mb-6">
+              <select
+                value={filterTicker}
+                onChange={(e) => setFilterTicker(e.target.value)}
+                className="px-3 py-1.5 border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="">{t('transactions.allStocks')}</option>
+                {uniqueTickers.map(ticker => {
+                  const stock = findStockByTicker(ticker);
+                  const label = stock ? `${stock.name} (${ticker})` : ticker;
+                  return <option key={ticker} value={ticker}>{label}</option>;
+                })}
+              </select>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value as 'ALL' | 'BUY' | 'SELL')}
+                className="px-3 py-1.5 border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="ALL">{language === 'fr' ? 'Achats & Ventes' : 'Buys & Sells'}</option>
+                <option value="BUY">{language === 'fr' ? 'Achats' : 'Buys only'}</option>
+                <option value="SELL">{language === 'fr' ? 'Ventes' : 'Sells only'}</option>
+              </select>
             </div>
           )}
 
