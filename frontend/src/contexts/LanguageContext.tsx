@@ -37,7 +37,8 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Transactions
     'transactions.title': 'Transaction History',
-    'transactions.addTransaction': 'Add Transaction',
+    'transactions.addTransaction': 'Add Manually',
+    'transactions.importRevolut': 'Import directly from Revolut',
     'transactions.close': 'Close',
     'transactions.allStocks': 'All stocks',
     'transactions.searchStocks': 'Search stocks...',
@@ -110,7 +111,8 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Transactions
     'transactions.title': 'Historique des Transactions',
-    'transactions.addTransaction': 'Ajouter une transaction',
+    'transactions.addTransaction': 'Ajouter manuellement',
+    'transactions.importRevolut': 'Importer directement depuis Revolut',
     'transactions.close': 'Fermer',
     'transactions.allStocks': 'Toutes les actions',
     'transactions.searchStocks': 'Rechercher...',

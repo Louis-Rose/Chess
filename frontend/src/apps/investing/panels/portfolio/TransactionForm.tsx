@@ -233,7 +233,7 @@ export function TransactionForm({
 
       {showTransactions && (
         <>
-          {/* Header with title, filter and add button */}
+          {/* Header with title and filter */}
           <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
             <div className="flex items-center gap-4">
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('transactions.title')}</h3>
@@ -252,28 +252,26 @@ export function TransactionForm({
                 </select>
               )}
             </div>
-            {!showAddForm && !showRevolutImport && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowAddForm(true)}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  {t('transactions.addTransaction')}
-                </button>
-              </div>
-            )}
           </div>
 
-          {/* Revolut Import Button - Only for Revolut accounts */}
-          {!showAddForm && !showRevolutImport && selectedAccountBank?.toUpperCase() === 'REVOLUT' && (
-            <div className="flex justify-center mb-6">
+          {/* Action buttons - Add manually and Import from Revolut */}
+          {!showAddForm && !showRevolutImport && (
+            <div className="flex justify-center gap-4 mb-6">
+              {selectedAccountBank?.toUpperCase() === 'REVOLUT' && (
+                <button
+                  onClick={() => setShowRevolutImport(true)}
+                  className="bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Upload className="w-5 h-5" />
+                  {t('transactions.importRevolut')}
+                </button>
+              )}
               <button
-                onClick={() => setShowRevolutImport(true)}
-                className="bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                onClick={() => setShowAddForm(true)}
+                className="bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 flex items-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
               >
-                <Upload className="w-5 h-5" />
-                {language === 'fr' ? 'Importer depuis Revolut' : 'Import from Revolut'}
+                <Plus className="w-5 h-5" />
+                {t('transactions.addTransaction')}
               </button>
             </div>
           )}
