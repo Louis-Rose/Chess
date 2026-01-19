@@ -1140,6 +1140,9 @@ def add_transaction():
     # Fetch historical price at transaction date
     try:
         price_per_share = fetch_stock_price(stock_ticker, transaction_date)
+        # Convert numpy types to native Python types for PostgreSQL compatibility
+        if price_per_share is not None:
+            price_per_share = float(price_per_share)
     except Exception as e:
         return jsonify({'error': f'Could not fetch price for {stock_ticker} on {transaction_date}: {str(e)}'}), 400
 
@@ -1196,6 +1199,9 @@ def bulk_add_transactions():
         try:
             adjusted_date = get_previous_weekday(transaction_date)
             price_per_share = fetch_stock_price(stock_ticker, adjusted_date)
+            # Convert numpy types to native Python types for PostgreSQL compatibility
+            if price_per_share is not None:
+                price_per_share = float(price_per_share)
             processed.append({
                 'stock_ticker': stock_ticker,
                 'transaction_type': transaction_type,
