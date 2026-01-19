@@ -7,7 +7,7 @@ from flask import Flask, jsonify, request, Response, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 import utils
-from database import get_db, init_db, get_all_cached_stats, save_all_cached_stats
+from database import get_db, init_db, get_all_cached_stats, save_all_cached_stats, USE_POSTGRES
 
 # In-memory storage for mobile upload tokens (short-lived, ~5 min)
 # Structure: { token: { user_id, created_at, transactions, status } }
@@ -2865,43 +2865,77 @@ def get_time_spent_details(period):
     - Month: YYYY-MM
     """
     hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
-    placeholders = ','.join(['?' for _ in hidden_emails])
+    placeholder = '%s' if USE_POSTGRES else '?'
+    placeholders = ','.join([placeholder for _ in hidden_emails])
 
     with get_db() as conn:
         if '-W' in period:
             # Week format: YYYY-WXX
             year, week = period.split('-W')
-            cursor = conn.execute(f'''
-                SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
-                FROM user_activity a
-                JOIN users u ON a.user_id = u.id
-                WHERE u.email NOT IN ({placeholders})
-                  AND strftime('%Y', a.activity_date) = ?
-                  AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
-                GROUP BY u.id
-                ORDER BY minutes DESC
-            ''', (*hidden_emails, year, int(week)))
+            if USE_POSTGRES:
+                cursor = conn.execute(f'''
+                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    FROM user_activity a
+                    JOIN users u ON a.user_id = u.id
+                    WHERE u.email NOT IN ({placeholders})
+                      AND EXTRACT(YEAR FROM a.activity_date::date) = %s
+                      AND EXTRACT(WEEK FROM a.activity_date::date) = %s
+                    GROUP BY u.id, u.name, u.picture
+                    ORDER BY minutes DESC
+                ''', (*hidden_emails, int(year), int(week)))
+            else:
+                cursor = conn.execute(f'''
+                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    FROM user_activity a
+                    JOIN users u ON a.user_id = u.id
+                    WHERE u.email NOT IN ({placeholders})
+                      AND strftime('%Y', a.activity_date) = ?
+                      AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
+                    GROUP BY u.id
+                    ORDER BY minutes DESC
+                ''', (*hidden_emails, year, int(week)))
         elif len(period) == 7:
             # Month format: YYYY-MM
-            cursor = conn.execute(f'''
-                SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
-                FROM user_activity a
-                JOIN users u ON a.user_id = u.id
-                WHERE u.email NOT IN ({placeholders})
-                  AND strftime('%Y-%m', a.activity_date) = ?
-                GROUP BY u.id
-                ORDER BY minutes DESC
-            ''', (*hidden_emails, period))
+            if USE_POSTGRES:
+                cursor = conn.execute(f'''
+                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    FROM user_activity a
+                    JOIN users u ON a.user_id = u.id
+                    WHERE u.email NOT IN ({placeholders})
+                      AND to_char(a.activity_date::date, 'YYYY-MM') = %s
+                    GROUP BY u.id, u.name, u.picture
+                    ORDER BY minutes DESC
+                ''', (*hidden_emails, period))
+            else:
+                cursor = conn.execute(f'''
+                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    FROM user_activity a
+                    JOIN users u ON a.user_id = u.id
+                    WHERE u.email NOT IN ({placeholders})
+                      AND strftime('%Y-%m', a.activity_date) = ?
+                    GROUP BY u.id
+                    ORDER BY minutes DESC
+                ''', (*hidden_emails, period))
         else:
             # Date format: YYYY-MM-DD
-            cursor = conn.execute(f'''
-                SELECT u.id, u.name, u.picture, a.minutes
-                FROM user_activity a
-                JOIN users u ON a.user_id = u.id
-                WHERE u.email NOT IN ({placeholders})
-                  AND a.activity_date = ?
-                ORDER BY a.minutes DESC
-            ''', (*hidden_emails, period))
+            if USE_POSTGRES:
+                cursor = conn.execute(f'''
+                    SELECT u.id, u.name, u.picture, a.minutes
+                    FROM user_activity a
+                    JOIN users u ON a.user_id = u.id
+                    WHERE u.email NOT IN ({placeholders})
+                      AND a.activity_date = %s
+                    ORDER BY a.minutes DESC
+                ''', (*hidden_emails, period))
+            else:
+                cursor = conn.execute(f'''
+                    SELECT u.id, u.name, u.picture, a.minutes
+                    FROM user_activity a
+                    JOIN users u ON a.user_id = u.id
+                    WHERE u.email NOT IN ({placeholders})
+                      AND a.activity_date = ?
+                    ORDER BY a.minutes DESC
+                ''', (*hidden_emails, period))
 
         users = [dict(row) for row in cursor.fetchall()]
 
