@@ -1143,13 +1143,17 @@ def add_transaction():
     except Exception as e:
         return jsonify({'error': f'Could not fetch price for {stock_ticker} on {transaction_date}: {str(e)}'}), 400
 
-    with get_db() as conn:
-        cursor = conn.execute('''
-            INSERT INTO portfolio_transactions (user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            RETURNING id
-        ''', (request.user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share))
-        transaction_id = cursor.fetchone()['id']
+    try:
+        with get_db() as conn:
+            cursor = conn.execute('''
+                INSERT INTO portfolio_transactions (user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                RETURNING id
+            ''', (request.user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share))
+            transaction_id = cursor.fetchone()['id']
+    except Exception as e:
+        print(f"[Transaction Error] {stock_ticker}: {str(e)}")
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
 
     return jsonify({
         'success': True,
