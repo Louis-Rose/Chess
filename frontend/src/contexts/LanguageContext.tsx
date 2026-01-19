@@ -36,7 +36,7 @@ const translations: Record<Language, Record<string, string>> = {
     'accounts.fees': 'Fees',
 
     // Transactions
-    'transactions.title': 'Transaction History',
+    'transactions.title': 'Transactions History',
     'transactions.addTransaction': 'Add Manually',
     'transactions.importRevolut': 'Import directly from Revolut',
     'transactions.close': 'Close',

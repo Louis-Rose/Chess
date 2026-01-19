@@ -127,19 +127,37 @@ export function TransactionForm({
     { value: '12', label: 'December' },
   ];
 
-  // Calculate days in selected month
-  const daysInMonth = useMemo(() => {
+  // Calculate calendar grid for selected month (Mon-Sun layout)
+  const calendarGrid = useMemo(() => {
     if (!newYear || !newMonth) return [];
     const year = parseInt(newYear);
     const month = parseInt(newMonth);
-    const days = new Date(year, month, 0).getDate();
+    const daysInCurrentMonth = new Date(year, month, 0).getDate();
+    const daysInPrevMonth = new Date(year, month - 1, 0).getDate();
+
+    // Get first day of month (0 = Sunday, 1 = Monday, etc.)
+    const firstDayOfMonth = new Date(year, month - 1, 1).getDay();
+    // Convert to Monday-based (0 = Monday, 6 = Sunday)
+    const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
     // Limit to today if current year/month
     const today = new Date();
     const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 1;
-    const maxDay = isCurrentMonth ? today.getDate() : days;
+    const maxDay = isCurrentMonth ? today.getDate() : daysInCurrentMonth;
 
-    return Array.from({ length: maxDay }, (_, i) => i + 1);
+    const grid: Array<{ day: number; isCurrentMonth: boolean; isSelectable: boolean }> = [];
+
+    // Add previous month's days (greyed out)
+    for (let i = startOffset - 1; i >= 0; i--) {
+      grid.push({ day: daysInPrevMonth - i, isCurrentMonth: false, isSelectable: false });
+    }
+
+    // Add current month's days
+    for (let d = 1; d <= daysInCurrentMonth; d++) {
+      grid.push({ day: d, isCurrentMonth: true, isSelectable: d <= maxDay });
+    }
+
+    return grid;
   }, [newYear, newMonth]);
 
   // Combine into date string
@@ -395,7 +413,7 @@ export function TransactionForm({
                   {months.map(m => <option key={m.value} value={m.value}>{m.value} - {m.label}</option>)}
                 </select>
 
-                {/* Custom day picker with 5 columns */}
+                {/* Calendar day picker (Mon-Sun) */}
                 <div className="relative" ref={dayPickerRef}>
                   <button
                     type="button"
@@ -405,17 +423,40 @@ export function TransactionForm({
                   >
                     {newDay || t('transactions.day')}
                   </button>
-                  {showDayPicker && daysInMonth.length > 0 && (
-                    <div className="absolute top-full right-0 mt-1 bg-white border border-slate-300 rounded-xl shadow-xl z-50 p-4">
-                      <div className="grid grid-cols-5 gap-2" style={{ width: '220px' }}>
-                        {daysInMonth.map(d => (
+                  {showDayPicker && calendarGrid.length > 0 && (
+                    <div className="absolute top-full right-0 mt-1 bg-white border border-slate-300 rounded-xl shadow-xl z-50 p-3">
+                      {/* Day headers */}
+                      <div className="grid grid-cols-7 gap-1 mb-1">
+                        {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(day => (
+                          <div key={day} className="w-9 h-6 flex items-center justify-center text-xs font-medium text-slate-400">
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+                      {/* Calendar grid */}
+                      <div className="grid grid-cols-7 gap-1">
+                        {calendarGrid.map((cell, idx) => (
                           <button
-                            key={d}
+                            key={idx}
                             type="button"
-                            onClick={() => { setNewDay(String(d)); setShowDayPicker(false); }}
-                            className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${newDay === String(d) ? 'bg-green-600 text-white' : 'text-slate-700 hover:bg-green-50'}`}
+                            onClick={() => {
+                              if (cell.isCurrentMonth && cell.isSelectable) {
+                                setNewDay(String(cell.day));
+                                setShowDayPicker(false);
+                              }
+                            }}
+                            disabled={!cell.isCurrentMonth || !cell.isSelectable}
+                            className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                              !cell.isCurrentMonth
+                                ? 'text-slate-300 cursor-default'
+                                : !cell.isSelectable
+                                  ? 'text-slate-300 cursor-not-allowed'
+                                  : newDay === String(cell.day)
+                                    ? 'bg-green-600 text-white'
+                                    : 'text-slate-700 hover:bg-green-50'
+                            }`}
                           >
-                            {d}
+                            {cell.day}
                           </button>
                         ))}
                       </div>
