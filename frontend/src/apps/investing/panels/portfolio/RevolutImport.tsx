@@ -189,6 +189,20 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
     }
   };
 
+  const updateTransaction = (index: number, field: keyof ParsedTransaction, value: string | number) => {
+    setParsedTransactions(prev => {
+      const updated = [...prev];
+      if (field === 'quantity') {
+        updated[index] = { ...updated[index], [field]: Number(value) || 0 };
+      } else if (field === 'transaction_type') {
+        updated[index] = { ...updated[index], [field]: value as 'BUY' | 'SELL' };
+      } else {
+        updated[index] = { ...updated[index], [field]: value };
+      }
+      return updated;
+    });
+  };
+
   const handleImport = async () => {
     const toImport = parsedTransactions.filter((_, i) => selectedTransactions.has(i));
     if (toImport.length === 0) return;
@@ -470,14 +484,13 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
                   {parsedTransactions.map((tx, i) => (
                     <tr
                       key={i}
-                      onClick={() => toggleTransaction(i)}
-                      className={`border-t border-slate-100 dark:border-slate-700 cursor-pointer transition-colors ${
+                      className={`border-t border-slate-100 dark:border-slate-700 transition-colors ${
                         selectedTransactions.has(i)
                           ? 'bg-green-50 dark:bg-green-900/20'
                           : 'hover:bg-slate-50 dark:hover:bg-slate-700'
                       }`}
                     >
-                      <td className="p-3">
+                      <td className="p-3 cursor-pointer" onClick={() => toggleTransaction(i)}>
                         <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                           selectedTransactions.has(i)
                             ? 'bg-green-500 border-green-500'
@@ -486,18 +499,46 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
                           {selectedTransactions.has(i) && <Check className="w-3 h-3 text-white" />}
                         </div>
                       </td>
-                      <td className="p-3 font-bold text-slate-800 dark:text-slate-100">{tx.stock_ticker}</td>
-                      <td className="p-3">
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                          tx.transaction_type === 'BUY'
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400'
-                            : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'
-                        }`}>
-                          {tx.transaction_type}
-                        </span>
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          value={tx.stock_ticker}
+                          onChange={(e) => updateTransaction(i, 'stock_ticker', e.target.value.toUpperCase())}
+                          className="w-full px-2 py-1 font-bold text-slate-800 dark:text-slate-100 bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-500 focus:border-green-500 dark:focus:border-green-400 rounded focus:outline-none"
+                        />
                       </td>
-                      <td className="p-3 text-right text-slate-600 dark:text-slate-300">{tx.quantity}</td>
-                      <td className="p-3 text-slate-500 dark:text-slate-400">{tx.transaction_date}</td>
+                      <td className="p-2">
+                        <select
+                          value={tx.transaction_type}
+                          onChange={(e) => updateTransaction(i, 'transaction_type', e.target.value)}
+                          className={`px-2 py-1 rounded text-xs font-bold border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                            tx.transaction_type === 'BUY'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'
+                          }`}
+                        >
+                          <option value="BUY">BUY</option>
+                          <option value="SELL">SELL</option>
+                        </select>
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          value={tx.quantity}
+                          onChange={(e) => updateTransaction(i, 'quantity', e.target.value)}
+                          min="0"
+                          step="any"
+                          className="w-20 px-2 py-1 text-right text-slate-600 dark:text-slate-300 bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-500 focus:border-green-500 dark:focus:border-green-400 rounded focus:outline-none"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="date"
+                          value={tx.transaction_date}
+                          onChange={(e) => updateTransaction(i, 'transaction_date', e.target.value)}
+                          className="px-2 py-1 text-slate-500 dark:text-slate-400 bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-500 focus:border-green-500 dark:focus:border-green-400 rounded focus:outline-none"
+                        />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
