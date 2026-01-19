@@ -1234,8 +1234,81 @@ def bulk_add_transactions():
     })
 
 
+def _parse_revolut_pdf_with_gemini(pdf_bytes):
+    """Parse Revolut PDF using Gemini Vision for high accuracy. Returns (transactions, errors)."""
+    import google.generativeai as genai
+    from pdf2image import convert_from_bytes
+    import json
+
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        return None, ['GEMINI_API_KEY not configured']
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+
+        # Convert PDF pages to images
+        images = convert_from_bytes(pdf_bytes, dpi=150)
+
+        prompt = """Extract ALL stock transactions from this Revolut account statement.
+Be thorough - check every row carefully, including the LAST row of each table.
+
+Return ONLY a valid JSON array with this exact format:
+[{"ticker": "AAPL", "type": "BUY", "quantity": 10, "date": "2024-03-15"}, ...]
+
+Rules:
+- Include ONLY stock trades (Buy/Sell market orders), NOT dividends, fees, cash top-ups, or custody fees
+- ticker: The stock symbol (e.g., "AAPL", "META", "GOOGL")
+- type: "BUY" or "SELL" only
+- quantity: Number of shares (integer)
+- date: Format YYYY-MM-DD
+- If there are no transactions, return an empty array: []
+
+Return ONLY the JSON array, no other text."""
+
+        # Send all pages to Gemini
+        response = model.generate_content([prompt] + images)
+
+        # Parse JSON response
+        response_text = response.text.strip()
+        # Remove markdown code blocks if present
+        if response_text.startswith('```'):
+            response_text = response_text.split('\n', 1)[1]
+            if response_text.endswith('```'):
+                response_text = response_text.rsplit('```', 1)[0]
+            response_text = response_text.strip()
+
+        transactions_raw = json.loads(response_text)
+
+        # Normalize to our format
+        transactions = []
+        for tx in transactions_raw:
+            transactions.append({
+                'stock_ticker': tx['ticker'].upper(),
+                'transaction_type': tx['type'].upper(),
+                'quantity': int(tx['quantity']),
+                'transaction_date': tx['date'],
+                'price_per_share': None,  # Will be fetched later
+            })
+
+        return transactions, []
+
+    except Exception as e:
+        return None, [f'Gemini parsing failed: {str(e)}']
+
+
 def _parse_revolut_pdf_bytes(pdf_bytes):
-    """Helper function to parse Revolut PDF bytes. Returns (transactions, errors)."""
+    """Helper function to parse Revolut PDF bytes. Returns (transactions, errors).
+    Uses Gemini Vision if available, falls back to pdfplumber."""
+
+    # Try Gemini first for better accuracy
+    transactions, errors = _parse_revolut_pdf_with_gemini(pdf_bytes)
+    if transactions is not None:
+        return transactions, errors
+
+    # Fallback to pdfplumber
+    print(f"[Revolut Import] Gemini unavailable ({errors}), falling back to pdfplumber")
     import pdfplumber
     import io
     import re
