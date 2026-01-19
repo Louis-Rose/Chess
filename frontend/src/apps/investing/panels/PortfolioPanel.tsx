@@ -58,7 +58,9 @@ const addTransaction = async (transaction: NewTransaction): Promise<Transaction>
 };
 
 const deleteTransaction = async (id: number): Promise<void> => {
+  console.log('Deleting transaction:', id);
   await axios.delete(`/api/investing/transactions/${id}`);
+  console.log('Transaction deleted:', id);
 };
 
 const fetchAccounts = async (): Promise<{ accounts: Account[] }> => {
@@ -191,6 +193,9 @@ export function PortfolioPanel() {
       queryClient.invalidateQueries({ queryKey: ['holdings'] });
       queryClient.invalidateQueries({ queryKey: ['composition'] });
       queryClient.invalidateQueries({ queryKey: ['performance'] });
+    },
+    onError: (error) => {
+      console.error('Failed to delete transaction:', error);
     },
   });
 
