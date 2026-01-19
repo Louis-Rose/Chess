@@ -62,7 +62,7 @@ interface TransactionFormProps {
   onDeleteTransaction: (id: number) => void;
   onRefresh: () => void;
   isAdding: boolean;
-  isDeleting: boolean;
+  deletingId: number | null;
   addError?: Error | null;
   privateMode: boolean;
 }
@@ -75,7 +75,7 @@ export function TransactionForm({
   onDeleteTransaction,
   onRefresh,
   isAdding,
-  isDeleting,
+  deletingId,
   addError,
   privateMode,
 }: TransactionFormProps) {
@@ -545,10 +545,14 @@ export function TransactionForm({
                   </div>
                   <button
                     onClick={() => onDeleteTransaction(tx.id)}
-                    disabled={isDeleting}
-                    className="text-slate-400 hover:text-red-500 p-1"
+                    disabled={deletingId === tx.id}
+                    className={`p-1 ${deletingId === tx.id ? 'text-slate-300' : 'text-slate-400 hover:text-red-500'}`}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    {deletingId === tx.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               ))}

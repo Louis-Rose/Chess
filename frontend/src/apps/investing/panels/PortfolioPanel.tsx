@@ -58,9 +58,7 @@ const addTransaction = async (transaction: NewTransaction): Promise<Transaction>
 };
 
 const deleteTransaction = async (id: number): Promise<void> => {
-  console.log('Deleting transaction:', id);
   await axios.delete(`/api/investing/transactions/${id}`);
-  console.log('Transaction deleted:', id);
 };
 
 const fetchAccounts = async (): Promise<{ accounts: Account[] }> => {
@@ -188,14 +186,31 @@ export function PortfolioPanel() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteTransaction,
-    onSuccess: () => {
+    onMutate: async (deletedId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['transactions'] });
+      // Snapshot previous value
+      const previousTransactions = queryClient.getQueryData(['transactions']);
+      // Optimistically remove the transaction
+      queryClient.setQueryData(['transactions'], (old: { transactions: Transaction[] } | undefined) => {
+        if (!old) return old;
+        return { transactions: old.transactions.filter(t => t.id !== deletedId) };
+      });
+      return { previousTransactions };
+    },
+    onError: (error, _deletedId, context) => {
+      // Rollback on error
+      if (context?.previousTransactions) {
+        queryClient.setQueryData(['transactions'], context.previousTransactions);
+      }
+      console.error('Failed to delete transaction:', error);
+    },
+    onSettled: () => {
+      // Refetch to ensure sync with server
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['holdings'] });
       queryClient.invalidateQueries({ queryKey: ['composition'] });
       queryClient.invalidateQueries({ queryKey: ['performance'] });
-    },
-    onError: (error) => {
-      console.error('Failed to delete transaction:', error);
     },
   });
 
@@ -334,7 +349,7 @@ export function PortfolioPanel() {
               queryClient.invalidateQueries({ queryKey: ['performance'] });
             }}
             isAdding={addMutation.isPending}
-            isDeleting={deleteMutation.isPending}
+            deletingId={deleteMutation.isPending ? deleteMutation.variables : null}
             addError={addMutation.error as Error | null}
             privateMode={privateMode}
           />
