@@ -277,13 +277,13 @@ export function TransactionForm({
             </div>
           </div>
 
-          {/* Action buttons - Add manually and Import from Revolut */}
+          {/* Action buttons - Import from Revolut and Add manually */}
           {!showAddForm && !showRevolutImport && (
-            <div className="flex justify-center gap-4 mb-6">
+            <div className="flex flex-col items-center gap-3 mb-6">
               {selectedAccountBank?.toUpperCase() === 'REVOLUT' && (
                 <button
                   onClick={() => setShowRevolutImport(true)}
-                  className="bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                  className="w-80 bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
                 >
                   <Upload className="w-5 h-5" />
                   {t('transactions.importRevolut')}
@@ -291,7 +291,7 @@ export function TransactionForm({
               )}
               <button
                 onClick={() => setShowAddForm(true)}
-                className="bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 flex items-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                className="w-80 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
               >
                 <Plus className="w-5 h-5" />
                 {t('transactions.addTransaction')}

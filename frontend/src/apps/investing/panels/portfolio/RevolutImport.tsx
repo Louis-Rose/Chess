@@ -66,8 +66,8 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
           setIsPolling(false);
           if (response.data.transactions.length === 0) {
             setParseError(language === 'fr'
-              ? 'Aucune transaction trouvée dans ce PDF. Assurez-vous d\'utiliser un relevé de trading Revolut.'
-              : 'No transactions found in this PDF. Make sure you\'re using a Revolut trading statement.');
+              ? 'Aucune transaction trouvée dans ce PDF. Assurez-vous d\'utiliser un Relevé de compte Revolut.'
+              : 'No transactions found in this PDF. Make sure you\'re using a Revolut Account statement.');
           } else {
             setParsedTransactions(response.data.transactions);
             setSelectedTransactions(new Set(response.data.transactions.map((_: ParsedTransaction, i: number) => i)));
@@ -153,8 +153,8 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
         setSelectedTransactions(new Set(response.data.transactions.map((_: ParsedTransaction, i: number) => i)));
       } else if (response.data.transactions.length === 0) {
         setParseError(language === 'fr'
-          ? 'Aucune transaction trouvée dans ce PDF. Assurez-vous d\'utiliser un relevé de trading Revolut.'
-          : 'No transactions found in this PDF. Make sure you\'re using a Revolut trading statement.');
+          ? 'Aucune transaction trouvée dans ce PDF. Assurez-vous d\'utiliser un Relevé de compte Revolut.'
+          : 'No transactions found in this PDF. Make sure you\'re using a Revolut Account statement.');
       }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
@@ -255,7 +255,7 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
               {language === 'fr' ? 'Import Revolut' : 'Revolut Import'}
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              {language === 'fr' ? 'Importer depuis un relevé de trading PDF' : 'Import from trading statement PDF'}
+              {language === 'fr' ? 'Importer depuis un Relevé de compte PDF' : 'Import from Account statement PDF'}
             </p>
           </div>
         </div>
@@ -274,22 +274,6 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
             {language === 'fr' ? 'Comment souhaitez-vous importer ?' : 'How would you like to import?'}
           </p>
           <button
-            onClick={() => setMode('desktop')}
-            className="w-full flex items-center gap-4 p-4 border border-slate-200 dark:border-slate-600 rounded-xl hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-          >
-            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
-              <Monitor className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Depuis cet ordinateur' : 'From this computer'}
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {language === 'fr' ? 'J\'ai le PDF sur cet appareil' : 'I have the PDF on this device'}
-              </p>
-            </div>
-          </button>
-          <button
             onClick={startQrMode}
             className="w-full flex items-center gap-4 p-4 border border-slate-200 dark:border-slate-600 rounded-xl hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
           >
@@ -302,6 +286,22 @@ export function RevolutImport({ selectedAccountId, onImportComplete, onClose }: 
               </p>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 {language === 'fr' ? 'Scanner un QR code pour uploader' : 'Scan QR code to upload'}
+              </p>
+            </div>
+          </button>
+          <button
+            onClick={() => setMode('desktop')}
+            className="w-full flex items-center gap-4 p-4 border border-slate-200 dark:border-slate-600 rounded-xl hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+          >
+            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+              <Monitor className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-slate-800 dark:text-slate-100">
+                {language === 'fr' ? 'Depuis cet ordinateur' : 'From this computer'}
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {language === 'fr' ? 'J\'ai le PDF sur cet appareil' : 'I have the PDF on this device'}
               </p>
             </div>
           </button>
