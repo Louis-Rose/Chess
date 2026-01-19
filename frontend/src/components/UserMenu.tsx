@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronDown, LogOut, Trash2 } from 'lucide-react';
+import { ChevronDown, LogOut, Settings } from 'lucide-react';
 
 interface UserMenuProps {
   collapsed?: boolean;
@@ -70,12 +70,12 @@ export function UserMenu({ collapsed = false }: UserMenuProps) {
             <button
               onClick={() => {
                 setIsOpen(false);
-                navigate('/investing/settings/delete-account');
+                navigate('/investing/settings');
               }}
-              className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-slate-700 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 flex items-center gap-2"
             >
-              <Trash2 className="w-4 h-4" />
-              Delete account
+              <Settings className="w-4 h-4" />
+              Settings
             </button>
           </div>
         </div>
