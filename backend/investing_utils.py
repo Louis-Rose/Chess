@@ -528,7 +528,8 @@ def fetch_current_stock_prices_batch(tickers):
             tickers_to_fetch,
             period='1d',
             progress=False,
-            threads=True
+            threads=True,
+            auto_adjust=True
         )
 
         today = datetime.now().strftime("%Y-%m-%d")
