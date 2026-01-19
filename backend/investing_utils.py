@@ -222,6 +222,9 @@ def _save_cached_price(ticker, date_str, price):
     """Save price to cache"""
     if not _db_getter:
         return
+    # Convert numpy types to native Python types for PostgreSQL compatibility
+    if price is not None:
+        price = float(price)
     try:
         with _db_getter() as conn:
             if USE_POSTGRES:
@@ -283,6 +286,9 @@ def _save_cached_fx_rate(pair, date_str, rate):
     """Save FX rate to cache"""
     if not _db_getter:
         return
+    # Convert numpy types to native Python types for PostgreSQL compatibility
+    if rate is not None:
+        rate = float(rate)
     try:
         with _db_getter() as conn:
             if USE_POSTGRES:

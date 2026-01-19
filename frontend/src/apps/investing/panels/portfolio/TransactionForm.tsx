@@ -87,6 +87,7 @@ export function TransactionForm({
   const [showAddForm, setShowAddForm] = useState(false);
   const [showRevolutImport, setShowRevolutImport] = useState(false);
   const [filterTicker, setFilterTicker] = useState('');
+  const [filterType, setFilterType] = useState<'ALL' | 'BUY' | 'SELL'>('ALL');
 
   // Form state
   const [newTicker, setNewTicker] = useState('');
@@ -227,14 +228,16 @@ export function TransactionForm({
     }
   };
 
-  // Filter transactions by selected account
+  // Filter transactions by selected account, ticker, and type
   const accountTransactions = selectedAccountId
     ? transactions.filter(t => t.account_id === selectedAccountId)
     : transactions;
   const uniqueTickers = [...new Set(accountTransactions.map(t => t.stock_ticker))].sort();
-  const filteredTransactions = filterTicker
-    ? accountTransactions.filter(t => t.stock_ticker === filterTicker)
-    : accountTransactions;
+  const filteredTransactions = accountTransactions.filter(t => {
+    const matchesTicker = !filterTicker || t.stock_ticker === filterTicker;
+    const matchesType = filterType === 'ALL' || t.transaction_type === filterType;
+    return matchesTicker && matchesType;
+  });
 
   return (
     <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
@@ -261,18 +264,29 @@ export function TransactionForm({
             <div className="flex items-center gap-4">
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('transactions.title')}</h3>
               {uniqueTickers.length > 0 && (
-                <select
-                  value={filterTicker}
-                  onChange={(e) => setFilterTicker(e.target.value)}
-                  className="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="">{t('transactions.allStocks')}</option>
-                  {uniqueTickers.map(ticker => {
-                    const stock = findStockByTicker(ticker);
-                    const label = stock ? `${stock.name} (${ticker})` : ticker;
-                    return <option key={ticker} value={ticker}>{label}</option>;
-                  })}
-                </select>
+                <>
+                  <select
+                    value={filterTicker}
+                    onChange={(e) => setFilterTicker(e.target.value)}
+                    className="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="">{t('transactions.allStocks')}</option>
+                    {uniqueTickers.map(ticker => {
+                      const stock = findStockByTicker(ticker);
+                      const label = stock ? `${stock.name} (${ticker})` : ticker;
+                      return <option key={ticker} value={ticker}>{label}</option>;
+                    })}
+                  </select>
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value as 'ALL' | 'BUY' | 'SELL')}
+                    className="px-3 py-1.5 border border-slate-300 rounded-lg bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="ALL">{language === 'fr' ? 'Tous types' : 'All types'}</option>
+                    <option value="BUY">{language === 'fr' ? 'Achats' : 'Buys'}</option>
+                    <option value="SELL">{language === 'fr' ? 'Ventes' : 'Sells'}</option>
+                  </select>
+                </>
               )}
             </div>
           </div>
@@ -509,7 +523,7 @@ export function TransactionForm({
           ) : filteredTransactions.length === 0 ? (
             <p className="text-slate-500 text-center py-8">{language === 'fr' ? `Aucune transaction pour ${filterTicker}.` : `No transactions for ${filterTicker}.`}</p>
           ) : (
-            <div className="space-y-2 max-h-[200px] overflow-auto">
+            <div className="space-y-2 max-h-[500px] overflow-auto">
               {filteredTransactions.map((tx) => (
                 <div key={tx.id} className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
                   <div className="flex items-center gap-4">
