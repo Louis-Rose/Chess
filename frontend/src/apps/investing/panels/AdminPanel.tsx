@@ -755,29 +755,37 @@ export function AdminPanel() {
                   </div>
                 ) : timeSpentUsers.length > 0 ? (
                   <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                    {timeSpentUsers.map((u) => (
-                      <div
-                        key={u.id}
-                        className="flex items-center justify-between py-1 px-2 rounded hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
-                        onClick={() => navigate(`/investing/admin/user/${u.id}`)}
-                      >
-                        <div className="flex items-center gap-2">
-                          {u.picture ? (
-                            <img src={u.picture} alt={u.name} className="w-6 h-6 rounded-full" />
-                          ) : (
-                            <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
-                              {u.name?.charAt(0) || '?'}
+                    {(() => {
+                      const totalMinutes = timeSpentUsers.reduce((sum, u) => sum + u.minutes, 0);
+                      return timeSpentUsers.map((u) => {
+                        const percentage = totalMinutes > 0 ? Math.round((u.minutes / totalMinutes) * 100) : 0;
+                        return (
+                          <div
+                            key={u.id}
+                            className="flex items-center justify-between py-1 px-2 rounded hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
+                            onClick={() => navigate(`/investing/admin/user/${u.id}`)}
+                          >
+                            <div className="flex items-center gap-2">
+                              {u.picture ? (
+                                <img src={u.picture} alt={u.name} className="w-6 h-6 rounded-full" />
+                              ) : (
+                                <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
+                                  {u.name?.charAt(0) || '?'}
+                                </div>
+                              )}
+                              <span className="text-sm text-slate-700 dark:text-slate-200">{u.name}</span>
                             </div>
-                          )}
-                          <span className="text-sm text-slate-700 dark:text-slate-200">{u.name}</span>
-                        </div>
-                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                          {u.minutes >= 60
-                            ? `${Math.floor(u.minutes / 60)}h${String(u.minutes % 60).padStart(2, '0')}`
-                            : `${u.minutes}m`}
-                        </span>
-                      </div>
-                    ))}
+                            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                              {u.minutes >= 60
+                                ? `${Math.floor(u.minutes / 60)}h${String(u.minutes % 60).padStart(2, '0')}`
+                                : `${u.minutes}m`}
+                              {' '}
+                              <span className="text-slate-400">({percentage}%)</span>
+                            </span>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 ) : (
                   <p className="text-sm text-slate-500 text-center py-2">
