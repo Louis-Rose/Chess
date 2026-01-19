@@ -424,11 +424,11 @@ export function TransactionForm({
                     {newDay || t('transactions.day')}
                   </button>
                   {showDayPicker && calendarGrid.length > 0 && (
-                    <div className="absolute top-full right-0 mt-1 bg-white border border-slate-300 rounded-xl shadow-xl z-50 p-3">
+                    <div className="absolute top-full right-0 mt-1 bg-white border border-slate-300 rounded-xl shadow-xl z-50 p-3" style={{ width: '280px' }}>
                       {/* Day headers */}
-                      <div className="grid grid-cols-7 gap-1 mb-1">
+                      <div className="grid grid-cols-7 gap-1 mb-2">
                         {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(day => (
-                          <div key={day} className="w-9 h-6 flex items-center justify-center text-xs font-medium text-slate-400">
+                          <div key={day} className="h-6 flex items-center justify-center text-xs font-medium text-slate-400">
                             {day}
                           </div>
                         ))}
@@ -446,7 +446,7 @@ export function TransactionForm({
                               }
                             }}
                             disabled={!cell.isCurrentMonth || !cell.isSelectable}
-                            className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                            className={`h-9 rounded-lg text-sm font-medium transition-colors ${
                               !cell.isCurrentMonth
                                 ? 'text-slate-300 cursor-default'
                                 : !cell.isSelectable
