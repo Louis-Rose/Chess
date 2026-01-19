@@ -1246,7 +1246,7 @@ def _parse_revolut_pdf_with_gemini(pdf_bytes):
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-3-flash-preview')
 
         # Convert PDF pages to images
         images = convert_from_bytes(pdf_bytes, dpi=150)
