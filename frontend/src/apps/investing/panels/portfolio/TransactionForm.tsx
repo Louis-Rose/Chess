@@ -517,6 +517,18 @@ export function TransactionForm({
             </div>
           )}
 
+          {/* Done button - right after the form */}
+          {(showAddForm || showRevolutImport) && (
+            <div className="flex justify-center mb-6">
+              <button
+                onClick={closeForm}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                {t('transactions.done')}
+              </button>
+            </div>
+          )}
+
           {/* Transactions List */}
           {accountTransactions.length === 0 ? (
             <p className="text-slate-500 text-center py-8">{t('transactions.noTransactions')}</p>
@@ -556,18 +568,6 @@ export function TransactionForm({
                   </button>
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* Done button - only show when adding/importing */}
-          {(showAddForm || showRevolutImport) && (
-            <div className="flex justify-center mt-6">
-              <button
-                onClick={closeForm}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                {t('transactions.done')}
-              </button>
             </div>
           )}
         </>
