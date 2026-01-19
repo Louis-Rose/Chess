@@ -6,6 +6,7 @@ import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from
 import { STOCKS_DB } from '../../../../data/stocksDb';
 import type { Transaction, NewTransaction } from './types';
 import { RevolutImport } from './RevolutImport';
+import { CreditMutuelImport } from './CreditMutuelImport';
 
 // Currency symbols for display
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -86,6 +87,7 @@ export function TransactionForm({
   const [showTransactions, setShowTransactions] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showRevolutImport, setShowRevolutImport] = useState(false);
+  const [showCreditMutuelImport, setShowCreditMutuelImport] = useState(false);
   const [filterTicker, setFilterTicker] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'BUY' | 'SELL'>('ALL');
 
@@ -213,6 +215,8 @@ export function TransactionForm({
     resetForm(false);
     setNewType('BUY');
     setShowAddForm(false);
+    setShowRevolutImport(false);
+    setShowCreditMutuelImport(false);
   };
 
   const handleAddTransaction = () => {
@@ -262,8 +266,8 @@ export function TransactionForm({
           {/* Header with title */}
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">{t('transactions.title')}</h3>
 
-          {/* Action buttons - Import from Revolut and Add manually */}
-          {!showAddForm && !showRevolutImport && (
+          {/* Action buttons - Import from bank and Add manually */}
+          {!showAddForm && !showRevolutImport && !showCreditMutuelImport && (
             <div className="flex flex-col items-center gap-3 mb-4">
               {selectedAccountBank?.toUpperCase() === 'REVOLUT' && (
                 <button
@@ -272,6 +276,15 @@ export function TransactionForm({
                 >
                   <Upload className="w-5 h-5" />
                   {t('transactions.importRevolut')}
+                </button>
+              )}
+              {selectedAccountBank?.toUpperCase() === 'CRÉDIT MUTUEL' && (
+                <button
+                  onClick={() => setShowCreditMutuelImport(true)}
+                  className="w-80 bg-[#0b4a3e] text-white px-6 py-3 rounded-xl hover:bg-[#093d33] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Upload className="w-5 h-5" />
+                  {language === 'fr' ? 'Importer depuis Crédit Mutuel' : 'Import from Crédit Mutuel'}
                 </button>
               )}
               <button
@@ -285,7 +298,7 @@ export function TransactionForm({
           )}
 
           {/* Filters - shown below buttons when not adding/importing */}
-          {!showAddForm && !showRevolutImport && uniqueTickers.length > 0 && (
+          {!showAddForm && !showRevolutImport && !showCreditMutuelImport && uniqueTickers.length > 0 && (
             <div className="flex justify-center gap-3 mb-6">
               <select
                 value={filterTicker}
@@ -515,8 +528,22 @@ export function TransactionForm({
             </div>
           )}
 
+          {/* Crédit Mutuel Import */}
+          {showCreditMutuelImport && (
+            <div className="mb-6">
+              <CreditMutuelImport
+                selectedAccountId={selectedAccountId}
+                onImportComplete={() => {
+                  setShowCreditMutuelImport(false);
+                  onRefresh();
+                }}
+                onClose={() => setShowCreditMutuelImport(false)}
+              />
+            </div>
+          )}
+
           {/* Done button - right after the form */}
-          {(showAddForm || showRevolutImport) && (
+          {(showAddForm || showRevolutImport || showCreditMutuelImport) && (
             <div className="flex justify-center mb-6">
               <button
                 onClick={closeForm}
