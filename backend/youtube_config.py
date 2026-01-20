@@ -5,6 +5,7 @@
 # Format: { 'channel_id': { 'name': 'Channel Name' } }
 # To find channel ID: go to YouTube channel > View Page Source > search "channelId"
 YOUTUBE_CHANNELS = {
+    # US Finance
     'UCfCT7SSFEWyG4th9ZmaGYqQ': {
         'name': 'Joseph Carlson After Hours',
     },
@@ -22,6 +23,22 @@ YOUTUBE_CHANNELS = {
     },
     'UCRhQsN8AVIfZuBNeRV1A37w': {
         'name': 'Norges Bank Investment Management',
+    },
+    # Global / European Finance
+    'UCIALMKvObZNtJ6AmdCLP7Lg': {
+        'name': 'Bloomberg Television',
+    },
+    'UCxtq4_KPQJTH7cHbnGKpOqQ': {
+        'name': 'Financial Times',
+    },
+    'UCVHFbqXqoYvEWM1Ddxl0QKg': {
+        'name': 'Bloomberg Originals',
+    },
+    'UC3I2GFN_F8WudD_2jUZbojA': {
+        'name': 'CNBC International',
+    },
+    'UCpvvJ2XU0zJjjuQFMpH9c_Q': {
+        'name': 'Euronews Business',
     },
 }
 
@@ -425,13 +442,13 @@ EXTRA_KEYWORDS = {
     'UL': ['Unilever'],
     'DEO': ['Diageo'],
     'BUD': ['AB InBev', 'Anheuser-Busch', 'Budweiser'],
-    'LVMUY': ['LVMH', 'Louis Vuitton', 'Moet', 'Hennessy'],
-    'MC': ['LVMH', 'Louis Vuitton'],
-    'PPRUY': ['Kering', 'Gucci'],
-    'KER': ['Kering', 'Gucci'],
-    'HESAY': ['Hermes', 'Hermès'],
-    'RMS': ['Hermes', 'Hermès'],
-    'CFR': ['Richemont', 'Cartier'],
+    'LVMUY': ['LVMH', 'Louis Vuitton', 'Moet', 'Hennessy', 'Bernard Arnault', 'Dior', 'Sephora', 'Tiffany', 'Bulgari', 'Fendi', 'Givenchy', 'Kenzo', 'Loewe', 'Celine', 'luxury stocks', 'French luxury'],
+    'MC': ['LVMH', 'Louis Vuitton', 'Moet', 'Hennessy', 'Bernard Arnault', 'Dior', 'Sephora', 'Tiffany', 'Bulgari', 'Fendi', 'Givenchy', 'Kenzo', 'Loewe', 'Celine', 'luxury stocks', 'French luxury'],
+    'PPRUY': ['Kering', 'Gucci', 'Saint Laurent', 'YSL', 'Bottega Veneta', 'Balenciaga', 'Alexander McQueen', 'François-Henri Pinault', 'luxury stocks', 'French luxury'],
+    'KER': ['Kering', 'Gucci', 'Saint Laurent', 'YSL', 'Bottega Veneta', 'Balenciaga', 'Alexander McQueen', 'François-Henri Pinault', 'luxury stocks', 'French luxury'],
+    'HESAY': ['Hermes', 'Hermès', 'Birkin', 'Kelly bag', 'luxury stocks', 'French luxury'],
+    'RMS': ['Hermes', 'Hermès', 'Birkin', 'Kelly bag', 'luxury stocks', 'French luxury'],
+    'CFR': ['Richemont', 'Cartier', 'Van Cleef', 'Montblanc', 'IWC', 'Jaeger-LeCoultre', 'Piaget', 'Vacheron Constantin', 'luxury stocks', 'Swiss luxury'],
     'ADDYY': ['Adidas'],
     'ADS': ['Adidas'],
     'PMMAF': ['Philip Morris'],
