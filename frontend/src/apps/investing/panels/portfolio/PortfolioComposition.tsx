@@ -143,22 +143,26 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                     cx="50%"
                     cy="50%"
                     outerRadius="50%"
-                    label={({ name, value, x, y, textAnchor, fill }) => (
-                      <text
-                        x={x}
-                        y={y}
-                        textAnchor={textAnchor}
-                        dominantBaseline="central"
-                        fontSize={15}
-                        fill={fill}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => navigate(`/investing/stock/${name}`)}
-                      >
-                        <tspan fontWeight="bold">{name}</tspan>
-                        <tspan> {value}%</tspan>
-                      </text>
-                    )}
-                    labelLine={true}
+                    label={({ name, value, x, y, textAnchor, fill }) => {
+                      // Hide labels for small slices (<5%) to avoid overlap
+                      if (value < 5) return null;
+                      return (
+                        <text
+                          x={x}
+                          y={y}
+                          textAnchor={textAnchor}
+                          dominantBaseline="central"
+                          fontSize={15}
+                          fill={fill}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => navigate(`/investing/stock/${name}`)}
+                        >
+                          <tspan fontWeight="bold">{name}</tspan>
+                          <tspan> {value}%</tspan>
+                        </text>
+                      );
+                    }}
+                    labelLine={({ percent }) => percent >= 0.05}
                     isAnimationActive={!isDownloading}
                     onClick={(data) => {
                       if (data?.ticker) {
