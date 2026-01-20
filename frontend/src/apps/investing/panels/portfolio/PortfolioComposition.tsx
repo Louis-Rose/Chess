@@ -163,10 +163,10 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                                   textAnchor={textAnchor}
                                   dominantBaseline="central"
                                   fontSize={15}
+                                  fontWeight="bold"
                                   fill={isDark ? '#94a3b8' : '#64748b'}
                                 >
-                                  <tspan fontWeight="bold">{language === 'fr' ? 'AUTRES' : 'OTHERS'}</tspan>
-                                  <tspan> {othersTotal.toFixed(1)}%</tspan>
+                                  {language === 'fr' ? 'AUTRES' : 'OTHERS'} {othersTotal.toFixed(1)}%
                                 </text>
                               );
                             }
@@ -179,12 +179,12 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                               textAnchor={textAnchor}
                               dominantBaseline="central"
                               fontSize={15}
+                              fontWeight="bold"
                               fill={fill}
                               style={{ cursor: 'pointer' }}
                               onClick={() => navigate(`/investing/stock/${name}`)}
                             >
-                              <tspan fontWeight="bold">{name}</tspan>
-                              <tspan> {value}%</tspan>
+                              {name} {value}%
                             </text>
                           );
                         }}
