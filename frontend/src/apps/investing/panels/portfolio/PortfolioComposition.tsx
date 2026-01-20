@@ -149,7 +149,7 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                         y={y}
                         textAnchor={textAnchor}
                         dominantBaseline="central"
-                        fontSize={12}
+                        fontSize={15}
                         fill={fill}
                         style={{ cursor: 'pointer' }}
                         onClick={() => navigate(`/investing/stock/${name}`)}
