@@ -6,6 +6,12 @@ import axios from 'axios';
 
 // Emails excluded from PostHog tracking (e.g., admin/developer accounts)
 const POSTHOG_EXCLUDED_EMAILS = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com'];
+const POSTHOG_EXCLUDED_KEY = 'posthog-excluded';
+
+// Check on module load if user was previously excluded - opt out immediately
+if (typeof window !== 'undefined' && localStorage.getItem(POSTHOG_EXCLUDED_KEY) === 'true') {
+  posthog.opt_out_capturing();
+}
 
 interface UserPreferences {
   chess_username: string | null;
@@ -142,15 +148,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
       setUser(data.user);
 
-      // Identify returning user in PostHog
+      // Handle PostHog for returning user
       if (data.user) {
-        posthog.identify(data.user.email, {
-          name: data.user.name,
-          email: data.user.email,
-        });
-        // Opt out excluded emails from tracking
-        if (POSTHOG_EXCLUDED_EMAILS.includes(data.user.email)) {
+        const isExcluded = POSTHOG_EXCLUDED_EMAILS.includes(data.user.email);
+        if (isExcluded) {
+          // Opt out BEFORE identify to prevent any capture
+          localStorage.setItem(POSTHOG_EXCLUDED_KEY, 'true');
           posthog.opt_out_capturing();
+        } else {
+          posthog.identify(data.user.email, {
+            name: data.user.name,
+            email: data.user.email,
+          });
         }
       }
     } catch (error) {
@@ -178,15 +187,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user);
     setIsNewUser(data.is_new_user || false);
 
-    // Identify user in PostHog
+    // Handle PostHog for new login
     if (data.user) {
-      posthog.identify(data.user.email, {
-        name: data.user.name,
-        email: data.user.email,
-      });
-      // Opt out excluded emails from tracking
-      if (POSTHOG_EXCLUDED_EMAILS.includes(data.user.email)) {
+      const isExcluded = POSTHOG_EXCLUDED_EMAILS.includes(data.user.email);
+      if (isExcluded) {
+        // Opt out BEFORE identify to prevent any capture
+        localStorage.setItem(POSTHOG_EXCLUDED_KEY, 'true');
         posthog.opt_out_capturing();
+      } else {
+        posthog.identify(data.user.email, {
+          name: data.user.name,
+          email: data.user.email,
+        });
       }
     }
   };
