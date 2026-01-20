@@ -55,10 +55,6 @@ export function StockSearchBar({ className = '' }: StockSearchBarProps) {
 
   return (
     <div className={`bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none ${className}`}>
-      <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
-        {language === 'fr' ? 'Rechercher une action' : 'Search for a stock'}
-      </h3>
-
       {/* Market Filter Toggles */}
       <div className="mb-3">
         <span className="text-sm text-slate-500 dark:text-slate-400 block mb-2">{language === 'fr' ? 'Marchés:' : 'Markets:'}</span>
