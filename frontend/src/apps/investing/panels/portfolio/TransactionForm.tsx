@@ -84,7 +84,7 @@ export function TransactionForm({
   const { language, t } = useLanguage();
 
   // UI state
-  const [showTransactions, setShowTransactions] = useState(true);
+  const [showTransactions, setShowTransactions] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showRevolutImport, setShowRevolutImport] = useState(false);
   const [showCreditMutuelImport, setShowCreditMutuelImport] = useState(false);

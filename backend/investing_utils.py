@@ -364,7 +364,7 @@ STOCK_COLORS = {
     'AMZN': "#FF9900",
     'META': "#4267B2",
     'MSFT': "#00A4EF",
-    'AAPL': "#64748B",  # Slate gray (readable, not washed out)
+    'AAPL': "#A855F7",  # Purple (distinctive, no gray)
     'TSLA': "#CC0000",
     'V': "#1A1F71",
     'NFLX': "#E50914",
