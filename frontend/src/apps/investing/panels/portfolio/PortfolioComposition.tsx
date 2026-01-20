@@ -133,65 +133,81 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
           )}
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 overflow-visible">
             {/* Pie Chart */}
-            <div className="w-full md:w-1/2 h-[280px] md:h-[380px] overflow-visible">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart margin={{ top: 40, right: 80, bottom: 40, left: 80 }}>
-                  <Pie
-                    data={compositionData.holdings as unknown as Record<string, unknown>[]}
-                    dataKey="weight"
-                    nameKey="ticker"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius="50%"
-                    label={({ name, value, x, y, textAnchor, fill }) => {
-                      // Hide labels for small slices (<5%) to avoid overlap
-                      if (value < 5) return null;
-                      return (
-                        <text
-                          x={x}
-                          y={y}
-                          textAnchor={textAnchor}
-                          dominantBaseline="central"
-                          fontSize={15}
-                          fill={fill}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => navigate(`/investing/stock/${name}`)}
-                        >
-                          <tspan fontWeight="bold">{name}</tspan>
-                          <tspan> {value}%</tspan>
-                        </text>
-                      );
-                    }}
-                    labelLine={({ percent }) => (percent >= 0.05 ? <path /> : <path style={{ display: 'none' }} />)}
-                    isAnimationActive={!isDownloading}
-                    onClick={(data) => {
-                      if (data?.ticker) {
-                        navigate(`/investing/stock/${data.ticker}`);
-                      }
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {compositionData.holdings.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} style={{ cursor: 'pointer' }} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '8px 12px' }}
-                    itemStyle={{ color: '#f1f5f9' }}
-                    formatter={(value, _name, props) => {
-                      const payload = props.payload as CompositionItem;
-                      const valueEur = payload.current_value;
-                      const valueInCurrency = currency === 'EUR' ? valueEur : valueEur * compositionData.eurusd_rate;
-                      const scaleFactor = getScaleFactor(compositionData.total_cost_basis_eur, privateMode);
-                      const displayValue = Math.round(valueInCurrency * scaleFactor);
-                      const formattedValue = currency === 'EUR'
-                        ? `${formatEur(displayValue)}€`
-                        : `$${displayValue.toLocaleString('en-US')}`;
-                      return [`${formattedValue} (${value}%)`, payload.ticker];
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="w-full md:w-1/2 overflow-visible">
+              <div className="h-[280px] md:h-[380px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart margin={{ top: 40, right: 80, bottom: 40, left: 80 }}>
+                    <Pie
+                      data={compositionData.holdings as unknown as Record<string, unknown>[]}
+                      dataKey="weight"
+                      nameKey="ticker"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius="50%"
+                      label={({ name, value, x, y, textAnchor, fill }) => {
+                        // Hide labels for small slices (<5%) to avoid overlap
+                        if (value < 5) return null;
+                        return (
+                          <text
+                            x={x}
+                            y={y}
+                            textAnchor={textAnchor}
+                            dominantBaseline="central"
+                            fontSize={15}
+                            fill={fill}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => navigate(`/investing/stock/${name}`)}
+                          >
+                            <tspan fontWeight="bold">{name}</tspan>
+                            <tspan> {value}%</tspan>
+                          </text>
+                        );
+                      }}
+                      labelLine={({ percent }) => (percent >= 0.05 ? <path /> : <path style={{ display: 'none' }} />)}
+                      isAnimationActive={!isDownloading}
+                      onClick={(data) => {
+                        if (data?.ticker) {
+                          navigate(`/investing/stock/${data.ticker}`);
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {compositionData.holdings.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} style={{ cursor: 'pointer' }} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '8px 12px' }}
+                      itemStyle={{ color: '#f1f5f9' }}
+                      formatter={(value, _name, props) => {
+                        const payload = props.payload as CompositionItem;
+                        const valueEur = payload.current_value;
+                        const valueInCurrency = currency === 'EUR' ? valueEur : valueEur * compositionData.eurusd_rate;
+                        const scaleFactor = getScaleFactor(compositionData.total_cost_basis_eur, privateMode);
+                        const displayValue = Math.round(valueInCurrency * scaleFactor);
+                        const formattedValue = currency === 'EUR'
+                          ? `${formatEur(displayValue)}€`
+                          : `$${displayValue.toLocaleString('en-US')}`;
+                        return [`${formattedValue} (${value}%)`, payload.ticker];
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              {/* "Others" note for small slices */}
+              {(() => {
+                const smallSlicesTotal = compositionData.holdings
+                  .filter(h => h.weight < 5)
+                  .reduce((sum, h) => sum + h.weight, 0);
+                if (smallSlicesTotal > 0) {
+                  return (
+                    <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-1">
+                      {language === 'fr' ? 'Autres' : 'Others'}: {smallSlicesTotal.toFixed(1)}%
+                    </p>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {/* Holdings Table */}
