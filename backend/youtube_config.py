@@ -30,22 +30,6 @@ YOUTUBE_CHANNELS = {
     'UCRhQsN8AVIfZuBNeRV1A37w': {
         'name': 'Norges Bank Investment Management',
     },
-    # Global / European Finance
-    'UCIALMKvObZNtJ6AmdCLP7Lg': {
-        'name': 'Bloomberg Television',
-    },
-    'UCxtq4_KPQJTH7cHbnGKpOqQ': {
-        'name': 'Financial Times',
-    },
-    'UCVHFbqXqoYvEWM1Ddxl0QKg': {
-        'name': 'Bloomberg Originals',
-    },
-    'UC3I2GFN_F8WudD_2jUZbojA': {
-        'name': 'CNBC International',
-    },
-    'UCpvvJ2XU0zJjjuQFMpH9c_Q': {
-        'name': 'Euronews Business',
-    },
 }
 
 # Additional keywords for specific companies (optional)
