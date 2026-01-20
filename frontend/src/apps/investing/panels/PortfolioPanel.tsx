@@ -247,20 +247,26 @@ export function PortfolioPanel() {
     },
   });
 
+  // Track if initial load has happened
+  const hasInitializedRef = useRef(false);
+
   // Save selected accounts to localStorage
   useEffect(() => {
-    localStorage.setItem('selectedAccountIds', JSON.stringify(selectedAccountIds));
+    if (hasInitializedRef.current) {
+      localStorage.setItem('selectedAccountIds', JSON.stringify(selectedAccountIds));
+    }
   }, [selectedAccountIds]);
 
-  // Auto-select first account when accounts load and none selected
+  // Auto-select first account only on initial load when nothing saved
   useEffect(() => {
-    if (accounts.length > 0 && selectedAccountIds.length === 0) {
+    if (accounts.length > 0 && !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
       const saved = localStorage.getItem('selectedAccountIds');
       if (!saved || saved === '[]') {
         setSelectedAccountIds([accounts[0].id]);
       }
     }
-  }, [accounts, selectedAccountIds.length]);
+  }, [accounts]);
 
   // Loading states
   if (authLoading) {
