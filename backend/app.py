@@ -1728,20 +1728,21 @@ def get_holdings():
     return jsonify({'holdings': holdings})
 
 
-def compute_holdings_from_transactions(user_id, account_id=None):
+def compute_holdings_from_transactions(user_id, account_ids=None):
     """Helper to compute current holdings from transactions using FIFO.
     Tracks both USD and EUR cost basis (EUR uses historical rates at transaction time).
-    Optionally filters by account_id.
+    Optionally filters by account_ids (list of account IDs).
     """
     from investing_utils import fetch_eurusd_rate
 
     with get_db() as conn:
-        if account_id:
+        if account_ids and len(account_ids) > 0:
+            placeholders = ','.join('?' for _ in account_ids)
             cursor = conn.execute(
-                '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
-                   FROM portfolio_transactions WHERE user_id = ? AND account_id = ?
+                f'''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+                   FROM portfolio_transactions WHERE user_id = ? AND account_id IN ({placeholders})
                    ORDER BY transaction_date ASC, id ASC''',
-                (user_id, account_id)
+                (user_id, *account_ids)
             )
         else:
             cursor = conn.execute(
@@ -1814,20 +1815,21 @@ def compute_holdings_from_transactions(user_id, account_id=None):
     return holdings
 
 
-def compute_realized_gains(user_id, account_id=None):
+def compute_realized_gains(user_id, account_ids=None):
     """Calculate realized gains using FIFO with historical EUR rates.
     Returns both USD and EUR realized gains.
-    Optionally filters by account_id.
+    Optionally filters by account_ids (list of account IDs).
     """
     from investing_utils import fetch_eurusd_rate
 
     with get_db() as conn:
-        if account_id:
+        if account_ids and len(account_ids) > 0:
+            placeholders = ','.join('?' for _ in account_ids)
             cursor = conn.execute(
-                '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
-                   FROM portfolio_transactions WHERE user_id = ? AND account_id = ?
+                f'''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+                   FROM portfolio_transactions WHERE user_id = ? AND account_id IN ({placeholders})
                    ORDER BY transaction_date ASC, id ASC''',
-                (user_id, account_id)
+                (user_id, *account_ids)
             )
         else:
             cursor = conn.execute(
@@ -1922,8 +1924,15 @@ def compute_realized_gains(user_id, account_id=None):
 @login_required
 def get_portfolio_composition():
     """Get portfolio composition with current values, weights, cost basis and gains."""
-    account_id = request.args.get('account_id', type=int)
-    holdings = compute_holdings_from_transactions(request.user_id, account_id)
+    # Support both single account_id and comma-separated account_ids
+    account_ids_str = request.args.get('account_ids')
+    if account_ids_str:
+        account_ids = [int(x) for x in account_ids_str.split(',') if x.strip()]
+    else:
+        account_id = request.args.get('account_id', type=int)
+        account_ids = [account_id] if account_id else None
+
+    holdings = compute_holdings_from_transactions(request.user_id, account_ids)
 
     if not holdings:
         return jsonify({
@@ -1943,7 +1952,7 @@ def get_portfolio_composition():
     try:
         composition = compute_portfolio_composition(holdings)
         # Add realized gains
-        realized = compute_realized_gains(request.user_id, account_id)
+        realized = compute_realized_gains(request.user_id, account_ids)
         composition['realized_gains_usd'] = realized['total_usd']
         composition['realized_gains_eur'] = realized['total_eur']
         composition['sold_cost_basis_eur'] = realized['sold_cost_basis_eur']
@@ -1958,7 +1967,14 @@ def get_portfolio_performance():
     """Get portfolio performance vs benchmark, tracking actual holdings over time."""
     benchmark = request.args.get('benchmark', 'NASDAQ')
     currency = request.args.get('currency', 'EUR')
-    account_id = request.args.get('account_id', type=int)
+
+    # Support both single account_id and comma-separated account_ids
+    account_ids_str = request.args.get('account_ids')
+    if account_ids_str:
+        account_ids = [int(x) for x in account_ids_str.split(',') if x.strip()]
+    else:
+        account_id = request.args.get('account_id', type=int)
+        account_ids = [account_id] if account_id else None
 
     # Map benchmark name + currency to actual ticker
     benchmark_tickers = {
@@ -1976,14 +1992,15 @@ def get_portfolio_performance():
 
     benchmark_ticker = benchmark_tickers[benchmark].get(currency, 'QQQ')
 
-    # Get all transactions (filtered by account if specified)
+    # Get all transactions (filtered by accounts if specified)
     with get_db() as conn:
-        if account_id:
+        if account_ids and len(account_ids) > 0:
+            placeholders = ','.join('?' for _ in account_ids)
             cursor = conn.execute(
-                '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
-                   FROM portfolio_transactions WHERE user_id = ? AND account_id = ?
+                f'''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+                   FROM portfolio_transactions WHERE user_id = ? AND account_id IN ({placeholders})
                    ORDER BY transaction_date ASC''',
-                (request.user_id, account_id)
+                (request.user_id, *account_ids)
             )
         else:
             cursor = conn.execute(

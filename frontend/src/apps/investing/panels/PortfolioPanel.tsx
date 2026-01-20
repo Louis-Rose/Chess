@@ -39,15 +39,15 @@ const fetchHoldings = async (): Promise<{ holdings: ComputedHolding[] }> => {
   return response.data;
 };
 
-const fetchComposition = async (accountId?: number): Promise<CompositionData> => {
-  const params = accountId ? `?account_id=${accountId}` : '';
+const fetchComposition = async (accountIds: number[]): Promise<CompositionData> => {
+  const params = accountIds.length > 0 ? `?account_ids=${accountIds.join(',')}` : '';
   const response = await axios.get(`/api/investing/portfolio/composition${params}`);
   return response.data;
 };
 
-const fetchPerformance = async (benchmark: string, currency: string, accountId?: number): Promise<PerformanceData> => {
+const fetchPerformance = async (benchmark: string, currency: string, accountIds: number[]): Promise<PerformanceData> => {
   const params = new URLSearchParams({ benchmark, currency });
-  if (accountId) params.append('account_id', String(accountId));
+  if (accountIds.length > 0) params.append('account_ids', accountIds.join(','));
   const response = await axios.get(`/api/investing/portfolio/performance?${params}`);
   return response.data;
 };
@@ -95,11 +95,26 @@ export function PortfolioPanel() {
   const [benchmark, setBenchmark] = useState<'NASDAQ' | 'SP500'>('NASDAQ');
   const [privateMode, setPrivateMode] = useState(false);
   const [showAnnualized, setShowAnnualized] = useState(false);
-  const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(() => {
-    const saved = localStorage.getItem('selectedAccountId');
-    if (saved && saved !== 'none') return parseInt(saved, 10);
-    return undefined;
+  const [selectedAccountIds, setSelectedAccountIds] = useState<number[]>(() => {
+    const saved = localStorage.getItem('selectedAccountIds');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return [];
+      }
+    }
+    return [];
   });
+
+  // Toggle account selection
+  const toggleAccountSelection = (id: number) => {
+    setSelectedAccountIds(prev =>
+      prev.includes(id)
+        ? prev.filter(x => x !== id)
+        : [...prev, id]
+    );
+  };
 
   // Panel state: collapsed and order
   const [isHoldingsExpanded, setIsHoldingsExpanded] = useState(true);
@@ -160,17 +175,17 @@ export function PortfolioPanel() {
   const accountTypes = accountTypesData?.account_types ?? {};
 
   const { data: compositionData, isLoading: compositionLoading } = useQuery({
-    queryKey: ['composition', selectedAccountId],
-    queryFn: () => fetchComposition(selectedAccountId),
-    enabled: isAuthenticated && !!selectedAccountId,
+    queryKey: ['composition', selectedAccountIds],
+    queryFn: () => fetchComposition(selectedAccountIds),
+    enabled: isAuthenticated && selectedAccountIds.length > 0,
   });
 
   const accountHasHoldings = (compositionData?.holdings?.length ?? 0) > 0;
 
   const { data: performanceData, isLoading: performanceLoading } = useQuery({
-    queryKey: ['performance', benchmark, currency, selectedAccountId],
-    queryFn: () => fetchPerformance(benchmark, currency, selectedAccountId),
-    enabled: isAuthenticated && !!selectedAccountId && accountHasHoldings,
+    queryKey: ['performance', benchmark, currency, selectedAccountIds],
+    queryFn: () => fetchPerformance(benchmark, currency, selectedAccountIds),
+    enabled: isAuthenticated && selectedAccountIds.length > 0 && accountHasHoldings,
   });
 
   // Mutations
@@ -232,24 +247,20 @@ export function PortfolioPanel() {
     },
   });
 
-  // Save selected account to localStorage
+  // Save selected accounts to localStorage
   useEffect(() => {
-    if (selectedAccountId === undefined) {
-      localStorage.setItem('selectedAccountId', 'none');
-    } else {
-      localStorage.setItem('selectedAccountId', String(selectedAccountId));
-    }
-  }, [selectedAccountId]);
+    localStorage.setItem('selectedAccountIds', JSON.stringify(selectedAccountIds));
+  }, [selectedAccountIds]);
 
-  // Auto-select first account when accounts load
+  // Auto-select first account when accounts load and none selected
   useEffect(() => {
-    if (accounts.length > 0 && selectedAccountId === undefined) {
-      const saved = localStorage.getItem('selectedAccountId');
-      if (saved === null) {
-        setSelectedAccountId(accounts[0].id);
+    if (accounts.length > 0 && selectedAccountIds.length === 0) {
+      const saved = localStorage.getItem('selectedAccountIds');
+      if (!saved || saved === '[]') {
+        setSelectedAccountIds([accounts[0].id]);
       }
     }
-  }, [accounts, selectedAccountId]);
+  }, [accounts, selectedAccountIds.length]);
 
   // Loading states
   if (authLoading) {
@@ -324,8 +335,8 @@ export function PortfolioPanel() {
         {/* Account Selector */}
         <AccountSelector
           accounts={accounts}
-          selectedAccountId={selectedAccountId}
-          onSelectAccount={setSelectedAccountId}
+          selectedAccountIds={selectedAccountIds}
+          onToggleAccount={toggleAccountSelection}
           banks={banks}
           accountTypes={accountTypes}
           onCreateAccount={(data) => createAccountMutation.mutate(data)}
@@ -334,12 +345,13 @@ export function PortfolioPanel() {
           isDeleting={deleteAccountMutation.isPending}
         />
 
-        {/* Transaction Form - Only when account selected */}
-        {selectedAccountId && (
+        {/* Transaction Form - Only when at least one account selected */}
+        {selectedAccountIds.length > 0 && (
           <TransactionForm
             transactions={transactions}
-            selectedAccountId={selectedAccountId}
-            selectedAccountBank={accounts.find(a => a.id === selectedAccountId)?.bank}
+            selectedAccountId={selectedAccountIds[0]}
+            selectedAccountIds={selectedAccountIds}
+            selectedAccountBank={accounts.find(a => a.id === selectedAccountIds[0])?.bank}
             onAddTransaction={(tx) => addMutation.mutate(tx)}
             onDeleteTransaction={(id) => deleteMutation.mutate(id)}
             onRefresh={() => {
@@ -356,7 +368,7 @@ export function PortfolioPanel() {
         )}
 
         {/* Summary Cards */}
-        {selectedAccountId && compositionData && accountHasHoldings && (
+        {selectedAccountIds.length > 0 && compositionData && accountHasHoldings && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {(() => {
@@ -434,7 +446,7 @@ export function PortfolioPanel() {
         )}
 
         {/* Loading state for composition/performance */}
-        {selectedAccountId && compositionLoading && !compositionData && (
+        {selectedAccountIds.length > 0 && compositionLoading && !compositionData && (
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="w-12 h-12 text-green-500 animate-spin mb-4" />
             <p className="text-slate-400 text-lg">{language === 'fr' ? 'Chargement des données...' : 'Loading data...'}</p>
@@ -442,7 +454,7 @@ export function PortfolioPanel() {
         )}
 
         {/* Portfolio Composition & Performance - Reorderable panels */}
-        {selectedAccountId && accountHasHoldings && panelOrder.map((panel) => {
+        {selectedAccountIds.length > 0 && accountHasHoldings && panelOrder.map((panel) => {
           if (panel === 'holdings') {
             return (
               <div

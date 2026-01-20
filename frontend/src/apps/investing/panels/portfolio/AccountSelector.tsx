@@ -6,8 +6,8 @@ import { FeesDisplay } from './FeesDisplay';
 
 interface AccountSelectorProps {
   accounts: Account[];
-  selectedAccountId: number | undefined;
-  onSelectAccount: (id: number | undefined) => void;
+  selectedAccountIds: number[];
+  onToggleAccount: (id: number) => void;
   banks: Record<string, BankInfo>;
   accountTypes: Record<string, AccountTypeInfo>;
   onCreateAccount: (data: { name: string; account_type: string; bank: string }) => void;
@@ -18,8 +18,8 @@ interface AccountSelectorProps {
 
 export function AccountSelector({
   accounts,
-  selectedAccountId,
-  onSelectAccount,
+  selectedAccountIds,
+  onToggleAccount,
   banks,
   accountTypes,
   onCreateAccount,
@@ -51,7 +51,7 @@ export function AccountSelector({
     }
   };
 
-  const selectedAccount = accounts.find(a => a.id === selectedAccountId);
+  const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
 
   return (
     <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
@@ -187,24 +187,24 @@ export function AccountSelector({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {accounts.map((account) => {
-                const isSelected = selectedAccountId === account.id;
+                const isSelected = selectedAccountIds.includes(account.id);
                 return (
                   <div
                     key={account.id}
-                    onClick={() => onSelectAccount(isSelected ? undefined : account.id)}
+                    onClick={() => onToggleAccount(account.id)}
                     className={`rounded-lg p-4 relative group cursor-pointer transition-all ${
                       isSelected
-                        ? 'bg-green-50 border-2 border-green-500 shadow-md'
-                        : 'bg-white border border-slate-200 hover:border-green-300 hover:shadow-sm'
+                        ? 'bg-green-50 dark:bg-green-900/30 border-2 border-green-500 shadow-md'
+                        : 'bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 hover:border-green-300 hover:shadow-sm'
                     }`}
                   >
                       <div className="flex items-center gap-2 mb-2">
                       <Wallet className={`w-4 h-4 ${isSelected ? 'text-green-600' : 'text-slate-400'}`} />
-                      <span className={`font-bold ${isSelected ? 'text-green-700' : 'text-slate-800'}`}>{account.name}</span>
+                      <span className={`font-bold ${isSelected ? 'text-green-700 dark:text-green-400' : 'text-slate-800 dark:text-slate-200'}`}>{account.name}</span>
                       <div className="ml-auto flex items-center gap-2">
                         {isSelected && (
                           <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded">
-                            {language === 'fr' ? 'Sélectionné' : 'Selected'}
+                            ✓
                           </span>
                         )}
                         <button
@@ -216,7 +216,7 @@ export function AccountSelector({
                         </button>
                       </div>
                     </div>
-                    <div className="text-sm text-slate-600 space-y-1">
+                    <div className="text-sm text-slate-600 dark:text-slate-300 space-y-1">
                       <p><span className="text-slate-400">{t('accounts.type')}:</span> {account.type_info.name}</p>
                       <p><span className="text-slate-400">{t('accounts.bank')}:</span> {account.bank_info.name}</p>
                     </div>
@@ -226,10 +226,10 @@ export function AccountSelector({
             </div>
           )}
 
-          {/* Fees Section - inside accounts, when account selected */}
-          {selectedAccount && (
+          {/* Fees Section - show for first selected account when only one selected */}
+          {selectedAccounts.length === 1 && (
             <FeesDisplay
-              selectedAccount={selectedAccount}
+              selectedAccount={selectedAccounts[0]}
               language={language}
             />
           )}

@@ -57,7 +57,8 @@ const getCurrencySymbol = (currency: string): string => {
 
 interface TransactionFormProps {
   transactions: Transaction[];
-  selectedAccountId: number | undefined;
+  selectedAccountId: number | undefined;  // First selected account (for adding transactions)
+  selectedAccountIds: number[];  // All selected accounts (for filtering)
   selectedAccountBank?: string;
   onAddTransaction: (transaction: NewTransaction) => void;
   onDeleteTransaction: (id: number) => void;
@@ -71,6 +72,7 @@ interface TransactionFormProps {
 export function TransactionForm({
   transactions,
   selectedAccountId,
+  selectedAccountIds,
   selectedAccountBank,
   onAddTransaction,
   onDeleteTransaction,
@@ -232,9 +234,9 @@ export function TransactionForm({
     }
   };
 
-  // Filter transactions by selected account, ticker, and type
-  const accountTransactions = selectedAccountId
-    ? transactions.filter(t => t.account_id === selectedAccountId)
+  // Filter transactions by selected accounts, ticker, and type
+  const accountTransactions = selectedAccountIds.length > 0
+    ? transactions.filter(t => t.account_id && selectedAccountIds.includes(t.account_id))
     : transactions;
   const uniqueTickers = [...new Set(accountTransactions.map(t => t.stock_ticker))].sort();
   const filteredTransactions = accountTransactions.filter(t => {
