@@ -1192,10 +1192,20 @@ def should_refresh_cache(db_getter, channel_id):
         ''', (channel_id,))
         row = cursor.fetchone()
 
-        if not row:
+        if not row or not row['last_fetched_at']:
             return True
 
-        last_fetched = datetime.fromisoformat(row['last_fetched_at'])
+        # Handle both string (SQLite) and datetime (PostgreSQL) formats
+        last_fetched_val = row['last_fetched_at']
+        if isinstance(last_fetched_val, str):
+            last_fetched = datetime.fromisoformat(last_fetched_val.replace('Z', '+00:00'))
+        else:
+            last_fetched = last_fetched_val
+
+        # Make both datetimes naive for comparison
+        if last_fetched.tzinfo is not None:
+            last_fetched = last_fetched.replace(tzinfo=None)
+
         age_hours = (datetime.now() - last_fetched).total_seconds() / 3600
 
         return age_hours >= YOUTUBE_CACHE_TTL_HOURS
