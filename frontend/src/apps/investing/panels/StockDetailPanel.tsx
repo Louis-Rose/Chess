@@ -266,17 +266,6 @@ export function StockDetailPanel() {
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{upperTicker}</h1>
               <p className="text-slate-600 dark:text-slate-300">{displayName}</p>
-              {irLink && (
-                <a
-                  href={irLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 mt-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg text-sm font-medium transition-colors"
-                >
-                  <span>{language === 'fr' ? 'Site Relations Investisseurs' : 'Investor Relations Website'}</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              )}
             </div>
             <div className="text-right">
               {currentPrice !== null && (
@@ -290,6 +279,17 @@ export function StockDetailPanel() {
                     </p>
                   )}
                 </>
+              )}
+              {irLink && (
+                <a
+                  href={irLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 mt-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <span>{language === 'fr' ? 'Site Relations Investisseurs' : 'Investor Relations Website'}</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
               )}
             </div>
           </div>
