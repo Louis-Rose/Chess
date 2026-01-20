@@ -1156,11 +1156,20 @@ def get_cached_videos(db_getter):
 def save_videos_to_cache(db_getter, videos):
     """Save videos to cache (upsert)."""
     with db_getter() as conn:
-        # Ensure description column exists
+        # Ensure description column exists (check first to avoid transaction abort in PostgreSQL)
         try:
-            conn.execute('ALTER TABLE youtube_videos_cache ADD COLUMN description TEXT')
+            cursor = conn.execute('''
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'youtube_videos_cache' AND column_name = 'description'
+            ''')
+            if not cursor.fetchone():
+                conn.execute('ALTER TABLE youtube_videos_cache ADD COLUMN description TEXT')
+                conn.commit()
         except Exception:
-            pass  # Column already exists
+            try:
+                conn.rollback()
+            except Exception:
+                pass
 
         for video in videos:
             conn.execute('''
