@@ -204,7 +204,7 @@ export function AccountSelector({
                       <div className="ml-auto flex items-center gap-2">
                         {isSelected && (
                           <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded">
-                            ✓
+                            {language === 'fr' ? 'Sélectionné' : 'Selected'}
                           </span>
                         )}
                         <button
