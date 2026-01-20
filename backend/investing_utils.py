@@ -38,6 +38,7 @@ def get_yfinance_ticker(ticker):
 
 # Exchange suffix to currency mapping
 EXCHANGE_CURRENCY_MAP = {
+    # European exchanges
     '.SW': 'CHF',   # Swiss Exchange (Zurich)
     '.DE': 'EUR',   # Xetra (Frankfurt)
     '.PA': 'EUR',   # Euronext Paris
@@ -53,6 +54,14 @@ EXCHANGE_CURRENCY_MAP = {
     '.CO': 'DKK',   # Nasdaq Copenhagen
     '.ST': 'SEK',   # Nasdaq Stockholm
     '.OL': 'NOK',   # Oslo Børs
+    # North American exchanges
+    '.TO': 'CAD',   # Toronto Stock Exchange
+    '.V': 'CAD',    # TSX Venture
+    # Asia-Pacific exchanges
+    '.AX': 'AUD',   # Australian Securities Exchange
+    '.HK': 'HKD',   # Hong Kong Stock Exchange
+    '.T': 'JPY',    # Tokyo Stock Exchange
+    '.SI': 'SGD',   # Singapore Exchange
 }
 
 # Currency symbols for display
@@ -64,6 +73,11 @@ CURRENCY_SYMBOLS = {
     'DKK': 'kr ',
     'SEK': 'kr ',
     'NOK': 'kr ',
+    'CAD': 'C$',
+    'AUD': 'A$',
+    'HKD': 'HK$',
+    'JPY': '¥',
+    'SGD': 'S$',
 }
 
 # Yahoo Finance FX pair tickers (quote currency is USD)
@@ -74,6 +88,11 @@ FX_TICKERS = {
     'DKKUSD': 'DKKUSD=X',
     'SEKUSD': 'SEKUSD=X',
     'NOKUSD': 'NOKUSD=X',
+    'CADUSD': 'CADUSD=X',
+    'AUDUSD': 'AUDUSD=X',
+    'HKDUSD': 'HKDUSD=X',
+    'JPYUSD': 'JPYUSD=X',
+    'SGDUSD': 'SGDUSD=X',
 }
 
 def get_stock_currency(ticker):

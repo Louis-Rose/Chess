@@ -20,7 +20,10 @@ export function StockSearchBar({ className = '' }: StockSearchBarProps) {
   const [stockSearch, setStockSearch] = useState('');
   const [stockResults, setStockResults] = useState<Stock[]>([]);
   const [showStockDropdown, setShowStockDropdown] = useState(false);
-  const [indexFilter, setIndexFilter] = useState<IndexFilter>({ sp500: true, stoxx600: true, swiss: true });
+  const [indexFilter, setIndexFilter] = useState<IndexFilter>({
+    sp500: true, stoxx600: true, swiss: true,
+    canada: true, australia: true, hongkong: true, japan: true, singapore: true
+  });
   const stockDropdownRef = useRef<HTMLDivElement>(null);
 
   // Recent stocks state - refresh when dropdown opens
@@ -56,9 +59,9 @@ export function StockSearchBar({ className = '' }: StockSearchBarProps) {
         {language === 'fr' ? 'Rechercher une action' : 'Search for a stock'}
       </h3>
 
-      {/* Index Filter Toggles */}
-      <div className="flex items-center gap-4 mb-3">
-        <span className="text-sm text-slate-500 dark:text-slate-400">{language === 'fr' ? 'Indices:' : 'Indices:'}</span>
+      {/* Market Filter Toggles */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">
+        <span className="text-sm text-slate-500 dark:text-slate-400">{language === 'fr' ? 'Marchés:' : 'Markets:'}</span>
         <label className="flex items-center gap-1.5 cursor-pointer">
           <input
             type="checkbox"
@@ -66,7 +69,7 @@ export function StockSearchBar({ className = '' }: StockSearchBarProps) {
             onChange={(e) => setIndexFilter({ ...indexFilter, sp500: e.target.checked })}
             className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
           />
-          <span className="text-sm text-slate-700 dark:text-slate-300">S&P 500</span>
+          <span className="text-sm text-slate-700 dark:text-slate-300">US</span>
         </label>
         <label className="flex items-center gap-1.5 cursor-pointer">
           <input
@@ -75,7 +78,7 @@ export function StockSearchBar({ className = '' }: StockSearchBarProps) {
             onChange={(e) => setIndexFilter({ ...indexFilter, stoxx600: e.target.checked })}
             className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
           />
-          <span className="text-sm text-slate-700 dark:text-slate-300">STOXX Europe 600</span>
+          <span className="text-sm text-slate-700 dark:text-slate-300">Europe</span>
         </label>
         <label className="flex items-center gap-1.5 cursor-pointer">
           <input
@@ -84,7 +87,52 @@ export function StockSearchBar({ className = '' }: StockSearchBarProps) {
             onChange={(e) => setIndexFilter({ ...indexFilter, swiss: e.target.checked })}
             className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
           />
-          <span className="text-sm text-slate-700 dark:text-slate-300">Swiss SPI</span>
+          <span className="text-sm text-slate-700 dark:text-slate-300">Swiss</span>
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={indexFilter.canada}
+            onChange={(e) => setIndexFilter({ ...indexFilter, canada: e.target.checked })}
+            className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+          />
+          <span className="text-sm text-slate-700 dark:text-slate-300">Canada</span>
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={indexFilter.australia}
+            onChange={(e) => setIndexFilter({ ...indexFilter, australia: e.target.checked })}
+            className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+          />
+          <span className="text-sm text-slate-700 dark:text-slate-300">Australia</span>
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={indexFilter.japan}
+            onChange={(e) => setIndexFilter({ ...indexFilter, japan: e.target.checked })}
+            className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+          />
+          <span className="text-sm text-slate-700 dark:text-slate-300">Japan</span>
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={indexFilter.hongkong}
+            onChange={(e) => setIndexFilter({ ...indexFilter, hongkong: e.target.checked })}
+            className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+          />
+          <span className="text-sm text-slate-700 dark:text-slate-300">Hong Kong</span>
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={indexFilter.singapore}
+            onChange={(e) => setIndexFilter({ ...indexFilter, singapore: e.target.checked })}
+            className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+          />
+          <span className="text-sm text-slate-700 dark:text-slate-300">Singapore</span>
         </label>
       </div>
 

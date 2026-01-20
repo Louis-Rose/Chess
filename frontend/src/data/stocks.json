@@ -1,9 +1,268 @@
 {
+  "0001.HK": {
+    "name": "CK Hutchison Holdings",
+    "yfinance": "0001.HK",
+    "region": "hongkong",
+    "ir": "https://www.ckh.com.hk/en/investors",
+    "logo": "ckh.com.hk"
+  },
+  "0002.HK": {
+    "name": "CLP Holdings",
+    "yfinance": "0002.HK",
+    "region": "hongkong",
+    "ir": "https://www.clpgroup.com/en/investors-information",
+    "logo": "clpgroup.com"
+  },
+  "0003.HK": {
+    "name": "Hong Kong and China Gas",
+    "yfinance": "0003.HK",
+    "region": "hongkong",
+    "ir": "https://www.towngas.com/en/Investor-Relations",
+    "logo": "towngas.com"
+  },
+  "0005.HK": {
+    "name": "HSBC Holdings",
+    "yfinance": "0005.HK",
+    "region": "hongkong",
+    "ir": "https://www.hsbc.com/investors",
+    "logo": "hsbc.com"
+  },
+  "0006.HK": {
+    "name": "Power Assets Holdings",
+    "yfinance": "0006.HK",
+    "region": "hongkong",
+    "ir": "https://www.powerassets.com/en/investor-relations",
+    "logo": "powerassets.com"
+  },
+  "0011.HK": {
+    "name": "Hang Seng Bank",
+    "yfinance": "0011.HK",
+    "region": "hongkong",
+    "ir": "https://www.hangseng.com/en-hk/about-us/investor-relations",
+    "logo": "hangseng.com"
+  },
+  "0012.HK": {
+    "name": "Henderson Land Development",
+    "yfinance": "0012.HK",
+    "region": "hongkong",
+    "ir": "https://www.hld.com/en/investor-relations",
+    "logo": "hld.com"
+  },
+  "0016.HK": {
+    "name": "Sun Hung Kai Properties",
+    "yfinance": "0016.HK",
+    "region": "hongkong",
+    "ir": "https://www.shkp.com/en-us/investor-relations",
+    "logo": "shkp.com"
+  },
+  "0017.HK": {
+    "name": "New World Development",
+    "yfinance": "0017.HK",
+    "region": "hongkong",
+    "ir": "https://www.nwd.com.hk/en/investor-relations",
+    "logo": "nwd.com.hk"
+  },
+  "0019.HK": {
+    "name": "Swire Pacific",
+    "yfinance": "0019.HK",
+    "region": "hongkong",
+    "ir": "https://www.swirepacific.com/en/investor/overview.php",
+    "logo": "swirepacific.com"
+  },
+  "0027.HK": {
+    "name": "Galaxy Entertainment Group",
+    "yfinance": "0027.HK",
+    "region": "hongkong",
+    "ir": "https://www.galaxyentertainment.com/en/investors",
+    "logo": "galaxyentertainment.com"
+  },
+  "0066.HK": {
+    "name": "MTR Corporation",
+    "yfinance": "0066.HK",
+    "region": "hongkong",
+    "ir": "https://www.mtr.com.hk/en/corporate/investor",
+    "logo": "mtr.com.hk"
+  },
+  "0083.HK": {
+    "name": "Sino Land",
+    "yfinance": "0083.HK",
+    "region": "hongkong",
+    "ir": "https://www.sino.com/en/investor-relations",
+    "logo": "sino.com"
+  },
+  "0175.HK": {
+    "name": "Geely Automobile Holdings",
+    "yfinance": "0175.HK",
+    "region": "hongkong",
+    "ir": "http://www.geelyauto.com.hk/en/ir.html",
+    "logo": "geelyauto.com.hk"
+  },
+  "0267.HK": {
+    "name": "CITIC Pacific",
+    "yfinance": "0267.HK",
+    "region": "hongkong",
+    "ir": "https://www.citic.com/en/investors",
+    "logo": "citic.com"
+  },
+  "0293.HK": {
+    "name": "Cathay Pacific Airways",
+    "yfinance": "0293.HK",
+    "region": "hongkong",
+    "ir": "https://www.cathaypacific.com/cx/en_HK/about-us/investor-relations.html",
+    "logo": "cathaypacific.com"
+  },
+  "0386.HK": {
+    "name": "Sinopec",
+    "yfinance": "0386.HK",
+    "region": "hongkong",
+    "ir": "http://www.sinopec.com/listco/en/investor_centre",
+    "logo": "sinopec.com"
+  },
+  "0388.HK": {
+    "name": "Hong Kong Exchanges and Clearing",
+    "yfinance": "0388.HK",
+    "region": "hongkong",
+    "ir": "https://www.hkexgroup.com/Investor-Relations",
+    "logo": "hkexgroup.com"
+  },
+  "0669.HK": {
+    "name": "Techtronic Industries",
+    "yfinance": "0669.HK",
+    "region": "hongkong",
+    "ir": "https://www.ttigroup.com/investors",
+    "logo": "ttigroup.com"
+  },
+  "0700.HK": {
+    "name": "Tencent Holdings",
+    "yfinance": "0700.HK",
+    "region": "hongkong",
+    "ir": "https://www.tencent.com/en-us/investors.html",
+    "logo": "tencent.com"
+  },
+  "0823.HK": {
+    "name": "Link REIT",
+    "yfinance": "0823.HK",
+    "region": "hongkong",
+    "ir": "https://www.linkreit.com/en/investors",
+    "logo": "linkreit.com"
+  },
+  "0857.HK": {
+    "name": "PetroChina",
+    "yfinance": "0857.HK",
+    "region": "hongkong",
+    "ir": "http://www.petrochina.com.cn/ptr/investor/common_index.shtml",
+    "logo": "petrochina.com.cn"
+  },
+  "0883.HK": {
+    "name": "CNOOC",
+    "yfinance": "0883.HK",
+    "region": "hongkong",
+    "ir": "https://www.cnoocltd.com/en/investor",
+    "logo": "cnoocltd.com"
+  },
+  "0914.HK": {
+    "name": "Anhui Conch Cement",
+    "yfinance": "0914.HK",
+    "region": "hongkong",
+    "ir": "http://www.conch.cn/en/investor",
+    "logo": "conch.cn"
+  },
+  "0939.HK": {
+    "name": "China Construction Bank",
+    "yfinance": "0939.HK",
+    "region": "hongkong",
+    "ir": "http://en.ccb.com/en/investorrelations/investorhome.html",
+    "logo": "ccb.com"
+  },
+  "0981.HK": {
+    "name": "Semiconductor Manufacturing International",
+    "yfinance": "0981.HK",
+    "region": "hongkong",
+    "ir": "https://www.smics.com/en/site/investor",
+    "logo": "smics.com"
+  },
+  "0998.HK": {
+    "name": "China CITIC Bank",
+    "yfinance": "0998.HK",
+    "region": "hongkong",
+    "ir": "https://www.citicbank.com/en/ir",
+    "logo": "citicbank.com"
+  },
+  "1024.HK": {
+    "name": "Kuaishou Technology",
+    "yfinance": "1024.HK",
+    "region": "hongkong",
+    "ir": "https://ir.kuaishou.com",
+    "logo": "kuaishou.com"
+  },
+  "1113.HK": {
+    "name": "CK Asset Holdings",
+    "yfinance": "1113.HK",
+    "region": "hongkong",
+    "ir": "https://www.ckah.com/en/investors",
+    "logo": "ckah.com"
+  },
+  "1177.HK": {
+    "name": "Sino Biopharmaceutical",
+    "yfinance": "1177.HK",
+    "region": "hongkong",
+    "ir": "https://www.sinobiopharm.com/en/investor.html",
+    "logo": "sinobiopharm.com"
+  },
+  "1211.HK": {
+    "name": "BYD Company",
+    "yfinance": "1211.HK",
+    "region": "hongkong",
+    "ir": "https://www.bydglobal.com/en/investors.html",
+    "logo": "byd.com"
+  },
+  "1288.HK": {
+    "name": "Agricultural Bank of China",
+    "yfinance": "1288.HK",
+    "region": "hongkong",
+    "ir": "http://www.abchina.com/en/investor-relations",
+    "logo": "abchina.com"
+  },
+  "1299.HK": {
+    "name": "AIA Group",
+    "yfinance": "1299.HK",
+    "region": "hongkong",
+    "ir": "https://www.aia.com/en/investor-relations",
+    "logo": "aia.com"
+  },
+  "1398.HK": {
+    "name": "Industrial and Commercial Bank of China",
+    "yfinance": "1398.HK",
+    "region": "hongkong",
+    "ir": "https://www.icbc-ltd.com/icbcltd/en/investor%20relations",
+    "logo": "icbc.com.cn"
+  },
+  "1810.HK": {
+    "name": "Xiaomi Corporation",
+    "yfinance": "1810.HK",
+    "region": "hongkong",
+    "ir": "https://ir.mi.com",
+    "logo": "mi.com"
+  },
+  "1928.HK": {
+    "name": "Sands China",
+    "yfinance": "1928.HK",
+    "region": "hongkong",
+    "ir": "https://www.sandschina.com/investor-relations.html",
+    "logo": "sandschina.com"
+  },
   "1COV": {
     "name": "Covestro",
     "yfinance": "1COV.DE",
     "region": "europe",
     "ir": "https://www.covestro.com/en/investors"
+  },
+  "1D0.SI": {
+    "name": "Raffles Medical Group",
+    "yfinance": "1D0.SI",
+    "region": "singapore",
+    "ir": "https://www.rafflesmedicalgroup.com/investor-relations",
+    "logo": "rafflesmedicalgroup.com"
   },
   "1U1": {
     "name": "1&1 Drillisch",
@@ -11,17 +270,774 @@
     "region": "us",
     "ir": "https://www.1und1.ag/investor-relations-en"
   },
+  "2007.HK": {
+    "name": "Country Garden Holdings",
+    "yfinance": "2007.HK",
+    "region": "hongkong",
+    "ir": "https://www.countrygarden.com.cn/en/investor",
+    "logo": "countrygarden.com.cn"
+  },
+  "2015.HK": {
+    "name": "Li Auto",
+    "yfinance": "2015.HK",
+    "region": "hongkong",
+    "ir": "https://ir.lixiang.com",
+    "logo": "lixiang.com"
+  },
+  "2020.HK": {
+    "name": "ANTA Sports",
+    "yfinance": "2020.HK",
+    "region": "hongkong",
+    "ir": "https://ir.anta.com",
+    "logo": "anta.com"
+  },
+  "2269.HK": {
+    "name": "WuXi Biologics",
+    "yfinance": "2269.HK",
+    "region": "hongkong",
+    "ir": "https://www.wuxibiologics.com/investor-relations",
+    "logo": "wuxibiologics.com"
+  },
+  "2318.HK": {
+    "name": "Ping An Insurance",
+    "yfinance": "2318.HK",
+    "region": "hongkong",
+    "ir": "https://group.pingan.com/investor_relations.html",
+    "logo": "pingan.com"
+  },
+  "2331.HK": {
+    "name": "Li Ning",
+    "yfinance": "2331.HK",
+    "region": "hongkong",
+    "ir": "https://www.lining.com/en/investor_relations",
+    "logo": "lining.com"
+  },
+  "2333.HK": {
+    "name": "Great Wall Motor",
+    "yfinance": "2333.HK",
+    "region": "hongkong",
+    "ir": "https://www.gwm.com.cn/en/investor",
+    "logo": "gwm.com.cn"
+  },
+  "2371.T": {
+    "name": "Kakaku.com",
+    "yfinance": "2371.T",
+    "region": "japan",
+    "ir": "https://corporate.kakaku.com/en/ir",
+    "logo": "kakaku.com"
+  },
+  "2388.HK": {
+    "name": "BOC Hong Kong",
+    "yfinance": "2388.HK",
+    "region": "hongkong",
+    "ir": "https://www.bochk.com/en/aboutus/investorrelations.html",
+    "logo": "bochk.com"
+  },
+  "2502.T": {
+    "name": "Asahi Group Holdings",
+    "yfinance": "2502.T",
+    "region": "japan",
+    "ir": "https://www.asahigroup-holdings.com/en/ir",
+    "logo": "asahigroup-holdings.com"
+  },
+  "2503.T": {
+    "name": "Kirin Holdings",
+    "yfinance": "2503.T",
+    "region": "japan",
+    "ir": "https://www.kirinholdings.com/en/investors",
+    "logo": "kirinholdings.com"
+  },
+  "2801.T": {
+    "name": "Kikkoman",
+    "yfinance": "2801.T",
+    "region": "japan",
+    "ir": "https://www.kikkoman.com/en/ir",
+    "logo": "kikkoman.com"
+  },
+  "2802.T": {
+    "name": "Ajinomoto",
+    "yfinance": "2802.T",
+    "region": "japan",
+    "ir": "https://www.ajinomoto.com/investors",
+    "logo": "ajinomoto.com"
+  },
+  "2914.T": {
+    "name": "Japan Tobacco",
+    "yfinance": "2914.T",
+    "region": "japan",
+    "ir": "https://www.jti.com/investors",
+    "logo": "jti.com"
+  },
+  "29M.AX": {
+    "name": "29Metals",
+    "yfinance": "29M.AX",
+    "region": "australia",
+    "ir": "https://www.29metals.com/investors",
+    "logo": "29metals.com"
+  },
+  "3328.HK": {
+    "name": "Bank of Communications",
+    "yfinance": "3328.HK",
+    "region": "hongkong",
+    "ir": "https://www.bankcomm.com/BankCommSite/en/investor_relations",
+    "logo": "bankcomm.com"
+  },
+  "3659.T": {
+    "name": "Nexon",
+    "yfinance": "3659.T",
+    "region": "japan",
+    "ir": "https://ir.nexon.co.jp/en",
+    "logo": "nexon.co.jp"
+  },
+  "3690.HK": {
+    "name": "Meituan",
+    "yfinance": "3690.HK",
+    "region": "hongkong",
+    "ir": "https://about.meituan.com/en/investor",
+    "logo": "meituan.com"
+  },
+  "3968.HK": {
+    "name": "China Merchants Bank",
+    "yfinance": "3968.HK",
+    "region": "hongkong",
+    "ir": "https://www.cmbchina.com/en/investor",
+    "logo": "cmbchina.com"
+  },
+  "3988.HK": {
+    "name": "Bank of China",
+    "yfinance": "3988.HK",
+    "region": "hongkong",
+    "ir": "https://www.boc.cn/en/investor",
+    "logo": "boc.cn"
+  },
+  "4063.T": {
+    "name": "Shin-Etsu Chemical",
+    "yfinance": "4063.T",
+    "region": "japan",
+    "ir": "https://www.shinetsu.co.jp/en/ir",
+    "logo": "shinetsu.co.jp"
+  },
+  "4385.T": {
+    "name": "Mercari",
+    "yfinance": "4385.T",
+    "region": "japan",
+    "ir": "https://about.mercari.com/en/ir",
+    "logo": "mercari.com"
+  },
+  "4452.T": {
+    "name": "Kao Corporation",
+    "yfinance": "4452.T",
+    "region": "japan",
+    "ir": "https://www.kao.com/global/en/investor-relations",
+    "logo": "kao.com"
+  },
+  "4502.T": {
+    "name": "Takeda Pharmaceutical",
+    "yfinance": "4502.T",
+    "region": "japan",
+    "ir": "https://www.takeda.com/investors",
+    "logo": "takeda.com"
+  },
+  "4503.T": {
+    "name": "Astellas Pharma",
+    "yfinance": "4503.T",
+    "region": "japan",
+    "ir": "https://www.astellas.com/en/investors",
+    "logo": "astellas.com"
+  },
+  "4519.T": {
+    "name": "Chugai Pharmaceutical",
+    "yfinance": "4519.T",
+    "region": "japan",
+    "ir": "https://www.chugai-pharm.co.jp/english/ir",
+    "logo": "chugai-pharm.co.jp"
+  },
+  "4523.T": {
+    "name": "Eisai",
+    "yfinance": "4523.T",
+    "region": "japan",
+    "ir": "https://www.eisai.com/ir",
+    "logo": "eisai.com"
+  },
+  "4543.T": {
+    "name": "Terumo",
+    "yfinance": "4543.T",
+    "region": "japan",
+    "ir": "https://www.terumo.com/investors",
+    "logo": "terumo.com"
+  },
+  "4568.T": {
+    "name": "Daiichi Sankyo",
+    "yfinance": "4568.T",
+    "region": "japan",
+    "ir": "https://www.daiichisankyo.com/investors",
+    "logo": "daiichisankyo.com"
+  },
+  "4578.T": {
+    "name": "Otsuka Holdings",
+    "yfinance": "4578.T",
+    "region": "japan",
+    "ir": "https://www.otsuka.com/en/ir",
+    "logo": "otsuka.com"
+  },
+  "4689.T": {
+    "name": "Z Holdings",
+    "yfinance": "4689.T",
+    "region": "japan",
+    "ir": "https://www.z-holdings.co.jp/en/ir",
+    "logo": "z-holdings.co.jp"
+  },
+  "4751.T": {
+    "name": "CyberAgent",
+    "yfinance": "4751.T",
+    "region": "japan",
+    "ir": "https://www.cyberagent.co.jp/en/ir",
+    "logo": "cyberagent.co.jp"
+  },
+  "4755.T": {
+    "name": "Rakuten Group",
+    "yfinance": "4755.T",
+    "region": "japan",
+    "ir": "https://global.rakuten.com/corp/investors",
+    "logo": "rakuten.com"
+  },
+  "4911.T": {
+    "name": "Shiseido",
+    "yfinance": "4911.T",
+    "region": "japan",
+    "ir": "https://corp.shiseido.com/en/ir",
+    "logo": "shiseido.com"
+  },
+  "5108.T": {
+    "name": "Bridgestone",
+    "yfinance": "5108.T",
+    "region": "japan",
+    "ir": "https://www.bridgestone.com/ir",
+    "logo": "bridgestone.com"
+  },
+  "5401.T": {
+    "name": "Nippon Steel",
+    "yfinance": "5401.T",
+    "region": "japan",
+    "ir": "https://www.nipponsteel.com/en/ir",
+    "logo": "nipponsteel.com"
+  },
+  "5411.T": {
+    "name": "JFE Holdings",
+    "yfinance": "5411.T",
+    "region": "japan",
+    "ir": "https://www.jfe-holdings.co.jp/en/investor",
+    "logo": "jfe-holdings.co.jp"
+  },
+  "5802.T": {
+    "name": "Sumitomo Electric Industries",
+    "yfinance": "5802.T",
+    "region": "japan",
+    "ir": "https://sumitomoelectric.com/investor-relations",
+    "logo": "sumitomoelectric.com"
+  },
+  "6098.T": {
+    "name": "Recruit Holdings",
+    "yfinance": "6098.T",
+    "region": "japan",
+    "ir": "https://recruit-holdings.com/en/ir",
+    "logo": "recruit-holdings.com"
+  },
+  "6301.T": {
+    "name": "Komatsu",
+    "yfinance": "6301.T",
+    "region": "japan",
+    "ir": "https://www.komatsu.jp/en/ir",
+    "logo": "komatsu.jp"
+  },
+  "6305.T": {
+    "name": "Hitachi Construction Machinery",
+    "yfinance": "6305.T",
+    "region": "japan",
+    "ir": "https://www.hitachicm.com/global/en/ir",
+    "logo": "hitachicm.com"
+  },
+  "6501.T": {
+    "name": "Hitachi",
+    "yfinance": "6501.T",
+    "region": "japan",
+    "ir": "https://www.hitachi.com/IR-e",
+    "logo": "hitachi.com"
+  },
+  "6502.T": {
+    "name": "Toshiba",
+    "yfinance": "6502.T",
+    "region": "japan",
+    "ir": "https://www.global.toshiba/ww/ir.html",
+    "logo": "toshiba.com"
+  },
+  "6503.T": {
+    "name": "Mitsubishi Electric",
+    "yfinance": "6503.T",
+    "region": "japan",
+    "ir": "https://www.mitsubishielectric.com/en/investors",
+    "logo": "mitsubishielectric.com"
+  },
+  "6594.T": {
+    "name": "Nidec",
+    "yfinance": "6594.T",
+    "region": "japan",
+    "ir": "https://www.nidec.com/en/ir",
+    "logo": "nidec.com"
+  },
+  "6618.HK": {
+    "name": "JD Health International",
+    "yfinance": "6618.HK",
+    "region": "hongkong",
+    "ir": "https://ir.health.jd.com",
+    "logo": "health.jd.com"
+  },
+  "6723.T": {
+    "name": "Renesas Electronics",
+    "yfinance": "6723.T",
+    "region": "japan",
+    "ir": "https://www.renesas.com/us/en/about/company/investors",
+    "logo": "renesas.com"
+  },
+  "6752.T": {
+    "name": "Panasonic Holdings",
+    "yfinance": "6752.T",
+    "region": "japan",
+    "ir": "https://holdings.panasonic/global/corporate/investors.html",
+    "logo": "panasonic.com"
+  },
+  "6758.T": {
+    "name": "Sony Group",
+    "yfinance": "6758.T",
+    "region": "japan",
+    "ir": "https://www.sony.com/en/SonyInfo/IR",
+    "logo": "sony.com"
+  },
+  "6857.T": {
+    "name": "Advantest",
+    "yfinance": "6857.T",
+    "region": "japan",
+    "ir": "https://www.advantest.com/investors",
+    "logo": "advantest.com"
+  },
+  "6861.T": {
+    "name": "Keyence",
+    "yfinance": "6861.T",
+    "region": "japan",
+    "ir": "https://www.keyence.co.jp/company/ir",
+    "logo": "keyence.co.jp"
+  },
+  "6862.HK": {
+    "name": "Haidilao International",
+    "yfinance": "6862.HK",
+    "region": "hongkong",
+    "ir": "https://www.haidilao.com/en/investor",
+    "logo": "haidilao.com"
+  },
+  "6869.T": {
+    "name": "Sysmex",
+    "yfinance": "6869.T",
+    "region": "japan",
+    "ir": "https://www.sysmex.co.jp/en/ir",
+    "logo": "sysmex.co.jp"
+  },
+  "6902.T": {
+    "name": "Denso",
+    "yfinance": "6902.T",
+    "region": "japan",
+    "ir": "https://www.denso.com/global/en/about-us/investors",
+    "logo": "denso.com"
+  },
+  "6920.T": {
+    "name": "Lasertec",
+    "yfinance": "6920.T",
+    "region": "japan",
+    "ir": "https://www.lasertec.co.jp/en/ir",
+    "logo": "lasertec.co.jp"
+  },
+  "6954.T": {
+    "name": "Fanuc",
+    "yfinance": "6954.T",
+    "region": "japan",
+    "ir": "https://www.fanuc.co.jp/en/ir",
+    "logo": "fanuc.co.jp"
+  },
+  "7011.T": {
+    "name": "Mitsubishi Heavy Industries",
+    "yfinance": "7011.T",
+    "region": "japan",
+    "ir": "https://www.mhi.com/finance",
+    "logo": "mhi.com"
+  },
+  "7012.T": {
+    "name": "Kawasaki Heavy Industries",
+    "yfinance": "7012.T",
+    "region": "japan",
+    "ir": "https://www.khi.co.jp/english/ir",
+    "logo": "khi.co.jp"
+  },
+  "7182.T": {
+    "name": "Japan Post Bank",
+    "yfinance": "7182.T",
+    "region": "japan",
+    "ir": "https://www.jp-bank.japanpost.jp/en/aboutus/ir",
+    "logo": "jp-bank.japanpost.jp"
+  },
+  "7201.T": {
+    "name": "Nissan Motor",
+    "yfinance": "7201.T",
+    "region": "japan",
+    "ir": "https://www.nissan-global.com/EN/IR",
+    "logo": "nissan.com"
+  },
+  "7203.T": {
+    "name": "Toyota Motor",
+    "yfinance": "7203.T",
+    "region": "japan",
+    "ir": "https://global.toyota/en/ir",
+    "logo": "toyota.com"
+  },
+  "7261.T": {
+    "name": "Mazda Motor",
+    "yfinance": "7261.T",
+    "region": "japan",
+    "ir": "https://www.mazda.com/en/investors",
+    "logo": "mazda.com"
+  },
+  "7267.T": {
+    "name": "Honda Motor",
+    "yfinance": "7267.T",
+    "region": "japan",
+    "ir": "https://global.honda/investors.html",
+    "logo": "honda.com"
+  },
+  "7269.T": {
+    "name": "Suzuki Motor",
+    "yfinance": "7269.T",
+    "region": "japan",
+    "ir": "https://www.suzuki.co.jp/ir/en",
+    "logo": "suzuki.co.jp"
+  },
+  "7270.T": {
+    "name": "Subaru",
+    "yfinance": "7270.T",
+    "region": "japan",
+    "ir": "https://www.subaru.co.jp/en/ir",
+    "logo": "subaru.co.jp"
+  },
+  "7741.T": {
+    "name": "HOYA Corporation",
+    "yfinance": "7741.T",
+    "region": "japan",
+    "ir": "https://www.hoya.com/ir",
+    "logo": "hoya.com"
+  },
+  "7751.T": {
+    "name": "Canon",
+    "yfinance": "7751.T",
+    "region": "japan",
+    "ir": "https://global.canon/en/ir",
+    "logo": "canon.com"
+  },
+  "7832.T": {
+    "name": "Bandai Namco Holdings",
+    "yfinance": "7832.T",
+    "region": "japan",
+    "ir": "https://www.bandainamco.co.jp/en/ir",
+    "logo": "bandainamco.co.jp"
+  },
+  "7974.T": {
+    "name": "Nintendo",
+    "yfinance": "7974.T",
+    "region": "japan",
+    "ir": "https://www.nintendo.co.jp/ir/en",
+    "logo": "nintendo.com"
+  },
+  "8001.T": {
+    "name": "ITOCHU Corporation",
+    "yfinance": "8001.T",
+    "region": "japan",
+    "ir": "https://www.itochu.co.jp/en/ir",
+    "logo": "itochu.co.jp"
+  },
+  "8002.T": {
+    "name": "Marubeni Corporation",
+    "yfinance": "8002.T",
+    "region": "japan",
+    "ir": "https://www.marubeni.com/en/ir",
+    "logo": "marubeni.com"
+  },
+  "8031.T": {
+    "name": "Mitsui & Co",
+    "yfinance": "8031.T",
+    "region": "japan",
+    "ir": "https://www.mitsui.com/jp/en/ir",
+    "logo": "mitsui.com"
+  },
+  "8035.T": {
+    "name": "Tokyo Electron",
+    "yfinance": "8035.T",
+    "region": "japan",
+    "ir": "https://www.tel.com/ir",
+    "logo": "tel.com"
+  },
+  "8053.T": {
+    "name": "Sumitomo Corporation",
+    "yfinance": "8053.T",
+    "region": "japan",
+    "ir": "https://www.sumitomocorp.com/en/jp/ir",
+    "logo": "sumitomocorp.com"
+  },
+  "8058.T": {
+    "name": "Mitsubishi Corporation",
+    "yfinance": "8058.T",
+    "region": "japan",
+    "ir": "https://www.mitsubishicorp.com/jp/en/ir",
+    "logo": "mitsubishicorp.com"
+  },
+  "8113.T": {
+    "name": "Unicharm",
+    "yfinance": "8113.T",
+    "region": "japan",
+    "ir": "https://www.unicharm.co.jp/en/ir.html",
+    "logo": "unicharm.co.jp"
+  },
+  "8306.T": {
+    "name": "Mitsubishi UFJ Financial Group",
+    "yfinance": "8306.T",
+    "region": "japan",
+    "ir": "https://www.mufg.jp/english/ir",
+    "logo": "mufg.jp"
+  },
+  "8309.T": {
+    "name": "Sumitomo Mitsui Trust Holdings",
+    "yfinance": "8309.T",
+    "region": "japan",
+    "ir": "https://www.smth.jp/en/ir",
+    "logo": "smth.jp"
+  },
+  "8316.T": {
+    "name": "Sumitomo Mitsui Financial Group",
+    "yfinance": "8316.T",
+    "region": "japan",
+    "ir": "https://www.smfg.co.jp/english/investor",
+    "logo": "smfg.co.jp"
+  },
+  "8411.T": {
+    "name": "Mizuho Financial Group",
+    "yfinance": "8411.T",
+    "region": "japan",
+    "ir": "https://www.mizuho-fg.co.jp/english/investors",
+    "logo": "mizuho-fg.co.jp"
+  },
+  "8591.T": {
+    "name": "ORIX Corporation",
+    "yfinance": "8591.T",
+    "region": "japan",
+    "ir": "https://www.orix.co.jp/grp/en/ir",
+    "logo": "orix.co.jp"
+  },
+  "8630.T": {
+    "name": "Sompo Holdings",
+    "yfinance": "8630.T",
+    "region": "japan",
+    "ir": "https://www.sompo-hd.com/en/ir",
+    "logo": "sompo-hd.com"
+  },
+  "8725.T": {
+    "name": "MS&AD Insurance Group Holdings",
+    "yfinance": "8725.T",
+    "region": "japan",
+    "ir": "https://www.ms-ad-hd.com/en/ir.html",
+    "logo": "ms-ad-hd.com"
+  },
+  "8750.T": {
+    "name": "Dai-ichi Life Holdings",
+    "yfinance": "8750.T",
+    "region": "japan",
+    "ir": "https://www.dai-ichi-life-hd.com/en/investor",
+    "logo": "dai-ichi-life-hd.com"
+  },
+  "8766.T": {
+    "name": "Tokio Marine Holdings",
+    "yfinance": "8766.T",
+    "region": "japan",
+    "ir": "https://www.tokiomarinehd.com/en/ir",
+    "logo": "tokiomarinehd.com"
+  },
+  "8801.T": {
+    "name": "Mitsui Fudosan",
+    "yfinance": "8801.T",
+    "region": "japan",
+    "ir": "https://www.mitsuifudosan.co.jp/english/corporate/ir",
+    "logo": "mitsuifudosan.co.jp"
+  },
+  "8802.T": {
+    "name": "Mitsubishi Estate",
+    "yfinance": "8802.T",
+    "region": "japan",
+    "ir": "https://www.mec.co.jp/e/investor",
+    "logo": "mec.co.jp"
+  },
+  "8830.T": {
+    "name": "Sumitomo Realty & Development",
+    "yfinance": "8830.T",
+    "region": "japan",
+    "ir": "https://www.sumitomo-rd.co.jp/english/ir",
+    "logo": "sumitomo-rd.co.jp"
+  },
+  "9020.T": {
+    "name": "East Japan Railway",
+    "yfinance": "9020.T",
+    "region": "japan",
+    "ir": "https://www.jreast.co.jp/e/investor",
+    "logo": "jreast.co.jp"
+  },
+  "9021.T": {
+    "name": "West Japan Railway",
+    "yfinance": "9021.T",
+    "region": "japan",
+    "ir": "https://www.westjr.co.jp/global/en/ir",
+    "logo": "westjr.co.jp"
+  },
+  "9022.T": {
+    "name": "Central Japan Railway",
+    "yfinance": "9022.T",
+    "region": "japan",
+    "ir": "https://company.jr-central.co.jp/ir/annualreport",
+    "logo": "jr-central.co.jp"
+  },
+  "9432.T": {
+    "name": "Nippon Telegraph and Telephone",
+    "yfinance": "9432.T",
+    "region": "japan",
+    "ir": "https://group.ntt/en/ir",
+    "logo": "ntt.com"
+  },
+  "9433.T": {
+    "name": "KDDI",
+    "yfinance": "9433.T",
+    "region": "japan",
+    "ir": "https://www.kddi.com/english/corporate/ir",
+    "logo": "kddi.com"
+  },
+  "9434.T": {
+    "name": "SoftBank Corp",
+    "yfinance": "9434.T",
+    "region": "japan",
+    "ir": "https://www.softbank.jp/en/corp/ir",
+    "logo": "softbank.jp"
+  },
+  "9618.HK": {
+    "name": "JD.com",
+    "yfinance": "9618.HK",
+    "region": "hongkong",
+    "ir": "https://ir.jd.com",
+    "logo": "jd.com"
+  },
+  "9626.HK": {
+    "name": "Bilibili",
+    "yfinance": "9626.HK",
+    "region": "hongkong",
+    "ir": "https://ir.bilibili.com",
+    "logo": "bilibili.com"
+  },
+  "9684.T": {
+    "name": "Square Enix Holdings",
+    "yfinance": "9684.T",
+    "region": "japan",
+    "ir": "https://www.hd.square-enix.com/eng/ir",
+    "logo": "square-enix.com"
+  },
+  "9697.T": {
+    "name": "Capcom",
+    "yfinance": "9697.T",
+    "region": "japan",
+    "ir": "https://www.capcom.co.jp/ir/english",
+    "logo": "capcom.co.jp"
+  },
+  "9766.T": {
+    "name": "Konami Holdings",
+    "yfinance": "9766.T",
+    "region": "japan",
+    "ir": "https://www.konami.com/ir/en",
+    "logo": "konami.com"
+  },
+  "9866.HK": {
+    "name": "NIO",
+    "yfinance": "9866.HK",
+    "region": "hongkong",
+    "ir": "https://ir.nio.com",
+    "logo": "nio.com"
+  },
+  "9868.HK": {
+    "name": "XPeng",
+    "yfinance": "9868.HK",
+    "region": "hongkong",
+    "ir": "https://ir.xiaopeng.com",
+    "logo": "xiaopeng.com"
+  },
+  "9888.HK": {
+    "name": "Baidu",
+    "yfinance": "9888.HK",
+    "region": "hongkong",
+    "ir": "https://ir.baidu.com",
+    "logo": "baidu.com"
+  },
+  "9983.T": {
+    "name": "Fast Retailing",
+    "yfinance": "9983.T",
+    "region": "japan",
+    "ir": "https://www.fastretailing.com/eng/ir",
+    "logo": "fastretailing.com"
+  },
+  "9984.T": {
+    "name": "SoftBank Group",
+    "yfinance": "9984.T",
+    "region": "japan",
+    "ir": "https://group.softbank/en/ir",
+    "logo": "softbank.com"
+  },
+  "9988.HK": {
+    "name": "Alibaba Group",
+    "yfinance": "9988.HK",
+    "region": "hongkong",
+    "ir": "https://www.alibabagroup.com/en-US/ir",
+    "logo": "alibabagroup.com"
+  },
+  "9999.HK": {
+    "name": "NetEase",
+    "yfinance": "9999.HK",
+    "region": "hongkong",
+    "ir": "https://ir.netease.com",
+    "logo": "netease.com"
+  },
   "A": {
     "name": "Agilent Technologies",
     "yfinance": "A",
     "region": "us",
-    "ir": "https://www.maersk.com/investor-relations"
+    "ir": "https://www.investor.agilent.com",
+    "logo": "agilent.com"
+  },
+  "A17U.SI": {
+    "name": "CapitaLand Ascendas REIT",
+    "yfinance": "A17U.SI",
+    "region": "singapore",
+    "ir": "https://www.capitaland-ascendas-reit.com/en/investor-relations.html",
+    "logo": "capitaland-ascendas-reit.com"
   },
   "A2A": {
     "name": "A2A",
     "yfinance": "A2A",
     "region": "us",
     "ir": "https://www.a2a.eu/en/investors"
+  },
+  "A2M.AX": {
+    "name": "The a2 Milk Company",
+    "yfinance": "A2M.AX",
+    "region": "australia",
+    "ir": "https://thea2milkcompany.com/investors",
+    "logo": "thea2milkcompany.com"
   },
   "A3M": {
     "name": "A3M",
@@ -132,6 +1148,13 @@
     "region": "us",
     "ir": "https://www.abbottinvestor.com",
     "logo": "abbott.com"
+  },
+  "ABX.TO": {
+    "name": "Barrick Gold",
+    "yfinance": "ABX.TO",
+    "region": "canada",
+    "ir": "https://www.barrick.com/investors",
+    "logo": "barrick.com"
   },
   "AC": {
     "name": "Accor",
@@ -305,6 +1328,20 @@
     "yfinance": "AEGA.OL",
     "region": "europe"
   },
+  "AEM": {
+    "name": "Agnico Eagle Mines",
+    "yfinance": "AEM",
+    "region": "us",
+    "ir": "https://www.agnicoeagle.com/English/investor-relations",
+    "logo": "agnicoeagle.com"
+  },
+  "AEM.TO": {
+    "name": "Agnico Eagle Mines",
+    "yfinance": "AEM.TO",
+    "region": "canada",
+    "ir": "https://www.agnicoeagle.com/English/investor-relations",
+    "logo": "agnicoeagle.com"
+  },
   "AENA": {
     "name": "Aena",
     "yfinance": "AENA.MC",
@@ -462,6 +1499,13 @@
     "yfinance": "AKE",
     "region": "us"
   },
+  "AKE.AX": {
+    "name": "Allkem",
+    "yfinance": "AKE.AX",
+    "region": "australia",
+    "ir": "https://www.allkem.co/investors",
+    "logo": "allkem.co"
+  },
   "AKERBP": {
     "name": "AKERBP",
     "yfinance": "AKERBP.OL",
@@ -582,6 +1626,13 @@
     "region": "us",
     "ir": "https://investors.allstate.com/"
   },
+  "ALL.AX": {
+    "name": "Aristocrat Leisure",
+    "yfinance": "ALL.AX",
+    "region": "australia",
+    "ir": "https://www.aristocrat.com/investors",
+    "logo": "aristocrat.com"
+  },
   "ALLE": {
     "name": "Allegion",
     "yfinance": "ALLE",
@@ -671,6 +1722,13 @@
     "yfinance": "ALTUR.PA",
     "region": "europe"
   },
+  "ALU.AX": {
+    "name": "Altium",
+    "yfinance": "ALU.AX",
+    "region": "australia",
+    "ir": "https://www.altium.com/company/investors",
+    "logo": "altium.com"
+  },
   "ALV": {
     "name": "Allianz",
     "yfinance": "ALV.DE",
@@ -720,6 +1778,13 @@
     "name": "AMBU-B",
     "yfinance": "AMBU-B.CO",
     "region": "europe"
+  },
+  "AMC.AX": {
+    "name": "Amcor",
+    "yfinance": "AMC.AX",
+    "region": "australia",
+    "ir": "https://www.amcor.com/investors",
+    "logo": "amcor.com"
   },
   "AMCR": {
     "name": "Amcor",
@@ -841,6 +1906,20 @@
     "region": "europe",
     "ir": "https://www.antofagasta.co.uk/investors"
   },
+  "ANTO.L": {
+    "name": "Antofagasta",
+    "yfinance": "ANTO.L",
+    "region": "europe",
+    "ir": "https://www.antofagasta.co.uk/investors",
+    "logo": "antofagasta.co.uk"
+  },
+  "ANZ.AX": {
+    "name": "ANZ Group",
+    "yfinance": "ANZ.AX",
+    "region": "australia",
+    "ir": "https://www.anz.com/shareholder/centre",
+    "logo": "anz.com"
+  },
   "AOF": {
     "name": "AOF",
     "yfinance": "AOF.DE",
@@ -868,6 +1947,13 @@
     "yfinance": "APA",
     "region": "us",
     "ir": "https://investor.apacorp.com"
+  },
+  "APA.AX": {
+    "name": "APA Group",
+    "yfinance": "APA.AX",
+    "region": "australia",
+    "ir": "https://www.apa.com.au/investor-centre",
+    "logo": "apa.com.au"
   },
   "APAM": {
     "name": "APAM",
@@ -930,6 +2016,13 @@
     "yfinance": "APTV",
     "region": "us",
     "ir": "https://ir.aptiv.com/"
+  },
+  "APX.AX": {
+    "name": "Appen",
+    "yfinance": "APX.AX",
+    "region": "australia",
+    "ir": "https://appen.com/company/investors",
+    "logo": "appen.com"
   },
   "AQ": {
     "name": "AQ",
@@ -1091,6 +2184,13 @@
     "yfinance": "ATCO-B.ST",
     "region": "europe"
   },
+  "ATD.TO": {
+    "name": "Alimentation Couche-Tard",
+    "yfinance": "ATD.TO",
+    "region": "canada",
+    "ir": "https://corpo.couche-tard.com/en/investors",
+    "logo": "couche-tard.com"
+  },
   "ATE": {
     "name": "Alten",
     "yfinance": "ATE.PA",
@@ -1138,6 +2238,20 @@
     "name": "ATS",
     "yfinance": "ATS.VI",
     "region": "europe"
+  },
+  "ATZ.TO": {
+    "name": "Aritzia",
+    "yfinance": "ATZ.TO",
+    "region": "canada",
+    "ir": "https://investors.aritzia.com",
+    "logo": "aritzia.com"
+  },
+  "AU": {
+    "name": "AngloGold Ashanti",
+    "yfinance": "AU",
+    "region": "us",
+    "ir": "https://www.anglogoldashanti.com/investors",
+    "logo": "anglogoldashanti.com"
   },
   "AURE": {
     "name": "AURE",
@@ -1233,6 +2347,13 @@
     "region": "europe",
     "ir": "https://www.azelis.com/investors"
   },
+  "AZJ.AX": {
+    "name": "Aurizon Holdings",
+    "yfinance": "AZJ.AX",
+    "region": "australia",
+    "ir": "https://www.aurizon.com.au/investors",
+    "logo": "aurizon.com.au"
+  },
   "AZM": {
     "name": "AZM",
     "yfinance": "AZM.MI",
@@ -1259,10 +2380,11 @@
     "ir": "https://ir.aspentech.com/"
   },
   "B": {
-    "name": "B",
+    "name": "Barnes Group",
     "yfinance": "B",
     "region": "us",
-    "ir": "https://www.maersk.com/investor-relations"
+    "ir": "https://ir.onebarnes.com",
+    "logo": "onebarnes.com"
   },
   "B4B": {
     "name": "Metro",
@@ -1427,6 +2549,20 @@
     "yfinance": "BB",
     "region": "us"
   },
+  "BB.TO": {
+    "name": "BlackBerry",
+    "yfinance": "BB.TO",
+    "region": "canada",
+    "ir": "https://www.blackberry.com/us/en/company/investors",
+    "logo": "blackberry.com"
+  },
+  "BBD-B.TO": {
+    "name": "Bombardier",
+    "yfinance": "BBD-B.TO",
+    "region": "canada",
+    "ir": "https://bombardier.com/en/investors",
+    "logo": "bombardier.com"
+  },
   "BBOX": {
     "name": "Tritax Big Box REIT",
     "yfinance": "BBOX",
@@ -1461,6 +2597,13 @@
     "name": "BCE",
     "yfinance": "BCE.MI",
     "region": "europe"
+  },
+  "BCE.TO": {
+    "name": "BCE Inc",
+    "yfinance": "BCE.TO",
+    "region": "canada",
+    "ir": "https://www.bce.ca/investors",
+    "logo": "bce.ca"
   },
   "BCGE": {
     "name": "Banque Cantonale de Geneve",
@@ -1594,6 +2737,13 @@
     "yfinance": "BGN.MI",
     "region": "europe",
     "ir": "https://www.bancagenerali.com/en/investor-relations"
+  },
+  "BHP.AX": {
+    "name": "BHP Group",
+    "yfinance": "BHP.AX",
+    "region": "australia",
+    "ir": "https://www.bhp.com/investors",
+    "logo": "bhp.com"
   },
   "BIA": {
     "name": "BIA",
@@ -1771,6 +2921,13 @@
     "region": "europe",
     "ir": "https://www.bancamediolanum.it/corp/investor-relations"
   },
+  "BMO.TO": {
+    "name": "Bank of Montreal",
+    "yfinance": "BMO.TO",
+    "region": "canada",
+    "ir": "https://www.bmo.com/main/about-bmo/investor-relations",
+    "logo": "bmo.com"
+  },
   "BMW": {
     "name": "Bayerische Motoren Werke",
     "yfinance": "BMW.DE",
@@ -1791,6 +2948,13 @@
     "region": "europe",
     "ir": "https://www.danone.com/investor-relations.html",
     "logo": "danone.com"
+  },
+  "BN4.SI": {
+    "name": "Keppel Corporation",
+    "yfinance": "BN4.SI",
+    "region": "singapore",
+    "ir": "https://www.kepcorp.com/en/investors",
+    "logo": "kepcorp.com"
   },
   "BNKR": {
     "name": "BNKR",
@@ -1819,6 +2983,13 @@
     "region": "europe",
     "ir": "https://corporate.brenntag.com/en/investor-relations/"
   },
+  "BNS.TO": {
+    "name": "Bank of Nova Scotia",
+    "yfinance": "BNS.TO",
+    "region": "canada",
+    "ir": "https://www.scotiabank.com/ca/en/about/investors-shareholders.html",
+    "logo": "scotiabank.com"
+  },
   "BNZL": {
     "name": "Bunzl",
     "yfinance": "BNZL",
@@ -1831,6 +3002,13 @@
     "region": "swiss",
     "ir": "https://www.bobst.com/en/investor-relations"
   },
+  "BOE.AX": {
+    "name": "Boss Energy",
+    "yfinance": "BOE.AX",
+    "region": "australia",
+    "ir": "https://www.bossenergy.com/investors",
+    "logo": "bossenergy.com"
+  },
   "BOI": {
     "name": "BOI",
     "yfinance": "BOI.PA",
@@ -1842,16 +3020,24 @@
     "region": "us"
   },
   "BOL": {
-    "name": "Bollore",
+    "name": "Boliden",
     "yfinance": "BOL.ST",
     "region": "europe",
-    "ir": "https://www.boliden.com/investor-relations"
+    "ir": "https://www.boliden.com/investor-relations",
+    "logo": "boliden.com"
   },
   "BOL.PA": {
     "name": "BOL.PA",
     "yfinance": "BOL.PA",
     "region": "us",
     "ir": "https://www.bollore.com/en/investors"
+  },
+  "BOLI.ST": {
+    "name": "Boliden",
+    "yfinance": "BOL.ST",
+    "region": "europe",
+    "ir": "https://www.boliden.com/investor-relations",
+    "logo": "boliden.com"
   },
   "BOLS": {
     "name": "BOLS",
@@ -1920,6 +3106,20 @@
     "name": "BPOST",
     "yfinance": "BPOST.BR",
     "region": "europe"
+  },
+  "BPT.AX": {
+    "name": "Beach Energy",
+    "yfinance": "BPT.AX",
+    "region": "australia",
+    "ir": "https://www.beachenergy.com.au/investors",
+    "logo": "beachenergy.com.au"
+  },
+  "BPY-UN.TO": {
+    "name": "Brookfield Property Partners",
+    "yfinance": "BPY-UN.TO",
+    "region": "canada",
+    "ir": "https://bpy.brookfield.com/investors",
+    "logo": "brookfield.com"
   },
   "BR": {
     "name": "Broadridge Financial",
@@ -2085,6 +3285,13 @@
     "region": "us",
     "ir": "https://ir.blackstone.com"
   },
+  "BXB.AX": {
+    "name": "Brambles",
+    "yfinance": "BXB.AX",
+    "region": "australia",
+    "ir": "https://www.brambles.com/investors",
+    "logo": "brambles.com"
+  },
   "BXP": {
     "name": "BXP",
     "yfinance": "BXP",
@@ -2115,6 +3322,34 @@
     "ir": "https://www.citigroup.com/global/investors",
     "logo": "citi.com"
   },
+  "C07.SI": {
+    "name": "Jardine Cycle & Carriage",
+    "yfinance": "C07.SI",
+    "region": "singapore",
+    "ir": "https://www.jcclgroup.com/investors",
+    "logo": "jcclgroup.com"
+  },
+  "C09.SI": {
+    "name": "City Developments",
+    "yfinance": "C09.SI",
+    "region": "singapore",
+    "ir": "https://www.cdl.com.sg/investor-relations",
+    "logo": "cdl.com.sg"
+  },
+  "C38U.SI": {
+    "name": "CapitaLand Integrated Commercial Trust",
+    "yfinance": "C38U.SI",
+    "region": "singapore",
+    "ir": "https://www.cict.com.sg/investor-relations",
+    "logo": "cict.com.sg"
+  },
+  "C52.SI": {
+    "name": "ComfortDelGro",
+    "yfinance": "C52.SI",
+    "region": "singapore",
+    "ir": "https://www.comfortdelgro.com/investor-relations",
+    "logo": "comfortdelgro.com"
+  },
   "CA": {
     "name": "Carrefour",
     "yfinance": "CA.PA",
@@ -2126,6 +3361,13 @@
     "yfinance": "CABK.MC",
     "region": "europe",
     "ir": "https://www.caixabank.com/en/shareholders-and-investors.html"
+  },
+  "CAE.TO": {
+    "name": "CAE Inc",
+    "yfinance": "CAE.TO",
+    "region": "canada",
+    "ir": "https://www.cae.com/investors",
+    "logo": "cae.com"
   },
   "CAF": {
     "name": "CAF",
@@ -2175,6 +3417,20 @@
     "name": "CAR",
     "yfinance": "CAR.HE",
     "region": "europe"
+  },
+  "CAR-UN.TO": {
+    "name": "Canadian Apartment Properties REIT",
+    "yfinance": "CAR-UN.TO",
+    "region": "canada",
+    "ir": "https://www.capreit.ca/investors",
+    "logo": "capreit.ca"
+  },
+  "CAR.AX": {
+    "name": "Carsales.com",
+    "yfinance": "CAR.AX",
+    "region": "australia",
+    "ir": "https://shareholders.carsales.com.au",
+    "logo": "carsales.com.au"
   },
   "CARD": {
     "name": "CARD",
@@ -2240,6 +3496,13 @@
     "yfinance": "CB",
     "region": "us",
     "ir": "https://investors.chubb.com"
+  },
+  "CBA.AX": {
+    "name": "Commonwealth Bank of Australia",
+    "yfinance": "CBA.AX",
+    "region": "australia",
+    "ir": "https://www.commbank.com.au/about-us/investors.html",
+    "logo": "commbank.com.au"
   },
   "CBE": {
     "name": "CBE",
@@ -2317,6 +3580,13 @@
     "region": "us",
     "ir": "https://www.carnivalcorp.com/investor-relations"
   },
+  "CCO.TO": {
+    "name": "Cameco",
+    "yfinance": "CCO.TO",
+    "region": "canada",
+    "ir": "https://www.cameco.com/invest",
+    "logo": "cameco.com"
+  },
   "CDA": {
     "name": "CDA",
     "yfinance": "CDA.PA",
@@ -2365,6 +3635,13 @@
     "name": "CEV",
     "yfinance": "CEV.DE",
     "region": "europe"
+  },
+  "CEY.L": {
+    "name": "Centamin",
+    "yfinance": "CEY.L",
+    "region": "europe",
+    "ir": "https://www.centamin.com/investors",
+    "logo": "centamin.com"
   },
   "CF": {
     "name": "CF Industries",
@@ -2516,6 +3793,13 @@
     "region": "us",
     "ir": "https://investors.thecloroxcompany.com"
   },
+  "CM.TO": {
+    "name": "Canadian Imperial Bank of Commerce",
+    "yfinance": "CM.TO",
+    "region": "canada",
+    "ir": "https://www.cibc.com/en/about-cibc/investor-relations.html",
+    "logo": "cibc.com"
+  },
   "CMBN": {
     "name": "Cembra Money Bank",
     "yfinance": "CMBN.SW",
@@ -2598,6 +3882,20 @@
     "region": "europe",
     "ir": "https://investors.centerpointenergy.com"
   },
+  "CNQ.TO": {
+    "name": "Canadian Natural Resources",
+    "yfinance": "CNQ.TO",
+    "region": "canada",
+    "ir": "https://www.cnrl.com/investor-information",
+    "logo": "cnrl.com"
+  },
+  "CNR.TO": {
+    "name": "Canadian National Railway",
+    "yfinance": "CNR.TO",
+    "region": "canada",
+    "ir": "https://www.cn.ca/en/investors",
+    "logo": "cn.ca"
+  },
   "CO": {
     "name": "Casino Guichard-Perrachon",
     "yfinance": "CO",
@@ -2626,6 +3924,13 @@
     "yfinance": "COH.PA",
     "region": "europe"
   },
+  "COH.AX": {
+    "name": "Cochlear",
+    "yfinance": "COH.AX",
+    "region": "australia",
+    "ir": "https://www.cochlear.com/us/en/corporate/investors",
+    "logo": "cochlear.com"
+  },
   "COIN": {
     "name": "Coinbase Global",
     "yfinance": "COIN",
@@ -2637,6 +3942,13 @@
     "name": "Inmobiliaria Colonial",
     "yfinance": "COL.MC",
     "region": "europe"
+  },
+  "COL.AX": {
+    "name": "Coles Group",
+    "yfinance": "COL.AX",
+    "region": "australia",
+    "ir": "https://www.colesgroup.com.au/investors",
+    "logo": "colesgroup.com.au"
   },
   "COLL": {
     "name": "COLL",
@@ -2707,6 +4019,13 @@
     "region": "europe",
     "ir": "https://www.covivio.eu/en/investors/"
   },
+  "CP.TO": {
+    "name": "Canadian Pacific Kansas City",
+    "yfinance": "CP.TO",
+    "region": "canada",
+    "ir": "https://investor.cpkcr.com",
+    "logo": "cpkcr.com"
+  },
   "CPAY": {
     "name": "Corpay",
     "yfinance": "CPAY",
@@ -2753,6 +4072,13 @@
     "yfinance": "CPT",
     "region": "us",
     "ir": "https://investors.camdenliving.com/"
+  },
+  "CPU.AX": {
+    "name": "Computershare",
+    "yfinance": "CPU.AX",
+    "region": "australia",
+    "ir": "https://www.computershare.com/corporate/investor-relations",
+    "logo": "computershare.com"
   },
   "CRAYN": {
     "name": "CRAYN",
@@ -2818,6 +4144,13 @@
     "region": "us",
     "ir": "https://www.axa.com/en/investor"
   },
+  "CS.TO": {
+    "name": "Capstone Copper",
+    "yfinance": "CS.TO",
+    "region": "canada",
+    "ir": "https://capstonecopper.com/investors",
+    "logo": "capstonecopper.com"
+  },
   "CSCO": {
     "name": "Cisco Systems",
     "yfinance": "CSCO",
@@ -2836,6 +4169,20 @@
     "yfinance": "CSGP",
     "region": "us",
     "ir": "https://investors.costargroup.com"
+  },
+  "CSL.AX": {
+    "name": "CSL Limited",
+    "yfinance": "CSL.AX",
+    "region": "australia",
+    "ir": "https://www.csl.com/investors",
+    "logo": "csl.com"
+  },
+  "CSU.TO": {
+    "name": "Constellation Software",
+    "yfinance": "CSU.TO",
+    "region": "canada",
+    "ir": "https://www.csisoftware.com/investor-relations",
+    "logo": "csisoftware.com"
   },
   "CSX": {
     "name": "CSX",
@@ -2883,6 +4230,13 @@
     "yfinance": "CTY1S.HE",
     "region": "europe"
   },
+  "CU.TO": {
+    "name": "Canadian Utilities",
+    "yfinance": "CU.TO",
+    "region": "canada",
+    "ir": "https://www.canadianutilities.com/en/investor-centre.html",
+    "logo": "canadianutilities.com"
+  },
   "CUR": {
     "name": "CUR",
     "yfinance": "CUR.AS",
@@ -2898,6 +4252,13 @@
     "yfinance": "CVC",
     "region": "us",
     "ir": "https://www.cvc.com/shareholders/"
+  },
+  "CVE.TO": {
+    "name": "Cenovus Energy",
+    "yfinance": "CVE.TO",
+    "region": "canada",
+    "ir": "https://www.cenovus.com/investors",
+    "logo": "cenovus.com"
   },
   "CVNA": {
     "name": "Carvana",
@@ -2930,6 +4291,13 @@
     "region": "europe",
     "ir": "https://www.cranswick.plc.uk/investors/"
   },
+  "CXO.AX": {
+    "name": "Core Lithium",
+    "yfinance": "CXO.AX",
+    "region": "australia",
+    "ir": "https://www.corelithium.com.au/investors",
+    "logo": "corelithium.com.au"
+  },
   "CZR": {
     "name": "CZR",
     "yfinance": "CZR",
@@ -2941,6 +4309,13 @@
     "yfinance": "D",
     "region": "us",
     "ir": "https://investors.dominionenergy.com"
+  },
+  "D05.SI": {
+    "name": "DBS Group Holdings",
+    "yfinance": "D05.SI",
+    "region": "singapore",
+    "ir": "https://www.dbs.com/investor/index.html",
+    "logo": "dbs.com"
   },
   "DAB": {
     "name": "DAB",
@@ -3022,6 +4397,13 @@
     "name": "DCG",
     "yfinance": "DCG.L",
     "region": "europe"
+  },
+  "DCN.AX": {
+    "name": "Dacian Gold",
+    "yfinance": "DCN.AX",
+    "region": "australia",
+    "ir": "https://www.daciangold.com.au/investors",
+    "logo": "daciangold.com.au"
   },
   "DD": {
     "name": "DuPont",
@@ -3240,6 +4622,13 @@
     "region": "swiss",
     "ir": "https://www.dormakaba.com/en/investors"
   },
+  "DML.TO": {
+    "name": "Denison Mines",
+    "yfinance": "DML.TO",
+    "region": "canada",
+    "ir": "https://www.denisonmines.com/investors",
+    "logo": "denisonmines.com"
+  },
   "DNB": {
     "name": "DNB",
     "yfinance": "DNB.OL",
@@ -3269,6 +4658,13 @@
     "region": "us",
     "ir": "https://investor.docusign.com",
     "logo": "docusign.com"
+  },
+  "DOL.TO": {
+    "name": "Dollarama",
+    "yfinance": "DOL.TO",
+    "region": "canada",
+    "ir": "https://www.dollarama.com/en-CA/corp/investors",
+    "logo": "dollarama.com"
   },
   "DOM": {
     "name": "Dometic Group",
@@ -3439,6 +4835,20 @@
     "yfinance": "DXCM",
     "region": "us",
     "ir": "https://investors.dexcom.com"
+  },
+  "DXS.AX": {
+    "name": "Dexus",
+    "yfinance": "DXS.AX",
+    "region": "australia",
+    "ir": "https://www.dexus.com/investor-centre",
+    "logo": "dexus.com"
+  },
+  "DYL.AX": {
+    "name": "Deep Yellow",
+    "yfinance": "DYL.AX",
+    "region": "australia",
+    "ir": "https://www.deepyellow.com.au/investors",
+    "logo": "deepyellow.com.au"
   },
   "EA": {
     "name": "Electronic Arts",
@@ -3611,6 +5021,13 @@
     "yfinance": "ELC.MI",
     "region": "europe"
   },
+  "ELD.TO": {
+    "name": "Eldorado Gold",
+    "yfinance": "ELD.TO",
+    "region": "canada",
+    "ir": "https://www.eldoradogold.com/investors",
+    "logo": "eldoradogold.com"
+  },
   "ELE": {
     "name": "Endesa",
     "yfinance": "ELE.MC",
@@ -3680,6 +5097,13 @@
     "region": "us",
     "ir": "https://ir.elevancehealth.com"
   },
+  "EMA.TO": {
+    "name": "Emera",
+    "yfinance": "EMA.TO",
+    "region": "canada",
+    "ir": "https://www.emera.com/investors",
+    "logo": "emera.com"
+  },
   "EMBRAC-B": {
     "name": "EMBRAC-B",
     "yfinance": "EMBRAC-B.ST",
@@ -3729,6 +5153,13 @@
     "yfinance": "EN.PA",
     "region": "europe",
     "ir": "https://www.bouygues.com/en/finance-shareholders/"
+  },
+  "ENB.TO": {
+    "name": "Enbridge",
+    "yfinance": "ENB.TO",
+    "region": "canada",
+    "ir": "https://www.enbridge.com/investment-center",
+    "logo": "enbridge.com"
   },
   "ENC": {
     "name": "ENC",
@@ -4003,6 +5434,13 @@
     "yfinance": "EVN.VI",
     "region": "europe"
   },
+  "EVN.AX": {
+    "name": "Evolution Mining",
+    "yfinance": "EVN.AX",
+    "region": "australia",
+    "ir": "https://evolutionmining.com.au/investors",
+    "logo": "evolutionmining.com.au"
+  },
   "EVO": {
     "name": "EVO",
     "yfinance": "EVO.ST",
@@ -4091,6 +5529,13 @@
     "region": "us",
     "ir": "https://shareholder.ford.com",
     "logo": "ford.com"
+  },
+  "F34.SI": {
+    "name": "Wilmar International",
+    "yfinance": "F34.SI",
+    "region": "singapore",
+    "ir": "https://www.wilmar-international.com/investor-relations",
+    "logo": "wilmar-international.com"
   },
   "FAA": {
     "name": "FAA",
@@ -4193,6 +5638,13 @@
     "name": "FFARM",
     "yfinance": "FFARM.AS",
     "region": "europe"
+  },
+  "FFH.TO": {
+    "name": "Fairfax Financial Holdings",
+    "yfinance": "FFH.TO",
+    "region": "canada",
+    "ir": "https://www.fairfax.ca/investors",
+    "logo": "fairfax.ca"
   },
   "FFIV": {
     "name": "F5",
@@ -4314,6 +5766,13 @@
     "yfinance": "FLY.PA",
     "region": "europe"
   },
+  "FM.TO": {
+    "name": "First Quantum Minerals",
+    "yfinance": "FM.TO",
+    "region": "canada",
+    "ir": "https://www.first-quantum.com/Our-Company/Investors",
+    "logo": "first-quantum.com"
+  },
   "FMC": {
     "name": "FMC Corporation",
     "yfinance": "FMC",
@@ -4325,6 +5784,13 @@
     "yfinance": "FME.DE",
     "region": "europe",
     "ir": "https://www.freseniusmedicalcare.com/en/investors"
+  },
+  "FMG.AX": {
+    "name": "Fortescue",
+    "yfinance": "FMG.AX",
+    "region": "australia",
+    "ir": "https://www.fortescue.com/investors",
+    "logo": "fortescue.com"
   },
   "FNAC": {
     "name": "FNAC",
@@ -4346,6 +5812,20 @@
     "yfinance": "FNTN",
     "region": "us",
     "ir": "https://www.freenet-group.de/investor-relations/en/"
+  },
+  "FNV": {
+    "name": "Franco-Nevada",
+    "yfinance": "FNV",
+    "region": "us",
+    "ir": "https://www.franco-nevada.com/investors",
+    "logo": "franco-nevada.com"
+  },
+  "FNV.TO": {
+    "name": "Franco-Nevada",
+    "yfinance": "FNV.TO",
+    "region": "canada",
+    "ir": "https://www.franco-nevada.com/investors",
+    "logo": "franco-nevada.com"
   },
   "FORN": {
     "name": "Forbo Holding",
@@ -4394,6 +5874,13 @@
     "region": "us",
     "ir": "https://www.valeo.com/en/investors"
   },
+  "FR.TO": {
+    "name": "First Majestic Silver",
+    "yfinance": "FR.TO",
+    "region": "canada",
+    "ir": "https://www.firstmajestic.com/investors",
+    "logo": "firstmajestic.com"
+  },
   "FRA": {
     "name": "Fraport",
     "yfinance": "FRA.DE",
@@ -4409,6 +5896,13 @@
     "yfinance": "FRE.DE",
     "region": "europe",
     "ir": "https://www.fresenius.com/investor-relations"
+  },
+  "FRES.L": {
+    "name": "Fresnillo",
+    "yfinance": "FRES.L",
+    "region": "europe",
+    "ir": "https://www.fresnilloplc.com/investors",
+    "logo": "fresnilloplc.com"
   },
   "FRO": {
     "name": "FRO",
@@ -4476,6 +5970,13 @@
     "yfinance": "FTON.SW",
     "region": "swiss"
   },
+  "FTS.TO": {
+    "name": "Fortis",
+    "yfinance": "FTS.TO",
+    "region": "canada",
+    "ir": "https://www.fortisinc.com/investors",
+    "logo": "fortisinc.com"
+  },
   "FTV": {
     "name": "Fortive",
     "yfinance": "FTV",
@@ -4503,6 +6004,13 @@
     "yfinance": "G.MI",
     "region": "us",
     "ir": "https://www.generali.com/investors"
+  },
+  "G.TO": {
+    "name": "B2Gold",
+    "yfinance": "G.TO",
+    "region": "canada",
+    "ir": "https://www.b2gold.com/investors",
+    "logo": "b2gold.com"
   },
   "G1A": {
     "name": "GEA Group",
@@ -4673,6 +6181,13 @@
     "yfinance": "GFI.PA",
     "region": "europe"
   },
+  "GFL.TO": {
+    "name": "GFL Environmental",
+    "yfinance": "GFL.TO",
+    "region": "canada",
+    "ir": "https://investors.gflenv.com",
+    "logo": "gflenv.com"
+  },
   "GFS": {
     "name": "GFS",
     "yfinance": "GFS.L",
@@ -4791,6 +6306,13 @@
     "region": "europe",
     "ir": "https://ir.genmab.com"
   },
+  "GMG.AX": {
+    "name": "Goodman Group",
+    "yfinance": "GMG.AX",
+    "region": "australia",
+    "ir": "https://www.goodman.com/investor-centre",
+    "logo": "goodman.com"
+  },
   "GMM": {
     "name": "GMM",
     "yfinance": "GMM.DE",
@@ -4833,6 +6355,13 @@
     "yfinance": "GOGL.OL",
     "region": "europe"
   },
+  "GOLD": {
+    "name": "Barrick Gold",
+    "yfinance": "GOLD",
+    "region": "us",
+    "ir": "https://www.barrick.com/investors",
+    "logo": "barrick.com"
+  },
   "GOOG": {
     "name": "Alphabet Class C",
     "yfinance": "GOOG",
@@ -4846,6 +6375,13 @@
     "region": "us",
     "ir": "https://abc.xyz/investor",
     "logo": "google.com"
+  },
+  "GOR.AX": {
+    "name": "Gold Road Resources",
+    "yfinance": "GOR.AX",
+    "region": "australia",
+    "ir": "https://www.goldroad.com.au/investors",
+    "logo": "goldroad.com.au"
   },
   "GOU": {
     "name": "GOU",
@@ -4878,6 +6414,13 @@
     "yfinance": "GPN",
     "region": "us",
     "ir": "https://investors.globalpaymentsinc.com/"
+  },
+  "GPT.AX": {
+    "name": "GPT Group",
+    "yfinance": "GPT.AX",
+    "region": "australia",
+    "ir": "https://www.gpt.com.au/investor-centre",
+    "logo": "gpt.com.au"
   },
   "GREEN": {
     "name": "GREEN",
@@ -4967,6 +6510,13 @@
     "yfinance": "GWMO.L",
     "region": "europe"
   },
+  "GWO.TO": {
+    "name": "Great-West Lifeco",
+    "yfinance": "GWO.TO",
+    "region": "canada",
+    "ir": "https://www.greatwestlifeco.com/investors.html",
+    "logo": "greatwestlifeco.com"
+  },
   "GWW": {
     "name": "W.W. Grainger",
     "yfinance": "GWW",
@@ -4983,6 +6533,13 @@
     "name": "GYC",
     "yfinance": "GYC.DE",
     "region": "europe"
+  },
+  "H.TO": {
+    "name": "Hydro One",
+    "yfinance": "H.TO",
+    "region": "canada",
+    "ir": "https://www.hydroone.com/about/corporate-information/investor-relations",
+    "logo": "hydroone.com"
   },
   "HAB": {
     "name": "HAB",
@@ -5047,6 +6604,13 @@
     "yfinance": "HBLN.SW",
     "region": "swiss",
     "ir": "https://www.hochdorf.com/en/investors"
+  },
+  "HBM.TO": {
+    "name": "Hudbay Minerals",
+    "yfinance": "HBM.TO",
+    "region": "canada",
+    "ir": "https://www.hudbayminerals.com/investors",
+    "logo": "hudbayminerals.com"
   },
   "HBMN": {
     "name": "HBMN",
@@ -5151,6 +6715,13 @@
     "region": "europe",
     "ir": "https://ir.hellofreshgroup.com/"
   },
+  "HGM.L": {
+    "name": "Hochschild Mining",
+    "yfinance": "HGM.L",
+    "region": "europe",
+    "ir": "https://www.hochschildmining.com/en/investors",
+    "logo": "hochschildmining.com"
+  },
   "HIAG": {
     "name": "Hiag Immobilien",
     "yfinance": "HIAG.SW",
@@ -5184,6 +6755,13 @@
     "name": "HKS1V",
     "yfinance": "HKS1V.HE",
     "region": "europe"
+  },
+  "HL": {
+    "name": "Hecla Mining",
+    "yfinance": "HL",
+    "region": "us",
+    "ir": "https://www.hecla.com/investors",
+    "logo": "hecla.com"
   },
   "HL.": {
     "name": "Hargreaves Lansdown",
@@ -5445,6 +7023,13 @@
     "yfinance": "HUSQ-B.ST",
     "region": "europe"
   },
+  "HVN.AX": {
+    "name": "Harvey Norman Holdings",
+    "yfinance": "HVN.AX",
+    "region": "australia",
+    "ir": "https://www.harveynormanholdings.com.au/investors.htm",
+    "logo": "harveynorman.com.au"
+  },
   "HWDN": {
     "name": "Howden Joinery",
     "yfinance": "HWDN.L",
@@ -5466,6 +7051,13 @@
     "name": "International Airlines Group",
     "yfinance": "IAG.MC",
     "region": "europe"
+  },
+  "IAG.AX": {
+    "name": "Insurance Australia Group",
+    "yfinance": "IAG.AX",
+    "region": "australia",
+    "ir": "https://www.iag.com.au/investor-relations",
+    "logo": "iag.com.au"
   },
   "IBE": {
     "name": "Iberdrola",
@@ -5547,6 +7139,13 @@
     "region": "us",
     "ir": "https://investors.idexcorp.com"
   },
+  "IFC.TO": {
+    "name": "Intact Financial",
+    "yfinance": "IFC.TO",
+    "region": "canada",
+    "ir": "https://www.intactfc.com/English/investors",
+    "logo": "intactfc.com"
+  },
   "IFCN": {
     "name": "Inficon Holding",
     "yfinance": "IFCN.SW",
@@ -5581,6 +7180,13 @@
     "yfinance": "IGG.L",
     "region": "europe"
   },
+  "IGO.AX": {
+    "name": "IGO Limited",
+    "yfinance": "IGO.AX",
+    "region": "australia",
+    "ir": "https://www.igo.com.au/investors",
+    "logo": "igo.com.au"
+  },
   "IHG": {
     "name": "InterContinental Hotels",
     "yfinance": "IHG.L",
@@ -5608,6 +7214,13 @@
     "yfinance": "ILMN",
     "region": "us",
     "ir": "https://investor.illumina.com/"
+  },
+  "ILU.AX": {
+    "name": "Iluka Resources",
+    "yfinance": "ILU.AX",
+    "region": "australia",
+    "ir": "https://www.iluka.com/investors-media",
+    "logo": "iluka.com"
   },
   "ILV": {
     "name": "ILV",
@@ -5640,6 +7253,13 @@
     "name": "IMMU",
     "yfinance": "IMMU.ST",
     "region": "europe"
+  },
+  "IMO.TO": {
+    "name": "Imperial Oil",
+    "yfinance": "IMO.TO",
+    "region": "canada",
+    "ir": "https://www.imperialoil.ca/en-CA/company/investors",
+    "logo": "imperialoil.ca"
   },
   "INA": {
     "name": "INA",
@@ -5914,6 +7534,13 @@
     "region": "europe",
     "ir": "https://www.ivecogroup.com/investors"
   },
+  "IVN.TO": {
+    "name": "Ivanhoe Mines",
+    "yfinance": "IVN.TO",
+    "region": "canada",
+    "ir": "https://www.ivanhoemines.com/investors",
+    "logo": "ivanhoemines.com"
+  },
   "IVS": {
     "name": "IVS",
     "yfinance": "IVS.MI",
@@ -5936,6 +7563,13 @@
     "yfinance": "J",
     "region": "us",
     "ir": "https://investors.jacobs.com/"
+  },
+  "JBH.AX": {
+    "name": "JB Hi-Fi",
+    "yfinance": "JBH.AX",
+    "region": "australia",
+    "ir": "https://www.jbhifi.com.au/pages/investors",
+    "logo": "jbhifi.com.au"
   },
   "JBHT": {
     "name": "J.B. Hunt",
@@ -5986,6 +7620,13 @@
     "name": "JET2",
     "yfinance": "JET2.L",
     "region": "europe"
+  },
+  "JHX.AX": {
+    "name": "James Hardie Industries",
+    "yfinance": "JHX.AX",
+    "region": "australia",
+    "ir": "https://www.jameshardie.com/investors",
+    "logo": "jameshardie.com"
   },
   "JKHY": {
     "name": "Jack Henry & Associates",
@@ -6063,6 +7704,13 @@
     "ir": "https://investor.kellanova.com",
     "logo": "kelloggs.com"
   },
+  "K.TO": {
+    "name": "Kinross Gold",
+    "yfinance": "K.TO",
+    "region": "canada",
+    "ir": "https://www.kinross.com/investors",
+    "logo": "kinross.com"
+  },
   "KABE-B": {
     "name": "KABE-B",
     "yfinance": "KABE-B.ST",
@@ -6083,6 +7731,13 @@
     "yfinance": "KAMUX.HE",
     "region": "europe"
   },
+  "KAR.AX": {
+    "name": "Karoon Energy",
+    "yfinance": "KAR.AX",
+    "region": "australia",
+    "ir": "https://www.karoonenergy.com.au/investors",
+    "logo": "karoonenergy.com.au"
+  },
   "KARD": {
     "name": "KARD",
     "yfinance": "KARD.BR",
@@ -6098,6 +7753,13 @@
     "name": "KAZ",
     "yfinance": "KAZ.L",
     "region": "europe"
+  },
+  "KAZ.L": {
+    "name": "Kazatomprom",
+    "yfinance": "KAZ.L",
+    "region": "europe",
+    "ir": "https://www.kazatomprom.kz/en/investors",
+    "logo": "kazatomprom.kz"
   },
   "KBC": {
     "name": "KBC Group",
@@ -6162,6 +7824,13 @@
     "yfinance": "KEYS",
     "region": "us",
     "ir": "https://investor.keysight.com"
+  },
+  "KGC": {
+    "name": "Kinross Gold",
+    "yfinance": "KGC",
+    "region": "us",
+    "ir": "https://www.kinross.com/investors",
+    "logo": "kinross.com"
   },
   "KGF": {
     "name": "Kingfisher",
@@ -6400,10 +8069,24 @@
     "region": "us",
     "ir": "https://loews.com/investor-relations"
   },
+  "L.TO": {
+    "name": "Loblaw Companies",
+    "yfinance": "L.TO",
+    "region": "canada",
+    "ir": "https://www.loblaw.ca/en/investors-landing",
+    "logo": "loblaw.ca"
+  },
   "LAC": {
     "name": "LAC",
     "yfinance": "LAC.PA",
     "region": "europe"
+  },
+  "LAC.TO": {
+    "name": "Lithium Americas",
+    "yfinance": "LAC.TO",
+    "region": "canada",
+    "ir": "https://www.lithiumamericas.com/investors",
+    "logo": "lithiumamericas.com"
   },
   "LAD": {
     "name": "LAD",
@@ -6513,6 +8196,13 @@
     "yfinance": "LI.PA",
     "region": "europe"
   },
+  "LI.TO": {
+    "name": "Li-Cycle Holdings",
+    "yfinance": "LI.TO",
+    "region": "canada",
+    "ir": "https://li-cycle.com/investors",
+    "logo": "li-cycle.com"
+  },
   "LIB": {
     "name": "LIB",
     "yfinance": "LIB.MC",
@@ -6561,6 +8251,13 @@
     "name": "LIT",
     "yfinance": "LIT.MI",
     "region": "europe"
+  },
+  "LKE.AX": {
+    "name": "Lake Resources",
+    "yfinance": "LKE.AX",
+    "region": "australia",
+    "ir": "https://www.lakeresources.com.au/investors",
+    "logo": "lakeresources.com.au"
   },
   "LKQ": {
     "name": "LKQ Corporation",
@@ -6701,6 +8398,20 @@
     "yfinance": "LSGR.OL",
     "region": "europe"
   },
+  "LTHM": {
+    "name": "Livent",
+    "yfinance": "LTHM",
+    "region": "us",
+    "ir": "https://ir.livent.com",
+    "logo": "livent.com"
+  },
+  "LTR.AX": {
+    "name": "Liontown Resources",
+    "yfinance": "LTR.AX",
+    "region": "australia",
+    "ir": "https://www.ltresources.com.au/investors",
+    "logo": "ltresources.com.au"
+  },
   "LUKN": {
     "name": "Luzerner Kantonalbank",
     "yfinance": "LUKN.SW",
@@ -6713,10 +8424,24 @@
     "region": "us",
     "ir": "https://investor.lululemon.com/"
   },
+  "LUMI.HE": {
+    "name": "Outokumpu",
+    "yfinance": "OUT1V.HE",
+    "region": "europe",
+    "ir": "https://www.outokumpu.com/en/investors",
+    "logo": "outokumpu.com"
+  },
   "LUN": {
     "name": "H. Lundbeck",
     "yfinance": "LUN",
     "region": "us"
+  },
+  "LUN.TO": {
+    "name": "Lundin Mining",
+    "yfinance": "LUN.TO",
+    "region": "canada",
+    "ir": "https://www.lundinmining.com/investors",
+    "logo": "lundinmining.com"
   },
   "LUND B": {
     "name": "Lundbergforetagen",
@@ -6769,6 +8494,13 @@
     "yfinance": "LYB",
     "region": "us",
     "ir": "https://www.lyondellbasell.com/en/investors/"
+  },
+  "LYC.AX": {
+    "name": "Lynas Rare Earths",
+    "yfinance": "LYC.AX",
+    "region": "australia",
+    "ir": "https://lynasrareearths.com/investors",
+    "logo": "lynasrareearths.com"
   },
   "LYFT": {
     "name": "LYFT",
@@ -6826,6 +8558,13 @@
     "name": "MAF",
     "yfinance": "MAF.PA",
     "region": "europe"
+  },
+  "MAG.TO": {
+    "name": "MAG Silver",
+    "yfinance": "MAG.TO",
+    "region": "canada",
+    "ir": "https://magsilver.com/investors",
+    "logo": "magsilver.com"
   },
   "MAHA-A": {
     "name": "MAHA-A",
@@ -6967,6 +8706,13 @@
     "yfinance": "MDX.BR",
     "region": "europe"
   },
+  "ME8U.SI": {
+    "name": "Mapletree Industrial Trust",
+    "yfinance": "ME8U.SI",
+    "region": "singapore",
+    "ir": "https://www.mapletreeindustrialtrust.com/investor-relations",
+    "logo": "mapletreeindustrialtrust.com"
+  },
   "MED": {
     "name": "MED",
     "yfinance": "MED.PA",
@@ -7026,6 +8772,13 @@
     "yfinance": "MF",
     "region": "us"
   },
+  "MFC.TO": {
+    "name": "Manulife Financial",
+    "yfinance": "MFC.TO",
+    "region": "canada",
+    "ir": "https://www.manulife.com/en/investors.html",
+    "logo": "manulife.com"
+  },
   "MFE": {
     "name": "MFE",
     "yfinance": "MFE.MI",
@@ -7042,6 +8795,13 @@
     "region": "us",
     "ir": "https://investors.mgmresorts.com",
     "logo": "mgmresorts.com"
+  },
+  "MGR.AX": {
+    "name": "Mirvac Group",
+    "yfinance": "MGR.AX",
+    "region": "australia",
+    "ir": "https://www.mirvac.com/investor-centre",
+    "logo": "mirvac.com"
   },
   "MHG": {
     "name": "MHG",
@@ -7068,6 +8828,13 @@
     "name": "MIL",
     "yfinance": "MIL.ST",
     "region": "europe"
+  },
+  "MIN.AX": {
+    "name": "Mineral Resources",
+    "yfinance": "MIN.AX",
+    "region": "australia",
+    "ir": "https://www.mineralresources.com.au/investors",
+    "logo": "mineralresources.com.au"
   },
   "MIPS": {
     "name": "MIPS",
@@ -7238,6 +9005,20 @@
     "yfinance": "MOZN.SW",
     "region": "swiss"
   },
+  "MP": {
+    "name": "MP Materials",
+    "yfinance": "MP",
+    "region": "us",
+    "ir": "https://investors.mpmaterials.com",
+    "logo": "mpmaterials.com"
+  },
+  "MP1.AX": {
+    "name": "Megaport",
+    "yfinance": "MP1.AX",
+    "region": "australia",
+    "ir": "https://www.megaport.com/investors",
+    "logo": "megaport.com"
+  },
   "MPC": {
     "name": "Marathon Petroleum",
     "yfinance": "MPC",
@@ -7254,6 +9035,13 @@
     "yfinance": "MPWR",
     "region": "us",
     "ir": "https://monolithicpower.com/en/investors.html"
+  },
+  "MQG.AX": {
+    "name": "Macquarie Group",
+    "yfinance": "MQG.AX",
+    "region": "australia",
+    "ir": "https://www.macquarie.com/us/en/investors.html",
+    "logo": "macquarie.com"
   },
   "MRK": {
     "name": "Merck KGaA",
@@ -7289,6 +9077,13 @@
     "yfinance": "MRO.L",
     "region": "europe",
     "ir": "https://ir.marathonoil.com/"
+  },
+  "MRU.TO": {
+    "name": "Metro Inc",
+    "yfinance": "MRU.TO",
+    "region": "canada",
+    "ir": "https://corpo.metro.ca/en/investor-relations.html",
+    "logo": "metro.ca"
   },
   "MRV": {
     "name": "MRV",
@@ -7404,6 +9199,27 @@
     "yfinance": "MUX.DE",
     "region": "europe"
   },
+  "N2IU.SI": {
+    "name": "Mapletree Logistics Trust",
+    "yfinance": "N2IU.SI",
+    "region": "singapore",
+    "ir": "https://www.mapletreelogisticstrust.com/investor-relations",
+    "logo": "mapletreelogisticstrust.com"
+  },
+  "NA.TO": {
+    "name": "National Bank of Canada",
+    "yfinance": "NA.TO",
+    "region": "canada",
+    "ir": "https://www.nbc.ca/en/about-us/investor-relations.html",
+    "logo": "nbc.ca"
+  },
+  "NAB.AX": {
+    "name": "National Australia Bank",
+    "yfinance": "NAB.AX",
+    "region": "australia",
+    "ir": "https://www.nab.com.au/about-us/shareholder-centre",
+    "logo": "nab.com.au"
+  },
   "NAS": {
     "name": "NAS",
     "yfinance": "NAS.L",
@@ -7450,6 +9266,13 @@
     "region": "us",
     "ir": "https://investor.nclhltd.com",
     "logo": "ncl.com"
+  },
+  "NCM.AX": {
+    "name": "Newcrest Mining",
+    "yfinance": "NCM.AX",
+    "region": "australia",
+    "ir": "https://www.newcrest.com/investors",
+    "logo": "newcrest.com"
   },
   "NDA": {
     "name": "Aurubis",
@@ -7521,10 +9344,18 @@
     "region": "us"
   },
   "NEM": {
-    "name": "Nemetschek",
+    "name": "Nemetschek SE",
     "yfinance": "NEM.DE",
     "region": "europe",
-    "ir": "https://investors.newmont.com"
+    "ir": "https://www.nemetschek.com/en/investor-relations",
+    "logo": "nemetschek.com"
+  },
+  "NEM_US": {
+    "name": "Newmont",
+    "yfinance": "NEM",
+    "region": "us",
+    "ir": "https://www.newmont.com/investors",
+    "logo": "newmont.com"
   },
   "NENT-B": {
     "name": "NENT-B",
@@ -7595,6 +9426,13 @@
     "region": "europe",
     "ir": "https://www.nationalgrid.com/investors"
   },
+  "NHC.AX": {
+    "name": "New Hope Corporation",
+    "yfinance": "NHC.AX",
+    "region": "australia",
+    "ir": "https://www.newhopegroup.com.au/investors",
+    "logo": "newhopegroup.com.au"
+  },
   "NHH": {
     "name": "NHH",
     "yfinance": "NHH.MC",
@@ -7621,6 +9459,13 @@
     "name": "NIBE-B",
     "yfinance": "NIBE-B.ST",
     "region": "europe"
+  },
+  "NIC.AX": {
+    "name": "Nickel Industries",
+    "yfinance": "NIC.AX",
+    "region": "australia",
+    "ir": "https://nickelindustries.com/investors",
+    "logo": "nickelindustries.com"
   },
   "NK": {
     "name": "Imerys",
@@ -7784,6 +9629,13 @@
     "yfinance": "NSIS B",
     "region": "us"
   },
+  "NST.AX": {
+    "name": "Northern Star Resources",
+    "yfinance": "NST.AX",
+    "region": "australia",
+    "ir": "https://www.nsrltd.com/investors",
+    "logo": "nsrltd.com"
+  },
   "NTAP": {
     "name": "NetApp",
     "yfinance": "NTAP",
@@ -7825,6 +9677,13 @@
     "region": "us",
     "ir": "https://www.nvrinc.com/investors"
   },
+  "NWC.TO": {
+    "name": "North West Company",
+    "yfinance": "NWC.TO",
+    "region": "canada",
+    "ir": "https://www.northwest.ca/investors",
+    "logo": "northwest.ca"
+  },
   "NWG": {
     "name": "NatWest Group",
     "yfinance": "NWG.L",
@@ -7852,6 +9711,13 @@
     "yfinance": "NWSA",
     "region": "us",
     "ir": "https://newscorp.com/investor-relations"
+  },
+  "NXE.TO": {
+    "name": "NexGen Energy",
+    "yfinance": "NXE.TO",
+    "region": "canada",
+    "ir": "https://www.nexgenenergy.ca/investors",
+    "logo": "nexgenenergy.ca"
   },
   "NXPI": {
     "name": "NXP Semiconductors",
@@ -7890,6 +9756,13 @@
     "name": "Telefonica Deutschland",
     "yfinance": "O2D.DE",
     "region": "europe"
+  },
+  "O39.SI": {
+    "name": "Oversea-Chinese Banking Corporation",
+    "yfinance": "O39.SI",
+    "region": "singapore",
+    "ir": "https://www.ocbc.com/group/investors.page",
+    "logo": "ocbc.com"
   },
   "OBK": {
     "name": "OBK",
@@ -8032,6 +9905,13 @@
     "ir": "https://www.loreal-finance.com/en/",
     "logo": "loreal.com"
   },
+  "OR.TO": {
+    "name": "Osisko Gold Royalties",
+    "yfinance": "OR.TO",
+    "region": "canada",
+    "ir": "https://osiskogr.com/en/investors",
+    "logo": "osiskogr.com"
+  },
   "ORA": {
     "name": "Orange",
     "yfinance": "ORA.PA",
@@ -8050,10 +9930,24 @@
     "yfinance": "ORDI.AS",
     "region": "europe"
   },
+  "ORG.AX": {
+    "name": "Origin Energy",
+    "yfinance": "ORG.AX",
+    "region": "australia",
+    "ir": "https://www.originenergy.com.au/investors",
+    "logo": "originenergy.com.au"
+  },
   "ORI": {
     "name": "ORI",
     "yfinance": "ORI.ST",
     "region": "europe"
+  },
+  "ORI.AX": {
+    "name": "Orica",
+    "yfinance": "ORI.AX",
+    "region": "australia",
+    "ir": "https://www.orica.com/Investors",
+    "logo": "orica.com"
   },
   "ORK": {
     "name": "Orkla",
@@ -8135,6 +10029,13 @@
     "yfinance": "OTEC.OL",
     "region": "europe"
   },
+  "OTEX.TO": {
+    "name": "OpenText",
+    "yfinance": "OTEX.TO",
+    "region": "canada",
+    "ir": "https://investors.opentext.com",
+    "logo": "opentext.com"
+  },
   "OTIS": {
     "name": "Otis Worldwide",
     "yfinance": "OTIS",
@@ -8167,10 +10068,31 @@
     "region": "us",
     "ir": "https://www.oxy.com/investors"
   },
+  "OZL.AX": {
+    "name": "OZ Minerals",
+    "yfinance": "OZL.AX",
+    "region": "australia",
+    "ir": "https://www.ozminerals.com/investors",
+    "logo": "ozminerals.com"
+  },
   "PAAL-B": {
     "name": "PAAL-B",
     "yfinance": "PAAL-B.CO",
     "region": "europe"
+  },
+  "PAAS": {
+    "name": "Pan American Silver",
+    "yfinance": "PAAS",
+    "region": "us",
+    "ir": "https://www.panamericansilver.com/investors",
+    "logo": "panamericansilver.com"
+  },
+  "PAAS.TO": {
+    "name": "Pan American Silver",
+    "yfinance": "PAAS.TO",
+    "region": "canada",
+    "ir": "https://www.panamericansilver.com/investors",
+    "logo": "panamericansilver.com"
   },
   "PACT": {
     "name": "PACT",
@@ -8192,6 +10114,13 @@
     "name": "PAL",
     "yfinance": "PAL.VI",
     "region": "europe"
+  },
+  "PAN.AX": {
+    "name": "Panoramic Resources",
+    "yfinance": "PAN.AX",
+    "region": "australia",
+    "ir": "https://www.panoramicresources.com/investors",
+    "logo": "panoramicresources.com"
   },
   "PANW": {
     "name": "Palo Alto Networks",
@@ -8239,6 +10168,13 @@
     "yfinance": "PBB.DE",
     "region": "europe"
   },
+  "PBH.TO": {
+    "name": "Premium Brands Holdings",
+    "yfinance": "PBH.TO",
+    "region": "canada",
+    "ir": "https://www.premiumbrandsholdings.com/investors.html",
+    "logo": "premiumbrandsholdings.com"
+  },
   "PCAR": {
     "name": "PACCAR",
     "yfinance": "PCAR",
@@ -8255,6 +10191,13 @@
     "name": "PDG",
     "yfinance": "PDG.L",
     "region": "europe"
+  },
+  "PDN.AX": {
+    "name": "Paladin Energy",
+    "yfinance": "PDN.AX",
+    "region": "australia",
+    "ir": "https://www.paladinenergy.com.au/investors",
+    "logo": "paladinenergy.com.au"
   },
   "PEAB-B": {
     "name": "PEAB-B",
@@ -8467,6 +10410,13 @@
     "yfinance": "PLMVS.HE",
     "region": "europe"
   },
+  "PLS.AX": {
+    "name": "Pilbara Minerals",
+    "yfinance": "PLS.AX",
+    "region": "australia",
+    "ir": "https://pilbaraminerals.com.au/investors",
+    "logo": "pilbaraminerals.com.au"
+  },
   "PLT": {
     "name": "PLT",
     "yfinance": "PLT.MI",
@@ -8489,6 +10439,13 @@
     "yfinance": "PM",
     "region": "us",
     "ir": "https://www.pmi.com/investor-relations"
+  },
+  "PME.AX": {
+    "name": "Pro Medicus",
+    "yfinance": "PME.AX",
+    "region": "australia",
+    "ir": "https://www.promed.com.au/investors",
+    "logo": "promed.com.au"
   },
   "PMSW": {
     "name": "PMSW",
@@ -8562,6 +10519,13 @@
     "yfinance": "POLY.L",
     "region": "europe"
   },
+  "POLY.L": {
+    "name": "Polymetal International",
+    "yfinance": "POLY.L",
+    "region": "europe",
+    "ir": "https://www.polymetalinternational.com/en/for-investors",
+    "logo": "polymetalinternational.com"
+  },
   "POM": {
     "name": "POM",
     "yfinance": "POM.PA",
@@ -8615,6 +10579,13 @@
     "region": "us",
     "ir": "https://investors.pplweb.com"
   },
+  "PPL.TO": {
+    "name": "Pembina Pipeline",
+    "yfinance": "PPL.TO",
+    "region": "canada",
+    "ir": "https://www.pembina.com/investors",
+    "logo": "pembina.com"
+  },
   "PREV-B": {
     "name": "PREV-B",
     "yfinance": "PREV-B.ST",
@@ -8656,6 +10627,13 @@
     "region": "europe",
     "ir": "https://investor.prudential.com",
     "logo": "prudential.co.uk"
+  },
+  "PRU.AX": {
+    "name": "Perseus Mining",
+    "yfinance": "PRU.AX",
+    "region": "australia",
+    "ir": "https://perseusmining.com/investors",
+    "logo": "perseusmining.com"
   },
   "PRU.L": {
     "name": "PRU.L",
@@ -8780,6 +10758,20 @@
     "name": "Powszechny Zaklad Ubezpieczen",
     "yfinance": "PZU",
     "region": "us"
+  },
+  "QAN.AX": {
+    "name": "Qantas Airways",
+    "yfinance": "QAN.AX",
+    "region": "australia",
+    "ir": "https://investor.qantas.com",
+    "logo": "qantas.com"
+  },
+  "QBE.AX": {
+    "name": "QBE Insurance Group",
+    "yfinance": "QBE.AX",
+    "region": "australia",
+    "ir": "https://www.qbe.com/investor-relations",
+    "logo": "qbe.com"
   },
   "QBT": {
     "name": "QBT",
@@ -8921,6 +10913,13 @@
     "yfinance": "RCF.PA",
     "region": "europe"
   },
+  "RCI-B.TO": {
+    "name": "Rogers Communications",
+    "yfinance": "RCI-B.TO",
+    "region": "canada",
+    "ir": "https://about.rogers.com/investors",
+    "logo": "rogers.com"
+  },
   "RCL": {
     "name": "Royal Caribbean",
     "yfinance": "RCL",
@@ -8947,6 +10946,13 @@
     "name": "RDW",
     "yfinance": "RDW.L",
     "region": "europe"
+  },
+  "REA.AX": {
+    "name": "REA Group",
+    "yfinance": "REA.AX",
+    "region": "australia",
+    "ir": "https://www.rea-group.com/investors",
+    "logo": "rea-group.com"
   },
   "READ": {
     "name": "READ",
@@ -8991,6 +10997,13 @@
     "name": "REHN",
     "yfinance": "REHN.SW",
     "region": "swiss"
+  },
+  "REI-UN.TO": {
+    "name": "RioCan REIT",
+    "yfinance": "REI-UN.TO",
+    "region": "canada",
+    "ir": "https://www.riocan.com/investors",
+    "logo": "riocan.com"
   },
   "REKA": {
     "name": "REKA",
@@ -9057,6 +11070,20 @@
     "region": "us",
     "ir": "https://www.eurazeo.com/en/shareholders-investors"
   },
+  "RGLD": {
+    "name": "Royal Gold",
+    "yfinance": "RGLD",
+    "region": "us",
+    "ir": "https://www.royalgold.com/investors",
+    "logo": "royalgold.com"
+  },
+  "RHC.AX": {
+    "name": "Ramsay Health Care",
+    "yfinance": "RHC.AX",
+    "region": "australia",
+    "ir": "https://www.ramsayhealth.com/investors",
+    "logo": "ramsayhealth.com"
+  },
   "RHIM": {
     "name": "RHIM",
     "yfinance": "RHIM.VI",
@@ -9096,6 +11123,13 @@
     "ir": "https://www.riotinto.com/invest",
     "logo": "riotinto.com"
   },
+  "RIO.AX": {
+    "name": "Rio Tinto",
+    "yfinance": "RIO.AX",
+    "region": "australia",
+    "ir": "https://www.riotinto.com/investors",
+    "logo": "riotinto.com"
+  },
   "RJF": {
     "name": "Raymond James Financial",
     "yfinance": "RJF",
@@ -9124,6 +11158,13 @@
     "yfinance": "RMD",
     "region": "us",
     "ir": "https://investor.resmed.com"
+  },
+  "RMD.AX": {
+    "name": "ResMed",
+    "yfinance": "RMD.AX",
+    "region": "australia",
+    "ir": "https://investor.resmed.com",
+    "logo": "resmed.com"
   },
   "RMS": {
     "name": "Hermes International",
@@ -9239,6 +11280,13 @@
     "region": "europe",
     "ir": "https://www.rolls-royce.com/investors.aspx"
   },
+  "RRL.AX": {
+    "name": "Regis Resources",
+    "yfinance": "RRL.AX",
+    "region": "australia",
+    "ir": "https://www.regisresources.com.au/investors",
+    "logo": "regisresources.com.au"
+  },
   "RS1": {
     "name": "RS Group",
     "yfinance": "RS1",
@@ -9249,6 +11297,13 @@
     "yfinance": "RSG",
     "region": "us",
     "ir": "https://investor.republicservices.com"
+  },
+  "RSG.AX": {
+    "name": "Resolute Mining",
+    "yfinance": "RSG.AX",
+    "region": "australia",
+    "ir": "https://www.rml.com.au/investors",
+    "logo": "rml.com.au"
   },
   "RSW": {
     "name": "RSW",
@@ -9310,11 +11365,46 @@
     "yfinance": "RXL.PA",
     "region": "europe"
   },
+  "RY.TO": {
+    "name": "Royal Bank of Canada",
+    "yfinance": "RY.TO",
+    "region": "canada",
+    "ir": "https://www.rbc.com/investor-relations",
+    "logo": "rbc.com"
+  },
   "RYA": {
     "name": "Ryanair",
     "yfinance": "RYA.IR",
     "region": "europe",
     "ir": "https://investor.ryanair.com"
+  },
+  "S32.AX": {
+    "name": "South32",
+    "yfinance": "S32.AX",
+    "region": "australia",
+    "ir": "https://www.south32.net/investors-media",
+    "logo": "south32.net"
+  },
+  "S58.SI": {
+    "name": "SATS",
+    "yfinance": "S58.SI",
+    "region": "singapore",
+    "ir": "https://www.sats.com.sg/investor-relations",
+    "logo": "sats.com.sg"
+  },
+  "S63.SI": {
+    "name": "Singapore Technologies Engineering",
+    "yfinance": "S63.SI",
+    "region": "singapore",
+    "ir": "https://www.stengg.com/en/investor-relations",
+    "logo": "stengg.com"
+  },
+  "S68.SI": {
+    "name": "Singapore Exchange",
+    "yfinance": "S68.SI",
+    "region": "singapore",
+    "ir": "https://investorrelations.sgx.com",
+    "logo": "sgx.com"
   },
   "S92": {
     "name": "S92",
@@ -9439,6 +11529,20 @@
     "region": "europe",
     "logo": "sap.com"
   },
+  "SAP.TO": {
+    "name": "Saputo",
+    "yfinance": "SAP.TO",
+    "region": "canada",
+    "ir": "https://www.saputo.com/en/investors",
+    "logo": "saputo.com"
+  },
+  "SAR.AX": {
+    "name": "Saracen Mineral Holdings",
+    "yfinance": "SAR.AX",
+    "region": "australia",
+    "ir": "https://www.saracen.com.au/investors",
+    "logo": "saracen.com.au"
+  },
   "SAS-DK": {
     "name": "SAS-DK",
     "yfinance": "SAS-DK.CO",
@@ -9469,6 +11573,13 @@
     "yfinance": "SBAC",
     "region": "us",
     "ir": "https://investors.sbasite.com"
+  },
+  "SBM.AX": {
+    "name": "St Barbara",
+    "yfinance": "SBM.AX",
+    "region": "australia",
+    "ir": "https://stbarbara.com.au/investors",
+    "logo": "stbarbara.com.au"
   },
   "SBMO": {
     "name": "SBM Offshore",
@@ -9517,6 +11628,20 @@
     "name": "SCATC",
     "yfinance": "SCATC.OL",
     "region": "europe"
+  },
+  "SCCO": {
+    "name": "Southern Copper",
+    "yfinance": "SCCO",
+    "region": "us",
+    "ir": "https://www.southerncoppercorp.com/ENG/investors",
+    "logo": "southerncoppercorp.com"
+  },
+  "SCG.AX": {
+    "name": "Scentre Group",
+    "yfinance": "SCG.AX",
+    "region": "australia",
+    "ir": "https://www.scentregroup.com/investors",
+    "logo": "scentregroup.com"
   },
   "SCHB": {
     "name": "SCHB",
@@ -9655,6 +11780,13 @@
     "yfinance": "SECU-B.ST",
     "region": "europe"
   },
+  "SEK.AX": {
+    "name": "Seek",
+    "yfinance": "SEK.AX",
+    "region": "australia",
+    "ir": "https://www.seek.com.au/about/investors",
+    "logo": "seek.com.au"
+  },
   "SEM": {
     "name": "SEM",
     "yfinance": "SEM.VI",
@@ -9700,6 +11832,13 @@
     "name": "SFQ",
     "yfinance": "SFQ.DE",
     "region": "europe"
+  },
+  "SFR.AX": {
+    "name": "Sandfire Resources",
+    "yfinance": "SFR.AX",
+    "region": "australia",
+    "ir": "https://www.sandfire.com.au/investors",
+    "logo": "sandfire.com.au"
   },
   "SFSG": {
     "name": "SFS Group",
@@ -9790,6 +11929,13 @@
     "region": "europe",
     "ir": "https://www.siemens-healthineers.com/investor-relations"
   },
+  "SHL.AX": {
+    "name": "Sonic Healthcare",
+    "yfinance": "SHL.AX",
+    "region": "australia",
+    "ir": "https://investors.sonichealthcare.com",
+    "logo": "sonichealthcare.com"
+  },
   "SHLF": {
     "name": "SHLF",
     "yfinance": "SHLF.OL",
@@ -9799,6 +11945,13 @@
     "name": "SHOP",
     "yfinance": "SHOP",
     "region": "us",
+    "ir": "https://investors.shopify.com",
+    "logo": "shopify.com"
+  },
+  "SHOP.TO": {
+    "name": "Shopify",
+    "yfinance": "SHOP.TO",
+    "region": "canada",
     "ir": "https://investors.shopify.com",
     "logo": "shopify.com"
   },
@@ -9938,6 +12091,13 @@
     "yfinance": "SLBEN.LS",
     "region": "europe"
   },
+  "SLF.TO": {
+    "name": "Sun Life Financial",
+    "yfinance": "SLF.TO",
+    "region": "canada",
+    "ir": "https://www.sunlife.com/en/investors",
+    "logo": "sunlife.com"
+  },
   "SLHN": {
     "name": "Swiss Life",
     "yfinance": "SLHN.SW",
@@ -9981,6 +12141,13 @@
     "yfinance": "SMIN.L",
     "region": "europe",
     "ir": "https://www.smiths.com/investors"
+  },
+  "SMR.AX": {
+    "name": "Stanmore Resources",
+    "yfinance": "SMR.AX",
+    "region": "australia",
+    "ir": "https://www.stanmore.net.au/investors",
+    "logo": "stanmore.net.au"
   },
   "SMT": {
     "name": "SMT",
@@ -10237,6 +12404,13 @@
     "region": "europe",
     "ir": "https://www.spiraxgroup.com/investors"
   },
+  "SQM": {
+    "name": "Sociedad Quimica y Minera de Chile",
+    "yfinance": "SQM",
+    "region": "us",
+    "ir": "https://www.sqm.com/en/inversionistas",
+    "logo": "sqm.com"
+  },
   "SQN": {
     "name": "Swissquote Group",
     "yfinance": "SQN.SW",
@@ -10319,6 +12493,13 @@
     "name": "SSH1V",
     "yfinance": "SSH1V.HE",
     "region": "europe"
+  },
+  "SSL.TO": {
+    "name": "Sandstorm Gold",
+    "yfinance": "SSL.TO",
+    "region": "canada",
+    "ir": "https://www.sandstormgold.com/investors",
+    "logo": "sandstormgold.com"
   },
   "SSPG": {
     "name": "SSP Group",
@@ -10412,6 +12593,20 @@
     "region": "us",
     "ir": "https://investors.st.com"
   },
+  "STN.TO": {
+    "name": "Stantec",
+    "yfinance": "STN.TO",
+    "region": "canada",
+    "ir": "https://www.stantec.com/en/about-us/investors",
+    "logo": "stantec.com"
+  },
+  "STO.AX": {
+    "name": "Santos",
+    "yfinance": "STO.AX",
+    "region": "australia",
+    "ir": "https://www.santos.com/investors",
+    "logo": "santos.com"
+  },
   "STOCKA": {
     "name": "STOCKA",
     "yfinance": "STOCKA.HE",
@@ -10462,6 +12657,13 @@
     "region": "europe",
     "ir": "https://www.se.com/ww/en/about-us/investor-relations"
   },
+  "SU.TO": {
+    "name": "Suncor Energy",
+    "yfinance": "SU.TO",
+    "region": "canada",
+    "ir": "https://www.suncor.com/en/investors",
+    "logo": "suncor.com"
+  },
   "SUBC": {
     "name": "Subsea 7",
     "yfinance": "SUBC.OL",
@@ -10477,6 +12679,13 @@
     "yfinance": "SUN.SW",
     "region": "swiss",
     "ir": "https://www.sulzer.com/en/investors"
+  },
+  "SUN.AX": {
+    "name": "Suncorp Group",
+    "yfinance": "SUN.AX",
+    "region": "australia",
+    "ir": "https://www.suncorpgroup.com.au/investors",
+    "logo": "suncorpgroup.com.au"
   },
   "SUPM": {
     "name": "SUPM",
@@ -10573,6 +12782,20 @@
     "region": "europe",
     "ir": "https://www.symrise.com/investors"
   },
+  "SYA.AX": {
+    "name": "Sayona Mining",
+    "yfinance": "SYA.AX",
+    "region": "australia",
+    "ir": "https://www.sayonamining.com.au/investors",
+    "logo": "sayonamining.com.au"
+  },
+  "SYD.AX": {
+    "name": "Sydney Airport",
+    "yfinance": "SYD.AX",
+    "region": "australia",
+    "ir": "https://www.sydneyairport.com.au/investor",
+    "logo": "sydneyairport.com.au"
+  },
   "SYDB": {
     "name": "SYDB",
     "yfinance": "SYDB.CO",
@@ -10619,6 +12842,13 @@
     "ir": "https://investors.att.com",
     "logo": "att.com"
   },
+  "T.TO": {
+    "name": "TELUS",
+    "yfinance": "T.TO",
+    "region": "canada",
+    "ir": "https://www.telus.com/en/about/investor-relations",
+    "logo": "telus.com"
+  },
   "TAL1V": {
     "name": "TAL1V",
     "yfinance": "TAL1V.HE",
@@ -10641,10 +12871,24 @@
     "yfinance": "TCG.L",
     "region": "europe"
   },
+  "TCL.AX": {
+    "name": "Transurban Group",
+    "yfinance": "TCL.AX",
+    "region": "australia",
+    "ir": "https://www.transurban.com/investor-centre",
+    "logo": "transurban.com"
+  },
   "TCLB": {
     "name": "TCLB",
     "yfinance": "TCLB.CO",
     "region": "europe"
+  },
+  "TD.TO": {
+    "name": "Toronto-Dominion Bank",
+    "yfinance": "TD.TO",
+    "region": "canada",
+    "ir": "https://www.td.com/investor-relations",
+    "logo": "td.com"
   },
   "TDG": {
     "name": "TransDigm Group",
@@ -10668,6 +12912,20 @@
     "yfinance": "TECH",
     "region": "us",
     "ir": "https://investors.bio-techne.com"
+  },
+  "TECK": {
+    "name": "Teck Resources",
+    "yfinance": "TECK",
+    "region": "us",
+    "ir": "https://www.teck.com/investors",
+    "logo": "teck.com"
+  },
+  "TECK-B.TO": {
+    "name": "Teck Resources",
+    "yfinance": "TECK-B.TO",
+    "region": "canada",
+    "ir": "https://www.teck.com/investors",
+    "logo": "teck.com"
   },
   "TECN": {
     "name": "Tecan",
@@ -10840,6 +13098,13 @@
     "yfinance": "TIGO.ST",
     "region": "europe"
   },
+  "TIH.TO": {
+    "name": "Toromont Industries",
+    "yfinance": "TIH.TO",
+    "region": "canada",
+    "ir": "https://www.toromont.com/investor-relations",
+    "logo": "toromont.com"
+  },
   "TINC": {
     "name": "TINC",
     "yfinance": "TINC.BR",
@@ -10899,6 +13164,20 @@
     "yfinance": "TL5.MC",
     "region": "europe"
   },
+  "TLRY.TO": {
+    "name": "Tilray Brands",
+    "yfinance": "TLRY.TO",
+    "region": "canada",
+    "ir": "https://ir.tilray.com",
+    "logo": "tilray.com"
+  },
+  "TLS.AX": {
+    "name": "Telstra",
+    "yfinance": "TLS.AX",
+    "region": "australia",
+    "ir": "https://www.telstra.com.au/aboutus/investors",
+    "logo": "telstra.com.au"
+  },
   "TLW": {
     "name": "TLW",
     "yfinance": "TLW.L",
@@ -10917,6 +13196,13 @@
     "region": "us",
     "ir": "https://investor.t-mobile.com",
     "logo": "t-mobile.com"
+  },
+  "TNE.AX": {
+    "name": "TechnologyOne",
+    "yfinance": "TNE.AX",
+    "region": "australia",
+    "ir": "https://www.technologyonecorp.com/investors",
+    "logo": "technologyonecorp.com"
   },
   "TNET": {
     "name": "Telenet",
@@ -10958,6 +13244,13 @@
     "name": "TPE",
     "yfinance": "TPE.DE",
     "region": "europe"
+  },
+  "TPG.AX": {
+    "name": "TPG Telecom",
+    "yfinance": "TPG.AX",
+    "region": "australia",
+    "ir": "https://www.tpgtelecom.com.au/investor-centre",
+    "logo": "tpgtelecom.com.au"
   },
   "TPK": {
     "name": "Travis Perkins",
@@ -11034,6 +13327,13 @@
     "yfinance": "TROW",
     "region": "us",
     "ir": "https://troweprice.gcs-web.com"
+  },
+  "TRP.TO": {
+    "name": "TC Energy",
+    "yfinance": "TRP.TO",
+    "region": "canada",
+    "ir": "https://www.tcenergy.com/investors",
+    "logo": "tcenergy.com"
   },
   "TRV": {
     "name": "Travelers Companies",
@@ -11129,6 +13429,13 @@
     "yfinance": "TW.",
     "region": "europe"
   },
+  "TWE.AX": {
+    "name": "Treasury Wine Estates",
+    "yfinance": "TWE.AX",
+    "region": "australia",
+    "ir": "https://www.tweglobal.com/investors",
+    "logo": "tweglobal.com"
+  },
   "TWEKA": {
     "name": "TWEKA",
     "yfinance": "TWEKA.AS",
@@ -11169,6 +13476,20 @@
     "region": "us",
     "ir": "https://investors.unity.com",
     "logo": "unity.com"
+  },
+  "U11.SI": {
+    "name": "United Overseas Bank",
+    "yfinance": "U11.SI",
+    "region": "singapore",
+    "ir": "https://www.uobgroup.com/investor-relations",
+    "logo": "uobgroup.com"
+  },
+  "U14.SI": {
+    "name": "UOL Group",
+    "yfinance": "U14.SI",
+    "region": "singapore",
+    "ir": "https://www.uol.com.sg/investor-relations",
+    "logo": "uol.com.sg"
   },
   "UAL": {
     "name": "United Airlines",
@@ -11382,6 +13703,13 @@
     "ir": "https://investor.visa.com",
     "logo": "visa.com"
   },
+  "V03.SI": {
+    "name": "Venture Corporation",
+    "yfinance": "V03.SI",
+    "region": "singapore",
+    "ir": "https://www.venture.com.sg/investor-relations",
+    "logo": "venture.com.sg"
+  },
   "VAC": {
     "name": "VAC",
     "yfinance": "VAC.PA",
@@ -11471,6 +13799,13 @@
     "name": "Victrex",
     "yfinance": "VCT.L",
     "region": "europe"
+  },
+  "VCX.AX": {
+    "name": "Vicinity Centres",
+    "yfinance": "VCX.AX",
+    "region": "australia",
+    "ir": "https://www.vicinity.com.au/investors",
+    "logo": "vicinity.com.au"
   },
   "VEI": {
     "name": "VEI",
@@ -11817,6 +14152,13 @@
     "region": "us",
     "ir": "https://investor.walgreensbootsalliance.com"
   },
+  "WBC.AX": {
+    "name": "Westpac Banking",
+    "yfinance": "WBC.AX",
+    "region": "australia",
+    "ir": "https://www.westpac.com.au/about-westpac/investor-centre",
+    "logo": "westpac.com.au"
+  },
   "WBD": {
     "name": "Warner Bros. Discovery",
     "yfinance": "WBD",
@@ -11828,6 +14170,13 @@
     "name": "WCH",
     "yfinance": "WCH.DE",
     "region": "europe"
+  },
+  "WCN.TO": {
+    "name": "Waste Connections",
+    "yfinance": "WCN.TO",
+    "region": "canada",
+    "ir": "https://investors.wasteconnections.com",
+    "logo": "wasteconnections.com"
   },
   "WDAY": {
     "name": "WDAY",
@@ -11846,6 +14195,13 @@
     "yfinance": "WDP.BR",
     "region": "europe"
   },
+  "WDS.AX": {
+    "name": "Woodside Energy",
+    "yfinance": "WDS.AX",
+    "region": "australia",
+    "ir": "https://www.woodside.com/investors",
+    "logo": "woodside.com"
+  },
   "WEB": {
     "name": "WEB",
     "yfinance": "WEB.BR",
@@ -11856,6 +14212,13 @@
     "yfinance": "WEC",
     "region": "us",
     "ir": "https://www.wecenergygroup.com/invest/"
+  },
+  "WEED.TO": {
+    "name": "Canopy Growth",
+    "yfinance": "WEED.TO",
+    "region": "canada",
+    "ir": "https://www.canopygrowth.com/investors",
+    "logo": "canopygrowth.com"
   },
   "WEIR": {
     "name": "Weir Group",
@@ -11870,6 +14233,13 @@
     "ir": "https://welltower.com/investors",
     "logo": "welltower.com"
   },
+  "WES.AX": {
+    "name": "Wesfarmers",
+    "yfinance": "WES.AX",
+    "region": "australia",
+    "ir": "https://www.wesfarmers.com.au/investor-centre",
+    "logo": "wesfarmers.com.au"
+  },
   "WFC": {
     "name": "Wells Fargo",
     "yfinance": "WFC",
@@ -11881,6 +14251,13 @@
     "name": "John Wood Group",
     "yfinance": "WG.",
     "region": "europe"
+  },
+  "WHC.AX": {
+    "name": "Whitehaven Coal",
+    "yfinance": "WHC.AX",
+    "region": "australia",
+    "ir": "https://www.whitehavencoal.com.au/investors",
+    "logo": "whitehavencoal.com.au"
   },
   "WHR": {
     "name": "WHR",
@@ -11954,6 +14331,34 @@
     "ir": "https://stock.walmart.com",
     "logo": "walmart.com"
   },
+  "WN.TO": {
+    "name": "George Weston",
+    "yfinance": "WN.TO",
+    "region": "canada",
+    "ir": "https://www.weston.ca/en/Our-Business/Weston-Group/Investor-Relations",
+    "logo": "weston.ca"
+  },
+  "WOW.AX": {
+    "name": "Woolworths Group",
+    "yfinance": "WOW.AX",
+    "region": "australia",
+    "ir": "https://www.woolworthsgroup.com.au/page/investors",
+    "logo": "woolworthsgroup.com.au"
+  },
+  "WPM": {
+    "name": "Wheaton Precious Metals",
+    "yfinance": "WPM",
+    "region": "us",
+    "ir": "https://www.wheatonpm.com/investors",
+    "logo": "wheatonpm.com"
+  },
+  "WPM.TO": {
+    "name": "Wheaton Precious Metals",
+    "yfinance": "WPM.TO",
+    "region": "canada",
+    "ir": "https://www.wheatonpm.com/investors",
+    "logo": "wheatonpm.com"
+  },
   "WPP": {
     "name": "WPP",
     "yfinance": "WPP.L",
@@ -11976,6 +14381,13 @@
     "yfinance": "WRT1V.HE",
     "region": "europe"
   },
+  "WSA.AX": {
+    "name": "Western Areas",
+    "yfinance": "WSA.AX",
+    "region": "australia",
+    "ir": "https://www.westernareas.com.au/investors",
+    "logo": "westernareas.com.au"
+  },
   "WSM": {
     "name": "Williams-Sonoma",
     "yfinance": "WSM",
@@ -11987,6 +14399,13 @@
     "yfinance": "WSO",
     "region": "us",
     "ir": "https://www.watsco.com/investor-relations/"
+  },
+  "WSP.TO": {
+    "name": "WSP Global",
+    "yfinance": "WSP.TO",
+    "region": "canada",
+    "ir": "https://www.wsp.com/en-GL/investors",
+    "logo": "wsp.com"
   },
   "WST": {
     "name": "West Pharmaceutical",
@@ -12004,6 +14423,13 @@
     "yfinance": "WTB.L",
     "region": "europe",
     "ir": "https://www.whitbread.co.uk/investors"
+  },
+  "WTC.AX": {
+    "name": "WiseTech Global",
+    "yfinance": "WTC.AX",
+    "region": "australia",
+    "ir": "https://www.wisetechglobal.com/investors",
+    "logo": "wisetechglobal.com"
   },
   "WTW": {
     "name": "Willis Towers Watson",
@@ -12052,6 +14478,13 @@
     "ir": "https://investor.exxonmobil.com/",
     "logo": "exxonmobil.com"
   },
+  "XRO.AX": {
+    "name": "Xero",
+    "yfinance": "XRO.AX",
+    "region": "australia",
+    "ir": "https://www.xero.com/au/about/investors",
+    "logo": "xero.com"
+  },
   "XVIVO": {
     "name": "XVIVO",
     "yfinance": "XVIVO.ST",
@@ -12062,6 +14495,20 @@
     "yfinance": "XYL",
     "region": "us",
     "ir": "https://www.xylem.com/en-us/investors/"
+  },
+  "Y92.SI": {
+    "name": "Thai Beverage",
+    "yfinance": "Y92.SI",
+    "region": "singapore",
+    "ir": "https://www.thaibev.com/en08/investor.aspx",
+    "logo": "thaibev.com"
+  },
+  "YAL.AX": {
+    "name": "Yancoal Australia",
+    "yfinance": "YAL.AX",
+    "region": "australia",
+    "ir": "https://www.yancoal.com.au/page/investors",
+    "logo": "yancoal.com.au"
   },
   "YAR": {
     "name": "Yara International",
@@ -12095,12 +14542,26 @@
     "region": "swiss",
     "ir": "https://www.ypsomed.com/yps/en/investors.html"
   },
+  "YRI.TO": {
+    "name": "Yamana Gold",
+    "yfinance": "YRI.TO",
+    "region": "canada",
+    "ir": "https://www.yamana.com/investors",
+    "logo": "yamana.com"
+  },
   "YUM": {
     "name": "Yum! Brands",
     "yfinance": "YUM",
     "region": "us",
     "ir": "https://investors.yum.com",
     "logo": "yum.com"
+  },
+  "Z74.SI": {
+    "name": "Singtel",
+    "yfinance": "Z74.SI",
+    "region": "singapore",
+    "ir": "https://www.singtel.com/about-us/investor-relations",
+    "logo": "singtel.com"
   },
   "ZAG": {
     "name": "ZAG",

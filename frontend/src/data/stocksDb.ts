@@ -4,7 +4,7 @@
  */
 import stocksData from './stocks.json';
 
-export type Region = 'us' | 'europe' | 'swiss';
+export type Region = 'us' | 'europe' | 'swiss' | 'canada' | 'australia' | 'hongkong' | 'japan' | 'singapore';
 
 export interface StockInfo {
   name: string;
@@ -20,9 +20,14 @@ export interface Stock {
 }
 
 export interface IndexFilter {
-  sp500?: boolean;    // US stocks
-  stoxx600?: boolean; // European stocks
-  swiss?: boolean;    // Swiss stocks
+  sp500?: boolean;      // US stocks
+  stoxx600?: boolean;   // European stocks
+  swiss?: boolean;      // Swiss stocks
+  canada?: boolean;     // Canadian stocks (TSX)
+  australia?: boolean;  // Australian stocks (ASX)
+  hongkong?: boolean;   // Hong Kong stocks (HKEX)
+  japan?: boolean;      // Japanese stocks (TSE)
+  singapore?: boolean;  // Singapore stocks (SGX)
 }
 
 // The unified database
@@ -82,6 +87,11 @@ function getRegionsFromFilter(filter?: IndexFilter): Region[] | null {
   if (filter.sp500) regions.push('us');
   if (filter.stoxx600) regions.push('europe');
   if (filter.swiss) regions.push('swiss');
+  if (filter.canada) regions.push('canada');
+  if (filter.australia) regions.push('australia');
+  if (filter.hongkong) regions.push('hongkong');
+  if (filter.japan) regions.push('japan');
+  if (filter.singapore) regions.push('singapore');
 
   return regions.length > 0 ? regions : null;
 }
