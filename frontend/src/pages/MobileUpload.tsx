@@ -5,6 +5,9 @@ import axios from 'axios';
 import posthog from 'posthog-js';
 import { useCookieConsent } from '../contexts/CookieConsentContext';
 
+// Emails excluded from PostHog tracking (must match AuthContext.tsx)
+const POSTHOG_EXCLUDED_EMAILS = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com'];
+
 export function MobileUpload() {
   const { token } = useParams<{ token: string }>();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,7 +28,11 @@ export function MobileUpload() {
       .then(response => {
         const email = response.data.email;
         if (email) {
-          posthog.identify(email, { email });
+          if (POSTHOG_EXCLUDED_EMAILS.includes(email)) {
+            posthog.opt_out_capturing();
+          } else {
+            posthog.identify(email, { email });
+          }
         }
       })
       .catch(() => {
