@@ -407,6 +407,12 @@ STOCK_COLORS = {
     'SAP': "#008FD3",
     'LVMH': "#8B6914",
     'MC': "#8B6914",  # LVMH ticker
+    # French stocks (.PA) - bright colors for dark mode readability
+    'MC.PA': "#F59E0B",   # LVMH - Amber (bright gold)
+    'OR.PA': "#F472B6",   # L'Oreal - Pink
+    'SAN.PA': "#A78BFA",  # Sanofi - Purple/Violet
+    'TTE.PA': "#34D399",  # TotalEnergies - Emerald green
+    'AIR.PA': "#60A5FA",  # Airbus - Sky blue
     'PNDORA': "#D4A5C9",  # Pandora pink
     # Swiss - using vibrant distinct colors
     'NESN': "#7B9A6D",  # Nestle
