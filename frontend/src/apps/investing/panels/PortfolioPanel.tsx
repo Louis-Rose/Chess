@@ -233,7 +233,7 @@ export function PortfolioPanel() {
     mutationFn: createAccount,
     onSuccess: (newAccount) => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      setSelectedAccountId(newAccount.id);
+      setSelectedAccountIds([newAccount.id]);
     },
   });
 
@@ -242,7 +242,7 @@ export function PortfolioPanel() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       if (accounts.length <= 1) {
-        setSelectedAccountId(undefined);
+        setSelectedAccountIds([]);
       }
     },
   });
