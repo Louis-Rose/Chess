@@ -18,6 +18,9 @@ YOUTUBE_CHANNELS = {
     'UCvJJ_dzjViJCoLf5uKUTwoA': {
         'name': 'CNBC',
     },
+    'UCF_5sDcM03RZMNqCI_Pi0FA': {
+        'name': 'Intelligent Investor',
+    },
     'UCEAZeUIeJs0IjQiqTCdVSIg': {
         'name': 'Yahoo Finance',
     },
