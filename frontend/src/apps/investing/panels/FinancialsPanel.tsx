@@ -73,7 +73,7 @@ export function FinancialsPanel() {
     return (
       <div className="flex flex-col items-center py-8 md:py-16">
         <h1 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 text-center px-4">
-          {language === 'fr' ? 'Recherche d\'actions' : 'Stock research'}
+          {language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}
         </h1>
         <div className="flex items-start pt-6 md:pt-8 h-[72px] md:h-[144px]">
           <TrendingUp className="w-24 h-24 md:w-32 md:h-32 text-slate-300 dark:text-slate-600" />
@@ -93,7 +93,7 @@ export function FinancialsPanel() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col items-center gap-2 mb-6 mt-8">
-        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{language === 'fr' ? 'Recherche d\'actions' : 'Stock research'}</h2>
+        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}</h2>
         <p className="text-slate-500 dark:text-slate-400 text-lg italic">
           {language === 'fr' ? 'Recherchez 2 500+ actions sur 8 marchés mondiaux' : 'Research 2,500+ stocks across 8 global markets'}
         </p>
