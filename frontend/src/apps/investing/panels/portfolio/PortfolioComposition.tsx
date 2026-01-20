@@ -162,7 +162,7 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                         </text>
                       );
                     }}
-                    labelLine={({ percent }) => percent >= 0.05}
+                    labelLine={({ percent }) => (percent >= 0.05 ? <path /> : <path style={{ display: 'none' }} />)}
                     isAnimationActive={!isDownloading}
                     onClick={(data) => {
                       if (data?.ticker) {
