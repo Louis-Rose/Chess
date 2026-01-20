@@ -10,7 +10,7 @@ const posthogOptions = {
   person_profiles: 'identified_only' as const,
   session_idle_timeout_seconds: 600,
   session_recording: {
-    maskInputFn: (text: string, element: HTMLElement | null) => {
+    maskInputFn: (text: string, element?: HTMLElement) => {
       // Don't mask search inputs (stock search, etc.)
       const placeholder = element?.getAttribute('placeholder')?.toLowerCase() || '';
       if (
