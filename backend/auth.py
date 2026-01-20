@@ -61,15 +61,16 @@ def verify_google_token(token: str) -> dict:
         return None
 
 
-def _insert_demo_portfolio(user_id: int, conn):
+def _insert_demo_portfolio(user_id: int, conn, force: bool = False):
     """Insert demo portfolio data into database (internal helper)."""
-    # Check if user already has transactions
-    cursor = conn.execute(
-        'SELECT COUNT(*) as count FROM portfolio_transactions WHERE user_id = ?',
-        (user_id,)
-    )
-    if cursor.fetchone()['count'] > 0:
-        return  # User already has transactions, skip
+    if not force:
+        # Check if user already has transactions
+        cursor = conn.execute(
+            'SELECT COUNT(*) as count FROM portfolio_transactions WHERE user_id = ?',
+            (user_id,)
+        )
+        if cursor.fetchone()['count'] > 0:
+            return False  # User already has transactions, skip
 
     # Create a demo investment account
     cursor = conn.execute('''
@@ -103,16 +104,18 @@ def _insert_demo_portfolio(user_id: int, conn):
             VALUES (?, ?, ?, 'BUY', ?, ?, ?)
         ''', (user_id, account_id, ticker, quantity, date, price))
 
+    return True
 
-def create_demo_portfolio(user_id: int, conn=None):
+
+def create_demo_portfolio(user_id: int, conn=None, force: bool = False):
     """Create a demo portfolio with 10 stocks (~€20,000 total) for a user."""
     if conn is not None:
         # Use provided connection (within existing transaction)
-        _insert_demo_portfolio(user_id, conn)
+        return _insert_demo_portfolio(user_id, conn, force)
     else:
         # Create new connection
         with get_db() as new_conn:
-            _insert_demo_portfolio(user_id, new_conn)
+            return _insert_demo_portfolio(user_id, new_conn, force)
 
 
 def get_or_create_user(google_user: dict) -> int:

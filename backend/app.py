@@ -3081,29 +3081,37 @@ def clear_video_cache():
 @app.route('/api/admin/backfill-demo-portfolios', methods=['POST'])
 @admin_required
 def backfill_demo_portfolios():
-    """Add demo portfolios to existing users who have no transactions (admin only)."""
+    """Add demo portfolios to users (admin only). Use force=true to add to ALL users."""
     from auth import create_demo_portfolio
 
+    data = request.get_json() or {}
+    force = data.get('force', False)
+
     with get_db() as conn:
-        # Find users without any transactions
-        cursor = conn.execute('''
-            SELECT u.id, u.email
-            FROM users u
-            LEFT JOIN portfolio_transactions pt ON u.id = pt.user_id
-            GROUP BY u.id
-            HAVING COUNT(pt.id) = 0
-        ''')
-        users_without_portfolios = cursor.fetchall()
+        if force:
+            # Add to ALL users
+            cursor = conn.execute('SELECT id, email FROM users')
+        else:
+            # Find users without any transactions
+            cursor = conn.execute('''
+                SELECT u.id, u.email
+                FROM users u
+                LEFT JOIN portfolio_transactions pt ON u.id = pt.user_id
+                GROUP BY u.id
+                HAVING COUNT(pt.id) = 0
+            ''')
+        users = cursor.fetchall()
 
         backfilled_count = 0
-        for user in users_without_portfolios:
-            create_demo_portfolio(user['id'])
-            backfilled_count += 1
+        for user in users:
+            if create_demo_portfolio(user['id'], force=force):
+                backfilled_count += 1
 
     return jsonify({
         'success': True,
         'message': f'Demo portfolios created for {backfilled_count} users',
-        'users_backfilled': backfilled_count
+        'users_backfilled': backfilled_count,
+        'force': force
     })
 
 
