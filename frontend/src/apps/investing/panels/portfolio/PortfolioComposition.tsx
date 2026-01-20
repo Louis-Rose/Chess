@@ -137,7 +137,9 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
               // Pre-calculate "Others" total for small slices
               const smallSlices = compositionData.holdings.filter(h => h.weight < 5);
               const othersTotal = smallSlices.reduce((sum, h) => sum + h.weight, 0);
-              const firstSmallSliceTicker = smallSlices.length > 0 ? smallSlices[0].ticker : null;
+              // Find the middle small slice to position "Others" label
+              const middleSmallSliceIndex = Math.floor(smallSlices.length / 2);
+              const middleSmallSliceTicker = smallSlices.length > 0 ? smallSlices[middleSmallSliceIndex].ticker : null;
 
               return (
                 <div className="w-full md:w-1/2 h-[280px] md:h-[380px] overflow-visible">
@@ -151,9 +153,9 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                         cy="50%"
                         outerRadius="50%"
                         label={({ name, value, x, y, textAnchor, fill }) => {
-                          // For small slices (<5%), show "Others X%" only on the first one
+                          // For small slices (<5%), show "OTHERS X%" only on the middle one
                           if (value < 5) {
-                            if (name === firstSmallSliceTicker && othersTotal > 0) {
+                            if (name === middleSmallSliceTicker && othersTotal > 0) {
                               return (
                                 <text
                                   x={x}
@@ -163,7 +165,7 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                                   fontSize={15}
                                   fill={isDark ? '#94a3b8' : '#64748b'}
                                 >
-                                  <tspan fontWeight="bold">{language === 'fr' ? 'Autres' : 'Others'}</tspan>
+                                  <tspan fontWeight="bold">{language === 'fr' ? 'AUTRES' : 'OTHERS'}</tspan>
                                   <tspan> {othersTotal.toFixed(1)}%</tspan>
                                 </text>
                               );
@@ -187,9 +189,9 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                           );
                         }}
                         labelLine={({ percent, name }) => {
-                          // Show label line for large slices, and for first small slice (Others)
+                          // Show label line for large slices, and for middle small slice (Others)
                           if (percent >= 0.05) return <path />;
-                          if (name === firstSmallSliceTicker && othersTotal > 0) return <path />;
+                          if (name === middleSmallSliceTicker && othersTotal > 0) return <path />;
                           return <path style={{ display: 'none' }} />;
                         }}
                         isAnimationActive={!isDownloading}
