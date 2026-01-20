@@ -1562,15 +1562,33 @@ def create_upload_token():
     """Create a temporary token for mobile PDF upload."""
     _cleanup_expired_tokens()
 
+    # Get user email for PostHog tracking on mobile
+    with get_db() as conn:
+        user = conn.execute('SELECT email FROM users WHERE id = ?', (request.user_id,)).fetchone()
+        user_email = user['email'] if user else None
+
     token = secrets.token_urlsafe(32)
     _upload_tokens[token] = {
         'user_id': request.user_id,
+        'user_email': user_email,
         'created_at': datetime.now(),
         'transactions': None,
         'status': 'pending'  # pending, uploaded, error
     }
 
     return jsonify({'token': token})
+
+
+@app.route('/api/investing/import/token-info/<token>', methods=['GET'])
+def get_token_info(token):
+    """Get user info for a token (for PostHog identification on mobile upload page)."""
+    _cleanup_expired_tokens()
+
+    if token not in _upload_tokens:
+        return jsonify({'error': 'Invalid or expired token'}), 400
+
+    token_data = _upload_tokens[token]
+    return jsonify({'email': token_data.get('user_email')})
 
 
 @app.route('/api/investing/import/upload/<token>', methods=['POST'])
