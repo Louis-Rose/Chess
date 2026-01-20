@@ -1,13 +1,17 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Loader2, Download } from 'lucide-react';
+import { Loader2, Download, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import type { CompositionData, CompositionItem } from './types';
 import { formatEur, addLumnaBranding, getScaleFactor } from './utils';
+
+// Sorting types
+type SortColumn = 'ticker' | 'quantity' | 'price' | 'value' | 'gain';
+type SortDirection = 'asc' | 'desc';
 
 export interface PortfolioCompositionHandle {
   download: () => Promise<void>;
@@ -52,6 +56,28 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
   const isDark = resolvedTheme === 'dark';
   const positionsChartRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Sorting state
+  const [sortColumn, setSortColumn] = useState<SortColumn>('value');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  // Handle column header click for sorting
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc'); // Default to descending for new column
+    }
+  };
+
+  // Sort indicator component
+  const SortIndicator = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="w-3 h-3 opacity-40" />;
+    }
+    return sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />;
+  };
 
   const downloadPositionsChart = async () => {
     if (!positionsChartRef.current) {
@@ -232,25 +258,74 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
               {(() => {
                 const scaleFactor = getScaleFactor(compositionData.total_cost_basis_eur, privateMode);
 
+                // Sort holdings
+                const sortedHoldings = [...compositionData.holdings].sort((a, b) => {
+                  let comparison = 0;
+                  switch (sortColumn) {
+                    case 'ticker':
+                      comparison = a.ticker.localeCompare(b.ticker);
+                      break;
+                    case 'quantity':
+                      comparison = a.quantity - b.quantity;
+                      break;
+                    case 'price':
+                      comparison = (a.current_price_native ?? a.current_price) - (b.current_price_native ?? b.current_price);
+                      break;
+                    case 'value':
+                      comparison = a.current_value - b.current_value;
+                      break;
+                    case 'gain':
+                      comparison = a.gain_pct - b.gain_pct;
+                      break;
+                  }
+                  return sortDirection === 'asc' ? comparison : -comparison;
+                });
+
                 return (
                   <table className="w-full">
                     <thead>
                       <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b border-slate-300 dark:border-slate-500">
-                        <th className="pb-2">{t('holdings.stock')}</th>
-                        <th className="pb-2 text-right">{t('holdings.shares')}</th>
-                        <th className="pb-2 text-right">{t('holdings.price')}</th>
-                        <th className="pb-2 text-right">{t('holdings.value')}</th>
-                        <th className="pb-2 text-right">{t('holdings.gain')}</th>
+                        <th className="pb-2">
+                          <button onClick={() => handleSort('ticker')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors">
+                            {t('holdings.stock')}
+                            <SortIndicator column="ticker" />
+                          </button>
+                        </th>
+                        <th className="pb-2 text-right">
+                          <button onClick={() => handleSort('quantity')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors ml-auto">
+                            {t('holdings.shares')}
+                            <SortIndicator column="quantity" />
+                          </button>
+                        </th>
+                        <th className="pb-2 text-right">
+                          <button onClick={() => handleSort('price')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors ml-auto">
+                            {t('holdings.price')}
+                            <SortIndicator column="price" />
+                          </button>
+                        </th>
+                        <th className="pb-2 text-right">
+                          <button onClick={() => handleSort('value')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors ml-auto">
+                            {t('holdings.value')}
+                            <SortIndicator column="value" />
+                          </button>
+                        </th>
+                        <th className="pb-2 text-right">
+                          <button onClick={() => handleSort('gain')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors ml-auto">
+                            {t('holdings.gain')}
+                            <SortIndicator column="gain" />
+                          </button>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {compositionData.holdings.map((h) => {
+                      {sortedHoldings.map((h) => {
                         // Value in EUR (already from backend)
                         const valueEur = h.current_value;
                         // Convert to USD if needed
                         const valueInCurrency = currency === 'EUR' ? valueEur : valueEur * compositionData.eurusd_rate;
                         const displayValue = Math.round(valueInCurrency * scaleFactor);
-                        const displayQuantity = privateMode ? Math.round(h.quantity * scaleFactor) : h.quantity;
+                        // Don't scale quantity - show actual shares owned (privateMode only hides monetary values)
+                        const displayQuantity = h.quantity;
                         // Get native currency symbol for price display
                         const nativeCurrencySymbol = getCurrencySymbol(h.native_currency || 'USD');
                         const priceToShow = h.current_price_native ?? h.current_price;
