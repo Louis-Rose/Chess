@@ -333,9 +333,10 @@ export function TransactionForm({
           {showAddForm && (
             <div className="bg-white rounded-lg p-4 mb-6 border border-slate-200">
               {/* Market Filter Toggles */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">
-                <span className="text-sm text-slate-500">{language === 'fr' ? 'Marchés:' : 'Markets:'}</span>
-                <label className="flex items-center gap-1.5 cursor-pointer">
+              <div className="mb-3">
+                <span className="text-sm text-slate-500 block mb-2">{language === 'fr' ? 'Marchés:' : 'Markets:'}</span>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={indexFilter.sp500}
@@ -407,6 +408,7 @@ export function TransactionForm({
                   />
                   <span className="text-sm text-slate-700">Singapore</span>
                 </label>
+                </div>
               </div>
               <div className="flex gap-3 flex-wrap items-start">
                 {/* Stock search dropdown */}

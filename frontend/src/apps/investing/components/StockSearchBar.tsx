@@ -60,9 +60,10 @@ export function StockSearchBar({ className = '' }: StockSearchBarProps) {
       </h3>
 
       {/* Market Filter Toggles */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">
-        <span className="text-sm text-slate-500 dark:text-slate-400">{language === 'fr' ? 'Marchés:' : 'Markets:'}</span>
-        <label className="flex items-center gap-1.5 cursor-pointer">
+      <div className="mb-3">
+        <span className="text-sm text-slate-500 dark:text-slate-400 block mb-2">{language === 'fr' ? 'Marchés:' : 'Markets:'}</span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <label className="flex items-center gap-1.5 cursor-pointer">
           <input
             type="checkbox"
             checked={indexFilter.sp500}
@@ -134,6 +135,7 @@ export function StockSearchBar({ className = '' }: StockSearchBarProps) {
           />
           <span className="text-sm text-slate-700 dark:text-slate-300">Singapore</span>
         </label>
+        </div>
       </div>
 
       {/* Search Input */}
