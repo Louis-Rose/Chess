@@ -63,6 +63,14 @@ def verify_google_token(token: str) -> dict:
 
 def _insert_demo_portfolio(user_id: int, conn, force: bool = False):
     """Insert demo portfolio data into database (internal helper)."""
+    # Always check if user already has a demo portfolio
+    cursor = conn.execute(
+        "SELECT id FROM investment_accounts WHERE user_id = ? AND name = 'Demo Portfolio'",
+        (user_id,)
+    )
+    if cursor.fetchone():
+        return False  # User already has demo portfolio, skip
+
     if not force:
         # Check if user already has transactions
         cursor = conn.execute(
