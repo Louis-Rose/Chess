@@ -1135,12 +1135,6 @@ def get_cached_videos(db_getter):
 
     placeholders = ','.join('?' * len(allowed_channel_ids))
     with db_getter() as conn:
-        # Ensure description column exists
-        try:
-            conn.execute('ALTER TABLE youtube_videos_cache ADD COLUMN description TEXT')
-        except Exception:
-            pass  # Column already exists
-
         cursor = conn.execute(f'''
             SELECT video_id, channel_id, channel_name, title, description, thumbnail_url,
                    published_at, view_count, updated_at
