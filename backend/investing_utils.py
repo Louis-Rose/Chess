@@ -1212,7 +1212,7 @@ def mark_channel_fetched(db_getter, channel_id):
         ''', (channel_id,))
 
 
-def get_news_feed_videos(db_getter, api_key, ticker=None, company_name=None, limit=50):
+def get_news_feed_videos(db_getter, api_key, ticker=None, company_name=None, limit=50, force_refresh=False):
     """
     Get news feed videos, refreshing cache if needed.
     Optionally filters by ticker and company_name.
@@ -1222,25 +1222,33 @@ def get_news_feed_videos(db_getter, api_key, ticker=None, company_name=None, lim
     # Check if any channel needs refresh
     channels_to_refresh = []
     for channel_id in YOUTUBE_CHANNELS.keys():
-        if should_refresh_cache(db_getter, channel_id):
+        if force_refresh or should_refresh_cache(db_getter, channel_id):
             channels_to_refresh.append(channel_id)
 
     # Refresh stale channels
+    refreshed_count = 0
     if channels_to_refresh and api_key:
+        print(f"[YouTube] Refreshing {len(channels_to_refresh)} channels...")
         for channel_id in channels_to_refresh:
             try:
                 videos = fetch_channel_videos(channel_id, api_key)
                 save_videos_to_cache(db_getter, videos)
                 mark_channel_fetched(db_getter, channel_id)
+                refreshed_count += 1
+                print(f"[YouTube] Fetched {len(videos)} videos from channel {channel_id}")
             except Exception as e:
-                print(f"Error refreshing channel {channel_id}: {e}")
+                print(f"[YouTube] Error refreshing channel {channel_id}: {e}")
+    elif channels_to_refresh and not api_key:
+        print(f"[YouTube] WARNING: {len(channels_to_refresh)} channels need refresh but YOUTUBE_API_KEY is not set!")
 
     # Get all cached videos
     all_videos = get_cached_videos(db_getter)
+    print(f"[YouTube] Total cached videos: {len(all_videos)}")
 
     # Filter by ticker/company if specified
     if ticker:
         filtered = [v for v in all_videos if matches_company(v['title'], ticker, company_name)]
+        print(f"[YouTube] Filtered for {ticker}/{company_name}: {len(filtered)} videos")
     else:
         filtered = all_videos
 
@@ -1251,5 +1259,6 @@ def get_news_feed_videos(db_getter, api_key, ticker=None, company_name=None, lim
     return {
         'videos': filtered[:limit],
         'total': len(filtered),
-        'from_cache': len(channels_to_refresh) == 0
+        'from_cache': len(channels_to_refresh) == 0,
+        'refreshed_channels': refreshed_count
     }

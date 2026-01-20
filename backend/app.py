@@ -2787,11 +2787,12 @@ def get_news_feed():
     ticker = request.args.get('ticker')
     company_name = request.args.get('company_name')
     limit = request.args.get('limit', 50, type=int)
+    force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
 
     api_key = os.environ.get('YOUTUBE_API_KEY')
 
     try:
-        result = get_news_feed_videos(get_db, api_key, ticker=ticker, company_name=company_name, limit=limit)
+        result = get_news_feed_videos(get_db, api_key, ticker=ticker, company_name=company_name, limit=limit, force_refresh=force_refresh)
         return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
