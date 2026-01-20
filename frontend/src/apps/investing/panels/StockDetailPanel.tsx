@@ -271,9 +271,9 @@ export function StockDetailPanel() {
                     href={irLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg text-sm font-medium transition-colors"
                   >
-                    <span>{language === 'fr' ? 'Relations Investisseurs' : 'Investor Relations'}</span>
+                    <span>{language === 'fr' ? 'Site Relations Investisseurs' : 'Investor Relations Website'}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 )}
