@@ -12,7 +12,7 @@ export function CookieBanner() {
   const { user, isAuthenticated } = useAuth();
   const hasSyncedRef = useRef(false);
 
-  // Sync consent from server when user is authenticated
+  // Sync consent between local and server when user is authenticated
   useEffect(() => {
     if (isAuthenticated && user && !hasSyncedRef.current) {
       hasSyncedRef.current = true;
@@ -20,12 +20,18 @@ export function CookieBanner() {
       if (user.cookie_consent === 'accepted') {
         syncFromServer('accepted');
       }
+      // If user accepted locally before logging in, sync to server
+      else if (consentStatus === 'accepted' && user.cookie_consent !== 'accepted') {
+        axios.post('/api/cookie-consent', { consent: 'accepted' }).catch((error) => {
+          console.error('Failed to sync cookie consent to server:', error);
+        });
+      }
     }
     // Reset sync flag when user logs out
     if (!isAuthenticated) {
       hasSyncedRef.current = false;
     }
-  }, [isAuthenticated, user, syncFromServer]);
+  }, [isAuthenticated, user, syncFromServer, consentStatus]);
 
   const handleAccept = async () => {
     acceptCookies();

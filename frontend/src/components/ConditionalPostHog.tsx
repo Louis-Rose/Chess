@@ -9,6 +9,22 @@ const posthogOptions = {
   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
   person_profiles: 'identified_only' as const,
   session_idle_timeout_seconds: 600,
+  session_recording: {
+    maskInputFn: (text: string, element: HTMLElement | null) => {
+      // Don't mask search inputs (stock search, etc.)
+      const placeholder = element?.getAttribute('placeholder')?.toLowerCase() || '';
+      if (
+        element?.getAttribute('type') === 'search' ||
+        placeholder.includes('search') ||
+        placeholder.includes('rechercher') ||
+        element?.getAttribute('data-ph-unmask') === 'true'
+      ) {
+        return text;
+      }
+      // Mask everything else (passwords, etc.)
+      return '*'.repeat(text.length);
+    },
+  },
 };
 
 interface ConditionalPostHogProps {
