@@ -1333,20 +1333,39 @@ def matches_company(title, ticker, company_name=None):
     Check if a video title matches a company.
     Uses company_name as primary keyword, plus any extra keywords defined for the ticker.
     """
+    import re
     title_upper = title.upper()
 
-    # Check ticker itself
-    if ticker.upper() in title_upper:
-        return True
+    # Check ticker itself (as whole word to avoid matching "MC" in "TSMC", "FOMC", etc.)
+    # Use word boundary regex for short tickers (<=3 chars)
+    ticker_upper = ticker.upper()
+    if len(ticker_upper) <= 3:
+        if re.search(r'\b' + re.escape(ticker_upper) + r'\b', title_upper):
+            return True
+    else:
+        if ticker_upper in title_upper:
+            return True
 
-    # Check company name (primary keyword)
-    if company_name and company_name.upper() in title_upper:
-        return True
+    # Check company name (primary keyword) - also use word boundary for short names
+    if company_name:
+        name_upper = company_name.upper()
+        if len(name_upper) <= 4:
+            if re.search(r'\b' + re.escape(name_upper) + r'\b', title_upper):
+                return True
+        else:
+            if name_upper in title_upper:
+                return True
 
     # Check extra keywords if defined
-    extra = EXTRA_KEYWORDS.get(ticker.upper(), [])
+    extra = EXTRA_KEYWORDS.get(ticker_upper, [])
     for kw in extra:
-        if kw.upper() in title_upper:
-            return True
+        kw_upper = kw.upper()
+        # Use word boundary for short keywords
+        if len(kw_upper) <= 4:
+            if re.search(r'\b' + re.escape(kw_upper) + r'\b', title_upper):
+                return True
+        else:
+            if kw_upper in title_upper:
+                return True
 
     return False
