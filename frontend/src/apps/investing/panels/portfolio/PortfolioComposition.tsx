@@ -1,7 +1,7 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Loader2, Download, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
+import { Loader2, Download, ChevronUp, ChevronDown } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
@@ -71,10 +71,10 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
     }
   };
 
-  // Sort indicator component
+  // Sort indicator component - only shows on active sort column
   const SortIndicator = ({ column }: { column: SortColumn }) => {
     if (sortColumn !== column) {
-      return <ArrowUpDown className="w-3 h-3 opacity-40" />;
+      return null;
     }
     return sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />;
   };
