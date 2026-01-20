@@ -61,6 +61,60 @@ def verify_google_token(token: str) -> dict:
         return None
 
 
+def create_demo_portfolio(user_id: int, conn=None):
+    """Create a demo portfolio with 10 stocks (~€20,000 total) for a user."""
+    should_close = conn is None
+    if conn is None:
+        conn = get_db().__enter__()
+
+    try:
+        # Check if user already has transactions
+        cursor = conn.execute(
+            'SELECT COUNT(*) as count FROM portfolio_transactions WHERE user_id = ?',
+            (user_id,)
+        )
+        if cursor.fetchone()['count'] > 0:
+            return  # User already has transactions, skip
+
+        # Create a demo investment account
+        cursor = conn.execute('''
+            INSERT INTO investment_accounts (user_id, name, account_type, bank)
+            VALUES (?, 'Demo Portfolio', 'CTO', 'OTHER')
+            RETURNING id
+        ''', (user_id,))
+        account_id = cursor.fetchone()['id']
+
+        # Demo transactions: 5 US stocks + 5 French stocks
+        # Total ~$10,000 USD + ~€10,000 EUR ≈ €20,000
+        demo_transactions = [
+            # US Stocks (prices in USD from 2022-2023)
+            ('AAPL', 12, '2022-03-15', 155.00),    # ~$1,860
+            ('MSFT', 8, '2022-06-20', 260.00),     # ~$2,080
+            ('GOOGL', 18, '2023-01-10', 95.00),    # ~$1,710
+            ('AMZN', 15, '2022-11-08', 102.00),    # ~$1,530
+            ('NVDA', 12, '2023-04-18', 275.00),    # ~$3,300
+            # French Stocks (prices in EUR from 2022-2023)
+            ('MC.PA', 2, '2022-05-12', 620.00),    # ~€1,240
+            ('OR.PA', 6, '2023-02-22', 365.00),    # ~€2,190
+            ('TTE.PA', 35, '2022-08-30', 52.00),   # ~€1,820
+            ('AIR.PA', 18, '2023-03-14', 115.00),  # ~€2,070
+            ('SAN.PA', 30, '2022-10-05', 82.00),   # ~€2,460
+        ]
+
+        for ticker, quantity, date, price in demo_transactions:
+            conn.execute('''
+                INSERT INTO portfolio_transactions
+                (user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share)
+                VALUES (?, ?, ?, 'BUY', ?, ?, ?)
+            ''', (user_id, account_id, ticker, quantity, date, price))
+
+        if should_close:
+            conn.commit()
+    finally:
+        if should_close:
+            conn.close()
+
+
 def get_or_create_user(google_user: dict) -> int:
     """Get existing user or create new one, return user_id."""
     with get_db() as conn:
@@ -91,6 +145,9 @@ def get_or_create_user(google_user: dict) -> int:
         conn.execute('''
             INSERT INTO user_preferences (user_id) VALUES (?)
         ''', (user_id,))
+
+        # Create demo portfolio for new user
+        create_demo_portfolio(user_id, conn)
 
         return user_id
 

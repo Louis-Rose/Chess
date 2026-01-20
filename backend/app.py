@@ -3078,6 +3078,35 @@ def clear_video_cache():
     return jsonify({'success': True, 'message': 'Video cache cleared. Videos will be re-fetched with descriptions.'})
 
 
+@app.route('/api/admin/backfill-demo-portfolios', methods=['POST'])
+@admin_required
+def backfill_demo_portfolios():
+    """Add demo portfolios to existing users who have no transactions (admin only)."""
+    from auth import create_demo_portfolio
+
+    with get_db() as conn:
+        # Find users without any transactions
+        cursor = conn.execute('''
+            SELECT u.id, u.email
+            FROM users u
+            LEFT JOIN portfolio_transactions pt ON u.id = pt.user_id
+            GROUP BY u.id
+            HAVING COUNT(pt.id) = 0
+        ''')
+        users_without_portfolios = cursor.fetchall()
+
+        backfilled_count = 0
+        for user in users_without_portfolios:
+            create_demo_portfolio(user['id'])
+            backfilled_count += 1
+
+    return jsonify({
+        'success': True,
+        'message': f'Demo portfolios created for {backfilled_count} users',
+        'users_backfilled': backfilled_count
+    })
+
+
 @app.route('/api/reward/eligibility', methods=['GET'])
 @login_required
 def check_reward_eligibility():
