@@ -95,7 +95,7 @@ export function FinancialsPanel() {
       <div className="flex flex-col items-center gap-2 mb-6 mt-8">
         <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{language === 'fr' ? 'Recherche Actions' : 'Stocks Research'}</h2>
         <p className="text-slate-500 dark:text-slate-400 text-lg italic">
-          {language === 'fr' ? 'Recherchez des actions' : 'Search stocks'}
+          {language === 'fr' ? '2 500+ actions sur 8 marchés mondiaux' : '2,500+ stocks across 8 global markets'}
         </p>
         <PWAInstallPrompt className="max-w-md w-full mt-2" />
       </div>
