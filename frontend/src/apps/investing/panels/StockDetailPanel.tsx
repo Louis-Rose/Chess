@@ -211,7 +211,7 @@ export function StockDetailPanel() {
     return (
       <div className="flex flex-col items-center py-8 md:py-16">
         <h1 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 text-center px-4">
-          {language === 'fr' ? 'Recherche Actions' : 'Stocks Research'}
+          {language === 'fr' ? 'Recherche d\'actions' : 'Stock research'}
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-4 text-center px-4">
           {language === 'fr' ? 'Connectez-vous pour accéder à la recherche' : 'Sign in to access stock research'}

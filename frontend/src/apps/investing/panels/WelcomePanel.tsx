@@ -98,7 +98,7 @@ export function InvestingWelcomePanel() {
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                {language === 'fr' ? 'Recherche Actions' : 'Stocks Research'}
+                {language === 'fr' ? 'Recherche d\'actions' : 'Stock research'}
               </h3>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm">
