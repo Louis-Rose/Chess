@@ -6,7 +6,6 @@ import axios from 'axios';
 import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, ArrowUpDown, Download } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { LoginButton } from '../../../components/LoginButton';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 
 // Sub-components
@@ -279,13 +278,97 @@ export function PortfolioPanel() {
   }
 
   if (!isAuthenticated) {
+    // Show preview content (login overlay is in InvestingLayout)
     return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="flex flex-col items-center justify-center py-20">
-          <Briefcase className="w-16 h-16 text-slate-500 mb-4" />
-          <h2 className="text-2xl font-bold text-slate-300 mb-2">{t('common.signInRequired')}</h2>
-          <p className="text-slate-500 mb-6">{t('common.signInMessage')}</p>
-          <LoginButton />
+      <div>
+        {/* Header */}
+        <div className="py-4 mt-8">
+          <div className="flex flex-col items-center gap-2">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{t('portfolio.title')}</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-lg italic">{t('portfolio.subtitle')}</p>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto space-y-8">
+          {/* Mock Account Selector */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Briefcase className="w-5 h-5 text-green-500" />
+              <span className="font-medium text-slate-900 dark:text-slate-100">
+                {language === 'fr' ? 'Mes comptes' : 'My Accounts'}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <div className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium">
+                PEA Boursorama
+              </div>
+              <div className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm">
+                CTO Trade Republic
+              </div>
+            </div>
+          </div>
+
+          {/* Mock Summary Cards */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  {language === 'fr' ? 'Valeur totale' : 'Total Value'}
+                </p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">24 350 &euro;</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  {language === 'fr' ? 'Co\u00fbt de base' : 'Cost Basis'}
+                </p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">20 000 &euro;</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  {language === 'fr' ? 'Gain latent' : 'Unrealized Gain'}
+                </p>
+                <p className="text-2xl font-bold text-green-500">+4 350 &euro;</p>
+                <p className="text-sm text-green-500">+21.8%</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  {language === 'fr' ? 'Gain r\u00e9alis\u00e9' : 'Realized Gain'}
+                </p>
+                <p className="text-2xl font-bold text-green-500">+1 200 &euro;</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Mock Holdings Table */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4">
+              {language === 'fr' ? 'Positions' : 'Holdings'}
+            </h3>
+            <div className="space-y-3">
+              {[
+                { ticker: 'AAPL', name: 'Apple Inc.', value: '5 240 \u20ac', gain: '+18.2%' },
+                { ticker: 'MSFT', name: 'Microsoft', value: '4 890 \u20ac', gain: '+24.5%' },
+                { ticker: 'MC.PA', name: 'LVMH', value: '3 420 \u20ac', gain: '+12.1%' },
+                { ticker: 'NVDA', name: 'NVIDIA', value: '6 200 \u20ac', gain: '+45.3%' },
+              ].map((stock) => (
+                <div key={stock.ticker} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-600 rounded-lg flex items-center justify-center">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{stock.ticker.slice(0, 2)}</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900 dark:text-slate-100">{stock.ticker}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{stock.name}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-slate-900 dark:text-slate-100">{stock.value}</p>
+                    <p className="text-sm text-green-500">{stock.gain}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );

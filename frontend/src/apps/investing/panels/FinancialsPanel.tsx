@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Layers, Loader2, TrendingUp } from 'lucide-react';
+import { ChevronRight, Layers, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { LoginButton } from '../../../components/LoginButton';
 import { findStockByTicker } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { GICS_SECTORS, getStocksBySubIndustry, type GICSSector, type GICSIndustryGroup, type GICSIndustry, type GICSSubIndustry } from '../utils/gics';
@@ -70,21 +69,83 @@ export function FinancialsPanel() {
   }
 
   if (!isAuthenticated) {
+    // Show preview content (login overlay is in InvestingLayout)
     return (
-      <div className="flex flex-col items-center py-8 md:py-16">
-        <h1 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 text-center px-4">
-          {language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}
-        </h1>
-        <div className="flex items-start pt-6 md:pt-8 h-[72px] md:h-[144px]">
-          <TrendingUp className="w-24 h-24 md:w-32 md:h-32 text-slate-300 dark:text-slate-600" />
-        </div>
-        <div className="flex flex-col items-center mt-6 md:mt-8 px-4">
-          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-8 md:mb-10 text-center max-w-lg font-light tracking-wide">
-            {language === 'fr'
-              ? 'Connectez-vous pour rechercher des actions et consulter leurs données financières.'
-              : 'Sign in to search stocks and view their financial data.'}
+      <div>
+        <div className="flex flex-col items-center gap-2 mb-6 mt-8">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-lg italic">
+            {language === 'fr' ? 'Recherchez 2 500+ actions sur 8 march\u00e9s mondiaux' : 'Research 2,500+ stocks across 8 global markets'}
           </p>
-          <LoginButton />
+        </div>
+
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Mock Search Bar */}
+          <div className="max-w-2xl mx-auto">
+            <input
+              type="text"
+              placeholder={language === 'fr' ? 'Rechercher une action (ex: AAPL, MSFT, MC.PA...)' : 'Search for a stock (e.g., AAPL, MSFT, MC.PA...)'}
+              className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+              disabled
+            />
+          </div>
+
+          {/* Mock GICS Sectors */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Layers className="w-5 h-5 text-purple-500" />
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                {language === 'fr' ? 'Explorer par secteur GICS' : 'Browse by GICS Sector'}
+              </h3>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[
+                { name: language === 'fr' ? 'Technologies' : 'Technology', color: 'bg-blue-500' },
+                { name: language === 'fr' ? 'Sant\u00e9' : 'Healthcare', color: 'bg-green-500' },
+                { name: language === 'fr' ? 'Finance' : 'Financials', color: 'bg-amber-500' },
+                { name: language === 'fr' ? 'Consommation' : 'Consumer', color: 'bg-purple-500' },
+                { name: language === 'fr' ? '\u00c9nergie' : 'Energy', color: 'bg-orange-500' },
+                { name: language === 'fr' ? 'Industrie' : 'Industrials', color: 'bg-slate-500' },
+                { name: language === 'fr' ? 'Mat\u00e9riaux' : 'Materials', color: 'bg-cyan-500' },
+                { name: language === 'fr' ? 'Immobilier' : 'Real Estate', color: 'bg-rose-500' },
+              ].map((sector) => (
+                <div
+                  key={sector.name}
+                  className="flex items-center gap-2 p-3 bg-white dark:bg-slate-800 rounded-lg"
+                >
+                  <div className={`w-3 h-3 rounded-full ${sector.color}`} />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{sector.name}</span>
+                  <ChevronRight className="w-4 h-4 text-slate-400 ml-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Mock Popular Stocks */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
+              {language === 'fr' ? 'Actions populaires' : 'Popular Stocks'}
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { ticker: 'AAPL', name: 'Apple', price: '$227.50' },
+                { ticker: 'MSFT', name: 'Microsoft', price: '$415.80' },
+                { ticker: 'NVDA', name: 'NVIDIA', price: '$138.25' },
+                { ticker: 'MC.PA', name: 'LVMH', price: '\u20ac785.40' },
+              ].map((stock) => (
+                <div key={stock.ticker} className="p-4 bg-white dark:bg-slate-800 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-slate-200 dark:bg-slate-600 rounded flex items-center justify-center">
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{stock.ticker.slice(0, 2)}</span>
+                    </div>
+                    <span className="font-bold text-slate-900 dark:text-slate-100">{stock.ticker}</span>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{stock.name}</p>
+                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100 mt-1">{stock.price}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );

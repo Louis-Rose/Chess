@@ -11,6 +11,7 @@ import { LanguageToggle } from '../../components/LanguageToggle';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { FeedbackWidget } from '../../components/FeedbackWidget';
 import { RewardPopup } from './components/RewardPopup';
+import { LoginOverlay } from './components/LoginOverlay';
 
 export function InvestingLayout() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -45,11 +46,14 @@ export function InvestingLayout() {
       <div className="hidden md:block">
         <InvestingSidebar />
       </div>
-      <main className="flex-1 p-4 md:p-8 pb-20 md:pb-8">
+      <main className={`flex-1 p-4 md:p-8 pb-20 md:pb-8 ${!isAuthenticated && !authLoading ? 'blur-[1px] opacity-70 pointer-events-none select-none' : ''}`}>
         <Outlet />
       </main>
       {/* Bottom nav: visible on mobile, hidden on md+ */}
       <InvestingBottomNav />
+
+      {/* Login overlay for unauthenticated users */}
+      <LoginOverlay />
 
       {/* Floating feedback widget */}
       <FeedbackWidget language={language} />

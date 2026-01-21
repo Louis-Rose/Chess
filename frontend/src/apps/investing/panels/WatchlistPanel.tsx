@@ -7,7 +7,6 @@ import axios from 'axios';
 import { Eye, Plus, X, Loader2, Search } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { LoginButton } from '../../../components/LoginButton';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
@@ -110,17 +109,69 @@ export function WatchlistPanel() {
   }
 
   if (!isAuthenticated) {
+    // Show preview content (login overlay is in InvestingLayout)
     return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="flex flex-col items-center justify-center py-20">
-          <Eye className="w-16 h-16 text-slate-500 mb-4" />
-          <h2 className="text-2xl font-bold text-slate-300 mb-2">
-            {language === 'fr' ? 'Connexion requise' : 'Sign In Required'}
-          </h2>
-          <p className="text-slate-500 mb-6">
-            {language === 'fr' ? 'Connectez-vous pour gérer votre watchlist.' : 'Please sign in to manage your watchlist.'}
+      <div>
+        <div className="flex flex-col items-center gap-2 mb-6 mt-8">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-lg italic">
+            {language === 'fr' ? 'G\u00e9rez les actions que vous suivez' : 'Manage the stocks you follow'}
           </p>
-          <LoginButton />
+        </div>
+
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* Mock Add Company Form */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
+              {language === 'fr' ? 'Ajouter une entreprise \u00e0 ma watchlist' : 'Add a company to my watchlist'}
+            </h3>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
+                className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                disabled
+              />
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2"
+                disabled
+              >
+                <Plus className="w-4 h-4" />
+                {language === 'fr' ? 'Ajouter' : 'Add'}
+              </button>
+            </div>
+          </div>
+
+          {/* Mock Watchlist */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
+              {language === 'fr' ? 'Actions suivies' : 'Watched Stocks'}
+            </h3>
+            <div className="space-y-3">
+              {[
+                { ticker: 'GOOGL', name: 'Alphabet Inc.', price: '$178.25', change: '+2.4%' },
+                { ticker: 'AMZN', name: 'Amazon.com', price: '$185.60', change: '+1.8%' },
+                { ticker: 'TSLA', name: 'Tesla Inc.', price: '$248.50', change: '-0.9%' },
+                { ticker: 'META', name: 'Meta Platforms', price: '$505.75', change: '+3.2%' },
+              ].map((stock) => (
+                <div key={stock.ticker} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-600 rounded-lg flex items-center justify-center">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{stock.ticker.slice(0, 2)}</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900 dark:text-slate-100">{stock.ticker}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{stock.name}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-slate-900 dark:text-slate-100">{stock.price}</p>
+                    <p className={`text-sm ${stock.change.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>{stock.change}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );

@@ -6,7 +6,6 @@ import axios from 'axios';
 import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye, ExternalLink, Bell, BellOff, X, Mail } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { LoginButton } from '../../../components/LoginButton';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
 
@@ -401,19 +400,73 @@ export function EarningsCalendarPanel() {
   }
 
   if (!isAuthenticated) {
+    // Show preview content (login overlay is in InvestingLayout)
     return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="flex flex-col items-center justify-center py-20">
-          <Calendar className="w-16 h-16 text-slate-500 mb-4" />
-          <h2 className="text-2xl font-bold text-slate-300 mb-2">
-            {language === 'fr' ? 'Connexion requise' : 'Sign In Required'}
+      <div>
+        <div className="flex flex-col items-center gap-2 mb-6 mt-8">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            {language === 'fr' ? 'Calendrier des R\u00e9sultats' : 'Earnings Calendar'}
           </h2>
-          <p className="text-slate-500 mb-6">
-            {language === 'fr'
-              ? 'Connectez-vous pour voir le calendrier des résultats.'
-              : 'Please sign in to view the earnings calendar.'}
+          <p className="text-slate-500 dark:text-slate-400 text-lg italic">
+            {language === 'fr' ? 'Suivez les publications de r\u00e9sultats' : 'Track earnings releases'}
           </p>
-          <LoginButton />
+        </div>
+
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Mock Earnings List */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                {language === 'fr' ? 'Prochaines publications' : 'Upcoming Earnings'}
+              </h3>
+              <button className="px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg flex items-center gap-2 text-sm">
+                <Bell className="w-4 h-4" />
+                {language === 'fr' ? 'Configurer les alertes' : 'Set Alerts'}
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                { ticker: 'AAPL', name: 'Apple Inc.', date: 'Jan 30, 2026', days: 9, confirmed: true, source: 'portfolio' },
+                { ticker: 'MSFT', name: 'Microsoft', date: 'Jan 28, 2026', days: 7, confirmed: true, source: 'portfolio' },
+                { ticker: 'GOOGL', name: 'Alphabet', date: 'Feb 4, 2026', days: 14, confirmed: false, source: 'watchlist' },
+                { ticker: 'AMZN', name: 'Amazon', date: 'Feb 6, 2026', days: 16, confirmed: false, source: 'watchlist' },
+                { ticker: 'NVDA', name: 'NVIDIA', date: 'Feb 19, 2026', days: 29, confirmed: true, source: 'portfolio' },
+              ].map((earning) => (
+                <div key={earning.ticker} className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-600 rounded-lg flex items-center justify-center">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{earning.ticker.slice(0, 2)}</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{earning.ticker}</p>
+                        {earning.source === 'portfolio' ? (
+                          <Briefcase className="w-3.5 h-3.5 text-green-500" />
+                        ) : (
+                          <Eye className="w-3.5 h-3.5 text-blue-500" />
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{earning.name}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-slate-900 dark:text-slate-100">{earning.date}</p>
+                      {earning.confirmed ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <HelpCircle className="w-4 h-4 text-amber-500" />
+                      )}
+                    </div>
+                    <p className={`text-sm ${earning.days <= 7 ? 'text-amber-500 font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
+                      {language === 'fr' ? `Dans ${earning.days} jours` : `In ${earning.days} days`}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
