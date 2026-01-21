@@ -406,22 +406,27 @@ export function PortfolioPanel() {
             <div className="px-4 pb-4">
               <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
                 <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
-                  {/* Filled Pie Chart with labels */}
-                  <div className="w-full md:w-1/2 h-[300px] flex items-center justify-center relative">
-                    <svg viewBox="0 0 200 200" className="w-48 h-48">
-                      {/* Filled pie slices using path elements */}
-                      <path d="M100,100 L100,20 A80,80 0 0,1 169,65 Z" fill="#22c55e" />
-                      <path d="M100,100 L169,65 A80,80 0 0,1 169,135 Z" fill="#3b82f6" />
-                      <path d="M100,100 L169,135 A80,80 0 0,1 100,180 Z" fill="#f59e0b" />
-                      <path d="M100,100 L100,180 A80,80 0 0,1 31,135 Z" fill="#06b6d4" />
-                      <path d="M100,100 L31,135 A80,80 0 0,1 100,20 Z" fill="#94a3b8" />
+                  {/* Filled Pie Chart with labels - matching authenticated view */}
+                  <div className="w-full md:w-1/2 h-[300px] flex items-center justify-center">
+                    <svg viewBox="0 0 260 260" className="w-full h-full max-w-[280px]">
+                      {/* Pie slices with white stroke for contour effect - colors match labels */}
+                      {/* NVDA 27.6% - green - top right */}
+                      <path d="M130,130 L130,65 A65,65 0 0,1 186,95 Z" fill="#22c55e" stroke="white" strokeWidth="2" />
+                      {/* MSFT 12.7% - blue - right */}
+                      <path d="M130,130 L186,95 A65,65 0 0,1 186,165 Z" fill="#3b82f6" stroke="white" strokeWidth="2" />
+                      {/* META 17.4% - cyan - bottom right */}
+                      <path d="M130,130 L186,165 A65,65 0 0,1 130,195 Z" fill="#06b6d4" stroke="white" strokeWidth="2" />
+                      {/* AMZN 19.6% - amber - bottom left */}
+                      <path d="M130,130 L130,195 A65,65 0 0,1 74,165 Z" fill="#f59e0b" stroke="white" strokeWidth="2" />
+                      {/* GOOGL 22.5% - red - top left */}
+                      <path d="M130,130 L74,165 A65,65 0 0,1 130,65 Z" fill="#ef4444" stroke="white" strokeWidth="2" />
+                      {/* Labels positioned close to pie slices */}
+                      <text x="200" y="55" fontSize="13" fontWeight="bold" fill="#22c55e">NVDA 27.6%</text>
+                      <text x="200" y="130" fontSize="13" fontWeight="bold" fill="#3b82f6">MSFT 12.7%</text>
+                      <text x="145" y="230" fontSize="13" fontWeight="bold" fill="#06b6d4">META 17.4%</text>
+                      <text x="15" y="210" fontSize="13" fontWeight="bold" fill="#f59e0b">AMZN 19.6%</text>
+                      <text x="5" y="80" fontSize="13" fontWeight="bold" fill="#ef4444">GOOGL 22.5%</text>
                     </svg>
-                    {/* Labels positioned around the pie */}
-                    <span className="absolute top-2 right-0 text-sm font-bold text-green-500">NVDA 27.4%</span>
-                    <span className="absolute top-1/3 -right-4 text-sm font-bold text-blue-500">MSFT 13.1%</span>
-                    <span className="absolute bottom-1/4 right-0 text-sm font-bold text-amber-500">AMZN 19.9%</span>
-                    <span className="absolute bottom-4 left-1/4 text-sm font-bold text-cyan-500">META 17.4%</span>
-                    <span className="absolute top-1/3 -left-4 text-sm font-bold text-red-500">GOOGL 22.2%</span>
                   </div>
                   {/* Holdings Table */}
                   <div className="w-full md:w-1/2 overflow-x-auto">
@@ -486,18 +491,20 @@ export function PortfolioPanel() {
               <ArrowUpDown className="w-5 h-5 text-slate-400 ml-2" />
             </div>
             <div className="px-4 pb-4">
-              {/* Toggles */}
-              <div className="flex flex-wrap justify-center gap-4 mb-4">
-                <div className="text-center">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Benchmark:</p>
-                  <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
-                    <div className="px-3 py-1 text-sm bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300">All</div>
-                    <div className="px-3 py-1 text-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 border-l border-slate-300 dark:border-slate-500">Annualized</div>
-                  </div>
+              {/* Toggles - matching authenticated view layout */}
+              <div className="flex flex-wrap items-end justify-center gap-3 md:gap-4 mb-4">
+                {/* Toggle: Total vs Annualized */}
+                <div className="flex rounded-lg overflow-hidden border border-slate-300">
+                  <div className="px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium bg-green-600 text-white">All</div>
+                  <div className="px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium bg-white text-slate-600">Annualized</div>
                 </div>
-                <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
-                  <div className="px-3 py-1 text-sm bg-green-600 text-white">Nasdaq</div>
-                  <div className="px-3 py-1 text-sm bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300">S&P 500</div>
+                {/* Benchmark Toggle with label */}
+                <div className="flex flex-col items-center">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 mb-1">Benchmark:</span>
+                  <div className="flex rounded-lg overflow-hidden border border-slate-300">
+                    <div className="px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium bg-green-600 text-white">Nasdaq</div>
+                    <div className="px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium bg-white text-slate-600">S&P 500</div>
+                  </div>
                 </div>
               </div>
               <div className="flex justify-center mb-4">
@@ -506,40 +513,61 @@ export function PortfolioPanel() {
                   Private mode (base: 100€)
                 </div>
               </div>
-              {/* Metrics cards */}
+              {/* Metrics cards - values matching summary cards (20k invested, 27k current) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 text-center">
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Holding period</p>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm">2 years, 4 months and 12 days</p>
-                  <p className="text-xs text-slate-400 mt-2">Weighted period</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">1 year, 3 months and 8 days</p>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{language === 'fr' ? 'Période de détention' : 'Holding period'}</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">2 {language === 'fr' ? 'ans' : 'years'}, 4 {language === 'fr' ? 'mois et' : 'months and'} 12 {language === 'fr' ? 'jours' : 'days'}</p>
+                  <p className="text-xs text-slate-400 mt-2">{language === 'fr' ? 'Période pondérée' : 'Weighted period'}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">1 {language === 'fr' ? 'an' : 'year'}, 3 {language === 'fr' ? 'mois et' : 'months and'} 8 {language === 'fr' ? 'jours' : 'days'}</p>
                 </div>
                 <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 text-center">
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Portfolio Gains</p>
-                  <p className="text-xl font-bold text-green-500">+35€ (+35.2%)</p>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains'}</p>
+                  <p className="text-xl font-bold text-green-500">+7 050€ (+35.2%)</p>
                 </div>
                 <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 text-center">
                   <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Benchmark (Nasdaq)</p>
-                  <p className="text-xl font-bold text-green-500">+22€ (+22.3%)</p>
+                  <p className="text-xl font-bold text-blue-400">+4 460€ (+22.3%)</p>
                 </div>
               </div>
-              {/* Chart with axis labels */}
+              {/* Chart with axis labels - Y-axis matches 20k€ invested to 27k€ current value */}
               <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 relative">
-                {/* Y-axis labels */}
-                <div className="absolute left-2 top-4 bottom-16 flex flex-col justify-between text-xs text-slate-500 dark:text-slate-400">
-                  <span>150€</span>
-                  <span>100€</span>
-                  <span>50€</span>
-                  <span>0€</span>
+                {/* Y-axis labels - range from 10k to 30k to cover invested (20k) and current (27k) */}
+                <div className="absolute left-1 top-4 bottom-16 flex flex-col justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span>30k€</span>
+                  <span>25k€</span>
+                  <span>20k€</span>
+                  <span>15k€</span>
+                  <span>10k€</span>
                 </div>
-                {/* Chart area */}
+                {/* Chart area with invested capital line and outperformance/underperformance areas */}
                 <div className="ml-10 h-[220px]">
                   <svg viewBox="0 0 400 200" className="w-full h-full" preserveAspectRatio="none">
-                    <line x1="0" y1="50" x2="400" y2="50" stroke="#94a3b8" strokeWidth="0.5" />
+                    {/* Gradients for outperformance/underperformance areas */}
+                    <defs>
+                      <linearGradient id="outperformanceGradientPreview" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#4ade80" stopOpacity="0.5" />
+                        <stop offset="100%" stopColor="#4ade80" stopOpacity="0.15" />
+                      </linearGradient>
+                      <linearGradient id="underperformanceGradientPreview" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#dc2626" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#dc2626" stopOpacity="0.1" />
+                      </linearGradient>
+                    </defs>
+                    {/* Grid lines */}
+                    <line x1="0" y1="25" x2="400" y2="25" stroke="#94a3b8" strokeWidth="0.5" />
+                    <line x1="0" y1="62.5" x2="400" y2="62.5" stroke="#94a3b8" strokeWidth="0.5" />
                     <line x1="0" y1="100" x2="400" y2="100" stroke="#94a3b8" strokeWidth="0.5" />
-                    <line x1="0" y1="150" x2="400" y2="150" stroke="#94a3b8" strokeWidth="0.5" />
-                    <path d="M0,180 Q50,170 100,150 T200,100 T300,60 T400,30" fill="none" stroke="#22c55e" strokeWidth="2" />
-                    <path d="M0,180 Q50,175 100,155 T200,120 T300,90 T400,60" fill="none" stroke="#3b82f6" strokeWidth="2" strokeDasharray="5,5" />
+                    <line x1="0" y1="137.5" x2="400" y2="137.5" stroke="#94a3b8" strokeWidth="0.5" />
+                    <line x1="0" y1="175" x2="400" y2="175" stroke="#94a3b8" strokeWidth="0.5" />
+                    {/* Outperformance area (green) - between portfolio and benchmark where portfolio > benchmark */}
+                    <path d="M0,175 L50,155 L100,130 L150,110 L200,85 L250,65 L300,55 L350,50 L400,35 L400,50 L350,60 L300,70 L250,85 L200,100 L150,120 L100,140 L50,160 L0,175 Z" fill="url(#outperformanceGradientPreview)" />
+                    {/* Invested capital line (step line) - starts at ~10k, grows to ~20k */}
+                    <path d="M0,175 L50,175 L50,150 L100,150 L100,125 L150,125 L150,110 L200,110 L200,100 L400,100" fill="none" stroke="#94a3b8" strokeWidth="2" />
+                    {/* Portfolio line (solid green) - ends at ~27k */}
+                    <path d="M0,175 L50,155 L100,130 L150,110 L200,85 L250,65 L300,55 L350,50 L400,35" fill="none" stroke="#16a34a" strokeWidth="2.5" />
+                    {/* Benchmark line (dashed blue) - ends at ~24.5k */}
+                    <path d="M0,175 L50,160 L100,140 L150,120 L200,100 L250,85 L300,70 L350,60 L400,50" fill="none" stroke="#60a5fa" strokeWidth="2" strokeDasharray="5,5" />
                   </svg>
                 </div>
                 {/* X-axis labels */}
@@ -550,10 +578,12 @@ export function PortfolioPanel() {
                   <span>Jul 2024</span>
                   <span>Jan 2025</span>
                 </div>
-                {/* Legend */}
-                <div className="flex justify-center items-center gap-6 text-xs mt-3">
-                  <div className="flex items-center gap-1"><div className="w-4 h-0.5 bg-green-500"></div><span className="text-slate-500 dark:text-slate-400">Portfolio</span></div>
-                  <div className="flex items-center gap-1"><div className="w-4 h-0.5 bg-blue-500 border-dashed"></div><span className="text-slate-500 dark:text-slate-400">Benchmark (EQQQ)</span></div>
+                {/* Legend - matching authenticated view */}
+                <div className="flex justify-center gap-4 text-xs flex-wrap mt-3">
+                  <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 bg-green-600"></div><span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Portefeuille' : 'Portfolio'}</span></div>
+                  <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 bg-[#60a5fa]" style={{ borderStyle: 'dashed', borderWidth: '1px', borderColor: '#60a5fa', height: 0 }}></div><span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Indice de réf.' : 'Benchmark'} (EQQQ)</span></div>
+                  <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 bg-slate-400"></div><span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Capital investi' : 'Invested'}</span></div>
+                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-green-400/50 border border-green-400"></div><span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Surperformance' : 'Outperformance'}</span></div>
                 </div>
               </div>
               {/* LUMNA branding */}
