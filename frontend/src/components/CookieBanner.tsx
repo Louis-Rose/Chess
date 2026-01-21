@@ -20,7 +20,7 @@ export function CookieBanner() {
       if (user.cookie_consent === 'accepted') {
         // Server has accepted → sync to local
         syncFromServer('accepted');
-      } else if (consentStatus === 'accepted') {
+      } else if (localStorage.getItem('cookie-consent') === 'accepted') {
         // Local has accepted but server doesn't → try to push to server
         // Server returns the actual saved consent in response
         axios.post('/api/cookie-consent', { consent: 'accepted' })
@@ -38,7 +38,8 @@ export function CookieBanner() {
     if (!isAuthenticated) {
       hasSyncedRef.current = false;
     }
-  }, [isAuthenticated, user, syncFromServer, consentStatus]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user]);
 
   const handleAccept = async () => {
     acceptCookies();
