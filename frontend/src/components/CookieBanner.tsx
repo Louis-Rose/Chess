@@ -16,16 +16,23 @@ export function CookieBanner() {
   useEffect(() => {
     if (isAuthenticated && user && !hasSyncedRef.current) {
       hasSyncedRef.current = true;
-      // If user has accepted on server, sync to local state
+
       if (user.cookie_consent === 'accepted') {
+        // Server has accepted → sync to local
         syncFromServer('accepted');
+      } else if (consentStatus === 'accepted') {
+        // Local has accepted but server doesn't → try to push to server
+        // Server returns the actual saved consent in response
+        axios.post('/api/cookie-consent', { consent: 'accepted' })
+          .then((response) => {
+            // Server returns { consent: 'accepted' } if saved, { consent: null } for test accounts
+            syncFromServer(response.data.consent);
+          })
+          .catch((error) => {
+            console.error('Failed to sync cookie consent to server:', error);
+          });
       }
-      // If user accepted locally before logging in, sync to server
-      else if (consentStatus === 'accepted' && user.cookie_consent !== 'accepted') {
-        axios.post('/api/cookie-consent', { consent: 'accepted' }).catch((error) => {
-          console.error('Failed to sync cookie consent to server:', error);
-        });
-      }
+      // If both are null/pending, do nothing - banner will show
     }
     // Reset sync flag when user logs out
     if (!isAuthenticated) {
