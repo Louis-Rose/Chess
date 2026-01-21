@@ -26,9 +26,9 @@ export function InvestingWelcomePanel() {
     // Show a preview of the dashboard with a login overlay
     return (
       <div className="relative">
-        {/* Login overlay - fixed to viewport for true centering */}
-        <div className="fixed inset-0 z-10 flex items-center justify-center">
-          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md mx-4">
+        {/* Login overlay - fixed to viewport for true centering, pointer-events-none so sidebar is clickable */}
+        <div className="fixed inset-0 z-10 flex items-center justify-center pointer-events-none">
+          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md mx-4 pointer-events-auto">
             <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 text-center mb-4">
               {language === 'fr' ? 'Suivez vos Investissements' : 'Track Your Investments'}
             </h1>
