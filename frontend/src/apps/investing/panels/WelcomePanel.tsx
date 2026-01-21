@@ -23,22 +23,120 @@ export function InvestingWelcomePanel() {
   }
 
   if (!isAuthenticated) {
+    // Show a preview of the dashboard with a login overlay
     return (
-      <div className="flex flex-col items-center py-8 md:py-16">
-        <h1 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 text-center px-4">
-          {language === 'fr' ? 'Suivez vos Investissements' : 'Track Your Investments'}
-        </h1>
-        <div className="flex items-start pt-6 md:pt-8 h-[72px] md:h-[144px]">
-          <span className="text-7xl md:text-9xl opacity-15 leading-none">&#128200;</span>
+      <div className="relative">
+        {/* Login overlay */}
+        <div className="absolute inset-0 z-10 flex items-start justify-center pt-8 md:pt-16">
+          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md mx-4">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 text-center mb-4">
+              {language === 'fr' ? 'Suivez vos Investissements' : 'Track Your Investments'}
+            </h1>
+            <p className="text-slate-600 dark:text-slate-300 text-center mb-6">
+              {language === 'fr'
+                ? 'Connectez-vous pour accéder à votre tableau de bord personnalisé.'
+                : 'Sign in to access your personalized dashboard.'}
+            </p>
+            <div className="flex justify-center">
+              <LoginButton />
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col items-center mt-6 md:mt-8 px-4">
-          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-3 text-center max-w-lg font-light tracking-wide">
-            {language === 'fr' ? 'Suivez la performance de votre portefeuille.' : 'Monitor your portfolio performance.'}
-          </p>
-          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-8 md:mb-10 text-center max-w-lg font-light tracking-wide">
-            {language === 'fr' ? 'Obtenez des informations pour prendre de meilleures décisions.' : 'Get insights to make better investment decisions.'}
-          </p>
-          <LoginButton />
+
+        {/* Blurred preview of the dashboard */}
+        <div className="blur-[2px] opacity-60 pointer-events-none select-none" aria-hidden="true">
+          <div className="text-center space-y-6">
+            <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100">
+              {language === 'fr' ? 'Tableau de Bord' : 'Your Investment Dashboard'}
+            </h1>
+          </div>
+
+          <div className="mt-8">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+                {language === 'fr' ? 'Bienvenue' : 'Welcome'} !
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+              {/* Preview cards - same as authenticated view */}
+              <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    {language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}
+                  </h3>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">
+                  {language === 'fr'
+                    ? 'Données financières et analyses sur toute entreprise cotée.'
+                    : 'Financials and insights on any listed company.'}
+                </p>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                    <Briefcase className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
+                  </h3>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">
+                  {language === 'fr'
+                    ? 'Consultez vos positions, suivez la performance.'
+                    : 'View your holdings, track performance.'}
+                </p>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <Eye className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    {language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}
+                  </h3>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">
+                  {language === 'fr'
+                    ? 'Gérez la liste des actions que vous souhaitez suivre.'
+                    : 'Manage the list of stocks you want to follow.'}
+                </p>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-amber-600 rounded-lg flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    {language === 'fr' ? 'Calendrier des Résultats' : 'Earnings Calendar'}
+                  </h3>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">
+                  {language === 'fr'
+                    ? 'Suivez les prochaines publications de résultats.'
+                    : 'Track upcoming earnings releases.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Preview search bar */}
+            <div className="max-w-2xl mx-auto mt-16">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder={language === 'fr' ? 'Rechercher une action...' : 'Search for a stock...'}
+                  className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100"
+                  disabled
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
