@@ -30,6 +30,19 @@ YOUTUBE_CHANNELS = {
     'UCRhQsN8AVIfZuBNeRV1A37w': {
         'name': 'Norges Bank Investment Management',
     },
+    # European Finance
+    'UCIALMKvObZNtJ6AmdCLP7Lg': {
+        'name': 'Bloomberg Television',
+    },
+    'UCoUxsWakJucWg46KW5RsvPw': {
+        'name': 'Financial Times',
+    },
+    'UCCj956IF62FbT7Gouszaj9w': {
+        'name': 'BBC News',
+    },
+    'UCB8qu8bhAiV8BOJK9ERzZ3Q': {
+        'name': 'Euronews',
+    },
 }
 
 # Additional keywords for specific companies (optional)

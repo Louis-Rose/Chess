@@ -1067,46 +1067,56 @@ from youtube_config import YOUTUBE_CHANNELS, get_uploads_playlist_id, matches_co
 YOUTUBE_CACHE_TTL_HOURS = 6
 
 
-def fetch_channel_videos(channel_id, api_key, max_results=50):
+def fetch_channel_videos(channel_id, api_key, max_results=150):
     """
-    Fetch recent videos from a YouTube channel using playlistItems API (1 unit cost).
+    Fetch recent videos from a YouTube channel using playlistItems API.
+    Supports pagination to get more than 50 results.
     Returns list of video metadata.
     """
     uploads_playlist_id = get_uploads_playlist_id(channel_id)
-
     url = "https://www.googleapis.com/youtube/v3/playlistItems"
-    params = {
-        'part': 'snippet',
-        'playlistId': uploads_playlist_id,
-        'maxResults': max_results,
-        'key': api_key
-    }
-
-    response = requests.get(url, params=params)
-    response.raise_for_status()
-    data = response.json()
 
     videos = []
-    for item in data.get('items', []):
-        snippet = item['snippet']
-        video_id = snippet['resourceId']['videoId']
+    next_page_token = None
 
-        videos.append({
-            'video_id': video_id,
-            'channel_id': channel_id,
-            'channel_name': snippet['channelTitle'],
-            'title': snippet['title'],
-            'description': snippet.get('description', ''),
-            'thumbnail_url': snippet['thumbnails'].get('high', {}).get('url') or
-                            snippet['thumbnails'].get('medium', {}).get('url') or
-                            snippet['thumbnails'].get('default', {}).get('url'),
-            'published_at': snippet['publishedAt'],
-        })
+    while len(videos) < max_results:
+        params = {
+            'part': 'snippet',
+            'playlistId': uploads_playlist_id,
+            'maxResults': min(50, max_results - len(videos)),  # API max is 50
+            'key': api_key
+        }
+        if next_page_token:
+            params['pageToken'] = next_page_token
+
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        for item in data.get('items', []):
+            snippet = item['snippet']
+            video_id = snippet['resourceId']['videoId']
+
+            videos.append({
+                'video_id': video_id,
+                'channel_id': channel_id,
+                'channel_name': snippet['channelTitle'],
+                'title': snippet['title'],
+                'description': snippet.get('description', ''),
+                'thumbnail_url': snippet['thumbnails'].get('high', {}).get('url') or
+                                snippet['thumbnails'].get('medium', {}).get('url') or
+                                snippet['thumbnails'].get('default', {}).get('url'),
+                'published_at': snippet['publishedAt'],
+            })
+
+        next_page_token = data.get('nextPageToken')
+        if not next_page_token:
+            break  # No more pages
 
     return videos
 
 
-def fetch_all_channel_videos(api_key, max_per_channel=50):
+def fetch_all_channel_videos(api_key, max_per_channel=150):
     """
     Fetch videos from all configured channels.
     Returns combined list of videos sorted by publish date.
