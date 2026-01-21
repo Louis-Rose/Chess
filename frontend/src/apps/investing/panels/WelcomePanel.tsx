@@ -27,7 +27,7 @@ export function InvestingWelcomePanel() {
     return (
       <div className="relative">
         {/* Login overlay */}
-        <div className="absolute inset-0 z-10 flex items-start justify-center pt-8 md:pt-16">
+        <div className="absolute inset-0 z-10 flex items-center justify-center">
           <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md mx-4">
             <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 text-center mb-4">
               {language === 'fr' ? 'Suivez vos Investissements' : 'Track Your Investments'}
@@ -44,7 +44,7 @@ export function InvestingWelcomePanel() {
         </div>
 
         {/* Blurred preview of the dashboard */}
-        <div className="blur-[2px] opacity-60 pointer-events-none select-none" aria-hidden="true">
+        <div className="blur-[1px] opacity-70 pointer-events-none select-none" aria-hidden="true">
           <div className="text-center space-y-6">
             <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100">
               {language === 'fr' ? 'Tableau de Bord' : 'Your Investment Dashboard'}
