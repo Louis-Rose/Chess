@@ -25,7 +25,79 @@ import type {
   ComputedHolding,
   CompositionData,
   PerformanceData,
+  PerformanceDataPoint,
 } from './portfolio/types';
+
+// Generate demo performance data for unauthenticated preview
+// This ensures the preview uses the exact same PerformanceChart component as authenticated users
+const generateDemoPerformanceData = (): PerformanceData => {
+  const data: PerformanceDataPoint[] = [];
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setMonth(startDate.getMonth() - 28); // ~2 years 4 months ago
+
+  let costBasis = 5000; // Start with 5k invested
+  let portfolioValue = 5000;
+  let benchmarkValue = 5000;
+
+  // Generate monthly data points
+  const currentDate = new Date(startDate);
+  while (currentDate <= today) {
+    // Add capital every few months (simulating DCA)
+    if (data.length > 0 && data.length % 3 === 0 && costBasis < 20000) {
+      costBasis += 2500;
+    }
+
+    // Portfolio grows faster than benchmark (outperformance)
+    const monthsElapsed = data.length;
+    const portfolioGrowthRate = 1 + (0.015 + Math.sin(monthsElapsed * 0.3) * 0.01); // ~1.5% monthly with variation
+    const benchmarkGrowthRate = 1 + (0.01 + Math.sin(monthsElapsed * 0.25) * 0.008); // ~1% monthly with variation
+
+    if (data.length > 0) {
+      portfolioValue = portfolioValue * portfolioGrowthRate;
+      benchmarkValue = benchmarkValue * benchmarkGrowthRate;
+      // Adjust for new capital added
+      if (data.length % 3 === 0 && costBasis <= 20000) {
+        portfolioValue += 2500;
+        benchmarkValue += 2500;
+      }
+    }
+
+    data.push({
+      date: currentDate.toISOString().split('T')[0],
+      portfolio_value_eur: Math.round(portfolioValue),
+      benchmark_value_eur: Math.round(benchmarkValue),
+      cost_basis_eur: costBasis,
+      portfolio_growth_usd: 0,
+      portfolio_growth_eur: portfolioValue - costBasis,
+      benchmark_growth_usd: 0,
+      benchmark_growth_eur: benchmarkValue - costBasis,
+    });
+
+    // Move to next month
+    currentDate.setMonth(currentDate.getMonth() + 1);
+  }
+
+  const lastPoint = data[data.length - 1];
+  const firstPoint = data[0];
+
+  return {
+    data,
+    transactions: [],
+    summary: {
+      start_date: firstPoint.date,
+      end_date: lastPoint.date,
+      total_cost_basis_eur: lastPoint.cost_basis_eur,
+      portfolio_return_eur: Math.round((lastPoint.portfolio_value_eur - lastPoint.cost_basis_eur) / lastPoint.cost_basis_eur * 1000) / 10,
+      benchmark_return_eur: Math.round((lastPoint.benchmark_value_eur - lastPoint.cost_basis_eur) / lastPoint.cost_basis_eur * 1000) / 10,
+      outperformance_eur: Math.round((lastPoint.portfolio_value_eur - lastPoint.benchmark_value_eur) / lastPoint.cost_basis_eur * 1000) / 10,
+      cagr_eur: 15.2,
+      cagr_benchmark_eur: 10.5,
+      years: 2.33,
+      benchmark: 'NASDAQ',
+    },
+  };
+};
 
 // Fetch functions
 const fetchTransactions = async (): Promise<{ transactions: Transaction[] }> => {
@@ -475,7 +547,7 @@ export function PortfolioPanel() {
             </div>
           </div>
 
-          {/* Portfolio Performance - collapsible panel */}
+          {/* Portfolio Performance - using actual PerformanceChart component with demo data */}
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none">
             <div className="flex items-center p-4">
               <div className="flex items-center gap-3 flex-1">
@@ -491,112 +563,18 @@ export function PortfolioPanel() {
               <ArrowUpDown className="w-5 h-5 text-slate-400 ml-2" />
             </div>
             <div className="px-4 pb-4">
-              {/* Toggles - matching authenticated view layout */}
-              <div className="flex flex-wrap items-end justify-center gap-3 md:gap-4 mb-4">
-                {/* Toggle: Total vs Annualized */}
-                <div className="flex rounded-lg overflow-hidden border border-slate-300">
-                  <div className="px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium bg-green-600 text-white">All</div>
-                  <div className="px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium bg-white text-slate-600">Annualized</div>
-                </div>
-                {/* Benchmark Toggle with label */}
-                <div className="flex flex-col items-center">
-                  <span className="text-xs text-slate-500 dark:text-slate-400 mb-1">Benchmark:</span>
-                  <div className="flex rounded-lg overflow-hidden border border-slate-300">
-                    <div className="px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium bg-green-600 text-white">Nasdaq</div>
-                    <div className="px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium bg-white text-slate-600">S&P 500</div>
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-center mb-4">
-                <div className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                  <Eye className="w-4 h-4" />
-                  Private mode (base: 100€)
-                </div>
-              </div>
-              {/* Metrics cards - values matching summary cards (20k invested, 27k current) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 text-center">
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{language === 'fr' ? 'Période de détention' : 'Holding period'}</p>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm">2 {language === 'fr' ? 'ans' : 'years'}, 4 {language === 'fr' ? 'mois et' : 'months and'} 12 {language === 'fr' ? 'jours' : 'days'}</p>
-                  <p className="text-xs text-slate-400 mt-2">{language === 'fr' ? 'Période pondérée' : 'Weighted period'}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">1 {language === 'fr' ? 'an' : 'year'}, 3 {language === 'fr' ? 'mois et' : 'months and'} 8 {language === 'fr' ? 'jours' : 'days'}</p>
-                </div>
-                <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 text-center">
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains'}</p>
-                  <p className="text-xl font-bold text-green-500">+7 050€ (+35.2%)</p>
-                </div>
-                <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 text-center">
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Benchmark (Nasdaq)</p>
-                  <p className="text-xl font-bold text-blue-400">+4 460€ (+22.3%)</p>
-                </div>
-              </div>
-              {/* Chart with axis labels - Y-axis matches 20k€ invested to 27k€ current value */}
-              <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 relative">
-                {/* Y-axis labels - range from 10k to 30k to cover invested (20k) and current (27k) */}
-                <div className="absolute left-1 top-4 bottom-16 flex flex-col justify-between text-xs text-slate-500 dark:text-slate-400">
-                  <span>30k€</span>
-                  <span>25k€</span>
-                  <span>20k€</span>
-                  <span>15k€</span>
-                  <span>10k€</span>
-                </div>
-                {/* Chart area with invested capital line and outperformance/underperformance areas */}
-                <div className="ml-10 h-[220px]">
-                  <svg viewBox="0 0 400 200" className="w-full h-full" preserveAspectRatio="none">
-                    {/* Gradients for outperformance/underperformance areas */}
-                    <defs>
-                      <linearGradient id="outperformanceGradientPreview" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#4ade80" stopOpacity="0.5" />
-                        <stop offset="100%" stopColor="#4ade80" stopOpacity="0.15" />
-                      </linearGradient>
-                      <linearGradient id="underperformanceGradientPreview" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#dc2626" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#dc2626" stopOpacity="0.1" />
-                      </linearGradient>
-                    </defs>
-                    {/* Grid lines */}
-                    <line x1="0" y1="25" x2="400" y2="25" stroke="#94a3b8" strokeWidth="0.5" />
-                    <line x1="0" y1="62.5" x2="400" y2="62.5" stroke="#94a3b8" strokeWidth="0.5" />
-                    <line x1="0" y1="100" x2="400" y2="100" stroke="#94a3b8" strokeWidth="0.5" />
-                    <line x1="0" y1="137.5" x2="400" y2="137.5" stroke="#94a3b8" strokeWidth="0.5" />
-                    <line x1="0" y1="175" x2="400" y2="175" stroke="#94a3b8" strokeWidth="0.5" />
-                    {/* Outperformance area (green) - between portfolio and benchmark where portfolio > benchmark */}
-                    <path d="M0,175 L50,155 L100,130 L150,110 L200,85 L250,65 L300,55 L350,50 L400,35 L400,50 L350,60 L300,70 L250,85 L200,100 L150,120 L100,140 L50,160 L0,175 Z" fill="url(#outperformanceGradientPreview)" />
-                    {/* Invested capital line (step line) - starts at ~10k, grows to ~20k */}
-                    <path d="M0,175 L50,175 L50,150 L100,150 L100,125 L150,125 L150,110 L200,110 L200,100 L400,100" fill="none" stroke="#94a3b8" strokeWidth="2" />
-                    {/* Portfolio line (solid green) - ends at ~27k */}
-                    <path d="M0,175 L50,155 L100,130 L150,110 L200,85 L250,65 L300,55 L350,50 L400,35" fill="none" stroke="#16a34a" strokeWidth="2.5" />
-                    {/* Benchmark line (dashed blue) - ends at ~24.5k */}
-                    <path d="M0,175 L50,160 L100,140 L150,120 L200,100 L250,85 L300,70 L350,60 L400,50" fill="none" stroke="#60a5fa" strokeWidth="2" strokeDasharray="5,5" />
-                  </svg>
-                </div>
-                {/* X-axis labels */}
-                <div className="ml-10 flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  <span>Jan 2023</span>
-                  <span>Jul 2023</span>
-                  <span>Jan 2024</span>
-                  <span>Jul 2024</span>
-                  <span>Jan 2025</span>
-                </div>
-                {/* Legend - matching authenticated view */}
-                <div className="flex justify-center gap-4 text-xs flex-wrap mt-3">
-                  <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 bg-green-600"></div><span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Portefeuille' : 'Portfolio'}</span></div>
-                  <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 bg-[#60a5fa]" style={{ borderStyle: 'dashed', borderWidth: '1px', borderColor: '#60a5fa', height: 0 }}></div><span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Indice de réf.' : 'Benchmark'} (EQQQ)</span></div>
-                  <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 bg-slate-400"></div><span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Capital investi' : 'Invested'}</span></div>
-                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-green-400/50 border border-green-400"></div><span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Surperformance' : 'Outperformance'}</span></div>
-                </div>
-              </div>
-              {/* LUMNA branding */}
-              <div className="flex items-center justify-end gap-2 mt-3 mr-2">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
-                  <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
-                    <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
-                    <rect x="56" y="48" width="16" height="56" rx="2" fill="white" />
-                    <rect x="84" y="32" width="16" height="72" rx="2" fill="white" />
-                  </svg>
-                </div>
-                <span className="text-lg font-bold text-slate-300">LUMNA</span>
-              </div>
+              <PerformanceChart
+                performanceData={generateDemoPerformanceData()}
+                isLoading={false}
+                benchmark="NASDAQ"
+                currency="EUR"
+                privateMode={false}
+                showAnnualized={false}
+                onBenchmarkChange={() => {}}
+                onShowAnnualizedChange={() => {}}
+                hideTitle
+                hideDownloadButton
+              />
             </div>
           </div>
         </div>
