@@ -11,6 +11,7 @@ export function CookieBanner() {
   const { language } = useLanguage();
   const { user, isAuthenticated } = useAuth();
   const hasSyncedRef = useRef(false);
+  const userMadeChoiceRef = useRef(false); // Track if user explicitly chose this session
 
   // Sync consent between local and server when user is authenticated
   useEffect(() => {
@@ -25,8 +26,10 @@ export function CookieBanner() {
         // Server returns the actual saved consent in response
         axios.post('/api/cookie-consent', { consent: 'accepted' })
           .then((response) => {
-            // Server returns { consent: 'accepted' } if saved, { consent: null } for test accounts
-            syncFromServer(response.data.consent);
+            // Only sync if user hasn't made an explicit choice this session
+            if (!userMadeChoiceRef.current) {
+              syncFromServer(response.data.consent);
+            }
           })
           .catch((error) => {
             console.error('Failed to sync cookie consent to server:', error);
@@ -34,16 +37,18 @@ export function CookieBanner() {
       }
       // If both are null/pending, do nothing - banner will show
     }
-    // Reset sync flag when user logs out
+    // Reset flags when user logs out
     if (!isAuthenticated) {
       hasSyncedRef.current = false;
+      userMadeChoiceRef.current = false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user]);
 
   const handleAccept = async () => {
+    userMadeChoiceRef.current = true; // User explicitly chose
     acceptCookies();
-    // Save to server if logged in
+    // Save to server if logged in (server may ignore for test accounts)
     if (isAuthenticated) {
       try {
         await axios.post('/api/cookie-consent', { consent: 'accepted' });
@@ -54,6 +59,7 @@ export function CookieBanner() {
   };
 
   const handleRefuse = async () => {
+    userMadeChoiceRef.current = true; // User explicitly chose
     refuseCookies();
     // Save to server if logged in (server ignores refusals, but we send for consistency)
     if (isAuthenticated) {
