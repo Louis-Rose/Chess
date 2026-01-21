@@ -3,15 +3,24 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { GoogleOAuthProvider } from '@react-oauth/google'
+import { PostHogProvider } from 'posthog-js/react'
 import axios from 'axios'
 import { AuthProvider } from './contexts/AuthContext'
 import { LanguageProvider } from './contexts/LanguageContext'
 import { ThemeProvider } from './contexts/ThemeContext'
-import { CookieConsentProvider } from './contexts/CookieConsentContext'
-import { ConditionalPostHog } from './components/ConditionalPostHog'
-import { CookieBanner } from './components/CookieBanner'
+// Cookie consent temporarily disabled - recording all sessions
+// import { CookieConsentProvider } from './contexts/CookieConsentContext'
+// import { ConditionalPostHog } from './components/ConditionalPostHog'
+// import { CookieBanner } from './components/CookieBanner'
 import './index.css'
 import App from './App.tsx'
+
+// PostHog config (previously in ConditionalPostHog)
+const posthogOptions = {
+  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+  person_profiles: 'identified_only' as const,
+  session_idle_timeout_seconds: 600,
+}
 
 // Configure axios to always send cookies for authentication
 axios.defaults.withCredentials = true
@@ -32,20 +41,22 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <LanguageProvider>
-        <CookieConsentProvider>
-          <ConditionalPostHog>
-            <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-              <QueryClientProvider client={queryClient}>
-                <AuthProvider>
-                  <BrowserRouter>
-                    <App />
-                    <CookieBanner />
-                  </BrowserRouter>
-                </AuthProvider>
-              </QueryClientProvider>
-            </GoogleOAuthProvider>
-          </ConditionalPostHog>
-        </CookieConsentProvider>
+        {/* Cookie consent temporarily disabled - recording all sessions */}
+        <PostHogProvider
+          apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+          options={posthogOptions}
+        >
+          <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+            <QueryClientProvider client={queryClient}>
+              <AuthProvider>
+                <BrowserRouter>
+                  <App />
+                  {/* <CookieBanner /> */}
+                </BrowserRouter>
+              </AuthProvider>
+            </QueryClientProvider>
+          </GoogleOAuthProvider>
+        </PostHogProvider>
       </LanguageProvider>
     </ThemeProvider>
   </StrictMode>

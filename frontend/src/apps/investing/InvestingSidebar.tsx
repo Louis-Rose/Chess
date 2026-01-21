@@ -5,7 +5,8 @@ import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, Shield, PanelLeftClose, PanelLeftOpen, Clock, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useCookieConsent } from '../../contexts/CookieConsentContext';
+// Cookie consent temporarily disabled
+// import { useCookieConsent } from '../../contexts/CookieConsentContext';
 
 // Custom LUMNA logo matching the favicon
 const LumnaLogo = ({ className }: { className?: string }) => (
@@ -36,7 +37,8 @@ export function InvestingSidebar() {
   const location = useLocation();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { language } = useLanguage();
-  const { resetConsent } = useCookieConsent();
+  // Cookie consent temporarily disabled
+  // const { resetConsent } = useCookieConsent();
 
   // Collapsed state with localStorage persistence
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -241,12 +243,14 @@ export function InvestingSidebar() {
               >
                 {language === 'fr' ? 'Mentions légales' : 'Legal notices'}
               </Link>
+              {/* Cookie consent temporarily disabled
               <button
                 onClick={resetConsent}
                 className="text-slate-500 hover:text-slate-300 text-xs transition-colors"
               >
                 {language === 'fr' ? 'Gérer les cookies' : 'Manage cookies'}
               </button>
+              */}
             </div>
           )}
         </div>

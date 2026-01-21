@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { Upload, Check, AlertCircle, Loader2, FileText } from 'lucide-react';
 import axios from 'axios';
 import posthog from 'posthog-js';
-import { useCookieConsent } from '../contexts/CookieConsentContext';
+// Cookie consent temporarily disabled
+// import { useCookieConsent } from '../contexts/CookieConsentContext';
 
 // Emails excluded from PostHog tracking (must match AuthContext.tsx)
 const POSTHOG_EXCLUDED_EMAILS = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com'];
@@ -11,7 +12,8 @@ const POSTHOG_EXCLUDED_EMAILS = ['rose.louis.mail@gmail.com', 'u6965441974@gmail
 export function MobileUpload() {
   const { token } = useParams<{ token: string }>();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { consentStatus } = useCookieConsent();
+  // Cookie consent temporarily disabled - always record
+  // const { consentStatus } = useCookieConsent();
 
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -22,7 +24,7 @@ export function MobileUpload() {
 
   // Identify user in PostHog using token info (links mobile session to user)
   useEffect(() => {
-    if (!token || consentStatus !== 'accepted') return;
+    if (!token) return;
 
     axios.get(`/api/investing/import/token-info/${token}`)
       .then(response => {
@@ -38,7 +40,7 @@ export function MobileUpload() {
       .catch(() => {
         // Token invalid or expired - don't identify
       });
-  }, [token, consentStatus]);
+  }, [token]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();

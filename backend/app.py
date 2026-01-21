@@ -18,9 +18,6 @@ from auth import (
     get_current_user, login_required, admin_required
 )
 
-# Test accounts that should always be prompted for cookies (never persist consent)
-TEST_EMAILS_NO_COOKIE_PERSIST = {'u6965441974@gmail.com'}
-
 # Load environment-specific .env file
 env = os.environ.get('FLASK_ENV', 'dev')
 env_file = f'.env.{env}'
@@ -277,9 +274,6 @@ def google_auth():
         ''', (user_id,))
         user = dict(cursor.fetchone())
 
-    # Test accounts always see cookie prompt (consent not persisted)
-    cookie_consent = None if user['email'] in TEST_EMAILS_NO_COOKIE_PERSIST else user.get('cookie_consent')
-
     response = make_response(jsonify({
         'user': {
             'id': user['id'],
@@ -287,7 +281,7 @@ def google_auth():
             'name': user['name'],
             'picture': user['picture'],
             'is_admin': bool(user.get('is_admin')),
-            'cookie_consent': cookie_consent,
+            'cookie_consent': user.get('cookie_consent'),
             'preferences': {
                 'chess_username': user['chess_username'],
                 'preferred_time_class': user['preferred_time_class']
@@ -393,9 +387,6 @@ def get_current_user_info():
 
         user = dict(row)
 
-    # Test accounts always see cookie prompt (consent not persisted)
-    cookie_consent = None if user['email'] in TEST_EMAILS_NO_COOKIE_PERSIST else user.get('cookie_consent')
-
     return jsonify({
         'user': {
             'id': user['id'],
@@ -403,7 +394,7 @@ def get_current_user_info():
             'name': user['name'],
             'picture': user['picture'],
             'is_admin': bool(user.get('is_admin')),
-            'cookie_consent': cookie_consent,
+            'cookie_consent': user.get('cookie_consent'),
             'preferences': {
                 'chess_username': user['chess_username'],
                 'preferred_time_class': user['preferred_time_class']
@@ -618,13 +609,6 @@ def save_cookie_consent():
         return jsonify({'error': 'consent must be "accepted" or "refused"'}), 400
 
     with get_db() as conn:
-        # Check if this is a test account
-        cursor = conn.execute('SELECT email FROM users WHERE id = ?', (request.user_id,))
-        row = cursor.fetchone()
-        if row and row['email'] in TEST_EMAILS_NO_COOKIE_PERSIST:
-            # Don't persist consent for test accounts - always ask again
-            return jsonify({'success': True, 'consent': None})
-
         if consent == 'accepted':
             # Store acceptance permanently
             conn.execute('''
