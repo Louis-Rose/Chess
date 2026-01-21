@@ -154,7 +154,7 @@ export function WatchlistPanel() {
             </div>
           </div>
 
-          {/* Watchlist - same structure as authenticated */}
+          {/* Watchlist - same structure as authenticated, with logos */}
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
               {language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}
@@ -166,21 +166,39 @@ export function WatchlistPanel() {
                 { ticker: 'AMZN', name: 'Amazon.com Inc.' },
                 { ticker: 'TSLA', name: 'Tesla Inc.' },
                 { ticker: 'META', name: 'Meta Platforms Inc.' },
-              ].map((stock) => (
-                <div
-                  key={stock.ticker}
-                  className="flex items-center bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-3 border border-slate-300 dark:border-slate-500 gap-3"
-                >
-                  <div className="w-8 h-8 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
-                    <span className="text-xs font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
+              ].map((stock) => {
+                const logoUrl = getCompanyLogoUrl(stock.ticker);
+                return (
+                  <div
+                    key={stock.ticker}
+                    className="flex items-center bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-3 border border-slate-300 dark:border-slate-500 gap-3"
+                  >
+                    <div className="w-8 h-8 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {logoUrl && (
+                        <img
+                          src={logoUrl}
+                          alt={`${stock.ticker} logo`}
+                          className="w-8 h-8 object-contain"
+                          onError={(e) => {
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<span class="text-xs font-bold text-slate-500">${stock.ticker.slice(0, 2)}</span>`;
+                            }
+                          }}
+                        />
+                      )}
+                      {!logoUrl && (
+                        <span className="text-xs font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
+                      )}
+                    </div>
+                    <span className="font-bold text-slate-800 dark:text-slate-100 w-16 flex-shrink-0">{stock.ticker}</span>
+                    <span className="text-slate-600 dark:text-slate-300 text-sm truncate flex-grow">{stock.name}</span>
+                    <div className="text-slate-400 p-1 flex-shrink-0 ml-auto">
+                      <X className="w-5 h-5" />
+                    </div>
                   </div>
-                  <span className="font-bold text-slate-800 dark:text-slate-100 w-16 flex-shrink-0">{stock.ticker}</span>
-                  <span className="text-slate-600 dark:text-slate-300 text-sm truncate flex-grow">{stock.name}</span>
-                  <div className="text-slate-400 p-1 flex-shrink-0 ml-auto">
-                    <X className="w-5 h-5" />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
