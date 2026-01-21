@@ -5,7 +5,7 @@
 // - 'refused': NOT stored anywhere - user will be asked again next session
 // - 'pending': default state, shows banner
 
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 
 type ConsentStatus = 'pending' | 'accepted' | 'refused';
 
@@ -34,19 +34,19 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
   });
 
   // Accept cookies - store in localStorage (server call done separately)
-  const acceptCookies = () => {
+  const acceptCookies = useCallback(() => {
     setConsentStatus('accepted');
     localStorage.setItem(STORAGE_KEY, 'accepted');
-  };
+  }, []);
 
   // Refuse cookies - don't persist, just for current session
-  const refuseCookies = () => {
+  const refuseCookies = useCallback(() => {
     setConsentStatus('refused');
     // Don't store in localStorage - will be 'pending' next session
-  };
+  }, []);
 
   // Sync consent from server (called when user logs in)
-  const syncFromServer = (serverConsent: string | null) => {
+  const syncFromServer = useCallback((serverConsent: string | null) => {
     if (serverConsent === 'accepted') {
       setConsentStatus('accepted');
       localStorage.setItem(STORAGE_KEY, 'accepted');
@@ -55,12 +55,12 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
       setConsentStatus('pending');
       localStorage.removeItem(STORAGE_KEY);
     }
-  };
+  }, []);
 
-  const resetConsent = () => {
+  const resetConsent = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     setConsentStatus('pending');
-  };
+  }, []);
 
   return (
     <CookieConsentContext.Provider

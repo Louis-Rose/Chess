@@ -11,63 +11,35 @@ export function CookieBanner() {
   const { language } = useLanguage();
   const { user, isAuthenticated } = useAuth();
   const hasSyncedRef = useRef(false);
-  const userMadeChoiceRef = useRef(false); // Track if user explicitly chose this session
 
-  // Sync consent between local and server when user is authenticated
+  // Sync consent from server when user logs in (one-time)
   useEffect(() => {
     if (isAuthenticated && user && !hasSyncedRef.current) {
       hasSyncedRef.current = true;
-
-      if (user.cookie_consent === 'accepted') {
-        // Server has accepted → sync to local
-        syncFromServer('accepted');
-      } else if (localStorage.getItem('cookie-consent') === 'accepted') {
-        // Local has accepted but server doesn't → try to push to server
-        // Server returns the actual saved consent in response
-        axios.post('/api/cookie-consent', { consent: 'accepted' })
-          .then((response) => {
-            // Only sync if user hasn't made an explicit choice this session
-            if (!userMadeChoiceRef.current) {
-              syncFromServer(response.data.consent);
-            }
-          })
-          .catch((error) => {
-            console.error('Failed to sync cookie consent to server:', error);
-          });
-      }
-      // If both are null/pending, do nothing - banner will show
+      // Server is source of truth - sync to local
+      // For test accounts, server always returns null → shows banner
+      // For normal users with saved consent, server returns 'accepted'
+      syncFromServer(user.cookie_consent);
     }
-    // Reset flags when user logs out
+    // Reset flag when user logs out
     if (!isAuthenticated) {
       hasSyncedRef.current = false;
-      userMadeChoiceRef.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, syncFromServer]);
 
   const handleAccept = async () => {
-    userMadeChoiceRef.current = true; // User explicitly chose
     acceptCookies();
-    // Save to server if logged in (server may ignore for test accounts)
+    // Save to server if logged in (server may ignore for test accounts, that's OK)
     if (isAuthenticated) {
-      try {
-        await axios.post('/api/cookie-consent', { consent: 'accepted' });
-      } catch (error) {
-        console.error('Failed to save cookie consent:', error);
-      }
+      axios.post('/api/cookie-consent', { consent: 'accepted' }).catch(() => {});
     }
   };
 
   const handleRefuse = async () => {
-    userMadeChoiceRef.current = true; // User explicitly chose
     refuseCookies();
-    // Save to server if logged in (server ignores refusals, but we send for consistency)
+    // Save to server if logged in
     if (isAuthenticated) {
-      try {
-        await axios.post('/api/cookie-consent', { consent: 'refused' });
-      } catch (error) {
-        console.error('Failed to save cookie consent:', error);
-      }
+      axios.post('/api/cookie-consent', { consent: 'refused' }).catch(() => {});
     }
   };
 
