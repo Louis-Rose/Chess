@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, ArrowUpDown, Download } from 'lucide-react';
+import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, ChevronDown, ArrowUpDown, Download, Building2, Wallet, Minus, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -278,7 +278,7 @@ export function PortfolioPanel() {
   }
 
   if (!isAuthenticated) {
-    // Show exact same view as authenticated users with mock data (it's blurred anyway)
+    // Show exact same view as authenticated users with mock data
     return (
       <div>
         {/* Header - same as authenticated */}
@@ -301,136 +301,252 @@ export function PortfolioPanel() {
         </div>
 
         <div className="max-w-6xl mx-auto space-y-8">
-          {/* Mock Account Selector */}
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Briefcase className="w-5 h-5 text-green-500" />
-              <span className="font-medium text-slate-900 dark:text-slate-100">
-                {language === 'fr' ? 'Mes comptes' : 'My Accounts'}
-              </span>
+          {/* Account Selector - same structure as authenticated */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+            {/* Toggle button */}
+            <div className="flex justify-center mb-4">
+              <div className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm">
+                <Minus className="w-4 h-4" />
+                {language === 'fr' ? 'Masquer comptes' : 'Hide accounts'}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <div className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium">PEA Boursorama</div>
-              <div className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm">CTO Trade Republic</div>
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-3">
+                <Building2 className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('accounts.title')}</h3>
+              </div>
+              <div className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm">
+                <Plus className="w-4 h-4" />
+                {t('accounts.addAccount')}
+              </div>
+            </div>
+            {/* Account cards grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[
+                { name: 'CTO Cr\u00e9dit Mutuel', type: 'CTO', bank: 'Cr\u00e9dit Mutuel', selected: true },
+                { name: 'COMPTE 2', type: 'CTO', bank: 'Revolut', selected: true },
+                { name: 'ACCOUNT 3', type: 'CTO', bank: 'Cr\u00e9dit Mutuel', selected: false },
+                { name: 'Demo Portfolio', type: 'CTO', bank: '', selected: false },
+              ].map((account) => (
+                <div
+                  key={account.name}
+                  className={`rounded-lg p-4 relative ${
+                    account.selected
+                      ? 'bg-green-50 dark:bg-green-900/30 border-2 border-green-500 shadow-md'
+                      : 'bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Wallet className={`w-4 h-4 ${account.selected ? 'text-green-600' : 'text-slate-400'}`} />
+                    <span className={`font-bold ${account.selected ? 'text-green-700 dark:text-green-400' : 'text-slate-800 dark:text-slate-200'}`}>{account.name}</span>
+                    <div className="ml-auto flex items-center gap-2">
+                      {account.selected && (
+                        <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded">
+                          {language === 'fr' ? 'S\u00e9lectionn\u00e9' : 'Selected'}
+                        </span>
+                      )}
+                      <Trash2 className="w-4 h-4 text-red-400" />
+                    </div>
+                  </div>
+                  <div className="text-sm text-slate-600 dark:text-slate-300 space-y-1">
+                    <p><span className="text-slate-400">{t('accounts.type')}:</span> {account.type}</p>
+                    <p><span className="text-slate-400">{t('accounts.bank')}:</span> {account.bank}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Mock Summary Cards - same structure as authenticated */}
+          {/* Transaction Form - collapsed state */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+            <div className="flex justify-center">
+              <div className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm">
+                <Plus className="w-4 h-4" />
+                {language === 'fr' ? 'Afficher transactions' : 'Show transactions'}
+              </div>
+            </div>
+          </div>
+
+          {/* Summary Cards */}
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
                 <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
-                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">20 000\u20ac</p>
+                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">10 000\u20ac</p>
               </div>
               <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
                 <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
-                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">24 350\u20ac</p>
+                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">13 524\u20ac</p>
               </div>
               <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
-                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Gain latent' : 'Unrealized Gain'}</p>
-                <p className="text-sm md:text-xl font-bold text-green-500">+4 350\u20ac</p>
-                <p className="text-xs text-green-500">+21.8%</p>
+                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}</p>
+                <p className="text-sm md:text-xl font-bold text-green-600">+3 524\u20ac (+35.2%)</p>
               </div>
               <div className="text-center">
-                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Gain r\u00e9alis\u00e9' : 'Realized Gain'}</p>
-                <p className="text-sm md:text-xl font-bold text-green-500">+1 200\u20ac</p>
-                <p className="text-xs text-green-500">+6.0%</p>
+                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value r\u00e9alis\u00e9e (brut)' : 'Realized Gains (gross)'}</p>
+                <p className="text-sm md:text-xl font-bold text-green-600">+295\u20ac (+3%)</p>
               </div>
             </div>
           </div>
 
-          {/* Mock Composition - same structure as authenticated (pie chart + table) */}
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{language === 'fr' ? 'Positions' : 'Holdings'}</h3>
-              <div className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-300 text-sm">
+          {/* Current Holdings - collapsible panel */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none">
+            <div className="flex items-center p-4">
+              <div className="flex items-center gap-3 flex-1">
+                <ChevronDown className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                  {language === 'fr' ? 'Positions actuelles' : 'Current Holdings'}
+                </h3>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-400 text-sm">
                 <Download className="w-4 h-4" />
                 <span>{language === 'fr' ? 'T\u00e9l\u00e9charger' : 'Download'}</span>
               </div>
+              <ArrowUpDown className="w-5 h-5 text-slate-400 ml-2" />
             </div>
-            <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
-              <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
-                {/* Pie Chart placeholder */}
-                <div className="w-full md:w-1/2 h-[280px] flex items-center justify-center">
-                  <svg viewBox="0 0 200 200" className="w-48 h-48">
-                    <circle cx="100" cy="100" r="80" fill="none" stroke="#22c55e" strokeWidth="30" strokeDasharray="125 377" transform="rotate(-90 100 100)" />
-                    <circle cx="100" cy="100" r="80" fill="none" stroke="#3b82f6" strokeWidth="30" strokeDasharray="100 377" strokeDashoffset="-125" transform="rotate(-90 100 100)" />
-                    <circle cx="100" cy="100" r="80" fill="none" stroke="#a855f7" strokeWidth="30" strokeDasharray="80 377" strokeDashoffset="-225" transform="rotate(-90 100 100)" />
-                    <circle cx="100" cy="100" r="80" fill="none" stroke="#f59e0b" strokeWidth="30" strokeDasharray="72 377" strokeDashoffset="-305" transform="rotate(-90 100 100)" />
-                  </svg>
-                </div>
-                {/* Holdings Table */}
-                <div className="w-full md:w-1/2">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b border-slate-300 dark:border-slate-500">
-                        <th className="pb-2">{language === 'fr' ? 'Action' : 'Stock'}</th>
-                        <th className="pb-2 text-right">{language === 'fr' ? 'Qt\u00e9' : 'Shares'}</th>
-                        <th className="pb-2 text-right">{language === 'fr' ? 'Prix' : 'Price'}</th>
-                        <th className="pb-2 text-right">{language === 'fr' ? 'Valeur' : 'Value'}</th>
-                        <th className="pb-2 text-right">{language === 'fr' ? 'Gain' : 'Gain'}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { ticker: 'AAPL', qty: 15, price: '$227.50', value: '3 200\u20ac', gain: '+18.2%', color: '#22c55e' },
-                        { ticker: 'MSFT', qty: 8, price: '$415.80', value: '3 100\u20ac', gain: '+24.5%', color: '#3b82f6' },
-                        { ticker: 'MC.PA', qty: 4, price: '\u20ac785.40', value: '3 140\u20ac', gain: '+12.1%', color: '#a855f7' },
-                        { ticker: 'NVDA', qty: 25, price: '$138.25', value: '3 230\u20ac', gain: '+45.3%', color: '#f59e0b' },
-                      ].map((h) => (
-                        <tr key={h.ticker} className="border-b border-slate-200 dark:border-slate-600">
-                          <td className="py-2 font-bold" style={{ color: h.color }}>{h.ticker}</td>
-                          <td className="py-2 text-right text-slate-600 dark:text-slate-300">{h.qty}</td>
-                          <td className="py-2 text-right text-slate-600 dark:text-slate-300">{h.price}</td>
-                          <td className="py-2 text-right text-slate-800 dark:text-slate-100 font-medium">{h.value}</td>
-                          <td className="py-2 text-right font-medium text-green-600">{h.gain}</td>
+            <div className="px-4 pb-4">
+              <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
+                <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
+                  {/* Pie Chart with labels */}
+                  <div className="w-full md:w-1/2 h-[300px] flex items-center justify-center relative">
+                    <svg viewBox="0 0 200 200" className="w-48 h-48">
+                      <circle cx="100" cy="100" r="60" fill="none" stroke="#22c55e" strokeWidth="25" strokeDasharray="94 283" transform="rotate(-90 100 100)" />
+                      <circle cx="100" cy="100" r="60" fill="none" stroke="#3b82f6" strokeWidth="25" strokeDasharray="75 283" strokeDashoffset="-94" transform="rotate(-90 100 100)" />
+                      <circle cx="100" cy="100" r="60" fill="none" stroke="#f59e0b" strokeWidth="25" strokeDasharray="60 283" strokeDashoffset="-169" transform="rotate(-90 100 100)" />
+                      <circle cx="100" cy="100" r="60" fill="none" stroke="#06b6d4" strokeWidth="25" strokeDasharray="54 283" strokeDashoffset="-229" transform="rotate(-90 100 100)" />
+                    </svg>
+                    {/* Labels */}
+                    <span className="absolute top-4 right-4 text-xs font-bold text-green-500">NVDA 27.4%</span>
+                    <span className="absolute top-1/4 left-0 text-xs font-bold text-blue-500">GOOGL 22.2%</span>
+                    <span className="absolute bottom-1/4 left-0 text-xs font-bold text-amber-500">AMZN 19.9%</span>
+                    <span className="absolute bottom-4 left-1/4 text-xs font-bold text-cyan-500">META 17.4%</span>
+                    <span className="absolute bottom-8 right-1/4 text-xs font-bold text-slate-400">MSFT 13.1%</span>
+                  </div>
+                  {/* Holdings Table */}
+                  <div className="w-full md:w-1/2 overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b border-slate-300 dark:border-slate-500">
+                          <th className="pb-2">{language === 'fr' ? 'Action' : 'Stock'}</th>
+                          <th className="pb-2 text-right">{language === 'fr' ? 'Qt\u00e9' : 'Shares'}</th>
+                          <th className="pb-2 text-right">{language === 'fr' ? 'Prix' : 'Price'}</th>
+                          <th className="pb-2 text-right">{language === 'fr' ? 'Valeur (EUR)' : 'Value (EUR)'}</th>
+                          <th className="pb-2 text-right">{language === 'fr' ? 'Gain' : 'Gain'}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {[
+                          { ticker: 'NVDA', qty: 535, price: '$178.07', value: '37\u20ac', gain: '+45.5%', color: '#22c55e' },
+                          { ticker: 'GOOGL', qty: 240, price: '$322.00', value: '30\u20ac', gain: '+95.9%', color: '#3b82f6' },
+                          { ticker: 'AMZN', qty: 300, price: '$231.00', value: '27\u20ac', gain: '+25.9%', color: '#f59e0b' },
+                          { ticker: 'META', qty: 100, price: '$604.12', value: '23\u20ac', gain: '+16%', color: '#06b6d4' },
+                          { ticker: 'MSFT', qty: 100, price: '$454.52', value: '18\u20ac', gain: '+0.9%', color: '#94a3b8' },
+                        ].map((h) => (
+                          <tr key={h.ticker} className="border-b border-slate-200 dark:border-slate-600">
+                            <td className="py-2 font-bold" style={{ color: h.color }}>{h.ticker}</td>
+                            <td className="py-2 text-right text-slate-600 dark:text-slate-300">{h.qty}</td>
+                            <td className="py-2 text-right text-slate-600 dark:text-slate-300">{h.price}</td>
+                            <td className="py-2 text-right text-slate-800 dark:text-slate-100 font-medium">{h.value}</td>
+                            <td className="py-2 text-right font-medium text-green-600">{h.gain}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                {/* LUMNA branding */}
+                <div className="flex items-center justify-end gap-2 mt-3 mr-2">
+                  <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
+                    <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
+                      <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
+                      <rect x="56" y="48" width="16" height="56" rx="2" fill="white" />
+                      <rect x="84" y="32" width="16" height="72" rx="2" fill="white" />
+                    </svg>
+                  </div>
+                  <span className="text-lg font-bold text-slate-300">LUMNA</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Mock Performance Chart - same structure as authenticated */}
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex-1"></div>
-              <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">{language === 'fr' ? 'Performance' : 'Performance'}</h3>
-              <div className="flex-1 flex justify-end">
-                <div className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-300 text-sm">
-                  <Download className="w-4 h-4" />
+          {/* Portfolio Performance - collapsible panel */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none">
+            <div className="flex items-center p-4">
+              <div className="flex items-center gap-3 flex-1">
+                <ChevronDown className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                  {language === 'fr' ? 'Performance du portefeuille' : 'Portfolio Performance'}
+                </h3>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-400 text-sm">
+                <Download className="w-4 h-4" />
+                <span>{language === 'fr' ? 'T\u00e9l\u00e9charger' : 'Download'}</span>
+              </div>
+              <ArrowUpDown className="w-5 h-5 text-slate-400 ml-2" />
+            </div>
+            <div className="px-4 pb-4">
+              {/* Toggles */}
+              <div className="flex flex-wrap justify-center gap-4 mb-4">
+                <div className="text-center">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Benchmark:</p>
+                  <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
+                    <div className="px-3 py-1 text-sm bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300">All</div>
+                    <div className="px-3 py-1 text-sm bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 border-l border-slate-300 dark:border-slate-500">Annualized</div>
+                  </div>
+                </div>
+                <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
+                  <div className="px-3 py-1 text-sm bg-green-600 text-white">Nasdaq</div>
+                  <div className="px-3 py-1 text-sm bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300">S&P 500</div>
                 </div>
               </div>
-            </div>
-            {/* Benchmark toggle */}
-            <div className="flex justify-center gap-2 mb-4">
-              <div className="px-3 py-1.5 rounded-lg text-sm font-medium bg-green-600 text-white">NASDAQ</div>
-              <div className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300">S&P 500</div>
-            </div>
-            {/* Chart placeholder - line chart style */}
-            <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 h-[300px] relative">
-              <svg viewBox="0 0 400 200" className="w-full h-full" preserveAspectRatio="none">
-                {/* Grid lines */}
-                <line x1="0" y1="50" x2="400" y2="50" stroke="#94a3b8" strokeWidth="0.5" />
-                <line x1="0" y1="100" x2="400" y2="100" stroke="#94a3b8" strokeWidth="0.5" />
-                <line x1="0" y1="150" x2="400" y2="150" stroke="#94a3b8" strokeWidth="0.5" />
-                {/* Portfolio line (green) */}
-                <path d="M0,180 Q50,170 100,150 T200,120 T300,80 T400,40" fill="none" stroke="#22c55e" strokeWidth="2" />
-                {/* Benchmark line (gray) */}
-                <path d="M0,180 Q50,175 100,160 T200,140 T300,110 T400,70" fill="none" stroke="#94a3b8" strokeWidth="2" strokeDasharray="5,5" />
-              </svg>
-              {/* Legend */}
-              <div className="absolute bottom-2 right-2 flex items-center gap-4 text-xs">
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-0.5 bg-green-500"></div>
-                  <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Portefeuille' : 'Portfolio'}</span>
+              <div className="flex justify-center mb-4">
+                <div className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                  <Eye className="w-4 h-4" />
+                  Private mode (base: 100\u20ac)
                 </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-0.5 bg-slate-400 border-dashed"></div>
-                  <span className="text-slate-600 dark:text-slate-300">NASDAQ</span>
+              </div>
+              {/* Metrics cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 text-center">
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Holding period</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">3 years, 2 months and 4 days</p>
+                  <p className="text-xs text-slate-400 mt-2">Weighted period</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">1 year, 7 months and 26 days</p>
                 </div>
+                <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 text-center">
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Portfolio Gains</p>
+                  <p className="text-xl font-bold text-green-500">+35\u20ac (+35.2%)</p>
+                </div>
+                <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 text-center">
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Benchmark (Nasdaq)</p>
+                  <p className="text-xl font-bold text-green-500">+22\u20ac (+22.3%)</p>
+                </div>
+              </div>
+              {/* Chart placeholder */}
+              <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 h-[300px] relative">
+                <svg viewBox="0 0 400 200" className="w-full h-full" preserveAspectRatio="none">
+                  <line x1="0" y1="50" x2="400" y2="50" stroke="#94a3b8" strokeWidth="0.5" />
+                  <line x1="0" y1="100" x2="400" y2="100" stroke="#94a3b8" strokeWidth="0.5" />
+                  <line x1="0" y1="150" x2="400" y2="150" stroke="#94a3b8" strokeWidth="0.5" />
+                  <path d="M0,180 Q50,170 100,150 T200,100 T300,60 T400,30" fill="none" stroke="#22c55e" strokeWidth="2" />
+                  <path d="M0,180 Q50,175 100,155 T200,120 T300,90 T400,60" fill="none" stroke="#3b82f6" strokeWidth="2" strokeDasharray="5,5" />
+                </svg>
+                <div className="absolute bottom-2 right-4 flex items-center gap-4 text-xs">
+                  <div className="flex items-center gap-1"><div className="w-3 h-0.5 bg-green-500"></div><span className="text-slate-500 dark:text-slate-400">Portfolio</span></div>
+                  <div className="flex items-center gap-1"><div className="w-3 h-0.5 bg-blue-500"></div><span className="text-slate-500 dark:text-slate-400">Benchmark (EQQQ)</span></div>
+                </div>
+              </div>
+              {/* LUMNA branding */}
+              <div className="flex items-center justify-end gap-2 mt-3 mr-2">
+                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
+                  <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
+                    <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
+                    <rect x="56" y="48" width="16" height="56" rx="2" fill="white" />
+                    <rect x="84" y="32" width="16" height="72" rx="2" fill="white" />
+                  </svg>
+                </div>
+                <span className="text-lg font-bold text-slate-300">LUMNA</span>
               </div>
             </div>
           </div>
