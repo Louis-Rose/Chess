@@ -278,7 +278,7 @@ export function PortfolioPanel() {
   }
 
   if (!isAuthenticated) {
-    // Show exact same view as authenticated users with mock data
+    // Show exact same view as authenticated users with fake data
     return (
       <div>
         {/* Header - same as authenticated */}
@@ -289,7 +289,7 @@ export function PortfolioPanel() {
             <div className="flex items-center gap-4 mt-2">
               {/* Currency Toggle */}
               <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-white/20">
-                <div className="px-3 py-2 text-sm font-medium bg-green-600 text-white">EUR \u20ac</div>
+                <div className="px-3 py-2 text-sm font-medium bg-green-600 text-white">EUR €</div>
                 <div className="px-3 py-2 text-sm font-medium bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-200">USD $</div>
               </div>
               <div className="px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-300 flex items-center gap-2 text-sm">
@@ -321,13 +321,11 @@ export function PortfolioPanel() {
                 {t('accounts.addAccount')}
               </div>
             </div>
-            {/* Account cards grid */}
+            {/* Account cards grid - only 2 accounts */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {[
-                { name: 'CTO Cr\u00e9dit Mutuel', type: 'CTO', bank: 'Cr\u00e9dit Mutuel', selected: true },
-                { name: 'COMPTE 2', type: 'CTO', bank: 'Revolut', selected: true },
-                { name: 'ACCOUNT 3', type: 'CTO', bank: 'Cr\u00e9dit Mutuel', selected: false },
-                { name: 'Demo Portfolio', type: 'CTO', bank: '', selected: false },
+                { name: 'PEA Boursorama', type: 'PEA', bank: 'Boursorama', selected: true },
+                { name: 'CTO Trade Republic', type: 'CTO', bank: 'Trade Republic', selected: false },
               ].map((account) => (
                 <div
                   key={account.name}
@@ -343,7 +341,7 @@ export function PortfolioPanel() {
                     <div className="ml-auto flex items-center gap-2">
                       {account.selected && (
                         <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded">
-                          {language === 'fr' ? 'S\u00e9lectionn\u00e9' : 'Selected'}
+                          {language === 'fr' ? 'Sélectionné' : 'Selected'}
                         </span>
                       )}
                       <Trash2 className="w-4 h-4 text-red-400" />
@@ -368,24 +366,24 @@ export function PortfolioPanel() {
             </div>
           </div>
 
-          {/* Summary Cards */}
+          {/* Summary Cards - fake data: 20,000€ invested */}
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
                 <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
-                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">10 000\u20ac</p>
+                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">20 000€</p>
               </div>
               <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
                 <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
-                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">13 524\u20ac</p>
+                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">27 050€</p>
               </div>
               <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
                 <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}</p>
-                <p className="text-sm md:text-xl font-bold text-green-600">+3 524\u20ac (+35.2%)</p>
+                <p className="text-sm md:text-xl font-bold text-green-600">+7 050€ (+35.2%)</p>
               </div>
               <div className="text-center">
-                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value r\u00e9alis\u00e9e (brut)' : 'Realized Gains (gross)'}</p>
-                <p className="text-sm md:text-xl font-bold text-green-600">+295\u20ac (+3%)</p>
+                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value réalisée (brut)' : 'Realized Gains (gross)'}</p>
+                <p className="text-sm md:text-xl font-bold text-green-600">+590€ (+3%)</p>
               </div>
             </div>
           </div>
@@ -401,27 +399,29 @@ export function PortfolioPanel() {
               </div>
               <div className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-400 text-sm">
                 <Download className="w-4 h-4" />
-                <span>{language === 'fr' ? 'T\u00e9l\u00e9charger' : 'Download'}</span>
+                <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
               </div>
               <ArrowUpDown className="w-5 h-5 text-slate-400 ml-2" />
             </div>
             <div className="px-4 pb-4">
               <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
                 <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
-                  {/* Pie Chart with labels */}
+                  {/* Filled Pie Chart with labels */}
                   <div className="w-full md:w-1/2 h-[300px] flex items-center justify-center relative">
                     <svg viewBox="0 0 200 200" className="w-48 h-48">
-                      <circle cx="100" cy="100" r="60" fill="none" stroke="#22c55e" strokeWidth="25" strokeDasharray="94 283" transform="rotate(-90 100 100)" />
-                      <circle cx="100" cy="100" r="60" fill="none" stroke="#3b82f6" strokeWidth="25" strokeDasharray="75 283" strokeDashoffset="-94" transform="rotate(-90 100 100)" />
-                      <circle cx="100" cy="100" r="60" fill="none" stroke="#f59e0b" strokeWidth="25" strokeDasharray="60 283" strokeDashoffset="-169" transform="rotate(-90 100 100)" />
-                      <circle cx="100" cy="100" r="60" fill="none" stroke="#06b6d4" strokeWidth="25" strokeDasharray="54 283" strokeDashoffset="-229" transform="rotate(-90 100 100)" />
+                      {/* Filled pie slices using path elements */}
+                      <path d="M100,100 L100,20 A80,80 0 0,1 169,65 Z" fill="#22c55e" />
+                      <path d="M100,100 L169,65 A80,80 0 0,1 169,135 Z" fill="#3b82f6" />
+                      <path d="M100,100 L169,135 A80,80 0 0,1 100,180 Z" fill="#f59e0b" />
+                      <path d="M100,100 L100,180 A80,80 0 0,1 31,135 Z" fill="#06b6d4" />
+                      <path d="M100,100 L31,135 A80,80 0 0,1 100,20 Z" fill="#94a3b8" />
                     </svg>
-                    {/* Labels */}
-                    <span className="absolute top-4 right-4 text-xs font-bold text-green-500">NVDA 27.4%</span>
-                    <span className="absolute top-1/4 left-0 text-xs font-bold text-blue-500">GOOGL 22.2%</span>
-                    <span className="absolute bottom-1/4 left-0 text-xs font-bold text-amber-500">AMZN 19.9%</span>
-                    <span className="absolute bottom-4 left-1/4 text-xs font-bold text-cyan-500">META 17.4%</span>
-                    <span className="absolute bottom-8 right-1/4 text-xs font-bold text-slate-400">MSFT 13.1%</span>
+                    {/* Labels positioned around the pie */}
+                    <span className="absolute top-2 right-0 text-sm font-bold text-green-500">NVDA 27.4%</span>
+                    <span className="absolute top-1/3 -right-4 text-sm font-bold text-blue-500">MSFT 13.1%</span>
+                    <span className="absolute bottom-1/4 right-0 text-sm font-bold text-amber-500">AMZN 19.9%</span>
+                    <span className="absolute bottom-4 left-1/4 text-sm font-bold text-cyan-500">META 17.4%</span>
+                    <span className="absolute top-1/3 -left-4 text-sm font-bold text-red-500">GOOGL 22.2%</span>
                   </div>
                   {/* Holdings Table */}
                   <div className="w-full md:w-1/2 overflow-x-auto">
@@ -429,7 +429,7 @@ export function PortfolioPanel() {
                       <thead>
                         <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b border-slate-300 dark:border-slate-500">
                           <th className="pb-2">{language === 'fr' ? 'Action' : 'Stock'}</th>
-                          <th className="pb-2 text-right">{language === 'fr' ? 'Qt\u00e9' : 'Shares'}</th>
+                          <th className="pb-2 text-right">{language === 'fr' ? 'Qté' : 'Shares'}</th>
                           <th className="pb-2 text-right">{language === 'fr' ? 'Prix' : 'Price'}</th>
                           <th className="pb-2 text-right">{language === 'fr' ? 'Valeur (EUR)' : 'Value (EUR)'}</th>
                           <th className="pb-2 text-right">{language === 'fr' ? 'Gain' : 'Gain'}</th>
@@ -437,11 +437,11 @@ export function PortfolioPanel() {
                       </thead>
                       <tbody>
                         {[
-                          { ticker: 'NVDA', qty: 535, price: '$178.07', value: '37\u20ac', gain: '+45.5%', color: '#22c55e' },
-                          { ticker: 'GOOGL', qty: 240, price: '$322.00', value: '30\u20ac', gain: '+95.9%', color: '#3b82f6' },
-                          { ticker: 'AMZN', qty: 300, price: '$231.00', value: '27\u20ac', gain: '+25.9%', color: '#f59e0b' },
-                          { ticker: 'META', qty: 100, price: '$604.12', value: '23\u20ac', gain: '+16%', color: '#06b6d4' },
-                          { ticker: 'MSFT', qty: 100, price: '$454.52', value: '18\u20ac', gain: '+0.9%', color: '#94a3b8' },
+                          { ticker: 'NVDA', qty: 40, price: '$178.07', value: '7 410€', gain: '+45.5%', color: '#22c55e' },
+                          { ticker: 'GOOGL', qty: 18, price: '$322.00', value: '6 000€', gain: '+35.9%', color: '#ef4444' },
+                          { ticker: 'AMZN', qty: 22, price: '$231.00', value: '5 380€', gain: '+25.9%', color: '#f59e0b' },
+                          { ticker: 'META', qty: 8, price: '$604.12', value: '4 700€', gain: '+16%', color: '#06b6d4' },
+                          { ticker: 'MSFT', qty: 7, price: '$454.52', value: '3 560€', gain: '+8.9%', color: '#3b82f6' },
                         ].map((h) => (
                           <tr key={h.ticker} className="border-b border-slate-200 dark:border-slate-600">
                             <td className="py-2 font-bold" style={{ color: h.color }}>{h.ticker}</td>
@@ -481,7 +481,7 @@ export function PortfolioPanel() {
               </div>
               <div className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-400 text-sm">
                 <Download className="w-4 h-4" />
-                <span>{language === 'fr' ? 'T\u00e9l\u00e9charger' : 'Download'}</span>
+                <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
               </div>
               <ArrowUpDown className="w-5 h-5 text-slate-400 ml-2" />
             </div>
@@ -503,38 +503,57 @@ export function PortfolioPanel() {
               <div className="flex justify-center mb-4">
                 <div className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
                   <Eye className="w-4 h-4" />
-                  Private mode (base: 100\u20ac)
+                  Private mode (base: 100€)
                 </div>
               </div>
               {/* Metrics cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 text-center">
                   <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Holding period</p>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm">3 years, 2 months and 4 days</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">2 years, 4 months and 12 days</p>
                   <p className="text-xs text-slate-400 mt-2">Weighted period</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">1 year, 7 months and 26 days</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">1 year, 3 months and 8 days</p>
                 </div>
                 <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 text-center">
                   <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Portfolio Gains</p>
-                  <p className="text-xl font-bold text-green-500">+35\u20ac (+35.2%)</p>
+                  <p className="text-xl font-bold text-green-500">+35€ (+35.2%)</p>
                 </div>
                 <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 text-center">
                   <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Benchmark (Nasdaq)</p>
-                  <p className="text-xl font-bold text-green-500">+22\u20ac (+22.3%)</p>
+                  <p className="text-xl font-bold text-green-500">+22€ (+22.3%)</p>
                 </div>
               </div>
-              {/* Chart placeholder */}
-              <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 h-[300px] relative">
-                <svg viewBox="0 0 400 200" className="w-full h-full" preserveAspectRatio="none">
-                  <line x1="0" y1="50" x2="400" y2="50" stroke="#94a3b8" strokeWidth="0.5" />
-                  <line x1="0" y1="100" x2="400" y2="100" stroke="#94a3b8" strokeWidth="0.5" />
-                  <line x1="0" y1="150" x2="400" y2="150" stroke="#94a3b8" strokeWidth="0.5" />
-                  <path d="M0,180 Q50,170 100,150 T200,100 T300,60 T400,30" fill="none" stroke="#22c55e" strokeWidth="2" />
-                  <path d="M0,180 Q50,175 100,155 T200,120 T300,90 T400,60" fill="none" stroke="#3b82f6" strokeWidth="2" strokeDasharray="5,5" />
-                </svg>
-                <div className="absolute bottom-2 right-4 flex items-center gap-4 text-xs">
-                  <div className="flex items-center gap-1"><div className="w-3 h-0.5 bg-green-500"></div><span className="text-slate-500 dark:text-slate-400">Portfolio</span></div>
-                  <div className="flex items-center gap-1"><div className="w-3 h-0.5 bg-blue-500"></div><span className="text-slate-500 dark:text-slate-400">Benchmark (EQQQ)</span></div>
+              {/* Chart with axis labels */}
+              <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-4 relative">
+                {/* Y-axis labels */}
+                <div className="absolute left-2 top-4 bottom-16 flex flex-col justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span>150€</span>
+                  <span>100€</span>
+                  <span>50€</span>
+                  <span>0€</span>
+                </div>
+                {/* Chart area */}
+                <div className="ml-10 h-[220px]">
+                  <svg viewBox="0 0 400 200" className="w-full h-full" preserveAspectRatio="none">
+                    <line x1="0" y1="50" x2="400" y2="50" stroke="#94a3b8" strokeWidth="0.5" />
+                    <line x1="0" y1="100" x2="400" y2="100" stroke="#94a3b8" strokeWidth="0.5" />
+                    <line x1="0" y1="150" x2="400" y2="150" stroke="#94a3b8" strokeWidth="0.5" />
+                    <path d="M0,180 Q50,170 100,150 T200,100 T300,60 T400,30" fill="none" stroke="#22c55e" strokeWidth="2" />
+                    <path d="M0,180 Q50,175 100,155 T200,120 T300,90 T400,60" fill="none" stroke="#3b82f6" strokeWidth="2" strokeDasharray="5,5" />
+                  </svg>
+                </div>
+                {/* X-axis labels */}
+                <div className="ml-10 flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  <span>Jan 2023</span>
+                  <span>Jul 2023</span>
+                  <span>Jan 2024</span>
+                  <span>Jul 2024</span>
+                  <span>Jan 2025</span>
+                </div>
+                {/* Legend */}
+                <div className="flex justify-center items-center gap-6 text-xs mt-3">
+                  <div className="flex items-center gap-1"><div className="w-4 h-0.5 bg-green-500"></div><span className="text-slate-500 dark:text-slate-400">Portfolio</span></div>
+                  <div className="flex items-center gap-1"><div className="w-4 h-0.5 bg-blue-500 border-dashed"></div><span className="text-slate-500 dark:text-slate-400">Benchmark (EQQQ)</span></div>
                 </div>
               </div>
               {/* LUMNA branding */}
