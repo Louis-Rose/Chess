@@ -26,7 +26,37 @@ import type {
   CompositionData,
   PerformanceData,
   PerformanceDataPoint,
+  CompositionItem,
 } from './portfolio/types';
+
+// Generate demo composition data for unauthenticated preview
+// This ensures the preview uses the exact same PortfolioComposition component as authenticated users
+const generateDemoCompositionData = (): CompositionData => {
+  const holdings: CompositionItem[] = [
+    { ticker: 'NVDA', quantity: 40, native_currency: 'USD', current_price_native: 178.07, current_price: 178.07, current_value: 7490, cost_basis: 5150, cost_basis_eur: 5150, gain: 2340, gain_eur: 2340, gain_pct: 45.4, weight: 27.7, color: '#22c55e' },
+    { ticker: 'GOOGL', quantity: 18, native_currency: 'USD', current_price_native: 322.00, current_price: 322.00, current_value: 6090, cost_basis: 4480, cost_basis_eur: 4480, gain: 1610, gain_eur: 1610, gain_pct: 35.9, weight: 22.5, color: '#ef4444' },
+    { ticker: 'AMZN', quantity: 22, native_currency: 'USD', current_price_native: 231.00, current_price: 231.00, current_value: 5300, cost_basis: 4210, cost_basis_eur: 4210, gain: 1090, gain_eur: 1090, gain_pct: 25.9, weight: 19.6, color: '#f59e0b' },
+    { ticker: 'META', quantity: 8, native_currency: 'USD', current_price_native: 604.12, current_price: 604.12, current_value: 4700, cost_basis: 4050, cost_basis_eur: 4050, gain: 650, gain_eur: 650, gain_pct: 16.0, weight: 17.4, color: '#06b6d4' },
+    { ticker: 'MSFT', quantity: 7, native_currency: 'USD', current_price_native: 454.52, current_price: 454.52, current_value: 3440, cost_basis: 3160, cost_basis_eur: 3160, gain: 280, gain_eur: 280, gain_pct: 8.9, weight: 12.7, color: '#3b82f6' },
+  ];
+
+  const totalValue = holdings.reduce((sum, h) => sum + h.current_value, 0);
+  const totalCostBasis = holdings.reduce((sum, h) => sum + h.cost_basis, 0);
+
+  return {
+    holdings,
+    total_value_usd: totalValue,
+    total_value_eur: totalValue,
+    total_cost_basis: totalCostBasis,
+    total_cost_basis_eur: totalCostBasis,
+    total_gain_usd: totalValue - totalCostBasis,
+    total_gain_pct: Math.round((totalValue - totalCostBasis) / totalCostBasis * 1000) / 10,
+    realized_gains_usd: 590,
+    realized_gains_eur: 590,
+    sold_cost_basis_eur: 0,
+    eurusd_rate: 1.0,
+  };
+};
 
 // Generate demo performance data for unauthenticated preview
 // This ensures the preview uses the exact same PerformanceChart component as authenticated users
@@ -460,7 +490,7 @@ export function PortfolioPanel() {
             </div>
           </div>
 
-          {/* Current Holdings - collapsible panel */}
+          {/* Current Holdings - using actual PortfolioComposition component with demo data */}
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none">
             <div className="flex items-center p-4">
               <div className="flex items-center gap-3 flex-1">
@@ -476,74 +506,14 @@ export function PortfolioPanel() {
               <ArrowUpDown className="w-5 h-5 text-slate-400 ml-2" />
             </div>
             <div className="px-4 pb-4">
-              <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
-                <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
-                  {/* Filled Pie Chart with labels - matching authenticated view */}
-                  <div className="w-full md:w-1/2 h-[300px] flex items-center justify-center">
-                    <svg viewBox="0 0 260 260" className="w-full h-full max-w-[280px]">
-                      {/* Pie slices with white stroke for contour effect - colors match labels */}
-                      {/* NVDA 27.6% - green - top right */}
-                      <path d="M130,130 L130,65 A65,65 0 0,1 186,95 Z" fill="#22c55e" stroke="white" strokeWidth="2" />
-                      {/* MSFT 12.7% - blue - right */}
-                      <path d="M130,130 L186,95 A65,65 0 0,1 186,165 Z" fill="#3b82f6" stroke="white" strokeWidth="2" />
-                      {/* META 17.4% - cyan - bottom right */}
-                      <path d="M130,130 L186,165 A65,65 0 0,1 130,195 Z" fill="#06b6d4" stroke="white" strokeWidth="2" />
-                      {/* AMZN 19.6% - amber - bottom left */}
-                      <path d="M130,130 L130,195 A65,65 0 0,1 74,165 Z" fill="#f59e0b" stroke="white" strokeWidth="2" />
-                      {/* GOOGL 22.5% - red - top left */}
-                      <path d="M130,130 L74,165 A65,65 0 0,1 130,65 Z" fill="#ef4444" stroke="white" strokeWidth="2" />
-                      {/* Labels positioned close to pie slices */}
-                      <text x="200" y="55" fontSize="13" fontWeight="bold" fill="#22c55e">NVDA 27.6%</text>
-                      <text x="200" y="130" fontSize="13" fontWeight="bold" fill="#3b82f6">MSFT 12.7%</text>
-                      <text x="145" y="230" fontSize="13" fontWeight="bold" fill="#06b6d4">META 17.4%</text>
-                      <text x="15" y="210" fontSize="13" fontWeight="bold" fill="#f59e0b">AMZN 19.6%</text>
-                      <text x="5" y="80" fontSize="13" fontWeight="bold" fill="#ef4444">GOOGL 22.5%</text>
-                    </svg>
-                  </div>
-                  {/* Holdings Table */}
-                  <div className="w-full md:w-1/2 overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b border-slate-300 dark:border-slate-500">
-                          <th className="pb-2">{language === 'fr' ? 'Action' : 'Stock'}</th>
-                          <th className="pb-2 text-right">{language === 'fr' ? 'Qté' : 'Shares'}</th>
-                          <th className="pb-2 text-right">{language === 'fr' ? 'Prix' : 'Price'}</th>
-                          <th className="pb-2 text-right">{language === 'fr' ? 'Valeur (EUR)' : 'Value (EUR)'}</th>
-                          <th className="pb-2 text-right">{language === 'fr' ? 'Gain' : 'Gain'}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          { ticker: 'NVDA', qty: 40, price: '$178.07', value: '7 410€', gain: '+45.5%', color: '#22c55e' },
-                          { ticker: 'GOOGL', qty: 18, price: '$322.00', value: '6 000€', gain: '+35.9%', color: '#ef4444' },
-                          { ticker: 'AMZN', qty: 22, price: '$231.00', value: '5 380€', gain: '+25.9%', color: '#f59e0b' },
-                          { ticker: 'META', qty: 8, price: '$604.12', value: '4 700€', gain: '+16%', color: '#06b6d4' },
-                          { ticker: 'MSFT', qty: 7, price: '$454.52', value: '3 560€', gain: '+8.9%', color: '#3b82f6' },
-                        ].map((h) => (
-                          <tr key={h.ticker} className="border-b border-slate-200 dark:border-slate-600">
-                            <td className="py-2 font-bold" style={{ color: h.color }}>{h.ticker}</td>
-                            <td className="py-2 text-right text-slate-600 dark:text-slate-300">{h.qty}</td>
-                            <td className="py-2 text-right text-slate-600 dark:text-slate-300">{h.price}</td>
-                            <td className="py-2 text-right text-slate-800 dark:text-slate-100 font-medium">{h.value}</td>
-                            <td className="py-2 text-right font-medium text-green-600">{h.gain}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                {/* LUMNA branding */}
-                <div className="flex items-center justify-end gap-2 mt-3 mr-2">
-                  <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
-                    <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
-                      <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
-                      <rect x="56" y="48" width="16" height="56" rx="2" fill="white" />
-                      <rect x="84" y="32" width="16" height="72" rx="2" fill="white" />
-                    </svg>
-                  </div>
-                  <span className="text-lg font-bold text-slate-300">LUMNA</span>
-                </div>
-              </div>
+              <PortfolioComposition
+                compositionData={generateDemoCompositionData()}
+                isLoading={false}
+                privateMode={false}
+                currency="EUR"
+                hideTitle
+                hideDownloadButton
+              />
             </div>
           </div>
 
