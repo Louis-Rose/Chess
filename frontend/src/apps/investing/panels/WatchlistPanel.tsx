@@ -109,7 +109,7 @@ export function WatchlistPanel() {
   }
 
   if (!isAuthenticated) {
-    // Show preview content (login overlay is in InvestingLayout)
+    // Show exact same view as authenticated users with mock data (it's blurred anyway)
     return (
       <div>
         <div className="flex flex-col items-center gap-2 mb-6 mt-8">
@@ -120,53 +120,64 @@ export function WatchlistPanel() {
         </div>
 
         <div className="max-w-2xl mx-auto space-y-6">
-          {/* Mock Add Company Form */}
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+          {/* Add Company - same structure as authenticated */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
               {language === 'fr' ? 'Ajouter une entreprise \u00e0 ma watchlist' : 'Add a company to my watchlist'}
             </h3>
+            {/* Index Filter Toggles - same as authenticated */}
+            <div className="flex items-center gap-4 mb-3">
+              <span className="text-sm text-slate-500 dark:text-slate-400">{language === 'fr' ? 'Indices:' : 'Indices:'}</span>
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" checked readOnly className="w-4 h-4 rounded border-slate-300 text-blue-600" />
+                <span className="text-sm text-slate-700 dark:text-slate-300">S&P 500</span>
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" checked readOnly className="w-4 h-4 rounded border-slate-300 text-blue-600" />
+                <span className="text-sm text-slate-700 dark:text-slate-300">STOXX Europe 600</span>
+              </label>
+            </div>
             <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
-                className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
-                disabled
-              />
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2"
-                disabled
-              >
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
+                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800"
+                  disabled
+                />
+              </div>
+              <button className="bg-blue-600 text-white px-6 py-2 rounded-lg flex items-center gap-2">
                 <Plus className="w-4 h-4" />
                 {language === 'fr' ? 'Ajouter' : 'Add'}
               </button>
             </div>
           </div>
 
-          {/* Mock Watchlist */}
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+          {/* Watchlist - same structure as authenticated */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
-              {language === 'fr' ? 'Actions suivies' : 'Watched Stocks'}
+              {language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}
+              <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">(4)</span>
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {[
-                { ticker: 'GOOGL', name: 'Alphabet Inc.', price: '$178.25', change: '+2.4%' },
-                { ticker: 'AMZN', name: 'Amazon.com', price: '$185.60', change: '+1.8%' },
-                { ticker: 'TSLA', name: 'Tesla Inc.', price: '$248.50', change: '-0.9%' },
-                { ticker: 'META', name: 'Meta Platforms', price: '$505.75', change: '+3.2%' },
+                { ticker: 'GOOGL', name: 'Alphabet Inc.' },
+                { ticker: 'AMZN', name: 'Amazon.com Inc.' },
+                { ticker: 'TSLA', name: 'Tesla Inc.' },
+                { ticker: 'META', name: 'Meta Platforms Inc.' },
               ].map((stock) => (
-                <div key={stock.ticker} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-600 rounded-lg flex items-center justify-center">
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{stock.ticker.slice(0, 2)}</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900 dark:text-slate-100">{stock.ticker}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{stock.name}</p>
-                    </div>
+                <div
+                  key={stock.ticker}
+                  className="flex items-center bg-slate-100 dark:bg-slate-600 rounded-lg px-4 py-3 border border-slate-300 dark:border-slate-500 gap-3"
+                >
+                  <div className="w-8 h-8 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <span className="text-xs font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-slate-900 dark:text-slate-100">{stock.price}</p>
-                    <p className={`text-sm ${stock.change.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>{stock.change}</p>
+                  <span className="font-bold text-slate-800 dark:text-slate-100 w-16 flex-shrink-0">{stock.ticker}</span>
+                  <span className="text-slate-600 dark:text-slate-300 text-sm truncate flex-grow">{stock.name}</span>
+                  <div className="text-slate-400 p-1 flex-shrink-0 ml-auto">
+                    <X className="w-5 h-5" />
                   </div>
                 </div>
               ))}

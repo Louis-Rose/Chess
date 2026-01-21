@@ -278,14 +278,25 @@ export function PortfolioPanel() {
   }
 
   if (!isAuthenticated) {
-    // Show preview content (login overlay is in InvestingLayout)
+    // Show exact same view as authenticated users with mock data (it's blurred anyway)
     return (
       <div>
-        {/* Header */}
-        <div className="py-4 mt-8">
+        {/* Header - same as authenticated */}
+        <div className="md:sticky md:top-0 z-20 bg-slate-200 dark:bg-slate-800 py-4 md:-mx-4 md:px-4 mt-8">
           <div className="flex flex-col items-center gap-2">
             <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{t('portfolio.title')}</h2>
             <p className="text-slate-500 dark:text-slate-400 text-lg italic">{t('portfolio.subtitle')}</p>
+            <div className="flex items-center gap-4 mt-2">
+              {/* Currency Toggle */}
+              <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-white/20">
+                <div className="px-3 py-2 text-sm font-medium bg-green-600 text-white">EUR \u20ac</div>
+                <div className="px-3 py-2 text-sm font-medium bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-200">USD $</div>
+              </div>
+              <div className="px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-300 flex items-center gap-2 text-sm">
+                <Eye className="w-4 h-4" />
+                <span>{t('portfolio.privateMode')}</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -299,73 +310,53 @@ export function PortfolioPanel() {
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
-              <div className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium">
-                PEA Boursorama
-              </div>
-              <div className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm">
-                CTO Trade Republic
-              </div>
+              <div className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium">PEA Boursorama</div>
+              <div className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm">CTO Trade Republic</div>
             </div>
           </div>
 
-          {/* Mock Summary Cards */}
+          {/* Mock Summary Cards - same structure as authenticated */}
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                  {language === 'fr' ? 'Valeur totale' : 'Total Value'}
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">24 350 &euro;</p>
+              <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
+                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
+                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">20 000\u20ac</p>
+              </div>
+              <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
+                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
+                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">24 350\u20ac</p>
+              </div>
+              <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
+                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Gain latent' : 'Unrealized Gain'}</p>
+                <p className="text-sm md:text-xl font-bold text-green-500">+4 350\u20ac</p>
+                <p className="text-xs text-green-500">+21.8%</p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                  {language === 'fr' ? 'Co\u00fbt de base' : 'Cost Basis'}
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">20 000 &euro;</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                  {language === 'fr' ? 'Gain latent' : 'Unrealized Gain'}
-                </p>
-                <p className="text-2xl font-bold text-green-500">+4 350 &euro;</p>
-                <p className="text-sm text-green-500">+21.8%</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                  {language === 'fr' ? 'Gain r\u00e9alis\u00e9' : 'Realized Gain'}
-                </p>
-                <p className="text-2xl font-bold text-green-500">+1 200 &euro;</p>
+                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Gain r\u00e9alis\u00e9' : 'Realized Gain'}</p>
+                <p className="text-sm md:text-xl font-bold text-green-500">+1 200\u20ac</p>
+                <p className="text-xs text-green-500">+6.0%</p>
               </div>
             </div>
           </div>
 
-          {/* Mock Holdings Table */}
+          {/* Mock Composition Chart placeholder */}
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
             <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4">
-              {language === 'fr' ? 'Positions' : 'Holdings'}
+              {language === 'fr' ? 'Composition du portefeuille' : 'Portfolio Composition'}
             </h3>
-            <div className="space-y-3">
-              {[
-                { ticker: 'AAPL', name: 'Apple Inc.', value: '5 240 \u20ac', gain: '+18.2%' },
-                { ticker: 'MSFT', name: 'Microsoft', value: '4 890 \u20ac', gain: '+24.5%' },
-                { ticker: 'MC.PA', name: 'LVMH', value: '3 420 \u20ac', gain: '+12.1%' },
-                { ticker: 'NVDA', name: 'NVIDIA', value: '6 200 \u20ac', gain: '+45.3%' },
-              ].map((stock) => (
-                <div key={stock.ticker} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-600 rounded-lg flex items-center justify-center">
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{stock.ticker.slice(0, 2)}</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900 dark:text-slate-100">{stock.ticker}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{stock.name}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-slate-900 dark:text-slate-100">{stock.value}</p>
-                    <p className="text-sm text-green-500">{stock.gain}</p>
-                  </div>
-                </div>
+            <div className="h-64 flex items-center justify-center">
+              <div className="w-48 h-48 rounded-full border-8 border-green-500 border-t-blue-500 border-r-purple-500 border-b-amber-500" />
+            </div>
+          </div>
+
+          {/* Mock Performance Chart placeholder */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4">
+              {language === 'fr' ? 'Performance' : 'Performance'}
+            </h3>
+            <div className="h-64 flex items-end justify-around gap-2 px-4">
+              {[40, 55, 45, 60, 50, 70, 65, 80, 75, 85, 90, 95].map((h, i) => (
+                <div key={i} className="flex-1 bg-green-500 rounded-t" style={{ height: `${h}%` }} />
               ))}
             </div>
           </div>

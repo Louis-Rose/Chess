@@ -400,71 +400,93 @@ export function EarningsCalendarPanel() {
   }
 
   if (!isAuthenticated) {
-    // Show preview content (login overlay is in InvestingLayout)
+    // Show exact same view as authenticated users with mock data (it's blurred anyway)
     return (
       <div>
-        <div className="flex flex-col items-center gap-2 mb-6 mt-8">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            {language === 'fr' ? 'Calendrier des R\u00e9sultats' : 'Earnings Calendar'}
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-lg italic">
-            {language === 'fr' ? 'Suivez les publications de r\u00e9sultats' : 'Track earnings releases'}
-          </p>
-        </div>
+        {/* Header - same as authenticated */}
+        <div className="md:sticky md:top-0 z-20 bg-slate-200 dark:bg-slate-800 py-4 md:-mx-4 md:px-4 mt-8">
+          <div className="flex flex-col items-center gap-2">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+              {language === 'fr' ? 'Calendrier des R\u00e9sultats' : 'Earnings Calendar'}
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 text-lg italic">
+              {language === 'fr' ? 'Prochaines publications de r\u00e9sultats' : 'Upcoming earnings releases'}
+            </p>
 
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Mock Earnings List */}
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Prochaines publications' : 'Upcoming Earnings'}
-              </h3>
-              <button className="px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg flex items-center gap-2 text-sm">
-                <Bell className="w-4 h-4" />
-                {language === 'fr' ? 'Configurer les alertes' : 'Set Alerts'}
-              </button>
+            {/* Source filter tabs - same as authenticated */}
+            <div className="flex justify-center gap-1 mt-4 bg-slate-100 dark:bg-slate-600 rounded-lg p-1">
+              <div className="px-3 py-1.5 rounded-md text-sm font-medium bg-white dark:bg-slate-700 text-green-600 shadow-sm flex items-center gap-1.5">
+                <Briefcase className="w-3.5 h-3.5" />
+                {language === 'fr' ? 'Portefeuille' : 'Portfolio'}
+              </div>
+              <div className="px-3 py-1.5 rounded-md text-sm font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5" />
+                Watchlist
+              </div>
+              <div className="px-3 py-1.5 rounded-md text-sm font-medium text-slate-500 dark:text-slate-400">
+                {language === 'fr' ? 'Tout' : 'Both'}
+              </div>
             </div>
 
-            <div className="space-y-3">
-              {[
-                { ticker: 'AAPL', name: 'Apple Inc.', date: 'Jan 30, 2026', days: 9, confirmed: true, source: 'portfolio' },
-                { ticker: 'MSFT', name: 'Microsoft', date: 'Jan 28, 2026', days: 7, confirmed: true, source: 'portfolio' },
-                { ticker: 'GOOGL', name: 'Alphabet', date: 'Feb 4, 2026', days: 14, confirmed: false, source: 'watchlist' },
-                { ticker: 'AMZN', name: 'Amazon', date: 'Feb 6, 2026', days: 16, confirmed: false, source: 'watchlist' },
-                { ticker: 'NVDA', name: 'NVIDIA', date: 'Feb 19, 2026', days: 29, confirmed: true, source: 'portfolio' },
-              ].map((earning) => (
-                <div key={earning.ticker} className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-600 rounded-lg flex items-center justify-center">
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{earning.ticker.slice(0, 2)}</span>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{earning.ticker}</p>
-                        {earning.source === 'portfolio' ? (
+            {/* Account selector - same as authenticated */}
+            <div className="flex flex-wrap justify-center gap-2 mt-3">
+              <div className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white shadow-md">PEA Boursorama</div>
+              <div className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300">CTO Trade Republic</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-4xl mx-auto mt-8 space-y-6">
+          {/* Earnings table - same structure as authenticated */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
+                    <th className="pb-3 pl-2 font-semibold">Ticker</th>
+                    <th className="pb-3 font-semibold">{language === 'fr' ? 'Date' : 'Date'}</th>
+                    <th className="pb-3 text-center font-semibold hidden sm:table-cell">{language === 'fr' ? 'Jours' : 'Days'}</th>
+                    <th className="pb-3 text-center font-semibold">{language === 'fr' ? 'Conf.' : 'Conf.'}</th>
+                    <th className="pb-3 text-center font-semibold"><Bell className="w-4 h-4 mx-auto" /></th>
+                    <th className="pb-3 text-center font-semibold">IR</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { ticker: 'AAPL', date: 'Jan 30, 2026', days: 9, confirmed: true },
+                    { ticker: 'MSFT', date: 'Jan 28, 2026', days: 7, confirmed: true },
+                    { ticker: 'NVDA', date: 'Feb 19, 2026', days: 29, confirmed: true },
+                    { ticker: 'MC.PA', date: 'Jan 27, 2026', days: 6, confirmed: false },
+                    { ticker: 'OR.PA', date: 'Feb 6, 2026', days: 16, confirmed: false },
+                  ].map((item) => (
+                    <tr key={item.ticker} className="border-b border-slate-200 dark:border-slate-600">
+                      <td className="py-4 pl-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-800 dark:text-slate-100">{item.ticker}</span>
                           <Briefcase className="w-3.5 h-3.5 text-green-500" />
+                        </div>
+                      </td>
+                      <td className="py-4 text-slate-700 dark:text-slate-300">{item.date}</td>
+                      <td className="py-4 text-center hidden sm:table-cell">
+                        <span className={item.days <= 7 ? 'text-amber-500 font-medium' : 'text-slate-600 dark:text-slate-400'}>{item.days}</span>
+                      </td>
+                      <td className="py-4 text-center">
+                        {item.confirmed ? (
+                          <CheckCircle2 className="w-5 h-5 text-green-500 mx-auto" />
                         ) : (
-                          <Eye className="w-3.5 h-3.5 text-blue-500" />
+                          <HelpCircle className="w-5 h-5 text-amber-500 mx-auto" />
                         )}
-                      </div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{earning.name}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-900 dark:text-slate-100">{earning.date}</p>
-                      {earning.confirmed ? (
-                        <CheckCircle2 className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <HelpCircle className="w-4 h-4 text-amber-500" />
-                      )}
-                    </div>
-                    <p className={`text-sm ${earning.days <= 7 ? 'text-amber-500 font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
-                      {language === 'fr' ? `Dans ${earning.days} jours` : `In ${earning.days} days`}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                      </td>
+                      <td className="py-4 text-center">
+                        <Bell className="w-5 h-5 text-slate-400 mx-auto" />
+                      </td>
+                      <td className="py-4 text-center">
+                        <ExternalLink className="w-4 h-4 text-slate-400 mx-auto" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

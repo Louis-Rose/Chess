@@ -69,7 +69,7 @@ export function FinancialsPanel() {
   }
 
   if (!isAuthenticated) {
-    // Show preview content (login overlay is in InvestingLayout)
+    // Show exact same view as authenticated users (it's blurred anyway)
     return (
       <div>
         <div className="flex flex-col items-center gap-2 mb-6 mt-8">
@@ -79,72 +79,17 @@ export function FinancialsPanel() {
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Mock Search Bar */}
-          <div className="max-w-2xl mx-auto">
-            <input
-              type="text"
-              placeholder={language === 'fr' ? 'Rechercher une action (ex: AAPL, MSFT, MC.PA...)' : 'Search for a stock (e.g., AAPL, MSFT, MC.PA...)'}
-              className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
-              disabled
-            />
-          </div>
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* Search Bar - same component as authenticated */}
+          <StockSearchBar />
 
-          {/* Mock GICS Sectors */}
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Layers className="w-5 h-5 text-purple-500" />
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Explorer par secteur GICS' : 'Browse by GICS Sector'}
-              </h3>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {[
-                { name: language === 'fr' ? 'Technologies' : 'Technology', color: 'bg-blue-500' },
-                { name: language === 'fr' ? 'Sant\u00e9' : 'Healthcare', color: 'bg-green-500' },
-                { name: language === 'fr' ? 'Finance' : 'Financials', color: 'bg-amber-500' },
-                { name: language === 'fr' ? 'Consommation' : 'Consumer', color: 'bg-purple-500' },
-                { name: language === 'fr' ? '\u00c9nergie' : 'Energy', color: 'bg-orange-500' },
-                { name: language === 'fr' ? 'Industrie' : 'Industrials', color: 'bg-slate-500' },
-                { name: language === 'fr' ? 'Mat\u00e9riaux' : 'Materials', color: 'bg-cyan-500' },
-                { name: language === 'fr' ? 'Immobilier' : 'Real Estate', color: 'bg-rose-500' },
-              ].map((sector) => (
-                <div
-                  key={sector.name}
-                  className="flex items-center gap-2 p-3 bg-white dark:bg-slate-800 rounded-lg"
-                >
-                  <div className={`w-3 h-3 rounded-full ${sector.color}`} />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{sector.name}</span>
-                  <ChevronRight className="w-4 h-4 text-slate-400 ml-auto" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Mock Popular Stocks */}
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
-              {language === 'fr' ? 'Actions populaires' : 'Popular Stocks'}
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { ticker: 'AAPL', name: 'Apple', price: '$227.50' },
-                { ticker: 'MSFT', name: 'Microsoft', price: '$415.80' },
-                { ticker: 'NVDA', name: 'NVIDIA', price: '$138.25' },
-                { ticker: 'MC.PA', name: 'LVMH', price: '\u20ac785.40' },
-              ].map((stock) => (
-                <div key={stock.ticker} className="p-4 bg-white dark:bg-slate-800 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 bg-slate-200 dark:bg-slate-600 rounded flex items-center justify-center">
-                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{stock.ticker.slice(0, 2)}</span>
-                    </div>
-                    <span className="font-bold text-slate-900 dark:text-slate-100">{stock.ticker}</span>
-                  </div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{stock.name}</p>
-                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100 mt-1">{stock.price}</p>
-                </div>
-              ))}
-            </div>
+          {/* GICS Industry Search Toggle - same as authenticated */}
+          <div className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 dark:bg-slate-700 rounded-xl border border-dashed border-slate-300 dark:border-slate-500 text-slate-500 dark:text-slate-400">
+            <span className="text-lg font-medium">+</span>
+            <Layers className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              {language === 'fr' ? 'Rechercher par industrie (GICS)' : 'Search by industry (GICS)'}
+            </span>
           </div>
         </div>
       </div>

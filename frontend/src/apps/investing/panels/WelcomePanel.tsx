@@ -22,9 +22,9 @@ export function InvestingWelcomePanel() {
   }
 
   if (!isAuthenticated) {
-    // Show a preview of the dashboard (login overlay is in InvestingLayout)
+    // Show exact same view as authenticated users (it's blurred anyway)
     return (
-      <div>
+      <>
         <div className="text-center space-y-6">
           <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100">
             {language === 'fr' ? 'Tableau de Bord' : 'Your Investment Dashboard'}
@@ -39,8 +39,8 @@ export function InvestingWelcomePanel() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
-            {/* Preview cards */}
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5">
+            {/* Stocks Research */}
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 text-left">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-white" />
@@ -56,7 +56,8 @@ export function InvestingWelcomePanel() {
               </p>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5">
+            {/* My Portfolio */}
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 text-left">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
                   <Briefcase className="w-5 h-5 text-white" />
@@ -67,12 +68,13 @@ export function InvestingWelcomePanel() {
               </div>
               <p className="text-slate-500 dark:text-slate-400 text-sm">
                 {language === 'fr'
-                  ? 'Consultez vos positions, suivez la performance.'
-                  : 'View your holdings, track performance.'}
+                  ? 'Consultez vos positions, suivez la performance et analysez la r\u00e9partition de vos investissements.'
+                  : 'View your holdings, track performance, and analyze your investment distribution.'}
               </p>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5">
+            {/* My Watchlist */}
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 text-left">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                   <Eye className="w-5 h-5 text-white" />
@@ -88,7 +90,8 @@ export function InvestingWelcomePanel() {
               </p>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5">
+            {/* Earnings Calendar */}
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 text-left">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-amber-600 rounded-lg flex items-center justify-center">
                   <Calendar className="w-5 h-5 text-white" />
@@ -99,25 +102,18 @@ export function InvestingWelcomePanel() {
               </div>
               <p className="text-slate-500 dark:text-slate-400 text-sm">
                 {language === 'fr'
-                  ? 'Suivez les prochaines publications de r\u00e9sultats.'
-                  : 'Track upcoming earnings releases.'}
+                  ? 'Suivez les prochaines publications de r\u00e9sultats de vos positions.'
+                  : 'Track upcoming earnings releases for your holdings.'}
               </p>
             </div>
           </div>
 
-          {/* Preview search bar */}
-          <div className="max-w-2xl mx-auto mt-16">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder={language === 'fr' ? 'Rechercher une action...' : 'Search for a stock...'}
-                className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100"
-                disabled
-              />
-            </div>
+          {/* Stock Search Section - same as authenticated */}
+          <div className="max-w-2xl mx-auto mt-[10vh]">
+            <StockSearchBar />
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
