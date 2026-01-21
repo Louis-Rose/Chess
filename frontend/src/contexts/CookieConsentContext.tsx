@@ -50,8 +50,11 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
     if (serverConsent === 'accepted') {
       setConsentStatus('accepted');
       localStorage.setItem(STORAGE_KEY, 'accepted');
+    } else {
+      // Server has no consent (null) - reset to pending (test accounts, or first login)
+      setConsentStatus('pending');
+      localStorage.removeItem(STORAGE_KEY);
     }
-    // If server has no consent, keep current local state
   };
 
   const resetConsent = () => {
