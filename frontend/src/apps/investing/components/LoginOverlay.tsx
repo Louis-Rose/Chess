@@ -15,7 +15,7 @@ export function LoginOverlay() {
   }
 
   return (
-    <div className="fixed inset-0 z-10 flex items-center justify-center pointer-events-none">
+    <div className="fixed inset-0 md:left-64 z-10 flex items-center justify-center pointer-events-none">
       <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md mx-4 pointer-events-auto">
         <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 text-center mb-4">
           {language === 'fr' ? 'Suivez vos Investissements' : 'Track Your Investments'}
