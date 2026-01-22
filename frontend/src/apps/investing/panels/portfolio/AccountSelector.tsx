@@ -298,8 +298,8 @@ export function AccountSelector({
 
           {/* Delete Confirmation Banner */}
           {accountPendingDelete !== null && (
-            <div className="mt-4 flex justify-center">
-              <div className="p-4 bg-slate-100 dark:bg-slate-600 border border-slate-300 dark:border-slate-500 rounded-lg text-center w-full max-w-sm">
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="p-4 bg-slate-100 dark:bg-slate-600 border border-slate-300 dark:border-slate-500 rounded-lg text-center md:col-start-1 lg:col-start-2">
                 <p className="text-slate-700 dark:text-slate-200 mb-1">
                   {language === 'fr' ? 'Voulez-vous supprimer ce compte ?' : 'Do you want to delete this account?'}
                 </p>
