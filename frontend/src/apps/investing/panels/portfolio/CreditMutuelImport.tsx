@@ -341,10 +341,17 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
                 </p>
                 <ol className="text-sm text-slate-500 dark:text-slate-400 space-y-1 list-decimal list-inside">
                   <li>{language === 'fr' ? 'Connectez-vous à votre espace Crédit Mutuel' : 'Log into your Crédit Mutuel account'}</li>
-                  <li>{language === 'fr' ? 'Allez dans Bourse → Portefeuille' : 'Go to Bourse → Portfolio'}</li>
-                  <li>{language === 'fr' ? 'Cliquez sur Historique des opérations' : 'Click on Transaction History'}</li>
-                  <li>{language === 'fr' ? 'Exportez en PDF et uploadez via le QR code' : 'Export as PDF and upload via QR code'}</li>
+                  <li>{language === 'fr' ? 'Allez dans Opérations → Valeurs boursières' : 'Go to Opérations → Valeurs boursières'}</li>
+                  <li>{language === 'fr' ? 'Cliquez sur Portefeuilles' : 'Click on Portefeuilles'}</li>
+                  <li>{language === 'fr' ? 'Sélectionnez Historique opérations → Bourse' : 'Select Historique opérations → Bourse'}</li>
+                  <li>{language === 'fr' ? 'Entrez les dates souhaitées et cliquez OK' : 'Enter your desired dates and click OK'}</li>
+                  <li>{language === 'fr' ? 'Téléchargez le document (icône en haut à droite)' : 'Download the document (icon on top right)'}</li>
                 </ol>
+                <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded text-xs text-amber-700 dark:text-amber-400">
+                  ⚠️ {language === 'fr'
+                    ? 'Seules les opérations depuis 2024 sont disponibles. Les opérations antérieures doivent être ajoutées manuellement.'
+                    : 'Only operations since 2024 are available. Earlier operations must be added manually.'}
+                </div>
               </div>
 
               <p className="text-slate-600 dark:text-slate-300 mb-4">
@@ -381,10 +388,17 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
             </p>
             <ol className="text-sm text-slate-500 dark:text-slate-400 space-y-1 list-decimal list-inside">
               <li>{language === 'fr' ? 'Connectez-vous à votre espace Crédit Mutuel' : 'Log into your Crédit Mutuel account'}</li>
-              <li>{language === 'fr' ? 'Allez dans Bourse → Portefeuille' : 'Go to Bourse → Portfolio'}</li>
-              <li>{language === 'fr' ? 'Cliquez sur Historique des opérations' : 'Click on Transaction History'}</li>
-              <li>{language === 'fr' ? 'Exportez le relevé en PDF' : 'Export the statement as PDF'}</li>
+              <li>{language === 'fr' ? 'Allez dans Opérations → Valeurs boursières' : 'Go to Opérations → Valeurs boursières'}</li>
+              <li>{language === 'fr' ? 'Cliquez sur Portefeuilles' : 'Click on Portefeuilles'}</li>
+              <li>{language === 'fr' ? 'Sélectionnez Historique opérations → Bourse' : 'Select Historique opérations → Bourse'}</li>
+              <li>{language === 'fr' ? 'Entrez les dates souhaitées et cliquez OK' : 'Enter your desired dates and click OK'}</li>
+              <li>{language === 'fr' ? 'Téléchargez le document (icône en haut à droite)' : 'Download the document (icon on top right)'}</li>
             </ol>
+            <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded text-xs text-amber-700 dark:text-amber-400">
+              ⚠️ {language === 'fr'
+                ? 'Seules les opérations depuis 2024 sont disponibles. Les opérations antérieures doivent être ajoutées manuellement.'
+                : 'Only operations since 2024 are available. Earlier operations must be added manually.'}
+            </div>
           </div>
 
           <div
