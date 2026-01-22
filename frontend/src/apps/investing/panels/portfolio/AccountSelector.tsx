@@ -106,7 +106,14 @@ export function AccountSelector({
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-3">
               <Building2 className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('accounts.title')}</h3>
+              <div>
+                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('accounts.title')}</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {language === 'fr'
+                    ? 'Sélectionnez plusieurs comptes pour voir les données agrégées'
+                    : 'Select multiple accounts to see combined data'}
+                </p>
+              </div>
             </div>
             {!showAddAccountForm && (
               <button
