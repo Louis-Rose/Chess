@@ -91,10 +91,13 @@ export function TransactionForm({
 
   // Auto-expand when selected account has no transactions
   useEffect(() => {
-    if (transactions.length === 0) {
+    const accountTransactionCount = selectedAccountIds.length > 0
+      ? transactions.filter(t => t.account_id && selectedAccountIds.includes(t.account_id)).length
+      : transactions.length;
+    if (accountTransactionCount === 0) {
       setShowTransactions(true);
     }
-  }, [selectedAccountIds, transactions.length]);
+  }, [selectedAccountIds, transactions]);
   const [showRevolutImport, setShowRevolutImport] = useState(false);
   const [showCreditMutuelImport, setShowCreditMutuelImport] = useState(false);
   const [filterTicker, setFilterTicker] = useState('');
