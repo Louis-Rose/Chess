@@ -298,7 +298,7 @@ export function TransactionForm({
               {selectedAccountBank?.toUpperCase() === 'CREDIT_MUTUEL' && (
                 <button
                   onClick={() => setShowCreditMutuelImport(true)}
-                  className="w-80 bg-[#0b4a3e] text-white px-6 py-3 rounded-xl hover:bg-[#093d33] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                  className="w-80 bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
                 >
                   <Upload className="w-5 h-5" />
                   {language === 'fr' ? 'Importer depuis Crédit Mutuel' : 'Import from Crédit Mutuel'}
