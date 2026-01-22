@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Minus, Trash2, Loader2, Building2, Wallet, Check, X, Undo2 } from 'lucide-react';
+import { Plus, Minus, Trash2, Loader2, Building2, Wallet, X, Undo2 } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import type { Account, BankInfo, AccountTypeInfo } from './types';
 import { FeesDisplay } from './FeesDisplay';
@@ -267,43 +267,16 @@ export function AccountSelector({
                             {language === 'fr' ? 'Sélectionné' : 'Selected'}
                           </span>
                         )}
-                        {accountPendingDelete === account.id ? (
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDeleteAccount(account.id);
-                                setAccountPendingDelete(null);
-                              }}
-                              disabled={isDeleting}
-                              className="text-green-500 hover:text-green-600 transition-colors p-1 bg-green-100 dark:bg-green-900/30 rounded"
-                              title={language === 'fr' ? 'Confirmer' : 'Confirm'}
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setAccountPendingDelete(null);
-                              }}
-                              className="text-slate-400 hover:text-slate-600 transition-colors p-1 bg-slate-100 dark:bg-slate-500/30 rounded"
-                              title={language === 'fr' ? 'Annuler' : 'Cancel'}
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setAccountPendingDelete(account.id);
-                            }}
-                            disabled={isDeleting}
-                            className="text-red-400 hover:text-red-600 transition-colors p-1 -m-1"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAccountPendingDelete(account.id);
+                          }}
+                          disabled={isDeleting || accountPendingDelete === account.id}
+                          className={`transition-colors p-1 -m-1 ${accountPendingDelete === account.id ? 'text-red-600' : 'text-red-400 hover:text-red-600'}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                     <div className="text-sm text-slate-600 dark:text-slate-300 space-y-1">
@@ -313,6 +286,35 @@ export function AccountSelector({
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Delete Confirmation Banner */}
+          {accountPendingDelete !== null && (
+            <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
+              <p className="text-red-700 dark:text-red-400 mb-3">
+                {language === 'fr'
+                  ? `Voulez-vous supprimer le compte "${accounts.find(a => a.id === accountPendingDelete)?.name}" ?`
+                  : `Do you want to delete "${accounts.find(a => a.id === accountPendingDelete)?.name}" account?`}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    onDeleteAccount(accountPendingDelete);
+                    setAccountPendingDelete(null);
+                  }}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === 'fr' ? 'Oui' : 'Yes')}
+                </button>
+                <button
+                  onClick={() => setAccountPendingDelete(null)}
+                  className="px-4 py-2 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 text-sm rounded-lg transition-colors"
+                >
+                  {language === 'fr' ? 'Non' : 'No'}
+                </button>
+              </div>
             </div>
           )}
 
