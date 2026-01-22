@@ -379,6 +379,13 @@ export function TransactionForm({
           {/* Add Transaction Form */}
           {addFormAccountId !== null && (
             <div className="bg-white rounded-lg p-4 mb-6 border border-slate-200">
+              {/* Account indicator */}
+              <div className="mb-4 pb-3 border-b border-slate-200">
+                <span className="text-sm text-slate-500">{language === 'fr' ? 'Ajouter à:' : 'Adding to:'}</span>
+                <span className="ml-2 font-semibold text-slate-800">
+                  {selectedAccountsWithBanks.find(a => a.id === addFormAccountId)?.name}
+                </span>
+              </div>
               {/* Market Filter Toggles */}
               <div className="mb-3">
                 <span className="text-sm text-slate-500 block mb-2">{language === 'fr' ? 'Marchés:' : 'Markets:'}</span>
