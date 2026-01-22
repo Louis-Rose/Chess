@@ -300,10 +300,11 @@ export function AccountSelector({
           {accountPendingDelete !== null && (
             <div className="mt-4 flex justify-center">
               <div className="p-4 bg-slate-100 dark:bg-slate-600 border border-slate-300 dark:border-slate-500 rounded-lg text-center">
-                <p className="text-slate-700 dark:text-slate-200 mb-3">
-                  {language === 'fr'
-                    ? `Voulez-vous supprimer le compte "${accounts.find(a => a.id === accountPendingDelete)?.name}" ?`
-                    : `Do you want to delete "${accounts.find(a => a.id === accountPendingDelete)?.name}" account?`}
+                <p className="text-slate-700 dark:text-slate-200 mb-1">
+                  {language === 'fr' ? 'Voulez-vous supprimer ce compte ?' : 'Do you want to delete this account?'}
+                </p>
+                <p className="text-slate-800 dark:text-slate-100 font-bold mb-3">
+                  {accounts.find(a => a.id === accountPendingDelete)?.name}
                 </p>
                 <div className="flex justify-center gap-2">
                   <button
