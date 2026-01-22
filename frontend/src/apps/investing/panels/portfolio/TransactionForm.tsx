@@ -252,11 +252,13 @@ export function TransactionForm({
     ? transactions.filter(t => t.account_id && selectedAccountIds.includes(t.account_id))
     : transactions;
   const uniqueTickers = [...new Set(accountTransactions.map(t => t.stock_ticker))].sort();
-  const filteredTransactions = accountTransactions.filter(t => {
-    const matchesTicker = !filterTicker || t.stock_ticker === filterTicker;
-    const matchesType = filterType === 'ALL' || t.transaction_type === filterType;
-    return matchesTicker && matchesType;
-  });
+  const filteredTransactions = accountTransactions
+    .filter(t => {
+      const matchesTicker = !filterTicker || t.stock_ticker === filterTicker;
+      const matchesType = filterType === 'ALL' || t.transaction_type === filterType;
+      return matchesTicker && matchesType;
+    })
+    .sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime());
 
   return (
     <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
@@ -625,7 +627,7 @@ export function TransactionForm({
             <div className="space-y-2 max-h-[500px] overflow-auto">
               {filteredTransactions.map((tx) => (
                 <div key={tx.id} className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 flex-wrap">
                     <div className={`px-2 py-1 rounded text-xs font-bold ${tx.transaction_type === 'BUY' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {tx.transaction_type === 'BUY' ? t('transactions.buy') : t('transactions.sell')}
                     </div>
@@ -641,6 +643,11 @@ export function TransactionForm({
                     <span className="text-slate-400 text-sm">
                       {new Date(tx.transaction_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </span>
+                    {selectedAccountIds.length > 1 && tx.account_name && (
+                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                        {tx.account_name}
+                      </span>
+                    )}
                   </div>
                   <button
                     onClick={() => onDeleteTransaction(tx.id)}
