@@ -639,10 +639,9 @@ export function PortfolioPanel() {
           <TransactionForm
             transactions={transactions}
             selectedAccountIds={selectedAccountIds}
-            selectedAccountsWithBanks={selectedAccountIds.map(id => {
-              const account = accounts.find(a => a.id === id);
-              return { id, bank: account?.bank || '', name: account?.name || '' };
-            })}
+            selectedAccountsWithBanks={accounts
+              .filter(a => selectedAccountIds.includes(a.id))
+              .map(account => ({ id: account.id, bank: account.bank, name: account.name }))}
             onAddTransaction={(tx) => addMutation.mutate(tx)}
             onDeleteTransaction={(id) => deleteMutation.mutate(id)}
             onRefresh={() => {
