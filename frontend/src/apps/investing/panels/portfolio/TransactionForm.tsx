@@ -303,54 +303,62 @@ export function TransactionForm({
           {/* Header with title */}
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">{t('transactions.title')}</h3>
 
-          {/* Action buttons - grouped by account in cards */}
-          {addFormAccountId === null && (
-            <div className="flex flex-wrap justify-center gap-4 mb-4">
-              {selectedAccountsWithBanks.map(account => {
-                const isRevolut = account.bank?.toUpperCase() === 'REVOLUT';
-                const isCreditMutuel = account.bank?.toUpperCase() === 'CREDIT_MUTUEL';
-                const importOpen = (isRevolut && revolutImportAccountId === account.id) ||
+          {/* Action buttons - grouped by account in cards (always visible) */}
+          <div className="flex flex-wrap justify-center gap-4 mb-4">
+            {selectedAccountsWithBanks.map(account => {
+              const isRevolut = account.bank?.toUpperCase() === 'REVOLUT';
+              const isCreditMutuel = account.bank?.toUpperCase() === 'CREDIT_MUTUEL';
+              const importActive = (isRevolut && revolutImportAccountId === account.id) ||
                                    (isCreditMutuel && creditMutuelImportAccountId === account.id);
+              const addActive = addFormAccountId === account.id;
 
-                // Skip if import is already open for this account
-                if (importOpen) return null;
-
-                return (
-                  <div key={account.id} className="bg-slate-600 rounded-2xl p-4 flex flex-col items-center gap-3">
-                    <span className="text-white font-medium text-sm">{account.name}</span>
-                    {isRevolut && (
-                      <button
-                        onClick={() => setRevolutImportAccountId(account.id)}
-                        className="w-72 bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
-                      >
-                        <Upload className="w-5 h-5" />
-                        {t('transactions.importRevolut')}
-                      </button>
-                    )}
-                    {isCreditMutuel && (
-                      <button
-                        onClick={() => setCreditMutuelImportAccountId(account.id)}
-                        className="w-72 bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
-                      >
-                        <Upload className="w-5 h-5" />
-                        {language === 'fr' ? 'Importer depuis Crédit Mutuel' : 'Import from Crédit Mutuel'}
-                      </button>
-                    )}
+              return (
+                <div key={account.id} className="bg-slate-600 rounded-2xl p-4 flex flex-col items-center gap-3">
+                  <span className="text-white font-medium text-sm">{account.name}</span>
+                  {isRevolut && (
                     <button
-                      onClick={() => setAddFormAccountId(account.id)}
-                      className="w-72 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                      onClick={() => setRevolutImportAccountId(importActive ? null : account.id)}
+                      className={`w-72 px-6 py-3 rounded-xl flex items-center justify-center gap-3 text-lg font-medium shadow-lg transition-all ${
+                        importActive
+                          ? 'bg-[#0444aa] text-white/80 ring-2 ring-white'
+                          : 'bg-[#0666eb] text-white hover:bg-[#0555cc] hover:shadow-xl'
+                      }`}
                     >
-                      <Plus className="w-5 h-5" />
-                      {t('transactions.addTransaction')}
+                      <Upload className="w-5 h-5" />
+                      {t('transactions.importRevolut')}
                     </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  )}
+                  {isCreditMutuel && (
+                    <button
+                      onClick={() => setCreditMutuelImportAccountId(importActive ? null : account.id)}
+                      className={`w-72 px-6 py-3 rounded-xl flex items-center justify-center gap-3 text-lg font-medium shadow-lg transition-all ${
+                        importActive
+                          ? 'bg-[#0444aa] text-white/80 ring-2 ring-white'
+                          : 'bg-[#0666eb] text-white hover:bg-[#0555cc] hover:shadow-xl'
+                      }`}
+                    >
+                      <Upload className="w-5 h-5" />
+                      {language === 'fr' ? 'Importer depuis Crédit Mutuel' : 'Import from Crédit Mutuel'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setAddFormAccountId(addActive ? null : account.id)}
+                    className={`w-72 px-6 py-3 rounded-xl flex items-center justify-center gap-3 text-lg font-medium shadow-lg transition-all ${
+                      addActive
+                        ? 'bg-green-800 text-white/80 ring-2 ring-white'
+                        : 'bg-green-600 text-white hover:bg-green-700 hover:shadow-xl'
+                    }`}
+                  >
+                    <Plus className="w-5 h-5" />
+                    {t('transactions.addTransaction')}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
 
-          {/* Filters - shown below buttons when not in add form mode */}
-          {addFormAccountId === null && uniqueTickers.length > 0 && (
+          {/* Filters - shown when there are transactions */}
+          {uniqueTickers.length > 0 && (
             <div className="flex justify-center gap-3 mb-6">
               <select
                 value={filterTicker}
