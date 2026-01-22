@@ -29,9 +29,10 @@ export function InvestingWelcomePanel() {
           <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100">
             {language === 'fr' ? 'Tableau de Bord' : 'Your Investment Dashboard'}
           </h1>
+          <PWAInstallPrompt className="max-w-md mx-auto" />
         </div>
 
-        <div className="mt-8">
+        <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700 mt-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
               {language === 'fr' ? 'Bienvenue' : 'Welcome'} !
