@@ -13,6 +13,7 @@ import { findStockByTicker } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
 import { addRecentStock } from '../utils/recentStocks';
+import { StockSearchBar } from '../components/StockSearchBar';
 
 interface StockHistoryData {
   ticker: string;
@@ -241,6 +242,11 @@ export function StockDetailPanel() {
         <ArrowLeft className="w-4 h-4" />
         <span>{language === 'fr' ? 'Retour' : 'Back'}</span>
       </button>
+
+      {/* Search Bar */}
+      <div className="max-w-3xl mx-auto mb-6">
+        <StockSearchBar />
+      </div>
 
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Stock Header */}
