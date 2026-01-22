@@ -1,7 +1,8 @@
 // Investing Welcome panel
 
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, LucideIcon } from 'lucide-react';
+import { Briefcase, Eye, Calendar, TrendingUp, Loader2, PartyPopper, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
