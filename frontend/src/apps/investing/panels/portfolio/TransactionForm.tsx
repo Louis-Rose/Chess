@@ -85,8 +85,8 @@ export function TransactionForm({
   const navigate = useNavigate();
   const { language, t } = useLanguage();
 
-  // UI state
-  const [showTransactions, setShowTransactions] = useState(false);
+  // UI state - expand by default when no transactions
+  const [showTransactions, setShowTransactions] = useState(() => transactions.length === 0);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showRevolutImport, setShowRevolutImport] = useState(false);
   const [showCreditMutuelImport, setShowCreditMutuelImport] = useState(false);
