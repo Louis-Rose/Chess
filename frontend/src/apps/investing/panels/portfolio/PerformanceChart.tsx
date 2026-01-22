@@ -376,14 +376,14 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center relative group flex flex-col justify-center">
                     <div className="flex flex-col gap-2">
                       <div>
-                        <p className="text-slate-700 dark:text-white text-sm md:text-base font-bold mb-0.5">{language === 'fr' ? 'Periode de detention' : 'Holding period'}</p>
+                        <p className="text-slate-700 dark:text-white text-sm md:text-base font-bold mb-0.5">{language === 'fr' ? 'Période de détention totale' : 'Total Holding Period'}</p>
                         <span className="text-xs md:text-sm text-slate-600 dark:text-slate-300">
                           {formatHoldingPeriod(allData[0].date, allData[allData.length - 1].date)}
                         </span>
                       </div>
                       <div className="border-t border-slate-300 dark:border-slate-500 pt-2">
                         <p className="text-slate-700 dark:text-white text-sm md:text-base font-bold mb-0.5 flex items-center justify-center gap-1">
-                          {language === 'fr' ? 'Periode ponderee' : 'Weighted period'}
+                          {language === 'fr' ? 'Période de détention pondérée' : 'Weighted Holding Period'}
                           <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
                         </p>
                         <span className="text-xs md:text-sm text-slate-600 dark:text-slate-300">
