@@ -317,7 +317,16 @@ export function TransactionForm({
                   <span className="text-white font-medium text-sm">{account.name}</span>
                   {isRevolut && (
                     <button
-                      onClick={() => setRevolutImportAccountId(importActive ? null : account.id)}
+                      onClick={() => {
+                        if (importActive) {
+                          setRevolutImportAccountId(null);
+                        } else {
+                          // Close all other forms first
+                          setRevolutImportAccountId(account.id);
+                          setCreditMutuelImportAccountId(null);
+                          setAddFormAccountId(null);
+                        }
+                      }}
                       className={`w-72 px-6 py-3 rounded-xl flex items-center justify-center gap-3 text-lg font-medium shadow-lg transition-all ${
                         importActive
                           ? 'bg-[#0444aa] text-white/80 ring-2 ring-white'
@@ -330,7 +339,16 @@ export function TransactionForm({
                   )}
                   {isCreditMutuel && (
                     <button
-                      onClick={() => setCreditMutuelImportAccountId(importActive ? null : account.id)}
+                      onClick={() => {
+                        if (importActive) {
+                          setCreditMutuelImportAccountId(null);
+                        } else {
+                          // Close all other forms first
+                          setCreditMutuelImportAccountId(account.id);
+                          setRevolutImportAccountId(null);
+                          setAddFormAccountId(null);
+                        }
+                      }}
                       className={`w-72 px-6 py-3 rounded-xl flex items-center justify-center gap-3 text-lg font-medium shadow-lg transition-all ${
                         importActive
                           ? 'bg-[#0444aa] text-white/80 ring-2 ring-white'
@@ -342,7 +360,16 @@ export function TransactionForm({
                     </button>
                   )}
                   <button
-                    onClick={() => setAddFormAccountId(addActive ? null : account.id)}
+                    onClick={() => {
+                      if (addActive) {
+                        setAddFormAccountId(null);
+                      } else {
+                        // Close all other forms first
+                        setAddFormAccountId(account.id);
+                        setRevolutImportAccountId(null);
+                        setCreditMutuelImportAccountId(null);
+                      }
+                    }}
                     className={`w-72 px-6 py-3 rounded-xl flex items-center justify-center gap-3 text-lg font-medium shadow-lg transition-all ${
                       addActive
                         ? 'bg-green-800 text-white/80 ring-2 ring-white'
