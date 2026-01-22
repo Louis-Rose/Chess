@@ -1544,6 +1544,206 @@ def parse_revolut_pdf():
         return jsonify({'error': f'Failed to parse PDF: {str(e)}'}), 400
 
 
+def _map_stock_names_to_tickers_with_gemini(stock_names: list[str]) -> dict[str, str]:
+    """Use Gemini to map French stock names to tickers."""
+    import google.generativeai as genai
+    import json
+
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        # Fallback: return names as-is
+        return {name: name for name in stock_names}
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+
+        prompt = f"""Map these French stock names to their stock tickers. Return ONLY a JSON object mapping each name to its ticker.
+
+Stock names:
+{json.dumps(stock_names, ensure_ascii=False)}
+
+Common mappings:
+- "META PLATFORMS CLA" or "META PLATFORMS" → "META"
+- "ALPHABET CL.A" or "ALPHABET" → "GOOGL"
+- "NVIDIA" → "NVDA"
+- "MICROSOFT" → "MSFT"
+- "VISA CL.A" or "VISA" → "V"
+- "LVMH MOET HENNESSY VUITTON" → "MC.PA"
+- "NU HOLDINGS LIMITED" → "NU"
+
+Return JSON like: {{"META PLATFORMS CLA": "META", "NVIDIA": "NVDA"}}
+Only return the JSON object, no other text."""
+
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+
+        # Extract JSON from response
+        if text.startswith('```'):
+            text = text.split('```')[1]
+            if text.startswith('json'):
+                text = text[4:]
+            text = text.strip()
+
+        mapping = json.loads(text)
+        return mapping
+
+    except Exception as e:
+        print(f"[Gemini mapping error] {e}")
+        # Fallback: return names as-is
+        return {name: name for name in stock_names}
+
+
+def _parse_credit_mutuel_excel(file_bytes: bytes) -> tuple[list[dict], list[str]]:
+    """Parse Crédit Mutuel Excel export and return transactions."""
+    import openpyxl
+    from io import BytesIO
+    from datetime import datetime
+
+    transactions = []
+    errors = []
+
+    try:
+        wb = openpyxl.load_workbook(BytesIO(file_bytes), data_only=True)
+        ws = wb.active
+
+        # Find header row
+        header_row = None
+        headers = {}
+        for row_idx, row in enumerate(ws.iter_rows(min_row=1, max_row=10), start=1):
+            row_values = [cell.value for cell in row]
+            if 'Exécution' in row_values or 'Opération' in row_values:
+                header_row = row_idx
+                for col_idx, cell in enumerate(row):
+                    if cell.value:
+                        headers[cell.value] = col_idx
+                break
+
+        if not header_row:
+            return [], ['Could not find header row in Excel file']
+
+        # Extract data rows
+        raw_transactions = []
+        stock_names_set = set()
+
+        for row in ws.iter_rows(min_row=header_row + 1):
+            row_values = [cell.value for cell in row]
+
+            # Get operation type
+            op_col = headers.get('Opération', headers.get('Operation', -1))
+            operation = row_values[op_col] if op_col >= 0 and op_col < len(row_values) else None
+
+            if not operation:
+                continue
+
+            # Only process Achat (buy) and Vente (sell)
+            operation_lower = str(operation).lower()
+            if 'achat' in operation_lower:
+                tx_type = 'BUY'
+            elif 'vente' in operation_lower:
+                tx_type = 'SELL'
+            else:
+                # Skip dividends and other operations
+                continue
+
+            # Get date
+            date_col = headers.get('Exécution', headers.get('Execution', -1))
+            date_val = row_values[date_col] if date_col >= 0 and date_col < len(row_values) else None
+
+            if isinstance(date_val, datetime):
+                date_str = date_val.strftime('%Y-%m-%d')
+            elif date_val:
+                # Try to parse DD/MM/YYYY format
+                try:
+                    date_str = datetime.strptime(str(date_val), '%d/%m/%Y').strftime('%Y-%m-%d')
+                except:
+                    try:
+                        date_str = datetime.strptime(str(date_val), '%Y-%m-%d').strftime('%Y-%m-%d')
+                    except:
+                        errors.append(f"Could not parse date: {date_val}")
+                        continue
+            else:
+                continue
+
+            # Get quantity
+            qty_col = headers.get('Quantité / Montant nominal', headers.get('Quantité', -1))
+            quantity = row_values[qty_col] if qty_col >= 0 and qty_col < len(row_values) else None
+
+            if quantity is None:
+                continue
+
+            try:
+                quantity = int(float(str(quantity).replace(',', '.').replace(' ', '')))
+            except:
+                errors.append(f"Could not parse quantity: {quantity}")
+                continue
+
+            # Get stock name
+            stock_col = headers.get('Valeur', -1)
+            stock_name = row_values[stock_col] if stock_col >= 0 and stock_col < len(row_values) else None
+
+            if not stock_name:
+                continue
+
+            stock_name = str(stock_name).strip()
+            stock_names_set.add(stock_name)
+
+            raw_transactions.append({
+                'date': date_str,
+                'type': tx_type,
+                'quantity': quantity,
+                'stock_name': stock_name
+            })
+
+        # Map stock names to tickers using Gemini
+        if stock_names_set:
+            name_to_ticker = _map_stock_names_to_tickers_with_gemini(list(stock_names_set))
+        else:
+            name_to_ticker = {}
+
+        # Build final transactions
+        for raw_tx in raw_transactions:
+            ticker = name_to_ticker.get(raw_tx['stock_name'], raw_tx['stock_name'])
+            transactions.append({
+                'stock_ticker': ticker,
+                'transaction_type': raw_tx['type'],
+                'quantity': raw_tx['quantity'],
+                'transaction_date': raw_tx['date'],
+                'price_per_share': None  # Will be fetched by backend
+            })
+
+        return transactions, errors
+
+    except Exception as e:
+        return [], [f'Error parsing Excel: {str(e)}']
+
+
+@app.route('/api/investing/import/credit-mutuel', methods=['POST'])
+@login_required
+def parse_credit_mutuel_excel():
+    """Parse a Crédit Mutuel Excel export and return extracted transactions."""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    if not file.filename.lower().endswith('.xlsx'):
+        return jsonify({'error': 'File must be an Excel file (.xlsx)'}), 400
+
+    try:
+        file_bytes = file.read()
+        transactions, errors = _parse_credit_mutuel_excel(file_bytes)
+
+        return jsonify({
+            'success': True,
+            'transactions': transactions,
+            'count': len(transactions),
+            'warnings': errors if errors else None
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to parse Excel: {str(e)}'}), 400
+
+
 @app.route('/api/investing/import/create-token', methods=['POST'])
 @login_required
 def create_upload_token():

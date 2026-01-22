@@ -329,18 +329,26 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
 
       {/* Progress bar for instruction steps - clickable */}
       {!isUploadStep && !parsedTransactions.length && (
-        <div className="flex gap-1 mb-6">
-          {[1, 2, 3, 4, 5].map(s => (
-            <button
-              key={s}
-              onClick={() => setStep(s)}
-              className={`h-2 flex-1 rounded-full transition-colors hover:opacity-80 ${
-                s <= step ? 'bg-green-500' : 'bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500'
-              }`}
-              title={language === 'fr' ? `Étape ${s}` : `Step ${s}`}
-            />
-          ))}
-        </div>
+        <>
+          <div className="flex gap-1 mb-4">
+            {[1, 2, 3, 4, 5].map(s => (
+              <button
+                key={s}
+                onClick={() => setStep(s)}
+                className={`h-2 flex-1 rounded-full transition-colors hover:opacity-80 ${
+                  s <= step ? 'bg-green-500' : 'bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500'
+                }`}
+                title={language === 'fr' ? `Étape ${s}` : `Step ${s}`}
+              />
+            ))}
+          </div>
+          {/* Warning shown on all steps */}
+          <div className="p-3 mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-700 dark:text-amber-400">
+            ⚠️ {language === 'fr'
+              ? 'Seules les opérations depuis 2024 sont disponibles sur le site. Les opérations antérieures doivent être ajoutées manuellement.'
+              : 'Only operations since 2024 are available on the site. Earlier operations must be added manually.'}
+          </div>
+        </>
       )}
 
       {/* Instruction Steps (1-5) */}
@@ -354,21 +362,12 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
           </p>
 
           {currentStepData.image && (
-            <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600">
+            <div className={`rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 ${step === 2 ? 'max-h-48' : ''}`}>
               <img
                 src={currentStepData.image}
                 alt={language === 'fr' ? currentStepData.titleFr : currentStepData.titleEn}
-                className="w-full"
+                className={`w-full ${step === 2 ? 'object-contain max-h-48' : ''}`}
               />
-            </div>
-          )}
-
-          {/* Warning on last instruction step */}
-          {isLastInstructionStep && (
-            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-700 dark:text-amber-400">
-              ⚠️ {language === 'fr'
-                ? 'Seules les opérations depuis 2024 sont disponibles sur le site. Les opérations antérieures doivent être ajoutées manuellement.'
-                : 'Only operations since 2024 are available on the site. Earlier operations must be added manually.'}
             </div>
           )}
 
