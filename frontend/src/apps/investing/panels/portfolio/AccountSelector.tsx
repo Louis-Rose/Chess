@@ -126,7 +126,9 @@ export function AccountSelector({
                   </select>
                 </div>
                 <div className="min-w-[140px]">
-                  <label className="block text-sm font-medium text-slate-600 mb-1">{language === 'fr' ? 'Nom' : 'Name'}</label>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">
+                    {language === 'fr' ? 'Nom' : 'Name'} <span className="text-slate-400 font-normal">(TAB {language === 'fr' ? 'pour pré-remplir' : 'to pre-fill'})</span>
+                  </label>
                   <input
                     type="text"
                     value={newAccountName}
