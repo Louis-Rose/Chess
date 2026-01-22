@@ -220,6 +220,9 @@ export function PortfolioPanel() {
   // Panel state: collapsed and order
   const [isHoldingsExpanded, setIsHoldingsExpanded] = useState(true);
   const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(true);
+
+  // Undo delete state
+  const [deletedAccount, setDeletedAccount] = useState<{ name: string; account_type: string; bank: string } | null>(null);
   const compositionRef = useRef<PortfolioCompositionHandle>(null);
   const performanceRef = useRef<PerformanceChartHandle>(null);
   const [panelOrder, setPanelOrder] = useState<['holdings' | 'performance', 'holdings' | 'performance']>(() => {
@@ -607,9 +610,28 @@ export function PortfolioPanel() {
           banks={banks}
           accountTypes={accountTypes}
           onCreateAccount={(data) => createAccountMutation.mutate(data)}
-          onDeleteAccount={(id) => deleteAccountMutation.mutate(id)}
+          onDeleteAccount={(id) => {
+            // Store account info before deletion for undo
+            const accountToDelete = accounts.find(a => a.id === id);
+            if (accountToDelete) {
+              setDeletedAccount({
+                name: accountToDelete.name,
+                account_type: accountToDelete.account_type,
+                bank: accountToDelete.bank,
+              });
+            }
+            deleteAccountMutation.mutate(id);
+          }}
           isCreating={createAccountMutation.isPending}
           isDeleting={deleteAccountMutation.isPending}
+          deletedAccount={deletedAccount}
+          onUndoDelete={() => {
+            if (deletedAccount) {
+              createAccountMutation.mutate(deletedAccount);
+              setDeletedAccount(null);
+            }
+          }}
+          onDismissUndo={() => setDeletedAccount(null)}
         />
 
         {/* Transaction Form - Only when at least one account selected */}
