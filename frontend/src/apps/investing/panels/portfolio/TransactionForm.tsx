@@ -55,11 +55,17 @@ const getCurrencySymbol = (currency: string): string => {
   return CURRENCY_SYMBOLS[currency] || `${currency} `;
 };
 
+interface SelectedAccountWithBank {
+  id: number;
+  bank: string;
+  name: string;
+}
+
 interface TransactionFormProps {
   transactions: Transaction[];
   selectedAccountId: number | undefined;  // First selected account (for adding transactions)
   selectedAccountIds: number[];  // All selected accounts (for filtering)
-  selectedAccountBank?: string;
+  selectedAccountsWithBanks: SelectedAccountWithBank[];  // All selected accounts with their bank info
   onAddTransaction: (transaction: NewTransaction) => void;
   onDeleteTransaction: (id: number) => void;
   onRefresh: () => void;
@@ -73,7 +79,7 @@ export function TransactionForm({
   transactions,
   selectedAccountId,
   selectedAccountIds,
-  selectedAccountBank,
+  selectedAccountsWithBanks,
   onAddTransaction,
   onDeleteTransaction,
   onRefresh,
@@ -99,18 +105,23 @@ export function TransactionForm({
     }
   }, [selectedAccountIds, transactions]);
 
-  const [showRevolutImport, setShowRevolutImport] = useState(false);
-  const [showCreditMutuelImport, setShowCreditMutuelImport] = useState(false);
+  // Track which import dialogs are open by account ID (null = closed)
+  const [revolutImportAccountId, setRevolutImportAccountId] = useState<number | null>(null);
+  const [creditMutuelImportAccountId, setCreditMutuelImportAccountId] = useState<number | null>(null);
 
-  // Close import dialogs when selected account bank changes
+  // Compute which banks are among selected accounts
+  const revolutAccounts = selectedAccountsWithBanks.filter(a => a.bank?.toUpperCase() === 'REVOLUT');
+  const creditMutuelAccounts = selectedAccountsWithBanks.filter(a => a.bank?.toUpperCase() === 'CREDIT_MUTUEL');
+
+  // Close import dialogs when account is no longer selected
   useEffect(() => {
-    if (showRevolutImport && selectedAccountBank?.toUpperCase() !== 'REVOLUT') {
-      setShowRevolutImport(false);
+    if (revolutImportAccountId !== null && !selectedAccountIds.includes(revolutImportAccountId)) {
+      setRevolutImportAccountId(null);
     }
-    if (showCreditMutuelImport && selectedAccountBank?.toUpperCase() !== 'CREDIT_MUTUEL') {
-      setShowCreditMutuelImport(false);
+    if (creditMutuelImportAccountId !== null && !selectedAccountIds.includes(creditMutuelImportAccountId)) {
+      setCreditMutuelImportAccountId(null);
     }
-  }, [selectedAccountBank, showRevolutImport, showCreditMutuelImport]);
+  }, [selectedAccountIds, revolutImportAccountId, creditMutuelImportAccountId]);
   const [filterTicker, setFilterTicker] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'BUY' | 'SELL'>('ALL');
 
@@ -241,8 +252,8 @@ export function TransactionForm({
     resetForm(false);
     setNewType('BUY');
     setShowAddForm(false);
-    setShowRevolutImport(false);
-    setShowCreditMutuelImport(false);
+    setRevolutImportAccountId(null);
+    setCreditMutuelImportAccountId(null);
   };
 
   const handleAddTransaction = () => {
@@ -294,39 +305,52 @@ export function TransactionForm({
           {/* Header with title */}
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">{t('transactions.title')}</h3>
 
-          {/* Action buttons - Import from bank and Add manually (only when single account selected) */}
-          {!showAddForm && !showRevolutImport && !showCreditMutuelImport && selectedAccountIds.length === 1 && (
+          {/* Action buttons - Import from bank (for each account with import support) and Add manually (only when single account selected) */}
+          {!showAddForm && (
             <div className="flex flex-col items-center gap-3 mb-4">
-              {selectedAccountBank?.toUpperCase() === 'REVOLUT' && (
+              {/* Import buttons for Revolut accounts that don't have their import open */}
+              {revolutAccounts
+                .filter(account => revolutImportAccountId !== account.id)
+                .map(account => (
                 <button
-                  onClick={() => setShowRevolutImport(true)}
+                  key={`revolut-${account.id}`}
+                  onClick={() => setRevolutImportAccountId(account.id)}
                   className="w-80 bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
                 >
                   <Upload className="w-5 h-5" />
                   {t('transactions.importRevolut')}
+                  {revolutAccounts.length > 1 && <span className="text-sm opacity-80">({account.name})</span>}
                 </button>
-              )}
-              {selectedAccountBank?.toUpperCase() === 'CREDIT_MUTUEL' && (
+              ))}
+              {/* Import buttons for Crédit Mutuel accounts that don't have their import open */}
+              {creditMutuelAccounts
+                .filter(account => creditMutuelImportAccountId !== account.id)
+                .map(account => (
                 <button
-                  onClick={() => setShowCreditMutuelImport(true)}
+                  key={`cm-${account.id}`}
+                  onClick={() => setCreditMutuelImportAccountId(account.id)}
                   className="w-80 bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
                 >
                   <Upload className="w-5 h-5" />
                   {language === 'fr' ? 'Importer depuis Crédit Mutuel' : 'Import from Crédit Mutuel'}
+                  {creditMutuelAccounts.length > 1 && <span className="text-sm opacity-80">({account.name})</span>}
+                </button>
+              ))}
+              {/* Add manually button - only when single account selected */}
+              {selectedAccountIds.length === 1 && (
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="w-80 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Plus className="w-5 h-5" />
+                  {t('transactions.addTransaction')}
                 </button>
               )}
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="w-80 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
-              >
-                <Plus className="w-5 h-5" />
-                {t('transactions.addTransaction')}
-              </button>
             </div>
           )}
 
-          {/* Filters - shown below buttons when not adding/importing */}
-          {!showAddForm && !showRevolutImport && !showCreditMutuelImport && uniqueTickers.length > 0 && (
+          {/* Filters - shown below buttons when not in add form mode */}
+          {!showAddForm && uniqueTickers.length > 0 && (
             <div className="flex justify-center gap-3 mb-6">
               <select
                 value={filterTicker}
@@ -590,35 +614,35 @@ export function TransactionForm({
           )}
 
           {/* Revolut Import */}
-          {showRevolutImport && (
+          {revolutImportAccountId !== null && (
             <div className="mb-6">
               <RevolutImport
-                selectedAccountId={selectedAccountId}
+                selectedAccountId={revolutImportAccountId}
                 onImportComplete={() => {
-                  setShowRevolutImport(false);
+                  setRevolutImportAccountId(null);
                   onRefresh();
                 }}
-                onClose={() => setShowRevolutImport(false)}
+                onClose={() => setRevolutImportAccountId(null)}
               />
             </div>
           )}
 
           {/* Crédit Mutuel Import */}
-          {showCreditMutuelImport && (
+          {creditMutuelImportAccountId !== null && (
             <div className="mb-6">
               <CreditMutuelImport
-                selectedAccountId={selectedAccountId}
+                selectedAccountId={creditMutuelImportAccountId}
                 onImportComplete={() => {
-                  setShowCreditMutuelImport(false);
+                  setCreditMutuelImportAccountId(null);
                   onRefresh();
                 }}
-                onClose={() => setShowCreditMutuelImport(false)}
+                onClose={() => setCreditMutuelImportAccountId(null)}
               />
             </div>
           )}
 
           {/* Done button - right after the form */}
-          {(showAddForm || showRevolutImport || showCreditMutuelImport) && (
+          {(showAddForm || revolutImportAccountId !== null || creditMutuelImportAccountId !== null) && (
             <div className="flex justify-center mb-6">
               <button
                 onClick={closeForm}

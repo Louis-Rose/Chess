@@ -640,7 +640,10 @@ export function PortfolioPanel() {
             transactions={transactions}
             selectedAccountId={selectedAccountIds[0]}
             selectedAccountIds={selectedAccountIds}
-            selectedAccountBank={accounts.find(a => a.id === selectedAccountIds[0])?.bank}
+            selectedAccountsWithBanks={selectedAccountIds.map(id => {
+              const account = accounts.find(a => a.id === id);
+              return { id, bank: account?.bank || '', name: account?.name || '' };
+            })}
             onAddTransaction={(tx) => addMutation.mutate(tx)}
             onDeleteTransaction={(id) => deleteMutation.mutate(id)}
             onRefresh={() => {
