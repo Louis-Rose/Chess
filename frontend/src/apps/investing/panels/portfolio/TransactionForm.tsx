@@ -98,8 +98,19 @@ export function TransactionForm({
       setShowTransactions(true);
     }
   }, [selectedAccountIds, transactions]);
+
   const [showRevolutImport, setShowRevolutImport] = useState(false);
   const [showCreditMutuelImport, setShowCreditMutuelImport] = useState(false);
+
+  // Close import dialogs when selected account bank changes
+  useEffect(() => {
+    if (showRevolutImport && selectedAccountBank?.toUpperCase() !== 'REVOLUT') {
+      setShowRevolutImport(false);
+    }
+    if (showCreditMutuelImport && selectedAccountBank?.toUpperCase() !== 'CREDIT_MUTUEL') {
+      setShowCreditMutuelImport(false);
+    }
+  }, [selectedAccountBank, showRevolutImport, showCreditMutuelImport]);
   const [filterTicker, setFilterTicker] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'BUY' | 'SELL'>('ALL');
 
