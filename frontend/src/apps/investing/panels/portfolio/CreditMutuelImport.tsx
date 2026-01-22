@@ -73,8 +73,8 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
           setIsPolling(false);
           if (response.data.transactions.length === 0) {
             setParseError(language === 'fr'
-              ? 'Aucune transaction trouvée dans ce PDF. Assurez-vous d\'utiliser un relevé Crédit Mutuel.'
-              : 'No transactions found in this PDF. Make sure you\'re using a Crédit Mutuel statement.');
+              ? 'Aucune transaction trouvée dans ce fichier. Assurez-vous d\'utiliser un export Crédit Mutuel.'
+              : 'No transactions found in this file. Make sure you\'re using a Crédit Mutuel export.');
           } else {
             setParsedTransactions(response.data.transactions);
             setSelectedTransactions(new Set(response.data.transactions.map((_: ParsedTransaction, i: number) => i)));
@@ -124,10 +124,12 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
     e.preventDefault();
     setIsDragging(false);
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile?.type === 'application/pdf') {
+    const isExcel = droppedFile?.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                    droppedFile?.name?.endsWith('.xlsx');
+    if (isExcel) {
       handleFileSelect(droppedFile);
     } else {
-      setParseError(language === 'fr' ? 'Veuillez sélectionner un fichier PDF' : 'Please select a PDF file');
+      setParseError(language === 'fr' ? 'Veuillez sélectionner un fichier Excel (.xlsx)' : 'Please select an Excel file (.xlsx)');
     }
   };
 
@@ -151,12 +153,12 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
         setSelectedTransactions(new Set(response.data.transactions.map((_: ParsedTransaction, i: number) => i)));
       } else if (response.data.transactions.length === 0) {
         setParseError(language === 'fr'
-          ? 'Aucune transaction trouvée dans ce PDF. Assurez-vous d\'utiliser un relevé Crédit Mutuel.'
-          : 'No transactions found in this PDF. Make sure you\'re using a Crédit Mutuel statement.');
+          ? 'Aucune transaction trouvée dans ce fichier. Assurez-vous d\'utiliser un export Crédit Mutuel.'
+          : 'No transactions found in this file. Make sure you\'re using a Crédit Mutuel export.');
       }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
-      setParseError(err.response?.data?.error || (language === 'fr' ? 'Erreur lors de l\'analyse du PDF' : 'Failed to parse PDF'));
+      setParseError(err.response?.data?.error || (language === 'fr' ? 'Erreur lors de l\'analyse du fichier' : 'Failed to parse file'));
     } finally {
       setIsParsing(false);
     }
@@ -286,10 +288,10 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
       image: step4Image,
     },
     {
-      titleFr: 'Téléchargez le document',
-      titleEn: 'Download the document',
-      descFr: 'Cliquez sur l\'icône de téléchargement en haut à droite pour obtenir le PDF.',
-      descEn: 'Click the download icon on the top right to get the PDF.',
+      titleFr: 'Téléchargez le fichier Excel',
+      titleEn: 'Download the Excel file',
+      descFr: 'Cliquez sur l\'icône de téléchargement en haut à droite pour obtenir le fichier .xlsx.',
+      descEn: 'Click the download icon on the top right to get the .xlsx file.',
       image: step5Image,
     },
   ];
@@ -385,7 +387,7 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
               {isLastInstructionStep
-                ? (language === 'fr' ? 'J\'ai le PDF' : 'I have the PDF')
+                ? (language === 'fr' ? 'J\'ai le fichier' : 'I have the file')
                 : (language === 'fr' ? 'Suivant' : 'Next')}
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -412,16 +414,16 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf"
+                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   onChange={handleFileInputChange}
                   className="hidden"
                 />
                 <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-green-500' : 'text-slate-400'}`} />
                 <p className="text-slate-600 dark:text-slate-300 font-medium mb-2">
-                  {language === 'fr' ? 'Glissez votre PDF ici' : 'Drag your PDF here'}
+                  {language === 'fr' ? 'Glissez votre fichier Excel ici' : 'Drag your Excel file here'}
                 </p>
                 <p className="text-slate-400 text-sm">
-                  {language === 'fr' ? 'ou cliquez pour sélectionner' : 'or click to select'}
+                  {language === 'fr' ? 'ou cliquez pour sélectionner (.xlsx)' : 'or click to select (.xlsx)'}
                 </p>
               </div>
 
@@ -440,7 +442,7 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
                   }}
                   className="text-sm text-green-600 hover:text-green-700 dark:text-green-400 underline"
                 >
-                  {language === 'fr' ? 'Le PDF est sur mon téléphone' : 'The PDF is on my phone'}
+                  {language === 'fr' ? 'Le fichier est sur mon téléphone' : 'The file is on my phone'}
                 </button>
               </div>
             </>
