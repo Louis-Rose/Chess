@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { Upload, FileText, X, Check, AlertCircle, Loader2, Trash2, ChevronRight, ChevronLeft } from 'lucide-react';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
@@ -41,74 +41,6 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const [importErrors, setImportErrors] = useState<string[]>([]);
 
-  // QR code state
-  const [qrToken, setQrToken] = useState<string | null>(null);
-  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
-  const [isPolling, setIsPolling] = useState(false);
-  const [showQrOption, setShowQrOption] = useState(false);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Generate QR token
-  const generateQrToken = useCallback(async () => {
-    setIsGeneratingToken(true);
-    try {
-      const response = await axios.post('/api/investing/import/create-token');
-      setQrToken(response.data.token);
-      setIsPolling(true);
-    } catch {
-      setParseError(language === 'fr' ? 'Erreur lors de la génération du QR code' : 'Failed to generate QR code');
-    } finally {
-      setIsGeneratingToken(false);
-    }
-  }, [language]);
-
-  // Poll for upload status
-  useEffect(() => {
-    if (!isPolling || !qrToken) return;
-
-    const pollStatus = async () => {
-      try {
-        const response = await axios.get(`/api/investing/import/status/${qrToken}`);
-        if (response.data.status === 'uploaded') {
-          setIsPolling(false);
-          if (response.data.transactions.length === 0) {
-            setParseError(language === 'fr'
-              ? 'Aucune transaction trouvée dans ce fichier. Assurez-vous d\'utiliser un export Crédit Mutuel.'
-              : 'No transactions found in this file. Make sure you\'re using a Crédit Mutuel export.');
-          } else {
-            setParsedTransactions(response.data.transactions);
-            setSelectedTransactions(new Set(response.data.transactions.map((_: ParsedTransaction, i: number) => i)));
-          }
-        } else if (response.data.status === 'error') {
-          setIsPolling(false);
-          setParseError(response.data.error);
-        }
-      } catch {
-        setIsPolling(false);
-        setParseError(language === 'fr' ? 'Le lien a expiré' : 'Link expired');
-      }
-    };
-
-    pollStatus();
-    pollingRef.current = setInterval(pollStatus, 2000);
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
-  }, [isPolling, qrToken, language]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
-  }, []);
-
-  // Get QR code URL
-  const getQrCodeUrl = () => {
-    if (!qrToken) return '';
-    const uploadUrl = `${window.location.origin}/upload/${qrToken}`;
-    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(uploadUrl)}`;
-  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -245,13 +177,6 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
     setParseError(null);
     setImportErrors([]);
     setStep(1);
-    setQrToken(null);
-    setIsPolling(false);
-    setShowQrOption(false);
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -362,11 +287,11 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
           </p>
 
           {currentStepData.image && (
-            <div className={`rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 ${step === 2 ? 'max-h-48' : ''}`}>
+            <div className={`rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 ${step === 2 ? 'max-h-72' : ''}`}>
               <img
                 src={currentStepData.image}
                 alt={language === 'fr' ? currentStepData.titleFr : currentStepData.titleEn}
-                className={`w-full ${step === 2 ? 'object-contain max-h-48' : ''}`}
+                className={`w-full ${step === 2 ? 'object-contain max-h-72' : ''}`}
               />
             </div>
           )}
@@ -397,88 +322,42 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
       {/* Upload Step (6) */}
       {isUploadStep && !file && !isParsing && !parsedTransactions.length && !parseError && (
         <>
-          {!showQrOption ? (
-            <>
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-                  isDragging
-                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                    : 'border-slate-300 dark:border-slate-600 hover:border-green-400 dark:hover:border-green-500'
-                }`}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                  onChange={handleFileInputChange}
-                  className="hidden"
-                />
-                <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-green-500' : 'text-slate-400'}`} />
-                <p className="text-slate-600 dark:text-slate-300 font-medium mb-2">
-                  {language === 'fr' ? 'Glissez votre fichier Excel ici' : 'Drag your Excel file here'}
-                </p>
-                <p className="text-slate-400 text-sm">
-                  {language === 'fr' ? 'ou cliquez pour sélectionner (.xlsx)' : 'or click to select (.xlsx)'}
-                </p>
-              </div>
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+              isDragging
+                ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                : 'border-slate-300 dark:border-slate-600 hover:border-green-400 dark:hover:border-green-500'
+            }`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
+            <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-green-500' : 'text-slate-400'}`} />
+            <p className="text-slate-600 dark:text-slate-300 font-medium mb-2">
+              {language === 'fr' ? 'Glissez votre fichier Excel ici' : 'Drag your Excel file here'}
+            </p>
+            <p className="text-slate-400 text-sm">
+              {language === 'fr' ? 'ou cliquez pour sélectionner (.xlsx)' : 'or click to select (.xlsx)'}
+            </p>
+          </div>
 
-              <div className="flex justify-between items-center mt-4">
-                <button
-                  onClick={() => setStep(5)}
-                  className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  {language === 'fr' ? 'Revoir les instructions' : 'Review instructions'}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowQrOption(true);
-                    generateQrToken();
-                  }}
-                  className="text-sm text-green-600 hover:text-green-700 dark:text-green-400 underline"
-                >
-                  {language === 'fr' ? 'Le fichier est sur mon téléphone' : 'The file is on my phone'}
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-4">
-              {isGeneratingToken ? (
-                <div className="py-8">
-                  <Loader2 className="w-10 h-10 text-green-500 animate-spin mx-auto mb-4" />
-                  <p className="text-slate-600 dark:text-slate-300">
-                    {language === 'fr' ? 'Génération du QR code...' : 'Generating QR code...'}
-                  </p>
-                </div>
-              ) : qrToken ? (
-                <>
-                  <p className="text-slate-600 dark:text-slate-300 mb-4">
-                    {language === 'fr' ? 'Scannez ce QR code avec votre téléphone' : 'Scan this QR code with your phone'}
-                  </p>
-                  <div className="inline-block p-4 bg-white rounded-xl shadow-lg mb-4">
-                    <img src={getQrCodeUrl()} alt="QR Code" className="w-48 h-48" />
-                  </div>
-                  <div className="flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>{language === 'fr' ? 'En attente de l\'upload...' : 'Waiting for upload...'}</span>
-                  </div>
-                  <p className="text-slate-400 text-xs mt-4">
-                    {language === 'fr' ? 'Le lien expire dans 5 minutes' : 'Link expires in 5 minutes'}
-                  </p>
-                  <button
-                    onClick={() => { setShowQrOption(false); setQrToken(null); setIsPolling(false); }}
-                    className="mt-4 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-sm underline"
-                  >
-                    {language === 'fr' ? 'Uploader depuis cet ordinateur' : 'Upload from this computer'}
-                  </button>
-                </>
-              ) : null}
-            </div>
-          )}
+          <div className="flex justify-start mt-4">
+            <button
+              onClick={() => setStep(5)}
+              className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              {language === 'fr' ? 'Revoir les instructions' : 'Review instructions'}
+            </button>
+          </div>
         </>
       )}
 
