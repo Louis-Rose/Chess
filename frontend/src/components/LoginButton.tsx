@@ -7,7 +7,7 @@ export function LoginButton() {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="relative h-[44px] min-h-[44px] max-h-[44px] flex items-center justify-center overflow-hidden">
+    <div className="relative h-[48px] min-h-[48px] max-h-[48px] flex items-center justify-center overflow-hidden">
       <GoogleLogin
         onSuccess={async (credentialResponse) => {
           setError(null);
