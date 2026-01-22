@@ -242,16 +242,16 @@ export function StockDetailPanel() {
 
   const displayName = marketCapData?.name || stock?.name || upperTicker;
 
-  // Fetch news feed - only when authenticated
+  // Fetch news feed - enabled for both authenticated users and TSLA preview
   const { data: fetchedNewsData, isLoading: newsLoading, refetch: refetchNews, isFetching: newsFetching } = useQuery({
     queryKey: ['newsFeed', upperTicker, displayName],
     queryFn: () => fetchNewsFeed(upperTicker, displayName),
-    enabled: !!upperTicker && !!displayName && isAuthenticated,
+    enabled: !!upperTicker && !!displayName,
     staleTime: 1000 * 60 * 15,
   });
 
-  // Use mock data when not authenticated
-  const newsData = isAuthenticated ? fetchedNewsData : TESLA_MOCK_DATA.newsFeed;
+  // Use fetched data, fall back to mock only if not available
+  const newsData = fetchedNewsData || TESLA_MOCK_DATA.newsFeed;
 
   const currentPrice = stockHistoryData?.data?.length
     ? stockHistoryData.data[stockHistoryData.data.length - 1].price
