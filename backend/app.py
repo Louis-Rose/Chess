@@ -894,18 +894,6 @@ def list_users():
                 user['last_active'] = user['last_active'].isoformat()
             users.append(user)
 
-    # Compute total invested value for each user
-    for user in users:
-        holdings = compute_holdings_from_transactions(user['id'])
-        if holdings:
-            try:
-                composition = compute_portfolio_composition(holdings)
-                user['total_invested_eur'] = composition.get('total_value_eur', 0)
-            except:
-                user['total_invested_eur'] = 0
-        else:
-            user['total_invested_eur'] = 0
-
     return jsonify({'users': users, 'total': len(users)})
 
 

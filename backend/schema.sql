@@ -259,3 +259,10 @@ CREATE INDEX IF NOT EXISTS idx_stock_views_user_id ON stock_views(user_id);
 CREATE INDEX IF NOT EXISTS idx_stock_views_ticker ON stock_views(stock_ticker);
 CREATE INDEX IF NOT EXISTS idx_youtube_videos_channel ON youtube_videos_cache(channel_id);
 CREATE INDEX IF NOT EXISTS idx_youtube_videos_published ON youtube_videos_cache(published_at);
+
+-- Admin analytics indexes for faster aggregation queries
+CREATE INDEX IF NOT EXISTS idx_user_activity_date ON user_activity(activity_date);
+CREATE INDEX IF NOT EXISTS idx_page_activity_user_id ON page_activity(user_id);
+CREATE INDEX IF NOT EXISTS idx_theme_usage_user_id ON theme_usage(user_id);
+CREATE INDEX IF NOT EXISTS idx_language_usage_user_id ON language_usage(user_id);
+CREATE INDEX IF NOT EXISTS idx_device_usage_user_id ON device_usage(user_id);

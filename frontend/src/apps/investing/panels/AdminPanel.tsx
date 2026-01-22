@@ -21,7 +21,6 @@ interface AdminUser {
   total_minutes: number;
   last_active: string | null;
   account_count: number;
-  total_invested_eur: number;
   graph_downloads: number;
   sign_in_count: number;
   session_count: number;
@@ -32,7 +31,7 @@ interface AdminUsersResponse {
   total: number;
 }
 
-type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes' | 'account_count' | 'total_invested_eur' | 'graph_downloads' | 'session_count';
+type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes' | 'account_count' | 'graph_downloads' | 'session_count';
 type SortDirection = 'asc' | 'desc';
 
 const fetchUsers = async (): Promise<AdminUsersResponse> => {
@@ -370,9 +369,6 @@ export function AdminPanel() {
           break;
         case 'account_count':
           comparison = a.account_count - b.account_count;
-          break;
-        case 'total_invested_eur':
-          comparison = a.total_invested_eur - b.total_invested_eur;
           break;
         case 'graph_downloads':
           comparison = a.graph_downloads - b.graph_downloads;
@@ -1046,13 +1042,6 @@ export function AdminPanel() {
                       </button>
                     </th>
                     <th className="pb-2 text-center whitespace-nowrap">
-                      <button onClick={() => handleSort('total_invested_eur')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
-                        <span className="hidden sm:inline">{language === 'fr' ? 'Investi' : 'Invested'}</span>
-                        <span className="sm:hidden">€</span>
-                        {sortColumn === 'total_invested_eur' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                      </button>
-                    </th>
-                    <th className="pb-2 text-center whitespace-nowrap">
                       <button onClick={() => handleSort('graph_downloads')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
                         <span className="hidden sm:inline">{language === 'fr' ? 'Téléch.' : 'DL'}</span>
                         <span className="sm:hidden">DL</span>
@@ -1134,9 +1123,6 @@ export function AdminPanel() {
                       </td>
                       <td className="py-2 text-center text-slate-500 dark:text-slate-300">
                         {u.account_count > 0 ? u.account_count : '-'}
-                      </td>
-                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">
-                        {u.total_invested_eur > 0 ? `€${Math.round(u.total_invested_eur).toLocaleString()}` : '-'}
                       </td>
                       <td className="py-2 text-center text-slate-500 dark:text-slate-300">
                         {u.graph_downloads > 0 ? u.graph_downloads : '-'}
