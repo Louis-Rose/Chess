@@ -63,7 +63,6 @@ interface SelectedAccountWithBank {
 
 interface TransactionFormProps {
   transactions: Transaction[];
-  selectedAccountId: number | undefined;  // First selected account (for adding transactions)
   selectedAccountIds: number[];  // All selected accounts (for filtering)
   selectedAccountsWithBanks: SelectedAccountWithBank[];  // All selected accounts with their bank info
   onAddTransaction: (transaction: NewTransaction) => void;
@@ -77,7 +76,6 @@ interface TransactionFormProps {
 
 export function TransactionForm({
   transactions,
-  selectedAccountId,
   selectedAccountIds,
   selectedAccountsWithBanks,
   onAddTransaction,
@@ -93,7 +91,7 @@ export function TransactionForm({
 
   // UI state
   const [showTransactions, setShowTransactions] = useState(() => transactions.length === 0);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [addFormAccountId, setAddFormAccountId] = useState<number | null>(null);  // Which account to add transaction to
 
   // Auto-expand when selected account has no transactions
   useEffect(() => {
@@ -109,11 +107,8 @@ export function TransactionForm({
   const [revolutImportAccountId, setRevolutImportAccountId] = useState<number | null>(null);
   const [creditMutuelImportAccountId, setCreditMutuelImportAccountId] = useState<number | null>(null);
 
-  // Compute which banks are among selected accounts
-  const revolutAccounts = selectedAccountsWithBanks.filter(a => a.bank?.toUpperCase() === 'REVOLUT');
-  const creditMutuelAccounts = selectedAccountsWithBanks.filter(a => a.bank?.toUpperCase() === 'CREDIT_MUTUEL');
 
-  // Close import dialogs when account is no longer selected
+  // Close import dialogs and add form when account is no longer selected
   useEffect(() => {
     if (revolutImportAccountId !== null && !selectedAccountIds.includes(revolutImportAccountId)) {
       setRevolutImportAccountId(null);
@@ -121,7 +116,10 @@ export function TransactionForm({
     if (creditMutuelImportAccountId !== null && !selectedAccountIds.includes(creditMutuelImportAccountId)) {
       setCreditMutuelImportAccountId(null);
     }
-  }, [selectedAccountIds, revolutImportAccountId, creditMutuelImportAccountId]);
+    if (addFormAccountId !== null && !selectedAccountIds.includes(addFormAccountId)) {
+      setAddFormAccountId(null);
+    }
+  }, [selectedAccountIds, revolutImportAccountId, creditMutuelImportAccountId, addFormAccountId]);
   const [filterTicker, setFilterTicker] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'BUY' | 'SELL'>('ALL');
 
@@ -251,19 +249,19 @@ export function TransactionForm({
   const closeForm = () => {
     resetForm(false);
     setNewType('BUY');
-    setShowAddForm(false);
+    setAddFormAccountId(null);
     setRevolutImportAccountId(null);
     setCreditMutuelImportAccountId(null);
   };
 
   const handleAddTransaction = () => {
-    if (newTicker.trim() && newQuantity && parseInt(newQuantity) > 0 && newDate) {
+    if (newTicker.trim() && newQuantity && parseInt(newQuantity) > 0 && newDate && addFormAccountId) {
       onAddTransaction({
         stock_ticker: newTicker.toUpperCase().trim(),
         transaction_type: newType,
         quantity: parseInt(newQuantity),
         transaction_date: newDate,
-        account_id: selectedAccountId,
+        account_id: addFormAccountId,
       });
       resetForm(true);
     }
@@ -305,52 +303,54 @@ export function TransactionForm({
           {/* Header with title */}
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">{t('transactions.title')}</h3>
 
-          {/* Action buttons - Import from bank (for each account with import support) and Add manually (only when single account selected) */}
-          {!showAddForm && (
-            <div className="flex flex-col items-center gap-3 mb-4">
-              {/* Import buttons for Revolut accounts that don't have their import open */}
-              {revolutAccounts
-                .filter(account => revolutImportAccountId !== account.id)
-                .map(account => (
-                <button
-                  key={`revolut-${account.id}`}
-                  onClick={() => setRevolutImportAccountId(account.id)}
-                  className="w-80 bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
-                >
-                  <Upload className="w-5 h-5" />
-                  {t('transactions.importRevolut')}
-                  {revolutAccounts.length > 1 && <span className="text-sm opacity-80">({account.name})</span>}
-                </button>
-              ))}
-              {/* Import buttons for Crédit Mutuel accounts that don't have their import open */}
-              {creditMutuelAccounts
-                .filter(account => creditMutuelImportAccountId !== account.id)
-                .map(account => (
-                <button
-                  key={`cm-${account.id}`}
-                  onClick={() => setCreditMutuelImportAccountId(account.id)}
-                  className="w-80 bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
-                >
-                  <Upload className="w-5 h-5" />
-                  {language === 'fr' ? 'Importer depuis Crédit Mutuel' : 'Import from Crédit Mutuel'}
-                  {creditMutuelAccounts.length > 1 && <span className="text-sm opacity-80">({account.name})</span>}
-                </button>
-              ))}
-              {/* Add manually button - only when single account selected */}
-              {selectedAccountIds.length === 1 && (
-                <button
-                  onClick={() => setShowAddForm(true)}
-                  className="w-80 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
-                >
-                  <Plus className="w-5 h-5" />
-                  {t('transactions.addTransaction')}
-                </button>
-              )}
+          {/* Action buttons - grouped by account in cards */}
+          {addFormAccountId === null && (
+            <div className="flex flex-wrap justify-center gap-4 mb-4">
+              {selectedAccountsWithBanks.map(account => {
+                const isRevolut = account.bank?.toUpperCase() === 'REVOLUT';
+                const isCreditMutuel = account.bank?.toUpperCase() === 'CREDIT_MUTUEL';
+                const importOpen = (isRevolut && revolutImportAccountId === account.id) ||
+                                   (isCreditMutuel && creditMutuelImportAccountId === account.id);
+
+                // Skip if import is already open for this account
+                if (importOpen) return null;
+
+                return (
+                  <div key={account.id} className="bg-slate-600 rounded-2xl p-4 flex flex-col items-center gap-3">
+                    <span className="text-white font-medium text-sm">{account.name}</span>
+                    {isRevolut && (
+                      <button
+                        onClick={() => setRevolutImportAccountId(account.id)}
+                        className="w-72 bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                      >
+                        <Upload className="w-5 h-5" />
+                        {t('transactions.importRevolut')}
+                      </button>
+                    )}
+                    {isCreditMutuel && (
+                      <button
+                        onClick={() => setCreditMutuelImportAccountId(account.id)}
+                        className="w-72 bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                      >
+                        <Upload className="w-5 h-5" />
+                        {language === 'fr' ? 'Importer depuis Crédit Mutuel' : 'Import from Crédit Mutuel'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setAddFormAccountId(account.id)}
+                      className="w-72 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                    >
+                      <Plus className="w-5 h-5" />
+                      {t('transactions.addTransaction')}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
 
           {/* Filters - shown below buttons when not in add form mode */}
-          {!showAddForm && uniqueTickers.length > 0 && (
+          {addFormAccountId === null && uniqueTickers.length > 0 && (
             <div className="flex justify-center gap-3 mb-6">
               <select
                 value={filterTicker}
@@ -377,7 +377,7 @@ export function TransactionForm({
           )}
 
           {/* Add Transaction Form */}
-          {showAddForm && (
+          {addFormAccountId !== null && (
             <div className="bg-white rounded-lg p-4 mb-6 border border-slate-200">
               {/* Market Filter Toggles */}
               <div className="mb-3">
@@ -642,7 +642,7 @@ export function TransactionForm({
           )}
 
           {/* Done button - right after the form */}
-          {(showAddForm || revolutImportAccountId !== null || creditMutuelImportAccountId !== null) && (
+          {(addFormAccountId !== null || revolutImportAccountId !== null || creditMutuelImportAccountId !== null) && (
             <div className="flex justify-center mb-6">
               <button
                 onClick={closeForm}

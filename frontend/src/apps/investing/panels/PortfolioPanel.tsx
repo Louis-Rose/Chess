@@ -638,7 +638,6 @@ export function PortfolioPanel() {
         {selectedAccountIds.length > 0 && (
           <TransactionForm
             transactions={transactions}
-            selectedAccountId={selectedAccountIds[0]}
             selectedAccountIds={selectedAccountIds}
             selectedAccountsWithBanks={selectedAccountIds.map(id => {
               const account = accounts.find(a => a.id === id);
