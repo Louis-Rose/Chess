@@ -298,29 +298,31 @@ export function AccountSelector({
 
           {/* Delete Confirmation Banner */}
           {accountPendingDelete !== null && (
-            <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
-              <p className="text-red-700 dark:text-red-400 mb-3">
-                {language === 'fr'
-                  ? `Voulez-vous supprimer le compte "${accounts.find(a => a.id === accountPendingDelete)?.name}" ?`
-                  : `Do you want to delete "${accounts.find(a => a.id === accountPendingDelete)?.name}" account?`}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    onDeleteAccount(accountPendingDelete);
-                    setAccountPendingDelete(null);
-                  }}
-                  disabled={isDeleting}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === 'fr' ? 'Oui' : 'Yes')}
-                </button>
-                <button
-                  onClick={() => setAccountPendingDelete(null)}
-                  className="px-4 py-2 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 text-sm rounded-lg transition-colors"
-                >
-                  {language === 'fr' ? 'Non' : 'No'}
-                </button>
+            <div className="mt-4 flex justify-center">
+              <div className="p-4 bg-slate-100 dark:bg-slate-600 border border-slate-300 dark:border-slate-500 rounded-lg text-center">
+                <p className="text-slate-700 dark:text-slate-200 mb-3">
+                  {language === 'fr'
+                    ? `Voulez-vous supprimer le compte "${accounts.find(a => a.id === accountPendingDelete)?.name}" ?`
+                    : `Do you want to delete "${accounts.find(a => a.id === accountPendingDelete)?.name}" account?`}
+                </p>
+                <div className="flex justify-center gap-2">
+                  <button
+                    onClick={() => {
+                      onDeleteAccount(accountPendingDelete);
+                      setAccountPendingDelete(null);
+                    }}
+                    disabled={isDeleting}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === 'fr' ? 'Oui' : 'Yes')}
+                  </button>
+                  <button
+                    onClick={() => setAccountPendingDelete(null)}
+                    className="px-4 py-2 bg-slate-200 dark:bg-slate-500 hover:bg-slate-300 dark:hover:bg-slate-400 text-slate-700 dark:text-slate-200 text-sm rounded-lg transition-colors"
+                  >
+                    {language === 'fr' ? 'Non' : 'No'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
