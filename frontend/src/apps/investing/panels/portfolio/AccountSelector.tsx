@@ -109,9 +109,13 @@ export function AccountSelector({
               <div>
                 <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('accounts.title')}</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {language === 'fr'
-                    ? 'Sélectionnez plusieurs comptes pour voir les données agrégées'
-                    : 'Select multiple accounts to see combined data'}
+                  {selectedAccountIds.length > 1
+                    ? (language === 'fr'
+                        ? 'Sélectionnez un seul compte pour ajouter des transactions'
+                        : 'Select a single account to add transactions')
+                    : (language === 'fr'
+                        ? 'Sélectionnez plusieurs comptes pour voir les données agrégées'
+                        : 'Select multiple accounts to see combined data')}
                 </p>
               </div>
             </div>

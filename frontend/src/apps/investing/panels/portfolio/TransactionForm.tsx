@@ -284,42 +284,34 @@ export function TransactionForm({
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">{t('transactions.title')}</h3>
 
           {/* Action buttons - Import from bank and Add manually (only when single account selected) */}
-          {!showAddForm && !showRevolutImport && !showCreditMutuelImport && (
-            selectedAccountIds.length === 1 ? (
-              <div className="flex flex-col items-center gap-3 mb-4">
-                {selectedAccountBank?.toUpperCase() === 'REVOLUT' && (
-                  <button
-                    onClick={() => setShowRevolutImport(true)}
-                    className="w-80 bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
-                  >
-                    <Upload className="w-5 h-5" />
-                    {t('transactions.importRevolut')}
-                  </button>
-                )}
-                {(selectedAccountBank?.toLowerCase().includes('crédit mutuel') || selectedAccountBank?.toLowerCase().includes('credit mutuel')) && (
-                  <button
-                    onClick={() => setShowCreditMutuelImport(true)}
-                    className="w-80 bg-[#0b4a3e] text-white px-6 py-3 rounded-xl hover:bg-[#093d33] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
-                  >
-                    <Upload className="w-5 h-5" />
-                    {language === 'fr' ? 'Importer depuis Crédit Mutuel' : 'Import from Crédit Mutuel'}
-                  </button>
-                )}
+          {!showAddForm && !showRevolutImport && !showCreditMutuelImport && selectedAccountIds.length === 1 && (
+            <div className="flex flex-col items-center gap-3 mb-4">
+              {selectedAccountBank?.toUpperCase() === 'REVOLUT' && (
                 <button
-                  onClick={() => setShowAddForm(true)}
-                  className="w-80 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                  onClick={() => setShowRevolutImport(true)}
+                  className="w-80 bg-[#0666eb] text-white px-6 py-3 rounded-xl hover:bg-[#0555cc] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
                 >
-                  <Plus className="w-5 h-5" />
-                  {t('transactions.addTransaction')}
+                  <Upload className="w-5 h-5" />
+                  {t('transactions.importRevolut')}
                 </button>
-              </div>
-            ) : (
-              <p className="text-slate-500 dark:text-slate-400 text-center mb-4 text-sm">
-                {language === 'fr'
-                  ? 'Sélectionnez un seul compte pour ajouter des transactions'
-                  : 'Select a single account to add transactions'}
-              </p>
-            )
+              )}
+              {selectedAccountBank?.toUpperCase() === 'CREDIT_MUTUEL' && (
+                <button
+                  onClick={() => setShowCreditMutuelImport(true)}
+                  className="w-80 bg-[#0b4a3e] text-white px-6 py-3 rounded-xl hover:bg-[#093d33] flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Upload className="w-5 h-5" />
+                  {language === 'fr' ? 'Importer depuis Crédit Mutuel' : 'Import from Crédit Mutuel'}
+                </button>
+              )}
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="w-80 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 flex items-center justify-center gap-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+              >
+                <Plus className="w-5 h-5" />
+                {t('transactions.addTransaction')}
+              </button>
+            </div>
           )}
 
           {/* Filters - shown below buttons when not adding/importing */}
