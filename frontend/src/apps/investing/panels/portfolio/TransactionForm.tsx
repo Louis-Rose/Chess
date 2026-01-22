@@ -85,9 +85,16 @@ export function TransactionForm({
   const navigate = useNavigate();
   const { language, t } = useLanguage();
 
-  // UI state - expand by default when no transactions
+  // UI state
   const [showTransactions, setShowTransactions] = useState(() => transactions.length === 0);
   const [showAddForm, setShowAddForm] = useState(false);
+
+  // Auto-expand when selected account has no transactions
+  useEffect(() => {
+    if (transactions.length === 0) {
+      setShowTransactions(true);
+    }
+  }, [selectedAccountIds, transactions.length]);
   const [showRevolutImport, setShowRevolutImport] = useState(false);
   const [showCreditMutuelImport, setShowCreditMutuelImport] = useState(false);
   const [filterTicker, setFilterTicker] = useState('');
