@@ -325,15 +325,17 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
         </button>
       </div>
 
-      {/* Progress bar for instruction steps */}
+      {/* Progress bar for instruction steps - clickable */}
       {!isUploadStep && !parsedTransactions.length && (
         <div className="flex gap-1 mb-6">
           {[1, 2, 3, 4, 5].map(s => (
-            <div
+            <button
               key={s}
-              className={`h-1 flex-1 rounded-full transition-colors ${
-                s <= step ? 'bg-green-500' : 'bg-slate-200 dark:bg-slate-600'
+              onClick={() => setStep(s)}
+              className={`h-2 flex-1 rounded-full transition-colors hover:opacity-80 ${
+                s <= step ? 'bg-green-500' : 'bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500'
               }`}
+              title={language === 'fr' ? `Étape ${s}` : `Step ${s}`}
             />
           ))}
         </div>
