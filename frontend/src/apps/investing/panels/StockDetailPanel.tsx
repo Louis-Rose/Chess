@@ -243,8 +243,16 @@ export function StockDetailPanel() {
         <span>{language === 'fr' ? 'Retour' : 'Back'}</span>
       </button>
 
-      {/* Search Bar */}
+      {/* Search Bar with Title */}
       <div className="max-w-3xl mx-auto mb-6">
+        <div className="flex flex-col items-center gap-2 mb-6">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            {language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 text-lg italic">
+            {language === 'fr' ? 'Recherchez 2 500+ actions sur 8 marchés mondiaux' : 'Research 2,500+ stocks across 8 global markets'}
+          </p>
+        </div>
         <StockSearchBar />
       </div>
 
