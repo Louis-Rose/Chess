@@ -1,7 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Upload, FileText, X, Check, AlertCircle, Loader2, Trash2, Smartphone, Monitor } from 'lucide-react';
+import { Upload, FileText, X, Check, AlertCircle, Loader2, Trash2, ChevronRight, ChevronLeft } from 'lucide-react';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
+
+// Import screenshots as static assets
+import step2Image from '../../../../assets/cm-import/step2.png';
+import step3Image from '../../../../assets/cm-import/step3.png';
+import step4Image from '../../../../assets/cm-import/step4.png';
+import step5Image from '../../../../assets/cm-import/step5.png';
 
 interface ParsedTransaction {
   stock_ticker: string;
@@ -21,16 +27,10 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
   const { language } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Mode: 'choose' | 'desktop' | 'qr'
-  const [mode, setMode] = useState<'choose' | 'desktop' | 'qr'>('choose');
+  // Wizard step (1-6, where 6 is upload)
+  const [step, setStep] = useState(1);
 
-  // QR code state
-  const [qrToken, setQrToken] = useState<string | null>(null);
-  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
-  const [isPolling, setIsPolling] = useState(false);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Direct upload state
+  // Upload state
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
@@ -40,6 +40,13 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const [importErrors, setImportErrors] = useState<string[]>([]);
+
+  // QR code state
+  const [qrToken, setQrToken] = useState<string | null>(null);
+  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
+  const [showQrOption, setShowQrOption] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Generate QR token
   const generateQrToken = useCallback(async () => {
@@ -66,8 +73,8 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
           setIsPolling(false);
           if (response.data.transactions.length === 0) {
             setParseError(language === 'fr'
-              ? 'Aucune transaction trouvée dans ce PDF. Assurez-vous d\'utiliser un relevé de compte-titres Crédit Mutuel.'
-              : 'No transactions found in this PDF. Make sure you\'re using a Crédit Mutuel securities statement.');
+              ? 'Aucune transaction trouvée dans ce PDF. Assurez-vous d\'utiliser un relevé Crédit Mutuel.'
+              : 'No transactions found in this PDF. Make sure you\'re using a Crédit Mutuel statement.');
           } else {
             setParsedTransactions(response.data.transactions);
             setSelectedTransactions(new Set(response.data.transactions.map((_: ParsedTransaction, i: number) => i)));
@@ -77,13 +84,11 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
           setParseError(response.data.error);
         }
       } catch {
-        // Token might have expired
         setIsPolling(false);
         setParseError(language === 'fr' ? 'Le lien a expiré' : 'Link expired');
       }
     };
 
-    // Check immediately, then poll every 2 seconds
     pollStatus();
     pollingRef.current = setInterval(pollStatus, 2000);
     return () => {
@@ -97,12 +102,6 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, []);
-
-  // Start QR mode
-  const startQrMode = () => {
-    setMode('qr');
-    generateQrToken();
-  };
 
   // Get QR code URL
   const getQrCodeUrl = () => {
@@ -143,18 +142,17 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
     formData.append('file', selectedFile);
 
     try {
-      const response = await axios.post('/api/investing/import/revolut', formData, {
+      const response = await axios.post('/api/investing/import/credit-mutuel', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       if (response.data.success && response.data.transactions.length > 0) {
         setParsedTransactions(response.data.transactions);
-        // Select all by default
         setSelectedTransactions(new Set(response.data.transactions.map((_: ParsedTransaction, i: number) => i)));
       } else if (response.data.transactions.length === 0) {
         setParseError(language === 'fr'
-          ? 'Aucune transaction trouvée dans ce PDF. Assurez-vous d\'utiliser un relevé de compte-titres Crédit Mutuel.'
-          : 'No transactions found in this PDF. Make sure you\'re using a Crédit Mutuel securities statement.');
+          ? 'Aucune transaction trouvée dans ce PDF. Assurez-vous d\'utiliser un relevé Crédit Mutuel.'
+          : 'No transactions found in this PDF. Make sure you\'re using a Crédit Mutuel statement.');
       }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
@@ -244,9 +242,10 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
     setSelectedTransactions(new Set());
     setParseError(null);
     setImportErrors([]);
-    setMode('choose');
+    setStep(1);
     setQrToken(null);
     setIsPolling(false);
+    setShowQrOption(false);
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
@@ -255,6 +254,49 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
       fileInputRef.current.value = '';
     }
   };
+
+  // Step content
+  const steps = [
+    {
+      titleFr: 'Connectez-vous à votre espace Crédit Mutuel',
+      titleEn: 'Log into your Crédit Mutuel account',
+      descFr: 'Rendez-vous sur le site de votre Crédit Mutuel et connectez-vous.',
+      descEn: 'Go to your Crédit Mutuel website and log in.',
+      image: null,
+    },
+    {
+      titleFr: 'Accédez à Opérations → Valeurs boursières',
+      titleEn: 'Go to Opérations → Valeurs boursières',
+      descFr: 'Dans le menu principal, cliquez sur "Opérations" puis "Valeurs boursières".',
+      descEn: 'In the main menu, click "Opérations" then "Valeurs boursières".',
+      image: step2Image,
+    },
+    {
+      titleFr: 'Cliquez sur Portefeuilles',
+      titleEn: 'Click on Portefeuilles',
+      descFr: 'Dans l\'espace bourse, sélectionnez l\'onglet "Portefeuilles".',
+      descEn: 'In the bourse section, select the "Portefeuilles" tab.',
+      image: step3Image,
+    },
+    {
+      titleFr: 'Accédez à Historique opérations → Bourse',
+      titleEn: 'Go to Historique opérations → Bourse',
+      descFr: 'Sélectionnez "Historique opérations", puis "Bourse" ou "Toutes les opérations". Entrez les dates souhaitées et cliquez OK.',
+      descEn: 'Select "Historique opérations", then "Bourse" or "Toutes les opérations". Enter your desired dates and click OK.',
+      image: step4Image,
+    },
+    {
+      titleFr: 'Téléchargez le document',
+      titleEn: 'Download the document',
+      descFr: 'Cliquez sur l\'icône de téléchargement en haut à droite pour obtenir le PDF.',
+      descEn: 'Click the download icon on the top right to get the PDF.',
+      image: step5Image,
+    },
+  ];
+
+  const currentStepData = steps[step - 1];
+  const isLastInstructionStep = step === 5;
+  const isUploadStep = step === 6;
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-600">
@@ -269,7 +311,9 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
               {language === 'fr' ? 'Import Crédit Mutuel' : 'Crédit Mutuel Import'}
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              {language === 'fr' ? 'Importer depuis un relevé de compte-titres PDF' : 'Import from securities statement PDF'}
+              {isUploadStep
+                ? (language === 'fr' ? 'Uploadez votre relevé' : 'Upload your statement')
+                : (language === 'fr' ? `Étape ${step}/5` : `Step ${step}/5`)}
             </p>
           </div>
         </div>
@@ -281,152 +325,157 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
         </button>
       </div>
 
-      {/* Mode Selection */}
-      {mode === 'choose' && !parseError && (
-        <div className="space-y-3">
-          <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-4">
-            {language === 'fr' ? 'Comment souhaitez-vous importer ?' : 'How would you like to import?'}
-          </p>
-          <button
-            onClick={startQrMode}
-            className="w-full flex items-center gap-4 p-4 border border-slate-200 dark:border-slate-600 rounded-xl hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-          >
-            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
-              <Smartphone className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Depuis mon téléphone' : 'From my phone'}
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {language === 'fr' ? 'Scanner un QR code pour uploader' : 'Scan QR code to upload'}
-              </p>
-            </div>
-          </button>
-          <button
-            onClick={() => setMode('desktop')}
-            className="w-full flex items-center gap-4 p-4 border border-slate-200 dark:border-slate-600 rounded-xl hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-          >
-            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
-              <Monitor className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Depuis cet ordinateur' : 'From this computer'}
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {language === 'fr' ? 'J\'ai le PDF sur cet appareil' : 'I have the PDF on this device'}
-              </p>
-            </div>
-          </button>
-        </div>
-      )}
-
-      {/* QR Code Mode */}
-      {mode === 'qr' && !parsedTransactions.length && (
-        <div className="text-center py-4">
-          {isGeneratingToken ? (
-            <div className="py-8">
-              <Loader2 className="w-10 h-10 text-green-500 animate-spin mx-auto mb-4" />
-              <p className="text-slate-600 dark:text-slate-300">
-                {language === 'fr' ? 'Génération du QR code...' : 'Generating QR code...'}
-              </p>
-            </div>
-          ) : qrToken ? (
-            <>
-              {/* Instructions */}
-              <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg text-left">
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2 font-medium">
-                  {language === 'fr' ? 'Comment obtenir votre relevé Crédit Mutuel :' : 'How to get your Crédit Mutuel statement:'}
-                </p>
-                <ol className="text-sm text-slate-500 dark:text-slate-400 space-y-1 list-decimal list-inside">
-                  <li>{language === 'fr' ? 'Connectez-vous à votre espace Crédit Mutuel' : 'Log into your Crédit Mutuel account'}</li>
-                  <li>{language === 'fr' ? 'Allez dans Opérations → Valeurs boursières' : 'Go to Opérations → Valeurs boursières'}</li>
-                  <li>{language === 'fr' ? 'Cliquez sur Portefeuilles' : 'Click on Portefeuilles'}</li>
-                  <li>{language === 'fr' ? 'Sélectionnez Historique opérations → Bourse' : 'Select Historique opérations → Bourse'}</li>
-                  <li>{language === 'fr' ? 'Entrez les dates souhaitées et cliquez OK' : 'Enter your desired dates and click OK'}</li>
-                  <li>{language === 'fr' ? 'Téléchargez le document (icône en haut à droite)' : 'Download the document (icon on top right)'}</li>
-                </ol>
-                <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded text-xs text-amber-700 dark:text-amber-400">
-                  ⚠️ {language === 'fr'
-                    ? 'Seules les opérations depuis 2024 sont disponibles. Les opérations antérieures doivent être ajoutées manuellement.'
-                    : 'Only operations since 2024 are available. Earlier operations must be added manually.'}
-                </div>
-              </div>
-
-              <p className="text-slate-600 dark:text-slate-300 mb-4">
-                {language === 'fr' ? 'Scannez ce QR code avec votre téléphone' : 'Scan this QR code with your phone'}
-              </p>
-              <div className="inline-block p-4 bg-white rounded-xl shadow-lg mb-4">
-                <img src={getQrCodeUrl()} alt="QR Code" className="w-48 h-48" />
-              </div>
-              <div className="flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>{language === 'fr' ? 'En attente de l\'upload...' : 'Waiting for upload...'}</span>
-              </div>
-              <p className="text-slate-400 text-xs mt-4">
-                {language === 'fr' ? 'Le lien expire dans 5 minutes' : 'Link expires in 5 minutes'}
-              </p>
-              <button
-                onClick={() => { setMode('choose'); setQrToken(null); setIsPolling(false); }}
-                className="mt-4 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-sm underline"
-              >
-                {language === 'fr' ? 'Annuler' : 'Cancel'}
-              </button>
-            </>
-          ) : null}
-        </div>
-      )}
-
-      {/* Upload Area (Desktop mode) */}
-      {mode === 'desktop' && !file && !isParsing && !parsedTransactions.length && (
-        <>
-          {/* Instructions */}
-          <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-2 font-medium">
-              {language === 'fr' ? 'Comment obtenir votre relevé Crédit Mutuel :' : 'How to get your Crédit Mutuel statement:'}
-            </p>
-            <ol className="text-sm text-slate-500 dark:text-slate-400 space-y-1 list-decimal list-inside">
-              <li>{language === 'fr' ? 'Connectez-vous à votre espace Crédit Mutuel' : 'Log into your Crédit Mutuel account'}</li>
-              <li>{language === 'fr' ? 'Allez dans Opérations → Valeurs boursières' : 'Go to Opérations → Valeurs boursières'}</li>
-              <li>{language === 'fr' ? 'Cliquez sur Portefeuilles' : 'Click on Portefeuilles'}</li>
-              <li>{language === 'fr' ? 'Sélectionnez Historique opérations → Bourse' : 'Select Historique opérations → Bourse'}</li>
-              <li>{language === 'fr' ? 'Entrez les dates souhaitées et cliquez OK' : 'Enter your desired dates and click OK'}</li>
-              <li>{language === 'fr' ? 'Téléchargez le document (icône en haut à droite)' : 'Download the document (icon on top right)'}</li>
-            </ol>
-            <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded text-xs text-amber-700 dark:text-amber-400">
-              ⚠️ {language === 'fr'
-                ? 'Seules les opérations depuis 2024 sont disponibles. Les opérations antérieures doivent être ajoutées manuellement.'
-                : 'Only operations since 2024 are available. Earlier operations must be added manually.'}
-            </div>
-          </div>
-
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-              isDragging
-                ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                : 'border-slate-300 dark:border-slate-600 hover:border-green-400 dark:hover:border-green-500'
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf"
-              onChange={handleFileInputChange}
-              className="hidden"
+      {/* Progress bar for instruction steps */}
+      {!isUploadStep && !parsedTransactions.length && (
+        <div className="flex gap-1 mb-6">
+          {[1, 2, 3, 4, 5].map(s => (
+            <div
+              key={s}
+              className={`h-1 flex-1 rounded-full transition-colors ${
+                s <= step ? 'bg-green-500' : 'bg-slate-200 dark:bg-slate-600'
+              }`}
             />
-            <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-green-500' : 'text-slate-400'}`} />
-            <p className="text-slate-600 dark:text-slate-300 font-medium mb-2">
-              {language === 'fr' ? 'Glissez votre PDF ici' : 'Drag your PDF here'}
-            </p>
-            <p className="text-slate-400 text-sm">
-              {language === 'fr' ? 'ou cliquez pour sélectionner' : 'or click to select'}
-            </p>
+          ))}
+        </div>
+      )}
+
+      {/* Instruction Steps (1-5) */}
+      {!isUploadStep && !parsedTransactions.length && !parseError && (
+        <div className="space-y-4">
+          <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+            {language === 'fr' ? currentStepData.titleFr : currentStepData.titleEn}
+          </h4>
+          <p className="text-slate-600 dark:text-slate-400">
+            {language === 'fr' ? currentStepData.descFr : currentStepData.descEn}
+          </p>
+
+          {currentStepData.image && (
+            <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600">
+              <img
+                src={currentStepData.image}
+                alt={language === 'fr' ? currentStepData.titleFr : currentStepData.titleEn}
+                className="w-full"
+              />
+            </div>
+          )}
+
+          {/* Warning on last instruction step */}
+          {isLastInstructionStep && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-700 dark:text-amber-400">
+              ⚠️ {language === 'fr'
+                ? 'Seules les opérations depuis 2024 sont disponibles sur le site. Les opérations antérieures doivent être ajoutées manuellement.'
+                : 'Only operations since 2024 are available on the site. Earlier operations must be added manually.'}
+            </div>
+          )}
+
+          {/* Navigation buttons */}
+          <div className="flex justify-between pt-4">
+            <button
+              onClick={() => setStep(s => Math.max(1, s - 1))}
+              disabled={step === 1}
+              className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              {language === 'fr' ? 'Précédent' : 'Previous'}
+            </button>
+            <button
+              onClick={() => setStep(s => s + 1)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              {isLastInstructionStep
+                ? (language === 'fr' ? 'J\'ai le PDF' : 'I have the PDF')
+                : (language === 'fr' ? 'Suivant' : 'Next')}
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
+        </div>
+      )}
+
+      {/* Upload Step (6) */}
+      {isUploadStep && !file && !isParsing && !parsedTransactions.length && !parseError && (
+        <>
+          {!showQrOption ? (
+            <>
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+                  isDragging
+                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                    : 'border-slate-300 dark:border-slate-600 hover:border-green-400 dark:hover:border-green-500'
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+                <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-green-500' : 'text-slate-400'}`} />
+                <p className="text-slate-600 dark:text-slate-300 font-medium mb-2">
+                  {language === 'fr' ? 'Glissez votre PDF ici' : 'Drag your PDF here'}
+                </p>
+                <p className="text-slate-400 text-sm">
+                  {language === 'fr' ? 'ou cliquez pour sélectionner' : 'or click to select'}
+                </p>
+              </div>
+
+              <div className="flex justify-between items-center mt-4">
+                <button
+                  onClick={() => setStep(5)}
+                  className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  {language === 'fr' ? 'Revoir les instructions' : 'Review instructions'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowQrOption(true);
+                    generateQrToken();
+                  }}
+                  className="text-sm text-green-600 hover:text-green-700 dark:text-green-400 underline"
+                >
+                  {language === 'fr' ? 'Le PDF est sur mon téléphone' : 'The PDF is on my phone'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              {isGeneratingToken ? (
+                <div className="py-8">
+                  <Loader2 className="w-10 h-10 text-green-500 animate-spin mx-auto mb-4" />
+                  <p className="text-slate-600 dark:text-slate-300">
+                    {language === 'fr' ? 'Génération du QR code...' : 'Generating QR code...'}
+                  </p>
+                </div>
+              ) : qrToken ? (
+                <>
+                  <p className="text-slate-600 dark:text-slate-300 mb-4">
+                    {language === 'fr' ? 'Scannez ce QR code avec votre téléphone' : 'Scan this QR code with your phone'}
+                  </p>
+                  <div className="inline-block p-4 bg-white rounded-xl shadow-lg mb-4">
+                    <img src={getQrCodeUrl()} alt="QR Code" className="w-48 h-48" />
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{language === 'fr' ? 'En attente de l\'upload...' : 'Waiting for upload...'}</span>
+                  </div>
+                  <p className="text-slate-400 text-xs mt-4">
+                    {language === 'fr' ? 'Le lien expire dans 5 minutes' : 'Link expires in 5 minutes'}
+                  </p>
+                  <button
+                    onClick={() => { setShowQrOption(false); setQrToken(null); setIsPolling(false); }}
+                    className="mt-4 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-sm underline"
+                  >
+                    {language === 'fr' ? 'Uploader depuis cet ordinateur' : 'Upload from this computer'}
+                  </button>
+                </>
+              ) : null}
+            </div>
+          )}
         </>
       )}
 
@@ -631,7 +680,6 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
           </div>
         </div>
       )}
-
     </div>
   );
 }
