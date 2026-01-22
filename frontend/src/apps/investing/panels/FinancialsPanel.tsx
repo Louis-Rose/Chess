@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Layers, Loader2, TrendingUp, ExternalLink } from 'lucide-react';
+import { ChevronRight, Layers, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { findStockByTicker } from '../utils/allStocks';
@@ -11,6 +11,7 @@ import { GICS_SECTORS, getStocksBySubIndustry, type GICSSector, type GICSIndustr
 import { addRecentStock } from '../utils/recentStocks';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { StockSearchBar } from '../components/StockSearchBar';
+import { StockDetailPanel } from './StockDetailPanel';
 
 export function FinancialsPanel() {
   const navigate = useNavigate();
@@ -69,130 +70,8 @@ export function FinancialsPanel() {
   }
 
   if (!isAuthenticated) {
-    // Show Tesla stock preview for logged-off users (blurred by LoginOverlay)
-    const teslaLogoUrl = getCompanyLogoUrl('TSLA');
-
-    return (
-      <div>
-        <div className="flex flex-col items-center gap-2 mb-6 mt-8">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-lg italic">
-            {language === 'fr' ? 'Recherchez 2 500+ actions sur 8 marchés mondiaux' : 'Research 2,500+ stocks across 8 global markets'}
-          </p>
-        </div>
-
-        <div className="max-w-3xl mx-auto space-y-6">
-          {/* Search Bar */}
-          <StockSearchBar />
-
-          {/* Tesla Stock Preview */}
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-            <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-lg bg-white dark:bg-slate-600 flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-500">
-                {teslaLogoUrl ? (
-                  <img src={teslaLogoUrl} alt="Tesla logo" className="w-14 h-14 object-contain" />
-                ) : (
-                  <span className="text-xl font-bold text-slate-400">TS</span>
-                )}
-              </div>
-              <div className="flex-1">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Tesla, Inc.</h1>
-                <p className="text-slate-600 dark:text-slate-300">TSLA</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">$424.07</p>
-                <p className="text-sm font-medium text-green-600">+$12.86 (+3.13%)</p>
-              </div>
-            </div>
-            <div className="flex justify-center mt-4">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">
-                <span>{language === 'fr' ? 'Site Relations Investisseurs' : 'Investor Relations Website'}</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </span>
-            </div>
-          </div>
-
-          {/* Financials Preview */}
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none overflow-hidden">
-            <div className="px-6 py-4 flex items-center gap-3">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {language === 'fr' ? 'Données financières' : 'Financials'}
-              </h2>
-            </div>
-            <div className="px-6 pt-4 pb-6 space-y-6">
-              {/* Metrics */}
-              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                    {language === 'fr' ? 'Cap. boursière' : 'Market Cap'}
-                  </p>
-                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">$1.36T</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">P/E Ratio</p>
-                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">188.5</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                    {language === 'fr' ? 'P/E prévu' : 'Forward P/E'}
-                  </p>
-                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">128.8</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                    {language === 'fr' ? 'Rendement div.' : 'Div. Yield'}
-                  </p>
-                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">-</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Beta</p>
-                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">2.31</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">P/B Ratio</p>
-                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">17.89</p>
-                </div>
-              </div>
-
-              {/* Price Chart Placeholder */}
-              <div className="bg-slate-800 dark:bg-slate-900 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-green-500" />
-                    <h3 className="text-base font-semibold text-white">
-                      {language === 'fr' ? 'Historique des prix' : 'Price History'}
-                    </h3>
-                  </div>
-                  <div className="flex gap-1">
-                    {['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'MAX'].map((period) => (
-                      <span
-                        key={period}
-                        className={`px-2 py-1 text-xs rounded ${
-                          period === '1M' ? 'bg-green-600 text-white font-medium' : 'text-slate-400'
-                        }`}
-                      >
-                        {period}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                {/* Static chart preview */}
-                <div className="h-[250px] flex items-center justify-center">
-                  <svg viewBox="0 0 400 150" className="w-full h-full">
-                    <polyline
-                      fill="none"
-                      stroke="#22c55e"
-                      strokeWidth="2"
-                      points="0,120 30,110 60,100 90,95 120,80 150,85 180,70 210,60 240,65 270,50 300,45 330,55 360,40 400,30"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    // Show Tesla stock detail preview for logged-off users (blurred by LoginOverlay)
+    return <StockDetailPanel />;
   }
 
   return (

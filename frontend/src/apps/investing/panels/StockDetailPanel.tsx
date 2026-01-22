@@ -74,6 +74,83 @@ interface NewsFeedResponse {
 
 type ChartPeriod = '1D' | '5D' | '1M' | '6M' | 'YTD' | '1Y' | '5Y' | 'MAX';
 
+// Mock data for Tesla - used for logged-off preview
+const TESLA_MOCK_DATA = {
+  stockHistory: {
+    ticker: 'TSLA',
+    period: '1M',
+    previous_close: 421.06,
+    currency: 'USD',
+    data: [
+      { timestamp: '2024-12-23', price: 421.06 },
+      { timestamp: '2024-12-24', price: 462.28 },
+      { timestamp: '2024-12-26', price: 454.13 },
+      { timestamp: '2024-12-27', price: 442.85 },
+      { timestamp: '2024-12-30', price: 417.41 },
+      { timestamp: '2024-12-31', price: 410.44 },
+      { timestamp: '2025-01-02', price: 379.28 },
+      { timestamp: '2025-01-03', price: 391.90 },
+      { timestamp: '2025-01-06', price: 394.36 },
+      { timestamp: '2025-01-07', price: 378.87 },
+      { timestamp: '2025-01-08', price: 386.31 },
+      { timestamp: '2025-01-10', price: 390.98 },
+      { timestamp: '2025-01-13', price: 391.59 },
+      { timestamp: '2025-01-14', price: 398.11 },
+      { timestamp: '2025-01-15', price: 411.05 },
+      { timestamp: '2025-01-16', price: 413.42 },
+      { timestamp: '2025-01-17', price: 401.37 },
+      { timestamp: '2025-01-21', price: 424.07 },
+    ],
+  } as StockHistoryData,
+  marketCap: {
+    ticker: 'TSLA',
+    name: 'Tesla, Inc.',
+    market_cap: 1430000000000,
+    currency: 'USD',
+    trailing_pe: 293.5,
+    forward_pe: 198.7,
+    dividend_yield: null,
+    beta: 1.83,
+    price_to_book: 17.93,
+    trailing_eps: 1.47,
+    profit_margin: 0.053,
+    return_on_equity: 0.068,
+    fifty_two_week_high: 498.83,
+    fifty_two_week_low: 214.25,
+    revenue_growth: 0.116,
+  } as MarketCapData,
+  newsFeed: {
+    videos: [
+      {
+        video_id: 'mock1',
+        channel_name: 'CNBC',
+        title: 'Tesla Q4 2024 Earnings Preview: What Wall Street Expects',
+        thumbnail_url: 'https://i.ytimg.com/vi/mock1/mqdefault.jpg',
+        published_at: '2025-01-20T14:00:00Z',
+        url: 'https://youtube.com/watch?v=mock1',
+      },
+      {
+        video_id: 'mock2',
+        channel_name: 'Bloomberg',
+        title: 'Elon Musk on Tesla\'s Future: AI, Robotics and Energy',
+        thumbnail_url: 'https://i.ytimg.com/vi/mock2/mqdefault.jpg',
+        published_at: '2025-01-18T10:30:00Z',
+        url: 'https://youtube.com/watch?v=mock2',
+      },
+      {
+        video_id: 'mock3',
+        channel_name: 'Yahoo Finance',
+        title: 'Tesla Stock Analysis: Is TSLA a Buy in 2025?',
+        thumbnail_url: 'https://i.ytimg.com/vi/mock3/mqdefault.jpg',
+        published_at: '2025-01-15T16:00:00Z',
+        url: 'https://youtube.com/watch?v=mock3',
+      },
+    ],
+    total: 3,
+    from_cache: true,
+  } as NewsFeedResponse,
+};
+
 const fetchStockHistory = async (ticker: string, period: ChartPeriod): Promise<StockHistoryData> => {
   const response = await axios.get(`/api/investing/stock-history/${ticker}?period=${period}`);
   return response.data;
@@ -133,41 +210,49 @@ export function StockDetailPanel() {
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [question, setQuestion] = useState('');
 
-  const upperTicker = ticker?.toUpperCase() || '';
+  // Use TSLA as preview ticker when not authenticated
+  const upperTicker = isAuthenticated ? (ticker?.toUpperCase() || '') : 'TSLA';
   const stock = findStockByTicker(upperTicker);
   const logoUrl = getCompanyLogoUrl(upperTicker);
   const irLink = getCompanyIRUrl(upperTicker);
 
   // Track stock visit in recently searched
   useEffect(() => {
-    if (upperTicker && user?.id) {
+    if (upperTicker && user?.id && isAuthenticated) {
       addRecentStock(upperTicker, user.id);
     }
-  }, [upperTicker, user?.id]);
+  }, [upperTicker, user?.id, isAuthenticated]);
 
   // Fetch stock history - only when authenticated
-  const { data: stockHistoryData, isLoading: stockHistoryLoading } = useQuery({
+  const { data: fetchedStockHistoryData, isLoading: stockHistoryLoading } = useQuery({
     queryKey: ['stockHistory', upperTicker, chartPeriod],
     queryFn: () => fetchStockHistory(upperTicker, chartPeriod),
     enabled: !!upperTicker && isAuthenticated,
   });
 
   // Fetch market cap - only when authenticated
-  const { data: marketCapData, isLoading: marketCapLoading } = useQuery({
+  const { data: fetchedMarketCapData, isLoading: marketCapLoading } = useQuery({
     queryKey: ['marketCap', upperTicker],
     queryFn: () => fetchMarketCap(upperTicker),
     enabled: !!upperTicker && isAuthenticated,
   });
 
+  // Use mock data when not authenticated, real data when authenticated
+  const stockHistoryData = isAuthenticated ? fetchedStockHistoryData : TESLA_MOCK_DATA.stockHistory;
+  const marketCapData = isAuthenticated ? fetchedMarketCapData : TESLA_MOCK_DATA.marketCap;
+
   const displayName = marketCapData?.name || stock?.name || upperTicker;
 
   // Fetch news feed - only when authenticated
-  const { data: newsData, isLoading: newsLoading, refetch: refetchNews, isFetching: newsFetching } = useQuery({
+  const { data: fetchedNewsData, isLoading: newsLoading, refetch: refetchNews, isFetching: newsFetching } = useQuery({
     queryKey: ['newsFeed', upperTicker, displayName],
     queryFn: () => fetchNewsFeed(upperTicker, displayName),
     enabled: !!upperTicker && !!displayName && isAuthenticated,
     staleTime: 1000 * 60 * 15,
   });
+
+  // Use mock data when not authenticated
+  const newsData = isAuthenticated ? fetchedNewsData : TESLA_MOCK_DATA.newsFeed;
 
   const currentPrice = stockHistoryData?.data?.length
     ? stockHistoryData.data[stockHistoryData.data.length - 1].price
@@ -207,24 +292,8 @@ export function StockDetailPanel() {
     );
   }
 
-  // Not authenticated - show sign-in prompt
-  if (!isAuthenticated) {
-    return (
-      <div className="flex flex-col items-center py-8 md:py-16">
-        <h1 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 text-center px-4">
-          {language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-4 text-center px-4">
-          {language === 'fr' ? 'Connectez-vous pour accéder à la recherche' : 'Sign in to access stock research'}
-        </p>
-        <div className="mt-8">
-          <LoginButton />
-        </div>
-      </div>
-    );
-  }
-
-  if (!ticker) {
+  // No ticker selected (only applies when authenticated, since we use TSLA for preview)
+  if (isAuthenticated && !ticker) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <p className="text-slate-400">{language === 'fr' ? 'Aucune action sélectionnée' : 'No stock selected'}</p>
