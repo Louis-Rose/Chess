@@ -47,6 +47,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isNewUser, setIsNewUser] = useState(false);
   const queryClient = useQueryClient();
   const hasRecordedSettings = useRef(false);
+  const isLoggingOut = useRef(false);
+
+  // Set up axios interceptor to auto-logout on 401 responses
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        // Auto-logout on 401, but not for auth endpoints (to avoid loops)
+        if (
+          error.response?.status === 401 &&
+          !error.config?.url?.includes('/api/auth/') &&
+          user &&
+          !isLoggingOut.current
+        ) {
+          isLoggingOut.current = true;
+          setUser(null);
+          queryClient.clear();
+          posthog.reset();
+          // Small delay to let state settle, then allow future logouts
+          setTimeout(() => { isLoggingOut.current = false; }, 1000);
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, [user, queryClient]);
 
   // Record theme and device for analytics (only once per session when user is authenticated)
   const recordUserSettings = () => {
