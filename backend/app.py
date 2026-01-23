@@ -1136,9 +1136,9 @@ def add_transaction():
         # Use provided currency or default to EUR (CM import is in EUR)
         price_currency = provided_currency or 'EUR'
     else:
-        # Fetch historical price at transaction date
+        # Fetch historical price at transaction date (skip cache for fresh data)
         try:
-            price_per_share = fetch_stock_price(stock_ticker, transaction_date)
+            price_per_share = fetch_stock_price(stock_ticker, transaction_date, use_cache=False)
             # Convert numpy types to native Python types for PostgreSQL compatibility
             if price_per_share is not None:
                 price_per_share = float(price_per_share)
@@ -1200,7 +1200,7 @@ def bulk_add_transactions():
 
         try:
             adjusted_date = get_previous_weekday(transaction_date)
-            price_per_share = fetch_stock_price(stock_ticker, adjusted_date)
+            price_per_share = fetch_stock_price(stock_ticker, adjusted_date, use_cache=False)
             # Convert numpy types to native Python types for PostgreSQL compatibility
             if price_per_share is not None:
                 price_per_share = float(price_per_share)

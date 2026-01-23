@@ -464,12 +464,13 @@ BENCHMARKS = {
 }
 
 
-def fetch_stock_price(stock_ticker, date_str):
-    """Fetch stock closing price for a given date (with caching)."""
+def fetch_stock_price(stock_ticker, date_str, use_cache=True):
+    """Fetch stock closing price for a given date (with optional caching)."""
     # Check cache first (use original ticker for cache key)
-    cached = _get_cached_price(stock_ticker, date_str)
-    if cached is not None:
-        return cached
+    if use_cache:
+        cached = _get_cached_price(stock_ticker, date_str)
+        if cached is not None:
+            return cached
 
     # Check if date is in the future
     end_date = datetime.strptime(date_str, "%Y-%m-%d")
