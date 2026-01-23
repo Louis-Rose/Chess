@@ -209,8 +209,8 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
     {
       titleFr: 'Accédez à Historique opérations → Bourse',
       titleEn: 'Go to Historique opérations → Bourse',
-      descFr: 'Sélectionnez "Historique opérations", puis "Bourse" ou "Toutes les opérations". Entrez les dates souhaitées et cliquez OK.',
-      descEn: 'Select "Historique opérations", then "Bourse" or "Toutes les opérations". Enter your desired dates and click OK.',
+      descFr: 'Sélectionnez "Historique opérations", puis "Bourse". Entrez les dates souhaitées et cliquez OK.',
+      descEn: 'Select "Historique opérations", then "Bourse". Enter your desired dates and click OK.',
       image: step4Image,
     },
     {
