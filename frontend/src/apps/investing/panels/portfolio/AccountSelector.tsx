@@ -35,6 +35,7 @@ export function AccountSelector({
   const [newAccountType, setNewAccountType] = useState('');
   const [newAccountBank, setNewAccountBank] = useState('');
   const [accountPendingDelete, setAccountPendingDelete] = useState<number | null>(null);
+  const [deletingAccountId, setDeletingAccountId] = useState<number | null>(null);
 
   // Clear pending delete when clicking outside
   useEffect(() => {
@@ -43,6 +44,13 @@ export function AccountSelector({
       return () => clearTimeout(timer);
     }
   }, [accountPendingDelete]);
+
+  // Clear deletingAccountId when deletion completes
+  useEffect(() => {
+    if (!isDeleting && deletingAccountId !== null) {
+      setDeletingAccountId(null);
+    }
+  }, [isDeleting, deletingAccountId]);
 
   const handleCreateAccount = () => {
     if (newAccountType && newAccountBank) {
@@ -210,16 +218,32 @@ export function AccountSelector({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {accounts.map((account) => {
                 const isSelected = selectedAccountIds.includes(account.id);
+                const isBeingDeleted = deletingAccountId === account.id;
                 return (
                   <div
                     key={account.id}
-                    onClick={() => onToggleAccount(account.id)}
-                    className={`rounded-lg p-4 relative group cursor-pointer transition-all ${
+                    onClick={() => !isBeingDeleted && onToggleAccount(account.id)}
+                    className={`rounded-lg p-4 relative group transition-all ${
+                      isBeingDeleted
+                        ? 'cursor-not-allowed'
+                        : 'cursor-pointer'
+                    } ${
                       isSelected
                         ? 'bg-green-50 dark:bg-green-900/30 border-2 border-green-500 shadow-md'
                         : 'bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 hover:border-green-300 hover:shadow-sm'
                     }`}
                   >
+                    {/* Deletion overlay */}
+                    {isBeingDeleted && (
+                      <div className="absolute inset-0 bg-red-50 dark:bg-red-900/50 rounded-lg flex items-center justify-center z-10">
+                        <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span className="font-medium">
+                            {language === 'fr' ? 'Suppression en cours...' : 'Deleting...'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                       <div className="flex items-center gap-2 mb-2">
                       <Wallet className={`w-4 h-4 ${isSelected ? 'text-green-600' : 'text-slate-400'}`} />
                       <span className={`font-bold ${isSelected ? 'text-green-700 dark:text-green-400' : 'text-slate-800 dark:text-slate-200'}`}>{account.name}</span>
@@ -264,6 +288,7 @@ export function AccountSelector({
                 <div className="flex justify-center gap-2">
                   <button
                     onClick={() => {
+                      setDeletingAccountId(accountPendingDelete);
                       onDeleteAccount(accountPendingDelete);
                       setAccountPendingDelete(null);
                     }}
