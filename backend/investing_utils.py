@@ -498,16 +498,21 @@ def fetch_stock_price(stock_ticker, date_str, use_cache=True):
     if prices_history.empty:
         raise ValueError(f"No price data found for {stock_ticker} around {date_str}")
 
-    # Try to get the exact date's price, otherwise use the last available
+    # Try to get the exact date's average price (OHLC/4), otherwise use the last available
     try:
         # Convert date_str to match yfinance index format
         target_date = end_date.strftime('%Y-%m-%d')
         matching_dates = [d for d in prices_history.index if d.strftime('%Y-%m-%d') == target_date]
         if matching_dates:
-            price = round(prices_history.loc[matching_dates[0], "Close"], 2)
+            row = prices_history.loc[matching_dates[0]]
+            # Use average of Open, High, Low, Close for better approximation
+            avg_price = (row["Open"] + row["High"] + row["Low"] + row["Close"]) / 4
+            price = round(avg_price, 2)
         else:
-            # Fallback to last available price (for weekends/holidays)
-            price = round(prices_history["Close"].values[-1], 2)
+            # Fallback to last available day's average price
+            row = prices_history.iloc[-1]
+            avg_price = (row["Open"] + row["High"] + row["Low"] + row["Close"]) / 4
+            price = round(avg_price, 2)
     except:
         price = round(prices_history["Close"].values[-1], 2)
 

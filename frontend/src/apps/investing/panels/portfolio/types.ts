@@ -48,6 +48,7 @@ export interface NewTransaction {
   quantity: number;
   transaction_date: string;
   account_id?: number;
+  price_per_share?: number;  // Optional: if not provided, will be fetched from market data
 }
 
 export interface ComputedHolding {
