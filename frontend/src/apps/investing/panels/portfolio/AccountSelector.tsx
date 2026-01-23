@@ -120,7 +120,11 @@ export function AccountSelector({
 
     // Get positions from initial capture
     const currentPos = initialPositions.current.find(p => p.id === accountId);
-    const targetPos = initialPositions.current[visualIndex];
+    // Find the account that is currently at visualIndex and get its position
+    const accountAtVisualIndex = accounts[visualIndex];
+    const targetPos = accountAtVisualIndex
+      ? initialPositions.current.find(p => p.id === accountAtVisualIndex.id)
+      : null;
 
     if (!currentPos || !targetPos) return { x: 0, y: 0 };
 
