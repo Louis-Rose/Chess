@@ -732,8 +732,9 @@ export function TransactionForm({
                     <span className="text-slate-400">@</span>
                     <span className="text-slate-600">
                       {needsConversionLoading(tx.price_currency || 'EUR', tx.transaction_date) ? (
-                        // Show original currency while FX rates are loading
-                        <>{getCurrencySymbol(tx.price_currency || 'EUR')}{tx.price_per_share.toFixed(2)}</>
+                        <span className="inline-flex items-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        </span>
                       ) : (
                         <>{getCurrencySymbol(displayCurrency)}{convertPrice(tx.price_per_share, tx.price_currency || 'EUR', tx.transaction_date).toFixed(2)}</>
                       )}
