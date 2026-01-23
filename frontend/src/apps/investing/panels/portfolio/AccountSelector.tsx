@@ -163,9 +163,26 @@ export function AccountSelector({
   const handleDragOver = (e: React.DragEvent, accountId: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    if (accountId !== draggedAccountId) {
+    if (accountId !== draggedAccountId && dragOverAccountId !== accountId) {
+      console.log('[DragOver] target:', accountId);
       setDragOverAccountId(accountId);
     }
+  };
+
+  // Container-level drop handler - uses tracked dragOverAccountId
+  const handleContainerDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    console.log('[ContainerDrop] dragOverAccountId:', dragOverAccountId);
+    if (dragOverAccountId !== null) {
+      handleDrop(e, dragOverAccountId);
+    } else {
+      handleDragEnd();
+    }
+  };
+
+  const handleContainerDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   };
 
   const handleDrop = (e: React.DragEvent, targetAccountId: number) => {
@@ -345,7 +362,11 @@ export function AccountSelector({
           {accounts.length === 0 ? (
             <p className="text-slate-500 text-center py-4">{t('accounts.noAccounts')}</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
+              onDragOver={handleContainerDragOver}
+              onDrop={handleContainerDrop}
+            >
               {accounts.map((account, index) => {
                 const isSelected = selectedAccountIds.includes(account.id);
                 const isBeingDeleted = deletingAccountId === account.id;
