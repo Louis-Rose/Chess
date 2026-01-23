@@ -358,7 +358,7 @@ export function AccountSelector({
                     : t('accounts.create')}
                 </button>
                 <button
-                  onClick={() => { setShowAddAccountForm(false); setNewAccountName(''); setNewAccountType(''); setNewAccountBank(''); }}
+                  onClick={() => { setShowAddAccountForm(false); setWaitingForNewAccount(false); setNewAccountName(''); setNewAccountType(''); setNewAccountBank(''); }}
                   className="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50"
                 >
                   {t('accounts.cancel')}
