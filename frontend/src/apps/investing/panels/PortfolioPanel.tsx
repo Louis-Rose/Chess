@@ -633,6 +633,7 @@ export function PortfolioPanel() {
             deletingId={deleteMutation.isPending ? deleteMutation.variables : null}
             addError={addMutation.error as Error | null}
             privateMode={privateMode}
+            displayCurrency={currency}
           />
         )}
 
