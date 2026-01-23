@@ -1585,6 +1585,10 @@ Common mappings:
 - "VISA CL.A" or "VISA" → "V"
 - "LVMH MOET HENNESSY VUITTON" → "MC.PA"
 - "NU HOLDINGS LIMITED" → "NU"
+- "AMAZON COM" or "AMAZON" → "AMZN"
+- "APPLE" → "AAPL"
+- "TESLA" → "TSLA"
+- "NETFLIX" → "NFLX"
 
 Return JSON like: {{"META PLATFORMS CLA": "META", "NVIDIA": "NVDA"}}
 Only return the JSON object, no other text."""
