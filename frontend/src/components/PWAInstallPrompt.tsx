@@ -223,7 +223,7 @@ function getContent(platform: Platform, language: string): ContentData | null {
   switch (platform) {
     case 'ios-safari':
       return {
-        title: isFr ? 'Installer l\'app sur votre iPhone' : 'Install app on your iPhone',
+        title: isFr ? 'Installer Lumna sur votre iPhone' : 'Install Lumna on your iPhone',
         steps: [
           {
             text: isFr ? 'Appuyez sur "..." dans la barre d\'adresse' : 'Tap "..." in the address bar',
@@ -246,26 +246,17 @@ function getContent(platform: Platform, language: string): ContentData | null {
 
     case 'ios-other':
       return {
-        title: isFr ? 'Installer l\'app sur votre iPhone' : 'Install app on your iPhone',
+        title: isFr ? 'Installer Lumna sur votre iPhone' : 'Install Lumna on your iPhone',
         steps: [
           {
-            text: isFr ? 'Copiez le lien ci-dessus et ouvrez-le dans Safari' : 'Copy the link above and open it in Safari',
-          },
-          {
-            text: isFr ? 'Appuyez sur "..." → "Partager"' : 'Tap "..." → "Share"',
-            icon: Share
-          },
-          {
-            text: isFr ? 'Appuyez sur "Plus" → "Sur l\'écran d\'accueil"' : 'Tap "More" → "Add to Home Screen"',
-            icon: Plus
+            text: isFr ? 'Copiez le lien et ouvrez-le dans Safari' : 'Copy the link and open it in Safari',
           },
         ],
-        screenshots: ['/pwa-screenshots/step1.png', '/pwa-screenshots/step2.png', '/pwa-screenshots/step3.png', '/pwa-screenshots/step4.png'],
       };
 
     case 'android-chrome':
       return {
-        title: isFr ? 'Installer l\'app sur votre téléphone' : 'Install app on your phone',
+        title: isFr ? 'Installer Lumna sur votre téléphone' : 'Install Lumna on your phone',
         steps: [
           {
             text: isFr ? 'Appuyez sur le menu (⋮)' : 'Tap the menu (⋮)',
@@ -279,7 +270,7 @@ function getContent(platform: Platform, language: string): ContentData | null {
 
     case 'android-other':
       return {
-        title: isFr ? 'Installer l\'app sur votre téléphone' : 'Install app on your phone',
+        title: isFr ? 'Installer Lumna sur votre téléphone' : 'Install Lumna on your phone',
         steps: [
           {
             text: isFr ? 'Ouvrez cette page dans Chrome' : 'Open this page in Chrome',
