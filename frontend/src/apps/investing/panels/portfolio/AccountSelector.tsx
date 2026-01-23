@@ -65,9 +65,28 @@ export function AccountSelector({
     }
   }, [isDeleting, deletingAccountId]);
 
+  // Find first unused account number based on existing names
+  const getNextAccountNumber = () => {
+    const prefix = language === 'fr' ? 'COMPTE ' : 'ACCOUNT ';
+    const usedNumbers = new Set<number>();
+
+    accounts.forEach(account => {
+      const match = account.name.match(/^(?:COMPTE|ACCOUNT)\s+(\d+)$/i);
+      if (match) {
+        usedNumbers.add(parseInt(match[1], 10));
+      }
+    });
+
+    let num = 1;
+    while (usedNumbers.has(num)) {
+      num++;
+    }
+    return `${prefix}${num}`;
+  };
+
   const handleCreateAccount = () => {
     if (newAccountType && newAccountBank) {
-      const defaultName = language === 'fr' ? `COMPTE ${accounts.length + 1}` : `ACCOUNT ${accounts.length + 1}`;
+      const defaultName = getNextAccountNumber();
       const accountName = newAccountName.trim() || defaultName;
       onCreateAccount({
         name: accountName,
@@ -164,7 +183,6 @@ export function AccountSelector({
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     if (accountId !== draggedAccountId && dragOverAccountId !== accountId) {
-      console.log('[DragOver] target:', accountId);
       setDragOverAccountId(accountId);
     }
   };
@@ -172,7 +190,6 @@ export function AccountSelector({
   // Container-level drop handler - uses tracked dragOverAccountId
   const handleContainerDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    console.log('[ContainerDrop] dragOverAccountId:', dragOverAccountId);
     if (dragOverAccountId !== null) {
       handleDrop(e, dragOverAccountId);
     } else {
@@ -189,13 +206,11 @@ export function AccountSelector({
     e.preventDefault();
 
     const draggedId = draggedAccountId;
-    console.log('[Drop] draggedId:', draggedId, 'targetId:', targetAccountId);
 
     // Reset all drag state immediately
     handleDragEnd();
 
     if (draggedId === null || draggedId === targetAccountId) {
-      console.log('[Drop] Cancelled - same or null');
       return;
     }
 
@@ -204,14 +219,10 @@ export function AccountSelector({
     const draggedIndex = newOrder.findIndex(a => a.id === draggedId);
     const targetIndex = newOrder.findIndex(a => a.id === targetAccountId);
 
-    console.log('[Drop] draggedIndex:', draggedIndex, 'targetIndex:', targetIndex);
-
     if (draggedIndex !== -1 && targetIndex !== -1) {
       const [draggedAccount] = newOrder.splice(draggedIndex, 1);
       newOrder.splice(targetIndex, 0, draggedAccount);
-      const newIds = newOrder.map(a => a.id);
-      console.log('[Drop] New order:', newIds);
-      onReorderAccounts(newIds);
+      onReorderAccounts(newOrder.map(a => a.id));
     }
   };
 
@@ -311,10 +322,10 @@ export function AccountSelector({
                     onKeyDown={(e) => {
                       if (e.key === 'Tab' && !newAccountName.trim()) {
                         e.preventDefault();
-                        setNewAccountName(language === 'fr' ? `COMPTE ${accounts.length + 1}` : `ACCOUNT ${accounts.length + 1}`);
+                        setNewAccountName(getNextAccountNumber());
                       }
                     }}
-                    placeholder={language === 'fr' ? `COMPTE ${accounts.length + 1}` : `ACCOUNT ${accounts.length + 1}`}
+                    placeholder={getNextAccountNumber()}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
