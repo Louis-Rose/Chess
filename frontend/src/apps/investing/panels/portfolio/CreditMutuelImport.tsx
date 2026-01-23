@@ -280,10 +280,10 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
       {/* Instruction Steps (1-5) */}
       {!isUploadStep && !parsedTransactions.length && !parseError && (
         <div className="space-y-4">
-          <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+          <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100 text-center">
             {language === 'fr' ? currentStepData.titleFr : currentStepData.titleEn}
           </h4>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-slate-800 dark:text-slate-100 text-center">
             {language === 'fr' ? currentStepData.descFr : currentStepData.descEn}
           </p>
 
