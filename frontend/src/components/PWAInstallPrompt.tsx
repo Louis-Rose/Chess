@@ -6,9 +6,9 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 type Platform = 'ios-safari' | 'ios-other' | 'android-chrome' | 'android-other' | 'desktop' | 'unknown';
 
-type IOSBrowser = 'chrome' | 'firefox' | 'edge' | 'opera' | 'brave' | 'unknown';
+type NonPreferredBrowser = 'chrome' | 'firefox' | 'edge' | 'opera' | 'brave' | 'samsung' | 'unknown';
 
-function detectIOSBrowser(): IOSBrowser {
+function detectIOSBrowser(): NonPreferredBrowser {
   const ua = navigator.userAgent;
   if (/CriOS/.test(ua)) return 'chrome';
   if (/FxiOS/.test(ua)) return 'firefox';
@@ -18,13 +18,24 @@ function detectIOSBrowser(): IOSBrowser {
   return 'unknown';
 }
 
-function getBrowserDisplayName(browser: IOSBrowser, isFr: boolean): string {
-  const names: Record<IOSBrowser, string> = {
+function detectAndroidBrowser(): NonPreferredBrowser {
+  const ua = navigator.userAgent;
+  if (/Firefox/.test(ua)) return 'firefox';
+  if (/Edg/.test(ua)) return 'edge';
+  if (/OPR/.test(ua)) return 'opera';
+  if (/Brave/.test(ua)) return 'brave';
+  if (/SamsungBrowser/.test(ua)) return 'samsung';
+  return 'unknown';
+}
+
+function getBrowserDisplayName(browser: NonPreferredBrowser, isFr: boolean): string {
+  const names: Record<NonPreferredBrowser, string> = {
     chrome: 'Chrome',
     firefox: 'Firefox',
     edge: 'Edge',
     opera: 'Opera',
     brave: 'Brave',
+    samsung: 'Samsung Internet',
     unknown: isFr ? 'ce navigateur' : 'this browser',
   };
   return names[browser];
@@ -107,8 +118,12 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
   const content = getContent(platform, language);
   if (!content) return null;
 
-  const iosBrowser = platform === 'ios-other' ? detectIOSBrowser() : null;
-  const browserName = iosBrowser ? getBrowserDisplayName(iosBrowser, isFr) : null;
+  const nonPreferredBrowser = platform === 'ios-other' ? detectIOSBrowser()
+    : platform === 'android-other' ? detectAndroidBrowser()
+    : null;
+  const browserName = nonPreferredBrowser ? getBrowserDisplayName(nonPreferredBrowser, isFr) : null;
+  const isNonPreferredBrowser = platform === 'ios-other' || platform === 'android-other';
+  const preferredBrowser = platform === 'ios-other' ? 'Safari' : 'Chrome';
 
   return (
     <div className={`bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl p-4 relative overflow-hidden ${className}`}>
@@ -121,20 +136,20 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
             {content.title}
           </h3>
 
-          {/* Show current browser warning for iOS non-Safari users */}
-          {platform === 'ios-other' && browserName && (
+          {/* Show current browser warning for non-preferred browser users */}
+          {isNonPreferredBrowser && browserName && (
             <div className="flex items-center gap-2 mb-3 p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
               <span className="text-amber-800 dark:text-amber-200 text-sm">
                 {isFr
-                  ? `Vous utilisez ${browserName}. Ouvrez Safari pour installer l'app :`
-                  : `You're using ${browserName}. Open Safari to install the app:`
+                  ? `Vous utilisez ${browserName}. Ouvrez ${preferredBrowser} pour installer l'app :`
+                  : `You're using ${browserName}. Open ${preferredBrowser} to install the app:`
                 }
               </span>
             </div>
           )}
 
-          {/* Copy URL button for iOS non-Safari users */}
-          {platform === 'ios-other' && (
+          {/* Copy URL button for non-preferred browser users */}
+          {isNonPreferredBrowser && (
             <button
               onClick={handleCopyUrl}
               className="flex items-center gap-2 mb-3 px-3 py-2 bg-[#006CFF] hover:bg-[#0055CC] text-white rounded-lg text-sm font-medium transition-colors w-full justify-center"
@@ -147,7 +162,7 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
               ) : (
                 <>
                   <Copy className="w-4 h-4" />
-                  {isFr ? 'Copier le lien pour Safari' : 'Copy link for Safari'}
+                  {isFr ? `Copier le lien pour ${preferredBrowser}` : `Copy link for ${preferredBrowser}`}
                 </>
               )}
             </button>
@@ -256,11 +271,7 @@ function getContent(platform: Platform, language: string): ContentData | null {
         title: isFr ? 'Installer Lumna sur votre téléphone' : 'Install Lumna on your phone',
         steps: [
           {
-            text: isFr ? 'Ouvrez cette page dans Chrome' : 'Open this page in Chrome',
-          },
-          {
-            text: isFr ? 'Menu → "Installer l\'application"' : 'Menu → "Install app"',
-            icon: MoreVertical
+            text: isFr ? 'Copiez le lien et ouvrez-le dans Chrome' : 'Copy the link and open it in Chrome',
           },
         ],
       };
