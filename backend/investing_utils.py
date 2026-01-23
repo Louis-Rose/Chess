@@ -484,14 +484,14 @@ def fetch_stock_price(stock_ticker, date_str):
     # yfinance end date is EXCLUSIVE, so add 1 day to include the target date
     end_date_query = (end_date + timedelta(days=1)).strftime('%Y-%m-%d')
     try:
-        prices_history = ticker.history(start=start_date, end=end_date_query, timeout=10)
+        prices_history = ticker.history(start=start_date, end=end_date_query)
     except Exception as e:
         raise ValueError(f"Failed to fetch price for {stock_ticker}: {str(e)}")
     if prices_history.empty:
         # Try fetching more days back
         start_date = (end_date - timedelta(days=14)).strftime('%Y-%m-%d')
         try:
-            prices_history = ticker.history(start=start_date, end=end_date_query, timeout=10)
+            prices_history = ticker.history(start=start_date, end=end_date_query)
         except Exception as e:
             raise ValueError(f"Failed to fetch price for {stock_ticker}: {str(e)}")
     if prices_history.empty:
