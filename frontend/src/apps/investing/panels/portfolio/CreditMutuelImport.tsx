@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
-import { Upload, FileText, X, Check, AlertCircle, Loader2, Trash2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Upload, FileText, X, Check, AlertCircle, Loader2, Trash2, ChevronRight, ChevronLeft, Eye } from 'lucide-react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 
 // Import screenshots as static assets
@@ -41,6 +42,8 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [excelData, setExcelData] = useState<string[][]>([]);
+  const [showExcelPreview, setShowExcelPreview] = useState(false);
 
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -71,7 +74,19 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
     setParseError(null);
     setParsedTransactions([]);
     setSelectedTransactions(new Set());
+    setExcelData([]);
     setIsParsing(true);
+
+    // Parse Excel for preview
+    try {
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json<string[]>(firstSheet, { header: 1 });
+      setExcelData(data.slice(0, 100)); // Limit to 100 rows for performance
+    } catch {
+      // Silently fail preview parsing - main parsing will handle errors
+    }
 
     const formData = new FormData();
     formData.append('file', selectedFile);
@@ -177,6 +192,8 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
     setSelectedTransactions(new Set());
     setParseError(null);
     setImportErrors([]);
+    setExcelData([]);
+    setShowExcelPreview(false);
     setStep(1);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -396,9 +413,14 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-slate-500" />
-              <span className="text-slate-600 dark:text-slate-300 font-medium">
+              <button
+                onClick={() => excelData.length > 0 && setShowExcelPreview(true)}
+                className={`text-slate-600 dark:text-slate-300 font-medium flex items-center gap-1 ${excelData.length > 0 ? 'hover:text-green-600 dark:hover:text-green-400 cursor-pointer' : ''}`}
+                disabled={excelData.length === 0}
+              >
                 {file?.name || (language === 'fr' ? 'Uploadé depuis le téléphone' : 'Uploaded from phone')}
-              </span>
+                {excelData.length > 0 && <Eye className="w-4 h-4 ml-1" />}
+              </button>
               <button onClick={reset} className="text-slate-400 hover:text-red-500 p-1">
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -559,6 +581,61 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
               >
                 {language === 'fr' ? 'Terminer' : 'Done'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Excel Preview Overlay */}
+      {showExcelPreview && excelData.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowExcelPreview(false)}>
+          <div
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-green-500" />
+                <span className="font-medium text-slate-800 dark:text-slate-100">
+                  {file?.name}
+                </span>
+                <span className="text-sm text-slate-500">
+                  ({excelData.length} {language === 'fr' ? 'lignes' : 'rows'})
+                </span>
+              </div>
+              <button
+                onClick={() => setShowExcelPreview(false)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+
+            {/* Table */}
+            <div className="flex-1 overflow-auto p-4">
+              <table className="w-full text-sm border-collapse">
+                <tbody>
+                  {excelData.map((row, rowIdx) => (
+                    <tr
+                      key={rowIdx}
+                      className={rowIdx === 0 ? 'bg-slate-100 dark:bg-slate-700 font-semibold' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'}
+                    >
+                      <td className="px-2 py-1 text-slate-400 text-xs w-10 text-right border-r border-slate-200 dark:border-slate-600">
+                        {rowIdx + 1}
+                      </td>
+                      {row.map((cell, colIdx) => (
+                        <td
+                          key={colIdx}
+                          className="px-3 py-1.5 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap"
+                        >
+                          {cell !== null && cell !== undefined ? String(cell) : ''}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
