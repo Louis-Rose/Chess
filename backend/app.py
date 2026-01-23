@@ -1600,7 +1600,8 @@ Only return the JSON object, no other text."""
             text = text.strip()
 
         mapping = json.loads(text)
-        return mapping
+        # Filter out null values - use original name as fallback
+        return {name: (ticker if ticker else name) for name, ticker in mapping.items()}
 
     except Exception as e:
         print(f"[Gemini mapping error] {e}")
@@ -1804,7 +1805,7 @@ def _parse_credit_mutuel_excel(file_bytes: bytes) -> tuple[list[dict], list[str]
 
         # Build final transactions (before split adjustment)
         for raw_tx in raw_transactions:
-            ticker = name_to_ticker.get(raw_tx['stock_name'], raw_tx['stock_name'])
+            ticker = name_to_ticker.get(raw_tx['stock_name']) or raw_tx['stock_name']
             transactions.append({
                 'stock_ticker': ticker,
                 'transaction_type': raw_tx['type'],
