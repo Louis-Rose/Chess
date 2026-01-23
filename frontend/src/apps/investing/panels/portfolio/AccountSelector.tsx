@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, Minus, Trash2, Loader2, Building2, Wallet } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Minus, Trash2, Loader2, Building2, Wallet, GripVertical } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import type { Account, BankInfo, AccountTypeInfo } from './types';
 import { FeesDisplay } from './FeesDisplay';
@@ -12,6 +12,7 @@ interface AccountSelectorProps {
   accountTypes: Record<string, AccountTypeInfo>;
   onCreateAccount: (data: { name: string; account_type: string; bank: string }) => void;
   onDeleteAccount: (id: number) => void;
+  onReorderAccounts: (accountIds: number[]) => void;
   isCreating: boolean;
   isDeleting: boolean;
 }
@@ -24,6 +25,7 @@ export function AccountSelector({
   accountTypes,
   onCreateAccount,
   onDeleteAccount,
+  onReorderAccounts,
   isCreating,
   isDeleting,
 }: AccountSelectorProps) {
@@ -36,6 +38,9 @@ export function AccountSelector({
   const [newAccountBank, setNewAccountBank] = useState('');
   const [accountPendingDelete, setAccountPendingDelete] = useState<number | null>(null);
   const [deletingAccountId, setDeletingAccountId] = useState<number | null>(null);
+  const [draggedAccountId, setDraggedAccountId] = useState<number | null>(null);
+  const [dragOverAccountId, setDragOverAccountId] = useState<number | null>(null);
+  const dragNodeRef = useRef<HTMLDivElement | null>(null);
 
   // Clear pending delete when clicking outside
   useEffect(() => {
@@ -66,6 +71,62 @@ export function AccountSelector({
       setNewAccountBank('');
       setShowAddAccountForm(false);
     }
+  };
+
+  // Drag & drop handlers
+  const handleDragStart = (e: React.DragEvent, accountId: number, node: HTMLDivElement) => {
+    setDraggedAccountId(accountId);
+    dragNodeRef.current = node;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', accountId.toString());
+    // Add a slight delay to allow the drag image to be captured
+    setTimeout(() => {
+      if (dragNodeRef.current) {
+        dragNodeRef.current.style.opacity = '0.5';
+      }
+    }, 0);
+  };
+
+  const handleDragEnd = () => {
+    if (dragNodeRef.current) {
+      dragNodeRef.current.style.opacity = '1';
+    }
+    setDraggedAccountId(null);
+    setDragOverAccountId(null);
+    dragNodeRef.current = null;
+  };
+
+  const handleDragOver = (e: React.DragEvent, accountId: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (accountId !== draggedAccountId) {
+      setDragOverAccountId(accountId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverAccountId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetAccountId: number) => {
+    e.preventDefault();
+    if (draggedAccountId === null || draggedAccountId === targetAccountId) {
+      handleDragEnd();
+      return;
+    }
+
+    // Reorder accounts
+    const newOrder = [...accounts];
+    const draggedIndex = newOrder.findIndex(a => a.id === draggedAccountId);
+    const targetIndex = newOrder.findIndex(a => a.id === targetAccountId);
+
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      const [draggedAccount] = newOrder.splice(draggedIndex, 1);
+      newOrder.splice(targetIndex, 0, draggedAccount);
+      onReorderAccounts(newOrder.map(a => a.id));
+    }
+
+    handleDragEnd();
   };
 
   const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
@@ -219,14 +280,26 @@ export function AccountSelector({
               {accounts.map((account) => {
                 const isSelected = selectedAccountIds.includes(account.id);
                 const isBeingDeleted = deletingAccountId === account.id;
+                const isDragging = draggedAccountId === account.id;
+                const isDragOver = dragOverAccountId === account.id;
                 return (
                   <div
                     key={account.id}
-                    onClick={() => !isBeingDeleted && onToggleAccount(account.id)}
+                    draggable={!isBeingDeleted}
+                    onDragStart={(e) => handleDragStart(e, account.id, e.currentTarget)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(e) => handleDragOver(e, account.id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, account.id)}
+                    onClick={() => !isBeingDeleted && !isDragging && onToggleAccount(account.id)}
                     className={`rounded-lg p-4 relative group transition-all ${
                       isBeingDeleted
                         ? 'cursor-not-allowed'
                         : 'cursor-pointer'
+                    } ${
+                      isDragOver
+                        ? 'ring-2 ring-blue-500 ring-offset-2'
+                        : ''
                     } ${
                       isSelected
                         ? 'bg-green-50 dark:bg-green-900/30 border-2 border-green-500 shadow-md'
@@ -245,6 +318,11 @@ export function AccountSelector({
                       </div>
                     )}
                       <div className="flex items-center gap-2 mb-2">
+                      {/* Drag handle */}
+                      <GripVertical
+                        className="w-4 h-4 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+                        onMouseDown={(e) => e.stopPropagation()}
+                      />
                       <Wallet className={`w-4 h-4 ${isSelected ? 'text-green-600' : 'text-slate-400'}`} />
                       <span className={`font-bold ${isSelected ? 'text-green-700 dark:text-green-400' : 'text-slate-800 dark:text-slate-200'}`}>{account.name}</span>
                       <div className="ml-auto flex items-center gap-2">

@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS investment_accounts (
     name TEXT NOT NULL,                   -- User-defined name (e.g., "PEA Boursorama")
     account_type TEXT NOT NULL,           -- 'PEA', 'PEA-PME', 'CTO', 'ASSURANCE_VIE'
     bank TEXT NOT NULL,                   -- 'BOURSORAMA', 'FORTUNEO', 'BOURSE_DIRECT', etc.
+    display_order INTEGER DEFAULT 0,      -- Order for UI display (drag & drop)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

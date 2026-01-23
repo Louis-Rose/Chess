@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS investment_accounts (
     name TEXT NOT NULL,
     account_type TEXT NOT NULL,
     bank TEXT NOT NULL,
+    display_order INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

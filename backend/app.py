@@ -2604,9 +2604,9 @@ def get_accounts():
     """Get user's investment accounts."""
     with get_db() as conn:
         cursor = conn.execute(
-            '''SELECT id, name, account_type, bank, created_at
+            '''SELECT id, name, account_type, bank, display_order, created_at
                FROM investment_accounts WHERE user_id = ?
-               ORDER BY created_at ASC''',
+               ORDER BY display_order ASC, created_at ASC''',
             (request.user_id,)
         )
         rows = cursor.fetchall()
@@ -2642,11 +2642,18 @@ def create_account():
         return jsonify({'error': f'Invalid bank. Valid: {list(BANKS.keys())}'}), 400
 
     with get_db() as conn:
+        # Get max display_order for this user
+        cursor = conn.execute(
+            'SELECT COALESCE(MAX(display_order), -1) + 1 as next_order FROM investment_accounts WHERE user_id = ?',
+            (request.user_id,)
+        )
+        next_order = cursor.fetchone()['next_order']
+
         cursor = conn.execute('''
-            INSERT INTO investment_accounts (user_id, name, account_type, bank)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO investment_accounts (user_id, name, account_type, bank, display_order)
+            VALUES (?, ?, ?, ?, ?)
             RETURNING id
-        ''', (request.user_id, name, account_type, bank))
+        ''', (request.user_id, name, account_type, bank, next_order))
         account_id = cursor.fetchone()['id']
 
     return jsonify({
@@ -2670,6 +2677,29 @@ def delete_account(account_id):
             (request.user_id, account_id)
         )
     return jsonify({'success': True, 'id': account_id})
+
+
+@app.route('/api/investing/accounts/reorder', methods=['PUT'])
+@login_required
+def reorder_accounts():
+    """Reorder investment accounts (drag & drop)."""
+    data = request.get_json()
+    if not data or 'account_ids' not in data:
+        return jsonify({'error': 'account_ids array required'}), 400
+
+    account_ids = data['account_ids']
+    if not isinstance(account_ids, list):
+        return jsonify({'error': 'account_ids must be an array'}), 400
+
+    with get_db() as conn:
+        # Update display_order for each account
+        for order, account_id in enumerate(account_ids):
+            conn.execute(
+                'UPDATE investment_accounts SET display_order = ? WHERE user_id = ? AND id = ?',
+                (order, request.user_id, account_id)
+            )
+
+    return jsonify({'success': True})
 
 
 @app.route('/api/investing/earnings-watchlist', methods=['GET'])

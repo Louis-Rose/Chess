@@ -186,6 +186,10 @@ const deleteAccount = async (id: number): Promise<void> => {
   await axios.delete(`/api/investing/accounts/${id}`);
 };
 
+const reorderAccounts = async (accountIds: number[]): Promise<void> => {
+  await axios.put('/api/investing/accounts/reorder', { account_ids: accountIds });
+};
+
 export function PortfolioPanel() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language, t } = useLanguage();
@@ -345,6 +349,27 @@ export function PortfolioPanel() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       if (accounts.length <= 1) {
         setSelectedAccountIds([]);
+      }
+    },
+  });
+
+  const reorderAccountsMutation = useMutation({
+    mutationFn: reorderAccounts,
+    onMutate: async (newOrder) => {
+      // Optimistically update the accounts order
+      await queryClient.cancelQueries({ queryKey: ['accounts'] });
+      const previousAccounts = queryClient.getQueryData(['accounts']);
+      queryClient.setQueryData(['accounts'], (old: { accounts: Account[] } | undefined) => {
+        if (!old) return old;
+        const reordered = newOrder.map(id => old.accounts.find(a => a.id === id)).filter(Boolean) as Account[];
+        return { accounts: reordered };
+      });
+      return { previousAccounts };
+    },
+    onError: (_err, _newOrder, context) => {
+      // Rollback on error
+      if (context?.previousAccounts) {
+        queryClient.setQueryData(['accounts'], context.previousAccounts);
       }
     },
   });
@@ -609,6 +634,7 @@ export function PortfolioPanel() {
           accountTypes={accountTypes}
           onCreateAccount={(data) => createAccountMutation.mutate(data)}
           onDeleteAccount={(id) => deleteAccountMutation.mutate(id)}
+          onReorderAccounts={(ids) => reorderAccountsMutation.mutate(ids)}
           isCreating={createAccountMutation.isPending}
           isDeleting={deleteAccountMutation.isPending}
         />

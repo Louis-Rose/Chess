@@ -141,6 +141,15 @@ def init_db():
             if not conn._cursor.fetchone():
                 conn.execute("ALTER TABLE portfolio_transactions ADD COLUMN price_currency TEXT DEFAULT 'EUR'")
                 print("[Database] Added price_currency column to portfolio_transactions")
+
+            # Migration: Add display_order column to investment_accounts if not exists
+            conn.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'investment_accounts' AND column_name = 'display_order'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("ALTER TABLE investment_accounts ADD COLUMN display_order INTEGER DEFAULT 0")
+                print("[Database] Added display_order column to investment_accounts")
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
@@ -176,6 +185,14 @@ def init_db():
                     conn.execute('ALTER TABLE users ADD COLUMN cookie_consent_at TIMESTAMP')
                 if 'cookie_refusal_count' not in columns:
                     conn.execute('ALTER TABLE users ADD COLUMN cookie_refusal_count INTEGER DEFAULT 0')
+
+            # Migration: Add display_order column to investment_accounts
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='investment_accounts'")
+            if cursor.fetchone():
+                cursor = conn.execute("PRAGMA table_info(investment_accounts)")
+                columns = [row['name'] for row in cursor.fetchall()]
+                if 'display_order' not in columns:
+                    conn.execute('ALTER TABLE investment_accounts ADD COLUMN display_order INTEGER DEFAULT 0')
 
             # Run full schema
             with open(schema_path, 'r') as f:
