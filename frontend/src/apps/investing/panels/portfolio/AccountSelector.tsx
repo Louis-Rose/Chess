@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Minus, Trash2, Loader2, Building2, Wallet, X, Undo2 } from 'lucide-react';
+import { Plus, Minus, Trash2, Loader2, Building2, Wallet } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import type { Account, BankInfo, AccountTypeInfo } from './types';
 import { FeesDisplay } from './FeesDisplay';
-
-interface DeletedAccountInfo {
-  name: string;
-  account_type: string;
-  bank: string;
-}
 
 interface AccountSelectorProps {
   accounts: Account[];
@@ -20,9 +14,6 @@ interface AccountSelectorProps {
   onDeleteAccount: (id: number) => void;
   isCreating: boolean;
   isDeleting: boolean;
-  deletedAccount?: DeletedAccountInfo | null;
-  onUndoDelete?: () => void;
-  onDismissUndo?: () => void;
 }
 
 export function AccountSelector({
@@ -35,9 +26,6 @@ export function AccountSelector({
   onDeleteAccount,
   isCreating,
   isDeleting,
-  deletedAccount,
-  onUndoDelete,
-  onDismissUndo,
 }: AccountSelectorProps) {
   const { language, t } = useLanguage();
 
@@ -47,14 +35,6 @@ export function AccountSelector({
   const [newAccountType, setNewAccountType] = useState('');
   const [newAccountBank, setNewAccountBank] = useState('');
   const [accountPendingDelete, setAccountPendingDelete] = useState<number | null>(null);
-
-  // Auto-dismiss undo banner after 8 seconds
-  useEffect(() => {
-    if (deletedAccount && onDismissUndo) {
-      const timer = setTimeout(onDismissUndo, 8000);
-      return () => clearTimeout(timer);
-    }
-  }, [deletedAccount, onDismissUndo]);
 
   // Clear pending delete when clicking outside
   useEffect(() => {
@@ -220,35 +200,6 @@ export function AccountSelector({
                   </ul>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Undo Banner */}
-          {deletedAccount && onUndoDelete && (
-            <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg flex items-center justify-between">
-              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                <Trash2 className="w-4 h-4" />
-                <span className="text-sm">
-                  {language === 'fr'
-                    ? `Compte "${deletedAccount.name}" supprimé`
-                    : `Account "${deletedAccount.name}" deleted`}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={onUndoDelete}
-                  className="flex items-center gap-1 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-colors"
-                >
-                  <Undo2 className="w-3 h-3" />
-                  {language === 'fr' ? 'Annuler' : 'Undo'}
-                </button>
-                <button
-                  onClick={onDismissUndo}
-                  className="text-amber-400 hover:text-amber-600 p-1"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
             </div>
           )}
 
