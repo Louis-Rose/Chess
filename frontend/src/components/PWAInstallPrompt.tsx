@@ -77,8 +77,8 @@ function getInitialState(): { hidden: boolean; platform: Platform } {
   if (isStandalone()) {
     return { hidden: true, platform: 'unknown' }; // Don't show if already installed as PWA
   }
-  if (localStorage.getItem('pwa-installed')) {
-    return { hidden: true, platform: 'unknown' }; // User marked as already installed
+  if (sessionStorage.getItem('pwa-prompt-dismissed')) {
+    return { hidden: true, platform: 'unknown' }; // User dismissed this session
   }
   return { hidden: false, platform: detectPlatform() };
 }
@@ -90,8 +90,8 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
   const { hidden, platform } = state;
   const isFr = language === 'fr';
 
-  const handleAlreadyInstalled = () => {
-    localStorage.setItem('pwa-installed', 'true');
+  const handleDismiss = () => {
+    sessionStorage.setItem('pwa-prompt-dismissed', 'true');
     setState({ hidden: true, platform });
   };
 
@@ -191,7 +191,7 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
           </div>
 
           <button
-            onClick={handleAlreadyInstalled}
+            onClick={handleDismiss}
             className="mt-3 text-xs text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 underline"
           >
             {isFr ? "J'ai déjà installé l'app" : "I've already installed the app"}
