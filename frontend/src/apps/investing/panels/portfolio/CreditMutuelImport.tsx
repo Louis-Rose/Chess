@@ -287,18 +287,8 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
             {language === 'fr' ? currentStepData.descFr : currentStepData.descEn}
           </p>
 
-          {currentStepData.image && (
-            <div className={`rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 ${[1, 2, 5].includes(step) ? 'max-h-96' : ''}`}>
-              <img
-                src={currentStepData.image}
-                alt={language === 'fr' ? currentStepData.titleFr : currentStepData.titleEn}
-                className={`w-full ${[1, 2, 5].includes(step) ? 'object-contain max-h-96' : ''}`}
-              />
-            </div>
-          )}
-
           {/* Navigation buttons */}
-          <div className="flex justify-between pt-4">
+          <div className="flex justify-between py-4">
             <button
               onClick={() => setStep(s => Math.max(1, s - 1))}
               disabled={step === 1}
@@ -317,6 +307,16 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
+
+          {currentStepData.image && (
+            <div className={`rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 ${[1, 2, 5].includes(step) ? 'max-h-96' : ''}`}>
+              <img
+                src={currentStepData.image}
+                alt={language === 'fr' ? currentStepData.titleFr : currentStepData.titleEn}
+                className={`w-full ${[1, 2, 5].includes(step) ? 'object-contain max-h-96' : ''}`}
+              />
+            </div>
+          )}
         </div>
       )}
 
