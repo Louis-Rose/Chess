@@ -114,7 +114,7 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
   const browserName = iosBrowser ? getBrowserDisplayName(iosBrowser, isFr) : null;
 
   return (
-    <div className={`bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl p-4 relative ${className}`}>
+    <div className={`bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl p-4 relative overflow-hidden ${className}`}>
       <button
         onClick={handleDismiss}
         className="absolute top-2 right-2 p-1 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 transition-colors"
@@ -127,7 +127,7 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
         <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
           <Download className="w-5 h-5 text-white" />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-green-900 dark:text-green-100 mb-1">
             {content.title}
           </h3>
