@@ -419,10 +419,10 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
                 <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0">
                   <tr className="text-left text-slate-600 dark:text-slate-300">
                     <th className="p-3 w-10"></th>
-                    <th className="p-3">{language === 'fr' ? 'Action' : 'Stock'}</th>
-                    <th className="p-3">{language === 'fr' ? 'Type' : 'Type'}</th>
-                    <th className="p-3 text-right">{language === 'fr' ? 'Quantité' : 'Quantity'}</th>
-                    <th className="p-3">Date</th>
+                    <th className="p-3 w-1/3">{language === 'fr' ? 'Action' : 'Stock'}</th>
+                    <th className="p-3 w-28">{language === 'fr' ? 'Type' : 'Type'}</th>
+                    <th className="p-3 w-28 text-right">{language === 'fr' ? 'Quantité' : 'Quantity'}</th>
+                    <th className="p-3 w-32">Date</th>
                   </tr>
                 </thead>
                 <tbody>
