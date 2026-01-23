@@ -58,12 +58,15 @@ export function AccountSelector({
     }
   }, [accountPendingDelete]);
 
-  // Clear deletingAccountId when deletion completes
+  // Clear deletingAccountId when account is actually removed from the list
   useEffect(() => {
-    if (!isDeleting && deletingAccountId !== null) {
-      setDeletingAccountId(null);
+    if (deletingAccountId !== null) {
+      const accountStillExists = accounts.some(a => a.id === deletingAccountId);
+      if (!accountStillExists) {
+        setDeletingAccountId(null);
+      }
     }
-  }, [isDeleting, deletingAccountId]);
+  }, [accounts, deletingAccountId]);
 
   // Find first unused account number based on existing names
   const getNextAccountNumber = () => {
