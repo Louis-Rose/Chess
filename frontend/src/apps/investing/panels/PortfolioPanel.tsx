@@ -513,27 +513,6 @@ export function PortfolioPanel() {
               </div>
               <ArrowUpDown className="w-5 h-5 text-slate-400 ml-2" />
             </div>
-            {/* Summary Cards */}
-            <div className="px-4 pb-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="text-center border-r border-slate-300 dark:border-slate-600 last:border-r-0 pr-4 last:pr-0">
-                  <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
-                  <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">20 000€</p>
-                </div>
-                <div className="text-center border-r border-slate-300 dark:border-slate-600 last:border-r-0 pr-4 last:pr-0">
-                  <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
-                  <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">27 050€</p>
-                </div>
-                <div className="text-center border-r border-slate-300 dark:border-slate-600 last:border-r-0 pr-4 last:pr-0">
-                  <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}</p>
-                  <p className="text-sm md:text-xl font-bold text-green-600">+7 050€ (+35.2%)</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value réalisée (brut)' : 'Realized Gains (gross)'}</p>
-                  <p className="text-sm md:text-xl font-bold text-green-600">+590€ (+3%)</p>
-                </div>
-              </div>
-            </div>
             <div className="px-4 pb-4">
               <PortfolioComposition
                 compositionData={generateDemoCompositionData()}
@@ -543,6 +522,28 @@ export function PortfolioPanel() {
                 hideTitle
                 hideDownloadButton
               />
+            </div>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center border-r border-slate-300 dark:border-slate-600 last:border-r-0 pr-4 last:pr-0">
+                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
+                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">20 000€</p>
+              </div>
+              <div className="text-center border-r border-slate-300 dark:border-slate-600 last:border-r-0 pr-4 last:pr-0">
+                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
+                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">27 050€</p>
+              </div>
+              <div className="text-center border-r border-slate-300 dark:border-slate-600 last:border-r-0 pr-4 last:pr-0">
+                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}</p>
+                <p className="text-sm md:text-xl font-bold text-green-600">+7 050€ (+35.2%)</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value réalisée (brut)' : 'Realized Gains (gross)'}</p>
+                <p className="text-sm md:text-xl font-bold text-green-600">+590€ (+3%)</p>
+              </div>
             </div>
           </div>
 
