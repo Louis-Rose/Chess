@@ -667,84 +667,6 @@ export function PortfolioPanel() {
           />
         )}
 
-        {/* Summary Cards */}
-        {selectedAccountIds.length > 0 && compositionData && accountHasHoldings && (
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {(() => {
-                const PRIVATE_COST_BASIS = 10000;
-                const actualCostBasis = currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis;
-                const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
-
-                const displayCostBasis = privateMode ? PRIVATE_COST_BASIS : (currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis);
-                const displayTotalValue = (currency === 'EUR' ? compositionData.total_value_eur : compositionData.total_value_eur * compositionData.eurusd_rate) * scaleFactor;
-
-                const unrealizedGainEur = compositionData.total_value_eur - compositionData.total_cost_basis_eur;
-                const unrealizedGainPctEur = compositionData.total_cost_basis_eur > 0
-                  ? Math.round(100 * unrealizedGainEur / compositionData.total_cost_basis_eur * 10) / 10
-                  : 0;
-                const rawGain = currency === 'EUR' ? unrealizedGainEur : compositionData.total_gain_usd;
-                const displayGain = rawGain * scaleFactor;
-                const displayPct = currency === 'EUR' ? unrealizedGainPctEur : compositionData.total_gain_pct;
-
-                const rawRealizedGain = currency === 'EUR'
-                  ? compositionData.realized_gains_eur
-                  : compositionData.realized_gains_usd;
-                const displayRealizedGain = rawRealizedGain * scaleFactor;
-                const investedCapital = compositionData.total_cost_basis_eur || 0;
-                const realizedGainPct = investedCapital > 0
-                  ? Math.round(100 * compositionData.realized_gains_eur / investedCapital * 10) / 10
-                  : 0;
-
-                return (
-                  <>
-                    <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
-                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
-                      <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">
-                        {currency === 'EUR'
-                          ? `${formatEur(displayCostBasis)}€`
-                          : `$${Math.round(displayCostBasis).toLocaleString('en-US')}`}
-                      </p>
-                    </div>
-                    <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
-                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
-                      <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">
-                        {currency === 'EUR'
-                          ? `${formatEur(displayTotalValue)}€`
-                          : `$${Math.round(displayTotalValue).toLocaleString('en-US')}`}
-                      </p>
-                    </div>
-                    <div className="text-center border-r border-slate-300 last:border-r-0 pr-4 last:pr-0">
-                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
-                        {language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}
-                      </p>
-                      <p className={`text-sm md:text-xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {currency === 'EUR'
-                          ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
-                          : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
-                        {' '}
-                        ({displayPct >= 0 ? '+' : ''}{displayPct}%)
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
-                        {language === 'fr' ? 'Plus-value realisee (brut)' : 'Realized Gains (gross)'}
-                      </p>
-                      <p className={`text-sm md:text-xl font-bold ${displayRealizedGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {currency === 'EUR'
-                          ? `${displayRealizedGain >= 0 ? '+' : ''}${formatEur(displayRealizedGain)}€`
-                          : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
-                        {' '}
-                        ({realizedGainPct >= 0 ? '+' : ''}{realizedGainPct}%)
-                      </p>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        )}
-
         {/* Loading state for composition/performance */}
         {selectedAccountIds.length > 0 && compositionLoading && !compositionData && (
           <div className="flex flex-col items-center justify-center py-16">
@@ -814,6 +736,85 @@ export function PortfolioPanel() {
                       hideTitle
                       hideDownloadButton
                     />
+                  </div>
+                )}
+                {/* Summary Cards */}
+                {compositionData && (
+                  <div className="px-4 pb-4">
+                    <div className="bg-slate-100 dark:bg-slate-600 rounded-lg p-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {(() => {
+                          const PRIVATE_COST_BASIS = 10000;
+                          const actualCostBasis = currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis;
+                          const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
+
+                          const displayCostBasis = privateMode ? PRIVATE_COST_BASIS : (currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis);
+                          const displayTotalValue = (currency === 'EUR' ? compositionData.total_value_eur : compositionData.total_value_eur * compositionData.eurusd_rate) * scaleFactor;
+
+                          const unrealizedGainEur = compositionData.total_value_eur - compositionData.total_cost_basis_eur;
+                          const unrealizedGainPctEur = compositionData.total_cost_basis_eur > 0
+                            ? Math.round(100 * unrealizedGainEur / compositionData.total_cost_basis_eur * 10) / 10
+                            : 0;
+                          const rawGain = currency === 'EUR' ? unrealizedGainEur : compositionData.total_gain_usd;
+                          const displayGain = rawGain * scaleFactor;
+                          const displayPct = currency === 'EUR' ? unrealizedGainPctEur : compositionData.total_gain_pct;
+
+                          const rawRealizedGain = currency === 'EUR'
+                            ? compositionData.realized_gains_eur
+                            : compositionData.realized_gains_usd;
+                          const displayRealizedGain = rawRealizedGain * scaleFactor;
+                          const investedCapital = compositionData.total_cost_basis_eur || 0;
+                          const realizedGainPct = investedCapital > 0
+                            ? Math.round(100 * compositionData.realized_gains_eur / investedCapital * 10) / 10
+                            : 0;
+
+                          return (
+                            <>
+                              <div className="text-center border-r border-slate-300 dark:border-slate-500 last:border-r-0 pr-4 last:pr-0">
+                                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
+                                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">
+                                  {currency === 'EUR'
+                                    ? `${formatEur(displayCostBasis)}€`
+                                    : `$${Math.round(displayCostBasis).toLocaleString('en-US')}`}
+                                </p>
+                              </div>
+                              <div className="text-center border-r border-slate-300 dark:border-slate-500 last:border-r-0 pr-4 last:pr-0">
+                                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
+                                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">
+                                  {currency === 'EUR'
+                                    ? `${formatEur(displayTotalValue)}€`
+                                    : `$${Math.round(displayTotalValue).toLocaleString('en-US')}`}
+                                </p>
+                              </div>
+                              <div className="text-center border-r border-slate-300 dark:border-slate-500 last:border-r-0 pr-4 last:pr-0">
+                                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
+                                  {language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}
+                                </p>
+                                <p className={`text-sm md:text-xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {currency === 'EUR'
+                                    ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
+                                    : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
+                                  {' '}
+                                  ({displayPct >= 0 ? '+' : ''}{displayPct}%)
+                                </p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
+                                  {language === 'fr' ? 'Plus-value realisee (brut)' : 'Realized Gains (gross)'}
+                                </p>
+                                <p className={`text-sm md:text-xl font-bold ${displayRealizedGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {currency === 'EUR'
+                                    ? `${displayRealizedGain >= 0 ? '+' : ''}${formatEur(displayRealizedGain)}€`
+                                    : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
+                                  {' '}
+                                  ({realizedGainPct >= 0 ? '+' : ''}{realizedGainPct}%)
+                                </p>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
