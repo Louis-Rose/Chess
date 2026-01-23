@@ -476,15 +476,28 @@ def fetch_stock_price(stock_ticker, date_str):
     ticker = yf.Ticker(yf_ticker)
     end_date = datetime.strptime(date_str, "%Y-%m-%d")
     start_date = (end_date - timedelta(days=7)).strftime('%Y-%m-%d')
-    prices_history = ticker.history(start=start_date, end=date_str)
+    # yfinance end date is EXCLUSIVE, so add 1 day to include the target date
+    end_date_query = (end_date + timedelta(days=1)).strftime('%Y-%m-%d')
+    prices_history = ticker.history(start=start_date, end=end_date_query)
     if prices_history.empty:
         # Try fetching more days back
         start_date = (end_date - timedelta(days=14)).strftime('%Y-%m-%d')
-        prices_history = ticker.history(start=start_date, end=date_str)
+        prices_history = ticker.history(start=start_date, end=end_date_query)
     if prices_history.empty:
         raise ValueError(f"No price data found for {stock_ticker} around {date_str}")
 
-    price = round(prices_history["Close"].values[-1], 2)
+    # Try to get the exact date's price, otherwise use the last available
+    try:
+        # Convert date_str to match yfinance index format
+        target_date = end_date.strftime('%Y-%m-%d')
+        matching_dates = [d for d in prices_history.index if d.strftime('%Y-%m-%d') == target_date]
+        if matching_dates:
+            price = round(prices_history.loc[matching_dates[0], "Close"], 2)
+        else:
+            # Fallback to last available price (for weekends/holidays)
+            price = round(prices_history["Close"].values[-1], 2)
+    except:
+        price = round(prices_history["Close"].values[-1], 2)
 
     # Save to cache (only for past dates, not today)
     today = datetime.now().strftime("%Y-%m-%d")
