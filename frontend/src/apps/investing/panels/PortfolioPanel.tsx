@@ -372,6 +372,10 @@ export function PortfolioPanel() {
         queryClient.setQueryData(['accounts'], context.previousAccounts);
       }
     },
+    onSettled: () => {
+      // Refetch to ensure sync with server
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    },
   });
 
   // Track if initial load has happened

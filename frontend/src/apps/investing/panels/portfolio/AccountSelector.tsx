@@ -170,34 +170,32 @@ export function AccountSelector({
 
   const handleDrop = (e: React.DragEvent, targetAccountId: number) => {
     e.preventDefault();
-    if (draggedAccountId === null || draggedAccountId === targetAccountId) {
-      handleDragEnd();
+
+    const draggedId = draggedAccountId;
+    console.log('[Drop] draggedId:', draggedId, 'targetId:', targetAccountId);
+
+    // Reset all drag state immediately
+    handleDragEnd();
+
+    if (draggedId === null || draggedId === targetAccountId) {
+      console.log('[Drop] Cancelled - same or null');
       return;
     }
 
     // Reorder accounts
     const newOrder = [...accounts];
-    const draggedIndex = newOrder.findIndex(a => a.id === draggedAccountId);
+    const draggedIndex = newOrder.findIndex(a => a.id === draggedId);
     const targetIndex = newOrder.findIndex(a => a.id === targetAccountId);
+
+    console.log('[Drop] draggedIndex:', draggedIndex, 'targetIndex:', targetIndex);
 
     if (draggedIndex !== -1 && targetIndex !== -1) {
       const [draggedAccount] = newOrder.splice(draggedIndex, 1);
       newOrder.splice(targetIndex, 0, draggedAccount);
-      onReorderAccounts(newOrder.map(a => a.id));
+      const newIds = newOrder.map(a => a.id);
+      console.log('[Drop] New order:', newIds);
+      onReorderAccounts(newIds);
     }
-
-    // Reset dragged element styles immediately
-    if (dragNodeRef.current) {
-      dragNodeRef.current.style.opacity = '1';
-      dragNodeRef.current.style.pointerEvents = '';
-    }
-    dragNodeRef.current = null;
-
-    // Delay resetting drag state to let optimistic update apply first
-    setTimeout(() => {
-      setDraggedAccountId(null);
-      setDragOverAccountId(null);
-    }, 50);
   };
 
   const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
