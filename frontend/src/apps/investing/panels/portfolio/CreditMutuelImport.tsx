@@ -97,8 +97,12 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
       });
 
       if (response.data.success && response.data.transactions.length > 0) {
-        setParsedTransactions(response.data.transactions);
-        setSelectedTransactions(new Set(response.data.transactions.map((_: ParsedTransaction, i: number) => i)));
+        // Filter out OAT (French government bonds) - pattern like "OAT 8,50%92-25042023"
+        const filteredTransactions = response.data.transactions.filter(
+          (tx: ParsedTransaction) => !/^OAT.*%/i.test(tx.stock_ticker)
+        );
+        setParsedTransactions(filteredTransactions);
+        setSelectedTransactions(new Set(filteredTransactions.map((_: ParsedTransaction, i: number) => i)));
       } else if (response.data.transactions.length === 0) {
         setParseError(language === 'fr'
           ? 'Aucune transaction trouvée dans ce fichier. Assurez-vous d\'utiliser un export Crédit Mutuel.'

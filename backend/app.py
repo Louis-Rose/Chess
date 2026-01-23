@@ -2,6 +2,7 @@
 import os
 import hashlib
 import secrets
+import re
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, Response, make_response
 from flask_cors import CORS
@@ -1699,6 +1700,11 @@ def _parse_credit_mutuel_excel(file_bytes: bytes) -> tuple[list[dict], list[str]
                 continue
 
             stock_name = str(stock_name).strip()
+
+            # Skip OAT (French government bonds) - pattern like "OAT 8,50%92-25042023"
+            if re.match(r'^OAT.*%', stock_name, re.IGNORECASE):
+                continue
+
             stock_names_set.add(stock_name)
 
             # Get net amount (Montant net) to calculate price per share
