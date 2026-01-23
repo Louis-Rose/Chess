@@ -141,7 +141,6 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
                   : `You're using ${browserName}. Open Safari to install the app:`
                 }
               </span>
-              <img src="/safari-logo.jpeg" alt="Safari" className="w-5 h-5 flex-shrink-0" />
             </div>
           )}
 
@@ -158,7 +157,6 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
                 </>
               ) : (
                 <>
-                  <img src="/safari-logo.jpeg" alt="Safari" className="w-4 h-4" />
                   <Copy className="w-4 h-4" />
                   {isFr ? 'Copier le lien pour Safari' : 'Copy link for Safari'}
                 </>
@@ -169,9 +167,9 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
           <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
             {content.steps.map((step, i) => (
               <p key={i} className="flex items-center gap-2">
-                <span className="font-medium">{i + 1}.</span>
-                {step.icon && <step.icon className="w-4 h-4 inline flex-shrink-0" />}
-                {step.iconSrc && <img src={step.iconSrc} alt="" className="w-5 h-5 inline flex-shrink-0" />}
+                {step.icon && <><span className="font-medium">{i + 1}.</span><step.icon className="w-4 h-4 inline flex-shrink-0" /></>}
+                {step.iconSrc && <img src={step.iconSrc} alt="" className="w-7 h-7 inline flex-shrink-0" />}
+                {!step.icon && !step.iconSrc && <span className="font-medium">{i + 1}.</span>}
                 <span>{step.text}</span>
               </p>
             ))}
