@@ -185,17 +185,19 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
             ))}
           </div>
 
-          {/* Screenshot placeholders - will be filled in later */}
+          {/* Screenshots */}
           {content.screenshots && content.screenshots.length > 0 && (
-            <div className="mt-3 flex gap-2 overflow-x-auto">
-              {content.screenshots.map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  alt={`${isFr ? 'Étape' : 'Step'} ${i + 1}`}
-                  className="h-32 rounded-lg border border-green-200 dark:border-green-700 flex-shrink-0"
-                />
-              ))}
+            <div className="mt-3 -mx-4 px-4 overflow-x-auto">
+              <div className="flex gap-2 w-max">
+                {content.screenshots.map((src, i) => (
+                  <img
+                    key={i}
+                    src={src}
+                    alt={`${isFr ? 'Étape' : 'Step'} ${i + 1}`}
+                    className="h-28 rounded-lg border border-green-200 dark:border-green-700"
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -224,12 +226,19 @@ function getContent(platform: Platform, language: string): ContentData | null {
         title: isFr ? 'Installer l\'app sur votre iPhone' : 'Install app on your iPhone',
         steps: [
           {
-            text: isFr ? 'Appuyez sur le bouton Partager' : 'Tap the Share button',
+            text: isFr ? 'Appuyez sur "..." dans la barre d\'adresse' : 'Tap "..." in the address bar',
+            icon: MoreVertical
+          },
+          {
+            text: isFr ? 'Appuyez sur "Partager"' : 'Tap "Share"',
             icon: Share
           },
           {
-            text: isFr ? 'Faites défiler et appuyez sur "Sur l\'écran d\'accueil"' : 'Scroll down and tap "Add to Home Screen"',
+            text: isFr ? 'Appuyez sur "Plus"' : 'Tap "More"',
             icon: Plus
+          },
+          {
+            text: isFr ? 'Appuyez sur "Sur l\'écran d\'accueil"' : 'Tap "Add to Home Screen"',
           },
         ],
         screenshots: ['/pwa-screenshots/step1.png', '/pwa-screenshots/step2.png', '/pwa-screenshots/step3.png', '/pwa-screenshots/step4.png'],
@@ -243,11 +252,11 @@ function getContent(platform: Platform, language: string): ContentData | null {
             text: isFr ? 'Copiez le lien ci-dessus et ouvrez-le dans Safari' : 'Copy the link above and open it in Safari',
           },
           {
-            text: isFr ? 'Appuyez sur le bouton Partager' : 'Tap the Share button',
+            text: isFr ? 'Appuyez sur "..." → "Partager"' : 'Tap "..." → "Share"',
             icon: Share
           },
           {
-            text: isFr ? 'Appuyez sur "Sur l\'écran d\'accueil"' : 'Tap "Add to Home Screen"',
+            text: isFr ? 'Appuyez sur "Plus" → "Sur l\'écran d\'accueil"' : 'Tap "More" → "Add to Home Screen"',
             icon: Plus
           },
         ],
