@@ -2746,7 +2746,8 @@ def get_earnings_calendar():
 
     # Get portfolio holdings if include_portfolio is true
     if include_portfolio:
-        holdings = compute_holdings_from_transactions(request.user_id, account_id)
+        account_ids = [account_id] if account_id else None
+        holdings = compute_holdings_from_transactions(request.user_id, account_ids)
         portfolio_tickers = {h['stock_ticker'] for h in holdings if h['quantity'] > 0}
         tickers.update(portfolio_tickers)
 
