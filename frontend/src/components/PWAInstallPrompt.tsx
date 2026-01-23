@@ -58,22 +58,31 @@ interface PWAInstallPromptProps {
   className?: string;
 }
 
-// Get platform synchronously to avoid re-render scroll jumps
-function getInitialPlatform(): Platform {
+// Get initial state synchronously to avoid re-render scroll jumps
+function getInitialState(): { hidden: boolean; platform: Platform } {
   if (typeof window === 'undefined') {
-    return 'unknown';
+    return { hidden: true, platform: 'unknown' };
   }
   if (isStandalone()) {
-    return 'unknown'; // Don't show if already installed as PWA
+    return { hidden: true, platform: 'unknown' }; // Don't show if already installed as PWA
   }
-  return detectPlatform();
+  if (localStorage.getItem('pwa-installed')) {
+    return { hidden: true, platform: 'unknown' }; // User marked as already installed
+  }
+  return { hidden: false, platform: detectPlatform() };
 }
 
 export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
   const { language } = useLanguage();
-  const [platform] = useState(getInitialPlatform);
+  const [state, setState] = useState(getInitialState);
   const [copied, setCopied] = useState(false);
+  const { hidden, platform } = state;
   const isFr = language === 'fr';
+
+  const handleAlreadyInstalled = () => {
+    localStorage.setItem('pwa-installed', 'true');
+    setState({ hidden: true, platform });
+  };
 
   const handleCopyUrl = async () => {
     try {
@@ -92,6 +101,8 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
       setTimeout(() => setCopied(false), 2000);
     }
   };
+
+  if (hidden) return null;
 
   const content = getContent(platform, language);
   if (!content) return null;
@@ -163,6 +174,13 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
               </div>
             ))}
           </div>
+
+          <button
+            onClick={handleAlreadyInstalled}
+            className="mt-3 text-xs text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 underline"
+          >
+            {isFr ? "J'ai déjà installé l'app" : "I've already installed the app"}
+          </button>
         </div>
       </div>
     </div>
