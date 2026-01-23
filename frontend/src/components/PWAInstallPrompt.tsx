@@ -1,7 +1,7 @@
 // PWA Install Prompt - shows device-specific instructions for installing the app
 
 import { useState } from 'react';
-import { X, Share, MoreVertical, Plus, Download, Copy, Check } from 'lucide-react';
+import { Share, MoreVertical, Plus, Download, Copy, Check } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 type Platform = 'ios-safari' | 'ios-other' | 'android-chrome' | 'android-other' | 'desktop' | 'unknown';
@@ -82,11 +82,6 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
   const { dismissed, platform } = state;
   const isFr = language === 'fr';
 
-  const handleDismiss = () => {
-    localStorage.setItem('pwa-prompt-dismissed', 'true');
-    setState({ dismissed: true, platform });
-  };
-
   const handleCopyUrl = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -115,15 +110,7 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
 
   return (
     <div className={`bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl p-4 relative overflow-hidden ${className}`}>
-      <button
-        onClick={handleDismiss}
-        className="absolute top-2 right-2 p-1 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 transition-colors"
-        aria-label="Dismiss"
-      >
-        <X className="w-4 h-4" />
-      </button>
-
-      <div className="flex items-start gap-3 pr-6">
+      <div className="flex items-start gap-3">
         <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
           <Download className="w-5 h-5 text-white" />
         </div>
