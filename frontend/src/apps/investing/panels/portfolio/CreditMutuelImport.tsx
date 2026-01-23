@@ -288,11 +288,11 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
           </p>
 
           {currentStepData.image && (
-            <div className={`rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 ${step === 2 ? 'max-h-72' : ''}`}>
+            <div className={`rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 ${[1, 2, 5].includes(step) ? 'max-h-96' : ''}`}>
               <img
                 src={currentStepData.image}
                 alt={language === 'fr' ? currentStepData.titleFr : currentStepData.titleEn}
-                className={`w-full ${step === 2 ? 'object-contain max-h-72' : ''}`}
+                className={`w-full ${[1, 2, 5].includes(step) ? 'object-contain max-h-96' : ''}`}
               />
             </div>
           )}
