@@ -145,6 +145,7 @@ export function AccountSelector({
     setTimeout(() => {
       if (dragNodeRef.current) {
         dragNodeRef.current.style.opacity = '0.4';
+        dragNodeRef.current.style.pointerEvents = 'none';
       }
     }, 0);
   };
@@ -152,6 +153,7 @@ export function AccountSelector({
   const handleDragEnd = () => {
     if (dragNodeRef.current) {
       dragNodeRef.current.style.opacity = '1';
+      dragNodeRef.current.style.pointerEvents = '';
     }
     setDraggedAccountId(null);
     setDragOverAccountId(null);
@@ -360,7 +362,6 @@ export function AccountSelector({
                       transform: hasTransform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
                       transition: draggedAccountId ? 'transform 200ms ease-out' : undefined,
                       zIndex: isDragging ? 10 : undefined,
-                      pointerEvents: isDragging ? 'none' : undefined,
                     }}
                     className={`rounded-lg p-4 relative group ${
                       isBeingDeleted
