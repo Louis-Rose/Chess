@@ -107,7 +107,7 @@ export function TransactionForm({
   }, [transactions, displayCurrency]);
 
   // Fetch FX rates for dates that need conversion
-  const { data: fxRatesData } = useQuery({
+  const { data: fxRatesData, isLoading: isFxRatesLoading } = useQuery({
     queryKey: ['fx-rates', datesNeedingFxRates],
     queryFn: async () => {
       if (datesNeedingFxRates.length === 0) return { rates: {} };
@@ -117,6 +117,12 @@ export function TransactionForm({
     enabled: datesNeedingFxRates.length > 0,
     staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
+
+  // Check if a transaction needs FX conversion and rates aren't loaded yet
+  const needsConversionLoading = (priceCurrency: string, transactionDate: string): boolean => {
+    if (priceCurrency === displayCurrency) return false;
+    return isFxRatesLoading || !fxRatesData?.rates?.[transactionDate];
+  };
 
   // Helper to convert price to display currency
   const convertPrice = (price: number, priceCurrency: string, transactionDate: string): number => {
@@ -724,7 +730,14 @@ export function TransactionForm({
                     </button>
                     <span className="text-slate-600">{privateMode ? '**' : tx.quantity} {t('transactions.shares')}</span>
                     <span className="text-slate-400">@</span>
-                    <span className="text-slate-600">{getCurrencySymbol(displayCurrency)}{convertPrice(tx.price_per_share, tx.price_currency || 'EUR', tx.transaction_date).toFixed(2)}</span>
+                    <span className="text-slate-600">
+                      {needsConversionLoading(tx.price_currency || 'EUR', tx.transaction_date) ? (
+                        // Show original currency while FX rates are loading
+                        <>{getCurrencySymbol(tx.price_currency || 'EUR')}{tx.price_per_share.toFixed(2)}</>
+                      ) : (
+                        <>{getCurrencySymbol(displayCurrency)}{convertPrice(tx.price_per_share, tx.price_currency || 'EUR', tx.transaction_date).toFixed(2)}</>
+                      )}
+                    </span>
                     <span className="text-slate-400 text-sm">
                       {new Date(tx.transaction_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </span>
