@@ -164,32 +164,25 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
             </button>
           )}
 
-          <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
+          <div className="text-sm text-green-800 dark:text-green-200 space-y-3">
             {content.steps.map((step, i) => (
-              <p key={i} className="flex items-center gap-2">
-                {step.icon && <><span className="font-medium">{i + 1}.</span><step.icon className="w-4 h-4 inline flex-shrink-0" /></>}
-                {step.iconSrc && <img src={step.iconSrc} alt="" className="w-7 h-7 inline flex-shrink-0" />}
-                {!step.icon && !step.iconSrc && <span className="font-medium">{i + 1}.</span>}
-                <span>{step.text}</span>
-              </p>
+              <div key={i}>
+                <p className="flex items-center gap-2">
+                  {step.icon && <><span className="font-medium">{i + 1}.</span><step.icon className="w-4 h-4 inline flex-shrink-0" /></>}
+                  {step.iconSrc && <img src={step.iconSrc} alt="" className="w-7 h-7 inline flex-shrink-0" />}
+                  {!step.icon && !step.iconSrc && <span className="font-medium">{i + 1}.</span>}
+                  <span>{step.text}</span>
+                </p>
+                {content.screenshots?.[i] && (
+                  <img
+                    src={content.screenshots[i]}
+                    alt={`${isFr ? 'Étape' : 'Step'} ${i + 1}`}
+                    className="mt-2 h-28 rounded-lg border border-green-200 dark:border-green-700"
+                  />
+                )}
+              </div>
             ))}
           </div>
-
-          {/* Screenshots */}
-          {content.screenshots && content.screenshots.length > 0 && (
-            <div className="mt-3 -mx-4 px-4 overflow-x-auto">
-              <div className="flex gap-2 w-max">
-                {content.screenshots.map((src, i) => (
-                  <img
-                    key={i}
-                    src={src}
-                    alt={`${isFr ? 'Étape' : 'Step'} ${i + 1}`}
-                    className="h-28 rounded-lg border border-green-200 dark:border-green-700"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
