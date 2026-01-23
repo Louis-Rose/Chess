@@ -128,10 +128,19 @@ def init_db():
     """Initialize database with schema."""
     if USE_POSTGRES:
         # PostgreSQL schema is initialized via docker-entrypoint-initdb.d
-        # Just verify connection works
+        # Run migrations for any new columns
         with get_db() as conn:
             conn.execute("SELECT 1")
             print("[Database] PostgreSQL connection verified")
+
+            # Migration: Add price_currency column to portfolio_transactions if not exists
+            conn.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'portfolio_transactions' AND column_name = 'price_currency'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("ALTER TABLE portfolio_transactions ADD COLUMN price_currency TEXT DEFAULT 'EUR'")
+                print("[Database] Added price_currency column to portfolio_transactions")
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
