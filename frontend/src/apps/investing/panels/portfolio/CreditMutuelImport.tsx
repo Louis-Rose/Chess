@@ -421,7 +421,7 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
                     <th className="p-3 w-10"></th>
                     <th className="p-3 w-1/3">{language === 'fr' ? 'Action' : 'Stock'}</th>
                     <th className="p-3 w-28">{language === 'fr' ? 'Type' : 'Type'}</th>
-                    <th className="p-3 w-28 text-right">{language === 'fr' ? 'Quantité' : 'Quantity'}</th>
+                    <th className="p-3 w-28 text-center">{language === 'fr' ? 'Quantité' : 'Quantity'}</th>
                     <th className="p-3 w-32">Date</th>
                   </tr>
                 </thead>
@@ -466,14 +466,14 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
                           <option value="SELL">SELL</option>
                         </select>
                       </td>
-                      <td className="p-2 text-right">
+                      <td className="p-2 text-center">
                         <input
                           type="number"
                           value={tx.quantity}
                           onChange={(e) => updateTransaction(i, 'quantity', e.target.value)}
                           min="0"
                           step="any"
-                          className="w-20 px-2 py-1 text-right text-slate-600 dark:text-slate-300 bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-500 focus:border-green-500 dark:focus:border-green-400 rounded focus:outline-none"
+                          className="w-20 px-2 py-1 text-center text-slate-600 dark:text-slate-300 bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-500 focus:border-green-500 dark:focus:border-green-400 rounded focus:outline-none"
                         />
                       </td>
                       <td className="p-2">
