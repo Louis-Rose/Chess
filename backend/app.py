@@ -1043,7 +1043,8 @@ def get_user_graph_downloads(user_id):
 
 from investing_utils import (
     compute_portfolio_composition, compute_portfolio_performance_from_transactions,
-    fetch_stock_price, get_previous_weekday, set_db_getter, get_news_feed_videos
+    fetch_stock_price, get_previous_weekday, set_db_getter, get_news_feed_videos,
+    get_stock_currency
 )
 
 # Initialize database getter for caching in investing_utils
@@ -1056,7 +1057,7 @@ def get_transactions():
     with get_db() as conn:
         cursor = conn.execute(
             '''SELECT pt.id, pt.stock_ticker, pt.transaction_type, pt.quantity,
-                      pt.transaction_date, pt.price_per_share, pt.account_id,
+                      pt.transaction_date, pt.price_per_share, pt.price_currency, pt.account_id,
                       ia.name as account_name, ia.account_type, ia.bank
                FROM portfolio_transactions pt
                LEFT JOIN investment_accounts ia ON pt.account_id = ia.id
@@ -1073,6 +1074,7 @@ def get_transactions():
         'quantity': row['quantity'],
         'transaction_date': row['transaction_date'],
         'price_per_share': row['price_per_share'],
+        'price_currency': row['price_currency'] or 'EUR',  # Default to EUR for legacy data
         'account_id': row['account_id'],
         'account_name': row['account_name'],
         'account_type': row['account_type'],
@@ -1095,6 +1097,7 @@ def add_transaction():
     transaction_date = data.get('transaction_date')  # YYYY-MM-DD format
     account_id = data.get('account_id')  # Optional: link to investment account
     provided_price = data.get('price_per_share')  # Optional: price from import
+    provided_currency = data.get('price_currency')  # Optional: currency of provided price
 
     if not stock_ticker:
         return jsonify({'error': 'Stock ticker required'}), 400
@@ -1129,6 +1132,8 @@ def add_transaction():
     # Use provided price if available, otherwise fetch from Yahoo Finance
     if provided_price is not None:
         price_per_share = float(provided_price)
+        # Use provided currency or default to EUR (CM import is in EUR)
+        price_currency = provided_currency or 'EUR'
     else:
         # Fetch historical price at transaction date
         try:
@@ -1136,16 +1141,18 @@ def add_transaction():
             # Convert numpy types to native Python types for PostgreSQL compatibility
             if price_per_share is not None:
                 price_per_share = float(price_per_share)
+            # Price from Yahoo is in stock's native currency
+            price_currency = get_stock_currency(stock_ticker)
         except Exception as e:
             return jsonify({'error': f'Could not fetch price for {stock_ticker} on {transaction_date}: {str(e)}'}), 400
 
     try:
         with get_db() as conn:
             cursor = conn.execute('''
-                INSERT INTO portfolio_transactions (user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO portfolio_transactions (user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share, price_currency)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 RETURNING id
-            ''', (request.user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share))
+            ''', (request.user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share, price_currency))
             transaction_id = cursor.fetchone()['id']
     except Exception as e:
         print(f"[Transaction Error] {stock_ticker}: {str(e)}")
@@ -1159,7 +1166,8 @@ def add_transaction():
         'transaction_type': transaction_type,
         'quantity': quantity,
         'transaction_date': transaction_date,
-        'price_per_share': price_per_share
+        'price_per_share': price_per_share,
+        'price_currency': price_currency
     })
 
 
@@ -1873,6 +1881,25 @@ def delete_transaction(transaction_id):
             (request.user_id, transaction_id)
         )
     return jsonify({'success': True, 'id': transaction_id})
+
+
+@app.route('/api/investing/fx-rates', methods=['POST'])
+@login_required
+def get_fx_rates():
+    """Get historical EUR/USD FX rates for a list of dates."""
+    from investing_utils import fetch_eurusd_rate
+    data = request.get_json()
+    if not data or 'dates' not in data:
+        return jsonify({'error': 'dates array required'}), 400
+
+    dates = data['dates']
+    rates = {}
+    for date_str in dates:
+        try:
+            rates[date_str] = fetch_eurusd_rate(date_str)
+        except Exception:
+            rates[date_str] = 1.0  # Fallback
+    return jsonify({'rates': rates})
 
 
 @app.route('/api/investing/holdings', methods=['GET'])

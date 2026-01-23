@@ -58,7 +58,8 @@ CREATE TABLE IF NOT EXISTS portfolio_transactions (
     transaction_type TEXT NOT NULL,     -- 'BUY' or 'SELL'
     quantity INTEGER NOT NULL,
     transaction_date TEXT NOT NULL,     -- Date of transaction (YYYY-MM-DD)
-    price_per_share REAL NOT NULL,      -- Price per share at transaction date (USD)
+    price_per_share REAL NOT NULL,      -- Price per share at transaction date
+    price_currency TEXT DEFAULT 'EUR',  -- Currency of price_per_share (EUR, USD, etc.)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (account_id) REFERENCES investment_accounts(id) ON DELETE SET NULL

@@ -7,6 +7,7 @@ export interface Transaction {
   quantity: number;
   transaction_date: string;
   price_per_share: number;
+  price_currency: string;  // Currency of the price (EUR, USD, etc.)
   account_id: number | null;
   account_name: string | null;
   account_type: string | null;

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Minus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Upload } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../../utils/allStocks';
 import type { Transaction, NewTransaction } from './types';
@@ -91,6 +93,43 @@ export function TransactionForm({
   }, [selectedAccountIds, revolutImportAccountId, creditMutuelImportAccountId, addFormAccountId]);
   const [filterTicker, setFilterTicker] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'BUY' | 'SELL'>('ALL');
+
+  // Get unique transaction dates that need FX conversion
+  const datesNeedingFxRates = useMemo(() => {
+    const dates = new Set<string>();
+    transactions.forEach(tx => {
+      // Only need FX rate if transaction currency differs from display currency
+      if (tx.price_currency && tx.price_currency !== displayCurrency) {
+        dates.add(tx.transaction_date);
+      }
+    });
+    return Array.from(dates);
+  }, [transactions, displayCurrency]);
+
+  // Fetch FX rates for dates that need conversion
+  const { data: fxRatesData } = useQuery({
+    queryKey: ['fx-rates', datesNeedingFxRates],
+    queryFn: async () => {
+      if (datesNeedingFxRates.length === 0) return { rates: {} };
+      const response = await axios.post('/api/investing/fx-rates', { dates: datesNeedingFxRates });
+      return response.data as { rates: Record<string, number> };
+    },
+    enabled: datesNeedingFxRates.length > 0,
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+  });
+
+  // Helper to convert price to display currency
+  const convertPrice = (price: number, priceCurrency: string, transactionDate: string): number => {
+    if (priceCurrency === displayCurrency) return price;
+    const fxRate = fxRatesData?.rates?.[transactionDate] || 1.0;
+    // fxRate is EUR/USD (how many USD per 1 EUR)
+    if (priceCurrency === 'EUR' && displayCurrency === 'USD') {
+      return price * fxRate; // EUR to USD
+    } else if (priceCurrency === 'USD' && displayCurrency === 'EUR') {
+      return price / fxRate; // USD to EUR
+    }
+    return price; // Fallback
+  };
 
   // Form state
   const [newTicker, setNewTicker] = useState('');
@@ -685,7 +724,7 @@ export function TransactionForm({
                     </button>
                     <span className="text-slate-600">{privateMode ? '**' : tx.quantity} {t('transactions.shares')}</span>
                     <span className="text-slate-400">@</span>
-                    <span className="text-slate-600">{getCurrencySymbol(displayCurrency)}{tx.price_per_share.toFixed(2)}</span>
+                    <span className="text-slate-600">{getCurrencySymbol(displayCurrency)}{convertPrice(tx.price_per_share, tx.price_currency || 'EUR', tx.transaction_date).toFixed(2)}</span>
                     <span className="text-slate-400 text-sm">
                       {new Date(tx.transaction_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </span>

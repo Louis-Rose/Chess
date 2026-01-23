@@ -145,6 +145,8 @@ def init_db():
                 columns = [row['name'] for row in cursor.fetchall()]
                 if 'account_id' not in columns:
                     conn.execute('ALTER TABLE portfolio_transactions ADD COLUMN account_id INTEGER')
+                if 'price_currency' not in columns:
+                    conn.execute("ALTER TABLE portfolio_transactions ADD COLUMN price_currency TEXT DEFAULT 'EUR'")
 
             # Migration: Update device_usage table
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='device_usage'")
