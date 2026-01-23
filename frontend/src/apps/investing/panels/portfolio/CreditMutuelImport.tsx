@@ -83,7 +83,7 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
       const data = XLSX.utils.sheet_to_json<string[]>(firstSheet, { header: 1 });
-      setExcelData(data.slice(0, 100)); // Limit to 100 rows for performance
+      setExcelData(data.slice(3, 103)); // Skip first 3 rows, limit to 100 rows
     } catch {
       // Silently fail preview parsing - main parsing will handle errors
     }
