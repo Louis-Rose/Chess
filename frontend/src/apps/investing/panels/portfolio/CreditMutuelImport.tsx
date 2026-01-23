@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 
 // Import screenshots as static assets
+import step1Image from '../../../../assets/cm-import/step1.png';
 import step2Image from '../../../../assets/cm-import/step2.png';
 import step3Image from '../../../../assets/cm-import/step3.png';
 import step4Image from '../../../../assets/cm-import/step4.png';
@@ -189,7 +190,7 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
       titleEn: 'Log into your Crédit Mutuel account',
       descFr: 'Rendez-vous sur le site de votre Crédit Mutuel et connectez-vous.',
       descEn: 'Go to your Crédit Mutuel website and log in.',
-      image: null,
+      image: step1Image,
     },
     {
       titleFr: 'Accédez à Opérations → Valeurs boursières',
