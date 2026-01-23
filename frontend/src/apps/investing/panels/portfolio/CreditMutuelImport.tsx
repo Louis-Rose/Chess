@@ -169,6 +169,7 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
           transaction_type: tx.transaction_type,
           quantity: tx.quantity,
           transaction_date: tx.transaction_date,
+          price_per_share: tx.price_per_share,
           account_id: selectedAccountId,
         });
       } catch (error: unknown) {
@@ -441,9 +442,10 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
                 <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0">
                   <tr className="text-left text-slate-600 dark:text-slate-300">
                     <th className="p-3 w-10"></th>
-                    <th className="p-3 w-1/3">{language === 'fr' ? 'Action' : 'Stock'}</th>
-                    <th className="p-3 w-28">{language === 'fr' ? 'Type' : 'Type'}</th>
-                    <th className="p-3 w-28 text-center">{language === 'fr' ? 'Quantité' : 'Quantity'}</th>
+                    <th className="p-3">{language === 'fr' ? 'Action' : 'Stock'}</th>
+                    <th className="p-3 w-24">{language === 'fr' ? 'Type' : 'Type'}</th>
+                    <th className="p-3 w-24 text-center">{language === 'fr' ? 'Quantité' : 'Quantity'}</th>
+                    <th className="p-3 w-28 text-right">{language === 'fr' ? 'Prix' : 'Price'}</th>
                     <th className="p-3 w-32">Date</th>
                   </tr>
                 </thead>
@@ -497,6 +499,11 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
                           step="any"
                           className="w-20 px-2 py-1 text-center text-slate-600 dark:text-slate-300 bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-500 focus:border-green-500 dark:focus:border-green-400 rounded focus:outline-none"
                         />
+                      </td>
+                      <td className="p-2 text-right">
+                        <span className="text-slate-600 dark:text-slate-300">
+                          {tx.price_per_share !== null ? `€${tx.price_per_share.toFixed(2)}` : '-'}
+                        </span>
                       </td>
                       <td className="p-2">
                         <input

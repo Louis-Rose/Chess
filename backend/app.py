@@ -1094,6 +1094,7 @@ def add_transaction():
     quantity = data.get('quantity')
     transaction_date = data.get('transaction_date')  # YYYY-MM-DD format
     account_id = data.get('account_id')  # Optional: link to investment account
+    provided_price = data.get('price_per_share')  # Optional: price from import
 
     if not stock_ticker:
         return jsonify({'error': 'Stock ticker required'}), 400
@@ -1125,14 +1126,18 @@ def add_transaction():
     # Adjust for weekends (markets closed)
     transaction_date = get_previous_weekday(transaction_date)
 
-    # Fetch historical price at transaction date
-    try:
-        price_per_share = fetch_stock_price(stock_ticker, transaction_date)
-        # Convert numpy types to native Python types for PostgreSQL compatibility
-        if price_per_share is not None:
-            price_per_share = float(price_per_share)
-    except Exception as e:
-        return jsonify({'error': f'Could not fetch price for {stock_ticker} on {transaction_date}: {str(e)}'}), 400
+    # Use provided price if available, otherwise fetch from Yahoo Finance
+    if provided_price is not None:
+        price_per_share = float(provided_price)
+    else:
+        # Fetch historical price at transaction date
+        try:
+            price_per_share = fetch_stock_price(stock_ticker, transaction_date)
+            # Convert numpy types to native Python types for PostgreSQL compatibility
+            if price_per_share is not None:
+                price_per_share = float(price_per_share)
+        except Exception as e:
+            return jsonify({'error': f'Could not fetch price for {stock_ticker} on {transaction_date}: {str(e)}'}), 400
 
     try:
         with get_db() as conn:
@@ -1688,11 +1693,25 @@ def _parse_credit_mutuel_excel(file_bytes: bytes) -> tuple[list[dict], list[str]
             stock_name = str(stock_name).strip()
             stock_names_set.add(stock_name)
 
+            # Get net amount (Montant net) to calculate price per share
+            montant_col = headers.get('Montant net', headers.get('Montant Net', -1))
+            montant_net = row_values[montant_col] if montant_col >= 0 and montant_col < len(row_values) else None
+
+            price_per_share = None
+            if montant_net is not None and quantity > 0:
+                try:
+                    montant_value = float(str(montant_net).replace(',', '.').replace(' ', '').replace('€', ''))
+                    # Montant net is negative for buys, positive for sells - take absolute value
+                    price_per_share = round(abs(montant_value) / quantity, 4)
+                except:
+                    pass  # Will be None, backend will fetch from Yahoo
+
             raw_transactions.append({
                 'date': date_str,
                 'type': tx_type,
                 'quantity': quantity,
-                'stock_name': stock_name
+                'stock_name': stock_name,
+                'price_per_share': price_per_share
             })
 
         # Map stock names to tickers using Gemini
@@ -1709,7 +1728,7 @@ def _parse_credit_mutuel_excel(file_bytes: bytes) -> tuple[list[dict], list[str]
                 'transaction_type': raw_tx['type'],
                 'quantity': raw_tx['quantity'],
                 'transaction_date': raw_tx['date'],
-                'price_per_share': None  # Will be fetched by backend
+                'price_per_share': raw_tx['price_per_share']  # Calculated from Montant net
             })
 
         return transactions, errors
