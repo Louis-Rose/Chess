@@ -440,11 +440,11 @@ export function AccountSelector({
                   >
                     {/* Deletion overlay */}
                     {isBeingDeleted && (
-                      <div className="absolute inset-0 bg-red-50 dark:bg-red-900/50 rounded-lg flex items-center justify-center z-10">
-                        <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                      <div className="absolute inset-0 bg-white/80 dark:bg-slate-800/80 rounded-lg flex items-center justify-center z-10">
+                        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
                           <Loader2 className="w-5 h-5 animate-spin" />
                           <span className="font-medium">
-                            {language === 'fr' ? 'Suppression en cours...' : 'Deleting...'}
+                            {language === 'fr' ? 'Suppression...' : 'Deleting...'}
                           </span>
                         </div>
                       </div>
