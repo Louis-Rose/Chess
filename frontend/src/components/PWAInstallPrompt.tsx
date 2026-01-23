@@ -46,47 +46,6 @@ function detectPlatform(): Platform {
   return 'desktop';
 }
 
-// Safari logo SVG component - matches official Safari compass icon
-function SafariLogo({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 100 100" fill="none">
-      {/* Blue circle background */}
-      <circle cx="50" cy="50" r="48" fill="url(#safariGradient)" stroke="#5AC8FA" strokeWidth="2"/>
-      {/* Tick marks */}
-      <g stroke="#fff" strokeWidth="1.5" opacity="0.8">
-        {[...Array(72)].map((_, i) => {
-          const angle = (i * 5 * Math.PI) / 180;
-          const isMajor = i % 9 === 0;
-          const r1 = isMajor ? 38 : 42;
-          const r2 = 45;
-          return (
-            <line
-              key={i}
-              x1={50 + r1 * Math.sin(angle)}
-              y1={50 - r1 * Math.cos(angle)}
-              x2={50 + r2 * Math.sin(angle)}
-              y2={50 - r2 * Math.cos(angle)}
-              strokeWidth={isMajor ? 2 : 1}
-            />
-          );
-        })}
-      </g>
-      {/* Compass needle - red half */}
-      <polygon points="50,50 35,65 50,14" fill="#FF3B30"/>
-      {/* Compass needle - white half */}
-      <polygon points="50,50 65,35 50,86" fill="#fff"/>
-      {/* Center dot */}
-      <circle cx="50" cy="50" r="3" fill="#fff"/>
-      <defs>
-        <linearGradient id="safariGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#5AC8FA"/>
-          <stop offset="100%" stopColor="#007AFF"/>
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
-
 function isStandalone(): boolean {
   // Check if running as installed PWA
   return (
@@ -182,7 +141,7 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
                   : `You're using ${browserName}. Open Safari to install the app:`
                 }
               </span>
-              <SafariLogo className="w-5 h-5 text-[#006CFF] flex-shrink-0" />
+              <img src="/safari-logo.jpeg" alt="Safari" className="w-5 h-5 flex-shrink-0" />
             </div>
           )}
 
@@ -199,7 +158,7 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
                 </>
               ) : (
                 <>
-                  <SafariLogo className="w-4 h-4" />
+                  <img src="/safari-logo.jpeg" alt="Safari" className="w-4 h-4" />
                   <Copy className="w-4 h-4" />
                   {isFr ? 'Copier le lien pour Safari' : 'Copy link for Safari'}
                 </>
@@ -212,6 +171,7 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
               <p key={i} className="flex items-center gap-2">
                 <span className="font-medium">{i + 1}.</span>
                 {step.icon && <step.icon className="w-4 h-4 inline flex-shrink-0" />}
+                {step.iconSrc && <img src={step.iconSrc} alt="" className="w-5 h-5 inline flex-shrink-0" />}
                 <span>{step.text}</span>
               </p>
             ))}
@@ -241,6 +201,7 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
 interface StepContent {
   text: string;
   icon?: React.ComponentType<{ className?: string }>;
+  iconSrc?: string; // For image icons (e.g., Safari logo)
 }
 
 interface ContentData {
@@ -282,7 +243,7 @@ function getContent(platform: Platform, language: string): ContentData | null {
         steps: [
           {
             text: isFr ? 'Copiez le lien et ouvrez-le dans Safari' : 'Copy the link and open it in Safari',
-            icon: SafariLogo,
+            iconSrc: '/safari-logo.jpeg',
           },
         ],
       };
