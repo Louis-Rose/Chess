@@ -58,28 +58,21 @@ interface PWAInstallPromptProps {
   className?: string;
 }
 
-// Initialize state synchronously to avoid re-render scroll jumps
-function getInitialState(): { dismissed: boolean; platform: Platform } {
+// Get platform synchronously to avoid re-render scroll jumps
+function getInitialPlatform(): Platform {
   if (typeof window === 'undefined') {
-    return { dismissed: true, platform: 'unknown' };
+    return 'unknown';
   }
-
   if (isStandalone()) {
-    return { dismissed: true, platform: 'unknown' };
+    return 'unknown'; // Don't show if already installed as PWA
   }
-
-  if (localStorage.getItem('pwa-prompt-dismissed')) {
-    return { dismissed: true, platform: 'unknown' };
-  }
-
-  return { dismissed: false, platform: detectPlatform() };
+  return detectPlatform();
 }
 
 export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
   const { language } = useLanguage();
-  const [state, setState] = useState(getInitialState);
+  const [platform] = useState(getInitialPlatform);
   const [copied, setCopied] = useState(false);
-  const { dismissed, platform } = state;
   const isFr = language === 'fr';
 
   const handleCopyUrl = async () => {
@@ -99,8 +92,6 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
       setTimeout(() => setCopied(false), 2000);
     }
   };
-
-  if (dismissed) return null;
 
   const content = getContent(platform, language);
   if (!content) return null;
