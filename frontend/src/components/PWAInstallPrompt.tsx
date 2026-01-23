@@ -177,7 +177,9 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
                   <img
                     src={content.screenshots[i]}
                     alt={`${isFr ? 'Étape' : 'Step'} ${i + 1}`}
-                    className="mt-2 h-28 rounded-lg border border-green-200 dark:border-green-700"
+                    className={`mt-2 rounded-lg border border-green-200 dark:border-green-700 mx-auto block ${
+                      i === 1 || i === 3 ? 'h-44' : 'h-28'
+                    }`}
                   />
                 )}
               </div>
