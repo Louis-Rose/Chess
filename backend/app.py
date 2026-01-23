@@ -1608,6 +1608,74 @@ Only return the JSON object, no other text."""
         return {name: name for name in stock_names}
 
 
+def _get_split_adjustments(tickers: list[str], transactions: list[dict]) -> dict:
+    """
+    Get cumulative split adjustment factors for each transaction.
+
+    For each transaction, calculates how many shares one original share
+    has become due to splits that occurred AFTER the transaction date.
+
+    Example: NVDA 10-for-1 split in June 2024
+    - Transaction from May 2024: factor = 10 (20 shares → 200 shares)
+    - Transaction from July 2024: factor = 1 (no adjustment needed)
+
+    Returns: dict mapping (ticker, date) -> { 'quantity_factor': float, 'price_factor': float }
+    """
+    import yfinance as yf
+    from datetime import datetime
+
+    adjustments = {}
+
+    # Group transactions by ticker to minimize API calls
+    ticker_dates = {}
+    for tx in transactions:
+        ticker = tx.get('stock_ticker')
+        date_str = tx.get('transaction_date')
+        if ticker and date_str:
+            if ticker not in ticker_dates:
+                ticker_dates[ticker] = set()
+            ticker_dates[ticker].add(date_str)
+
+    # Fetch split data for each ticker
+    for ticker in ticker_dates:
+        try:
+            stock = yf.Ticker(ticker)
+            splits = stock.splits
+
+            if splits is None or splits.empty:
+                # No splits for this ticker
+                for date_str in ticker_dates[ticker]:
+                    adjustments[(ticker, date_str)] = {'quantity_factor': 1.0, 'price_factor': 1.0}
+                continue
+
+            # For each transaction date, calculate cumulative split factor
+            for date_str in ticker_dates[ticker]:
+                tx_date = datetime.strptime(date_str, '%Y-%m-%d')
+
+                # Get splits that occurred AFTER the transaction date
+                cumulative_factor = 1.0
+                for split_date, split_ratio in splits.items():
+                    # split_date is a pandas Timestamp
+                    if split_date.to_pydatetime().replace(tzinfo=None) > tx_date:
+                        cumulative_factor *= split_ratio
+
+                adjustments[(ticker, date_str)] = {
+                    'quantity_factor': cumulative_factor,
+                    'price_factor': 1.0 / cumulative_factor if cumulative_factor != 0 else 1.0
+                }
+
+                if cumulative_factor != 1.0:
+                    print(f"[Split adjustment] {ticker} on {date_str}: factor={cumulative_factor}")
+
+        except Exception as e:
+            print(f"[Split adjustment error] {ticker}: {e}")
+            # Default to no adjustment on error
+            for date_str in ticker_dates[ticker]:
+                adjustments[(ticker, date_str)] = {'quantity_factor': 1.0, 'price_factor': 1.0}
+
+    return adjustments
+
+
 def _parse_credit_mutuel_excel(file_bytes: bytes) -> tuple[list[dict], list[str]]:
     """Parse Crédit Mutuel Excel export and return transactions."""
     import openpyxl
@@ -1734,7 +1802,7 @@ def _parse_credit_mutuel_excel(file_bytes: bytes) -> tuple[list[dict], list[str]
         else:
             name_to_ticker = {}
 
-        # Build final transactions
+        # Build final transactions (before split adjustment)
         for raw_tx in raw_transactions:
             ticker = name_to_ticker.get(raw_tx['stock_name'], raw_tx['stock_name'])
             transactions.append({
@@ -1744,6 +1812,22 @@ def _parse_credit_mutuel_excel(file_bytes: bytes) -> tuple[list[dict], list[str]
                 'transaction_date': raw_tx['date'],
                 'price_per_share': raw_tx['price_per_share']  # Calculated from Montant net
             })
+
+        # Apply stock split adjustments
+        if transactions:
+            tickers = list(set(tx['stock_ticker'] for tx in transactions))
+            split_adjustments = _get_split_adjustments(tickers, transactions)
+
+            for tx in transactions:
+                key = (tx['stock_ticker'], tx['transaction_date'])
+                adj = split_adjustments.get(key, {'quantity_factor': 1.0, 'price_factor': 1.0})
+
+                if adj['quantity_factor'] != 1.0:
+                    original_qty = tx['quantity']
+                    tx['quantity'] = int(round(tx['quantity'] * adj['quantity_factor']))
+                    if tx['price_per_share'] is not None:
+                        tx['price_per_share'] = round(tx['price_per_share'] * adj['price_factor'], 4)
+                    print(f"[Split applied] {tx['stock_ticker']}: {original_qty} -> {tx['quantity']} shares")
 
         return transactions, errors
 
