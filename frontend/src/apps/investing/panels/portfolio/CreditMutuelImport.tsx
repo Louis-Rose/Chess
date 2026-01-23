@@ -421,7 +421,7 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
                     <th className="p-3 w-10"></th>
                     <th className="p-3">{language === 'fr' ? 'Action' : 'Stock'}</th>
                     <th className="p-3">{language === 'fr' ? 'Type' : 'Type'}</th>
-                    <th className="p-3 text-right">{language === 'fr' ? 'Qté' : 'Qty'}</th>
+                    <th className="p-3 text-right">{language === 'fr' ? 'Quantité' : 'Quantity'}</th>
                     <th className="p-3">Date</th>
                   </tr>
                 </thead>
@@ -466,7 +466,7 @@ export function CreditMutuelImport({ selectedAccountId, onImportComplete, onClos
                           <option value="SELL">SELL</option>
                         </select>
                       </td>
-                      <td className="p-2">
+                      <td className="p-2 text-right">
                         <input
                           type="number"
                           value={tx.quantity}
