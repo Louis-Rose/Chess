@@ -471,18 +471,29 @@ def fetch_stock_price(stock_ticker, date_str):
     if cached is not None:
         return cached
 
+    # Check if date is in the future
+    end_date = datetime.strptime(date_str, "%Y-%m-%d")
+    today = datetime.now()
+    if end_date.date() > today.date():
+        raise ValueError(f"Cannot fetch price for future date {date_str}")
+
     # Convert to yfinance ticker (add exchange suffix if needed)
     yf_ticker = get_yfinance_ticker(stock_ticker)
     ticker = yf.Ticker(yf_ticker)
-    end_date = datetime.strptime(date_str, "%Y-%m-%d")
     start_date = (end_date - timedelta(days=7)).strftime('%Y-%m-%d')
     # yfinance end date is EXCLUSIVE, so add 1 day to include the target date
     end_date_query = (end_date + timedelta(days=1)).strftime('%Y-%m-%d')
-    prices_history = ticker.history(start=start_date, end=end_date_query)
+    try:
+        prices_history = ticker.history(start=start_date, end=end_date_query, timeout=10)
+    except Exception as e:
+        raise ValueError(f"Failed to fetch price for {stock_ticker}: {str(e)}")
     if prices_history.empty:
         # Try fetching more days back
         start_date = (end_date - timedelta(days=14)).strftime('%Y-%m-%d')
-        prices_history = ticker.history(start=start_date, end=end_date_query)
+        try:
+            prices_history = ticker.history(start=start_date, end=end_date_query, timeout=10)
+        except Exception as e:
+            raise ValueError(f"Failed to fetch price for {stock_ticker}: {str(e)}")
     if prices_history.empty:
         raise ValueError(f"No price data found for {stock_ticker} around {date_str}")
 
