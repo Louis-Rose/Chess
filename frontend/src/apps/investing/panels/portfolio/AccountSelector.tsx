@@ -1,8 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Minus, Trash2, Loader2, Building2, Wallet, GripVertical } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import type { Account, BankInfo, AccountTypeInfo } from './types';
 import { FeesDisplay } from './FeesDisplay';
+
+interface CardPosition {
+  id: number;
+  x: number;
+  y: number;
+}
 
 interface AccountSelectorProps {
   accounts: Account[];
@@ -41,6 +47,8 @@ export function AccountSelector({
   const [draggedAccountId, setDraggedAccountId] = useState<number | null>(null);
   const [dragOverAccountId, setDragOverAccountId] = useState<number | null>(null);
   const dragNodeRef = useRef<HTMLDivElement | null>(null);
+  const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const initialPositions = useRef<CardPosition[]>([]);
 
   // Clear pending delete when clicking outside
   useEffect(() => {
@@ -73,8 +81,58 @@ export function AccountSelector({
     }
   };
 
+  // Capture card positions on drag start
+  const capturePositions = useCallback(() => {
+    const positions: CardPosition[] = [];
+    cardRefs.current.forEach((el, id) => {
+      const rect = el.getBoundingClientRect();
+      positions.push({ id, x: rect.left, y: rect.top });
+    });
+    initialPositions.current = positions;
+  }, []);
+
+  // Calculate transform for an account based on preview position
+  const getTransform = useCallback((accountId: number, originalIndex: number): { x: number; y: number } => {
+    if (draggedAccountId === null || dragOverAccountId === null) {
+      return { x: 0, y: 0 };
+    }
+
+    const draggedIndex = accounts.findIndex(a => a.id === draggedAccountId);
+    const targetIndex = accounts.findIndex(a => a.id === dragOverAccountId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return { x: 0, y: 0 };
+
+    // Calculate what the visual index should be
+    let visualIndex = originalIndex;
+    if (accountId === draggedAccountId) {
+      visualIndex = targetIndex;
+    } else if (draggedIndex < targetIndex) {
+      if (originalIndex > draggedIndex && originalIndex <= targetIndex) {
+        visualIndex = originalIndex - 1;
+      }
+    } else if (draggedIndex > targetIndex) {
+      if (originalIndex >= targetIndex && originalIndex < draggedIndex) {
+        visualIndex = originalIndex + 1;
+      }
+    }
+
+    if (visualIndex === originalIndex) return { x: 0, y: 0 };
+
+    // Get positions from initial capture
+    const currentPos = initialPositions.current.find(p => p.id === accountId);
+    const targetPos = initialPositions.current[visualIndex];
+
+    if (!currentPos || !targetPos) return { x: 0, y: 0 };
+
+    return {
+      x: targetPos.x - currentPos.x,
+      y: targetPos.y - currentPos.y,
+    };
+  }, [draggedAccountId, dragOverAccountId, accounts]);
+
   // Drag & drop handlers
   const handleDragStart = (e: React.DragEvent, accountId: number, node: HTMLDivElement) => {
+    capturePositions();
     setDraggedAccountId(accountId);
     dragNodeRef.current = node;
     e.dataTransfer.effectAllowed = 'move';
@@ -82,7 +140,7 @@ export function AccountSelector({
     // Add a slight delay to allow the drag image to be captured
     setTimeout(() => {
       if (dragNodeRef.current) {
-        dragNodeRef.current.style.opacity = '0.5';
+        dragNodeRef.current.style.opacity = '0.4';
       }
     }, 0);
   };
@@ -102,10 +160,6 @@ export function AccountSelector({
     if (accountId !== draggedAccountId) {
       setDragOverAccountId(accountId);
     }
-  };
-
-  const handleDragLeave = () => {
-    setDragOverAccountId(null);
   };
 
   const handleDrop = (e: React.DragEvent, targetAccountId: number) => {
@@ -277,22 +331,33 @@ export function AccountSelector({
             <p className="text-slate-500 text-center py-4">{t('accounts.noAccounts')}</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {accounts.map((account) => {
+              {accounts.map((account, index) => {
                 const isSelected = selectedAccountIds.includes(account.id);
                 const isBeingDeleted = deletingAccountId === account.id;
                 const isDragging = draggedAccountId === account.id;
                 const isDragOver = dragOverAccountId === account.id;
+                const transform = getTransform(account.id, index);
+                const hasTransform = transform.x !== 0 || transform.y !== 0;
+
                 return (
                   <div
                     key={account.id}
+                    ref={(el) => {
+                      if (el) cardRefs.current.set(account.id, el);
+                      else cardRefs.current.delete(account.id);
+                    }}
                     draggable={!isBeingDeleted}
                     onDragStart={(e) => handleDragStart(e, account.id, e.currentTarget)}
                     onDragEnd={handleDragEnd}
                     onDragOver={(e) => handleDragOver(e, account.id)}
-                    onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, account.id)}
                     onClick={() => !isBeingDeleted && !isDragging && onToggleAccount(account.id)}
-                    className={`rounded-lg p-4 relative group transition-all ${
+                    style={{
+                      transform: hasTransform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
+                      transition: draggedAccountId ? 'transform 200ms ease-out' : undefined,
+                      zIndex: isDragging ? 10 : undefined,
+                    }}
+                    className={`rounded-lg p-4 relative group ${
                       isBeingDeleted
                         ? 'cursor-not-allowed'
                         : 'cursor-pointer'
