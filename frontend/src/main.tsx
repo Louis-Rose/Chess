@@ -16,13 +16,11 @@ import './index.css'
 import App from './App.tsx'
 
 // PostHog config (previously in ConditionalPostHog)
+// Note: Minimum session recording duration is configured in PostHog dashboard (Project Settings > Session Replay)
 const posthogOptions = {
   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
   person_profiles: 'identified_only' as const,
   session_idle_timeout_seconds: 600,
-  session_recording: {
-    minimum_duration_ms: 60000, // Only record sessions lasting at least 60 seconds
-  },
 }
 
 // Configure axios to always send cookies for authentication
