@@ -140,7 +140,6 @@ export function TransactionForm({
   // Form state
   const [newTicker, setNewTicker] = useState('');
   const [newQuantity, setNewQuantity] = useState('');
-  const [newPrice, setNewPrice] = useState('');  // Optional manual price
   const [newYear, setNewYear] = useState('');
   const [newMonth, setNewMonth] = useState('');
   const [newDay, setNewDay] = useState('');
@@ -255,7 +254,6 @@ export function TransactionForm({
       setStockSearch('');
     }
     setNewQuantity('');
-    setNewPrice('');
     setNewYear('');
     setNewMonth('');
     setNewDay('');
@@ -272,18 +270,13 @@ export function TransactionForm({
 
   const handleAddTransaction = () => {
     if (newTicker.trim() && newQuantity && parseInt(newQuantity) > 0 && newDate && addFormAccountId) {
-      const transaction: NewTransaction = {
+      onAddTransaction({
         stock_ticker: newTicker.toUpperCase().trim(),
         transaction_type: newType,
         quantity: parseInt(newQuantity),
         transaction_date: newDate,
         account_id: addFormAccountId,
-      };
-      // Add optional price if provided
-      if (newPrice && parseFloat(newPrice) > 0) {
-        transaction.price_per_share = parseFloat(newPrice);
-      }
-      onAddTransaction(transaction);
+      });
       resetForm(true);
     }
   };
@@ -654,20 +647,6 @@ export function TransactionForm({
                       </div>
                     </div>
                   )}
-                </div>
-
-                {/* Optional price input */}
-                <div className="flex items-center gap-1">
-                  <span className="text-slate-400">@</span>
-                  <input
-                    type="number"
-                    placeholder={language === 'fr' ? 'Prix (opt.)' : 'Price (opt.)'}
-                    value={newPrice}
-                    onChange={(e) => setNewPrice(e.target.value)}
-                    min="0"
-                    step="0.01"
-                    className="w-28 px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
                 </div>
 
                 <button
