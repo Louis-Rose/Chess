@@ -186,7 +186,18 @@ export function AccountSelector({
       onReorderAccounts(newOrder.map(a => a.id));
     }
 
-    handleDragEnd();
+    // Reset dragged element styles immediately
+    if (dragNodeRef.current) {
+      dragNodeRef.current.style.opacity = '1';
+      dragNodeRef.current.style.pointerEvents = '';
+    }
+    dragNodeRef.current = null;
+
+    // Delay resetting drag state to let optimistic update apply first
+    setTimeout(() => {
+      setDraggedAccountId(null);
+      setDragOverAccountId(null);
+    }, 50);
   };
 
   const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
