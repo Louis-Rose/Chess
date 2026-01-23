@@ -2068,14 +2068,14 @@ def compute_holdings_from_transactions(user_id, account_ids=None):
         if account_ids and len(account_ids) > 0:
             placeholders = ','.join('?' for _ in account_ids)
             cursor = conn.execute(
-                f'''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+                f'''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share, price_currency
                    FROM portfolio_transactions WHERE user_id = ? AND account_id IN ({placeholders})
                    ORDER BY transaction_date ASC, id ASC''',
                 (user_id, *account_ids)
             )
         else:
             cursor = conn.execute(
-                '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+                '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share, price_currency
                    FROM portfolio_transactions WHERE user_id = ?
                    ORDER BY transaction_date ASC, id ASC''',
                 (user_id,)
@@ -2090,18 +2090,29 @@ def compute_holdings_from_transactions(user_id, account_ids=None):
         price = row['price_per_share']
         date = row['transaction_date']
         tx_type = row['transaction_type']
+        price_currency = row['price_currency'] or 'USD'
 
         if ticker not in holdings_map:
             holdings_map[ticker] = {'quantity': 0, 'lots': []}
 
         if tx_type == 'BUY':
-            # Fetch historical EUR/USD rate for this transaction
-            try:
-                eurusd_at_tx = fetch_eurusd_rate(date)
-            except:
-                eurusd_at_tx = 1.0
-            cost_usd = qty * price
-            cost_eur = cost_usd / eurusd_at_tx
+            # Calculate cost in EUR based on transaction currency
+            if price_currency == 'EUR':
+                cost_eur = qty * price
+                # Fetch EUR/USD rate to get USD equivalent
+                try:
+                    eurusd_at_tx = fetch_eurusd_rate(date)
+                except:
+                    eurusd_at_tx = 1.0
+                cost_usd = cost_eur * eurusd_at_tx
+            else:
+                # Price is in USD (or other currency treated as USD)
+                cost_usd = qty * price
+                try:
+                    eurusd_at_tx = fetch_eurusd_rate(date)
+                except:
+                    eurusd_at_tx = 1.0
+                cost_eur = cost_usd / eurusd_at_tx
 
             holdings_map[ticker]['quantity'] += qty
             holdings_map[ticker]['lots'].append({
@@ -2155,14 +2166,14 @@ def compute_realized_gains(user_id, account_ids=None):
         if account_ids and len(account_ids) > 0:
             placeholders = ','.join('?' for _ in account_ids)
             cursor = conn.execute(
-                f'''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+                f'''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share, price_currency
                    FROM portfolio_transactions WHERE user_id = ? AND account_id IN ({placeholders})
                    ORDER BY transaction_date ASC, id ASC''',
                 (user_id, *account_ids)
             )
         else:
             cursor = conn.execute(
-                '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+                '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share, price_currency
                    FROM portfolio_transactions WHERE user_id = ?
                    ORDER BY transaction_date ASC, id ASC''',
                 (user_id,)
@@ -2182,6 +2193,7 @@ def compute_realized_gains(user_id, account_ids=None):
         price = row['price_per_share']
         date = row['transaction_date']
         tx_type = row['transaction_type']
+        price_currency = row['price_currency'] or 'USD'
 
         if ticker not in inventory:
             inventory[ticker] = []
@@ -2192,12 +2204,20 @@ def compute_realized_gains(user_id, account_ids=None):
                 eurusd_at_tx = fetch_eurusd_rate(date)
             except:
                 eurusd_at_tx = 1.0
-            cost_usd = qty * price
-            cost_eur = cost_usd / eurusd_at_tx
+
+            # Calculate cost based on transaction currency
+            if price_currency == 'EUR':
+                cost_eur = qty * price
+                cost_usd = cost_eur * eurusd_at_tx
+                cost_usd_per_share = price * eurusd_at_tx
+            else:
+                cost_usd = qty * price
+                cost_eur = cost_usd / eurusd_at_tx
+                cost_usd_per_share = price
 
             inventory[ticker].append({
                 'qty': qty,
-                'cost_usd_per_share': price,
+                'cost_usd_per_share': cost_usd_per_share,
                 'cost_eur': cost_eur
             })
         else:  # SELL
@@ -2208,8 +2228,13 @@ def compute_realized_gains(user_id, account_ids=None):
                 eurusd_at_sell = 1.0
 
             remaining_sell = qty
-            sale_price_usd = price
-            sale_proceeds_eur = (qty * sale_price_usd) / eurusd_at_sell
+            # Convert sale price to USD if needed
+            if price_currency == 'EUR':
+                sale_price_usd = price * eurusd_at_sell
+                sale_proceeds_eur = qty * price
+            else:
+                sale_price_usd = price
+                sale_proceeds_eur = (qty * sale_price_usd) / eurusd_at_sell
             sell_count += 1
 
             # FIFO: consume oldest lots first

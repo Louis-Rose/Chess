@@ -780,7 +780,7 @@ def compute_portfolio_composition(holdings, target_currency='EUR'):
         'holdings': composition,
         'total_value_eur': round(total_value, 2),
         'total_value_usd': total_value_usd,
-        'total_cost_basis': round(total_cost_basis_eur, 2),
+        'total_cost_basis': round(total_cost_basis_eur * eurusd_rate, 2),  # In USD
         'total_cost_basis_eur': round(total_cost_basis_eur, 2),
         'total_gain_eur': round(total_gain_eur, 2),
         'total_gain_usd': round(total_gain_eur * eurusd_rate, 2),
