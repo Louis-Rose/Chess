@@ -585,20 +585,6 @@ export function TransactionForm({
                   className="w-28 px-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
 
-                {/* Optional price input */}
-                <div className="flex items-center gap-1">
-                  <span className="text-slate-400">@</span>
-                  <input
-                    type="number"
-                    placeholder={language === 'fr' ? 'Prix (opt.)' : 'Price (opt.)'}
-                    value={newPrice}
-                    onChange={(e) => setNewPrice(e.target.value)}
-                    min="0"
-                    step="0.01"
-                    className="w-28 px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-
                 {/* Date dropdowns: Year - Month - Day */}
                 <select
                   value={newYear}
@@ -668,6 +654,20 @@ export function TransactionForm({
                       </div>
                     </div>
                   )}
+                </div>
+
+                {/* Optional price input */}
+                <div className="flex items-center gap-1">
+                  <span className="text-slate-400">@</span>
+                  <input
+                    type="number"
+                    placeholder={language === 'fr' ? 'Prix (opt.)' : 'Price (opt.)'}
+                    value={newPrice}
+                    onChange={(e) => setNewPrice(e.target.value)}
+                    min="0"
+                    step="0.01"
+                    className="w-28 px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
                 </div>
 
                 <button
