@@ -46,6 +46,8 @@ export function AccountSelector({
   const [deletingAccountId, setDeletingAccountId] = useState<number | null>(null);
   const [draggedAccountId, setDraggedAccountId] = useState<number | null>(null);
   const [dragOverAccountId, setDragOverAccountId] = useState<number | null>(null);
+  const [waitingForNewAccount, setWaitingForNewAccount] = useState(false);
+  const expectedAccountCount = useRef<number>(0);
   const dragNodeRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const initialPositions = useRef<CardPosition[]>([]);
@@ -67,6 +69,14 @@ export function AccountSelector({
       }
     }
   }, [accounts, deletingAccountId]);
+
+  // Clear waitingForNewAccount when account actually appears in the list
+  useEffect(() => {
+    if (waitingForNewAccount && accounts.length >= expectedAccountCount.current) {
+      setWaitingForNewAccount(false);
+      setShowAddAccountForm(false);
+    }
+  }, [accounts.length, waitingForNewAccount]);
 
   // Find first unused account number based on existing names
   const getNextAccountNumber = () => {
@@ -91,6 +101,11 @@ export function AccountSelector({
     if (newAccountType && newAccountBank) {
       const defaultName = getNextAccountNumber();
       const accountName = newAccountName.trim() || defaultName;
+
+      // Track that we're waiting for the new account to appear
+      expectedAccountCount.current = accounts.length + 1;
+      setWaitingForNewAccount(true);
+
       onCreateAccount({
         name: accountName,
         account_type: newAccountType,
@@ -99,7 +114,7 @@ export function AccountSelector({
       setNewAccountName('');
       setNewAccountType('');
       setNewAccountBank('');
-      setShowAddAccountForm(false);
+      // Don't close form here - it will close when account appears
     }
   };
 
@@ -334,11 +349,11 @@ export function AccountSelector({
                 </div>
                 <button
                   onClick={handleCreateAccount}
-                  disabled={!newAccountType || !newAccountBank || isCreating}
+                  disabled={!newAccountType || !newAccountBank || isCreating || waitingForNewAccount}
                   className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                  {isCreating
+                  {(isCreating || waitingForNewAccount) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  {(isCreating || waitingForNewAccount)
                     ? (language === 'fr' ? 'Création...' : 'Creating...')
                     : t('accounts.create')}
                 </button>
