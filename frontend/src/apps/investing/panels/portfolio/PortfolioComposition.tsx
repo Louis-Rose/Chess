@@ -326,9 +326,9 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                         const displayValue = Math.round(valueInCurrency * scaleFactor);
                         // Don't scale quantity - show actual shares owned (privateMode only hides monetary values)
                         const displayQuantity = h.quantity;
-                        // Get native currency symbol for price display
-                        const nativeCurrencySymbol = getCurrencySymbol(h.native_currency || 'USD');
-                        const priceToShow = h.current_price_native ?? h.current_price;
+                        // Show price in selected currency
+                        const priceToShow = currency === 'EUR' ? h.current_price : (h.current_price_native ?? h.current_price);
+                        const priceSymbol = currency === 'EUR' ? '€' : getCurrencySymbol(h.native_currency || 'USD');
                         return (
                           <tr
                             key={h.ticker}
@@ -338,7 +338,7 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                             <td className="py-2 font-bold" style={{ color: h.color }}>{h.ticker}</td>
                             <td className="py-2 text-right text-slate-600 dark:text-slate-300">{displayQuantity}</td>
                             <td className="py-2 text-right text-slate-600 dark:text-slate-300">
-                              {nativeCurrencySymbol}{priceToShow.toFixed(2)}
+                              {currency === 'EUR' ? `${priceToShow.toFixed(2)}€` : `${priceSymbol}${priceToShow.toFixed(2)}`}
                             </td>
                             <td className="py-2 text-right text-slate-800 dark:text-slate-100 font-medium">
                               {currency === 'EUR'
