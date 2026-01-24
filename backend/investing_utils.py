@@ -933,6 +933,7 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
         lots_per_ticker = {}  # ticker -> list of lots
         holdings_at_date = {}  # ticker -> total quantity
         benchmark_shares_at_date = 0
+        benchmark_shares_per_ticker = {}  # ticker -> benchmark shares allocated to this stock
 
         for i, tx in enumerate(sorted_txs):
             tx_date_dt = datetime.strptime(tx['transaction_date'], "%Y-%m-%d")
@@ -943,6 +944,8 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
             if ticker not in lots_per_ticker:
                 lots_per_ticker[ticker] = []
                 holdings_at_date[ticker] = 0
+            if ticker not in benchmark_shares_per_ticker:
+                benchmark_shares_per_ticker[ticker] = 0
 
             if tx['transaction_type'] == 'BUY':
                 holdings_at_date[ticker] += tx['quantity']
@@ -955,6 +958,7 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
                     'cost_eur': tx_cost_eur
                 })
                 benchmark_shares_at_date += tx_benchmark_info[i]['benchmark_shares']
+                benchmark_shares_per_ticker[ticker] += tx_benchmark_info[i]['benchmark_shares']
             else:  # SELL - use FIFO
                 sell_qty = tx['quantity']
                 holdings_at_date[ticker] -= sell_qty
@@ -976,8 +980,12 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
 
                     remaining_sell -= sell_from_lot
 
-                # Benchmark shares also reduce
+                # Benchmark shares also reduce (tx_benchmark_info[i]['benchmark_shares'] is negative for sells)
                 benchmark_shares_at_date += tx_benchmark_info[i]['benchmark_shares']
+                benchmark_shares_per_ticker[ticker] += tx_benchmark_info[i]['benchmark_shares']
+                # Prevent negative due to rounding
+                if benchmark_shares_per_ticker[ticker] < 0:
+                    benchmark_shares_per_ticker[ticker] = 0
 
         # Calculate cost basis from remaining lots
         cost_basis_at_date = 0
@@ -1032,10 +1040,18 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
                     # Calculate cost basis for this stock from lots
                     stock_cost_eur = sum(lot['cost_eur'] for lot in lots_per_ticker.get(ticker, []))
 
+                    # Calculate benchmark value for this stock
+                    ticker_benchmark_shares = benchmark_shares_per_ticker.get(ticker, 0)
+                    if benchmark_currency == 'EUR':
+                        ticker_benchmark_value_eur = ticker_benchmark_shares * benchmark_price
+                    else:
+                        ticker_benchmark_value_eur = ticker_benchmark_shares * benchmark_price / eurusd
+
                     stocks_breakdown[ticker] = {
                         'value_eur': round(stock_value_eur, 2),
                         'cost_basis_eur': round(stock_cost_eur, 2),
-                        'quantity': qty
+                        'quantity': qty,
+                        'benchmark_value_eur': round(ticker_benchmark_value_eur, 2)
                     }
 
             # Calculate benchmark value (what if we'd invested in benchmark instead)

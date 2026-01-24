@@ -91,6 +91,7 @@ export interface StockBreakdown {
   value_eur: number;
   cost_basis_eur: number;
   quantity: number;
+  benchmark_value_eur?: number;
 }
 
 export interface PerformanceDataPoint {

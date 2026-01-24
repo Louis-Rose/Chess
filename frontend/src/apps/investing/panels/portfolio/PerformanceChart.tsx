@@ -552,19 +552,21 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           if (isFilteringStocks && d.stocks) {
             // If no stocks selected, return 0
             if (selectedStocks.size === 0) {
-              return { portfolioValueEur: 0, costBasisEur: 0 };
+              return { portfolioValueEur: 0, costBasisEur: 0, benchmarkValueEur: 0 };
             }
             let portfolioValueEur = 0;
             let costBasisEur = 0;
+            let benchmarkValueEur = 0;
             for (const ticker of selectedStocks) {
               if (d.stocks[ticker]) {
                 portfolioValueEur += d.stocks[ticker].value_eur;
                 costBasisEur += d.stocks[ticker].cost_basis_eur;
+                benchmarkValueEur += d.stocks[ticker].benchmark_value_eur || 0;
               }
             }
-            return { portfolioValueEur, costBasisEur };
+            return { portfolioValueEur, costBasisEur, benchmarkValueEur };
           }
-          return { portfolioValueEur: d.portfolio_value_eur, costBasisEur: d.cost_basis_eur };
+          return { portfolioValueEur: d.portfolio_value_eur, costBasisEur: d.cost_basis_eur, benchmarkValueEur: d.benchmark_value_eur };
         };
 
         const startIdx = brushRange?.startIndex ?? 0;
@@ -588,11 +590,11 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
         const startDate = firstDataPoint.date;
         const endDate = lastDataPoint.date;
         const startPortfolioValue = firstFiltered.portfolioValueEur;
-        const startBenchmarkValue = firstDataPoint.benchmark_value_eur;
+        const startBenchmarkValue = firstFiltered.benchmarkValueEur;
         const startCostBasis = firstFiltered.costBasisEur;
         const endCostBasis = lastFiltered.costBasisEur;
         const endPortfolioValue = lastFiltered.portfolioValueEur;
-        const endBenchmarkValue = lastDataPoint.benchmark_value_eur;
+        const endBenchmarkValue = lastFiltered.benchmarkValueEur;
 
         const capitalAdded = endCostBasis - startCostBasis;
         const portfolioValueChange = endPortfolioValue - startPortfolioValue;
@@ -628,20 +630,10 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           ) * scaleFactor : 0
         );
 
-        // For benchmark, we need to scale it proportionally to the filtered cost basis
-        // The benchmark represents "if we invested the same cost basis in the benchmark"
-        // So when filtering stocks, the benchmark should be scaled by the ratio of filtered/full cost basis
-        const fullCostBasisLast = allData[allData.length - 1].cost_basis_eur;
-        const fullCostBasisFirst = allData[0].cost_basis_eur;
-        const filteredCostBasisRatio = fullCostBasisLast > 0 ? fullRangeLast.costBasisEur / fullCostBasisLast : 1;
-
-        // Scale benchmark values by the filtered cost basis ratio
-        const scaledBenchmarkLast = allData[allData.length - 1].benchmark_value_eur * filteredCostBasisRatio;
-        const scaledBenchmarkFirst = allData[0].benchmark_value_eur * (fullCostBasisFirst > 0 ? fullRangeFirst.costBasisEur / fullCostBasisFirst : 1);
-
+        // For benchmark, use per-stock benchmark values (summed in getFilteredValues)
         const fullRangeBenchmarkGains = brushRange ? benchmarkNetGains : (
           allData.length > 0 ? (
-            (scaledBenchmarkLast - scaledBenchmarkFirst) -
+            (fullRangeLast.benchmarkValueEur - fullRangeFirst.benchmarkValueEur) -
             (fullRangeLast.costBasisEur - fullRangeFirst.costBasisEur)
           ) * scaleFactor : 0
         );
@@ -650,9 +642,9 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
         const fullRangeReturn = fullRangeLast.costBasisEur > 0
           ? Math.round(((fullRangeLast.portfolioValueEur - fullRangeLast.costBasisEur) / fullRangeLast.costBasisEur) * 1000) / 10
           : 0;
-        // Benchmark return should also use the scaled benchmark value
+        // Benchmark return using per-stock benchmark values
         const fullRangeBenchmarkReturn = fullRangeLast.costBasisEur > 0
-          ? Math.round(((scaledBenchmarkLast - fullRangeLast.costBasisEur) / fullRangeLast.costBasisEur) * 1000) / 10
+          ? Math.round(((fullRangeLast.benchmarkValueEur - fullRangeLast.costBasisEur) / fullRangeLast.costBasisEur) * 1000) / 10
           : 0;
 
         const filteredSummary = brushRange ? {
@@ -680,9 +672,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
         const chartData = allData.map(d => {
           const filtered = getFilteredValues(d);
           const scaledPortfolioValue = filtered.portfolioValueEur * scaleFactor;
-          // Scale benchmark proportionally to the filtered cost basis ratio
-          const benchmarkRatio = d.cost_basis_eur > 0 ? filtered.costBasisEur / d.cost_basis_eur : 1;
-          const scaledBenchmarkValue = d.benchmark_value_eur * benchmarkRatio * scaleFactor;
+          // Use per-stock benchmark values (already summed in getFilteredValues)
+          const scaledBenchmarkValue = filtered.benchmarkValueEur * scaleFactor;
           const scaledCostBasis = filtered.costBasisEur * scaleFactor;
           const isOutperforming = scaledPortfolioValue >= scaledBenchmarkValue;
           return {
