@@ -400,7 +400,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   className="fixed inset-0 z-10"
                   onClick={() => setStockSelectorOpen(false)}
                 />
-                <div className="absolute top-full mt-1 right-0 z-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg min-w-[200px] max-h-[300px] overflow-y-auto">
+                <div className="absolute top-full mt-1 right-0 z-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg max-h-[400px] overflow-y-auto">
                   {/* Select All */}
                   <div className="p-2 border-b border-slate-200 dark:border-slate-600">
                     <button
@@ -410,70 +410,73 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       {language === 'fr' ? 'Tout sélectionner' : 'Select All'}
                     </button>
                   </div>
-                  {/* Currently owned stocks */}
-                  {currentlyOwnedStocks.length > 0 && (
-                    <div className="p-1">
-                      <div className="px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
-                        {language === 'fr' ? 'Détenues' : 'Owned'}
+                  {/* Two-column layout: Owned | Sold */}
+                  <div className="flex">
+                    {/* Currently owned stocks - left column */}
+                    {currentlyOwnedStocks.length > 0 && (
+                      <div className="p-1 min-w-[140px]">
+                        <div className="px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                          {language === 'fr' ? 'Détenues' : 'Owned'}
+                        </div>
+                        {currentlyOwnedStocks.map(ticker => (
+                          <button
+                            key={ticker}
+                            onClick={() => toggleStock(ticker)}
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors ${
+                              selectedStocks.has(ticker)
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                              selectedStocks.has(ticker)
+                                ? 'border-green-500 bg-green-500'
+                                : 'border-slate-300 dark:border-slate-500'
+                            }`}>
+                              {selectedStocks.has(ticker) && (
+                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className="font-medium">{ticker}</span>
+                          </button>
+                        ))}
                       </div>
-                      {currentlyOwnedStocks.map(ticker => (
-                        <button
-                          key={ticker}
-                          onClick={() => toggleStock(ticker)}
-                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors ${
-                            selectedStocks.has(ticker)
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                              : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                            selectedStocks.has(ticker)
-                              ? 'border-green-500 bg-green-500'
-                              : 'border-slate-300 dark:border-slate-500'
-                          }`}>
-                            {selectedStocks.has(ticker) && (
-                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                          <span className="font-medium">{ticker}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {/* Sold off stocks */}
-                  {soldOffStocks.length > 0 && (
-                    <div className="p-1 border-t border-slate-200 dark:border-slate-600">
-                      <div className="px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
-                        {language === 'fr' ? 'Vendues' : 'Sold'}
+                    )}
+                    {/* Sold off stocks - right column */}
+                    {soldOffStocks.length > 0 && (
+                      <div className={`p-1 min-w-[140px] ${currentlyOwnedStocks.length > 0 ? 'border-l border-slate-200 dark:border-slate-600' : ''}`}>
+                        <div className="px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                          {language === 'fr' ? 'Vendues' : 'Sold'}
+                        </div>
+                        {soldOffStocks.map(ticker => (
+                          <button
+                            key={ticker}
+                            onClick={() => toggleStock(ticker)}
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors ${
+                              selectedStocks.has(ticker)
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                              selectedStocks.has(ticker)
+                                ? 'border-green-500 bg-green-500'
+                                : 'border-slate-300 dark:border-slate-500'
+                            }`}>
+                              {selectedStocks.has(ticker) && (
+                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className="font-medium">{ticker}</span>
+                          </button>
+                        ))}
                       </div>
-                      {soldOffStocks.map(ticker => (
-                        <button
-                          key={ticker}
-                          onClick={() => toggleStock(ticker)}
-                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors ${
-                            selectedStocks.has(ticker)
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                              : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                            selectedStocks.has(ticker)
-                              ? 'border-green-500 bg-green-500'
-                              : 'border-slate-300 dark:border-slate-500'
-                          }`}>
-                            {selectedStocks.has(ticker) && (
-                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                          <span className="font-medium">{ticker}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </>
             )}
