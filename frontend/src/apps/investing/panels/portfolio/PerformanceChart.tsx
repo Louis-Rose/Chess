@@ -541,14 +541,14 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           <p className="text-slate-400 text-lg">{language === 'fr' ? 'Chargement des données...' : 'Loading data...'}</p>
         </div>
       ) : performanceData?.data && performanceData.data.length > 0 ? (() => {
-        const allData = performanceData.data;
+        const rawData = performanceData.data;
 
         // Check if we're filtering stocks
         // If all stocks selected OR no availableStocks, don't filter
         const isFilteringStocks = availableStocks.length > 0 && selectedStocks.size !== availableStocks.length;
 
         // Helper to get filtered values for a data point
-        const getFilteredValues = (d: typeof allData[0]) => {
+        const getFilteredValues = (d: typeof rawData[0]) => {
           if (isFilteringStocks && d.stocks) {
             // If no stocks selected, return 0
             if (selectedStocks.size === 0) {
@@ -569,9 +569,20 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           return { portfolioValueEur: d.portfolio_value_eur, costBasisEur: d.cost_basis_eur, benchmarkValueEur: d.benchmark_value_eur };
         };
 
+        // Filter out data points where selected stocks have zero invested capital
+        // This ensures the chart starts from when the selected stocks were first purchased
+        const allData = isFilteringStocks
+          ? rawData.filter(d => getFilteredValues(d).costBasisEur > 0)
+          : rawData;
+
+        // If no data after filtering, show message
+        if (allData.length === 0) {
+          return <p className="text-slate-500 text-center py-8">{language === 'fr' ? 'Aucune donnée pour les actions sélectionnées' : 'No data for selected stocks'}</p>;
+        }
+
         const startIdx = brushRange?.startIndex ?? 0;
         const endIdx = brushRange?.endIndex ?? allData.length - 1;
-        const selectedRangeData = allData.slice(startIdx, endIdx + 1);
+        const selectedRangeData = allData.slice(startIdx, Math.min(endIdx + 1, allData.length));
 
         if (selectedRangeData.length === 0) {
           return <p className="text-slate-500 text-center py-8">{language === 'fr' ? 'Aucune donnee' : 'No data'}</p>;
@@ -647,6 +658,21 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           ? Math.round(((fullRangeLast.benchmarkValueEur - fullRangeLast.costBasisEur) / fullRangeLast.costBasisEur) * 1000) / 10
           : 0;
 
+        // Calculate full range years and CAGR (recalculated when filtering stocks)
+        const fullRangeStartDate = allData[0]?.date;
+        const fullRangeEndDate = allData[allData.length - 1]?.date;
+        const fullRangeDaysDiff = fullRangeStartDate && fullRangeEndDate
+          ? (new Date(fullRangeEndDate).getTime() - new Date(fullRangeStartDate).getTime()) / (1000 * 60 * 60 * 24)
+          : 0;
+        const fullRangeYears = fullRangeDaysDiff / 365;
+        const fullRangeShouldAnnualize = fullRangeYears > 0 && (fullRangeYears < 0.9 || fullRangeYears > 1.1);
+        const fullRangeCagrPortfolio = fullRangeShouldAnnualize && fullRangeReturn !== 0
+          ? Math.round((Math.pow(1 + fullRangeReturn / 100, 1 / fullRangeYears) - 1) * 1000) / 10
+          : fullRangeReturn;
+        const fullRangeCagrBenchmark = fullRangeShouldAnnualize && fullRangeBenchmarkReturn !== 0
+          ? Math.round((Math.pow(1 + fullRangeBenchmarkReturn / 100, 1 / fullRangeYears) - 1) * 1000) / 10
+          : fullRangeBenchmarkReturn;
+
         const filteredSummary = brushRange ? {
           start_date: startDate,
           end_date: endDate,
@@ -658,13 +684,13 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           cagr_eur: cagrPortfolio,
           cagr_benchmark_eur: cagrBenchmark,
         } : {
-          start_date: allData[0]?.date,
-          end_date: allData[allData.length - 1]?.date,
-          years: performanceData.summary?.years ?? 0,
+          start_date: fullRangeStartDate,
+          end_date: fullRangeEndDate,
+          years: isFilteringStocks ? fullRangeYears : (performanceData.summary?.years ?? 0),
           portfolio_return_eur: isFilteringStocks ? fullRangeReturn : (performanceData.summary?.portfolio_return_eur ?? 0),
           benchmark_return_eur: isFilteringStocks ? fullRangeBenchmarkReturn : (performanceData.summary?.benchmark_return_eur ?? 0),
-          cagr_eur: performanceData.summary?.cagr_eur ?? 0,
-          cagr_benchmark_eur: performanceData.summary?.cagr_benchmark_eur ?? 0,
+          cagr_eur: isFilteringStocks ? fullRangeCagrPortfolio : (performanceData.summary?.cagr_eur ?? 0),
+          cagr_benchmark_eur: isFilteringStocks ? fullRangeCagrBenchmark : (performanceData.summary?.cagr_benchmark_eur ?? 0),
           portfolio_gains_eur: fullRangeNetGains,
           benchmark_gains_eur: fullRangeBenchmarkGains,
         };
@@ -765,17 +791,17 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           return parts.slice(0, -1).join(', ') + (language === 'fr' ? ' et ' : ' and ') + parts[parts.length - 1];
         };
 
-        // Calculate weighted holding period - always uses full data range
+        // Calculate weighted holding period - uses filtered cost basis when filtering stocks
         const calculateWeightedPeriod = () => {
           const endDate = new Date(allData[allData.length - 1].date);
           let weightedDays = 0;
           let totalCapital = 0;
 
-          // Always use full data range - slider is only for visualization
+          // Use filtered cost basis values
           for (let i = 0; i < allData.length; i++) {
-            const currentCostBasis = allData[i].cost_basis_eur;
-            const prevCostBasis = i > 0 ? allData[i - 1].cost_basis_eur : 0;
-            const capitalAdded = currentCostBasis - prevCostBasis;
+            const currentFiltered = getFilteredValues(allData[i]);
+            const prevFiltered = i > 0 ? getFilteredValues(allData[i - 1]) : { costBasisEur: 0 };
+            const capitalAdded = currentFiltered.costBasisEur - prevFiltered.costBasisEur;
 
             if (capitalAdded > 0) {
               const investDate = new Date(allData[i].date);
