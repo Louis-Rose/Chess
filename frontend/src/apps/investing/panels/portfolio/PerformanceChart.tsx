@@ -1137,8 +1137,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                 const maxIdx = chartData.length - 1;
                 const isXZoomed = brushRange !== null && (startIdx !== 0 || endIdx !== maxIdx);
 
-                // Calculate dynamic offset - max 4% when at start, reduces to 0 as handle moves right
-                const leftOffsetPct = maxIdx > 0 ? ((maxIdx - startIdx) / maxIdx) * 4 : 0;
+                // Calculate dynamic offset - max 6% when at start, reduces to 0 as handle moves right
+                const leftOffsetPct = maxIdx > 0 ? ((maxIdx - startIdx) / maxIdx) * 6 : 0;
 
                 const startPct = (startIdx / maxIdx) * 100;
                 const endPct = (endIdx / maxIdx) * 100;
