@@ -299,8 +299,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
       </div>
 
       {/* Timeframe Selector and Stock Filter */}
-      <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-        {/* Timeframe - left side */}
+      <div className="flex flex-wrap justify-center items-center gap-6 mb-4">
+        {/* Timeframe */}
         <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
           {TIMEFRAME_OPTIONS.map((option) => (
             <button
@@ -317,7 +317,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           ))}
         </div>
 
-        {/* Stock Filter Dropdown - right side */}
+        {/* Stock Filter Dropdown */}
         {availableStocks.length > 1 && (
           <div className="relative">
             <button
@@ -402,6 +402,26 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
       ) : performanceData?.data && performanceData.data.length > 0 ? (() => {
         const allData = performanceData.data;
 
+        // Check if we're filtering stocks (some but not all stocks selected)
+        // If selectedStocks is empty, treat it as "all selected"
+        const isFilteringStocks = selectedStocks.size > 0 && selectedStocks.size < availableStocks.length && availableStocks.length > 0;
+
+        // Helper to get filtered values for a data point
+        const getFilteredValues = (d: typeof allData[0]) => {
+          if (isFilteringStocks && d.stocks) {
+            let portfolioValueEur = 0;
+            let costBasisEur = 0;
+            for (const ticker of selectedStocks) {
+              if (d.stocks[ticker]) {
+                portfolioValueEur += d.stocks[ticker].value_eur;
+                costBasisEur += d.stocks[ticker].cost_basis_eur;
+              }
+            }
+            return { portfolioValueEur, costBasisEur };
+          }
+          return { portfolioValueEur: d.portfolio_value_eur, costBasisEur: d.cost_basis_eur };
+        };
+
         const startIdx = brushRange?.startIndex ?? 0;
         const endIdx = brushRange?.endIndex ?? allData.length - 1;
         const selectedRangeData = allData.slice(startIdx, endIdx + 1);
@@ -412,16 +432,21 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
         const lastDataPoint = selectedRangeData[selectedRangeData.length - 1];
         const firstDataPoint = selectedRangeData[0];
-        const actualCostBasis = lastDataPoint?.cost_basis_eur || 1;
+
+        // Get filtered values for first and last data points
+        const firstFiltered = getFilteredValues(firstDataPoint);
+        const lastFiltered = getFilteredValues(lastDataPoint);
+
+        const actualCostBasis = lastFiltered.costBasisEur || 1;
         const scaleFactor = getScaleFactor(actualCostBasis, privateMode);
 
         const startDate = firstDataPoint.date;
         const endDate = lastDataPoint.date;
-        const startPortfolioValue = firstDataPoint.portfolio_value_eur;
+        const startPortfolioValue = firstFiltered.portfolioValueEur;
         const startBenchmarkValue = firstDataPoint.benchmark_value_eur;
-        const startCostBasis = firstDataPoint.cost_basis_eur;
-        const endCostBasis = lastDataPoint.cost_basis_eur;
-        const endPortfolioValue = lastDataPoint.portfolio_value_eur;
+        const startCostBasis = firstFiltered.costBasisEur;
+        const endCostBasis = lastFiltered.costBasisEur;
+        const endPortfolioValue = lastFiltered.portfolioValueEur;
         const endBenchmarkValue = lastDataPoint.benchmark_value_eur;
 
         const capitalAdded = endCostBasis - startCostBasis;
@@ -448,18 +473,29 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           ? Math.round((Math.pow(1 + benchmarkReturn / 100, 1 / years) - 1) * 1000) / 10
           : benchmarkReturn;
 
+        // Calculate full range gains using filtered values
+        const fullRangeFirst = getFilteredValues(allData[0]);
+        const fullRangeLast = getFilteredValues(allData[allData.length - 1]);
         const fullRangeNetGains = brushRange ? portfolioNetGains : (
           allData.length > 0 ? (
-            (allData[allData.length - 1].portfolio_value_eur - allData[0].portfolio_value_eur) -
-            (allData[allData.length - 1].cost_basis_eur - allData[0].cost_basis_eur)
+            (fullRangeLast.portfolioValueEur - fullRangeFirst.portfolioValueEur) -
+            (fullRangeLast.costBasisEur - fullRangeFirst.costBasisEur)
           ) * scaleFactor : 0
         );
         const fullRangeBenchmarkGains = brushRange ? benchmarkNetGains : (
           allData.length > 0 ? (
             (allData[allData.length - 1].benchmark_value_eur - allData[0].benchmark_value_eur) -
-            (allData[allData.length - 1].cost_basis_eur - allData[0].cost_basis_eur)
+            (fullRangeLast.costBasisEur - fullRangeFirst.costBasisEur)
           ) * scaleFactor : 0
         );
+
+        // Recalculate returns for full range when filtering stocks
+        const fullRangeReturn = fullRangeLast.costBasisEur > 0
+          ? Math.round(((fullRangeLast.portfolioValueEur - fullRangeLast.costBasisEur) / fullRangeLast.costBasisEur) * 1000) / 10
+          : 0;
+        const fullRangeBenchmarkReturn = fullRangeLast.costBasisEur > 0
+          ? Math.round(((allData[allData.length - 1].benchmark_value_eur - fullRangeLast.costBasisEur) / fullRangeLast.costBasisEur) * 1000) / 10
+          : 0;
 
         const filteredSummary = brushRange ? {
           start_date: startDate,
@@ -475,37 +511,19 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           start_date: allData[0]?.date,
           end_date: allData[allData.length - 1]?.date,
           years: performanceData.summary?.years ?? 0,
-          portfolio_return_eur: performanceData.summary?.portfolio_return_eur ?? 0,
-          benchmark_return_eur: performanceData.summary?.benchmark_return_eur ?? 0,
+          portfolio_return_eur: isFilteringStocks ? fullRangeReturn : (performanceData.summary?.portfolio_return_eur ?? 0),
+          benchmark_return_eur: isFilteringStocks ? fullRangeBenchmarkReturn : (performanceData.summary?.benchmark_return_eur ?? 0),
           cagr_eur: performanceData.summary?.cagr_eur ?? 0,
           cagr_benchmark_eur: performanceData.summary?.cagr_benchmark_eur ?? 0,
           portfolio_gains_eur: fullRangeNetGains,
           benchmark_gains_eur: fullRangeBenchmarkGains,
         };
 
-        // Check if we're filtering stocks (some but not all stocks selected)
-        // If selectedStocks is empty, treat it as "all selected"
-        const isFilteringStocks = selectedStocks.size > 0 && selectedStocks.size < availableStocks.length && availableStocks.length > 0;
-
         const chartData = allData.map(d => {
-          let portfolioValueEur = d.portfolio_value_eur;
-          let costBasisEur = d.cost_basis_eur;
-
-          // If filtering by stocks, recalculate values from the stocks breakdown
-          if (isFilteringStocks && d.stocks) {
-            portfolioValueEur = 0;
-            costBasisEur = 0;
-            for (const ticker of selectedStocks) {
-              if (d.stocks[ticker]) {
-                portfolioValueEur += d.stocks[ticker].value_eur;
-                costBasisEur += d.stocks[ticker].cost_basis_eur;
-              }
-            }
-          }
-
-          const scaledPortfolioValue = portfolioValueEur * scaleFactor;
+          const filtered = getFilteredValues(d);
+          const scaledPortfolioValue = filtered.portfolioValueEur * scaleFactor;
           const scaledBenchmarkValue = d.benchmark_value_eur * scaleFactor;
-          const scaledCostBasis = costBasisEur * scaleFactor;
+          const scaledCostBasis = filtered.costBasisEur * scaleFactor;
           const isOutperforming = scaledPortfolioValue >= scaledBenchmarkValue;
           return {
             ...d,
@@ -699,9 +717,9 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
               {/* Chart with Y-axis slider on the left */}
               <div className="flex">
-                {/* Vertical Y-axis zoom slider */}
+                {/* Vertical Y-axis zoom slider - aligned with chart Y-axis */}
                 {!isDownloading && (
-                  <div className="flex flex-col items-center justify-center mr-2" style={{ height: '380px' }}>
+                  <div className="flex flex-col items-center mr-1" style={{ height: '380px', paddingTop: '10px', paddingBottom: '70px' }}>
                     <div className="relative h-full w-10 flex flex-col items-center">
                       {/* Track background - vertical */}
                       <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[40px] bg-slate-800 dark:bg-slate-900 rounded-lg border border-slate-600">
@@ -1139,20 +1157,16 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                     {t('performance.invested')}
                   </span>
                 </button>
-                {/* Outperformance indicator (only shown when both portfolio and benchmark visible) */}
-                {showPortfolio && showBenchmark && (
-                  <>
-                    <div className="flex items-center gap-1.5 px-2 py-1">
-                      <div className="w-3 h-3 bg-green-400/50 border border-green-400"></div>
-                      <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Surperf.' : 'Outperf.'}</span>
-                    </div>
-                    {/* Underperformance indicator */}
-                    <div className="flex items-center gap-1.5 px-2 py-1">
-                      <div className="w-3 h-3 bg-red-500/30 border border-red-500"></div>
-                      <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Sous-perf.' : 'Underperf.'}</span>
-                    </div>
-                  </>
-                )}
+                {/* Outperformance indicator */}
+                <div className={`flex items-center gap-1.5 px-2 py-1 ${!(showPortfolio && showBenchmark) && 'opacity-40'}`}>
+                  <div className="w-3 h-3 bg-green-400/50 border border-green-400"></div>
+                  <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Surperf.' : 'Outperf.'}</span>
+                </div>
+                {/* Underperformance indicator */}
+                <div className={`flex items-center gap-1.5 px-2 py-1 ${!(showPortfolio && showBenchmark) && 'opacity-40'}`}>
+                  <div className="w-3 h-3 bg-red-500/30 border border-red-500"></div>
+                  <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Sous-perf.' : 'Underperf.'}</span>
+                </div>
               </div>
 
               {/* LUMNA branding - hidden during download since addLumnaBranding adds it */}
