@@ -12,7 +12,7 @@ import type { PerformanceData } from './types';
 import { formatEur, addLumnaBranding, getScaleFactor, PRIVATE_COST_BASIS } from './utils';
 
 // Timeframe definitions
-type TimeframeKey = '1d' | '5d' | '1m' | '6m' | 'ytd' | '1y' | '5y' | 'all';
+type TimeframeKey = '1w' | '1m' | '6m' | 'ytd' | '1y' | '5y' | 'all';
 
 interface TimeframeOption {
   key: TimeframeKey;
@@ -22,8 +22,7 @@ interface TimeframeOption {
 }
 
 const TIMEFRAME_OPTIONS: TimeframeOption[] = [
-  { key: '1d', labelFr: '1j', labelEn: '1d', getDaysBack: () => 1 },
-  { key: '5d', labelFr: '5j', labelEn: '5d', getDaysBack: () => 5 },
+  { key: '1w', labelFr: '1s', labelEn: '1w', getDaysBack: () => 7 },
   { key: '1m', labelFr: '1m', labelEn: '1m', getDaysBack: () => 30 },
   { key: '6m', labelFr: '6m', labelEn: '6m', getDaysBack: () => 180 },
   { key: 'ytd', labelFr: 'AAJ', labelEn: 'YTD', getDaysBack: () => {
@@ -299,8 +298,9 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
         </div>
       </div>
 
-      {/* Timeframe Selector */}
-      <div className="flex flex-wrap justify-center gap-3 mb-4">
+      {/* Timeframe Selector and Stock Filter */}
+      <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+        {/* Timeframe - left side */}
         <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
           {TIMEFRAME_OPTIONS.map((option) => (
             <button
@@ -317,7 +317,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           ))}
         </div>
 
-        {/* Stock Filter Dropdown */}
+        {/* Stock Filter Dropdown - right side */}
         {availableStocks.length > 1 && (
           <div className="relative">
             <button
@@ -518,6 +518,47 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           };
         });
 
+        // Calculate Y-axis domain and ticks based on yAxisRange
+        const yAxisCalc = (() => {
+          const increment = privateMode ? 50 : 10000;
+          // Get values only from visible lines
+          const values: number[] = [];
+          chartData.forEach(d => {
+            if (showPortfolio) values.push(d.portfolio_value_eur);
+            if (showBenchmark) values.push(d.benchmark_value_eur);
+            if (showInvestedCapital) values.push(d.cost_basis_eur);
+          });
+          if (values.length === 0) {
+            values.push(...chartData.map(d => d.portfolio_value_eur));
+          }
+
+          const dataMin = Math.min(...values);
+          const dataMax = Math.max(...values);
+          const fullMin = Math.floor(dataMin / increment) * increment;
+          const fullMax = Math.ceil(dataMax / increment) * increment;
+          const fullRange = fullMax - fullMin;
+
+          // Apply Y-axis range slider (inverted: start=bottom, end=top)
+          const adjustedMin = fullMin + (fullRange * yAxisRange.start / 100);
+          const adjustedMax = fullMin + (fullRange * yAxisRange.end / 100);
+
+          const domainMin = Math.floor(adjustedMin / increment) * increment;
+          const domainMax = Math.ceil(adjustedMax / increment) * increment;
+
+          const ticks: number[] = [];
+          for (let i = domainMin; i <= domainMax; i += increment) {
+            ticks.push(i);
+          }
+
+          return {
+            domain: [domainMin, domainMax] as [number, number],
+            ticks,
+          };
+        })();
+
+        const yAxisDomain = yAxisCalc.domain;
+        const yAxisTicks = yAxisCalc.ticks;
+
         // Helper function to format holding period
         const formatHoldingPeriod = (startDateStr: string, endDateStr: string) => {
           const start = new Date(startDateStr);
@@ -656,9 +697,100 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                 </div>
               )}
 
-              <div className="h-[380px] md:h-[480px] relative">
+              {/* Chart with Y-axis slider on the left */}
+              <div className="flex">
+                {/* Vertical Y-axis zoom slider */}
+                {!isDownloading && (
+                  <div className="flex flex-col items-center justify-center mr-2" style={{ height: '380px' }}>
+                    <div className="relative h-full w-10 flex flex-col items-center">
+                      {/* Track background - vertical */}
+                      <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[40px] bg-slate-800 dark:bg-slate-900 rounded-lg border border-slate-600">
+                        {/* Selected range indicator */}
+                        <div
+                          className="absolute left-0 right-0 bg-green-600/30"
+                          style={{
+                            top: `${100 - yAxisRange.end}%`,
+                            bottom: `${yAxisRange.start}%`,
+                          }}
+                        />
+                        {/* Top traveller */}
+                        <div
+                          className="absolute left-0 right-0 h-3 bg-green-600 cursor-ns-resize flex items-center justify-center"
+                          style={{ top: `${100 - yAxisRange.end}%`, transform: 'translateY(-50%)' }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            const startY = e.clientY;
+                            const startEnd = yAxisRange.end;
+                            const container = e.currentTarget.parentElement;
+                            if (!container) return;
+                            const containerHeight = container.clientHeight;
+
+                            const onMouseMove = (moveEvent: MouseEvent) => {
+                              const deltaY = moveEvent.clientY - startY;
+                              const deltaPercent = (deltaY / containerHeight) * 100;
+                              const newEnd = Math.max(yAxisRange.start + 10, Math.min(100, startEnd - deltaPercent));
+                              setYAxisRange(prev => ({ ...prev, end: newEnd }));
+                            };
+
+                            const onMouseUp = () => {
+                              document.removeEventListener('mousemove', onMouseMove);
+                              document.removeEventListener('mouseup', onMouseUp);
+                            };
+
+                            document.addEventListener('mousemove', onMouseMove);
+                            document.addEventListener('mouseup', onMouseUp);
+                          }}
+                        >
+                          <div className="w-4 h-0.5 bg-white/70 rounded"></div>
+                        </div>
+                        {/* Bottom traveller */}
+                        <div
+                          className="absolute left-0 right-0 h-3 bg-green-600 cursor-ns-resize flex items-center justify-center"
+                          style={{ bottom: `${yAxisRange.start}%`, transform: 'translateY(50%)' }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            const startY = e.clientY;
+                            const startStart = yAxisRange.start;
+                            const container = e.currentTarget.parentElement;
+                            if (!container) return;
+                            const containerHeight = container.clientHeight;
+
+                            const onMouseMove = (moveEvent: MouseEvent) => {
+                              const deltaY = moveEvent.clientY - startY;
+                              const deltaPercent = (deltaY / containerHeight) * 100;
+                              const newStart = Math.max(0, Math.min(yAxisRange.end - 10, startStart + deltaPercent));
+                              setYAxisRange(prev => ({ ...prev, start: newStart }));
+                            };
+
+                            const onMouseUp = () => {
+                              document.removeEventListener('mousemove', onMouseMove);
+                              document.removeEventListener('mouseup', onMouseUp);
+                            };
+
+                            document.addEventListener('mousemove', onMouseMove);
+                            document.addEventListener('mouseup', onMouseUp);
+                          }}
+                        >
+                          <div className="w-4 h-0.5 bg-white/70 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Reset button below slider */}
+                    {(yAxisRange.start !== 0 || yAxisRange.end !== 100) && (
+                      <button
+                        onClick={() => setYAxisRange({ start: 0, end: 100 })}
+                        className="mt-1 text-[10px] text-slate-400 hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-600 transition-colors"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Main chart */}
+                <div className="flex-1 h-[380px] md:h-[480px] relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 10, right: 50, left: 50, bottom: 70 }}>
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 50, left: 20, bottom: 70 }}>
                     <defs>
                       <linearGradient id="outperformanceGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#4ade80" stopOpacity={0.5} />
@@ -764,66 +896,10 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         }
                         return currency === 'EUR' ? `${formatEur(val / 1000)}k${sym}` : `${sym}${formatEur(val / 1000)}k`;
                       }}
-                      domain={(() => {
-                        const increment = privateMode ? 50 : 10000;
-                        // Get values only from visible lines
-                        const values: number[] = [];
-                        chartData.forEach(d => {
-                          if (showPortfolio) values.push(d.portfolio_value_eur);
-                          if (showBenchmark) values.push(d.benchmark_value_eur);
-                          if (showInvestedCapital) values.push(d.cost_basis_eur);
-                        });
-                        if (values.length === 0) {
-                          values.push(...chartData.map(d => d.portfolio_value_eur));
-                        }
-
-                        const dataMin = Math.min(...values);
-                        const dataMax = Math.max(...values);
-                        const fullMin = Math.floor(dataMin / increment) * increment;
-                        const fullMax = Math.ceil(dataMax / increment) * increment;
-                        const fullRange = fullMax - fullMin;
-
-                        // Apply Y-axis range slider
-                        const adjustedMin = fullMin + (fullRange * yAxisRange.start / 100);
-                        const adjustedMax = fullMin + (fullRange * yAxisRange.end / 100);
-
-                        return [
-                          Math.floor(adjustedMin / increment) * increment,
-                          Math.ceil(adjustedMax / increment) * increment
-                        ];
-                      })()}
+                      domain={yAxisDomain}
+                      allowDataOverflow={true}
                       allowDecimals={false}
-                      ticks={(() => {
-                        const increment = privateMode ? 50 : 10000;
-                        // Get values only from visible lines
-                        const values: number[] = [];
-                        chartData.forEach(d => {
-                          if (showPortfolio) values.push(d.portfolio_value_eur);
-                          if (showBenchmark) values.push(d.benchmark_value_eur);
-                          if (showInvestedCapital) values.push(d.cost_basis_eur);
-                        });
-                        if (values.length === 0) {
-                          values.push(...chartData.map(d => d.portfolio_value_eur));
-                        }
-
-                        const dataMin = Math.min(...values);
-                        const dataMax = Math.max(...values);
-                        const fullMin = Math.floor(dataMin / increment) * increment;
-                        const fullMax = Math.ceil(dataMax / increment) * increment;
-                        const fullRange = fullMax - fullMin;
-
-                        // Apply Y-axis range slider
-                        const adjustedMin = fullMin + (fullRange * yAxisRange.start / 100);
-                        const adjustedMax = fullMin + (fullRange * yAxisRange.end / 100);
-
-                        const minVal = Math.floor(adjustedMin / increment) * increment;
-                        const maxVal = Math.ceil(adjustedMax / increment) * increment;
-                        const ticks = [];
-                        for (let i = minVal; i <= maxVal; i += increment) {
-                          ticks.push(i);
-                        }
-                        return ticks;
-                      })()}
+                      ticks={yAxisTicks}
                     />
                     <Tooltip
                       wrapperStyle={{ zIndex: 100 }}
@@ -986,6 +1062,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
+              </div>
               {/* Custom brush date labels - show selected range */}
               {!isDownloading && (() => {
                 const startIdx = brushRange?.startIndex ?? 0;
@@ -1023,12 +1100,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
                     showPortfolio
                       ? 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50'
-                      : 'bg-slate-200 dark:bg-slate-600 opacity-50 hover:opacity-75'
+                      : 'bg-green-100/50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 opacity-60'
                   }`}
                 >
-                  {showPortfolio ? <Eye className="w-3.5 h-3.5 text-green-600" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
-                  <div className={`w-4 h-0.5 ${showPortfolio ? 'bg-green-600' : 'bg-slate-400'}`}></div>
-                  <span className={`${showPortfolio ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                  {showPortfolio ? <Eye className="w-3.5 h-3.5 text-green-600" /> : <EyeOff className="w-3.5 h-3.5 text-green-600/60" />}
+                  <div className="w-4 h-0.5 bg-green-600" style={{ opacity: showPortfolio ? 1 : 0.5 }}></div>
+                  <span className={`text-green-700 dark:text-green-300 ${!showPortfolio && 'opacity-60'}`}>
                     {t('performance.portfolio')}
                   </span>
                 </button>
@@ -1038,12 +1115,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
                     showBenchmark
                       ? 'bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50'
-                      : 'bg-slate-200 dark:bg-slate-600 opacity-50 hover:opacity-75'
+                      : 'bg-blue-100/50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 opacity-60'
                   }`}
                 >
-                  {showBenchmark ? <Eye className="w-3.5 h-3.5 text-blue-500" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
-                  <div className={`w-4 h-0.5 ${showBenchmark ? 'bg-[#60a5fa]' : 'bg-slate-400'}`} style={showBenchmark ? { borderStyle: 'dashed', borderWidth: '1px', borderColor: '#60a5fa', height: 0 } : {}}></div>
-                  <span className={`${showBenchmark ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                  {showBenchmark ? <Eye className="w-3.5 h-3.5 text-blue-500" /> : <EyeOff className="w-3.5 h-3.5 text-blue-500/60" />}
+                  <div className="w-4 h-0.5 bg-[#60a5fa]" style={{ borderStyle: 'dashed', borderWidth: '1px', borderColor: '#60a5fa', height: 0, opacity: showBenchmark ? 1 : 0.5 }}></div>
+                  <span className={`text-blue-600 dark:text-blue-300 ${!showBenchmark && 'opacity-60'}`}>
                     {language === 'fr' ? 'Indice' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})
                   </span>
                 </button>
@@ -1053,12 +1130,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
                     showInvestedCapital
                       ? 'bg-slate-200 dark:bg-slate-500/30 hover:bg-slate-300 dark:hover:bg-slate-500/50'
-                      : 'bg-slate-200 dark:bg-slate-600 opacity-50 hover:opacity-75'
+                      : 'bg-slate-200/50 dark:bg-slate-500/20 hover:bg-slate-200 dark:hover:bg-slate-500/30 opacity-60'
                   }`}
                 >
-                  {showInvestedCapital ? <Eye className="w-3.5 h-3.5 text-slate-500" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
-                  <div className={`w-4 h-0.5 ${showInvestedCapital ? 'bg-slate-400' : 'bg-slate-400'}`}></div>
-                  <span className={`${showInvestedCapital ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                  {showInvestedCapital ? <Eye className="w-3.5 h-3.5 text-slate-500" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500/60" />}
+                  <div className="w-4 h-0.5 bg-slate-400" style={{ opacity: showInvestedCapital ? 1 : 0.5 }}></div>
+                  <span className={`text-slate-600 dark:text-slate-300 ${!showInvestedCapital && 'opacity-60'}`}>
                     {t('performance.invested')}
                   </span>
                 </button>
@@ -1077,64 +1154,6 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   </>
                 )}
               </div>
-
-              {/* Y-Axis Range Slider */}
-              {!isDownloading && (
-                <div className="mt-4 px-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                      {language === 'fr' ? 'Zoom Y' : 'Y Zoom'}:
-                    </span>
-                    <div className="flex-1 relative h-6">
-                      {/* Track background */}
-                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 bg-slate-300 dark:bg-slate-600 rounded-full" />
-                      {/* Selected range */}
-                      <div
-                        className="absolute top-1/2 -translate-y-1/2 h-2 bg-slate-500 dark:bg-slate-400 rounded-full"
-                        style={{
-                          left: `${yAxisRange.start}%`,
-                          width: `${yAxisRange.end - yAxisRange.start}%`
-                        }}
-                      />
-                      {/* Start handle */}
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={yAxisRange.start}
-                        onChange={(e) => {
-                          const newStart = Math.min(Number(e.target.value), yAxisRange.end - 5);
-                          setYAxisRange(prev => ({ ...prev, start: newStart }));
-                        }}
-                        className="absolute inset-0 w-full appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-600 [&::-webkit-slider-thumb]:dark:bg-slate-300 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:dark:border-slate-800 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-slate-600 [&::-moz-range-thumb]:dark:bg-slate-300 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto"
-                        style={{ zIndex: yAxisRange.start > 50 ? 2 : 1 }}
-                      />
-                      {/* End handle */}
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={yAxisRange.end}
-                        onChange={(e) => {
-                          const newEnd = Math.max(Number(e.target.value), yAxisRange.start + 5);
-                          setYAxisRange(prev => ({ ...prev, end: newEnd }));
-                        }}
-                        className="absolute inset-0 w-full appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-600 [&::-webkit-slider-thumb]:dark:bg-slate-300 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:dark:border-slate-800 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-slate-600 [&::-moz-range-thumb]:dark:bg-slate-300 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto"
-                        style={{ zIndex: yAxisRange.end < 50 ? 2 : 1 }}
-                      />
-                    </div>
-                    {/* Reset button */}
-                    {(yAxisRange.start !== 0 || yAxisRange.end !== 100) && (
-                      <button
-                        onClick={() => setYAxisRange({ start: 0, end: 100 })}
-                        className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-                      >
-                        {language === 'fr' ? 'Réinit.' : 'Reset'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* LUMNA branding - hidden during download since addLumnaBranding adds it */}
               {!isDownloading && (
