@@ -51,6 +51,9 @@ interface PerformanceChartProps {
   onShowAnnualizedChange: (show: boolean) => void;
   hideTitle?: boolean;
   hideDownloadButton?: boolean;
+  // Stock selection can be controlled externally
+  selectedStocks?: Set<string>;
+  onSelectedStocksChange?: (stocks: Set<string>) => void;
 }
 
 export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceChartProps>(({
@@ -64,6 +67,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   onShowAnnualizedChange,
   hideTitle = false,
   hideDownloadButton = false,
+  selectedStocks: controlledSelectedStocks,
+  onSelectedStocksChange,
 }, ref) => {
   const { language, t } = useLanguage();
   const { resolvedTheme } = useTheme();
@@ -86,9 +91,20 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   // Y-axis range (percentage of full range, 0-100 for start and end)
   const [yAxisRange, setYAxisRange] = useState<{ start: number; end: number }>({ start: 0, end: 100 });
 
-  // Stock selection for filtering
-  const [selectedStocks, setSelectedStocks] = useState<Set<string>>(new Set());
+  // Stock selection for filtering - supports controlled and uncontrolled modes
+  const [internalSelectedStocks, setInternalSelectedStocks] = useState<Set<string>>(new Set());
   const [stockSelectorOpen, setStockSelectorOpen] = useState(false);
+
+  // Use controlled state if provided, otherwise use internal state
+  const selectedStocks = controlledSelectedStocks ?? internalSelectedStocks;
+  const setSelectedStocks = useCallback((newStocks: Set<string> | ((prev: Set<string>) => Set<string>)) => {
+    const resolvedStocks = typeof newStocks === 'function' ? newStocks(selectedStocks) : newStocks;
+    if (onSelectedStocksChange) {
+      onSelectedStocksChange(resolvedStocks);
+    } else {
+      setInternalSelectedStocks(resolvedStocks);
+    }
+  }, [selectedStocks, onSelectedStocksChange]);
 
   // Extract available stocks from performance data
   const availableStocks = useMemo(() => {
@@ -99,12 +115,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
     return Object.keys(lastDataPoint.stocks).sort();
   }, [performanceData?.data]);
 
-  // Initialize selected stocks to all when data changes
+  // Initialize selected stocks to all when data changes (only in uncontrolled mode)
   useEffect(() => {
-    if (availableStocks.length > 0 && selectedStocks.size === 0) {
-      setSelectedStocks(new Set(availableStocks));
+    if (!controlledSelectedStocks && availableStocks.length > 0 && internalSelectedStocks.size === 0) {
+      setInternalSelectedStocks(new Set(availableStocks));
     }
-  }, [availableStocks, selectedStocks.size]);
+  }, [availableStocks, internalSelectedStocks.size, controlledSelectedStocks]);
 
   // Toggle stock selection
   const toggleStock = useCallback((ticker: string) => {
@@ -117,16 +133,16 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
       }
       return newSet;
     });
-  }, []);
+  }, [setSelectedStocks]);
 
   // Select/deselect all stocks
   const selectAllStocks = useCallback(() => {
     setSelectedStocks(new Set(availableStocks));
-  }, [availableStocks]);
+  }, [availableStocks, setSelectedStocks]);
 
   const deselectAllStocks = useCallback(() => {
     setSelectedStocks(new Set());
-  }, []);
+  }, [setSelectedStocks]);
 
   // Calculate brush indices from timeframe
   const getTimeframeBrushRange = useCallback((data: { date: string }[], timeframe: TimeframeKey) => {

@@ -227,6 +227,9 @@ export function PortfolioPanel() {
 
   const compositionRef = useRef<PortfolioCompositionHandle>(null);
   const performanceRef = useRef<PerformanceChartHandle>(null);
+
+  // Stock selection for filtering - shared between PerformanceChart and summary cards
+  const [selectedStocks, setSelectedStocks] = useState<Set<string>>(new Set());
   const [panelOrder, setPanelOrder] = useState<['holdings' | 'performance', 'holdings' | 'performance']>(() => {
     const saved = localStorage.getItem('portfolioPanelOrder');
     if (saved) {
@@ -298,6 +301,16 @@ export function PortfolioPanel() {
     queryFn: () => fetchPerformance(benchmark, currency, selectedAccountIds),
     enabled: isAuthenticated && selectedAccountIds.length > 0 && accountHasHoldings,
   });
+
+  // Initialize selectedStocks to all stocks when performance data loads
+  useEffect(() => {
+    if (performanceData?.data && performanceData.data.length > 0) {
+      const lastPoint = performanceData.data[performanceData.data.length - 1];
+      if (lastPoint.stocks && selectedStocks.size === 0) {
+        setSelectedStocks(new Set(Object.keys(lastPoint.stocks)));
+      }
+    }
+  }, [performanceData?.data, selectedStocks.size]);
 
   // Mutations
   const addMutation = useMutation({
@@ -748,21 +761,41 @@ export function PortfolioPanel() {
           } else if (panel === 'summary') {
             // Summary Cards panel
             if (!compositionData) return null;
+
+            // Filter holdings based on selected stocks from performance chart
+            const availableStocksFromComposition = compositionData.holdings?.map(h => h.ticker) || [];
+            const isFilteringStocks = selectedStocks.size > 0 && selectedStocks.size < availableStocksFromComposition.length;
+
+            // Calculate filtered totals if filtering
+            let filteredTotalValue = compositionData.total_value_eur;
+            let filteredCostBasis = compositionData.total_cost_basis_eur;
+
+            if (isFilteringStocks && compositionData.holdings) {
+              const filteredHoldings = compositionData.holdings.filter(h => selectedStocks.has(h.ticker));
+              filteredTotalValue = filteredHoldings.reduce((sum, h) => sum + h.current_value, 0);
+              filteredCostBasis = filteredHoldings.reduce((sum, h) => sum + h.cost_basis_eur, 0);
+            } else if (selectedStocks.size === 0 && availableStocksFromComposition.length > 0) {
+              // If no stocks selected, show 0
+              filteredTotalValue = 0;
+              filteredCostBasis = 0;
+            }
+
             const PRIVATE_COST_BASIS = 10000;
-            const actualCostBasis = currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis;
+            const actualCostBasis = currency === 'EUR' ? filteredCostBasis : filteredCostBasis;
             const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
 
-            const displayCostBasis = privateMode ? PRIVATE_COST_BASIS : (currency === 'EUR' ? compositionData.total_cost_basis_eur : compositionData.total_cost_basis);
-            const displayTotalValue = (currency === 'EUR' ? compositionData.total_value_eur : compositionData.total_value_eur * compositionData.eurusd_rate) * scaleFactor;
+            const displayCostBasis = privateMode ? PRIVATE_COST_BASIS : filteredCostBasis;
+            const displayTotalValue = filteredTotalValue * scaleFactor;
 
-            const unrealizedGainEur = compositionData.total_value_eur - compositionData.total_cost_basis_eur;
-            const unrealizedGainPctEur = compositionData.total_cost_basis_eur > 0
-              ? Math.round(100 * unrealizedGainEur / compositionData.total_cost_basis_eur * 10) / 10
+            const unrealizedGainEur = filteredTotalValue - filteredCostBasis;
+            const unrealizedGainPctEur = filteredCostBasis > 0
+              ? Math.round(100 * unrealizedGainEur / filteredCostBasis * 10) / 10
               : 0;
-            const rawGain = currency === 'EUR' ? unrealizedGainEur : compositionData.total_gain_usd;
+            const rawGain = currency === 'EUR' ? unrealizedGainEur : unrealizedGainEur * compositionData.eurusd_rate;
             const displayGain = rawGain * scaleFactor;
-            const displayPct = currency === 'EUR' ? unrealizedGainPctEur : compositionData.total_gain_pct;
+            const displayPct = unrealizedGainPctEur;
 
+            // Realized gains don't change with stock filtering (they're historical)
             const rawRealizedGain = currency === 'EUR'
               ? compositionData.realized_gains_eur
               : compositionData.realized_gains_usd;
@@ -865,6 +898,8 @@ export function PortfolioPanel() {
                       onShowAnnualizedChange={setShowAnnualized}
                       hideTitle
                       hideDownloadButton
+                      selectedStocks={selectedStocks}
+                      onSelectedStocksChange={setSelectedStocks}
                     />
                   </div>
                 )}
