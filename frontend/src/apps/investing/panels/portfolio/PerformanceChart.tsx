@@ -1055,6 +1055,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         startIndex={brushRange?.startIndex}
                         endIndex={brushRange?.endIndex}
                         onChange={handleBrushChange}
+                        className="[&_.recharts-brush-texts]:hidden"
                       />
                     )}
                     {/* Only show out/underperformance areas when both portfolio and benchmark are visible */}
