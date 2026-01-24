@@ -176,6 +176,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
     setSelectedTimeframe(timeframe);
     if (performanceData?.data) {
       const range = getTimeframeBrushRange(performanceData.data, timeframe);
+      lastBrushRangeRef.current = range;
       setBrushRange(range);
     }
   }, [performanceData?.data, getTimeframeBrushRange]);
@@ -189,13 +190,23 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
     brushFill: isDark ? '#1e293b' : '#e2e8f0',
   };
 
+  // Ref to track the last brush range to prevent unnecessary updates
+  const lastBrushRangeRef = useRef<{ startIndex: number; endIndex: number } | null>(null);
+
   const handleBrushChange = useCallback((range: { startIndex?: number; endIndex?: number }) => {
     if (typeof range.startIndex === 'number' && typeof range.endIndex === 'number') {
+      // Check if values actually changed to prevent reset on re-renders
+      const lastRange = lastBrushRangeRef.current;
+      if (lastRange && lastRange.startIndex === range.startIndex && lastRange.endIndex === range.endIndex) {
+        return; // No change, skip update
+      }
+
       // Only update after user stops dragging (debounced)
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
       debounceRef.current = setTimeout(() => {
+        lastBrushRangeRef.current = { startIndex: range.startIndex!, endIndex: range.endIndex! };
         setBrushRange({ startIndex: range.startIndex!, endIndex: range.endIndex! });
       }, 500);
     }
@@ -406,8 +417,9 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className="w-12 h-12 text-green-500 animate-spin mb-4" />
+          <p className="text-slate-400 text-lg">{language === 'fr' ? 'Chargement des données...' : 'Loading data...'}</p>
         </div>
       ) : performanceData?.data && performanceData.data.length > 0 ? (() => {
         const allData = performanceData.data;
@@ -1129,14 +1141,15 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       <div>{endMonth.charAt(0).toUpperCase() + endMonth.slice(1)}</div>
                       <div>{endDate.getFullYear()}</div>
                     </div>
-                    {/* Reset X-axis zoom button */}
+                    {/* Reset X-axis zoom button - positioned to the left */}
                     {isXZoomed && (
                       <button
                         onClick={() => {
+                          lastBrushRangeRef.current = null;
                           setBrushRange(null);
                           setSelectedTimeframe('all');
                         }}
-                        className="absolute right-0 top-0 text-[10px] text-slate-400 hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-600 transition-colors"
+                        className="absolute -left-10 top-2 text-[10px] text-slate-400 hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-600 transition-colors"
                       >
                         Reset
                       </button>
