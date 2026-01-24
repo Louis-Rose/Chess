@@ -697,7 +697,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
         return (
           <>
-            <div ref={chartContainerRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
+            <div ref={chartContainerRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4 [&_.recharts-brush-texts]:!hidden">
               {/* Title only visible during download */}
               {isDownloading && (
                 <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
@@ -1050,9 +1050,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       const maxIdx = chartData.length - 1;
 
                       // Calculate offset for left label - max offset when at start, reduces to 0 as it moves right
-                      const leftOffsetPct = maxIdx > 0 ? ((maxIdx - startIdx) / maxIdx) * 3 : 0; // 3% max offset
-                      // Calculate offset for right label - similar logic but from the right
-                      const rightOffsetPct = maxIdx > 0 ? ((endIdx) / maxIdx) * 3 : 0;
+                      const leftOffsetPct = maxIdx > 0 ? ((maxIdx - startIdx) / maxIdx) * 4 : 0; // 4% max offset
 
                       const formatBrushDate = (dateStr: string) => {
                         const d = new Date(dateStr);
@@ -1087,34 +1085,55 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                             startIndex={brushRange?.startIndex}
                             endIndex={brushRange?.endIndex}
                             onChange={handleBrushChange}
-                            className="[&_.recharts-brush-texts]:hidden"
                           />
                           {/* Custom brush labels with dynamic offset */}
                           {startFormatted && (
-                            <text
-                              x={`${startPct + leftOffsetPct}%`}
-                              y="98%"
-                              textAnchor="middle"
-                              fill="#16a34a"
-                              fontSize={14}
-                              fontWeight={600}
-                            >
-                              <tspan x={`${startPct + leftOffsetPct}%`} dy="0">{startFormatted.line1}</tspan>
-                              <tspan x={`${startPct + leftOffsetPct}%`} dy="16">{startFormatted.line2}</tspan>
-                            </text>
+                            <g className="recharts-brush-custom-label">
+                              <text
+                                x={`${startPct + leftOffsetPct}%`}
+                                y="91.5%"
+                                textAnchor="middle"
+                                fill="#16a34a"
+                                fontSize={14}
+                                fontWeight={600}
+                              >
+                                {startFormatted.line1}
+                              </text>
+                              <text
+                                x={`${startPct + leftOffsetPct}%`}
+                                y="95%"
+                                textAnchor="middle"
+                                fill="#16a34a"
+                                fontSize={14}
+                                fontWeight={600}
+                              >
+                                {startFormatted.line2}
+                              </text>
+                            </g>
                           )}
                           {endFormatted && (
-                            <text
-                              x={`${endPct - rightOffsetPct + 3}%`}
-                              y="98%"
-                              textAnchor="middle"
-                              fill="#16a34a"
-                              fontSize={14}
-                              fontWeight={600}
-                            >
-                              <tspan x={`${endPct - rightOffsetPct + 3}%`} dy="0">{endFormatted.line1}</tspan>
-                              <tspan x={`${endPct - rightOffsetPct + 3}%`} dy="16">{endFormatted.line2}</tspan>
-                            </text>
+                            <g className="recharts-brush-custom-label">
+                              <text
+                                x={`${endPct + 3}%`}
+                                y="91.5%"
+                                textAnchor="middle"
+                                fill="#16a34a"
+                                fontSize={14}
+                                fontWeight={600}
+                              >
+                                {endFormatted.line1}
+                              </text>
+                              <text
+                                x={`${endPct + 3}%`}
+                                y="95%"
+                                textAnchor="middle"
+                                fill="#16a34a"
+                                fontSize={14}
+                                fontWeight={600}
+                              >
+                                {endFormatted.line2}
+                              </text>
+                            </g>
                           )}
                         </>
                       );
