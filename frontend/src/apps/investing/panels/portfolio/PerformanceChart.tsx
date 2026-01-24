@@ -930,7 +930,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       height={55}
                       ticks={(() => {
                         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-                        const maxTicks = isMobile ? 6 : 10;
+                        const maxTicks = isMobile ? 6 : 11;
 
                         // Generate ticks within the visible range only
                         const startIdx = brushRange?.startIndex ?? 0;
@@ -942,23 +942,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                           return chartData.slice(startIdx, endIdx + 1).map(d => d.date);
                         }
 
-                        // Evenly distribute ticks across the visible range
-                        // Reserve space for first and last dates
-                        const interval = Math.ceil(rangeLength / (maxTicks - 1));
+                        // Distribute ticks proportionally for truly even spacing
+                        // Each tick i (0 to maxTicks-1) is placed at: startIdx + (endIdx - startIdx) * i / (maxTicks - 1)
                         const ticks: string[] = [];
-
-                        // Always include first date
-                        ticks.push(chartData[startIdx].date);
-
-                        // Add middle ticks
-                        for (let i = startIdx + interval; i < endIdx; i += interval) {
-                          ticks.push(chartData[i].date);
-                        }
-
-                        // Always include the last visible date
-                        const lastDate = chartData[endIdx]?.date;
-                        if (lastDate && !ticks.includes(lastDate)) {
-                          ticks.push(lastDate);
+                        for (let i = 0; i < maxTicks; i++) {
+                          const tickIdx = startIdx + Math.round((endIdx - startIdx) * i / (maxTicks - 1));
+                          ticks.push(chartData[tickIdx].date);
                         }
 
                         return ticks;
