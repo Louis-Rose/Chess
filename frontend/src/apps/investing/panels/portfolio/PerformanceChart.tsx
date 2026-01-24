@@ -575,9 +575,21 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           ? rawData.filter(d => getFilteredValues(d).costBasisEur > 0)
           : rawData;
 
-        // If no data after filtering, show message
+        // If no data after filtering (no stocks selected or selected stocks have no data)
         if (allData.length === 0) {
-          return <p className="text-slate-500 text-center py-8">{language === 'fr' ? 'Aucune donnée pour les actions sélectionnées' : 'No data for selected stocks'}</p>;
+          return (
+            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+              <svg className="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <p className="text-lg font-medium">
+                {language === 'fr' ? 'Sélectionnez des actions pour voir la performance' : 'Select stocks to view performance'}
+              </p>
+              <p className="text-sm mt-1 opacity-70">
+                {language === 'fr' ? `${availableStocks.length} actions disponibles` : `${availableStocks.length} stocks available`}
+              </p>
+            </div>
+          );
         }
 
         const startIdx = brushRange?.startIndex ?? 0;
