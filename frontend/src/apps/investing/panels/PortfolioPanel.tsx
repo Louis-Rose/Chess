@@ -759,8 +759,20 @@ export function PortfolioPanel() {
               </div>
             );
           } else if (panel === 'summary') {
-            // Summary Cards panel
+            // Summary Cards panel - show loading when performance data is loading
             if (!compositionData) return null;
+
+            // Show loading state when performance data is loading
+            if (performanceLoading) {
+              return (
+                <div key="summary" className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+                  <div className="flex flex-col items-center justify-center py-4">
+                    <Loader2 className="w-8 h-8 text-green-500 animate-spin mb-2" />
+                    <p className="text-slate-400 text-sm">{language === 'fr' ? 'Chargement...' : 'Loading...'}</p>
+                  </div>
+                </div>
+              );
+            }
 
             // Filter holdings based on selected stocks from performance chart
             const availableStocksFromComposition = compositionData.holdings?.map(h => h.ticker) || [];

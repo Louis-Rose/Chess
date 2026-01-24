@@ -85,6 +85,9 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   const [showBenchmark, setShowBenchmark] = useState(true);
   const [showInvestedCapital, setShowInvestedCapital] = useState(true);
 
+  // Flag to ignore brush changes during visibility toggles
+  const ignoreNextBrushChangeRef = useRef(false);
+
   // Timeframe selection
   const [selectedTimeframe, setSelectedTimeframe] = useState<TimeframeKey>('all');
 
@@ -195,6 +198,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
   const handleBrushChange = useCallback((range: { startIndex?: number; endIndex?: number }) => {
     if (typeof range.startIndex === 'number' && typeof range.endIndex === 'number') {
+      // Ignore brush changes triggered by visibility toggles
+      if (ignoreNextBrushChangeRef.current) {
+        ignoreNextBrushChangeRef.current = false;
+        return;
+      }
+
       // Check if values actually changed to prevent reset on re-renders
       const lastRange = lastBrushRangeRef.current;
       if (lastRange && lastRange.startIndex === range.startIndex && lastRange.endIndex === range.endIndex) {
@@ -920,10 +929,15 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         }
 
                         // Evenly distribute ticks across the visible range
+                        // Reserve space for first and last dates
                         const interval = Math.ceil(rangeLength / (maxTicks - 1));
                         const ticks: string[] = [];
 
-                        for (let i = startIdx; i <= endIdx; i += interval) {
+                        // Always include first date
+                        ticks.push(chartData[startIdx].date);
+
+                        // Add middle ticks
+                        for (let i = startIdx + interval; i < endIdx; i += interval) {
                           ticks.push(chartData[i].date);
                         }
 
@@ -1161,7 +1175,10 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
               <div className="flex justify-center gap-4 text-sm flex-wrap mt-3">
                 {/* Portfolio toggle */}
                 <button
-                  onClick={() => setShowPortfolio(!showPortfolio)}
+                  onClick={() => {
+                    ignoreNextBrushChangeRef.current = true;
+                    setShowPortfolio(!showPortfolio);
+                  }}
                   className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
                     showPortfolio
                       ? 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50'
@@ -1176,7 +1193,10 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                 </button>
                 {/* Benchmark toggle */}
                 <button
-                  onClick={() => setShowBenchmark(!showBenchmark)}
+                  onClick={() => {
+                    ignoreNextBrushChangeRef.current = true;
+                    setShowBenchmark(!showBenchmark);
+                  }}
                   className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
                     showBenchmark
                       ? 'bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50'
@@ -1191,7 +1211,10 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                 </button>
                 {/* Invested Capital toggle */}
                 <button
-                  onClick={() => setShowInvestedCapital(!showInvestedCapital)}
+                  onClick={() => {
+                    ignoreNextBrushChangeRef.current = true;
+                    setShowInvestedCapital(!showInvestedCapital);
+                  }}
                   className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
                     showInvestedCapital
                       ? 'bg-slate-200 dark:bg-slate-500/30 hover:bg-slate-300 dark:hover:bg-slate-500/50'
