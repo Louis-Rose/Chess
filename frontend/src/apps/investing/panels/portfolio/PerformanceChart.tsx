@@ -85,8 +85,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   const [showBenchmark, setShowBenchmark] = useState(true);
   const [showInvestedCapital, setShowInvestedCapital] = useState(true);
 
-  // Flag to ignore brush changes during visibility toggles
-  const ignoreNextBrushChangeRef = useRef(false);
+  // Timestamp to ignore brush changes for a period after visibility toggles
+  const ignoreUntilRef = useRef<number>(0);
 
   // Timeframe selection
   const [selectedTimeframe, setSelectedTimeframe] = useState<TimeframeKey>('all');
@@ -198,9 +198,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
   const handleBrushChange = useCallback((range: { startIndex?: number; endIndex?: number }) => {
     if (typeof range.startIndex === 'number' && typeof range.endIndex === 'number') {
-      // Ignore brush changes triggered by visibility toggles
-      if (ignoreNextBrushChangeRef.current) {
-        ignoreNextBrushChangeRef.current = false;
+      // Ignore brush changes triggered by visibility toggles (within 200ms window)
+      if (Date.now() < ignoreUntilRef.current) {
         return;
       }
 
@@ -1191,7 +1190,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                 {/* Portfolio toggle */}
                 <button
                   onClick={() => {
-                    ignoreNextBrushChangeRef.current = true;
+                    ignoreUntilRef.current = Date.now() + 1000;
                     setShowPortfolio(!showPortfolio);
                   }}
                   className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
@@ -1209,7 +1208,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                 {/* Benchmark toggle */}
                 <button
                   onClick={() => {
-                    ignoreNextBrushChangeRef.current = true;
+                    ignoreUntilRef.current = Date.now() + 1000;
                     setShowBenchmark(!showBenchmark);
                   }}
                   className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
@@ -1227,7 +1226,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                 {/* Invested Capital toggle */}
                 <button
                   onClick={() => {
-                    ignoreNextBrushChangeRef.current = true;
+                    ignoreUntilRef.current = Date.now() + 1000;
                     setShowInvestedCapital(!showInvestedCapital);
                   }}
                   className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
