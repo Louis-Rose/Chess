@@ -697,11 +697,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
         return (
           <>
-            <style>{`
-              .recharts-brush-texts { display: none !important; }
-              .recharts-brush text { display: none !important; }
-              .recharts-brush-slide + text { display: none !important; }
-            `}</style>
+            <style>{`.recharts-brush-texts { display: none !important; }`}</style>
             <div ref={chartContainerRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
               {/* Title only visible during download */}
               {isDownloading && (
@@ -1049,100 +1045,19 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         );
                       }}
                     />
-                    {!isDownloading && (() => {
-                      const startIdx = brushRange?.startIndex ?? 0;
-                      const endIdx = brushRange?.endIndex ?? chartData.length - 1;
-                      const maxIdx = chartData.length - 1;
-
-                      // Calculate offset for left label - max offset when at start, reduces to 0 as it moves right
-                      const leftOffsetPct = maxIdx > 0 ? ((maxIdx - startIdx) / maxIdx) * 4 : 0; // 4% max offset
-
-                      const formatBrushDate = (dateStr: string) => {
-                        const d = new Date(dateStr);
-                        const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
-                        return {
-                          line1: month.charAt(0).toUpperCase() + month.slice(1),
-                          line2: d.getFullYear().toString()
-                        };
-                      };
-
-                      const startDate = chartData[startIdx]?.date;
-                      const endDate = chartData[endIdx]?.date;
-                      const startFormatted = startDate ? formatBrushDate(startDate) : null;
-                      const endFormatted = endDate ? formatBrushDate(endDate) : null;
-
-                      // Calculate positions as percentages (accounting for chart margins)
-                      const chartLeftMargin = 20;
-                      const chartRightMargin = 50;
-                      const totalMargin = chartLeftMargin + chartRightMargin;
-                      const startPct = (startIdx / maxIdx) * (100 - totalMargin * 100 / 800) + (chartLeftMargin * 100 / 800);
-                      const endPct = (endIdx / maxIdx) * (100 - totalMargin * 100 / 800) + (chartLeftMargin * 100 / 800);
-
-                      return (
-                        <>
-                          <Brush
-                            dataKey="date"
-                            height={40}
-                            stroke="#16a34a"
-                            fill={colors.brushFill}
-                            travellerWidth={12}
-                            tickFormatter={() => ''}
-                            startIndex={brushRange?.startIndex}
-                            endIndex={brushRange?.endIndex}
-                            onChange={handleBrushChange}
-                          />
-                          {/* Custom brush labels with dynamic offset */}
-                          {startFormatted && (
-                            <g className="recharts-brush-custom-label">
-                              <text
-                                x={`${startPct + leftOffsetPct}%`}
-                                y="91.5%"
-                                textAnchor="middle"
-                                fill="#16a34a"
-                                fontSize={14}
-                                fontWeight={600}
-                              >
-                                {startFormatted.line1}
-                              </text>
-                              <text
-                                x={`${startPct + leftOffsetPct}%`}
-                                y="95%"
-                                textAnchor="middle"
-                                fill="#16a34a"
-                                fontSize={14}
-                                fontWeight={600}
-                              >
-                                {startFormatted.line2}
-                              </text>
-                            </g>
-                          )}
-                          {endFormatted && (
-                            <g className="recharts-brush-custom-label">
-                              <text
-                                x={`${endPct + 3}%`}
-                                y="91.5%"
-                                textAnchor="middle"
-                                fill="#16a34a"
-                                fontSize={14}
-                                fontWeight={600}
-                              >
-                                {endFormatted.line1}
-                              </text>
-                              <text
-                                x={`${endPct + 3}%`}
-                                y="95%"
-                                textAnchor="middle"
-                                fill="#16a34a"
-                                fontSize={14}
-                                fontWeight={600}
-                              >
-                                {endFormatted.line2}
-                              </text>
-                            </g>
-                          )}
-                        </>
-                      );
-                    })()}
+                    {!isDownloading && (
+                      <Brush
+                        dataKey="date"
+                        height={40}
+                        stroke="#16a34a"
+                        fill={colors.brushFill}
+                        travellerWidth={12}
+                        tickFormatter={() => ''}
+                        startIndex={brushRange?.startIndex}
+                        endIndex={brushRange?.endIndex}
+                        onChange={handleBrushChange}
+                      />
+                    )}
                     {/* Only show out/underperformance areas when both portfolio and benchmark are visible */}
                     {showPortfolio && showBenchmark && (
                       <>
@@ -1219,9 +1134,14 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
               {!isDownloading && (() => {
                 const startIdx = brushRange?.startIndex ?? 0;
                 const endIdx = brushRange?.endIndex ?? chartData.length - 1;
-                const isXZoomed = brushRange !== null && (startIdx !== 0 || endIdx !== chartData.length - 1);
-                const startPct = (startIdx / (chartData.length - 1)) * 100;
-                const endPct = (endIdx / (chartData.length - 1)) * 100;
+                const maxIdx = chartData.length - 1;
+                const isXZoomed = brushRange !== null && (startIdx !== 0 || endIdx !== maxIdx);
+
+                // Calculate dynamic offset - max 4% when at start, reduces to 0 as handle moves right
+                const leftOffsetPct = maxIdx > 0 ? ((maxIdx - startIdx) / maxIdx) * 4 : 0;
+
+                const startPct = (startIdx / maxIdx) * 100;
+                const endPct = (endIdx / maxIdx) * 100;
                 const startDate = new Date(chartData[startIdx]?.date);
                 const endDate = new Date(chartData[endIdx]?.date);
                 const startMonth = startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
@@ -1230,7 +1150,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   <div className="relative h-12 -mt-14 mx-[44px]">
                     <div
                       className="absolute text-center text-green-500 font-semibold text-sm -translate-x-1/2"
-                      style={{ left: `${startPct}%` }}
+                      style={{ left: `${startPct + leftOffsetPct}%` }}
                     >
                       <div>{startMonth.charAt(0).toUpperCase() + startMonth.slice(1)}</div>
                       <div>{startDate.getFullYear()}</div>
