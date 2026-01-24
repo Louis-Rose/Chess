@@ -1161,6 +1161,17 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         const greenColor = '#4ade80';
                         const blueColor = '#60a5fa';
 
+                        // Find transactions on this date (within a week window since data is weekly)
+                        const currentDateStr = data.date;
+                        const currentDateObj = new Date(currentDateStr);
+                        const weekAgo = new Date(currentDateObj);
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+
+                        const transactionsOnDate = performanceData.transactions?.filter(tx => {
+                          const txDate = new Date(tx.date);
+                          return txDate > weekAgo && txDate <= currentDateObj;
+                        }) || [];
+
                         return (
                           <div style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '6px 10px', fontSize: '12px' }}>
                             <p style={{ color: '#f1f5f9', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
@@ -1184,6 +1195,18 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                             <p style={{ color: displayOutperfRatio >= 1 ? greenColor : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                               {outperfLabel} : x{displayOutperfRatio}
                             </p>
+                            {transactionsOnDate.length > 0 && (
+                              <div style={{ borderTop: '1px solid #475569', marginTop: '4px', paddingTop: '4px' }}>
+                                {transactionsOnDate.map((tx, idx) => (
+                                  <p key={idx} style={{ color: tx.type === 'BUY' ? '#22c55e' : '#f97316', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                                    {tx.type === 'BUY'
+                                      ? (language === 'fr' ? `Acheté ${tx.quantity} ${tx.ticker}` : `Bought ${tx.quantity} ${tx.ticker}`)
+                                      : (language === 'fr' ? `Vendu ${tx.quantity} ${tx.ticker}` : `Sold ${tx.quantity} ${tx.ticker}`)
+                                    }
+                                  </p>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       }}
