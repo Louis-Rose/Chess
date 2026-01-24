@@ -112,10 +112,16 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   // Extract available stocks from performance data
   const availableStocks = useMemo(() => {
     if (!performanceData?.data || performanceData.data.length === 0) return [];
-    // Get all unique tickers from the last data point (most complete)
-    const lastDataPoint = performanceData.data[performanceData.data.length - 1];
-    if (!lastDataPoint.stocks) return [];
-    return Object.keys(lastDataPoint.stocks).sort();
+    // Get all unique tickers from ALL data points (includes stocks that were sold)
+    const allTickers = new Set<string>();
+    for (const dataPoint of performanceData.data) {
+      if (dataPoint.stocks) {
+        for (const ticker of Object.keys(dataPoint.stocks)) {
+          allTickers.add(ticker);
+        }
+      }
+    }
+    return Array.from(allTickers).sort();
   }, [performanceData?.data]);
 
   // Initialize selected stocks to all when data changes (only in uncontrolled mode)
@@ -142,10 +148,6 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   const selectAllStocks = useCallback(() => {
     setSelectedStocks(new Set(availableStocks));
   }, [availableStocks, setSelectedStocks]);
-
-  const deselectAllStocks = useCallback(() => {
-    setSelectedStocks(new Set());
-  }, [setSelectedStocks]);
 
   // Calculate brush indices from timeframe
   const getTimeframeBrushRange = useCallback((data: { date: string }[], timeframe: TimeframeKey) => {
@@ -375,19 +377,13 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   onClick={() => setStockSelectorOpen(false)}
                 />
                 <div className="absolute top-full mt-1 right-0 z-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg min-w-[200px] max-h-[300px] overflow-y-auto">
-                  {/* Select All / Deselect All */}
-                  <div className="flex gap-2 p-2 border-b border-slate-200 dark:border-slate-600">
+                  {/* Select All */}
+                  <div className="p-2 border-b border-slate-200 dark:border-slate-600">
                     <button
                       onClick={selectAllStocks}
-                      className="flex-1 px-2 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                      className="w-full px-2 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
                     >
-                      {language === 'fr' ? 'Tout' : 'All'}
-                    </button>
-                    <button
-                      onClick={deselectAllStocks}
-                      className="flex-1 px-2 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
-                    >
-                      {language === 'fr' ? 'Aucun' : 'None'}
+                      {language === 'fr' ? 'Tout sélectionner' : 'Select All'}
                     </button>
                   </div>
                   {/* Stock list */}
