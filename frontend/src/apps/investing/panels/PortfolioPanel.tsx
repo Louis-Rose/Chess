@@ -302,15 +302,19 @@ export function PortfolioPanel() {
     enabled: isAuthenticated && selectedAccountIds.length > 0 && accountHasHoldings,
   });
 
-  // Initialize selectedStocks to all stocks when performance data loads
+  // Track if we've initialized the stock selection
+  const hasInitializedStocks = useRef(false);
+
+  // Initialize selectedStocks to all stocks when performance data first loads
   useEffect(() => {
-    if (performanceData?.data && performanceData.data.length > 0) {
+    if (performanceData?.data && performanceData.data.length > 0 && !hasInitializedStocks.current) {
       const lastPoint = performanceData.data[performanceData.data.length - 1];
-      if (lastPoint.stocks && selectedStocks.size === 0) {
+      if (lastPoint.stocks) {
+        hasInitializedStocks.current = true;
         setSelectedStocks(new Set(Object.keys(lastPoint.stocks)));
       }
     }
-  }, [performanceData?.data, selectedStocks.size]);
+  }, [performanceData?.data]);
 
   // Mutations
   const addMutation = useMutation({
