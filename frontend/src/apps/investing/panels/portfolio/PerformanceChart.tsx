@@ -168,10 +168,38 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
     });
   }, [setSelectedStocks]);
 
-  // Select/deselect all stocks
-  const selectAllStocks = useCallback(() => {
-    setSelectedStocks(new Set(availableStocks));
-  }, [availableStocks, setSelectedStocks]);
+  // Select/deselect stocks by category
+  const selectAllOwned = useCallback(() => {
+    setSelectedStocks(prev => {
+      const newSet = new Set(prev);
+      currentlyOwnedStocks.forEach(t => newSet.add(t));
+      return newSet;
+    });
+  }, [currentlyOwnedStocks, setSelectedStocks]);
+
+  const deselectAllOwned = useCallback(() => {
+    setSelectedStocks(prev => {
+      const newSet = new Set(prev);
+      currentlyOwnedStocks.forEach(t => newSet.delete(t));
+      return newSet;
+    });
+  }, [currentlyOwnedStocks, setSelectedStocks]);
+
+  const selectAllSold = useCallback(() => {
+    setSelectedStocks(prev => {
+      const newSet = new Set(prev);
+      soldOffStocks.forEach(t => newSet.add(t));
+      return newSet;
+    });
+  }, [soldOffStocks, setSelectedStocks]);
+
+  const deselectAllSold = useCallback(() => {
+    setSelectedStocks(prev => {
+      const newSet = new Set(prev);
+      soldOffStocks.forEach(t => newSet.delete(t));
+      return newSet;
+    });
+  }, [soldOffStocks, setSelectedStocks]);
 
   // Calculate brush indices from timeframe
   const getTimeframeBrushRange = useCallback((data: { date: string }[], timeframe: TimeframeKey) => {
@@ -401,15 +429,6 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   onClick={() => setStockSelectorOpen(false)}
                 />
                 <div className="absolute top-full mt-1 right-0 z-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg max-h-[400px] overflow-y-auto">
-                  {/* Select All */}
-                  <div className="p-2 border-b border-slate-200 dark:border-slate-600">
-                    <button
-                      onClick={selectAllStocks}
-                      className="w-full px-2 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
-                    >
-                      {language === 'fr' ? 'Tout sélectionner' : 'Select All'}
-                    </button>
-                  </div>
                   {/* Two-column layout: Owned | Sold */}
                   <div className="flex">
                     {/* Currently owned stocks - left column */}
@@ -417,6 +436,20 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       <div className="p-1 min-w-[140px]">
                         <div className="px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
                           {language === 'fr' ? 'Détenues' : 'Owned'}
+                        </div>
+                        <div className="flex gap-1 px-2 pb-1">
+                          <button
+                            onClick={selectAllOwned}
+                            className="flex-1 px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                          >
+                            {language === 'fr' ? 'Tout' : 'All'}
+                          </button>
+                          <button
+                            onClick={deselectAllOwned}
+                            className="flex-1 px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                          >
+                            {language === 'fr' ? 'Aucun' : 'None'}
+                          </button>
                         </div>
                         {currentlyOwnedStocks.map(ticker => (
                           <button
@@ -449,6 +482,20 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       <div className={`p-1 min-w-[140px] ${currentlyOwnedStocks.length > 0 ? 'border-l border-slate-200 dark:border-slate-600' : ''}`}>
                         <div className="px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
                           {language === 'fr' ? 'Vendues' : 'Sold'}
+                        </div>
+                        <div className="flex gap-1 px-2 pb-1">
+                          <button
+                            onClick={selectAllSold}
+                            className="flex-1 px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                          >
+                            {language === 'fr' ? 'Tout' : 'All'}
+                          </button>
+                          <button
+                            onClick={deselectAllSold}
+                            className="flex-1 px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                          >
+                            {language === 'fr' ? 'Aucun' : 'None'}
+                          </button>
                         </div>
                         {soldOffStocks.map(ticker => (
                           <button
