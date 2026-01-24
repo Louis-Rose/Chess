@@ -1207,14 +1207,19 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                             </p>
                             {sortedTransactions.length > 0 && (
                               <div style={{ borderTop: '1px solid #475569', marginTop: '4px', paddingTop: '4px' }}>
-                                {sortedTransactions.map((tx, idx) => (
-                                  <p key={idx} style={{ color: tx.type === 'BUY' ? '#22c55e' : '#f97316', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
-                                    {tx.type === 'BUY'
-                                      ? (language === 'fr' ? `Acheté ${tx.quantity} ${tx.ticker}` : `Bought ${tx.quantity} ${tx.ticker}`)
-                                      : (language === 'fr' ? `Vendu ${tx.quantity} ${tx.ticker}` : `Sold ${tx.quantity} ${tx.ticker}`)
-                                    }
-                                  </p>
-                                ))}
+                                {sortedTransactions.map((tx, idx) => {
+                                  const amountStr = tx.amount_eur
+                                    ? ` (${currency === 'EUR' ? `${formatEur(Math.round(tx.amount_eur))}€` : `$${formatEur(Math.round(tx.amount_eur))}`})`
+                                    : '';
+                                  return (
+                                    <p key={idx} style={{ color: tx.type === 'BUY' ? '#22c55e' : '#f97316', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                                      {tx.type === 'BUY'
+                                        ? (language === 'fr' ? `Acheté ${tx.quantity} ${tx.ticker}${amountStr}` : `Bought ${tx.quantity} ${tx.ticker}${amountStr}`)
+                                        : (language === 'fr' ? `Vendu ${tx.quantity} ${tx.ticker}${amountStr}` : `Sold ${tx.quantity} ${tx.ticker}${amountStr}`)
+                                      }
+                                    </p>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>

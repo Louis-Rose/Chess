@@ -874,7 +874,8 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
                     'date': tx_date,
                     'ticker': tx['stock_ticker'],
                     'type': 'BUY',
-                    'quantity': tx_qty
+                    'quantity': tx_qty,
+                    'amount_eur': round(tx_cost_eur, 2)
                 })
             except Exception as e:
                 print(f"Error processing transaction: {e}")
@@ -919,7 +920,8 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
                 'date': tx_date,
                 'ticker': tx['stock_ticker'],
                 'type': 'SELL',
-                'quantity': tx_qty
+                'quantity': tx_qty,
+                'amount_eur': round(tx_proceeds_eur, 2)
             })
 
     # Calculate performance data

@@ -111,6 +111,7 @@ export interface TransactionEvent {
   ticker: string;
   type: 'BUY' | 'SELL';
   quantity: number;
+  amount_eur?: number;
 }
 
 export interface PerformanceData {
