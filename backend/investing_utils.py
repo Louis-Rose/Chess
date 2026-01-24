@@ -1010,6 +1010,13 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
             else:
                 eurusd = fetch_eurusd_rate(date_str)
 
+            # Fetch benchmark price first (needed for per-stock benchmark values)
+            if is_last_date:
+                benchmark_price = fetch_current_stock_price(benchmark_ticker)
+            else:
+                benchmark_price = fetch_stock_price(benchmark_ticker, date_str)
+            benchmark_currency = get_stock_currency(benchmark_ticker)
+
             # Calculate portfolio value in EUR, handling multi-currency stocks
             portfolio_value_eur = 0
             portfolio_value_usd = 0  # Keep USD value for reference
@@ -1055,13 +1062,6 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
                     }
 
             # Calculate benchmark value (what if we'd invested in benchmark instead)
-            # Benchmark is always in USD (QQQ, SPY, etc.) or EUR-denominated ETF
-            if is_last_date:
-                benchmark_price = fetch_current_stock_price(benchmark_ticker)
-            else:
-                benchmark_price = fetch_stock_price(benchmark_ticker, date_str)
-
-            benchmark_currency = get_stock_currency(benchmark_ticker)
             if benchmark_currency == 'EUR':
                 benchmark_value_eur = benchmark_shares_at_date * benchmark_price
             else:
