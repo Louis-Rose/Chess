@@ -111,10 +111,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
     setSelectedStocks(prev => {
       const newSet = new Set(prev);
       if (newSet.has(ticker)) {
-        // Don't allow deselecting all stocks
-        if (newSet.size > 1) {
-          newSet.delete(ticker);
-        }
+        newSet.delete(ticker);
       } else {
         newSet.add(ticker);
       }
@@ -128,11 +125,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   }, [availableStocks]);
 
   const deselectAllStocks = useCallback(() => {
-    // Keep at least one stock selected
-    if (availableStocks.length > 0) {
-      setSelectedStocks(new Set([availableStocks[0]]));
-    }
-  }, [availableStocks]);
+    setSelectedStocks(new Set());
+  }, []);
 
   // Calculate brush indices from timeframe
   const getTimeframeBrushRange = useCallback((data: { date: string }[], timeframe: TimeframeKey) => {
@@ -402,13 +396,17 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
       ) : performanceData?.data && performanceData.data.length > 0 ? (() => {
         const allData = performanceData.data;
 
-        // Check if we're filtering stocks (some but not all stocks selected)
-        // If selectedStocks is empty, treat it as "all selected"
-        const isFilteringStocks = selectedStocks.size > 0 && selectedStocks.size < availableStocks.length && availableStocks.length > 0;
+        // Check if we're filtering stocks
+        // If all stocks selected OR no availableStocks, don't filter
+        const isFilteringStocks = availableStocks.length > 0 && selectedStocks.size !== availableStocks.length;
 
         // Helper to get filtered values for a data point
         const getFilteredValues = (d: typeof allData[0]) => {
           if (isFilteringStocks && d.stocks) {
+            // If no stocks selected, return 0
+            if (selectedStocks.size === 0) {
+              return { portfolioValueEur: 0, costBasisEur: 0 };
+            }
             let portfolioValueEur = 0;
             let costBasisEur = 0;
             for (const ticker of selectedStocks) {
@@ -552,7 +550,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
           const dataMin = Math.min(...values);
           const dataMax = Math.max(...values);
-          const fullMin = Math.floor(dataMin / increment) * increment;
+          // Always start from 0 if data is positive
+          const fullMin = dataMin >= 0 ? 0 : Math.floor(dataMin / increment) * increment;
           const fullMax = Math.ceil(dataMax / increment) * increment;
           const fullRange = fullMax - fullMin;
 
@@ -566,6 +565,11 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           const ticks: number[] = [];
           for (let i = domainMin; i <= domainMax; i += increment) {
             ticks.push(i);
+          }
+          // Always include 0 if it's in range
+          if (domainMin <= 0 && domainMax >= 0 && !ticks.includes(0)) {
+            ticks.push(0);
+            ticks.sort((a, b) => a - b);
           }
 
           return {
@@ -728,7 +732,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                           className="absolute left-0 right-0 bg-green-600/30"
                           style={{
                             top: `${100 - yAxisRange.end}%`,
-                            bottom: `${yAxisRange.start}%`,
+                            height: `${yAxisRange.end - yAxisRange.start}%`,
                           }}
                         />
                         {/* Top traveller */}
@@ -761,10 +765,10 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         >
                           <div className="w-4 h-0.5 bg-white/70 rounded"></div>
                         </div>
-                        {/* Bottom traveller */}
+                        {/* Bottom traveller - uses top positioning (100 - start) */}
                         <div
                           className="absolute left-0 right-0 h-3 bg-green-600 cursor-ns-resize flex items-center justify-center"
-                          style={{ bottom: `${yAxisRange.start}%`, transform: 'translateY(50%)' }}
+                          style={{ top: `${100 - yAxisRange.start}%`, transform: 'translateY(-50%)' }}
                           onMouseDown={(e) => {
                             e.preventDefault();
                             const startY = e.clientY;
@@ -775,8 +779,9 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
                             const onMouseMove = (moveEvent: MouseEvent) => {
                               const deltaY = moveEvent.clientY - startY;
+                              // Moving down = decreasing start (inverted because of top positioning)
                               const deltaPercent = (deltaY / containerHeight) * 100;
-                              const newStart = Math.max(0, Math.min(yAxisRange.end - 10, startStart + deltaPercent));
+                              const newStart = Math.max(0, Math.min(yAxisRange.end - 10, startStart - deltaPercent));
                               setYAxisRange(prev => ({ ...prev, start: newStart }));
                             };
 
@@ -837,18 +842,18 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         let line1: string;
                         let line2: string;
 
-                        if (rangeDays <= 14) {
-                          // Very zoomed in: show "Jan 15" format with full day
+                        if (rangeDays <= 60) {
+                          // Zoomed in: show "Jan 15" format with day
                           line1 = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric' });
                           line2 = d.getFullYear().toString();
-                        } else if (rangeDays <= 90) {
-                          // Medium zoom: show "Jan 15" but shorter month
+                        } else if (rangeDays <= 180) {
+                          // Medium zoom: show "Jan 15" format
                           const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
                           const day = d.getDate();
                           line1 = `${month} ${day}`;
                           line2 = d.getFullYear().toString();
-                        } else if (rangeDays <= 365) {
-                          // ~1 year view: show month + year but with day if zoomed enough
+                        } else if (rangeDays <= 540) {
+                          // ~1.5 year view: show short month
                           const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
                           line1 = month.charAt(0).toUpperCase() + month.slice(1);
                           line2 = d.getFullYear().toString();
@@ -874,7 +879,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       height={55}
                       ticks={(() => {
                         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-                        const maxTicks = isMobile ? 5 : 8;
+                        const maxTicks = isMobile ? 6 : 10;
 
                         // Generate ticks within the visible range only
                         const startIdx = brushRange?.startIndex ?? 0;
@@ -1085,6 +1090,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
               {!isDownloading && (() => {
                 const startIdx = brushRange?.startIndex ?? 0;
                 const endIdx = brushRange?.endIndex ?? chartData.length - 1;
+                const isXZoomed = brushRange !== null && (startIdx !== 0 || endIdx !== chartData.length - 1);
                 const startPct = (startIdx / (chartData.length - 1)) * 100;
                 const endPct = (endIdx / (chartData.length - 1)) * 100;
                 const startDate = new Date(chartData[startIdx]?.date);
@@ -1107,6 +1113,18 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       <div>{endMonth.charAt(0).toUpperCase() + endMonth.slice(1)}</div>
                       <div>{endDate.getFullYear()}</div>
                     </div>
+                    {/* Reset X-axis zoom button */}
+                    {isXZoomed && (
+                      <button
+                        onClick={() => {
+                          setBrushRange(null);
+                          setSelectedTimeframe('all');
+                        }}
+                        className="absolute right-0 top-0 text-[10px] text-slate-400 hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-600 transition-colors"
+                      >
+                        Reset
+                      </button>
+                    )}
                   </div>
                 );
               })()}
