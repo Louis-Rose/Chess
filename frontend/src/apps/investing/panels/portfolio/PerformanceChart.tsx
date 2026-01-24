@@ -148,12 +148,16 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
     };
   }, [performanceData?.data]);
 
-  // Initialize selected stocks to all when data changes (only in uncontrolled mode)
+  // Track if we've initialized the stock selection
+  const hasInitializedStocks = useRef(false);
+
+  // Initialize selected stocks to all when data first loads (only in uncontrolled mode)
   useEffect(() => {
-    if (!controlledSelectedStocks && availableStocks.length > 0 && internalSelectedStocks.size === 0) {
+    if (!controlledSelectedStocks && availableStocks.length > 0 && !hasInitializedStocks.current) {
+      hasInitializedStocks.current = true;
       setInternalSelectedStocks(new Set(availableStocks));
     }
-  }, [availableStocks, internalSelectedStocks.size, controlledSelectedStocks]);
+  }, [availableStocks, controlledSelectedStocks]);
 
   // Toggle stock selection
   const toggleStock = useCallback((ticker: string) => {
