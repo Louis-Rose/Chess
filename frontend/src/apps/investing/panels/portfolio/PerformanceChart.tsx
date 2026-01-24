@@ -697,7 +697,11 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
         return (
           <>
-            <style>{`.recharts-brush-texts { display: none !important; }`}</style>
+            <style>{`
+              .recharts-brush-texts { display: none !important; }
+              .recharts-brush text { display: none !important; }
+              .recharts-brush-slide + text { display: none !important; }
+            `}</style>
             <div ref={chartContainerRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
               {/* Title only visible during download */}
               {isDownloading && (
