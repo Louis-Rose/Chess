@@ -614,10 +614,13 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           const domainMax = Math.ceil(adjustedMax / increment) * increment;
 
           const ticks: number[] = [];
-          // Always start ticks from 0 when data is positive
-          const tickStart = dataMin >= 0 ? 0 : domainMin;
+          // Generate ticks within the domain range
+          // Start from 0 only if 0 is >= domainMin (i.e., within visible range)
+          const tickStart = (dataMin >= 0 && domainMin <= 0) ? 0 : domainMin;
           for (let i = tickStart; i <= domainMax; i += increment) {
-            ticks.push(i);
+            if (i >= domainMin) {
+              ticks.push(i);
+            }
           }
 
           return {
