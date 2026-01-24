@@ -110,8 +110,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   }, [selectedStocks, onSelectedStocksChange]);
 
   // Extract available stocks from performance data
-  const availableStocks = useMemo(() => {
-    if (!performanceData?.data || performanceData.data.length === 0) return [];
+  // Separate stocks into currently owned and sold off
+  const { currentlyOwnedStocks, soldOffStocks, availableStocks } = useMemo(() => {
+    if (!performanceData?.data || performanceData.data.length === 0) {
+      return { currentlyOwnedStocks: [], soldOffStocks: [], availableStocks: [] };
+    }
+
     // Get all unique tickers from ALL data points (includes stocks that were sold)
     const allTickers = new Set<string>();
     for (const dataPoint of performanceData.data) {
@@ -121,7 +125,27 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
         }
       }
     }
-    return Array.from(allTickers).sort();
+
+    // Get currently owned stocks from the last data point (quantity > 0)
+    const lastDataPoint = performanceData.data[performanceData.data.length - 1];
+    const currentlyOwned = new Set<string>();
+    if (lastDataPoint.stocks) {
+      for (const [ticker, data] of Object.entries(lastDataPoint.stocks)) {
+        if (data.quantity > 0) {
+          currentlyOwned.add(ticker);
+        }
+      }
+    }
+
+    // Separate into two categories
+    const owned = Array.from(currentlyOwned).sort();
+    const sold = Array.from(allTickers).filter(t => !currentlyOwned.has(t)).sort();
+
+    return {
+      currentlyOwnedStocks: owned,
+      soldOffStocks: sold,
+      availableStocks: [...owned, ...sold]
+    };
   }, [performanceData?.data]);
 
   // Initialize selected stocks to all when data changes (only in uncontrolled mode)
@@ -386,33 +410,70 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       {language === 'fr' ? 'Tout sélectionner' : 'Select All'}
                     </button>
                   </div>
-                  {/* Stock list */}
-                  <div className="p-1">
-                    {availableStocks.map(ticker => (
-                      <button
-                        key={ticker}
-                        onClick={() => toggleStock(ticker)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors ${
-                          selectedStocks.has(ticker)
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                            : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
-                        }`}
-                      >
-                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                          selectedStocks.has(ticker)
-                            ? 'border-green-500 bg-green-500'
-                            : 'border-slate-300 dark:border-slate-500'
-                        }`}>
-                          {selectedStocks.has(ticker) && (
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </div>
-                        <span className="font-medium">{ticker}</span>
-                      </button>
-                    ))}
-                  </div>
+                  {/* Currently owned stocks */}
+                  {currentlyOwnedStocks.length > 0 && (
+                    <div className="p-1">
+                      <div className="px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                        {language === 'fr' ? 'Détenues' : 'Owned'}
+                      </div>
+                      {currentlyOwnedStocks.map(ticker => (
+                        <button
+                          key={ticker}
+                          onClick={() => toggleStock(ticker)}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors ${
+                            selectedStocks.has(ticker)
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                            selectedStocks.has(ticker)
+                              ? 'border-green-500 bg-green-500'
+                              : 'border-slate-300 dark:border-slate-500'
+                          }`}>
+                            {selectedStocks.has(ticker) && (
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="font-medium">{ticker}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {/* Sold off stocks */}
+                  {soldOffStocks.length > 0 && (
+                    <div className="p-1 border-t border-slate-200 dark:border-slate-600">
+                      <div className="px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                        {language === 'fr' ? 'Vendues' : 'Sold'}
+                      </div>
+                      {soldOffStocks.map(ticker => (
+                        <button
+                          key={ticker}
+                          onClick={() => toggleStock(ticker)}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors ${
+                            selectedStocks.has(ticker)
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                            selectedStocks.has(ticker)
+                              ? 'border-green-500 bg-green-500'
+                              : 'border-slate-300 dark:border-slate-500'
+                          }`}>
+                            {selectedStocks.has(ticker) && (
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="font-medium">{ticker}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </>
             )}
