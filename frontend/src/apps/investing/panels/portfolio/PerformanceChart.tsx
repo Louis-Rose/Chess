@@ -697,7 +697,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
         return (
           <>
-            <div ref={chartContainerRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4 [&_.recharts-brush-texts]:!hidden">
+            <style>{`.recharts-brush-texts { display: none !important; }`}</style>
+            <div ref={chartContainerRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
               {/* Title only visible during download */}
               {isDownloading && (
                 <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
