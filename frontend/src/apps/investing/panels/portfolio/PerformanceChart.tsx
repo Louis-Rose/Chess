@@ -1164,7 +1164,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                           setBrushRange(null);
                           setSelectedTimeframe('all');
                         }}
-                        className="absolute left-5 top-2 text-[10px] text-slate-400 hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-600 transition-colors"
+                        className="absolute left-5 -top-4 text-[10px] text-slate-400 hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-600 transition-colors"
                       >
                         Reset
                       </button>
