@@ -1172,6 +1172,16 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                           return txDate > weekAgo && txDate <= currentDateObj;
                         }) || [];
 
+                        // Sort: BUY first, then SELL; within each group: alphabetical by ticker, then by quantity
+                        const sortedTransactions = [...transactionsOnDate].sort((a, b) => {
+                          // BUY before SELL
+                          if (a.type !== b.type) return a.type === 'BUY' ? -1 : 1;
+                          // Alphabetical by ticker
+                          if (a.ticker !== b.ticker) return a.ticker.localeCompare(b.ticker);
+                          // By quantity (descending)
+                          return b.quantity - a.quantity;
+                        });
+
                         return (
                           <div style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '6px 10px', fontSize: '12px' }}>
                             <p style={{ color: '#f1f5f9', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
@@ -1195,9 +1205,9 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                             <p style={{ color: displayOutperfRatio >= 1 ? greenColor : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                               {outperfLabel} : x{displayOutperfRatio}
                             </p>
-                            {transactionsOnDate.length > 0 && (
+                            {sortedTransactions.length > 0 && (
                               <div style={{ borderTop: '1px solid #475569', marginTop: '4px', paddingTop: '4px' }}>
-                                {transactionsOnDate.map((tx, idx) => (
+                                {sortedTransactions.map((tx, idx) => (
                                   <p key={idx} style={{ color: tx.type === 'BUY' ? '#22c55e' : '#f97316', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                                     {tx.type === 'BUY'
                                       ? (language === 'fr' ? `Acheté ${tx.quantity} ${tx.ticker}` : `Bought ${tx.quantity} ${tx.ticker}`)
