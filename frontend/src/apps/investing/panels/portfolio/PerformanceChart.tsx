@@ -772,7 +772,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
               <div className="flex">
                 {/* Vertical Y-axis zoom slider - aligned with chart Y-axis */}
                 {!isDownloading && (
-                  <div className="flex flex-col items-center mr-1" style={{ height: '380px', paddingTop: '10px', paddingBottom: '70px' }}>
+                  <div className="flex flex-col items-center mr-1 h-[380px] md:h-[480px]" style={{ paddingTop: '10px', paddingBottom: '125px' }}>
                     <div className="relative h-full w-10 flex flex-col items-center">
                       {/* Track background - vertical */}
                       <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[40px] bg-slate-800 dark:bg-slate-900 rounded-lg border border-slate-600">
