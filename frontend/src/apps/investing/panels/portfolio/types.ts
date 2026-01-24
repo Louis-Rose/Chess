@@ -87,6 +87,12 @@ export interface CompositionData {
   eurusd_rate: number;
 }
 
+export interface StockBreakdown {
+  value_eur: number;
+  cost_basis_eur: number;
+  quantity: number;
+}
+
 export interface PerformanceDataPoint {
   date: string;
   portfolio_value_eur: number;
@@ -96,6 +102,7 @@ export interface PerformanceDataPoint {
   portfolio_growth_eur: number;
   benchmark_growth_usd: number;
   benchmark_growth_eur: number;
+  stocks?: Record<string, StockBreakdown>;
 }
 
 export interface TransactionEvent {

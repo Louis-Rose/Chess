@@ -987,6 +987,8 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
             # Calculate portfolio value in EUR, handling multi-currency stocks
             portfolio_value_eur = 0
             portfolio_value_usd = 0  # Keep USD value for reference
+            stocks_breakdown = {}  # Per-stock breakdown
+
             for ticker, qty in holdings_at_date.items():
                 if qty > 0:
                     if is_last_date:
@@ -1005,8 +1007,18 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
                         fx_rate_to_eur = get_fx_rate_to_eur(native_currency)
                         price_eur = price_native * fx_rate_to_eur
 
-                    portfolio_value_eur += price_eur * qty
+                    stock_value_eur = price_eur * qty
+                    portfolio_value_eur += stock_value_eur
                     portfolio_value_usd += (price_eur * eurusd) * qty  # Convert back to USD for reference
+
+                    # Calculate cost basis for this stock from lots
+                    stock_cost_eur = sum(lot['cost_eur'] for lot in lots_per_ticker.get(ticker, []))
+
+                    stocks_breakdown[ticker] = {
+                        'value_eur': round(stock_value_eur, 2),
+                        'cost_basis_eur': round(stock_cost_eur, 2),
+                        'quantity': qty
+                    }
 
             # Calculate benchmark value (what if we'd invested in benchmark instead)
             # Benchmark is always in USD (QQQ, SPY, etc.) or EUR-denominated ETF
@@ -1040,6 +1052,7 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
                 'portfolio_growth_eur': round(portfolio_growth, 1),
                 'benchmark_growth_usd': round(benchmark_growth, 1),
                 'benchmark_growth_eur': round(benchmark_growth, 1),
+                'stocks': stocks_breakdown,
             })
         except Exception as e:
             print(f"Error computing performance for {date_str}: {e}")

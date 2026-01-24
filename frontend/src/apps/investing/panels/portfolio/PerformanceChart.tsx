@@ -1,15 +1,40 @@
-import { useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useState, useRef, useCallback, forwardRef, useImperativeHandle, useMemo, useEffect } from 'react';
 import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Brush,
   ResponsiveContainer, Tooltip
 } from 'recharts';
-import { Loader2, Download, Info } from 'lucide-react';
+import { Loader2, Download, Info, Eye, EyeOff } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import type { PerformanceData } from './types';
 import { formatEur, addLumnaBranding, getScaleFactor, PRIVATE_COST_BASIS } from './utils';
+
+// Timeframe definitions
+type TimeframeKey = '1d' | '5d' | '1m' | '6m' | 'ytd' | '1y' | '5y' | 'all';
+
+interface TimeframeOption {
+  key: TimeframeKey;
+  labelFr: string;
+  labelEn: string;
+  getDaysBack: () => number | null; // null = all
+}
+
+const TIMEFRAME_OPTIONS: TimeframeOption[] = [
+  { key: '1d', labelFr: '1j', labelEn: '1d', getDaysBack: () => 1 },
+  { key: '5d', labelFr: '5j', labelEn: '5d', getDaysBack: () => 5 },
+  { key: '1m', labelFr: '1m', labelEn: '1m', getDaysBack: () => 30 },
+  { key: '6m', labelFr: '6m', labelEn: '6m', getDaysBack: () => 180 },
+  { key: 'ytd', labelFr: 'AAJ', labelEn: 'YTD', getDaysBack: () => {
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    return Math.ceil((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+  }},
+  { key: '1y', labelFr: '1a', labelEn: '1y', getDaysBack: () => 365 },
+  { key: '5y', labelFr: '5a', labelEn: '5y', getDaysBack: () => 365 * 5 },
+  { key: 'all', labelFr: 'Tous', labelEn: 'All', getDaysBack: () => null },
+];
 
 export interface PerformanceChartHandle {
   download: () => Promise<void>;
@@ -50,6 +75,101 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   // Brush range - only updated after user stops dragging (debounced)
   const [brushRange, setBrushRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Line visibility toggles
+  const [showPortfolio, setShowPortfolio] = useState(true);
+  const [showBenchmark, setShowBenchmark] = useState(true);
+  const [showInvestedCapital, setShowInvestedCapital] = useState(true);
+
+  // Timeframe selection
+  const [selectedTimeframe, setSelectedTimeframe] = useState<TimeframeKey>('all');
+
+  // Y-axis range (percentage of full range, 0-100 for start and end)
+  const [yAxisRange, setYAxisRange] = useState<{ start: number; end: number }>({ start: 0, end: 100 });
+
+  // Stock selection for filtering
+  const [selectedStocks, setSelectedStocks] = useState<Set<string>>(new Set());
+  const [stockSelectorOpen, setStockSelectorOpen] = useState(false);
+
+  // Extract available stocks from performance data
+  const availableStocks = useMemo(() => {
+    if (!performanceData?.data || performanceData.data.length === 0) return [];
+    // Get all unique tickers from the last data point (most complete)
+    const lastDataPoint = performanceData.data[performanceData.data.length - 1];
+    if (!lastDataPoint.stocks) return [];
+    return Object.keys(lastDataPoint.stocks).sort();
+  }, [performanceData?.data]);
+
+  // Initialize selected stocks to all when data changes
+  useEffect(() => {
+    if (availableStocks.length > 0 && selectedStocks.size === 0) {
+      setSelectedStocks(new Set(availableStocks));
+    }
+  }, [availableStocks, selectedStocks.size]);
+
+  // Toggle stock selection
+  const toggleStock = useCallback((ticker: string) => {
+    setSelectedStocks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(ticker)) {
+        // Don't allow deselecting all stocks
+        if (newSet.size > 1) {
+          newSet.delete(ticker);
+        }
+      } else {
+        newSet.add(ticker);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Select/deselect all stocks
+  const selectAllStocks = useCallback(() => {
+    setSelectedStocks(new Set(availableStocks));
+  }, [availableStocks]);
+
+  const deselectAllStocks = useCallback(() => {
+    // Keep at least one stock selected
+    if (availableStocks.length > 0) {
+      setSelectedStocks(new Set([availableStocks[0]]));
+    }
+  }, [availableStocks]);
+
+  // Calculate brush indices from timeframe
+  const getTimeframeBrushRange = useCallback((data: { date: string }[], timeframe: TimeframeKey) => {
+    if (!data || data.length === 0) return null;
+    if (timeframe === 'all') return null; // null means show all
+
+    const option = TIMEFRAME_OPTIONS.find(o => o.key === timeframe);
+    if (!option) return null;
+
+    const daysBack = option.getDaysBack();
+    if (daysBack === null) return null;
+
+    const endDate = new Date(data[data.length - 1].date);
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - daysBack);
+
+    // Find the index of the first data point >= startDate
+    let startIndex = 0;
+    for (let i = 0; i < data.length; i++) {
+      if (new Date(data[i].date) >= startDate) {
+        startIndex = i;
+        break;
+      }
+    }
+
+    return { startIndex, endIndex: data.length - 1 };
+  }, []);
+
+  // Handle timeframe change
+  const handleTimeframeChange = useCallback((timeframe: TimeframeKey) => {
+    setSelectedTimeframe(timeframe);
+    if (performanceData?.data) {
+      const range = getTimeframeBrushRange(performanceData.data, timeframe);
+      setBrushRange(range);
+    }
+  }, [performanceData?.data, getTimeframeBrushRange]);
 
   // Theme-aware colors
   const colors = {
@@ -179,6 +299,102 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
         </div>
       </div>
 
+      {/* Timeframe Selector */}
+      <div className="flex flex-wrap justify-center gap-3 mb-4">
+        <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
+          {TIMEFRAME_OPTIONS.map((option) => (
+            <button
+              key={option.key}
+              onClick={() => handleTimeframeChange(option.key)}
+              className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${
+                selectedTimeframe === option.key
+                  ? 'bg-slate-600 text-white dark:bg-slate-500'
+                  : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'
+              }`}
+            >
+              {language === 'fr' ? option.labelFr : option.labelEn}
+            </button>
+          ))}
+        </div>
+
+        {/* Stock Filter Dropdown */}
+        {availableStocks.length > 1 && (
+          <div className="relative">
+            <button
+              onClick={() => setStockSelectorOpen(!stockSelectorOpen)}
+              className={`flex items-center gap-2 px-3 py-1.5 text-xs md:text-sm font-medium rounded-lg border transition-colors ${
+                selectedStocks.size < availableStocks.length
+                  ? 'bg-green-100 dark:bg-green-900/30 border-green-400 text-green-700 dark:text-green-300'
+                  : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'
+              }`}
+            >
+              <span>{language === 'fr' ? 'Actions' : 'Stocks'}</span>
+              <span className="bg-slate-200 dark:bg-slate-600 px-1.5 py-0.5 rounded text-xs">
+                {selectedStocks.size}/{availableStocks.length}
+              </span>
+              <svg className={`w-4 h-4 transition-transform ${stockSelectorOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {/* Dropdown menu */}
+            {stockSelectorOpen && (
+              <>
+                {/* Backdrop to close on click outside */}
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setStockSelectorOpen(false)}
+                />
+                <div className="absolute top-full mt-1 right-0 z-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg min-w-[200px] max-h-[300px] overflow-y-auto">
+                  {/* Select All / Deselect All */}
+                  <div className="flex gap-2 p-2 border-b border-slate-200 dark:border-slate-600">
+                    <button
+                      onClick={selectAllStocks}
+                      className="flex-1 px-2 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                    >
+                      {language === 'fr' ? 'Tout' : 'All'}
+                    </button>
+                    <button
+                      onClick={deselectAllStocks}
+                      className="flex-1 px-2 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                    >
+                      {language === 'fr' ? 'Aucun' : 'None'}
+                    </button>
+                  </div>
+                  {/* Stock list */}
+                  <div className="p-1">
+                    {availableStocks.map(ticker => (
+                      <button
+                        key={ticker}
+                        onClick={() => toggleStock(ticker)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors ${
+                          selectedStocks.has(ticker)
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                            : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                          selectedStocks.has(ticker)
+                            ? 'border-green-500 bg-green-500'
+                            : 'border-slate-300 dark:border-slate-500'
+                        }`}>
+                          {selectedStocks.has(ticker) && (
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="font-medium">{ticker}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
       {isLoading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
@@ -267,10 +483,29 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           benchmark_gains_eur: fullRangeBenchmarkGains,
         };
 
+        // Check if we're filtering stocks (some but not all stocks selected)
+        // If selectedStocks is empty, treat it as "all selected"
+        const isFilteringStocks = selectedStocks.size > 0 && selectedStocks.size < availableStocks.length && availableStocks.length > 0;
+
         const chartData = allData.map(d => {
-          const scaledPortfolioValue = d.portfolio_value_eur * scaleFactor;
+          let portfolioValueEur = d.portfolio_value_eur;
+          let costBasisEur = d.cost_basis_eur;
+
+          // If filtering by stocks, recalculate values from the stocks breakdown
+          if (isFilteringStocks && d.stocks) {
+            portfolioValueEur = 0;
+            costBasisEur = 0;
+            for (const ticker of selectedStocks) {
+              if (d.stocks[ticker]) {
+                portfolioValueEur += d.stocks[ticker].value_eur;
+                costBasisEur += d.stocks[ticker].cost_basis_eur;
+              }
+            }
+          }
+
+          const scaledPortfolioValue = portfolioValueEur * scaleFactor;
           const scaledBenchmarkValue = d.benchmark_value_eur * scaleFactor;
-          const scaledCostBasis = d.cost_basis_eur * scaleFactor;
+          const scaledCostBasis = costBasisEur * scaleFactor;
           const isOutperforming = scaledPortfolioValue >= scaledBenchmarkValue;
           return {
             ...d,
@@ -440,15 +675,47 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       tick={(props) => {
                         const { x, y, payload } = props;
                         const d = new Date(payload.value);
-                        const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
-                        const year = d.getFullYear().toString();
+
+                        // Calculate visible range in days to determine label detail level
+                        const startIdx = brushRange?.startIndex ?? 0;
+                        const endIdx = brushRange?.endIndex ?? chartData.length - 1;
+                        const startDate = new Date(chartData[startIdx]?.date);
+                        const endDate = new Date(chartData[endIdx]?.date);
+                        const rangeDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+                        // Determine label format based on zoom level
+                        let line1: string;
+                        let line2: string;
+
+                        if (rangeDays <= 14) {
+                          // Very zoomed in: show "Jan 15" format with full day
+                          line1 = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric' });
+                          line2 = d.getFullYear().toString();
+                        } else if (rangeDays <= 90) {
+                          // Medium zoom: show "Jan 15" but shorter month
+                          const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
+                          const day = d.getDate();
+                          line1 = `${month} ${day}`;
+                          line2 = d.getFullYear().toString();
+                        } else if (rangeDays <= 365) {
+                          // ~1 year view: show month + year but with day if zoomed enough
+                          const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
+                          line1 = month.charAt(0).toUpperCase() + month.slice(1);
+                          line2 = d.getFullYear().toString();
+                        } else {
+                          // Wide view: just month and year
+                          const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
+                          line1 = month.charAt(0).toUpperCase() + month.slice(1);
+                          line2 = d.getFullYear().toString();
+                        }
+
                         return (
                           <g transform={`translate(${x},${y})`}>
                             <text x={0} y={0} dy={14} textAnchor="middle" fill={colors.tickFill} fontSize={14} fontWeight="600">
-                              {month.charAt(0).toUpperCase() + month.slice(1)}
+                              {line1}
                             </text>
                             <text x={0} y={0} dy={30} textAnchor="middle" fill={colors.tickFill} fontSize={13} fontWeight="600">
-                              {year}
+                              {line2}
                             </text>
                           </g>
                         );
@@ -497,22 +764,60 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         }
                         return currency === 'EUR' ? `${formatEur(val / 1000)}k${sym}` : `${sym}${formatEur(val / 1000)}k`;
                       }}
-                      domain={[
-                        (dataMin: number) => {
-                          const increment = privateMode ? 50 : 10000;
-                          return Math.floor(dataMin / increment) * increment;
-                        },
-                        (dataMax: number) => {
-                          const increment = privateMode ? 50 : 10000;
-                          return Math.ceil(dataMax / increment) * increment;
+                      domain={(() => {
+                        const increment = privateMode ? 50 : 10000;
+                        // Get values only from visible lines
+                        const values: number[] = [];
+                        chartData.forEach(d => {
+                          if (showPortfolio) values.push(d.portfolio_value_eur);
+                          if (showBenchmark) values.push(d.benchmark_value_eur);
+                          if (showInvestedCapital) values.push(d.cost_basis_eur);
+                        });
+                        if (values.length === 0) {
+                          values.push(...chartData.map(d => d.portfolio_value_eur));
                         }
-                      ]}
+
+                        const dataMin = Math.min(...values);
+                        const dataMax = Math.max(...values);
+                        const fullMin = Math.floor(dataMin / increment) * increment;
+                        const fullMax = Math.ceil(dataMax / increment) * increment;
+                        const fullRange = fullMax - fullMin;
+
+                        // Apply Y-axis range slider
+                        const adjustedMin = fullMin + (fullRange * yAxisRange.start / 100);
+                        const adjustedMax = fullMin + (fullRange * yAxisRange.end / 100);
+
+                        return [
+                          Math.floor(adjustedMin / increment) * increment,
+                          Math.ceil(adjustedMax / increment) * increment
+                        ];
+                      })()}
                       allowDecimals={false}
                       ticks={(() => {
                         const increment = privateMode ? 50 : 10000;
-                        const values = chartData.map(d => Math.max(d.portfolio_value_eur, d.benchmark_value_eur, d.cost_basis_eur));
-                        const minVal = Math.floor(Math.min(...values) / increment) * increment;
-                        const maxVal = Math.ceil(Math.max(...values) / increment) * increment;
+                        // Get values only from visible lines
+                        const values: number[] = [];
+                        chartData.forEach(d => {
+                          if (showPortfolio) values.push(d.portfolio_value_eur);
+                          if (showBenchmark) values.push(d.benchmark_value_eur);
+                          if (showInvestedCapital) values.push(d.cost_basis_eur);
+                        });
+                        if (values.length === 0) {
+                          values.push(...chartData.map(d => d.portfolio_value_eur));
+                        }
+
+                        const dataMin = Math.min(...values);
+                        const dataMax = Math.max(...values);
+                        const fullMin = Math.floor(dataMin / increment) * increment;
+                        const fullMax = Math.ceil(dataMax / increment) * increment;
+                        const fullRange = fullMax - fullMin;
+
+                        // Apply Y-axis range slider
+                        const adjustedMin = fullMin + (fullRange * yAxisRange.start / 100);
+                        const adjustedMax = fullMin + (fullRange * yAxisRange.end / 100);
+
+                        const minVal = Math.floor(adjustedMin / increment) * increment;
+                        const maxVal = Math.ceil(adjustedMax / increment) * increment;
                         const ticks = [];
                         for (let i = minVal; i <= maxVal; i += increment) {
                           ticks.push(i);
@@ -610,63 +915,74 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         onChange={handleBrushChange}
                       />
                     )}
-                    <Area
-                      type="monotone"
-                      dataKey="area_base"
-                      stackId="performance"
-                      stroke="none"
-                      fill="transparent"
-                      isAnimationActive={false}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="outperformance_fill"
-                      stackId="performance"
-                      stroke="none"
-                      fill="url(#outperformanceGradient)"
-                      isAnimationActive={false}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="underperformance_fill"
-                      stackId="underperf"
-                      stroke="none"
-                      fill="url(#underperformanceGradient)"
-                      isAnimationActive={false}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="area_base"
-                      stackId="underperf"
-                      stroke="none"
-                      fill="transparent"
-                      isAnimationActive={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="portfolio_value_eur"
-                      name="Portfolio (EUR)"
-                      stroke="#16a34a"
-                      strokeWidth={2.5}
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="benchmark_value_eur"
-                      name={`${benchmark} (EUR)`}
-                      stroke="#60a5fa"
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      dot={false}
-                    />
-                    <Line
-                      type="stepAfter"
-                      dataKey="cost_basis_eur"
-                      name="Amount Invested (EUR)"
-                      stroke="#94a3b8"
-                      strokeWidth={2}
-                      dot={false}
-                    />
+                    {/* Only show out/underperformance areas when both portfolio and benchmark are visible */}
+                    {showPortfolio && showBenchmark && (
+                      <>
+                        <Area
+                          type="monotone"
+                          dataKey="area_base"
+                          stackId="performance"
+                          stroke="none"
+                          fill="transparent"
+                          isAnimationActive={false}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="outperformance_fill"
+                          stackId="performance"
+                          stroke="none"
+                          fill="url(#outperformanceGradient)"
+                          isAnimationActive={false}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="underperformance_fill"
+                          stackId="underperf"
+                          stroke="none"
+                          fill="url(#underperformanceGradient)"
+                          isAnimationActive={false}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="area_base"
+                          stackId="underperf"
+                          stroke="none"
+                          fill="transparent"
+                          isAnimationActive={false}
+                        />
+                      </>
+                    )}
+                    {showPortfolio && (
+                      <Line
+                        type="monotone"
+                        dataKey="portfolio_value_eur"
+                        name="Portfolio (EUR)"
+                        stroke="#16a34a"
+                        strokeWidth={2.5}
+                        dot={false}
+                      />
+                    )}
+                    {showBenchmark && (
+                      <Line
+                        type="monotone"
+                        dataKey="benchmark_value_eur"
+                        name={`${benchmark} (EUR)`}
+                        stroke="#60a5fa"
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        dot={false}
+                      />
+                    )}
+                    {showInvestedCapital && (
+                      <Line
+                        type="stepAfter"
+                        dataKey="cost_basis_eur"
+                        name="Amount Invested (EUR)"
+                        stroke="#94a3b8"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    )}
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -699,29 +1015,127 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   </div>
                 );
               })()}
-              {/* Legend - below slider labels */}
-              <div className="flex justify-center gap-6 text-sm flex-wrap mt-3">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-4 h-0.5 bg-green-600"></div>
-                  <span className="text-slate-600 dark:text-slate-300">{t('performance.portfolio')}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-4 h-0.5 bg-[#60a5fa]" style={{ borderStyle: 'dashed', borderWidth: '1px', borderColor: '#60a5fa', height: 0 }}></div>
-                  <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Indice de ref.' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-4 h-0.5 bg-slate-400"></div>
-                  <span className="text-slate-600 dark:text-slate-300">{t('performance.invested')}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 bg-green-400/50 border border-green-400"></div>
-                  <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Surperformance' : 'Outperformance'}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 bg-red-500/30 border border-red-500"></div>
-                  <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Sous-performance' : 'Underperformance'}</span>
-                </div>
+              {/* Interactive Legend - click to toggle visibility */}
+              <div className="flex justify-center gap-4 text-sm flex-wrap mt-3">
+                {/* Portfolio toggle */}
+                <button
+                  onClick={() => setShowPortfolio(!showPortfolio)}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
+                    showPortfolio
+                      ? 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50'
+                      : 'bg-slate-200 dark:bg-slate-600 opacity-50 hover:opacity-75'
+                  }`}
+                >
+                  {showPortfolio ? <Eye className="w-3.5 h-3.5 text-green-600" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
+                  <div className={`w-4 h-0.5 ${showPortfolio ? 'bg-green-600' : 'bg-slate-400'}`}></div>
+                  <span className={`${showPortfolio ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                    {t('performance.portfolio')}
+                  </span>
+                </button>
+                {/* Benchmark toggle */}
+                <button
+                  onClick={() => setShowBenchmark(!showBenchmark)}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
+                    showBenchmark
+                      ? 'bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50'
+                      : 'bg-slate-200 dark:bg-slate-600 opacity-50 hover:opacity-75'
+                  }`}
+                >
+                  {showBenchmark ? <Eye className="w-3.5 h-3.5 text-blue-500" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
+                  <div className={`w-4 h-0.5 ${showBenchmark ? 'bg-[#60a5fa]' : 'bg-slate-400'}`} style={showBenchmark ? { borderStyle: 'dashed', borderWidth: '1px', borderColor: '#60a5fa', height: 0 } : {}}></div>
+                  <span className={`${showBenchmark ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                    {language === 'fr' ? 'Indice' : 'Benchmark'} ({benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY')})
+                  </span>
+                </button>
+                {/* Invested Capital toggle */}
+                <button
+                  onClick={() => setShowInvestedCapital(!showInvestedCapital)}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
+                    showInvestedCapital
+                      ? 'bg-slate-200 dark:bg-slate-500/30 hover:bg-slate-300 dark:hover:bg-slate-500/50'
+                      : 'bg-slate-200 dark:bg-slate-600 opacity-50 hover:opacity-75'
+                  }`}
+                >
+                  {showInvestedCapital ? <Eye className="w-3.5 h-3.5 text-slate-500" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
+                  <div className={`w-4 h-0.5 ${showInvestedCapital ? 'bg-slate-400' : 'bg-slate-400'}`}></div>
+                  <span className={`${showInvestedCapital ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                    {t('performance.invested')}
+                  </span>
+                </button>
+                {/* Outperformance indicator (only shown when both portfolio and benchmark visible) */}
+                {showPortfolio && showBenchmark && (
+                  <>
+                    <div className="flex items-center gap-1.5 px-2 py-1">
+                      <div className="w-3 h-3 bg-green-400/50 border border-green-400"></div>
+                      <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Surperf.' : 'Outperf.'}</span>
+                    </div>
+                    {/* Underperformance indicator */}
+                    <div className="flex items-center gap-1.5 px-2 py-1">
+                      <div className="w-3 h-3 bg-red-500/30 border border-red-500"></div>
+                      <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Sous-perf.' : 'Underperf.'}</span>
+                    </div>
+                  </>
+                )}
               </div>
+
+              {/* Y-Axis Range Slider */}
+              {!isDownloading && (
+                <div className="mt-4 px-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                      {language === 'fr' ? 'Zoom Y' : 'Y Zoom'}:
+                    </span>
+                    <div className="flex-1 relative h-6">
+                      {/* Track background */}
+                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 bg-slate-300 dark:bg-slate-600 rounded-full" />
+                      {/* Selected range */}
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 h-2 bg-slate-500 dark:bg-slate-400 rounded-full"
+                        style={{
+                          left: `${yAxisRange.start}%`,
+                          width: `${yAxisRange.end - yAxisRange.start}%`
+                        }}
+                      />
+                      {/* Start handle */}
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={yAxisRange.start}
+                        onChange={(e) => {
+                          const newStart = Math.min(Number(e.target.value), yAxisRange.end - 5);
+                          setYAxisRange(prev => ({ ...prev, start: newStart }));
+                        }}
+                        className="absolute inset-0 w-full appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-600 [&::-webkit-slider-thumb]:dark:bg-slate-300 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:dark:border-slate-800 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-slate-600 [&::-moz-range-thumb]:dark:bg-slate-300 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto"
+                        style={{ zIndex: yAxisRange.start > 50 ? 2 : 1 }}
+                      />
+                      {/* End handle */}
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={yAxisRange.end}
+                        onChange={(e) => {
+                          const newEnd = Math.max(Number(e.target.value), yAxisRange.start + 5);
+                          setYAxisRange(prev => ({ ...prev, end: newEnd }));
+                        }}
+                        className="absolute inset-0 w-full appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-600 [&::-webkit-slider-thumb]:dark:bg-slate-300 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:dark:border-slate-800 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-slate-600 [&::-moz-range-thumb]:dark:bg-slate-300 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto"
+                        style={{ zIndex: yAxisRange.end < 50 ? 2 : 1 }}
+                      />
+                    </div>
+                    {/* Reset button */}
+                    {(yAxisRange.start !== 0 || yAxisRange.end !== 100) && (
+                      <button
+                        onClick={() => setYAxisRange({ start: 0, end: 100 })}
+                        className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                      >
+                        {language === 'fr' ? 'Réinit.' : 'Reset'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* LUMNA branding - hidden during download since addLumnaBranding adds it */}
               {!isDownloading && (
                 <div className="flex items-center justify-end gap-2 mt-2 mr-2">
