@@ -614,13 +614,10 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           const domainMax = Math.ceil(adjustedMax / increment) * increment;
 
           const ticks: number[] = [];
-          for (let i = domainMin; i <= domainMax; i += increment) {
+          // Always start ticks from 0 when data is positive
+          const tickStart = dataMin >= 0 ? 0 : domainMin;
+          for (let i = tickStart; i <= domainMax; i += increment) {
             ticks.push(i);
-          }
-          // Always include 0 if it's in range
-          if (domainMin <= 0 && domainMax >= 0 && !ticks.includes(0)) {
-            ticks.push(0);
-            ticks.sort((a, b) => a - b);
           }
 
           return {
@@ -1167,7 +1164,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                           setBrushRange(null);
                           setSelectedTimeframe('all');
                         }}
-                        className="absolute -left-10 top-2 text-[10px] text-slate-400 hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-600 transition-colors"
+                        className="absolute left-5 top-2 text-[10px] text-slate-400 hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-600 transition-colors"
                       >
                         Reset
                       </button>
