@@ -928,6 +928,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       }}
                       stroke={colors.axisStroke}
                       height={55}
+                      interval={0}
                       ticks={(() => {
                         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
                         const maxTicks = isMobile ? 6 : 11;
