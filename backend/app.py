@@ -2351,14 +2351,14 @@ def get_portfolio_performance():
         if account_ids and len(account_ids) > 0:
             placeholders = ','.join('?' for _ in account_ids)
             cursor = conn.execute(
-                f'''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+                f'''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share, price_currency
                    FROM portfolio_transactions WHERE user_id = ? AND account_id IN ({placeholders})
                    ORDER BY transaction_date ASC''',
                 (request.user_id, *account_ids)
             )
         else:
             cursor = conn.execute(
-                '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+                '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share, price_currency
                    FROM portfolio_transactions WHERE user_id = ?
                    ORDER BY transaction_date ASC''',
                 (request.user_id,)

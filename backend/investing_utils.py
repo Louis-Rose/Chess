@@ -836,17 +836,26 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
 
     for tx in sorted_txs:
         tx_date = tx['transaction_date']
-        tx_cost_usd = tx['quantity'] * tx['price_per_share']
+        tx_price = tx['price_per_share']
+        tx_qty = tx['quantity']
+        price_currency = tx.get('price_currency', 'USD') or 'USD'
 
         if tx['transaction_type'] == 'BUY':
             try:
-                # Convert to EUR at transaction date
+                # Convert to EUR and USD based on transaction currency
                 eurusd_at_tx = fetch_eurusd_rate(tx_date)
-                tx_cost_eur = tx_cost_usd / eurusd_at_tx
+
+                if price_currency == 'EUR':
+                    tx_cost_eur = tx_qty * tx_price
+                    tx_cost_usd = tx_cost_eur * eurusd_at_tx
+                else:
+                    # Assume USD if not EUR
+                    tx_cost_usd = tx_qty * tx_price
+                    tx_cost_eur = tx_cost_usd / eurusd_at_tx
 
                 benchmark_price_at_tx = fetch_stock_price(benchmark_ticker, tx_date)
                 # Buy benchmark with the same amount in the benchmark's currency
-                # If benchmark is EUR-denominated, convert USD to EUR first
+                # If benchmark is EUR-denominated, use EUR cost
                 if benchmark_currency == 'EUR':
                     benchmark_shares_bought = tx_cost_eur / benchmark_price_at_tx
                 else:
@@ -865,37 +874,44 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
                     'date': tx_date,
                     'ticker': tx['stock_ticker'],
                     'type': 'BUY',
-                    'quantity': tx['quantity']
+                    'quantity': tx_qty
                 })
             except Exception as e:
                 print(f"Error processing transaction: {e}")
                 tx_benchmark_info.append({
                     'date': tx_date,
                     'type': 'BUY',
-                    'cost_usd': tx_cost_usd,
-                    'cost_eur': tx_cost_usd,  # Fallback
+                    'cost_usd': tx_qty * tx_price,
+                    'cost_eur': tx_qty * tx_price,  # Fallback
                     'benchmark_shares': 0
                 })
         else:  # SELL
             try:
-                # Convert sale proceeds to EUR at transaction date
+                # Convert sale proceeds to EUR and USD based on transaction currency
                 eurusd_at_tx = fetch_eurusd_rate(tx_date)
-                tx_proceeds_eur = tx_cost_usd / eurusd_at_tx
+
+                if price_currency == 'EUR':
+                    tx_proceeds_eur = tx_qty * tx_price
+                    tx_proceeds_usd = tx_proceeds_eur * eurusd_at_tx
+                else:
+                    tx_proceeds_usd = tx_qty * tx_price
+                    tx_proceeds_eur = tx_proceeds_usd / eurusd_at_tx
 
                 # Also sell equivalent worth of benchmark shares (in benchmark's currency)
                 benchmark_price_at_tx = fetch_stock_price(benchmark_ticker, tx_date)
                 if benchmark_currency == 'EUR':
                     benchmark_shares_sold = tx_proceeds_eur / benchmark_price_at_tx
                 else:
-                    benchmark_shares_sold = tx_cost_usd / benchmark_price_at_tx
+                    benchmark_shares_sold = tx_proceeds_usd / benchmark_price_at_tx
             except:
-                tx_proceeds_eur = tx_cost_usd  # Fallback
+                tx_proceeds_eur = tx_qty * tx_price  # Fallback
+                tx_proceeds_usd = tx_qty * tx_price
                 benchmark_shares_sold = 0
 
             tx_benchmark_info.append({
                 'date': tx_date,
                 'type': 'SELL',
-                'cost_usd': -tx_cost_usd,
+                'cost_usd': -tx_proceeds_usd,
                 'cost_eur': -tx_proceeds_eur,  # Negative because money is coming OUT
                 'benchmark_shares': -benchmark_shares_sold  # Negative - selling benchmark shares too
             })
@@ -903,7 +919,7 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
                 'date': tx_date,
                 'ticker': tx['stock_ticker'],
                 'type': 'SELL',
-                'quantity': tx['quantity']
+                'quantity': tx_qty
             })
 
     # Calculate performance data
@@ -913,7 +929,7 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
         date_dt = datetime.strptime(date_str, "%Y-%m-%d")
 
         # Calculate holdings at this date using FIFO
-        # Track lots per ticker: list of { qty, cost_usd_per_share, cost_eur }
+        # Track lots per ticker: list of { qty, cost_usd, cost_eur }
         lots_per_ticker = {}  # ticker -> list of lots
         holdings_at_date = {}  # ticker -> total quantity
         benchmark_shares_at_date = 0
@@ -930,11 +946,12 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
 
             if tx['transaction_type'] == 'BUY':
                 holdings_at_date[ticker] += tx['quantity']
-                tx_cost_usd = tx['quantity'] * tx['price_per_share']
+                # Use pre-calculated values from tx_benchmark_info (handles price_currency correctly)
+                tx_cost_usd = tx_benchmark_info[i]['cost_usd']
                 tx_cost_eur = tx_benchmark_info[i]['cost_eur']
                 lots_per_ticker[ticker].append({
                     'qty': tx['quantity'],
-                    'cost_usd_per_share': tx['price_per_share'],
+                    'cost_usd': tx_cost_usd,
                     'cost_eur': tx_cost_eur
                 })
                 benchmark_shares_at_date += tx_benchmark_info[i]['benchmark_shares']
@@ -954,6 +971,7 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
                     else:
                         portion = sell_from_lot / lot['qty']
                         lot['cost_eur'] *= (1 - portion)
+                        lot['cost_usd'] *= (1 - portion)
                         lot['qty'] -= sell_from_lot
 
                     remaining_sell -= sell_from_lot
@@ -966,7 +984,7 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
         cost_basis_eur_at_date = 0
         for ticker, lots in lots_per_ticker.items():
             for lot in lots:
-                cost_basis_at_date += lot['qty'] * lot['cost_usd_per_share']
+                cost_basis_at_date += lot['cost_usd']
                 cost_basis_eur_at_date += lot['cost_eur']
 
         # Skip if no holdings yet
