@@ -1044,20 +1044,81 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         );
                       }}
                     />
-                    {!isDownloading && (
-                      <Brush
-                        dataKey="date"
-                        height={40}
-                        stroke="#16a34a"
-                        fill={colors.brushFill}
-                        travellerWidth={12}
-                        tickFormatter={() => ''}
-                        startIndex={brushRange?.startIndex}
-                        endIndex={brushRange?.endIndex}
-                        onChange={handleBrushChange}
-                        className="[&_.recharts-brush-texts]:hidden"
-                      />
-                    )}
+                    {!isDownloading && (() => {
+                      const startIdx = brushRange?.startIndex ?? 0;
+                      const endIdx = brushRange?.endIndex ?? chartData.length - 1;
+                      const maxIdx = chartData.length - 1;
+
+                      // Calculate offset for left label - max offset when at start, reduces to 0 as it moves right
+                      const leftOffsetPct = maxIdx > 0 ? ((maxIdx - startIdx) / maxIdx) * 3 : 0; // 3% max offset
+                      // Calculate offset for right label - similar logic but from the right
+                      const rightOffsetPct = maxIdx > 0 ? ((endIdx) / maxIdx) * 3 : 0;
+
+                      const formatBrushDate = (dateStr: string) => {
+                        const d = new Date(dateStr);
+                        const month = d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' });
+                        return {
+                          line1: month.charAt(0).toUpperCase() + month.slice(1),
+                          line2: d.getFullYear().toString()
+                        };
+                      };
+
+                      const startDate = chartData[startIdx]?.date;
+                      const endDate = chartData[endIdx]?.date;
+                      const startFormatted = startDate ? formatBrushDate(startDate) : null;
+                      const endFormatted = endDate ? formatBrushDate(endDate) : null;
+
+                      // Calculate positions as percentages (accounting for chart margins)
+                      const chartLeftMargin = 20;
+                      const chartRightMargin = 50;
+                      const totalMargin = chartLeftMargin + chartRightMargin;
+                      const startPct = (startIdx / maxIdx) * (100 - totalMargin * 100 / 800) + (chartLeftMargin * 100 / 800);
+                      const endPct = (endIdx / maxIdx) * (100 - totalMargin * 100 / 800) + (chartLeftMargin * 100 / 800);
+
+                      return (
+                        <>
+                          <Brush
+                            dataKey="date"
+                            height={40}
+                            stroke="#16a34a"
+                            fill={colors.brushFill}
+                            travellerWidth={12}
+                            tickFormatter={() => ''}
+                            startIndex={brushRange?.startIndex}
+                            endIndex={brushRange?.endIndex}
+                            onChange={handleBrushChange}
+                            className="[&_.recharts-brush-texts]:hidden"
+                          />
+                          {/* Custom brush labels with dynamic offset */}
+                          {startFormatted && (
+                            <text
+                              x={`${startPct + leftOffsetPct}%`}
+                              y="98%"
+                              textAnchor="middle"
+                              fill="#16a34a"
+                              fontSize={14}
+                              fontWeight={600}
+                            >
+                              <tspan x={`${startPct + leftOffsetPct}%`} dy="0">{startFormatted.line1}</tspan>
+                              <tspan x={`${startPct + leftOffsetPct}%`} dy="16">{startFormatted.line2}</tspan>
+                            </text>
+                          )}
+                          {endFormatted && (
+                            <text
+                              x={`${endPct - rightOffsetPct + 3}%`}
+                              y="98%"
+                              textAnchor="middle"
+                              fill="#16a34a"
+                              fontSize={14}
+                              fontWeight={600}
+                            >
+                              <tspan x={`${endPct - rightOffsetPct + 3}%`} dy="0">{endFormatted.line1}</tspan>
+                              <tspan x={`${endPct - rightOffsetPct + 3}%`} dy="16">{endFormatted.line2}</tspan>
+                            </text>
+                          )}
+                        </>
+                      );
+                    })()}
                     {/* Only show out/underperformance areas when both portfolio and benchmark are visible */}
                     {showPortfolio && showBenchmark && (
                       <>
