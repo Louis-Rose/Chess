@@ -1897,13 +1897,13 @@ def _parse_ibkr_pdf_with_gemini(pdf_bytes: bytes) -> tuple[list[dict] | None, li
 Look for the "Trades" section which contains stock buy/sell transactions.
 
 Return ONLY a valid JSON array with this exact format:
-[{"ticker": "AAPL", "type": "BUY", "quantity": 10, "date": "2024-03-15", "price": 150.25}, ...]
+[{"ticker": "AAPL", "type": "BUY", "quantity": 10.25, "date": "2024-03-15", "price": 150.25}, ...]
 
 Rules:
 - Include ONLY stock trades (Buy/Sell), NOT dividends, fees, interest, forex, or options
 - ticker: The stock symbol (e.g., "AAPL", "META", "GOOGL")
-- type: "BUY" or "SELL" only
-- quantity: Number of shares (integer, always positive)
+- type: "BUY" or "SELL" only. Proceeds indicate the impact on the cash balance. If negative, the transaction was a Buy.
+- quantity: Number of shares (always positive). Can be fractional, keep two decimals precision.
 - date: Format YYYY-MM-DD
 - price: Price per share (number, can be decimal). "T. Price" is the transaction price.
 - If there are no stock transactions, return an empty array: []
@@ -1931,7 +1931,7 @@ Return ONLY the JSON array, no other text."""
             transactions.append({
                 'stock_ticker': tx['ticker'].upper(),
                 'transaction_type': tx['type'].upper(),
-                'quantity': int(abs(tx['quantity'])),  # Ensure positive
+                'quantity': round(abs(float(tx['quantity'])), 2),  # Ensure positive, keep 2 decimals
                 'transaction_date': tx['date'],
                 'price_per_share': float(price) if price is not None else None,
             })
@@ -1946,7 +1946,7 @@ Return ONLY the JSON array, no other text."""
                 adj = split_adjustments.get(key, {'quantity_factor': 1.0, 'price_factor': 1.0})
 
                 if adj['quantity_factor'] != 1.0:
-                    tx['quantity'] = int(round(tx['quantity'] * adj['quantity_factor']))
+                    tx['quantity'] = round(tx['quantity'] * adj['quantity_factor'], 2)
                     if tx['price_per_share'] is not None:
                         tx['price_per_share'] = round(tx['price_per_share'] * adj['price_factor'], 4)
 
