@@ -1119,7 +1119,7 @@ def add_transaction():
     if not transaction_date:
         return jsonify({'error': 'Transaction date required (YYYY-MM-DD)'}), 400
 
-    quantity = int(quantity)
+    quantity = round(float(quantity), 2)  # Keep 2 decimal places for fractional shares
 
     # Validate account_id if provided
     if account_id is not None:
@@ -2012,7 +2012,7 @@ HTML Content:
             transactions.append({
                 'stock_ticker': tx['ticker'].upper(),
                 'transaction_type': tx['type'].upper(),
-                'quantity': int(abs(tx['quantity'])),  # Ensure positive
+                'quantity': round(abs(float(tx['quantity'])), 2),  # Ensure positive, keep 2 decimals
                 'transaction_date': tx['date'],
                 'price_per_share': float(price) if price is not None else None,
             })
@@ -2027,13 +2027,14 @@ HTML Content:
                 adj = split_adjustments.get(key, {'quantity_factor': 1.0, 'price_factor': 1.0})
 
                 if adj['quantity_factor'] != 1.0:
-                    tx['quantity'] = int(round(tx['quantity'] * adj['quantity_factor']))
+                    tx['quantity'] = round(tx['quantity'] * adj['quantity_factor'], 2)
                     if tx['price_per_share'] is not None:
                         tx['price_per_share'] = round(tx['price_per_share'] * adj['price_factor'], 4)
 
         return transactions, []
 
     except Exception as e:
+        logger.error(f"[IBKR HTML Import Error] {type(e).__name__}: {str(e)}")
         return None, [f'Gemini parsing failed: {str(e)}']
 
 
@@ -2097,7 +2098,7 @@ Return ONLY the JSON array, no other text."""
             transactions.append({
                 'stock_ticker': tx['ticker'].upper(),
                 'transaction_type': tx['type'].upper(),
-                'quantity': int(abs(tx['quantity'])),
+                'quantity': round(abs(float(tx['quantity'])), 2),  # Ensure positive, keep 2 decimals
                 'transaction_date': tx['date'],
                 'price_per_share': float(price) if price is not None else None,
             })
@@ -2112,7 +2113,7 @@ Return ONLY the JSON array, no other text."""
                 adj = split_adjustments.get(key, {'quantity_factor': 1.0, 'price_factor': 1.0})
 
                 if adj['quantity_factor'] != 1.0:
-                    tx['quantity'] = int(round(tx['quantity'] * adj['quantity_factor']))
+                    tx['quantity'] = round(tx['quantity'] * adj['quantity_factor'], 2)
                     if tx['price_per_share'] is not None:
                         tx['price_per_share'] = round(tx['price_per_share'] * adj['price_factor'], 4)
 
