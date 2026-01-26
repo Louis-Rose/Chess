@@ -367,11 +367,10 @@ export function PortfolioPanel() {
 
   const deleteAccountMutation = useMutation({
     mutationFn: deleteAccount,
-    onSuccess: () => {
+    onSuccess: (_data, deletedId) => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      if (accounts.length <= 1) {
-        setSelectedAccountIds([]);
-      }
+      // Remove deleted account from selection
+      setSelectedAccountIds(prev => prev.filter(id => id !== deletedId));
     },
   });
 
