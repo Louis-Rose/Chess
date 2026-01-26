@@ -1905,7 +1905,7 @@ Rules:
 - type: "BUY" or "SELL" only
 - quantity: Number of shares (integer, always positive)
 - date: Format YYYY-MM-DD
-- price: Price per share (number, can be decimal)
+- price: Price per share (number, can be decimal). "T. Price" is the transaction price.
 - If there are no stock transactions, return an empty array: []
 
 Return ONLY the JSON array, no other text."""
