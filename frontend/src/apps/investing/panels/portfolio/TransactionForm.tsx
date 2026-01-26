@@ -403,7 +403,7 @@ export function TransactionForm({
                       }`}
                     >
                       <Upload className="w-5 h-5" />
-                      {language === 'fr' ? 'Importer depuis IBKR' : 'Import from IBKR'}
+                      {language === 'fr' ? 'Importer depuis Interactive Brokers' : 'Import from Interactive Brokers'}
                     </button>
                   )}
                   <button
