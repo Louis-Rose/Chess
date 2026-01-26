@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS portfolio_transactions (
     account_id INTEGER,
     stock_ticker TEXT NOT NULL,
     transaction_type TEXT NOT NULL,
-    quantity INTEGER NOT NULL,
+    quantity REAL NOT NULL,
     transaction_date TEXT NOT NULL,
     price_per_share REAL NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

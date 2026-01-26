@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS portfolio_transactions (
     account_id INTEGER,                  -- Reference to investment_accounts (nullable for legacy data)
     stock_ticker TEXT NOT NULL,
     transaction_type TEXT NOT NULL,     -- 'BUY' or 'SELL'
-    quantity INTEGER NOT NULL,
+    quantity REAL NOT NULL,             -- Can be fractional
     transaction_date TEXT NOT NULL,     -- Date of transaction (YYYY-MM-DD)
     price_per_share REAL NOT NULL,      -- Price per share at transaction date
     price_currency TEXT DEFAULT 'EUR',  -- Currency of price_per_share (EUR, USD, etc.)

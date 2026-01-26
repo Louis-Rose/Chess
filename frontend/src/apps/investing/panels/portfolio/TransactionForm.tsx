@@ -279,7 +279,7 @@ export function TransactionForm({
       onAddTransaction({
         stock_ticker: newTicker.toUpperCase().trim(),
         transaction_type: newType,
-        quantity: parseInt(newQuantity),
+        quantity: parseFloat(newQuantity),
         transaction_date: newDate,
         account_id: addFormAccountId,
       });
