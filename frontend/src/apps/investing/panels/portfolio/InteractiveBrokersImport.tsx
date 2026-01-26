@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, FileText, X, Check, AlertCircle, Loader2, Trash2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Upload, FileText, X, Check, AlertCircle, Loader2, Trash2, ChevronRight, ChevronLeft, Eye } from 'lucide-react';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 
@@ -42,6 +42,8 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -71,6 +73,12 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
     setParsedTransactions([]);
     setSelectedTransactions(new Set());
     setIsParsing(true);
+
+    // Create preview URL for PDF
+    if (pdfPreviewUrl) {
+      URL.revokeObjectURL(pdfPreviewUrl);
+    }
+    setPdfPreviewUrl(URL.createObjectURL(selectedFile));
 
     const formData = new FormData();
     formData.append('file', selectedFile);
@@ -178,6 +186,11 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
     setParseError(null);
     setImportErrors([]);
     setStep(1);
+    if (pdfPreviewUrl) {
+      URL.revokeObjectURL(pdfPreviewUrl);
+      setPdfPreviewUrl(null);
+    }
+    setShowPdfPreview(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -405,9 +418,13 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-slate-500" />
-              <span className="text-slate-600 dark:text-slate-300 font-medium">
+              <button
+                onClick={() => pdfPreviewUrl && setShowPdfPreview(true)}
+                className="text-slate-600 dark:text-slate-300 font-medium flex items-center gap-1 hover:text-green-600 dark:hover:text-green-400 cursor-pointer"
+              >
                 {file?.name}
-              </span>
+                <Eye className="w-4 h-4 ml-1" />
+              </button>
               <button onClick={reset} className="text-slate-400 hover:text-red-500 p-1">
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -574,6 +591,38 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
               >
                 {language === 'fr' ? 'Terminer' : 'Done'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Preview Modal */}
+      {showPdfPreview && pdfPreviewUrl && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowPdfPreview(false)}>
+          <div
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-3">
+                <FileText className="w-5 h-5 text-slate-500" />
+                <span className="font-medium text-slate-800 dark:text-slate-200">{file?.name}</span>
+              </div>
+              <button
+                onClick={() => setShowPdfPreview(false)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            {/* PDF Viewer */}
+            <div className="flex-1 overflow-hidden p-4">
+              <iframe
+                src={pdfPreviewUrl}
+                className="w-full h-full min-h-[70vh] rounded-lg border border-slate-200 dark:border-slate-700"
+                title="PDF Preview"
+              />
             </div>
           </div>
         </div>
