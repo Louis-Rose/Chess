@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, FileText, X, Check, AlertCircle, Loader2, Trash2, ChevronRight, ChevronLeft, Eye } from 'lucide-react';
+import { Upload, FileText, X, Check, AlertCircle, Loader2, Trash2, ChevronRight, ChevronLeft } from 'lucide-react';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 
