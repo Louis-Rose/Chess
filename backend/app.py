@@ -2119,29 +2119,42 @@ Return ONLY the JSON array, no other text."""
 @login_required
 def parse_ibkr_file():
     """Parse an Interactive Brokers Activity Statement (PDF, HTML, or image) and return extracted transactions."""
+    print("[IBKR Import] Starting file parsing...")
+
     if 'file' not in request.files:
+        print("[IBKR Import] No file in request")
         return jsonify({'error': 'No file provided'}), 400
 
     file = request.files['file']
     filename = file.filename.lower()
+    print(f"[IBKR Import] Filename: {filename}")
+
     is_pdf = filename.endswith('.pdf')
     is_html = filename.endswith('.html') or filename.endswith('.htm')
     is_image = any(filename.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.webp'])
+    print(f"[IBKR Import] is_pdf={is_pdf}, is_html={is_html}, is_image={is_image}")
 
     if not is_pdf and not is_html and not is_image:
         return jsonify({'error': 'File must be a PDF, HTML, or image'}), 400
 
     try:
         file_bytes = file.read()
+        print(f"[IBKR Import] File size: {len(file_bytes)} bytes")
 
         if is_pdf:
+            print("[IBKR Import] Parsing as PDF...")
             transactions, errors = _parse_ibkr_pdf_with_gemini(file_bytes)
         elif is_html:
+            print("[IBKR Import] Parsing as HTML...")
             transactions, errors = _parse_ibkr_html_with_gemini(file_bytes)
         else:
+            print("[IBKR Import] Parsing as image...")
             transactions, errors = _parse_ibkr_image_with_gemini(file_bytes)
 
+        print(f"[IBKR Import] Result: transactions={transactions is not None}, errors={errors}")
+
         if transactions is None:
+            print(f"[IBKR Import] Failed: {errors}")
             return jsonify({'error': errors[0] if errors else 'Failed to parse file'}), 400
 
         return jsonify({
