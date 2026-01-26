@@ -2042,8 +2042,10 @@ def _parse_ibkr_image_with_gemini(image_bytes: bytes) -> tuple[list[dict] | None
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.0-flash')
 
-        # Load image
+        # Load and convert image to RGB (in case of RGBA/PNG with transparency)
         image = Image.open(BytesIO(image_bytes))
+        if image.mode in ('RGBA', 'LA', 'P'):
+            image = image.convert('RGB')
 
         prompt = """Extract ALL stock transactions from this Interactive Brokers Activity Statement image.
 Look for the "Trades" section which contains stock buy/sell transactions.
@@ -2063,6 +2065,10 @@ Rules:
 Return ONLY the JSON array, no other text."""
 
         response = model.generate_content([prompt, image])
+
+        # Check if response is valid
+        if not response or not response.text:
+            return None, ['Gemini returned empty response']
 
         # Parse JSON response
         response_text = response.text.strip()
@@ -2103,6 +2109,9 @@ Return ONLY the JSON array, no other text."""
         return transactions, []
 
     except Exception as e:
+        print(f"[IBKR Image Import Error] {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return None, [f'Gemini parsing failed: {str(e)}']
 
 
