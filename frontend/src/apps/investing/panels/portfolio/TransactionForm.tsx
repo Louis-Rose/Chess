@@ -398,8 +398,8 @@ export function TransactionForm({
                       }}
                       className={`w-72 px-6 py-3 rounded-xl flex items-center justify-center gap-3 text-lg font-medium shadow-lg transition-all ${
                         importActive
-                          ? 'bg-[#a01810] text-white/80 ring-2 ring-white'
-                          : 'bg-[#d32011] text-white hover:bg-[#b01c0f] hover:shadow-xl'
+                          ? 'bg-[#0444aa] text-white/80 ring-2 ring-white'
+                          : 'bg-[#0666eb] text-white hover:bg-[#0555cc] hover:shadow-xl'
                       }`}
                     >
                       <Upload className="w-5 h-5" />
