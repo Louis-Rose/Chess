@@ -770,18 +770,9 @@ def compute_portfolio_composition(holdings, target_currency='EUR'):
     # Sort by weight descending
     composition.sort(key=lambda x: -x['weight'])
 
-    # Ensure unique colors within portfolio
-    used_colors = set()
-    for item in composition:
-        color = item['color']
-        if color in used_colors:
-            # Find an unused color from VIBRANT_COLORS
-            for alt_color in VIBRANT_COLORS:
-                if alt_color not in used_colors:
-                    item['color'] = alt_color
-                    color = alt_color
-                    break
-        used_colors.add(color)
+    # Assign unique colors from VIBRANT_COLORS in order (guarantees distinct colors)
+    for i, item in enumerate(composition):
+        item['color'] = VIBRANT_COLORS[i % len(VIBRANT_COLORS)]
 
     # Get EUR/USD rate for reference
     eurusd_rate = get_current_eurusd_rate()
