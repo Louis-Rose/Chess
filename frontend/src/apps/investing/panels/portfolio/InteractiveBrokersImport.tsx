@@ -57,10 +57,11 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
     setIsDragging(false);
     const droppedFile = e.dataTransfer.files[0];
     const isPdf = droppedFile?.type === 'application/pdf' || droppedFile?.name?.endsWith('.pdf');
-    if (isPdf) {
+    const isHtml = droppedFile?.type === 'text/html' || droppedFile?.name?.endsWith('.html') || droppedFile?.name?.endsWith('.htm');
+    if (isPdf || isHtml) {
       handleFileSelect(droppedFile);
     } else {
-      setParseError(language === 'fr' ? 'Veuillez sélectionner un fichier PDF' : 'Please select a PDF file');
+      setParseError(language === 'fr' ? 'Veuillez sélectionner un fichier PDF ou HTML' : 'Please select a PDF or HTML file');
     }
   };
 
@@ -182,41 +183,42 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
     }
   };
 
-  // Step content - TODO: Replace with actual instructions
+  // Step content
   const steps = [
     {
-      titleFr: 'Connectez-vous à votre compte Interactive Brokers',
-      titleEn: 'Log into your Interactive Brokers account',
-      descFr: 'Rendez-vous sur le portail Client Portal et connectez-vous à votre compte.',
-      descEn: 'Go to the Client Portal and log into your account.',
+      titleFr: 'Accédez aux relevés',
+      titleEn: 'Navigate to Statements',
+      descFr: 'Cliquez sur "Performance & Rapports" puis "Relevés".',
+      descEn: 'Click "Performance & Reports" then "Statements".',
       image: step1Image,
     },
     {
-      titleFr: 'Accédez aux rapports',
-      titleEn: 'Navigate to Reports',
-      descFr: 'Dans le menu, cliquez sur "Performance & Reports" puis "Statements".',
-      descEn: 'In the menu, click "Performance & Reports" then "Statements".',
+      titleFr: 'Sélectionnez vos comptes',
+      titleEn: 'Select your accounts',
+      descFr: 'Sélectionnez le ou les comptes souhaités.',
+      descEn: 'Select the account(s) you want to include.',
       image: step2Image,
     },
     {
-      titleFr: 'Sélectionnez le type de rapport',
-      titleEn: 'Select statement type',
-      descFr: 'Choisissez "Activity Statement" pour voir toutes vos transactions.',
-      descEn: 'Choose "Activity Statement" to see all your transactions.',
+      titleFr: 'Exécutez le rapport Activité',
+      titleEn: 'Run Activity report',
+      descFr: 'Cliquez sur "Activité" puis sur la flèche bleue pour exécuter.',
+      descEn: 'Click "Activity" then the blue arrow to run the report.',
       image: step3Image,
     },
     {
-      titleFr: 'Configurez la période',
-      titleEn: 'Configure the period',
-      descFr: 'Sélectionnez la période souhaitée (par exemple, depuis l\'ouverture du compte).',
-      descEn: 'Select your desired period (e.g., since account opening).',
+      titleFr: 'Sélectionnez la période',
+      titleEn: 'Select the period',
+      descFr: 'Sélectionnez "Annuelle" et/ou "YTD" (Year To Date).',
+      descEn: 'Select "Annual" and/or "YTD" (Year To Date).',
       image: step4Image,
+      warning: true,
     },
     {
-      titleFr: 'Téléchargez le PDF',
-      titleEn: 'Download the PDF',
-      descFr: 'Cliquez sur le bouton de téléchargement et choisissez le format PDF.',
-      descEn: 'Click the download button and choose PDF format.',
+      titleFr: 'Téléchargez le fichier',
+      titleEn: 'Download the file',
+      descFr: 'Téléchargez au format HTML ou PDF.',
+      descEn: 'Download in HTML or PDF format.',
       image: step5Image,
     },
   ];
@@ -278,6 +280,15 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
             {language === 'fr' ? currentStepData.descFr : currentStepData.descEn}
           </p>
 
+          {/* Warning for step 4 */}
+          {currentStepData.warning && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-700 dark:text-amber-400">
+              ⚠️ {language === 'fr'
+                ? 'Interactive Brokers ne permet de générer des rapports que sur 12 mois maximum. Générez un rapport par an.'
+                : 'Interactive Brokers only allows generating reports for a maximum of 12 months. Generate one report per year.'}
+            </div>
+          )}
+
           {/* Navigation buttons */}
           <div className="flex justify-between py-4">
             <button
@@ -328,16 +339,16 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,application/pdf"
+              accept=".pdf,.html,.htm,application/pdf,text/html"
               onChange={handleFileInputChange}
               className="hidden"
             />
             <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-[#d32011]' : 'text-slate-400'}`} />
             <p className="text-slate-600 dark:text-slate-300 font-medium mb-2">
-              {language === 'fr' ? 'Glissez votre fichier PDF ici' : 'Drag your PDF file here'}
+              {language === 'fr' ? 'Glissez votre fichier ici' : 'Drag your file here'}
             </p>
             <p className="text-slate-400 text-sm">
-              {language === 'fr' ? 'ou cliquez pour sélectionner' : 'or click to select'}
+              {language === 'fr' ? 'PDF ou HTML' : 'PDF or HTML'}
             </p>
           </div>
 

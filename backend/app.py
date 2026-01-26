@@ -1946,23 +1946,112 @@ Return ONLY the JSON array, no other text."""
         return None, [f'Gemini parsing failed: {str(e)}']
 
 
+def _parse_ibkr_html_with_gemini(html_bytes: bytes) -> tuple[list[dict] | None, list[str]]:
+    """Parse Interactive Brokers Activity Statement HTML using Gemini."""
+    import google.generativeai as genai
+    import json
+
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        return None, ['GEMINI_API_KEY not configured']
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+
+        # Decode HTML content
+        html_content = html_bytes.decode('utf-8', errors='ignore')
+
+        prompt = f"""Extract ALL stock transactions from this Interactive Brokers Activity Statement HTML.
+Look for the "Trades" section which contains stock buy/sell transactions.
+
+Return ONLY a valid JSON array with this exact format:
+[{{"ticker": "AAPL", "type": "BUY", "quantity": 10, "date": "2024-03-15", "price": 150.25}}, ...]
+
+Rules:
+- Include ONLY stock trades (Buy/Sell), NOT dividends, fees, interest, forex, or options
+- ticker: The stock symbol (e.g., "AAPL", "META", "GOOGL")
+- type: "BUY" or "SELL" only
+- quantity: Number of shares (integer, always positive)
+- date: Format YYYY-MM-DD
+- price: Price per share (number, can be decimal)
+- If there are no stock transactions, return an empty array: []
+
+Return ONLY the JSON array, no other text.
+
+HTML Content:
+{html_content[:100000]}"""  # Limit to ~100k chars
+
+        response = model.generate_content(prompt)
+
+        # Parse JSON response
+        response_text = response.text.strip()
+        # Remove markdown code blocks if present
+        if response_text.startswith('```'):
+            response_text = response_text.split('\n', 1)[1]
+            if response_text.endswith('```'):
+                response_text = response_text.rsplit('```', 1)[0]
+            response_text = response_text.strip()
+
+        transactions_raw = json.loads(response_text)
+
+        # Normalize to our format
+        transactions = []
+        for tx in transactions_raw:
+            price = tx.get('price')
+            transactions.append({
+                'stock_ticker': tx['ticker'].upper(),
+                'transaction_type': tx['type'].upper(),
+                'quantity': int(abs(tx['quantity'])),  # Ensure positive
+                'transaction_date': tx['date'],
+                'price_per_share': float(price) if price is not None else None,
+            })
+
+        # Apply stock split adjustments
+        if transactions:
+            tickers = list(set(tx['stock_ticker'] for tx in transactions))
+            split_adjustments = _get_split_adjustments(tickers, transactions)
+
+            for tx in transactions:
+                key = (tx['stock_ticker'], tx['transaction_date'])
+                adj = split_adjustments.get(key, {'quantity_factor': 1.0, 'price_factor': 1.0})
+
+                if adj['quantity_factor'] != 1.0:
+                    tx['quantity'] = int(round(tx['quantity'] * adj['quantity_factor']))
+                    if tx['price_per_share'] is not None:
+                        tx['price_per_share'] = round(tx['price_per_share'] * adj['price_factor'], 4)
+
+        return transactions, []
+
+    except Exception as e:
+        return None, [f'Gemini parsing failed: {str(e)}']
+
+
 @app.route('/api/investing/import/interactive-brokers', methods=['POST'])
 @login_required
-def parse_ibkr_pdf():
-    """Parse an Interactive Brokers Activity Statement PDF and return extracted transactions."""
+def parse_ibkr_file():
+    """Parse an Interactive Brokers Activity Statement (PDF or HTML) and return extracted transactions."""
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
 
     file = request.files['file']
-    if not file.filename.lower().endswith('.pdf'):
-        return jsonify({'error': 'File must be a PDF'}), 400
+    filename = file.filename.lower()
+    is_pdf = filename.endswith('.pdf')
+    is_html = filename.endswith('.html') or filename.endswith('.htm')
+
+    if not is_pdf and not is_html:
+        return jsonify({'error': 'File must be a PDF or HTML'}), 400
 
     try:
-        pdf_bytes = file.read()
-        transactions, errors = _parse_ibkr_pdf_with_gemini(pdf_bytes)
+        file_bytes = file.read()
+
+        if is_pdf:
+            transactions, errors = _parse_ibkr_pdf_with_gemini(file_bytes)
+        else:
+            transactions, errors = _parse_ibkr_html_with_gemini(file_bytes)
 
         if transactions is None:
-            return jsonify({'error': errors[0] if errors else 'Failed to parse PDF'}), 400
+            return jsonify({'error': errors[0] if errors else 'Failed to parse file'}), 400
 
         return jsonify({
             'success': True,
@@ -1972,7 +2061,7 @@ def parse_ibkr_pdf():
         })
 
     except Exception as e:
-        return jsonify({'error': f'Failed to parse PDF: {str(e)}'}), 400
+        return jsonify({'error': f'Failed to parse file: {str(e)}'}), 400
 
 
 @app.route('/api/investing/import/create-token', methods=['POST'])
