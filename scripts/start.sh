@@ -98,6 +98,9 @@ case "$1" in
                 sudo systemctl restart nginx
                 echo "Services restarted."
                 sudo systemctl status chess-backend --no-pager
+                echo ""
+                echo "=== Tailing logs (Ctrl+C to exit) ==="
+                sudo journalctl -u chess-backend -f
                 ;;
 
             status)
