@@ -2795,6 +2795,15 @@ BANKS = {
         'fx_fee_info_fr': '0.10%',
         'fx_fee_info_en': '0.10%',
     },
+    'INTERACTIVE_BROKERS': {
+        'name': 'Interactive Brokers',
+        'order_fee_pct': 0.05,  # Tiered: 0.05% (min $1, max 1% of trade)
+        'order_fee_min': 1,  # $1 minimum per order
+        'custody_fee_pct_year': 0,
+        'custody_fee_pct_year_pea': None,  # No PEA available
+        'fx_fee_info_fr': '0.002% (min $2)',
+        'fx_fee_info_en': '0.002% (min $2)',
+    },
 }
 
 # Account types with tax implications
