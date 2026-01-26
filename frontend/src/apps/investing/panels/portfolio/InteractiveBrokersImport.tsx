@@ -59,10 +59,11 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
     const droppedFile = e.dataTransfer.files[0];
     const isPdf = droppedFile?.type === 'application/pdf' || droppedFile?.name?.endsWith('.pdf');
     const isHtml = droppedFile?.type === 'text/html' || droppedFile?.name?.endsWith('.html') || droppedFile?.name?.endsWith('.htm');
-    if (isPdf || isHtml) {
+    const isImage = droppedFile?.type?.startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(droppedFile?.name || '');
+    if (isPdf || isHtml || isImage) {
       handleFileSelect(droppedFile);
     } else {
-      setParseError(language === 'fr' ? 'Veuillez sélectionner un fichier PDF ou HTML' : 'Please select a PDF or HTML file');
+      setParseError(language === 'fr' ? 'Veuillez sélectionner un fichier PDF, HTML ou image' : 'Please select a PDF, HTML or image file');
     }
   };
 
@@ -226,7 +227,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
       titleFr: 'Sélectionnez "Trades"',
       titleEn: 'Select "Trades"',
       descFr: 'Dans les sections, cochez uniquement "Trades".',
-      descEn: 'In the sections, check only "Trades".',
+      descEn: 'In the sections, select "Trades".',
       image: step6Image,
     },
   ];
@@ -347,7 +348,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.html,.htm,application/pdf,text/html"
+              accept=".pdf,.html,.htm,.png,.jpg,.jpeg,.webp,application/pdf,text/html,image/*"
               onChange={handleFileInputChange}
               className="hidden"
             />
@@ -356,7 +357,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
               {language === 'fr' ? 'Glissez votre fichier ici' : 'Drag your file here'}
             </p>
             <p className="text-slate-400 text-sm">
-              {language === 'fr' ? 'PDF ou HTML' : 'PDF or HTML'}
+              {language === 'fr' ? 'PDF, HTML ou image' : 'PDF, HTML or image'}
             </p>
           </div>
 
