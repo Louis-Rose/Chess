@@ -232,7 +232,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#d32011] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center">
             <span className="text-white font-bold text-sm">IBKR</span>
           </div>
           <div>
@@ -262,7 +262,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
               key={s}
               onClick={() => setStep(s)}
               className={`h-2 flex-1 rounded-full transition-colors hover:opacity-80 ${
-                s <= step ? 'bg-[#d32011]' : 'bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500'
+                s <= step ? 'bg-green-500' : 'bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500'
               }`}
               title={language === 'fr' ? `Étape ${s}` : `Step ${s}`}
             />
@@ -301,7 +301,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
             </button>
             <button
               onClick={() => setStep(s => s + 1)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#d32011] text-white rounded-lg hover:bg-[#b01c0f]"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
               {isLastInstructionStep
                 ? (language === 'fr' ? 'J\'ai le fichier' : 'I have the file')
@@ -332,8 +332,8 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
               isDragging
-                ? 'border-[#d32011] bg-red-50 dark:bg-red-900/20'
-                : 'border-slate-300 dark:border-slate-600 hover:border-[#d32011] dark:hover:border-[#d32011]'
+                ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                : 'border-slate-300 dark:border-slate-600 hover:border-green-400 dark:hover:border-green-500'
             }`}
           >
             <input
@@ -343,7 +343,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
               onChange={handleFileInputChange}
               className="hidden"
             />
-            <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-[#d32011]' : 'text-slate-400'}`} />
+            <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-green-500' : 'text-slate-400'}`} />
             <p className="text-slate-600 dark:text-slate-300 font-medium mb-2">
               {language === 'fr' ? 'Glissez votre fichier ici' : 'Drag your file here'}
             </p>
@@ -367,7 +367,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
       {/* Parsing State */}
       {isParsing && (
         <div className="text-center py-8">
-          <Loader2 className="w-10 h-10 text-[#d32011] animate-spin mx-auto mb-4" />
+          <Loader2 className="w-10 h-10 text-green-500 animate-spin mx-auto mb-4" />
           <p className="text-slate-600 dark:text-slate-300">
             {language === 'fr' ? 'Analyse du PDF...' : 'Parsing PDF...'}
           </p>
@@ -407,7 +407,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
             </div>
             <button
               onClick={toggleAll}
-              className="text-sm text-[#d32011] hover:text-[#b01c0f]"
+              className="text-sm text-green-600 hover:text-green-700 dark:text-green-400"
             >
               {selectedTransactions.size === parsedTransactions.length
                 ? (language === 'fr' ? 'Tout désélectionner' : 'Deselect all')
@@ -434,14 +434,14 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
                       key={i}
                       className={`border-t border-slate-100 dark:border-slate-700 transition-colors ${
                         selectedTransactions.has(i)
-                          ? 'bg-red-50 dark:bg-red-900/20'
+                          ? 'bg-green-50 dark:bg-green-900/20'
                           : 'hover:bg-slate-50 dark:hover:bg-slate-700'
                       }`}
                     >
                       <td className="p-3 cursor-pointer" onClick={() => toggleTransaction(i)}>
                         <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                           selectedTransactions.has(i)
-                            ? 'bg-[#d32011] border-[#d32011]'
+                            ? 'bg-green-500 border-green-500'
                             : 'border-slate-300 dark:border-slate-500'
                         }`}>
                           {selectedTransactions.has(i) && <Check className="w-3 h-3 text-white" />}
@@ -452,14 +452,14 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
                           type="text"
                           value={tx.stock_ticker}
                           onChange={(e) => updateTransaction(i, 'stock_ticker', e.target.value.toUpperCase())}
-                          className="w-full px-2 py-1 font-bold text-slate-800 dark:text-slate-100 bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-500 focus:border-[#d32011] dark:focus:border-[#d32011] rounded focus:outline-none"
+                          className="w-full px-2 py-1 font-bold text-slate-800 dark:text-slate-100 bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-500 focus:border-green-500 dark:focus:border-green-400 rounded focus:outline-none"
                         />
                       </td>
                       <td className="p-2">
                         <select
                           value={tx.transaction_type}
                           onChange={(e) => updateTransaction(i, 'transaction_type', e.target.value)}
-                          className={`px-2 py-1 rounded text-xs font-bold border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#d32011] ${
+                          className={`px-2 py-1 rounded text-xs font-bold border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-500 ${
                             tx.transaction_type === 'BUY'
                               ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400'
                               : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'
@@ -476,7 +476,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
                           onChange={(e) => updateTransaction(i, 'quantity', e.target.value)}
                           min="0"
                           step="any"
-                          className="w-20 px-2 py-1 text-center text-slate-600 dark:text-slate-300 bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-500 focus:border-[#d32011] dark:focus:border-[#d32011] rounded focus:outline-none"
+                          className="w-20 px-2 py-1 text-center text-slate-600 dark:text-slate-300 bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-500 focus:border-green-500 dark:focus:border-green-400 rounded focus:outline-none"
                         />
                       </td>
                       <td className="p-2 text-right">
@@ -489,7 +489,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
                           type="date"
                           value={tx.transaction_date}
                           onChange={(e) => updateTransaction(i, 'transaction_date', e.target.value)}
-                          className="px-2 py-1 text-slate-500 dark:text-slate-400 bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-500 focus:border-[#d32011] dark:focus:border-[#d32011] rounded focus:outline-none"
+                          className="px-2 py-1 text-slate-500 dark:text-slate-400 bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-500 focus:border-green-500 dark:focus:border-green-400 rounded focus:outline-none"
                         />
                       </td>
                     </tr>
@@ -513,7 +513,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
               <button
                 onClick={handleImport}
                 disabled={selectedTransactions.size === 0}
-                className="px-4 py-2 bg-[#d32011] text-white rounded-lg hover:bg-[#b01c0f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Check className="w-4 h-4" />
                 {language === 'fr' ? 'Importer' : 'Import'} ({selectedTransactions.size})
@@ -526,7 +526,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
       {/* Import Progress */}
       {isImporting && (
         <div className="text-center py-8">
-          <Loader2 className="w-10 h-10 text-[#d32011] animate-spin mx-auto mb-4" />
+          <Loader2 className="w-10 h-10 text-green-500 animate-spin mx-auto mb-4" />
           <p className="text-slate-600 dark:text-slate-300 mb-2">
             {language === 'fr' ? 'Import en cours...' : 'Importing...'}
           </p>
@@ -535,7 +535,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
           </p>
           <div className="w-48 mx-auto mt-3 h-2 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#d32011] transition-all duration-300"
+              className="h-full bg-green-500 transition-all duration-300"
               style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
             />
           </div>
@@ -563,7 +563,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
               </ul>
               <button
                 onClick={onImportComplete}
-                className="mt-3 px-4 py-2 bg-[#d32011] text-white rounded-lg hover:bg-[#b01c0f] text-sm"
+                className="mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
               >
                 {language === 'fr' ? 'Terminer' : 'Done'}
               </button>
