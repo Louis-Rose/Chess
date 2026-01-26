@@ -1,14 +1,24 @@
 # backend/app.py
 import os
+import sys
 import hashlib
 import secrets
 import re
+import logging
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, Response, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 import utils
 from database import get_db, init_db, get_all_cached_stats, save_all_cached_stats, USE_POSTGRES
+
+# Configure logging for gunicorn
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
 
 # In-memory storage for mobile upload tokens (short-lived, ~5 min)
 # Structure: { token: { user_id, created_at, transactions, status } }
@@ -2109,9 +2119,9 @@ Return ONLY the JSON array, no other text."""
         return transactions, []
 
     except Exception as e:
-        print(f"[IBKR Image Import Error] {type(e).__name__}: {str(e)}")
+        logger.error(f"[IBKR Image Import Error] {type(e).__name__}: {str(e)}")
         import traceback
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
         return None, [f'Gemini parsing failed: {str(e)}']
 
 
@@ -2119,42 +2129,42 @@ Return ONLY the JSON array, no other text."""
 @login_required
 def parse_ibkr_file():
     """Parse an Interactive Brokers Activity Statement (PDF, HTML, or image) and return extracted transactions."""
-    print("[IBKR Import] Starting file parsing...")
+    logger.info("[IBKR Import] Starting file parsing...")
 
     if 'file' not in request.files:
-        print("[IBKR Import] No file in request")
+        logger.info("[IBKR Import] No file in request")
         return jsonify({'error': 'No file provided'}), 400
 
     file = request.files['file']
     filename = file.filename.lower()
-    print(f"[IBKR Import] Filename: {filename}")
+    logger.info(f"[IBKR Import] Filename: {filename}")
 
     is_pdf = filename.endswith('.pdf')
     is_html = filename.endswith('.html') or filename.endswith('.htm')
     is_image = any(filename.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.webp'])
-    print(f"[IBKR Import] is_pdf={is_pdf}, is_html={is_html}, is_image={is_image}")
+    logger.info(f"[IBKR Import] is_pdf={is_pdf}, is_html={is_html}, is_image={is_image}")
 
     if not is_pdf and not is_html and not is_image:
         return jsonify({'error': 'File must be a PDF, HTML, or image'}), 400
 
     try:
         file_bytes = file.read()
-        print(f"[IBKR Import] File size: {len(file_bytes)} bytes")
+        logger.info(f"[IBKR Import] File size: {len(file_bytes)} bytes")
 
         if is_pdf:
-            print("[IBKR Import] Parsing as PDF...")
+            logger.info("[IBKR Import] Parsing as PDF...")
             transactions, errors = _parse_ibkr_pdf_with_gemini(file_bytes)
         elif is_html:
-            print("[IBKR Import] Parsing as HTML...")
+            logger.info("[IBKR Import] Parsing as HTML...")
             transactions, errors = _parse_ibkr_html_with_gemini(file_bytes)
         else:
-            print("[IBKR Import] Parsing as image...")
+            logger.info("[IBKR Import] Parsing as image...")
             transactions, errors = _parse_ibkr_image_with_gemini(file_bytes)
 
-        print(f"[IBKR Import] Result: transactions={transactions is not None}, errors={errors}")
+        logger.info(f"[IBKR Import] Result: transactions={transactions is not None}, errors={errors}")
 
         if transactions is None:
-            print(f"[IBKR Import] Failed: {errors}")
+            logger.error(f"[IBKR Import] Failed: {errors}")
             return jsonify({'error': errors[0] if errors else 'Failed to parse file'}), 400
 
         return jsonify({
