@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, ChevronDown, ArrowUpDown, Download, Building2, Wallet, Minus, Plus, Trash2 } from 'lucide-react';
+import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, ChevronDown, ArrowUpDown, Download, Building2, Wallet, Minus, Plus, Trash2, MousePointerClick } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -663,6 +663,21 @@ export function PortfolioPanel() {
           isCreating={createAccountMutation.isPending}
           isDeleting={deleteAccountMutation.isPending}
         />
+
+        {/* Prompt to select account when none selected */}
+        {accounts.length > 0 && selectedAccountIds.length === 0 && (
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-8 text-center">
+            <MousePointerClick className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-2">
+              {language === 'fr' ? 'Sélectionnez un compte' : 'Select an account'}
+            </h3>
+            <p className="text-slate-500 dark:text-slate-400">
+              {language === 'fr'
+                ? 'Cliquez sur un compte ci-dessus pour voir vos positions, transactions et performance.'
+                : 'Click on an account above to see your holdings, transactions and performance.'}
+            </p>
+          </div>
+        )}
 
         {/* Transaction Form - Only when at least one account selected */}
         {selectedAccountIds.length > 0 && (
