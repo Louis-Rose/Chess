@@ -9,6 +9,7 @@ import step2Image from '../../../../assets/ibkr-import/step2.png';
 import step3Image from '../../../../assets/ibkr-import/step3.png';
 import step4Image from '../../../../assets/ibkr-import/step4.png';
 import step5Image from '../../../../assets/ibkr-import/step5.png';
+import step6Image from '../../../../assets/ibkr-import/step6.png';
 
 interface ParsedTransaction {
   stock_ticker: string;
@@ -215,17 +216,24 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
       warning: true,
     },
     {
+      titleFr: 'Sélectionnez "Trades"',
+      titleEn: 'Select "Trades"',
+      descFr: 'Dans les sections, cochez uniquement "Trades".',
+      descEn: 'In the sections, check only "Trades".',
+      image: step5Image,
+    },
+    {
       titleFr: 'Téléchargez le fichier',
       titleEn: 'Download the file',
       descFr: 'Téléchargez au format HTML ou PDF.',
       descEn: 'Download in HTML or PDF format.',
-      image: step5Image,
+      image: step6Image,
     },
   ];
 
   const currentStepData = steps[step - 1];
-  const isLastInstructionStep = step === 5;
-  const isUploadStep = step === 6;
+  const isLastInstructionStep = step === 6;
+  const isUploadStep = step === 7;
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-600">
@@ -242,7 +250,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {isUploadStep
                 ? (language === 'fr' ? 'Uploadez votre relevé' : 'Upload your statement')
-                : (language === 'fr' ? `Étape ${step}/5` : `Step ${step}/5`)}
+                : (language === 'fr' ? `Étape ${step}/6` : `Step ${step}/6`)}
             </p>
           </div>
         </div>
@@ -257,7 +265,7 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
       {/* Progress bar for instruction steps - clickable */}
       {!isUploadStep && !parsedTransactions.length && (
         <div className="flex gap-1 mb-4">
-          {[1, 2, 3, 4, 5].map(s => (
+          {[1, 2, 3, 4, 5, 6].map(s => (
             <button
               key={s}
               onClick={() => setStep(s)}
@@ -270,16 +278,9 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
         </div>
       )}
 
-      {/* Instruction Steps (1-5) */}
+      {/* Instruction Steps (1-6) */}
       {!isUploadStep && !parsedTransactions.length && !parseError && (
         <div className="space-y-4">
-          <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100 text-center">
-            {language === 'fr' ? currentStepData.titleFr : currentStepData.titleEn}
-          </h4>
-          <p className="text-slate-800 dark:text-slate-100 text-center">
-            {language === 'fr' ? currentStepData.descFr : currentStepData.descEn}
-          </p>
-
           {/* Warning for step 4 */}
           {currentStepData.warning && (
             <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-700 dark:text-amber-400">
@@ -288,6 +289,13 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
                 : 'Interactive Brokers only allows generating reports for a maximum of 12 months. Generate one report per year.'}
             </div>
           )}
+
+          <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100 text-center">
+            {language === 'fr' ? currentStepData.titleFr : currentStepData.titleEn}
+          </h4>
+          <p className="text-slate-800 dark:text-slate-100 text-center">
+            {language === 'fr' ? currentStepData.descFr : currentStepData.descEn}
+          </p>
 
           {/* Navigation buttons */}
           <div className="flex justify-between py-4">
