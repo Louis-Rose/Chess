@@ -5,7 +5,7 @@ import { useLanguage } from '../../../../contexts/LanguageContext';
 
 // Import screenshots as static assets
 import step1Image from '../../../../assets/ibkr-import/step1.png';
-import step2Image from '../../../../assets/ibkr-import/step2.jpeg';
+import step2Image from '../../../../assets/ibkr-import/step2.png';
 import step3Image from '../../../../assets/ibkr-import/step3.png';
 import step4Image from '../../../../assets/ibkr-import/step4.png';
 import step5Image from '../../../../assets/ibkr-import/step5.png';
