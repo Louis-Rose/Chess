@@ -45,11 +45,8 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [modalPos, setModalPos] = useState({ x: 0, y: 0 });
-  const [modalSize, setModalSize] = useState({ width: 900, height: 600 });
   const [isDraggingModal, setIsDraggingModal] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [isResizing, setIsResizing] = useState(false);
-  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -159,22 +156,10 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
     if (isDraggingModal) {
       setModalPos({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
     }
-    if (isResizing) {
-      const newWidth = Math.max(400, resizeStart.width + (e.clientX - resizeStart.x));
-      const newHeight = Math.max(300, resizeStart.height + (e.clientY - resizeStart.y));
-      setModalSize({ width: newWidth, height: newHeight });
-    }
   };
 
   const handleDragEnd = () => {
     setIsDraggingModal(false);
-    setIsResizing(false);
-  };
-
-  const handleResizeStart = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsResizing(true);
-    setResizeStart({ x: e.clientX, y: e.clientY, width: modalSize.width, height: modalSize.height });
   };
 
   const handleImport = async () => {
@@ -640,13 +625,11 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
           onMouseLeave={handleDragEnd}
         >
           <div
-            className="absolute bg-white dark:bg-slate-800 rounded-xl shadow-2xl flex flex-col"
+            className="absolute bg-white dark:bg-slate-800 rounded-xl shadow-2xl flex flex-col w-[900px] h-[600px] max-w-[95vw] max-h-[90vh]"
             style={{
               left: `calc(50% + ${modalPos.x}px)`,
               top: `calc(50% + ${modalPos.y}px)`,
               transform: 'translate(-50%, -50%)',
-              width: modalSize.width,
-              height: modalSize.height,
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -675,13 +658,6 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
                 className="w-full h-full rounded-lg border border-slate-200 dark:border-slate-700"
                 title="PDF Preview"
               />
-            </div>
-            {/* Resize Handle */}
-            <div
-              className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize flex items-center justify-center"
-              onMouseDown={handleResizeStart}
-            >
-              <div className="w-3 h-3 border-r-2 border-b-2 border-slate-400 dark:border-slate-500" />
             </div>
           </div>
         </div>
