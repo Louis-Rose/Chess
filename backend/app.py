@@ -2128,7 +2128,7 @@ Return ONLY the JSON array, no other text."""
 @app.route('/api/investing/import/interactive-brokers', methods=['POST'])
 @login_required
 def parse_ibkr_file():
-    """Parse an Interactive Brokers Activity Statement (PDF, HTML, or image) and return extracted transactions."""
+    """Parse an Interactive Brokers Activity Statement PDF and return extracted transactions."""
     logger.info("[IBKR Import] Starting file parsing...")
 
     if 'file' not in request.files:
@@ -2139,27 +2139,15 @@ def parse_ibkr_file():
     filename = file.filename.lower()
     logger.info(f"[IBKR Import] Filename: {filename}")
 
-    is_pdf = filename.endswith('.pdf')
-    is_html = filename.endswith('.html') or filename.endswith('.htm')
-    is_image = any(filename.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.webp'])
-    logger.info(f"[IBKR Import] is_pdf={is_pdf}, is_html={is_html}, is_image={is_image}")
-
-    if not is_pdf and not is_html and not is_image:
-        return jsonify({'error': 'File must be a PDF, HTML, or image'}), 400
+    if not filename.endswith('.pdf'):
+        return jsonify({'error': 'File must be a PDF'}), 400
 
     try:
         file_bytes = file.read()
         logger.info(f"[IBKR Import] File size: {len(file_bytes)} bytes")
 
-        if is_pdf:
-            logger.info("[IBKR Import] Parsing as PDF...")
-            transactions, errors = _parse_ibkr_pdf_with_gemini(file_bytes)
-        elif is_html:
-            logger.info("[IBKR Import] Parsing as HTML...")
-            transactions, errors = _parse_ibkr_html_with_gemini(file_bytes)
-        else:
-            logger.info("[IBKR Import] Parsing as image...")
-            transactions, errors = _parse_ibkr_image_with_gemini(file_bytes)
+        logger.info("[IBKR Import] Parsing as PDF...")
+        transactions, errors = _parse_ibkr_pdf_with_gemini(file_bytes)
 
         logger.info(f"[IBKR Import] Result: transactions={transactions is not None}, errors={errors}")
 
