@@ -702,8 +702,8 @@ export function StockDetailPanel() {
             }
 
             return (
-              <div className="space-y-3">
-                {filteredVideos.map((video) => (
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {filteredVideos.slice(0, 4).map((video) => (
                   <button
                     key={video.video_id}
                     onClick={() => setSelectedVideo(video)}
