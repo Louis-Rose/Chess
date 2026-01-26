@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, FileText, X, Check, AlertCircle, Loader2, Trash2, ChevronRight, ChevronLeft, Eye } from 'lucide-react';
+import { Upload, FileText, X, Check, AlertCircle, Loader2, Trash2, ChevronRight, ChevronLeft, Eye, GripHorizontal } from 'lucide-react';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 
@@ -44,6 +44,12 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [modalPos, setModalPos] = useState({ x: 0, y: 0 });
+  const [modalSize, setModalSize] = useState({ width: 900, height: 600 });
+  const [isDraggingModal, setIsDraggingModal] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -141,6 +147,34 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
       }
       return updated;
     });
+  };
+
+  // Modal drag handlers
+  const handleDragStart = (e: React.MouseEvent) => {
+    setIsDraggingModal(true);
+    setDragStart({ x: e.clientX - modalPos.x, y: e.clientY - modalPos.y });
+  };
+
+  const handleDragMove = (e: React.MouseEvent) => {
+    if (isDraggingModal) {
+      setModalPos({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+    }
+    if (isResizing) {
+      const newWidth = Math.max(400, resizeStart.width + (e.clientX - resizeStart.x));
+      const newHeight = Math.max(300, resizeStart.height + (e.clientY - resizeStart.y));
+      setModalSize({ width: newWidth, height: newHeight });
+    }
+  };
+
+  const handleDragEnd = () => {
+    setIsDraggingModal(false);
+    setIsResizing(false);
+  };
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeStart({ x: e.clientX, y: e.clientY, width: modalSize.width, height: modalSize.height });
   };
 
   const handleImport = async () => {
@@ -598,19 +632,37 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
 
       {/* PDF Preview Modal */}
       {showPdfPreview && pdfPreviewUrl && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowPdfPreview(false)}>
+        <div
+          className="fixed inset-0 bg-black/50 z-50"
+          onClick={() => setShowPdfPreview(false)}
+          onMouseMove={handleDragMove}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
+        >
           <div
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col"
+            className="absolute bg-white dark:bg-slate-800 rounded-xl shadow-2xl flex flex-col"
+            style={{
+              left: `calc(50% + ${modalPos.x}px)`,
+              top: `calc(50% + ${modalPos.y}px)`,
+              transform: 'translate(-50%, -50%)',
+              width: modalSize.width,
+              height: modalSize.height,
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+            {/* Header - Draggable */}
+            <div
+              className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 cursor-move select-none"
+              onMouseDown={handleDragStart}
+            >
               <div className="flex items-center gap-3">
+                <GripHorizontal className="w-5 h-5 text-slate-400" />
                 <FileText className="w-5 h-5 text-slate-500" />
                 <span className="font-medium text-slate-800 dark:text-slate-200">{file?.name}</span>
               </div>
               <button
                 onClick={() => setShowPdfPreview(false)}
+                onMouseDown={(e) => e.stopPropagation()}
                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
               >
                 <X className="w-5 h-5 text-slate-500" />
@@ -620,9 +672,16 @@ export function InteractiveBrokersImport({ selectedAccountId, onImportComplete, 
             <div className="flex-1 overflow-hidden p-4">
               <iframe
                 src={pdfPreviewUrl}
-                className="w-full h-full min-h-[70vh] rounded-lg border border-slate-200 dark:border-slate-700"
+                className="w-full h-full rounded-lg border border-slate-200 dark:border-slate-700"
                 title="PDF Preview"
               />
+            </div>
+            {/* Resize Handle */}
+            <div
+              className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize flex items-center justify-center"
+              onMouseDown={handleResizeStart}
+            >
+              <div className="w-3 h-3 border-r-2 border-b-2 border-slate-400 dark:border-slate-500" />
             </div>
           </div>
         </div>
