@@ -8,6 +8,7 @@ import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from
 import type { Transaction, NewTransaction } from './types';
 import { RevolutImport } from './RevolutImport';
 import { CreditMutuelImport } from './CreditMutuelImport';
+import { InteractiveBrokersImport } from './InteractiveBrokersImport';
 
 // Currency symbols for display
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -77,6 +78,7 @@ export function TransactionForm({
   // Track which import dialogs are open by account ID (null = closed)
   const [revolutImportAccountId, setRevolutImportAccountId] = useState<number | null>(null);
   const [creditMutuelImportAccountId, setCreditMutuelImportAccountId] = useState<number | null>(null);
+  const [ibkrImportAccountId, setIbkrImportAccountId] = useState<number | null>(null);
 
 
   // Close import dialogs and add form when account is no longer selected
@@ -87,10 +89,13 @@ export function TransactionForm({
     if (creditMutuelImportAccountId !== null && !selectedAccountIds.includes(creditMutuelImportAccountId)) {
       setCreditMutuelImportAccountId(null);
     }
+    if (ibkrImportAccountId !== null && !selectedAccountIds.includes(ibkrImportAccountId)) {
+      setIbkrImportAccountId(null);
+    }
     if (addFormAccountId !== null && !selectedAccountIds.includes(addFormAccountId)) {
       setAddFormAccountId(null);
     }
-  }, [selectedAccountIds, revolutImportAccountId, creditMutuelImportAccountId, addFormAccountId]);
+  }, [selectedAccountIds, revolutImportAccountId, creditMutuelImportAccountId, ibkrImportAccountId, addFormAccountId]);
   const [filterTicker, setFilterTicker] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'BUY' | 'SELL'>('ALL');
 
@@ -266,6 +271,7 @@ export function TransactionForm({
     setAddFormAccountId(null);
     setRevolutImportAccountId(null);
     setCreditMutuelImportAccountId(null);
+    setIbkrImportAccountId(null);
   };
 
   const handleAddTransaction = () => {
@@ -322,8 +328,10 @@ export function TransactionForm({
             {selectedAccountsWithBanks.map(account => {
               const isRevolut = account.bank?.toUpperCase() === 'REVOLUT';
               const isCreditMutuel = account.bank?.toUpperCase() === 'CREDIT_MUTUEL';
+              const isIBKR = account.bank?.toUpperCase() === 'INTERACTIVE_BROKERS';
               const importActive = (isRevolut && revolutImportAccountId === account.id) ||
-                                   (isCreditMutuel && creditMutuelImportAccountId === account.id);
+                                   (isCreditMutuel && creditMutuelImportAccountId === account.id) ||
+                                   (isIBKR && ibkrImportAccountId === account.id);
               const addActive = addFormAccountId === account.id;
 
               return (
@@ -338,6 +346,7 @@ export function TransactionForm({
                           // Close all other forms first
                           setRevolutImportAccountId(account.id);
                           setCreditMutuelImportAccountId(null);
+                          setIbkrImportAccountId(null);
                           setAddFormAccountId(null);
                         }
                       }}
@@ -360,6 +369,7 @@ export function TransactionForm({
                           // Close all other forms first
                           setCreditMutuelImportAccountId(account.id);
                           setRevolutImportAccountId(null);
+                          setIbkrImportAccountId(null);
                           setAddFormAccountId(null);
                         }
                       }}
@@ -373,6 +383,29 @@ export function TransactionForm({
                       {language === 'fr' ? 'Importer depuis Crédit Mutuel' : 'Import from Crédit Mutuel'}
                     </button>
                   )}
+                  {isIBKR && (
+                    <button
+                      onClick={() => {
+                        if (importActive) {
+                          setIbkrImportAccountId(null);
+                        } else {
+                          // Close all other forms first
+                          setIbkrImportAccountId(account.id);
+                          setRevolutImportAccountId(null);
+                          setCreditMutuelImportAccountId(null);
+                          setAddFormAccountId(null);
+                        }
+                      }}
+                      className={`w-72 px-6 py-3 rounded-xl flex items-center justify-center gap-3 text-lg font-medium shadow-lg transition-all ${
+                        importActive
+                          ? 'bg-[#a01810] text-white/80 ring-2 ring-white'
+                          : 'bg-[#d32011] text-white hover:bg-[#b01c0f] hover:shadow-xl'
+                      }`}
+                    >
+                      <Upload className="w-5 h-5" />
+                      {language === 'fr' ? 'Importer depuis IBKR' : 'Import from IBKR'}
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       if (addActive) {
@@ -382,6 +415,7 @@ export function TransactionForm({
                         setAddFormAccountId(account.id);
                         setRevolutImportAccountId(null);
                         setCreditMutuelImportAccountId(null);
+                        setIbkrImportAccountId(null);
                       }
                     }}
                     className={`w-72 px-6 py-3 rounded-xl flex items-center justify-center gap-3 text-lg font-medium shadow-lg transition-all ${
@@ -697,8 +731,22 @@ export function TransactionForm({
             </div>
           )}
 
+          {/* Interactive Brokers Import */}
+          {ibkrImportAccountId !== null && (
+            <div className="mb-6">
+              <InteractiveBrokersImport
+                selectedAccountId={ibkrImportAccountId}
+                onImportComplete={() => {
+                  setIbkrImportAccountId(null);
+                  onRefresh();
+                }}
+                onClose={() => setIbkrImportAccountId(null)}
+              />
+            </div>
+          )}
+
           {/* Done button - right after the form */}
-          {(addFormAccountId !== null || revolutImportAccountId !== null || creditMutuelImportAccountId !== null) && (
+          {(addFormAccountId !== null || revolutImportAccountId !== null || creditMutuelImportAccountId !== null || ibkrImportAccountId !== null) && (
             <div className="flex justify-center mb-6">
               <button
                 onClick={closeForm}
