@@ -50,6 +50,32 @@ export interface PerformanceResult {
 }
 
 /**
+ * Detailed sub-period information for TWR calculation.
+ */
+export interface TWRSubPeriod {
+  /** Start date of the sub-period */
+  startDate: Date;
+  /** End date of the sub-period */
+  endDate: Date;
+  /** Portfolio value at start (after any cash flow) */
+  startValue: number;
+  /** Portfolio value at end (before any cash flow) */
+  endValue: number;
+  /** Sub-period return as decimal */
+  return: number;
+  /** Sub-period return as percentage */
+  returnPct: number;
+}
+
+/**
+ * Detailed result of TWR calculation with sub-period breakdown.
+ */
+export interface TWRDetailedResult extends PerformanceResult {
+  /** Sub-period details for the chain-linking calculation */
+  subPeriods: TWRSubPeriod[];
+}
+
+/**
  * Options for CAGR calculation.
  */
 export interface CAGROptions {
@@ -380,6 +406,92 @@ export function calculateTWR(
     value: roundedValue,
     percentage: toPercentage(roundedValue),
     success: true,
+  };
+}
+
+/**
+ * Calculates Time-Weighted Return (TWR) with detailed sub-period breakdown.
+ * Returns the same result as calculateTWR but includes sub-period details
+ * for displaying the chain-linking calculation.
+ *
+ * @param valuations - Portfolio values at key dates (must include values on cash flow dates, BEFORE the flow)
+ * @param cashFlows - Array of cash flows (negative = deposit, positive = withdrawal)
+ * @returns TWRDetailedResult with the TWR and sub-period breakdown
+ */
+export function calculateTWRDetailed(
+  valuations: ValuationPoint[],
+  cashFlows: CashFlow[]
+): TWRDetailedResult {
+  if (valuations.length < 2) {
+    return { value: 0, percentage: 0, success: false, error: 'Need at least 2 valuation points', subPeriods: [] };
+  }
+
+  // Sort valuations by date
+  const sortedValuations = [...valuations].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // Sort cash flows by date
+  const sortedCashFlows = [...cashFlows].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // Build a map of cash flows by date (sum multiple flows on same day)
+  const cashFlowMap = new Map<number, number>();
+  for (const cf of sortedCashFlows) {
+    const dateKey = cf.date.getTime();
+    cashFlowMap.set(dateKey, (cashFlowMap.get(dateKey) || 0) + cf.amount);
+  }
+
+  // Calculate sub-period returns with details
+  const subPeriods: TWRSubPeriod[] = [];
+  let previousValue = sortedValuations[0].value;
+  let previousDate = sortedValuations[0].date;
+
+  for (let i = 1; i < sortedValuations.length; i++) {
+    const currentValuation = sortedValuations[i];
+    const currentDate = currentValuation.date;
+    const currentValue = currentValuation.value;
+
+    // Get any cash flow that occurred at the previous valuation date
+    // (The valuation is BEFORE the cash flow, so we add it to get the starting value for next period)
+    const cashFlowAtPrevDate = cashFlowMap.get(previousDate.getTime()) || 0;
+
+    // Starting value for this sub-period = previous value + cash flow (deposit is negative, so we subtract)
+    const startingValue = previousValue - cashFlowAtPrevDate;
+
+    if (startingValue <= 0) {
+      // Skip periods with zero or negative starting value
+      previousValue = currentValue;
+      previousDate = currentDate;
+      continue;
+    }
+
+    // Sub-period return = (ending value - starting value) / starting value
+    const subPeriodReturn = (currentValue - startingValue) / startingValue;
+
+    subPeriods.push({
+      startDate: previousDate,
+      endDate: currentDate,
+      startValue: startingValue,
+      endValue: currentValue,
+      return: subPeriodReturn,
+      returnPct: Math.round(subPeriodReturn * 1000) / 10,
+    });
+
+    previousValue = currentValue;
+    previousDate = currentDate;
+  }
+
+  if (subPeriods.length === 0) {
+    return { value: 0, percentage: 0, success: false, error: 'No valid sub-periods found', subPeriods: [] };
+  }
+
+  // Chain-link the returns: TWR = ∏(1 + R_i) - 1
+  const twr = subPeriods.reduce((acc, sp) => acc * (1 + sp.return), 1) - 1;
+  const roundedValue = roundPrecision(twr);
+
+  return {
+    value: roundedValue,
+    percentage: toPercentage(roundedValue),
+    success: true,
+    subPeriods,
   };
 }
 

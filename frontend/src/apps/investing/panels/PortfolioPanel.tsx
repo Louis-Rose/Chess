@@ -14,7 +14,7 @@ import { TransactionForm } from './portfolio/TransactionForm';
 import { PortfolioComposition, type PortfolioCompositionHandle } from './portfolio/PortfolioComposition';
 import { PerformanceChart, type PerformanceChartHandle } from './portfolio/PerformanceChart';
 import { formatEur } from './portfolio/utils';
-import { calculateSimpleReturn, calculateCAGR, calculateMWR, calculateTWR, type CashFlow, type ValuationPoint } from '../utils/performanceUtils';
+import { calculateSimpleReturn, calculateCAGR, calculateMWR, calculateTWRDetailed, type CashFlow, type ValuationPoint, type TWRSubPeriod } from '../utils/performanceUtils';
 
 // Types
 import type {
@@ -1031,6 +1031,7 @@ export function PortfolioPanel() {
             let mwrSuccess = false;
             let twrPct = 0;
             let twrSuccess = false;
+            let twrSubPeriods: TWRSubPeriod[] = [];
             let periodYears = 0;
             if (performanceData?.data && performanceData.data.length > 1 && performanceData.transactions && startDate && endDate) {
               // Filter transactions by selected stocks
@@ -1116,10 +1117,11 @@ export function PortfolioPanel() {
                 }));
 
               if (relevantValuations.length >= 2) {
-                const twrResult = calculateTWR(relevantValuations, cashFlows);
+                const twrResult = calculateTWRDetailed(relevantValuations, cashFlows);
                 if (twrResult.success) {
                   twrPct = twrResult.percentage;
                   twrSuccess = true;
+                  twrSubPeriods = twrResult.subPeriods;
                 }
               }
             }
@@ -1318,7 +1320,47 @@ export function PortfolioPanel() {
                           </p>
                           {/* Tooltip */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
-                            {`${t('performance.twrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${language === 'fr' ? 'Rendement total' : 'Total return'}: ${twrPct >= 0 ? '+' : ''}${twrPct}%\n${language === 'fr' ? 'Période' : 'Period'}: ${periodYears.toFixed(2)} ${language === 'fr' ? 'ans' : 'years'}${showAnnualizedMetrics ? `\n${language === 'fr' ? 'Annualisé' : 'Annualized'}: ${annualizedTwrPct >= 0 ? '+' : ''}${annualizedTwrPct}%/y` : ''}`}
+                            {(() => {
+                              const header = t('performance.twrTooltip');
+                              const portfolioLabel = language === 'fr' ? 'Votre portefeuille' : 'Your portfolio';
+
+                              if (!twrSuccess || twrSubPeriods.length === 0) {
+                                return `${header}\n\n━━━ ${portfolioLabel} ━━━\n${language === 'fr' ? 'Données insuffisantes' : 'Insufficient data'}`;
+                              }
+
+                              // Build the chain-linking formula display
+                              // Show up to 4 sub-periods to keep tooltip readable
+                              const maxPeriodsToShow = 4;
+                              const periodsToShow = twrSubPeriods.slice(-maxPeriodsToShow);
+                              const hasMorePeriods = twrSubPeriods.length > maxPeriodsToShow;
+
+                              // Format: (1 + R1) × (1 + R2) × ... − 1
+                              const chainParts = periodsToShow.map(sp => {
+                                const sign = sp.returnPct >= 0 ? '+' : '';
+                                return `(1 ${sign} ${sp.returnPct}%)`;
+                              });
+
+                              const chainFormula = (hasMorePeriods ? '... × ' : '') + chainParts.join(' × ') + ' − 1';
+
+                              // Calculate intermediate product for display
+                              const product = periodsToShow.reduce((acc, sp) => acc * (1 + sp.return), hasMorePeriods ? twrSubPeriods.slice(0, -maxPeriodsToShow).reduce((a, s) => a * (1 + s.return), 1) : 1);
+
+                              const resultLine = `= ${product.toFixed(4)} − 1 = ${twrPct >= 0 ? '+' : ''}${twrPct}%`;
+
+                              // Build sub-period details (most recent periods)
+                              const periodDetails = periodsToShow.map(sp => {
+                                const startStr = sp.startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
+                                const endStr = sp.endDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
+                                const sign = sp.returnPct >= 0 ? '+' : '';
+                                return `${startStr} → ${endStr}: ${sign}${sp.returnPct}%`;
+                              }).join('\n');
+
+                              const annualizedLine = showAnnualizedMetrics && periodYears >= 1
+                                ? `\n${language === 'fr' ? 'Annualisé' : 'Annualized'}: (1 + ${twrPct}%)^(1/${periodYears.toFixed(2)}) − 1 = ${annualizedTwrPct >= 0 ? '+' : ''}${annualizedTwrPct}%/${language === 'fr' ? 'an' : 'y'}`
+                                : '';
+
+                              return `${header}\n\n━━━ ${portfolioLabel} ━━━\n${hasMorePeriods ? `(${twrSubPeriods.length} ${language === 'fr' ? 'périodes, dernières' : 'periods, showing last'} ${maxPeriodsToShow})\n` : ''}${periodDetails}\n\n${chainFormula}\n${resultLine}${annualizedLine}`;
+                            })()}
                           </div>
                         </div>
 
