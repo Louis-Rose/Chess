@@ -941,7 +941,7 @@ export function PortfolioPanel() {
               const filteredHoldings = compositionData.holdings.filter(h => selectedStocks.has(h.ticker));
               filteredTotalValue = filteredHoldings.reduce((sum, h) => sum + h.current_value, 0);
               filteredCostBasis = filteredHoldings.reduce((sum, h) => sum + h.cost_basis_eur, 0);
-            } else if (selectedStocks.size === 0 && availableStocksFromComposition.length > 0) {
+            } else if (selectedStocks.size === 0 && allStocksEver.size > 0) {
               // If no stocks selected, show 0
               filteredTotalValue = 0;
               filteredCostBasis = 0;
