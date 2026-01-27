@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, ChevronDown, ArrowUpDown, Download, Building2, Wallet, Minus, Plus, Trash2, MousePointerClick } from 'lucide-react';
+import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, ChevronDown, ArrowUpDown, Download, Building2, Wallet, Minus, Plus, Trash2, MousePointerClick, Info } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -14,6 +14,7 @@ import { TransactionForm } from './portfolio/TransactionForm';
 import { PortfolioComposition, type PortfolioCompositionHandle } from './portfolio/PortfolioComposition';
 import { PerformanceChart, type PerformanceChartHandle } from './portfolio/PerformanceChart';
 import { formatEur } from './portfolio/utils';
+import { calculateSimpleReturn, calculateCAGR } from '../utils/performanceUtils';
 
 // Types
 import type {
@@ -547,23 +548,57 @@ export function PortfolioPanel() {
           </div>
 
           {/* Summary Cards */}
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 space-y-4">
+            {/* Row 1: Capital & Value */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center border-r border-slate-300 dark:border-slate-600 last:border-r-0 pr-4 last:pr-0">
+              <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
                 <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
                 <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">20 000€</p>
               </div>
-              <div className="text-center border-r border-slate-300 dark:border-slate-600 last:border-r-0 pr-4 last:pr-0">
+              <div className="text-center border-r border-slate-300 dark:border-slate-600 md:border-r pr-4">
                 <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
                 <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">27 050€</p>
               </div>
-              <div className="text-center border-r border-slate-300 dark:border-slate-600 last:border-r-0 pr-4 last:pr-0">
+              <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
                 <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}</p>
                 <p className="text-sm md:text-xl font-bold text-green-600">+7 050€ (+35.2%)</p>
               </div>
               <div className="text-center">
                 <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value réalisée (brut)' : 'Realized Gains (gross)'}</p>
                 <p className="text-sm md:text-xl font-bold text-green-600">+590€ (+3%)</p>
+              </div>
+            </div>
+
+            {/* Row 2: Performance Metrics (Simple Return & CAGR) */}
+            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200 dark:border-slate-600">
+              {/* Simple Return */}
+              <div className="text-center relative group">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                    {t('performance.simpleReturn')}
+                  </p>
+                  <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                </div>
+                <p className="text-sm md:text-xl font-bold text-green-600">+35.2%</p>
+                {/* Tooltip */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                  {t('performance.simpleReturnTooltip')}
+                </div>
+              </div>
+
+              {/* CAGR */}
+              <div className="text-center relative group">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                    {t('performance.cagr')}
+                  </p>
+                  <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                </div>
+                <p className="text-sm md:text-xl font-bold text-green-600">+15.2%</p>
+                {/* Tooltip */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                  {t('performance.cagrTooltip')}
+                </div>
               </div>
             </div>
           </div>
@@ -835,10 +870,35 @@ export function PortfolioPanel() {
               ? Math.round(100 * compositionData.realized_gains_eur / investedCapital * 10) / 10
               : 0;
 
+            // Calculate Simple Return using utility
+            const simpleReturnResult = calculateSimpleReturn(filteredCostBasis, filteredTotalValue);
+            const simpleReturnPct = simpleReturnResult.success ? simpleReturnResult.percentage : 0;
+
+            // Calculate CAGR using utility (need performance data for dates)
+            let cagrPct = 0;
+            let cagrSuccess = false;
+            if (performanceData?.data && performanceData.data.length > 1) {
+              const startDate = performanceData.data[0].date;
+              const endDate = performanceData.data[performanceData.data.length - 1].date;
+              const startCostBasis = performanceData.data[0].cost_basis_eur;
+              const cagrResult = calculateCAGR(
+                startCostBasis,
+                filteredTotalValue,
+                startDate,
+                endDate,
+                { shortPeriodBehavior: 'extrapolate', minimumDays: 30 }
+              );
+              if (cagrResult.success) {
+                cagrPct = cagrResult.percentage;
+                cagrSuccess = true;
+              }
+            }
+
             return (
-              <div key="summary" className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+              <div key="summary" className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 space-y-4">
+                {/* Row 1: Capital & Value */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center border-r border-slate-300 dark:border-slate-600 last:border-r-0 pr-4 last:pr-0">
+                  <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
                     <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
                     <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">
                       {currency === 'EUR'
@@ -846,7 +906,7 @@ export function PortfolioPanel() {
                         : `$${Math.round(displayCostBasis).toLocaleString('en-US')}`}
                     </p>
                   </div>
-                  <div className="text-center border-r border-slate-300 dark:border-slate-600 last:border-r-0 pr-4 last:pr-0">
+                  <div className="text-center border-r border-slate-300 dark:border-slate-600 md:border-r pr-4">
                     <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
                     <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">
                       {currency === 'EUR'
@@ -854,7 +914,7 @@ export function PortfolioPanel() {
                         : `$${Math.round(displayTotalValue).toLocaleString('en-US')}`}
                     </p>
                   </div>
-                  <div className="text-center border-r border-slate-300 dark:border-slate-600 last:border-r-0 pr-4 last:pr-0">
+                  <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
                     <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
                       {language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}
                     </p>
@@ -877,6 +937,47 @@ export function PortfolioPanel() {
                       {' '}
                       ({realizedGainPct >= 0 ? '+' : ''}{realizedGainPct}%)
                     </p>
+                  </div>
+                </div>
+
+                {/* Row 2: Performance Metrics (Simple Return & CAGR) */}
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200 dark:border-slate-600">
+                  {/* Simple Return */}
+                  <div className="text-center relative group">
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                        {t('performance.simpleReturn')}
+                      </p>
+                      <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                    </div>
+                    <p className={`text-sm md:text-xl font-bold ${simpleReturnPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {simpleReturnResult.success
+                        ? `${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`
+                        : '—'}
+                    </p>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                      {t('performance.simpleReturnTooltip')}
+                    </div>
+                  </div>
+
+                  {/* CAGR */}
+                  <div className="text-center relative group">
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                        {t('performance.cagr')}
+                      </p>
+                      <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                    </div>
+                    <p className={`text-sm md:text-xl font-bold ${cagrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {cagrSuccess
+                        ? `${cagrPct >= 0 ? '+' : ''}${cagrPct}%`
+                        : '—'}
+                    </p>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                      {t('performance.cagrTooltip')}
+                    </div>
                   </div>
                 </div>
               </div>

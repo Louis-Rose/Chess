@@ -68,6 +68,10 @@ const translations: Record<Language, Record<string, string>> = {
     // Performance
     'performance.title': 'Portfolio Performance',
     'performance.cagr': 'CAGR',
+    'performance.cagrFull': 'Compound Annual Growth Rate',
+    'performance.cagrTooltip': 'The annualized rate of return, assuming profits are reinvested. Shows what your investment would grow at per year if growth was constant.',
+    'performance.simpleReturn': 'Simple Return',
+    'performance.simpleReturnTooltip': 'Total percentage gain or loss on your investment, calculated as (Current Value - Invested) / Invested.',
     'performance.year': 'year',
     'performance.years': 'years',
     'performance.month': 'month',
@@ -142,6 +146,10 @@ const translations: Record<Language, Record<string, string>> = {
     // Performance
     'performance.title': 'Performance du Portefeuille',
     'performance.cagr': 'TCAC',
+    'performance.cagrFull': 'Taux de Croissance Annuel Composé',
+    'performance.cagrTooltip': 'Le taux de rendement annualisé, en supposant que les profits sont réinvestis. Montre à quel taux votre investissement croîtrait par an si la croissance était constante.',
+    'performance.simpleReturn': 'Rendement Simple',
+    'performance.simpleReturnTooltip': 'Pourcentage total de gain ou perte sur votre investissement, calculé comme (Valeur Actuelle - Investi) / Investi.',
     'performance.year': 'an',
     'performance.years': 'ans',
     'performance.month': 'mois',
