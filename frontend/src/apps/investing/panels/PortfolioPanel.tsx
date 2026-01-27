@@ -628,16 +628,6 @@ export function PortfolioPanel() {
                     {t('performance.advancedMetrics')}
                   </h4>
                 </div>
-                <div className="flex justify-center mt-3">
-                  <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-600 rounded-lg p-1">
-                    <span className="px-2 py-1 text-xs font-medium rounded bg-green-600 text-white">
-                      {t('performance.allTime')}
-                    </span>
-                    <span className="px-2 py-1 text-xs font-medium rounded text-slate-600 dark:text-slate-300">
-                      {t('performance.annualized')}
-                    </span>
-                  </div>
-                </div>
               </div>
 
               {/* Content */}
@@ -663,7 +653,7 @@ export function PortfolioPanel() {
                       </p>
                       <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
                     </div>
-                    <p className="text-sm md:text-xl font-bold text-green-600">+15.2%/yr</p>
+                    <p className="text-sm md:text-xl font-bold text-green-600">+15.2% {t('performance.perYear')}</p>
                   </div>
                 </div>
 
@@ -679,6 +669,18 @@ export function PortfolioPanel() {
 
                 {/* Divider */}
                 <div className="border-t border-slate-200 dark:border-slate-600" />
+
+                {/* Annualization toggle for TWR/MWR/IRR */}
+                <div className="flex justify-center">
+                  <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-600 rounded-lg p-1">
+                    <span className="px-2 py-1 text-xs font-medium rounded bg-green-600 text-white">
+                      {t('performance.allTime')}
+                    </span>
+                    <span className="px-2 py-1 text-xs font-medium rounded text-slate-600 dark:text-slate-300">
+                      {t('performance.annualized')}
+                    </span>
+                  </div>
+                </div>
 
                 {/* Row 2: TWR, MWR, IRR */}
                 <div className="grid grid-cols-3 gap-4">
@@ -1151,32 +1153,6 @@ export function PortfolioPanel() {
                         {t('performance.advancedMetrics')}
                       </h4>
                     </button>
-                    {isAdvancedMetricsExpanded && (
-                      <div className="flex justify-center mt-3">
-                        <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-600 rounded-lg p-1">
-                          <button
-                            onClick={() => setShowAnnualizedMetrics(false)}
-                            className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                              !showAnnualizedMetrics
-                                ? 'bg-green-600 text-white'
-                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
-                            }`}
-                          >
-                            {t('performance.allTime')}
-                          </button>
-                          <button
-                            onClick={() => setShowAnnualizedMetrics(true)}
-                            className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                              showAnnualizedMetrics
-                                ? 'bg-green-600 text-white'
-                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
-                            }`}
-                          >
-                            {t('performance.annualized')}
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Content */}
@@ -1213,7 +1189,7 @@ export function PortfolioPanel() {
                           </div>
                           <p className={`text-sm md:text-xl font-bold ${cagrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {cagrSuccess
-                              ? `${cagrPct >= 0 ? '+' : ''}${cagrPct}%/yr`
+                              ? `${cagrPct >= 0 ? '+' : ''}${cagrPct}% ${t('performance.perYear')}`
                               : '—'}
                           </p>
                           {/* Tooltip */}
@@ -1253,6 +1229,32 @@ export function PortfolioPanel() {
                       {/* Divider */}
                       <div className="border-t border-slate-200 dark:border-slate-600" />
 
+                      {/* Annualization toggle for TWR/MWR/IRR */}
+                      <div className="flex justify-center">
+                        <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-600 rounded-lg p-1">
+                          <button
+                            onClick={() => setShowAnnualizedMetrics(false)}
+                            className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                              !showAnnualizedMetrics
+                                ? 'bg-green-600 text-white'
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
+                            }`}
+                          >
+                            {t('performance.allTime')}
+                          </button>
+                          <button
+                            onClick={() => setShowAnnualizedMetrics(true)}
+                            className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                              showAnnualizedMetrics
+                                ? 'bg-green-600 text-white'
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
+                            }`}
+                          >
+                            {t('performance.annualized')}
+                          </button>
+                        </div>
+                      </div>
+
                       {/* Row 2: TWR, MWR, IRR */}
                       <div className="grid grid-cols-3 gap-4">
                         {/* TWR */}
@@ -1265,7 +1267,7 @@ export function PortfolioPanel() {
                           </div>
                           <p className={`text-sm md:text-xl font-bold ${(showAnnualizedMetrics ? annualizedTwrPct : twrPct) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {twrSuccess
-                              ? `${(showAnnualizedMetrics ? annualizedTwrPct : twrPct) >= 0 ? '+' : ''}${showAnnualizedMetrics ? annualizedTwrPct : twrPct}%${showAnnualizedMetrics ? '/yr' : ''}`
+                              ? `${(showAnnualizedMetrics ? annualizedTwrPct : twrPct) >= 0 ? '+' : ''}${showAnnualizedMetrics ? annualizedTwrPct : twrPct}%${showAnnualizedMetrics ? ` ${t('performance.perYear')}` : ''}`
                               : '—'}
                           </p>
                           {/* Tooltip */}
@@ -1284,7 +1286,7 @@ export function PortfolioPanel() {
                           </div>
                           <p className={`text-sm md:text-xl font-bold ${annualizedMwrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {mwrSuccess
-                              ? `${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%${showAnnualizedMetrics ? '/yr' : ''}`
+                              ? `${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%${showAnnualizedMetrics ? ` ${t('performance.perYear')}` : ''}`
                               : '—'}
                           </p>
                           {/* Tooltip */}
@@ -1303,7 +1305,7 @@ export function PortfolioPanel() {
                           </div>
                           <p className={`text-sm md:text-xl font-bold ${annualizedMwrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {mwrSuccess
-                              ? `${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%${showAnnualizedMetrics ? '/yr' : ''}`
+                              ? `${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%${showAnnualizedMetrics ? ` ${t('performance.perYear')}` : ''}`
                               : '—'}
                           </p>
                           {/* Tooltip */}
