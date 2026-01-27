@@ -345,7 +345,7 @@ export function calculateCAGR(
  */
 export function calculateTWR(
   valuations: ValuationPoint[],
-  cashFlows: CashFlow[]
+  _cashFlows: CashFlow[]
 ): PerformanceResult {
   if (valuations.length < 2) {
     return { value: 0, percentage: 0, success: false, error: 'Need at least 2 valuation points' };
@@ -408,7 +408,7 @@ export function calculateTWR(
  */
 export function calculateTWRDetailed(
   valuations: ValuationPoint[],
-  cashFlows: CashFlow[]
+  _cashFlows: CashFlow[]
 ): TWRDetailedResult {
   if (valuations.length < 2) {
     return { value: 0, percentage: 0, success: false, error: 'Need at least 2 valuation points', subPeriods: [] };
@@ -502,7 +502,7 @@ export function calculateTWRDetailed(
  */
 export function calculateMWR(
   initialInvestment: number,
-  cashFlows: CashFlow[],
+  _cashFlows: CashFlow[],
   endingValue: number,
   endDate: Date | string,
   startDate: Date | string,
@@ -654,7 +654,7 @@ export function calculateAllMetrics(
   currentValue: number,
   startDate: Date | string,
   endDate: Date | string,
-  cashFlows: CashFlow[] = [],
+  _cashFlows: CashFlow[] = [],
   valuations: ValuationPoint[] = []
 ): {
   simpleReturn: PerformanceResult;
