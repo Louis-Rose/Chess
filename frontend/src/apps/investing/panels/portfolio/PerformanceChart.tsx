@@ -1156,7 +1156,23 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                 {/* Main chart */}
                 <div className="flex-1 h-[380px] md:h-[480px] relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 10, right: 50, left: 20, bottom: 70 }}>
+                  <ComposedChart
+                    data={chartData}
+                    margin={{ top: 10, right: 50, left: 20, bottom: 70 }}
+                    onClick={(e) => {
+                      if (e && e.activePayload && e.activePayload.length > 0) {
+                        const clickedData = e.activePayload[0].payload;
+                        const clickedLabel = clickedData.date;
+                        // Toggle pin: if clicking same point, unpin; otherwise pin new point
+                        if (pinnedTooltipData && pinnedTooltipData.label === clickedLabel) {
+                          setPinnedTooltipData(null);
+                          setShowStockBreakdown(false);
+                        } else {
+                          setPinnedTooltipData({ data: clickedData, label: clickedLabel });
+                        }
+                      }
+                    }}
+                  >
                     <defs>
                       <linearGradient id="outperformanceGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#4ade80" stopOpacity={0.5} />
