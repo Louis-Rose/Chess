@@ -1225,10 +1225,10 @@ export function PortfolioPanel() {
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
                             {(() => {
                               const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
-                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested';
+                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested Capital';
                               const gainsLabel = language === 'fr' ? 'Plus-value' : 'Gains';
                               const gains = filteredTotalValue - filteredCostBasis;
-                              return `${t('performance.simpleReturnTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${gainsLabel} = ${formatEur(filteredTotalValue)}€ − ${formatEur(filteredCostBasis)}€ = ${gains >= 0 ? '+' : ''}${formatEur(gains)}€\n\n(${formatEur(filteredTotalValue)}€ − ${formatEur(filteredCostBasis)}€) ÷ ${formatEur(filteredCostBasis)}€\n→ ${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`;
+                              return `${t('performance.simpleReturnTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${gainsLabel} = ${formatEur(filteredTotalValue)}€ − ${formatEur(filteredCostBasis)}€ = ${gains >= 0 ? '+' : ''}${formatEur(gains)}€\n\nSR = ${gainsLabel} / ${investedLabel}\n= ${gains >= 0 ? '+' : ''}${formatEur(gains)}€ / ${formatEur(filteredCostBasis)}€\n= ${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`;
                             })()}
                           </div>
                         </div>
@@ -1250,42 +1250,15 @@ export function PortfolioPanel() {
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
                             {(() => {
                               const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
-                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested';
+                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested Capital';
                               const periodLabel = language === 'fr' ? 'Période' : 'Period';
                               const yearsLabel = language === 'fr' ? 'ans' : 'years';
                               const ratio = filteredCostBasis > 0 ? (filteredTotalValue / filteredCostBasis).toFixed(3) : '0';
-                              return `${t('performance.cagrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\n(${formatEur(filteredTotalValue)}€ ÷ ${formatEur(filteredCostBasis)}€)^(1/${periodYears.toFixed(2)}) − 1\n= ${ratio}^${(1/periodYears).toFixed(3)} − 1\n→ ${cagrPct >= 0 ? '+' : ''}${cagrPct}% ${t('performance.perYear')}`;
+                              return `${t('performance.cagrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\n(${formatEur(filteredTotalValue)}€ ÷ ${formatEur(filteredCostBasis)}€)^(1/${periodYears.toFixed(2)}) − 1\n= ${ratio}^${(1/periodYears).toFixed(3)} − 1\n= ${cagrPct >= 0 ? '+' : ''}${cagrPct}% (${t('performance.perYear')})`;
                             })()}
                           </div>
                         </div>
                       </div>
-
-                      {/* SR/CAGR Example - below the metrics */}
-                      {showSrCagrExample ? (
-                        <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-lg p-3 relative">
-                          <button
-                            onClick={dismissSrCagrExample}
-                            className="absolute top-2 right-2 p-1 hover:bg-slate-200 dark:hover:bg-slate-500 rounded-full transition-colors"
-                            title={language === 'fr' ? 'Fermer' : 'Close'}
-                          >
-                            <X className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                          </button>
-                          <div className="flex gap-2.5 pr-6">
-                            <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
-                            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-line">
-                              {t('performance.srCagrExample')}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={showSrCagrExampleAgain}
-                          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors flex items-center gap-1"
-                        >
-                          <Info className="w-3 h-3" />
-                          {t('performance.showExample')}
-                        </button>
-                      )}
 
                       {/* Divider */}
                       <div className="border-t border-slate-200 dark:border-slate-600" />
@@ -1339,7 +1312,7 @@ export function PortfolioPanel() {
                                 ? (language === 'fr' ? `${selectedStocks.size} action(s)` : `${selectedStocks.size} stock(s)`)
                                 : (language === 'fr' ? 'Portefeuille complet' : 'Full portfolio');
                               const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
-                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested';
+                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested Capital';
                               const periodLabel = language === 'fr' ? 'Période' : 'Period';
                               const yearsLabel = language === 'fr' ? 'ans' : 'years';
 
@@ -1393,47 +1366,20 @@ export function PortfolioPanel() {
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
                             {(() => {
                               const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
-                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested';
+                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested Capital';
                               const periodLabel = language === 'fr' ? 'Période' : 'Period';
                               const yearsLabel = language === 'fr' ? 'ans' : 'years';
                               const portfolioLabel = language === 'fr' ? 'Votre portefeuille' : 'Your portfolio';
 
                               if (showAnnualizedMetrics) {
-                                return `${t('performance.irrTooltip')}\n\n━━━ ${portfolioLabel} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}% ${t('performance.perYear')}`;
+                                return `${t('performance.irrTooltip')}\n\n━━━ ${portfolioLabel} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}% (${t('performance.perYear')})`;
                               } else {
-                                return `${t('performance.mwrTooltip')}\n\n━━━ ${portfolioLabel} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%/${language === 'fr' ? 'an' : 'y'}\n\n(1 + IRR)^${periodLabel.toLowerCase()} − 1\n= (1 + ${annualizedMwrPct}%)^${periodYears.toFixed(2)} − 1\n= (${(1 + annualizedMwrPct / 100).toFixed(3)})^${periodYears.toFixed(2)} − 1\n→ MWR = ${cumulativeMwrPct >= 0 ? '+' : ''}${cumulativeMwrPct}%`;
+                                return `${t('performance.mwrTooltip')}\n\n━━━ ${portfolioLabel} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%/${language === 'fr' ? 'an' : 'y'}\n\nMWR = (1 + IRR)^${periodLabel.toLowerCase()} − 1\n= (1 + ${annualizedMwrPct}%)^${periodYears.toFixed(2)} − 1\n= (${(1 + annualizedMwrPct / 100).toFixed(3)})^${periodYears.toFixed(2)} − 1\n= ${cumulativeMwrPct >= 0 ? '+' : ''}${cumulativeMwrPct}%`;
                               }
                             })()}
                           </div>
                         </div>
                       </div>
-
-                      {/* Example for TWR/MWR/IRR */}
-                      {showTwrMwrExample ? (
-                        <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-lg p-3 relative">
-                          <button
-                            onClick={dismissTwrMwrExample}
-                            className="absolute top-2 right-2 p-1 hover:bg-slate-200 dark:hover:bg-slate-500 rounded-full transition-colors"
-                            title={language === 'fr' ? 'Fermer' : 'Close'}
-                          >
-                            <X className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                          </button>
-                          <div className="flex gap-2.5 pr-6">
-                            <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
-                            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-line">
-                              {t('performance.twrMwrExample')}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={showTwrMwrExampleAgain}
-                          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors flex items-center gap-1"
-                        >
-                          <Info className="w-3 h-3" />
-                          {t('performance.showExample')}
-                        </button>
-                      )}
                     </div>
                   )}
                 </div>
