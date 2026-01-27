@@ -376,11 +376,16 @@ export function calculateTWR(
     // (The valuation is BEFORE the cash flow, so we add it to get the starting value for next period)
     const cashFlowAtPrevDate = cashFlowMap.get(previousDate.getTime()) || 0;
 
-    // Get any cash flow at the current date - we need the value BEFORE this cash flow
-    // If there's a deposit (negative cash flow), the reported value includes it, so we add it back
-    // value_before = value_after + cash_flow (where cash_flow is negative for deposits)
-    const cashFlowAtCurrentDate = cashFlowMap.get(currentDate.getTime()) || 0;
-    const endValue = currentValueRaw + cashFlowAtCurrentDate;
+    // Sum ALL cash flows that happened DURING this period (after start, up to and including end)
+    // These cash flows are included in the end value but should be excluded for TWR
+    // value_before_flows = value_after_flows + sum_of_cash_flows (cash flows are negative for deposits)
+    let cashFlowsDuringPeriod = 0;
+    for (const cf of sortedCashFlows) {
+      if (cf.date.getTime() > previousDate.getTime() && cf.date.getTime() <= currentDate.getTime()) {
+        cashFlowsDuringPeriod += cf.amount;
+      }
+    }
+    const endValue = currentValueRaw + cashFlowsDuringPeriod;
 
     // Starting value for this sub-period = previous value + cash flow (deposit is negative, so we subtract)
     const startingValue = previousValue - cashFlowAtPrevDate;
@@ -459,11 +464,16 @@ export function calculateTWRDetailed(
     // (The valuation is BEFORE the cash flow, so we add it to get the starting value for next period)
     const cashFlowAtPrevDate = cashFlowMap.get(previousDate.getTime()) || 0;
 
-    // Get any cash flow at the current date - we need the value BEFORE this cash flow
-    // If there's a deposit (negative cash flow), the reported value includes it, so we add it back
-    // value_before = value_after + cash_flow (where cash_flow is negative for deposits)
-    const cashFlowAtCurrentDate = cashFlowMap.get(currentDate.getTime()) || 0;
-    const endValue = currentValueRaw + cashFlowAtCurrentDate;
+    // Sum ALL cash flows that happened DURING this period (after start, up to and including end)
+    // These cash flows are included in the end value but should be excluded for TWR
+    // value_before_flows = value_after_flows + sum_of_cash_flows (cash flows are negative for deposits)
+    let cashFlowsDuringPeriod = 0;
+    for (const cf of sortedCashFlows) {
+      if (cf.date.getTime() > previousDate.getTime() && cf.date.getTime() <= currentDate.getTime()) {
+        cashFlowsDuringPeriod += cf.amount;
+      }
+    }
+    const endValue = currentValueRaw + cashFlowsDuringPeriod;
 
     // Starting value for this sub-period = previous value + cash flow (deposit is negative, so we subtract)
     const startingValue = previousValue - cashFlowAtPrevDate;

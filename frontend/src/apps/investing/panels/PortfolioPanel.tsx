@@ -1275,7 +1275,7 @@ export function PortfolioPanel() {
                               : '—'}
                           </p>
                           {/* Tooltip */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-[420px] text-left whitespace-pre-line">
                             {(() => {
                               const header = t('performance.twrTooltip');
                               const filteredLabel = isFilteringStocks
