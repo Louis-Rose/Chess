@@ -1223,7 +1223,13 @@ export function PortfolioPanel() {
                           </p>
                           {/* Tooltip */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
-                            {`${t('performance.simpleReturnTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n(${formatEur(filteredTotalValue)}€ − ${formatEur(filteredCostBasis)}€) ÷ ${formatEur(filteredCostBasis)}€\n  → ${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`}
+                            {(() => {
+                              const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
+                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested';
+                              const gainsLabel = language === 'fr' ? 'Plus-value' : 'Gains';
+                              const gains = filteredTotalValue - filteredCostBasis;
+                              return `${t('performance.simpleReturnTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${gainsLabel} = ${formatEur(filteredTotalValue)}€ − ${formatEur(filteredCostBasis)}€ = ${gains >= 0 ? '+' : ''}${formatEur(gains)}€\n\n(${formatEur(filteredTotalValue)}€ − ${formatEur(filteredCostBasis)}€) ÷ ${formatEur(filteredCostBasis)}€\n→ ${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`;
+                            })()}
                           </div>
                         </div>
 
@@ -1242,7 +1248,14 @@ export function PortfolioPanel() {
                           </p>
                           {/* Tooltip */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
-                            {`${t('performance.cagrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n(${formatEur(filteredTotalValue)}€ ÷ ${formatEur(filteredCostBasis)}€)^(1÷${periodYears.toFixed(2)}y) − 1\n  → ${cagrPct >= 0 ? '+' : ''}${cagrPct}% ${t('performance.perYear')}`}
+                            {(() => {
+                              const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
+                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested';
+                              const periodLabel = language === 'fr' ? 'Période' : 'Period';
+                              const yearsLabel = language === 'fr' ? 'ans' : 'years';
+                              const ratio = filteredCostBasis > 0 ? (filteredTotalValue / filteredCostBasis).toFixed(3) : '0';
+                              return `${t('performance.cagrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\n(${formatEur(filteredTotalValue)}€ ÷ ${formatEur(filteredCostBasis)}€)^(1/${periodYears.toFixed(2)}) − 1\n= ${ratio}^${(1/periodYears).toFixed(3)} − 1\n→ ${cagrPct >= 0 ? '+' : ''}${cagrPct}% ${t('performance.perYear')}`;
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -1325,10 +1338,17 @@ export function PortfolioPanel() {
                               const filteredLabel = isFilteringStocks
                                 ? (language === 'fr' ? `${selectedStocks.size} action(s)` : `${selectedStocks.size} stock(s)`)
                                 : (language === 'fr' ? 'Portefeuille complet' : 'Full portfolio');
+                              const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
+                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested';
+                              const periodLabel = language === 'fr' ? 'Période' : 'Period';
+                              const yearsLabel = language === 'fr' ? 'ans' : 'years';
 
                               if (!twrSuccess || twrSubPeriods.length === 0) {
                                 return `${header}\n\n━━━ ${filteredLabel} ━━━\n${language === 'fr' ? 'Données insuffisantes' : 'Insufficient data'}`;
                               }
+
+                              // Intermediary variables
+                              const varsSection = `${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}`;
 
                               // Build sub-period details (all periods)
                               const periodDetails = twrSubPeriods.map(sp => {
@@ -1351,7 +1371,7 @@ export function PortfolioPanel() {
                                 ? `\n${language === 'fr' ? 'Annualisé' : 'Annualized'}: (1 + ${twrPct / 100})^(1/${periodYears.toFixed(2)}) − 1\n= ${annualizedTwrPct >= 0 ? '+' : ''}${annualizedTwrPct}%/${language === 'fr' ? 'an' : 'y'}`
                                 : '';
 
-                              return `${header}\n\n━━━ ${filteredLabel} ━━━\n(${twrSubPeriods.length} ${language === 'fr' ? 'périodes' : 'periods'})\n${periodDetails}\n\n${chainFormula}\n${resultLine}${annualizedLine}`;
+                              return `${header}\n\n━━━ ${filteredLabel} ━━━\n${varsSection}\n\n(${twrSubPeriods.length} ${language === 'fr' ? 'périodes' : 'periods'})\n${periodDetails}\n\n${chainFormula}\n${resultLine}${annualizedLine}`;
                             })()}
                           </div>
                         </div>
@@ -1371,9 +1391,19 @@ export function PortfolioPanel() {
                           </p>
                           {/* Tooltip */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
-                            {showAnnualizedMetrics
-                              ? `${t('performance.irrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}% ${t('performance.perYear')}\n${language === 'fr' ? 'Période' : 'Period'}: ${periodYears.toFixed(2)} ${language === 'fr' ? 'ans' : 'years'}`
-                              : `${t('performance.mwrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n(1 + IRR)^${language === 'fr' ? 'années' : 'years'} − 1\n= (${(1 + annualizedMwrPct / 100).toFixed(3)})^${periodYears.toFixed(2)} − 1\n  → MWR = ${cumulativeMwrPct >= 0 ? '+' : ''}${cumulativeMwrPct}%`}
+                            {(() => {
+                              const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
+                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested';
+                              const periodLabel = language === 'fr' ? 'Période' : 'Period';
+                              const yearsLabel = language === 'fr' ? 'ans' : 'years';
+                              const portfolioLabel = language === 'fr' ? 'Votre portefeuille' : 'Your portfolio';
+
+                              if (showAnnualizedMetrics) {
+                                return `${t('performance.irrTooltip')}\n\n━━━ ${portfolioLabel} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}% ${t('performance.perYear')}`;
+                              } else {
+                                return `${t('performance.mwrTooltip')}\n\n━━━ ${portfolioLabel} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%/${language === 'fr' ? 'an' : 'y'}\n\n(1 + IRR)^${periodLabel.toLowerCase()} − 1\n= (1 + ${annualizedMwrPct}%)^${periodYears.toFixed(2)} − 1\n= (${(1 + annualizedMwrPct / 100).toFixed(3)})^${periodYears.toFixed(2)} − 1\n→ MWR = ${cumulativeMwrPct >= 0 ? '+' : ''}${cumulativeMwrPct}%`;
+                              }
+                            })()}
                           </div>
                         </div>
                       </div>
