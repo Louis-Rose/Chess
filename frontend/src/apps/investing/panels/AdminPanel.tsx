@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, ChevronUp, ChevronDown, Clock, Search, RefreshCw, ChevronRight, Sun, Moon, Settings, Globe, Smartphone, Monitor } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, ChevronUp, ChevronDown, Clock, Search, RefreshCw, ChevronRight, Sun, Moon, Settings, Globe, Smartphone, Monitor, Mail, Download, CheckSquare, Square } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -184,6 +184,9 @@ export function AdminPanel() {
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_minutes');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
+  // Email export - selected user IDs
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
+
   // Sort state for Stock Searches table
   type StockSortColumn = 'stock_ticker' | 'unique_users' | 'total_views' | 'total_time_seconds';
   const [stockSortColumn, setStockSortColumn] = useState<StockSortColumn>('total_views');
@@ -317,6 +320,59 @@ export function AdminPanel() {
       setStockSortColumn(column);
       setStockSortDirection('desc');
     }
+  };
+
+  // Email export helpers
+  const toggleUserSelection = (userId: number, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent row click navigation
+    setSelectedUserIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllUsers = () => {
+    if (data?.users) {
+      setSelectedUserIds(new Set(data.users.map(u => u.id)));
+    }
+  };
+
+  const deselectAllUsers = () => {
+    setSelectedUserIds(new Set());
+  };
+
+  const exportSelectedEmails = () => {
+    if (!data?.users || selectedUserIds.size === 0) return;
+    const selectedEmails = data.users
+      .filter(u => selectedUserIds.has(u.id))
+      .map(u => u.email)
+      .join('\n');
+
+    // Create and download a text file
+    const blob = new Blob([selectedEmails], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `emails_${selectedUserIds.size}_users.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const copySelectedEmails = () => {
+    if (!data?.users || selectedUserIds.size === 0) return;
+    const selectedEmails = data.users
+      .filter(u => selectedUserIds.has(u.id))
+      .map(u => u.email)
+      .join(', ');
+
+    navigator.clipboard.writeText(selectedEmails);
   };
 
   // Sorted stock views
@@ -986,6 +1042,53 @@ export function AdminPanel() {
                 {language === 'fr' ? 'Voir les utilisateurs' : 'See Users'}
               </button>
 
+              {/* Email Export Controls */}
+              {isUsersTableExpanded && data?.users && data.users.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-2 py-3 px-2 bg-slate-100 dark:bg-slate-600 rounded-lg mb-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={selectedUserIds.size === data.users.length ? deselectAllUsers : selectAllUsers}
+                      className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-500 rounded transition-colors"
+                    >
+                      {selectedUserIds.size === data.users.length ? (
+                        <>
+                          <CheckSquare className="w-4 h-4" />
+                          {language === 'fr' ? 'Tout désélectionner' : 'Deselect All'}
+                        </>
+                      ) : (
+                        <>
+                          <Square className="w-4 h-4" />
+                          {language === 'fr' ? 'Tout sélectionner' : 'Select All'}
+                        </>
+                      )}
+                    </button>
+                    {selectedUserIds.size > 0 && (
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {selectedUserIds.size} {language === 'fr' ? 'sélectionné(s)' : 'selected'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={copySelectedEmails}
+                      disabled={selectedUserIds.size === 0}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-200 dark:bg-slate-500 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-400 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Mail className="w-4 h-4" />
+                      {language === 'fr' ? 'Copier' : 'Copy'}
+                    </button>
+                    <button
+                      onClick={exportSelectedEmails}
+                      disabled={selectedUserIds.size === 0}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-600 text-white hover:bg-green-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Download className="w-4 h-4" />
+                      {language === 'fr' ? 'Exporter emails' : 'Export Emails'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Users Table */}
               {isUsersTableExpanded && (isLoading ? (
                 <div className="flex justify-center py-12">
@@ -1001,6 +1104,31 @@ export function AdminPanel() {
               <table className="w-full text-xs sm:text-sm">
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
                   <tr className="text-left text-slate-600 dark:text-slate-300 border-b-2 border-slate-300 dark:border-slate-500">
+                    <th className="pb-2 pl-2 w-8">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (data?.users) {
+                            if (selectedUserIds.size === data.users.length) {
+                              deselectAllUsers();
+                            } else {
+                              selectAllUsers();
+                            }
+                          }
+                        }}
+                        className="flex items-center justify-center hover:text-slate-900 dark:hover:text-white"
+                      >
+                        {data?.users && selectedUserIds.size === data.users.length ? (
+                          <CheckSquare className="w-4 h-4 text-green-600" />
+                        ) : selectedUserIds.size > 0 ? (
+                          <div className="w-4 h-4 border-2 border-green-600 rounded flex items-center justify-center">
+                            <div className="w-2 h-0.5 bg-green-600" />
+                          </div>
+                        ) : (
+                          <Square className="w-4 h-4" />
+                        )}
+                      </button>
+                    </th>
                     <th className="pb-2 pl-2 w-8">
                       <button onClick={() => handleSort('id')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white">
                         #
@@ -1061,9 +1189,21 @@ export function AdminPanel() {
                   {sortedUsers.map((u) => (
                     <tr
                       key={u.id}
-                      className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer"
+                      className={`border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${selectedUserIds.has(u.id) ? 'bg-green-50 dark:bg-green-900/20' : ''}`}
                       onClick={() => navigate(`/investing/admin/user/${u.id}`)}
                     >
+                      <td className="py-2 pl-2">
+                        <button
+                          onClick={(e) => toggleUserSelection(u.id, e)}
+                          className="flex items-center justify-center hover:text-green-600"
+                        >
+                          {selectedUserIds.has(u.id) ? (
+                            <CheckSquare className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <Square className="w-4 h-4 text-slate-400" />
+                          )}
+                        </button>
+                      </td>
                       <td className="py-2 pl-2 text-slate-500 dark:text-slate-300">{u.id}</td>
                       <td className="py-2">
                         <div className="flex items-center gap-2">
