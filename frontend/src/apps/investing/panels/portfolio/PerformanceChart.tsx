@@ -99,7 +99,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   const [stockSelectorOpen, setStockSelectorOpen] = useState(false);
 
   // Tooltip pinned state - click to pin tooltip
-  const [pinnedTooltipData, setPinnedTooltipData] = useState<{ data: typeof performanceData extends { data: (infer T)[] } ? T : never; label: string } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [pinnedTooltipData, setPinnedTooltipData] = useState<{ data: any; label: string } | null>(null);
 
   // Track if hovering on Portfolio line in tooltip to show stock breakdown
   const [showStockBreakdown, setShowStockBreakdown] = useState(false);
@@ -1161,9 +1162,11 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                     margin={{ top: 10, right: 50, left: 20, bottom: 70 }}
                     style={{ cursor: 'pointer' }}
                     onClick={(e) => {
+                      console.log('Chart clicked', e);
                       if (e && e.activePayload && e.activePayload.length > 0) {
                         const clickedData = e.activePayload[0].payload;
                         const clickedLabel = clickedData.date;
+                        console.log('Pinning tooltip for', clickedLabel, clickedData);
                         // Toggle pin: if clicking same point, unpin; otherwise pin new point
                         if (pinnedTooltipData && pinnedTooltipData.label === clickedLabel) {
                           setPinnedTooltipData(null);
@@ -1171,6 +1174,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         } else {
                           setPinnedTooltipData({ data: clickedData, label: clickedLabel });
                         }
+                      } else {
+                        console.log('No activePayload in click event');
                       }
                     }}
                   >
