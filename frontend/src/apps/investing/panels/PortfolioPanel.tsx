@@ -999,9 +999,10 @@ export function PortfolioPanel() {
             if (performanceData?.data && performanceData.data.length > 1) {
               startDate = performanceData.data[0].date;
               endDate = performanceData.data[performanceData.data.length - 1].date;
-              const startCostBasis = performanceData.data[0].cost_basis_eur;
+              // Use total invested capital (end cost basis), not just initial investment
+              const totalCostBasis = performanceData.data[performanceData.data.length - 1].cost_basis_eur;
               const cagrResult = calculateCAGR(
-                startCostBasis,
+                totalCostBasis,
                 filteredTotalValue,
                 startDate,
                 endDate,
