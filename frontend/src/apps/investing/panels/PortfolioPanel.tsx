@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, ChevronDown, ArrowUpDown, Download, Building2, Wallet, Minus, Plus, Trash2, MousePointerClick, Info } from 'lucide-react';
+import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, ChevronDown, ArrowUpDown, Download, Building2, Wallet, Minus, Plus, Trash2, MousePointerClick, Info, X, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -14,7 +14,7 @@ import { TransactionForm } from './portfolio/TransactionForm';
 import { PortfolioComposition, type PortfolioCompositionHandle } from './portfolio/PortfolioComposition';
 import { PerformanceChart, type PerformanceChartHandle } from './portfolio/PerformanceChart';
 import { formatEur } from './portfolio/utils';
-import { calculateSimpleReturn, calculateCAGR } from '../utils/performanceUtils';
+import { calculateSimpleReturn, calculateCAGR, calculateMWR, type CashFlow } from '../utils/performanceUtils';
 
 // Types
 import type {
@@ -225,6 +225,17 @@ export function PortfolioPanel() {
   // Panel state: collapsed and order
   const [isHoldingsExpanded, setIsHoldingsExpanded] = useState(true);
   const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(true);
+
+  // Info banner state - persisted in localStorage
+  const [showMetricsInfo, setShowMetricsInfo] = useState(() => {
+    const dismissed = localStorage.getItem('metricsInfoDismissed');
+    return dismissed !== 'true';
+  });
+
+  const dismissMetricsInfo = () => {
+    setShowMetricsInfo(false);
+    localStorage.setItem('metricsInfoDismissed', 'true');
+  };
 
   const compositionRef = useRef<PortfolioCompositionHandle>(null);
   const performanceRef = useRef<PerformanceChartHandle>(null);
@@ -548,56 +559,88 @@ export function PortfolioPanel() {
           </div>
 
           {/* Summary Cards */}
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 space-y-4">
-            {/* Row 1: Capital & Value */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
-                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
-                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">20 000€</p>
-              </div>
-              <div className="text-center border-r border-slate-300 dark:border-slate-600 md:border-r pr-4">
-                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
-                <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">27 050€</p>
-              </div>
-              <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
-                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}</p>
-                <p className="text-sm md:text-xl font-bold text-green-600">+7 050€ (+35.2%)</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value réalisée (brut)' : 'Realized Gains (gross)'}</p>
-                <p className="text-sm md:text-xl font-bold text-green-600">+590€ (+3%)</p>
+          <div className="space-y-4">
+            {/* Info Banner */}
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+              <div className="flex gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-amber-800 dark:text-amber-200 text-sm mb-1">
+                    {t('performance.metricsInfoTitle')}
+                  </h4>
+                  <p className="text-amber-700 dark:text-amber-300 text-xs leading-relaxed">
+                    {t('performance.metricsInfoText')}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Row 2: Performance Metrics (Simple Return & CAGR) */}
-            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200 dark:border-slate-600">
-              {/* Simple Return */}
-              <div className="text-center relative group">
-                <div className="flex items-center justify-center gap-1.5 mb-1">
-                  <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                    {t('performance.simpleReturn')}
-                  </p>
-                  <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+            <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 space-y-4">
+              {/* Row 1: Capital & Value */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
+                  <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
+                  <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">20 000€</p>
                 </div>
-                <p className="text-sm md:text-xl font-bold text-green-600">+35.2%</p>
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                  {t('performance.simpleReturnTooltip')}
+                <div className="text-center border-r border-slate-300 dark:border-slate-600 md:border-r pr-4">
+                  <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
+                  <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">27 050€</p>
+                </div>
+                <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
+                  <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}</p>
+                  <p className="text-sm md:text-xl font-bold text-green-600">+7 050€ (+35.2%)</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Plus-value réalisée (brut)' : 'Realized Gains (gross)'}</p>
+                  <p className="text-sm md:text-xl font-bold text-green-600">+590€ (+3%)</p>
                 </div>
               </div>
 
-              {/* CAGR */}
-              <div className="text-center relative group">
-                <div className="flex items-center justify-center gap-1.5 mb-1">
-                  <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                    {t('performance.cagr')}
-                  </p>
-                  <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+              {/* Row 2: Performance Metrics */}
+              <div className="grid grid-cols-3 gap-4 pt-2 border-t border-slate-200 dark:border-slate-600">
+                {/* Simple Return */}
+                <div className="text-center relative group">
+                  <div className="flex items-center justify-center gap-1.5 mb-1">
+                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                      {t('performance.simpleReturn')}
+                    </p>
+                    <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                  </div>
+                  <p className="text-sm md:text-xl font-bold text-green-600">+35.2%</p>
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                    {t('performance.simpleReturnTooltip')}
+                  </div>
                 </div>
-                <p className="text-sm md:text-xl font-bold text-green-600">+15.2%</p>
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                  {t('performance.cagrTooltip')}
+
+                {/* CAGR */}
+                <div className="text-center relative group">
+                  <div className="flex items-center justify-center gap-1.5 mb-1">
+                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                      {t('performance.cagr')}
+                    </p>
+                    <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                  </div>
+                  <p className="text-sm md:text-xl font-bold text-green-600">+15.2%</p>
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                    {t('performance.cagrTooltip')}
+                  </div>
+                </div>
+
+                {/* MWR/IRR */}
+                <div className="text-center relative group">
+                  <div className="flex items-center justify-center gap-1.5 mb-1">
+                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                      {t('performance.mwr')}
+                    </p>
+                    <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                  </div>
+                  <p className="text-sm md:text-xl font-bold text-green-600">+14.8%</p>
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                    {t('performance.mwrTooltip')}
+                  </div>
                 </div>
               </div>
             </div>
@@ -877,9 +920,11 @@ export function PortfolioPanel() {
             // Calculate CAGR using utility (need performance data for dates)
             let cagrPct = 0;
             let cagrSuccess = false;
+            let startDate = '';
+            let endDate = '';
             if (performanceData?.data && performanceData.data.length > 1) {
-              const startDate = performanceData.data[0].date;
-              const endDate = performanceData.data[performanceData.data.length - 1].date;
+              startDate = performanceData.data[0].date;
+              endDate = performanceData.data[performanceData.data.length - 1].date;
               const startCostBasis = performanceData.data[0].cost_basis_eur;
               const cagrResult = calculateCAGR(
                 startCostBasis,
@@ -894,89 +939,166 @@ export function PortfolioPanel() {
               }
             }
 
+            // Calculate MWR/IRR using transaction data as cash flows
+            let mwrPct = 0;
+            let mwrSuccess = false;
+            if (performanceData?.data && performanceData.data.length > 1 && performanceData.transactions) {
+              // Convert transactions to cash flows format
+              // BUY = negative (money going in), SELL = positive (money coming out)
+              const cashFlows: CashFlow[] = performanceData.transactions
+                .filter(tx => tx.date > startDate) // Exclude initial transactions
+                .map(tx => ({
+                  date: new Date(tx.date),
+                  amount: tx.type === 'BUY' ? -(tx.amount_eur || 0) : (tx.amount_eur || 0),
+                }))
+                .filter(cf => cf.amount !== 0);
+
+              // Get initial investment from first data point
+              const initialInvestment = performanceData.data[0].cost_basis_eur;
+
+              if (initialInvestment > 0) {
+                const mwrResult = calculateMWR(
+                  initialInvestment,
+                  cashFlows,
+                  filteredTotalValue,
+                  endDate,
+                  startDate
+                );
+                if (mwrResult.success) {
+                  mwrPct = mwrResult.percentage;
+                  mwrSuccess = true;
+                }
+              }
+            }
+
             return (
-              <div key="summary" className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 space-y-4">
-                {/* Row 1: Capital & Value */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
-                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
-                    <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">
-                      {currency === 'EUR'
-                        ? `${formatEur(displayCostBasis)}€`
-                        : `$${Math.round(displayCostBasis).toLocaleString('en-US')}`}
-                    </p>
+              <div key="summary" className="space-y-4">
+                {/* Info Banner - Closable */}
+                {showMetricsInfo && (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 relative">
+                    <button
+                      onClick={dismissMetricsInfo}
+                      className="absolute top-2 right-2 p-1 hover:bg-amber-100 dark:hover:bg-amber-800/30 rounded-full transition-colors"
+                      title={language === 'fr' ? 'Fermer' : 'Close'}
+                    >
+                      <X className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    </button>
+                    <div className="flex gap-3 pr-6">
+                      <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-semibold text-amber-800 dark:text-amber-200 text-sm mb-1">
+                          {t('performance.metricsInfoTitle')}
+                        </h4>
+                        <p className="text-amber-700 dark:text-amber-300 text-xs leading-relaxed">
+                          {t('performance.metricsInfoText')}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-center border-r border-slate-300 dark:border-slate-600 md:border-r pr-4">
-                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
-                    <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">
-                      {currency === 'EUR'
-                        ? `${formatEur(displayTotalValue)}€`
-                        : `$${Math.round(displayTotalValue).toLocaleString('en-US')}`}
-                    </p>
-                  </div>
-                  <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
-                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
-                      {language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}
-                    </p>
-                    <p className={`text-sm md:text-xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {currency === 'EUR'
-                        ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
-                        : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
-                      {' '}
-                      ({displayPct >= 0 ? '+' : ''}{displayPct}%)
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
-                      {language === 'fr' ? 'Plus-value realisee (brut)' : 'Realized Gains (gross)'}
-                    </p>
-                    <p className={`text-sm md:text-xl font-bold ${displayRealizedGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {currency === 'EUR'
-                        ? `${displayRealizedGain >= 0 ? '+' : ''}${formatEur(displayRealizedGain)}€`
-                        : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
-                      {' '}
-                      ({realizedGainPct >= 0 ? '+' : ''}{realizedGainPct}%)
-                    </p>
-                  </div>
-                </div>
+                )}
 
-                {/* Row 2: Performance Metrics (Simple Return & CAGR) */}
-                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200 dark:border-slate-600">
-                  {/* Simple Return */}
-                  <div className="text-center relative group">
-                    <div className="flex items-center justify-center gap-1.5 mb-1">
-                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                        {t('performance.simpleReturn')}
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 space-y-4">
+                  {/* Row 1: Capital & Value */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
+                      <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">
+                        {currency === 'EUR'
+                          ? `${formatEur(displayCostBasis)}€`
+                          : `$${Math.round(displayCostBasis).toLocaleString('en-US')}`}
                       </p>
-                      <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
                     </div>
-                    <p className={`text-sm md:text-xl font-bold ${simpleReturnPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {simpleReturnResult.success
-                        ? `${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`
-                        : '—'}
-                    </p>
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                      {t('performance.simpleReturnTooltip')}
+                    <div className="text-center border-r border-slate-300 dark:border-slate-600 md:border-r pr-4">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Valeur actuelle' : 'Current Value'}</p>
+                      <p className="text-sm md:text-xl font-bold text-slate-800 dark:text-slate-100">
+                        {currency === 'EUR'
+                          ? `${formatEur(displayTotalValue)}€`
+                          : `$${Math.round(displayTotalValue).toLocaleString('en-US')}`}
+                      </p>
+                    </div>
+                    <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
+                        {language === 'fr' ? 'Plus-value latente (brut)' : 'Unrealized Gains (gross)'}
+                      </p>
+                      <p className={`text-sm md:text-xl font-bold ${displayGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {currency === 'EUR'
+                          ? `${displayGain >= 0 ? '+' : ''}${formatEur(displayGain)}€`
+                          : `${displayGain >= 0 ? '+' : ''}$${Math.round(displayGain).toLocaleString('en-US')}`}
+                        {' '}
+                        ({displayPct >= 0 ? '+' : ''}{displayPct}%)
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
+                        {language === 'fr' ? 'Plus-value realisee (brut)' : 'Realized Gains (gross)'}
+                      </p>
+                      <p className={`text-sm md:text-xl font-bold ${displayRealizedGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {currency === 'EUR'
+                          ? `${displayRealizedGain >= 0 ? '+' : ''}${formatEur(displayRealizedGain)}€`
+                          : `${displayRealizedGain >= 0 ? '+' : ''}$${Math.round(displayRealizedGain).toLocaleString('en-US')}`}
+                        {' '}
+                        ({realizedGainPct >= 0 ? '+' : ''}{realizedGainPct}%)
+                      </p>
                     </div>
                   </div>
 
-                  {/* CAGR */}
-                  <div className="text-center relative group">
-                    <div className="flex items-center justify-center gap-1.5 mb-1">
-                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                        {t('performance.cagr')}
+                  {/* Row 2: Performance Metrics */}
+                  <div className="grid grid-cols-3 gap-4 pt-2 border-t border-slate-200 dark:border-slate-600">
+                    {/* Simple Return */}
+                    <div className="text-center relative group">
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                          {t('performance.simpleReturn')}
+                        </p>
+                        <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                      </div>
+                      <p className={`text-sm md:text-xl font-bold ${simpleReturnPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {simpleReturnResult.success
+                          ? `${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`
+                          : '—'}
                       </p>
-                      <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                        {t('performance.simpleReturnTooltip')}
+                      </div>
                     </div>
-                    <p className={`text-sm md:text-xl font-bold ${cagrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {cagrSuccess
-                        ? `${cagrPct >= 0 ? '+' : ''}${cagrPct}%`
-                        : '—'}
-                    </p>
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                      {t('performance.cagrTooltip')}
+
+                    {/* CAGR */}
+                    <div className="text-center relative group">
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                          {t('performance.cagr')}
+                        </p>
+                        <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                      </div>
+                      <p className={`text-sm md:text-xl font-bold ${cagrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {cagrSuccess
+                          ? `${cagrPct >= 0 ? '+' : ''}${cagrPct}%`
+                          : '—'}
+                      </p>
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                        {t('performance.cagrTooltip')}
+                      </div>
+                    </div>
+
+                    {/* MWR/IRR */}
+                    <div className="text-center relative group">
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                          {t('performance.mwr')}
+                        </p>
+                        <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                      </div>
+                      <p className={`text-sm md:text-xl font-bold ${mwrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {mwrSuccess
+                          ? `${mwrPct >= 0 ? '+' : ''}${mwrPct}%`
+                          : '—'}
+                      </p>
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                        {t('performance.mwrTooltip')}
+                      </div>
                     </div>
                   </div>
                 </div>
