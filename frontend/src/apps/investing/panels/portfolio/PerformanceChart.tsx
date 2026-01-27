@@ -113,7 +113,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
     onPin: () => void,
     onClose: () => void,
     dataIndex?: number, // Index in chartData to determine date range
-    chartDataArr?: typeof chartData // Pass chartData for date range calculation
+    chartDataArr?: Array<{ date: string }> // Pass chartData for date range calculation
   ) => {
     const benchmarkTicker = benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY');
     const portfolioValue = data.portfolio_value_eur;
