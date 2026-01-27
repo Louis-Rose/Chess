@@ -1222,7 +1222,9 @@ export function PortfolioPanel() {
                               const periodLabel = language === 'fr' ? 'Période' : 'Period';
                               const yearsLabel = language === 'fr' ? 'ans' : 'years';
                               const ratio = filteredCostBasis > 0 ? (filteredTotalValue / filteredCostBasis).toFixed(3) : '0';
-                              return `${t('performance.cagrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\n(${formatEur(filteredTotalValue)}€ ÷ ${formatEur(filteredCostBasis)}€)^(1/${periodYears.toFixed(2)}) − 1\n= ${ratio}^${(1/periodYears).toFixed(3)} − 1\n= ${cagrPct >= 0 ? '+' : ''}${cagrPct}% (${t('performance.perYear')})`;
+                              const exponent = (1/periodYears).toFixed(3);
+                              const resultValue = filteredCostBasis > 0 ? Math.pow(filteredTotalValue / filteredCostBasis, 1/periodYears).toFixed(3) : '0';
+                              return `${t('performance.cagrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\nCAGR = (${currentValueLabel} / ${investedLabel})^(1/${periodLabel}) − 1\n= (${formatEur(filteredTotalValue)}€ / ${formatEur(filteredCostBasis)}€)^(1/${periodYears.toFixed(2)}) − 1\n= ${ratio}^${exponent} − 1\n= ${resultValue} − 1\n= ${cagrPct >= 0 ? '+' : ''}${cagrPct}% (${t('performance.perYear')})`;
                             })()}
                           </div>
                         </div>
@@ -1291,12 +1293,12 @@ export function PortfolioPanel() {
                               // Intermediary variables
                               const varsSection = `${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}`;
 
-                              // Build sub-period details (all periods)
+                              // Build sub-period details (all periods) with start/end values for debugging
                               const periodDetails = twrSubPeriods.map(sp => {
                                 const startStr = sp.startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                                 const endStr = sp.endDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                                 const sign = sp.returnPct >= 0 ? '+' : '';
-                                return `${startStr} → ${endStr}: ${sign}${sp.returnPct}%`;
+                                return `${startStr} (${formatEur(sp.startValue)}€) → ${endStr} (${formatEur(sp.endValue)}€): ${sign}${sp.returnPct}%`;
                               }).join('\n');
 
                               // Format chain-linking formula with decimal multipliers: 1.084 × 1.242 × ...
