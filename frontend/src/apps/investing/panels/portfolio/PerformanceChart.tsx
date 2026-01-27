@@ -233,7 +233,9 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
         {sortedTransactions.length > 0 && (
           <div style={{ borderTop: '1px solid #475569', marginTop: '4px', paddingTop: '4px' }}>
             {sortedTransactions.map((tx, idx) => {
-              const amountStr = tx.amount_eur ? ` (${currency === 'EUR' ? `${formatEur(Math.round(tx.amount_eur))}€` : `$${formatEur(Math.round(tx.amount_eur))}`})` : '';
+              const pricePerShare = tx.amount_eur && tx.quantity ? (tx.amount_eur / tx.quantity).toFixed(2) : null;
+              const pricePerShareStr = pricePerShare ? `, ${currency === 'EUR' ? `${pricePerShare}€` : `$${pricePerShare}`}/${language === 'fr' ? 'action' : 'share'}` : '';
+              const amountStr = tx.amount_eur ? ` (${currency === 'EUR' ? `${formatEur(Math.round(tx.amount_eur))}€` : `$${formatEur(Math.round(tx.amount_eur))}`}${pricePerShareStr})` : '';
               const txDateStr = new Date(tx.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
               return (
                 <p key={idx} style={{ color: tx.type === 'BUY' ? '#22c55e' : '#f97316', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
