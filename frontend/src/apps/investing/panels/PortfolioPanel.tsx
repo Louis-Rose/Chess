@@ -1322,10 +1322,12 @@ export function PortfolioPanel() {
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
                             {(() => {
                               const header = t('performance.twrTooltip');
-                              const portfolioLabel = language === 'fr' ? 'Votre portefeuille' : 'Your portfolio';
+                              const filteredLabel = isFilteringStocks
+                                ? (language === 'fr' ? `${selectedStocks.size} action(s)` : `${selectedStocks.size} stock(s)`)
+                                : (language === 'fr' ? 'Portefeuille complet' : 'Full portfolio');
 
                               if (!twrSuccess || twrSubPeriods.length === 0) {
-                                return `${header}\n\n━━━ ${portfolioLabel} ━━━\n${language === 'fr' ? 'Données insuffisantes' : 'Insufficient data'}`;
+                                return `${header}\n\n━━━ ${filteredLabel} ━━━\n${language === 'fr' ? 'Données insuffisantes' : 'Insufficient data'}`;
                               }
 
                               // Build the chain-linking formula display
@@ -1358,7 +1360,7 @@ export function PortfolioPanel() {
                                 ? `\n${language === 'fr' ? 'Annualisé' : 'Annualized'}: (1 + ${twrPct / 100})^(1/${periodYears.toFixed(2)}) − 1\n= ${annualizedTwrPct >= 0 ? '+' : ''}${annualizedTwrPct}%/${language === 'fr' ? 'an' : 'y'}`
                                 : '';
 
-                              return `${header}\n\n━━━ ${portfolioLabel} ━━━\n${hasMorePeriods ? `(${twrSubPeriods.length} ${language === 'fr' ? 'périodes' : 'periods'})\n` : ''}${periodDetails}\n\n${chainFormula}\n${resultLine}${annualizedLine}`;
+                              return `${header}\n\n━━━ ${filteredLabel} ━━━\n${hasMorePeriods ? `(${twrSubPeriods.length} ${language === 'fr' ? 'périodes' : 'periods'})\n` : ''}${periodDetails}\n\n${chainFormula}\n${resultLine}${annualizedLine}`;
                             })()}
                           </div>
                         </div>
