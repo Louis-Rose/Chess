@@ -209,12 +209,14 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
         </p>
         <div
           style={{ position: 'relative' }}
-          onMouseEnter={() => setShowStockBreakdown(true)}
-          onMouseLeave={() => setShowStockBreakdown(false)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowStockBreakdown(!showStockBreakdown);
+          }}
         >
           <p style={{ color: greenColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold', cursor: 'pointer' }}>
             {t('performance.portfolio')} : {currency === 'EUR' ? `${formatEur(Math.round(portfolioValue))}€` : `$${formatEur(Math.round(portfolioValue))}`}
-            <span style={{ color: '#94a3b8', fontSize: '9px', marginLeft: '4px' }}>▼</span>
+            <span style={{ color: '#94a3b8', fontSize: '9px', marginLeft: '4px' }}>{showStockBreakdown ? '▲' : '▼'}</span>
           </p>
           {showStockBreakdown && data.stocks && (
             <div style={{
