@@ -99,10 +99,155 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   const [stockSelectorOpen, setStockSelectorOpen] = useState(false);
 
   // Tooltip pinned state - click to pin tooltip
-  const [pinnedTooltipData, setPinnedTooltipData] = useState<{ payload: unknown[]; label: string } | null>(null);
+  const [pinnedTooltipData, setPinnedTooltipData] = useState<{ data: typeof performanceData extends { data: (infer T)[] } ? T : never; label: string } | null>(null);
 
   // Track if hovering on Portfolio line in tooltip to show stock breakdown
   const [showStockBreakdown, setShowStockBreakdown] = useState(false);
+
+  // Helper to render tooltip content (used by both hover and pinned tooltips)
+  const renderTooltipContent = (
+    data: NonNullable<typeof performanceData>['data'][0] & { portfolio_value_eur: number; cost_basis_eur: number; benchmark_value_eur: number },
+    label: string,
+    isPinned: boolean,
+    onPin: () => void,
+    onClose: () => void
+  ) => {
+    const benchmarkTicker = benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY');
+    const portfolioValue = data.portfolio_value_eur;
+    const costBasis = data.cost_basis_eur;
+    const benchmarkValue = data.benchmark_value_eur;
+
+    const perfPct = costBasis > 0 ? ((portfolioValue - costBasis) / costBasis * 100) : 0;
+    const perfRounded = Math.round(perfPct * 10) / 10;
+
+    const firstDate = performanceData?.data ? new Date(performanceData.data[0]?.date) : new Date();
+    const currentDate = new Date(data.date);
+    const daysDiff = Math.max(1, Math.round((currentDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
+    const years = daysDiff / 365;
+
+    const totalReturn = costBasis > 0 ? (portfolioValue / costBasis) : 1;
+    const cagr = years > 0 ? (Math.pow(totalReturn, 1 / years) - 1) * 100 : 0;
+    const cagrRounded = Math.round(cagr * 10) / 10;
+
+    const benchmarkPerfPct = costBasis > 0 ? ((benchmarkValue - costBasis) / costBasis * 100) : 0;
+    const benchmarkTotalReturn = costBasis > 0 ? (benchmarkValue / costBasis) : 1;
+    const benchmarkCagr = years > 0 ? (Math.pow(benchmarkTotalReturn, 1 / years) - 1) * 100 : 0;
+
+    const outperfRatioTotal = benchmarkPerfPct !== 0 ? (perfPct / benchmarkPerfPct) : 0;
+    const outperfRatioAnnualized = benchmarkCagr !== 0 ? (cagr / benchmarkCagr) : 0;
+    const displayOutperfRatio = showAnnualized ? Math.round(outperfRatioAnnualized * 10) / 10 : Math.round(outperfRatioTotal * 10) / 10;
+
+    const displayPerf = showAnnualized ? cagrRounded : perfRounded;
+    const perfLabel = showAnnualized
+      ? (language === 'fr' ? 'Performance (annualisee)' : 'Performance (annualized)')
+      : (language === 'fr' ? 'Performance (totale)' : 'Performance (all)');
+
+    const displayBenchmarkPerf = showAnnualized ? Math.round(benchmarkCagr * 10) / 10 : Math.round(benchmarkPerfPct * 10) / 10;
+    const benchmarkPerfLabel = language === 'fr' ? `Performance ${benchmarkTicker}` : `${benchmarkTicker} performance`;
+
+    const outperfLabel = displayOutperfRatio >= 1
+      ? (language === 'fr' ? `Surperformance vs ${benchmarkTicker}` : `Outperformance vs ${benchmarkTicker}`)
+      : (language === 'fr' ? `Sous-performance vs ${benchmarkTicker}` : `Underperformance vs ${benchmarkTicker}`);
+
+    const greenColor = '#4ade80';
+    const blueColor = '#60a5fa';
+
+    const currentDateStr = data.date;
+    const currentDateObj = new Date(currentDateStr);
+    const weekAgo = new Date(currentDateObj);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const transactionsOnDate = performanceData?.transactions?.filter(tx => {
+      const txDate = new Date(tx.date);
+      return txDate > weekAgo && txDate <= currentDateObj;
+    }) || [];
+
+    const sortedTransactions = [...transactionsOnDate].sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'BUY' ? -1 : 1;
+      if (a.ticker !== b.ticker) return a.ticker.localeCompare(b.ticker);
+      return b.quantity - a.quantity;
+    });
+
+    return (
+      <div
+        style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: isPinned ? '2px solid #22c55e' : '1px solid #334155', padding: '6px 10px', fontSize: '12px', cursor: 'pointer', position: 'relative' }}
+        onClick={onPin}
+      >
+        {isPinned && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            style={{
+              position: 'absolute', top: '-8px', right: '-8px', width: '20px', height: '20px',
+              borderRadius: '50%', backgroundColor: '#ef4444', border: 'none', color: 'white',
+              fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontWeight: 'bold',
+            }}
+          >×</button>
+        )}
+        <p style={{ color: '#f1f5f9', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
+          {new Date(String(label)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+        </p>
+        <p style={{ color: '#94a3b8', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', borderBottom: '1px solid #475569', paddingBottom: '4px', marginBottom: '4px' }}>
+          {t('performance.invested')} : {currency === 'EUR' ? `${formatEur(Math.round(costBasis))}€` : `$${formatEur(Math.round(costBasis))}`}
+        </p>
+        <div
+          style={{ position: 'relative' }}
+          onMouseEnter={() => setShowStockBreakdown(true)}
+          onMouseLeave={() => setShowStockBreakdown(false)}
+        >
+          <p style={{ color: greenColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold', cursor: 'pointer' }}>
+            {t('performance.portfolio')} : {currency === 'EUR' ? `${formatEur(Math.round(portfolioValue))}€` : `$${formatEur(Math.round(portfolioValue))}`}
+            <span style={{ color: '#94a3b8', fontSize: '9px', marginLeft: '4px' }}>▼</span>
+          </p>
+          {showStockBreakdown && data.stocks && (
+            <div style={{
+              backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '4px',
+              padding: '4px 8px', marginTop: '2px', marginBottom: '4px', maxHeight: '150px', overflowY: 'auto'
+            }}>
+              {Object.entries(data.stocks as Record<string, { value_eur: number; quantity: number }>)
+                .filter(([ticker]) => selectedStocks.has(ticker))
+                .sort((a, b) => b[1].value_eur - a[1].value_eur)
+                .map(([ticker, stockData]) => (
+                  <p key={ticker} style={{ color: '#94a3b8', fontSize: '10px', padding: '1px 0', display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                    <span style={{ color: '#e2e8f0' }}>{ticker}</span>
+                    <span>{currency === 'EUR' ? `${formatEur(Math.round(stockData.value_eur))}€` : `$${formatEur(Math.round(stockData.value_eur))}`}</span>
+                  </p>
+                ))
+              }
+            </div>
+          )}
+        </div>
+        <p style={{ color: blueColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+          {benchmarkTicker} : {currency === 'EUR' ? `${formatEur(Math.round(benchmarkValue))}€` : `$${formatEur(Math.round(benchmarkValue))}`}
+        </p>
+        <p style={{ color: displayPerf >= 0 ? greenColor : '#f87171', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', marginTop: '4px', borderTop: '1px solid #475569', paddingTop: '4px' }}>
+          {perfLabel} : {displayPerf >= 0 ? '+' : ''}{displayPerf}%
+        </p>
+        <p style={{ color: blueColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+          {benchmarkPerfLabel} : {displayBenchmarkPerf >= 0 ? '+' : ''}{displayBenchmarkPerf}%
+        </p>
+        <p style={{ color: displayOutperfRatio >= 1 ? greenColor : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+          {outperfLabel} : x{displayOutperfRatio}
+        </p>
+        {sortedTransactions.length > 0 && (
+          <div style={{ borderTop: '1px solid #475569', marginTop: '4px', paddingTop: '4px' }}>
+            {sortedTransactions.map((tx, idx) => {
+              const amountStr = tx.amount_eur ? ` (${currency === 'EUR' ? `${formatEur(Math.round(tx.amount_eur))}€` : `$${formatEur(Math.round(tx.amount_eur))}`})` : '';
+              const txDateStr = new Date(tx.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+              return (
+                <p key={idx} style={{ color: tx.type === 'BUY' ? '#22c55e' : '#f97316', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
+                  {tx.type === 'BUY'
+                    ? (language === 'fr' ? `${txDateStr}: Acheté ${tx.quantity} ${tx.ticker}${amountStr}` : `${txDateStr}: Bought ${tx.quantity} ${tx.ticker}${amountStr}`)
+                    : (language === 'fr' ? `${txDateStr}: Vendu ${tx.quantity} ${tx.ticker}${amountStr}` : `${txDateStr}: Sold ${tx.quantity} ${tx.ticker}${amountStr}`)
+                  }
+                </p>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Use controlled state if provided, otherwise use internal state
   const selectedStocks = controlledSelectedStocks ?? internalSelectedStocks;
@@ -1122,197 +1267,23 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       allowEscapeViewBox={{ x: false, y: true }}
                       offset={10}
                       content={({ active, payload, label }) => {
-                        // Use pinned data if available, otherwise use hover data
-                        const displayData = pinnedTooltipData
-                          ? pinnedTooltipData
-                          : (active && payload && payload.length > 0)
-                            ? { payload: payload as unknown[], label: label as string }
-                            : null;
+                        // Don't show hover tooltip if we have a pinned one
+                        if (pinnedTooltipData) return null;
+                        if (!active || !payload || payload.length === 0) return null;
 
-                        if (!displayData || !displayData.payload || displayData.payload.length === 0) return null;
-
-                        const data = (displayData.payload[0] as { payload?: typeof chartData[0] })?.payload;
+                        const data = (payload[0] as { payload?: typeof chartData[0] })?.payload;
                         if (!data) return null;
-                        const displayLabel = displayData.label;
 
-                        // Pin tooltip on click (if not already pinned to this data)
                         const handlePin = () => {
-                          if (pinnedTooltipData && pinnedTooltipData.label === displayLabel) {
-                            // Clicking same point unpins
-                            setPinnedTooltipData(null);
-                            setShowStockBreakdown(false);
-                          } else {
-                            setPinnedTooltipData({ payload: displayData.payload, label: displayLabel });
-                          }
+                          setPinnedTooltipData({ data: data as typeof pinnedTooltipData extends { data: infer T } ? T : never, label: label as string });
                         };
 
-                        const benchmarkTicker = benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY');
-                        const portfolioValue = data.portfolio_value_eur;
-                        const costBasis = data.cost_basis_eur;
-                        const benchmarkValue = data.benchmark_value_eur;
-
-                        const perfPct = costBasis > 0 ? ((portfolioValue - costBasis) / costBasis * 100) : 0;
-                        const perfRounded = Math.round(perfPct * 10) / 10;
-
-                        const firstDate = new Date(chartData[0]?.date);
-                        const currentDate = new Date(data.date);
-                        const daysDiff = Math.max(1, Math.round((currentDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
-                        const years = daysDiff / 365;
-
-                        const totalReturn = costBasis > 0 ? (portfolioValue / costBasis) : 1;
-                        const cagr = years > 0 ? (Math.pow(totalReturn, 1 / years) - 1) * 100 : 0;
-                        const cagrRounded = Math.round(cagr * 10) / 10;
-
-                        const benchmarkPerfPct = costBasis > 0 ? ((benchmarkValue - costBasis) / costBasis * 100) : 0;
-                        const benchmarkTotalReturn = costBasis > 0 ? (benchmarkValue / costBasis) : 1;
-                        const benchmarkCagr = years > 0 ? (Math.pow(benchmarkTotalReturn, 1 / years) - 1) * 100 : 0;
-
-                        const outperfRatioTotal = benchmarkPerfPct !== 0 ? (perfPct / benchmarkPerfPct) : 0;
-                        const outperfRatioAnnualized = benchmarkCagr !== 0 ? (cagr / benchmarkCagr) : 0;
-                        const displayOutperfRatio = showAnnualized ? Math.round(outperfRatioAnnualized * 10) / 10 : Math.round(outperfRatioTotal * 10) / 10;
-
-                        const displayPerf = showAnnualized ? cagrRounded : perfRounded;
-                        const perfLabel = showAnnualized
-                          ? (language === 'fr' ? 'Performance (annualisee)' : 'Performance (annualized)')
-                          : (language === 'fr' ? 'Performance (totale)' : 'Performance (all)');
-
-                        const displayBenchmarkPerf = showAnnualized ? Math.round(benchmarkCagr * 10) / 10 : Math.round(benchmarkPerfPct * 10) / 10;
-                        const benchmarkPerfLabel = language === 'fr' ? `Performance ${benchmarkTicker}` : `${benchmarkTicker} performance`;
-
-                        const outperfLabel = displayOutperfRatio >= 1
-                          ? (language === 'fr' ? `Surperformance vs ${benchmarkTicker}` : `Outperformance vs ${benchmarkTicker}`)
-                          : (language === 'fr' ? `Sous-performance vs ${benchmarkTicker}` : `Underperformance vs ${benchmarkTicker}`);
-
-                        // Consistent colors: green #4ade80, blue #60a5fa
-                        const greenColor = '#4ade80';
-                        const blueColor = '#60a5fa';
-
-                        // Find transactions on this date (within a week window since data is weekly)
-                        const currentDateStr = data.date;
-                        const currentDateObj = new Date(currentDateStr);
-                        const weekAgo = new Date(currentDateObj);
-                        weekAgo.setDate(weekAgo.getDate() - 7);
-
-                        const transactionsOnDate = performanceData.transactions?.filter(tx => {
-                          const txDate = new Date(tx.date);
-                          return txDate > weekAgo && txDate <= currentDateObj;
-                        }) || [];
-
-                        // Sort: BUY first, then SELL; within each group: alphabetical by ticker, then by quantity
-                        const sortedTransactions = [...transactionsOnDate].sort((a, b) => {
-                          // BUY before SELL
-                          if (a.type !== b.type) return a.type === 'BUY' ? -1 : 1;
-                          // Alphabetical by ticker
-                          if (a.ticker !== b.ticker) return a.ticker.localeCompare(b.ticker);
-                          // By quantity (descending)
-                          return b.quantity - a.quantity;
-                        });
-
-                        const isPinned = pinnedTooltipData !== null;
-
-                        return (
-                          <div
-                            style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: isPinned ? '2px solid #22c55e' : '1px solid #334155', padding: '6px 10px', fontSize: '12px', cursor: 'pointer', position: 'relative' }}
-                            onClick={handlePin}
-                          >
-                            {isPinned && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setPinnedTooltipData(null);
-                                  setShowStockBreakdown(false);
-                                }}
-                                style={{
-                                  position: 'absolute',
-                                  top: '-8px',
-                                  right: '-8px',
-                                  width: '20px',
-                                  height: '20px',
-                                  borderRadius: '50%',
-                                  backgroundColor: '#ef4444',
-                                  border: 'none',
-                                  color: 'white',
-                                  fontSize: '12px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontWeight: 'bold',
-                                }}
-                              >
-                                ×
-                              </button>
-                            )}
-                            <p style={{ color: '#f1f5f9', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
-                              {new Date(String(displayLabel)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                            </p>
-                            <p style={{ color: '#94a3b8', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', borderBottom: '1px solid #475569', paddingBottom: '4px', marginBottom: '4px' }}>
-                              {t('performance.invested')} : {currency === 'EUR' ? `${formatEur(Math.round(costBasis))}€` : `$${formatEur(Math.round(costBasis))}`}
-                            </p>
-                            <div
-                              style={{ position: 'relative' }}
-                              onMouseEnter={() => setShowStockBreakdown(true)}
-                              onMouseLeave={() => setShowStockBreakdown(false)}
-                            >
-                              <p style={{ color: greenColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold', cursor: 'pointer' }}>
-                                {t('performance.portfolio')} : {currency === 'EUR' ? `${formatEur(Math.round(portfolioValue))}€` : `$${formatEur(Math.round(portfolioValue))}`}
-                                <span style={{ color: '#94a3b8', fontSize: '9px', marginLeft: '4px' }}>▼</span>
-                              </p>
-                              {showStockBreakdown && data.stocks && (
-                                <div style={{
-                                  backgroundColor: '#0f172a',
-                                  border: '1px solid #334155',
-                                  borderRadius: '4px',
-                                  padding: '4px 8px',
-                                  marginTop: '2px',
-                                  marginBottom: '4px',
-                                  maxHeight: '150px',
-                                  overflowY: 'auto'
-                                }}>
-                                  {Object.entries(data.stocks as Record<string, { value_eur: number; quantity: number }>)
-                                    .filter(([ticker]) => selectedStocks.has(ticker))
-                                    .sort((a, b) => b[1].value_eur - a[1].value_eur)
-                                    .map(([ticker, stockData]) => (
-                                      <p key={ticker} style={{ color: '#94a3b8', fontSize: '10px', padding: '1px 0', display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-                                        <span style={{ color: '#e2e8f0' }}>{ticker}</span>
-                                        <span>{currency === 'EUR' ? `${formatEur(Math.round(stockData.value_eur))}€` : `$${formatEur(Math.round(stockData.value_eur))}`}</span>
-                                      </p>
-                                    ))
-                                  }
-                                </div>
-                              )}
-                            </div>
-                            <p style={{ color: blueColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
-                              {benchmarkTicker} : {currency === 'EUR' ? `${formatEur(Math.round(benchmarkValue))}€` : `$${formatEur(Math.round(benchmarkValue))}`}
-                            </p>
-                            <p style={{ color: displayPerf >= 0 ? greenColor : '#f87171', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', marginTop: '4px', borderTop: '1px solid #475569', paddingTop: '4px' }}>
-                              {perfLabel} : {displayPerf >= 0 ? '+' : ''}{displayPerf}%
-                            </p>
-                            <p style={{ color: blueColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
-                              {benchmarkPerfLabel} : {displayBenchmarkPerf >= 0 ? '+' : ''}{displayBenchmarkPerf}%
-                            </p>
-                            <p style={{ color: displayOutperfRatio >= 1 ? greenColor : '#dc2626', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
-                              {outperfLabel} : x{displayOutperfRatio}
-                            </p>
-                            {sortedTransactions.length > 0 && (
-                              <div style={{ borderTop: '1px solid #475569', marginTop: '4px', paddingTop: '4px' }}>
-                                {sortedTransactions.map((tx, idx) => {
-                                  const amountStr = tx.amount_eur
-                                    ? ` (${currency === 'EUR' ? `${formatEur(Math.round(tx.amount_eur))}€` : `$${formatEur(Math.round(tx.amount_eur))}`})`
-                                    : '';
-                                  const txDateStr = new Date(tx.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                                  return (
-                                    <p key={idx} style={{ color: tx.type === 'BUY' ? '#22c55e' : '#f97316', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
-                                      {tx.type === 'BUY'
-                                        ? (language === 'fr' ? `${txDateStr}: Acheté ${tx.quantity} ${tx.ticker}${amountStr}` : `${txDateStr}: Bought ${tx.quantity} ${tx.ticker}${amountStr}`)
-                                        : (language === 'fr' ? `${txDateStr}: Vendu ${tx.quantity} ${tx.ticker}${amountStr}` : `${txDateStr}: Sold ${tx.quantity} ${tx.ticker}${amountStr}`)
-                                      }
-                                    </p>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
+                        return renderTooltipContent(
+                          data as Parameters<typeof renderTooltipContent>[0],
+                          label as string,
+                          false,
+                          handlePin,
+                          () => {}
                         );
                       }}
                     />
@@ -1399,6 +1370,29 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                     )}
                   </ComposedChart>
                 </ResponsiveContainer>
+                {/* Pinned tooltip overlay */}
+                {pinnedTooltipData && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '50px',
+                    left: '80px',
+                    zIndex: 1000,
+                  }}>
+                    {renderTooltipContent(
+                      pinnedTooltipData.data as Parameters<typeof renderTooltipContent>[0],
+                      pinnedTooltipData.label,
+                      true,
+                      () => {
+                        setPinnedTooltipData(null);
+                        setShowStockBreakdown(false);
+                      },
+                      () => {
+                        setPinnedTooltipData(null);
+                        setShowStockBreakdown(false);
+                      }
+                    )}
+                  </div>
+                )}
               </div>
               </div>
               {/* Custom brush date labels - show selected range */}
