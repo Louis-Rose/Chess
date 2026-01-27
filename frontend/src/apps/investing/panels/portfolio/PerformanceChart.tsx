@@ -1211,11 +1211,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                                   const amountStr = tx.amount_eur
                                     ? ` (${currency === 'EUR' ? `${formatEur(Math.round(tx.amount_eur))}€` : `$${formatEur(Math.round(tx.amount_eur))}`})`
                                     : '';
+                                  const txDateStr = new Date(tx.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: '2-digit' });
                                   return (
                                     <p key={idx} style={{ color: tx.type === 'BUY' ? '#22c55e' : '#f97316', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                                       {tx.type === 'BUY'
-                                        ? (language === 'fr' ? `Acheté ${tx.quantity} ${tx.ticker}${amountStr}` : `Bought ${tx.quantity} ${tx.ticker}${amountStr}`)
-                                        : (language === 'fr' ? `Vendu ${tx.quantity} ${tx.ticker}${amountStr}` : `Sold ${tx.quantity} ${tx.ticker}${amountStr}`)
+                                        ? (language === 'fr' ? `${txDateStr}: Acheté ${tx.quantity} ${tx.ticker}${amountStr}` : `${txDateStr}: Bought ${tx.quantity} ${tx.ticker}${amountStr}`)
+                                        : (language === 'fr' ? `${txDateStr}: Vendu ${tx.quantity} ${tx.ticker}${amountStr}` : `${txDateStr}: Sold ${tx.quantity} ${tx.ticker}${amountStr}`)
                                       }
                                     </p>
                                   );
