@@ -370,27 +370,33 @@ export function calculateTWR(
   for (let i = 1; i < sortedValuations.length; i++) {
     const currentValuation = sortedValuations[i];
     const currentDate = currentValuation.date;
-    const currentValue = currentValuation.value;
+    const currentValueRaw = currentValuation.value;
 
     // Get any cash flow that occurred at the previous valuation date
     // (The valuation is BEFORE the cash flow, so we add it to get the starting value for next period)
     const cashFlowAtPrevDate = cashFlowMap.get(previousDate.getTime()) || 0;
+
+    // Get any cash flow at the current date - we need the value BEFORE this cash flow
+    // If there's a deposit (negative cash flow), the reported value includes it, so we add it back
+    // value_before = value_after + cash_flow (where cash_flow is negative for deposits)
+    const cashFlowAtCurrentDate = cashFlowMap.get(currentDate.getTime()) || 0;
+    const endValue = currentValueRaw + cashFlowAtCurrentDate;
 
     // Starting value for this sub-period = previous value + cash flow (deposit is negative, so we subtract)
     const startingValue = previousValue - cashFlowAtPrevDate;
 
     if (startingValue <= 0) {
       // Skip periods with zero or negative starting value
-      previousValue = currentValue;
+      previousValue = currentValueRaw;
       previousDate = currentDate;
       continue;
     }
 
     // Sub-period return = (ending value - starting value) / starting value
-    const subPeriodReturn = (currentValue - startingValue) / startingValue;
+    const subPeriodReturn = (endValue - startingValue) / startingValue;
     subPeriodReturns.push(subPeriodReturn);
 
-    previousValue = currentValue;
+    previousValue = currentValueRaw;
     previousDate = currentDate;
   }
 
@@ -447,35 +453,41 @@ export function calculateTWRDetailed(
   for (let i = 1; i < sortedValuations.length; i++) {
     const currentValuation = sortedValuations[i];
     const currentDate = currentValuation.date;
-    const currentValue = currentValuation.value;
+    const currentValueRaw = currentValuation.value;
 
     // Get any cash flow that occurred at the previous valuation date
     // (The valuation is BEFORE the cash flow, so we add it to get the starting value for next period)
     const cashFlowAtPrevDate = cashFlowMap.get(previousDate.getTime()) || 0;
+
+    // Get any cash flow at the current date - we need the value BEFORE this cash flow
+    // If there's a deposit (negative cash flow), the reported value includes it, so we add it back
+    // value_before = value_after + cash_flow (where cash_flow is negative for deposits)
+    const cashFlowAtCurrentDate = cashFlowMap.get(currentDate.getTime()) || 0;
+    const endValue = currentValueRaw + cashFlowAtCurrentDate;
 
     // Starting value for this sub-period = previous value + cash flow (deposit is negative, so we subtract)
     const startingValue = previousValue - cashFlowAtPrevDate;
 
     if (startingValue <= 0) {
       // Skip periods with zero or negative starting value
-      previousValue = currentValue;
+      previousValue = currentValueRaw;
       previousDate = currentDate;
       continue;
     }
 
     // Sub-period return = (ending value - starting value) / starting value
-    const subPeriodReturn = (currentValue - startingValue) / startingValue;
+    const subPeriodReturn = (endValue - startingValue) / startingValue;
 
     subPeriods.push({
       startDate: previousDate,
       endDate: currentDate,
       startValue: startingValue,
-      endValue: currentValue,
+      endValue: endValue,
       return: subPeriodReturn,
       returnPct: Math.round(subPeriodReturn * 1000) / 10,
     });
 
-    previousValue = currentValue;
+    previousValue = currentValueRaw;
     previousDate = currentDate;
   }
 

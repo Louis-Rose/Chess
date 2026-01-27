@@ -1224,7 +1224,7 @@ export function PortfolioPanel() {
                               const ratio = filteredCostBasis > 0 ? (filteredTotalValue / filteredCostBasis).toFixed(3) : '0';
                               const exponent = (1/periodYears).toFixed(3);
                               const resultValue = filteredCostBasis > 0 ? Math.pow(filteredTotalValue / filteredCostBasis, 1/periodYears).toFixed(3) : '0';
-                              return `${t('performance.cagrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\nCAGR = (${currentValueLabel} / ${investedLabel})^(1/${periodLabel}) − 1\n= (${formatEur(filteredTotalValue)}€ / ${formatEur(filteredCostBasis)}€)^(1/${periodYears.toFixed(2)}) − 1\n= ${ratio}^${exponent} − 1\n= ${resultValue} − 1\n= ${cagrPct >= 0 ? '+' : ''}${cagrPct}% (${t('performance.perYear')})`;
+                              return `${t('performance.cagrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\nCAGR = (${currentValueLabel} / ${investedLabel})^(1/${periodLabel}) − 1\n= (${formatEur(filteredTotalValue)}€ / ${formatEur(filteredCostBasis)}€)^(1/${periodYears.toFixed(2)}) − 1\n= ${ratio}^${exponent} − 1\n= ${resultValue} − 1\n= ${cagrPct >= 0 ? '+' : ''}${cagrPct}% ${t('performance.perYear')}`;
                             })()}
                           </div>
                         </div>
@@ -1342,7 +1342,7 @@ export function PortfolioPanel() {
                               const portfolioLabel = language === 'fr' ? 'Votre portefeuille' : 'Your portfolio';
 
                               if (showAnnualizedMetrics) {
-                                return `${t('performance.irrTooltip')}\n\n━━━ ${portfolioLabel} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}% (${t('performance.perYear')})`;
+                                return `${t('performance.irrTooltip')}\n\n━━━ ${portfolioLabel} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}% ${t('performance.perYear')}`;
                               } else {
                                 return `${t('performance.mwrTooltip')}\n\n━━━ ${portfolioLabel} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%/${language === 'fr' ? 'an' : 'y'}\n\nMWR = (1 + IRR)^${periodLabel.toLowerCase()} − 1\n= (1 + ${annualizedMwrPct}%)^${periodYears.toFixed(2)} − 1\n= (${(1 + annualizedMwrPct / 100).toFixed(3)})^${periodYears.toFixed(2)} − 1\n= ${cumulativeMwrPct >= 0 ? '+' : ''}${cumulativeMwrPct}%`;
                               }
