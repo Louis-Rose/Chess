@@ -1334,19 +1334,6 @@ export function PortfolioPanel() {
                               const periodsToShow = twrSubPeriods.slice(-maxPeriodsToShow);
                               const hasMorePeriods = twrSubPeriods.length > maxPeriodsToShow;
 
-                              // Format: (1 + R1) × (1 + R2) × ... − 1
-                              const chainParts = periodsToShow.map(sp => {
-                                const sign = sp.returnPct >= 0 ? '+' : '';
-                                return `(1 ${sign} ${sp.returnPct}%)`;
-                              });
-
-                              const chainFormula = (hasMorePeriods ? '... × ' : '') + chainParts.join(' × ') + ' − 1';
-
-                              // Calculate intermediate product for display
-                              const product = periodsToShow.reduce((acc, sp) => acc * (1 + sp.return), hasMorePeriods ? twrSubPeriods.slice(0, -maxPeriodsToShow).reduce((a, s) => a * (1 + s.return), 1) : 1);
-
-                              const resultLine = `= ${product.toFixed(4)} − 1 = ${twrPct >= 0 ? '+' : ''}${twrPct}%`;
-
                               // Build sub-period details (most recent periods)
                               const periodDetails = periodsToShow.map(sp => {
                                 const startStr = sp.startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
@@ -1355,11 +1342,23 @@ export function PortfolioPanel() {
                                 return `${startStr} → ${endStr}: ${sign}${sp.returnPct}%`;
                               }).join('\n');
 
+                              // Format chain-linking formula with decimal multipliers: 1.084 × 1.242 × ...
+                              const chainParts = periodsToShow.map(sp => (1 + sp.return).toFixed(3));
+                              const chainFormula = (hasMorePeriods ? '... × ' : '') + chainParts.join(' × ') + ' − 1';
+
+                              // Calculate product of just the shown periods for display
+                              const shownProduct = periodsToShow.reduce((acc, sp) => acc * (1 + sp.return), 1);
+                              const totalProduct = 1 + twrPct / 100; // Derive from the actual TWR
+
+                              const resultLine = hasMorePeriods
+                                ? `= ... × ${shownProduct.toFixed(3)} − 1\n= ${totalProduct.toFixed(4)} − 1 = ${twrPct >= 0 ? '+' : ''}${twrPct}%`
+                                : `= ${shownProduct.toFixed(4)} − 1 = ${twrPct >= 0 ? '+' : ''}${twrPct}%`;
+
                               const annualizedLine = showAnnualizedMetrics && periodYears >= 1
-                                ? `\n${language === 'fr' ? 'Annualisé' : 'Annualized'}: (1 + ${twrPct}%)^(1/${periodYears.toFixed(2)}) − 1 = ${annualizedTwrPct >= 0 ? '+' : ''}${annualizedTwrPct}%/${language === 'fr' ? 'an' : 'y'}`
+                                ? `\n${language === 'fr' ? 'Annualisé' : 'Annualized'}: (1 + ${twrPct / 100})^(1/${periodYears.toFixed(2)}) − 1\n= ${annualizedTwrPct >= 0 ? '+' : ''}${annualizedTwrPct}%/${language === 'fr' ? 'an' : 'y'}`
                                 : '';
 
-                              return `${header}\n\n━━━ ${portfolioLabel} ━━━\n${hasMorePeriods ? `(${twrSubPeriods.length} ${language === 'fr' ? 'périodes, dernières' : 'periods, showing last'} ${maxPeriodsToShow})\n` : ''}${periodDetails}\n\n${chainFormula}\n${resultLine}${annualizedLine}`;
+                              return `${header}\n\n━━━ ${portfolioLabel} ━━━\n${hasMorePeriods ? `(${twrSubPeriods.length} ${language === 'fr' ? 'périodes' : 'periods'})\n` : ''}${periodDetails}\n\n${chainFormula}\n${resultLine}${annualizedLine}`;
                             })()}
                           </div>
                         </div>
