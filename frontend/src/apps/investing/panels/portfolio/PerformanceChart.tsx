@@ -1161,10 +1161,11 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                     data={chartData}
                     margin={{ top: 10, right: 50, left: 20, bottom: 70 }}
                     style={{ cursor: 'pointer' }}
-                    onClick={(e) => {
+                    onClick={(e: unknown) => {
                       console.log('Chart clicked', e);
-                      if (e && e.activePayload && e.activePayload.length > 0) {
-                        const clickedData = e.activePayload[0].payload;
+                      const event = e as { activePayload?: Array<{ payload: typeof chartData[0] }> };
+                      if (event && event.activePayload && event.activePayload.length > 0) {
+                        const clickedData = event.activePayload[0].payload;
                         const clickedLabel = clickedData.date;
                         console.log('Pinning tooltip for', clickedLabel, clickedData);
                         // Toggle pin: if clicking same point, unpin; otherwise pin new point
@@ -1175,7 +1176,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                           setPinnedTooltipData({ data: clickedData, label: clickedLabel });
                         }
                       } else {
-                        console.log('No activePayload in click event');
+                        console.log('No activePayload in click event', event);
                       }
                     }}
                   >
