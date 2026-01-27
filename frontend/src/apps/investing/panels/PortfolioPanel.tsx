@@ -1332,8 +1332,8 @@ export function PortfolioPanel() {
 
                               // Build sub-period details (all periods)
                               const periodDetails = twrSubPeriods.map(sp => {
-                                const startStr = sp.startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
-                                const endStr = sp.endDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
+                                const startStr = sp.startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: '2-digit' });
+                                const endStr = sp.endDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: '2-digit' });
                                 const sign = sp.returnPct >= 0 ? '+' : '';
                                 return `${startStr} → ${endStr}: ${sign}${sp.returnPct}%`;
                               }).join('\n');
