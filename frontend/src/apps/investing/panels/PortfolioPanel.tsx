@@ -237,6 +237,18 @@ export function PortfolioPanel() {
     localStorage.setItem('metricsInfoDismissed', 'true');
   };
 
+  // Advanced metrics section collapsed state - persisted in localStorage
+  const [isAdvancedMetricsExpanded, setIsAdvancedMetricsExpanded] = useState(() => {
+    const saved = localStorage.getItem('advancedMetricsExpanded');
+    return saved !== 'false'; // Default to expanded
+  });
+
+  const toggleAdvancedMetrics = () => {
+    const newState = !isAdvancedMetricsExpanded;
+    setIsAdvancedMetricsExpanded(newState);
+    localStorage.setItem('advancedMetricsExpanded', String(newState));
+  };
+
   const compositionRef = useRef<PortfolioCompositionHandle>(null);
   const performanceRef = useRef<PerformanceChartHandle>(null);
 
@@ -582,96 +594,119 @@ export function PortfolioPanel() {
               </div>
             </div>
 
-            {/* Info Banner (grey/white, above SR/CAGR card) */}
-            <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-xl p-3">
-              <div className="flex gap-2.5">
-                <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
-                <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
-                  {t('performance.metricsInfoText')}
-                </p>
+            {/* Card 2: Advanced Performance Metrics (Collapsible - demo shows expanded) */}
+            <div className="bg-slate-50 dark:bg-slate-700 rounded-xl">
+              {/* Header */}
+              <div className="flex items-center gap-2 p-4">
+                <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  {t('performance.advancedMetrics')}
+                </h4>
               </div>
-            </div>
 
-            {/* Card 2: Simple Return & CAGR */}
-            <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
-              <div className="grid grid-cols-2 gap-4">
-                {/* Simple Return */}
-                <div className="text-center relative group">
-                  <div className="flex items-center justify-center gap-1.5 mb-1">
-                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                      {t('performance.simpleReturn')}
-                    </p>
-                    <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+              {/* Content */}
+              <div className="px-4 pb-4 space-y-4">
+                {/* Row 1: Simple Return & CAGR */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Simple Return */}
+                  <div className="text-center relative group border-r border-slate-300 dark:border-slate-600 pr-4">
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                        {t('performance.simpleReturn')}
+                      </p>
+                      <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                    </div>
+                    <p className="text-sm md:text-xl font-bold text-green-600">+35.2%</p>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                      {t('performance.simpleReturnTooltip')}
+                    </div>
                   </div>
-                  <p className="text-sm md:text-xl font-bold text-green-600">+35.2%</p>
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                    {t('performance.simpleReturnTooltip')}
+
+                  {/* CAGR */}
+                  <div className="text-center relative group">
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                        {t('performance.cagr')}
+                      </p>
+                      <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                    </div>
+                    <p className="text-sm md:text-xl font-bold text-green-600">+15.2%</p>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                      {t('performance.cagrTooltip')}
+                    </div>
                   </div>
                 </div>
 
-                {/* CAGR */}
-                <div className="text-center relative group">
-                  <div className="flex items-center justify-center gap-1.5 mb-1">
-                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                      {t('performance.cagr')}
+                {/* Info Banner for SR/CAGR */}
+                <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-lg p-3">
+                  <div className="flex gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
+                      {t('performance.metricsInfoText')}
                     </p>
-                    <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
-                  </div>
-                  <p className="text-sm md:text-xl font-bold text-green-600">+15.2%</p>
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                    {t('performance.cagrTooltip')}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 3: TWR, MWR, IRR */}
-            <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
-              <div className="grid grid-cols-3 gap-4">
-                {/* TWR */}
-                <div className="text-center relative group">
-                  <div className="flex items-center justify-center gap-1.5 mb-1">
-                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                      {t('performance.twr')}
-                    </p>
-                    <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
-                  </div>
-                  <p className="text-sm md:text-xl font-bold text-green-600">+32.8%</p>
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                    {t('performance.twrTooltip')}
                   </div>
                 </div>
 
-                {/* MWR */}
-                <div className="text-center relative group">
-                  <div className="flex items-center justify-center gap-1.5 mb-1">
-                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                      {t('performance.mwr')}
-                    </p>
-                    <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                {/* Divider */}
+                <div className="border-t border-slate-200 dark:border-slate-600" />
+
+                {/* Row 2: TWR, MWR, IRR */}
+                <div className="grid grid-cols-3 gap-4">
+                  {/* TWR */}
+                  <div className="text-center relative group border-r border-slate-300 dark:border-slate-600 pr-4">
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                        {t('performance.twr')}
+                      </p>
+                      <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                    </div>
+                    <p className="text-sm md:text-xl font-bold text-green-600">+32.8%</p>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                      {t('performance.twrTooltip')}
+                    </div>
                   </div>
-                  <p className="text-sm md:text-xl font-bold text-green-600">+14.8%</p>
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                    {t('performance.mwrTooltip')}
+
+                  {/* MWR */}
+                  <div className="text-center relative group border-r border-slate-300 dark:border-slate-600 pr-4">
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                        {t('performance.mwr')}
+                      </p>
+                      <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                    </div>
+                    <p className="text-sm md:text-xl font-bold text-green-600">+14.8%</p>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                      {t('performance.mwrTooltip')}
+                    </div>
+                  </div>
+
+                  {/* IRR */}
+                  <div className="text-center relative group">
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                        {t('performance.irr')}
+                      </p>
+                      <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                    </div>
+                    <p className="text-sm md:text-xl font-bold text-green-600">+14.8%</p>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                      {t('performance.irrTooltip')}
+                    </div>
                   </div>
                 </div>
 
-                {/* IRR */}
-                <div className="text-center relative group">
-                  <div className="flex items-center justify-center gap-1.5 mb-1">
-                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                      {t('performance.irr')}
+                {/* Example for TWR/MWR/IRR */}
+                <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-lg p-3">
+                  <div className="flex gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
+                      {t('performance.twrMwrExample')}
                     </p>
-                    <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
-                  </div>
-                  <p className="text-sm md:text-xl font-bold text-green-600">+14.8%</p>
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                    {t('performance.irrTooltip')}
                   </div>
                 </div>
               </div>
@@ -1068,130 +1103,158 @@ export function PortfolioPanel() {
                   </div>
                 </div>
 
-                {/* Info Banner - Closable (grey/white colors, above SR/CAGR card) */}
-                {showMetricsInfo && (
-                  <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-xl p-3 relative">
-                    <button
-                      onClick={dismissMetricsInfo}
-                      className="absolute top-2 right-2 p-1 hover:bg-slate-200 dark:hover:bg-slate-500 rounded-full transition-colors"
-                      title={language === 'fr' ? 'Fermer' : 'Close'}
-                    >
-                      <X className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                    </button>
-                    <div className="flex gap-2.5 pr-6">
-                      <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
-                          {t('performance.metricsInfoText')}
-                        </p>
-                      </div>
+                {/* Card 2: Advanced Performance Metrics (Collapsible) */}
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-xl">
+                  {/* Header - clickable to expand/collapse */}
+                  <button
+                    onClick={toggleAdvancedMetrics}
+                    className="w-full flex items-center justify-between p-4"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ChevronRight className={`w-4 h-4 text-slate-500 dark:text-slate-400 transition-transform ${isAdvancedMetricsExpanded ? 'rotate-90' : ''}`} />
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        {t('performance.advancedMetrics')}
+                      </h4>
                     </div>
-                  </div>
-                )}
+                  </button>
 
-                {/* Card 2: Simple Return & CAGR */}
-                <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Simple Return */}
-                    <div className="text-center relative group">
-                      <div className="flex items-center justify-center gap-1.5 mb-1">
-                        <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                          {t('performance.simpleReturn')}
-                        </p>
-                        <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
-                      </div>
-                      <p className={`text-sm md:text-xl font-bold ${simpleReturnPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {simpleReturnResult.success
-                          ? `${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`
-                          : '—'}
-                      </p>
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                        {t('performance.simpleReturnTooltip')}
-                      </div>
-                    </div>
+                  {/* Content */}
+                  {isAdvancedMetricsExpanded && (
+                    <div className="px-4 pb-4 space-y-4">
+                      {/* Row 1: Simple Return & CAGR */}
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Simple Return */}
+                        <div className="text-center relative group border-r border-slate-300 dark:border-slate-600 pr-4">
+                          <div className="flex items-center justify-center gap-1.5 mb-1">
+                            <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                              {t('performance.simpleReturn')}
+                            </p>
+                            <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                          </div>
+                          <p className={`text-sm md:text-xl font-bold ${simpleReturnPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {simpleReturnResult.success
+                              ? `${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`
+                              : '—'}
+                          </p>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                            {t('performance.simpleReturnTooltip')}
+                          </div>
+                        </div>
 
-                    {/* CAGR */}
-                    <div className="text-center relative group">
-                      <div className="flex items-center justify-center gap-1.5 mb-1">
-                        <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                          {t('performance.cagr')}
-                        </p>
-                        <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                        {/* CAGR */}
+                        <div className="text-center relative group">
+                          <div className="flex items-center justify-center gap-1.5 mb-1">
+                            <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                              {t('performance.cagr')}
+                            </p>
+                            <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                          </div>
+                          <p className={`text-sm md:text-xl font-bold ${cagrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {cagrSuccess
+                              ? `${cagrPct >= 0 ? '+' : ''}${cagrPct}%`
+                              : '—'}
+                          </p>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                            {t('performance.cagrTooltip')}
+                          </div>
+                        </div>
                       </div>
-                      <p className={`text-sm md:text-xl font-bold ${cagrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {cagrSuccess
-                          ? `${cagrPct >= 0 ? '+' : ''}${cagrPct}%`
-                          : '—'}
-                      </p>
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                        {t('performance.cagrTooltip')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Card 3: TWR, MWR, IRR */}
-                <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    {/* TWR */}
-                    <div className="text-center relative group">
-                      <div className="flex items-center justify-center gap-1.5 mb-1">
-                        <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                          {t('performance.twr')}
-                        </p>
-                        <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
-                      </div>
-                      <p className={`text-sm md:text-xl font-bold ${twrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {twrSuccess
-                          ? `${twrPct >= 0 ? '+' : ''}${twrPct}%`
-                          : '—'}
-                      </p>
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                        {t('performance.twrTooltip')}
-                      </div>
-                    </div>
+                      {/* Info Banner for SR/CAGR - below the metrics */}
+                      {showMetricsInfo && (
+                        <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-lg p-3 relative">
+                          <button
+                            onClick={dismissMetricsInfo}
+                            className="absolute top-2 right-2 p-1 hover:bg-slate-200 dark:hover:bg-slate-500 rounded-full transition-colors"
+                            title={language === 'fr' ? 'Fermer' : 'Close'}
+                          >
+                            <X className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                          </button>
+                          <div className="flex gap-2.5 pr-6">
+                            <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
+                            <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
+                              {t('performance.metricsInfoText')}
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
-                    {/* MWR */}
-                    <div className="text-center relative group">
-                      <div className="flex items-center justify-center gap-1.5 mb-1">
-                        <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                          {t('performance.mwr')}
-                        </p>
-                        <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
-                      </div>
-                      <p className={`text-sm md:text-xl font-bold ${mwrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {mwrSuccess
-                          ? `${mwrPct >= 0 ? '+' : ''}${mwrPct}%`
-                          : '—'}
-                      </p>
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                        {t('performance.mwrTooltip')}
-                      </div>
-                    </div>
+                      {/* Divider */}
+                      <div className="border-t border-slate-200 dark:border-slate-600" />
 
-                    {/* IRR */}
-                    <div className="text-center relative group">
-                      <div className="flex items-center justify-center gap-1.5 mb-1">
-                        <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                          {t('performance.irr')}
-                        </p>
-                        <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                      {/* Row 2: TWR, MWR, IRR */}
+                      <div className="grid grid-cols-3 gap-4">
+                        {/* TWR */}
+                        <div className="text-center relative group border-r border-slate-300 dark:border-slate-600 pr-4">
+                          <div className="flex items-center justify-center gap-1.5 mb-1">
+                            <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                              {t('performance.twr')}
+                            </p>
+                            <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                          </div>
+                          <p className={`text-sm md:text-xl font-bold ${twrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {twrSuccess
+                              ? `${twrPct >= 0 ? '+' : ''}${twrPct}%`
+                              : '—'}
+                          </p>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                            {t('performance.twrTooltip')}
+                          </div>
+                        </div>
+
+                        {/* MWR */}
+                        <div className="text-center relative group border-r border-slate-300 dark:border-slate-600 pr-4">
+                          <div className="flex items-center justify-center gap-1.5 mb-1">
+                            <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                              {t('performance.mwr')}
+                            </p>
+                            <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                          </div>
+                          <p className={`text-sm md:text-xl font-bold ${mwrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {mwrSuccess
+                              ? `${mwrPct >= 0 ? '+' : ''}${mwrPct}%`
+                              : '—'}
+                          </p>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                            {t('performance.mwrTooltip')}
+                          </div>
+                        </div>
+
+                        {/* IRR */}
+                        <div className="text-center relative group">
+                          <div className="flex items-center justify-center gap-1.5 mb-1">
+                            <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                              {t('performance.irr')}
+                            </p>
+                            <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                          </div>
+                          <p className={`text-sm md:text-xl font-bold ${mwrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {mwrSuccess
+                              ? `${mwrPct >= 0 ? '+' : ''}${mwrPct}%`
+                              : '—'}
+                          </p>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                            {t('performance.irrTooltip')}
+                          </div>
+                        </div>
                       </div>
-                      <p className={`text-sm md:text-xl font-bold ${mwrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {mwrSuccess
-                          ? `${mwrPct >= 0 ? '+' : ''}${mwrPct}%`
-                          : '—'}
-                      </p>
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                        {t('performance.irrTooltip')}
+
+                      {/* Example for TWR/MWR/IRR */}
+                      <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-lg p-3">
+                        <div className="flex gap-2.5">
+                          <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
+                          <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
+                            {t('performance.twrMwrExample')}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             );
