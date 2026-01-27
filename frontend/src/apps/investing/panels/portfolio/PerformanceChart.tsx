@@ -100,7 +100,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
   // Tooltip pinned state - click to pin tooltip
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [pinnedTooltipData, setPinnedTooltipData] = useState<{ data: any; label: string; x: number; y: number } | null>(null);
+  const [pinnedTooltipData, setPinnedTooltipData] = useState<{ data: any; label: string; x: number; y: number; dataIndex: number } | null>(null);
 
   // Track if hovering on Portfolio line in tooltip to show stock breakdown
   const [showStockBreakdown, setShowStockBreakdown] = useState(false);
@@ -111,7 +111,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
     label: string,
     isPinned: boolean,
     onPin: () => void,
-    onClose: () => void
+    onClose: () => void,
+    dataIndex?: number // Index in chartData to determine date range
   ) => {
     const benchmarkTicker = benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY');
     const portfolioValue = data.portfolio_value_eur;
@@ -155,12 +156,23 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
     const currentDateStr = data.date;
     const currentDateObj = new Date(currentDateStr);
-    const weekAgo = new Date(currentDateObj);
-    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    // Get previous and next data point dates for range calculation
+    const prevDataPoint = dataIndex !== undefined && dataIndex > 0 ? chartData[dataIndex - 1] : null;
+    const nextDataPoint = dataIndex !== undefined && dataIndex < chartData.length - 1 ? chartData[dataIndex + 1] : null;
+
+    // Transactions from previous date (exclusive) to current date (inclusive)
+    const prevDateObj = prevDataPoint ? new Date(prevDataPoint.date) : null;
+
+    // Next date for display (exclusive) - subtract 1 day
+    const nextDateObj = nextDataPoint ? new Date(nextDataPoint.date) : null;
+    const displayEndDate = nextDateObj ? new Date(nextDateObj.getTime() - 24 * 60 * 60 * 1000) : currentDateObj;
 
     const transactionsOnDate = performanceData?.transactions?.filter(tx => {
       const txDate = new Date(tx.date);
-      return txDate > weekAgo && txDate <= currentDateObj;
+      // From previous date (exclusive) to current date (inclusive)
+      const afterPrev = prevDateObj ? txDate > prevDateObj : true;
+      return afterPrev && txDate <= currentDateObj;
     }) || [];
 
     const sortedTransactions = [...transactionsOnDate].sort((a, b) => {
@@ -186,7 +198,10 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           >×</button>
         )}
         <p style={{ color: '#f1f5f9', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
-          {new Date(String(label)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          {currentDateObj.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          {nextDataPoint && displayEndDate.getTime() !== currentDateObj.getTime() && (
+            <span> → {displayEndDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          )}
         </p>
         <p style={{ color: '#94a3b8', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', borderBottom: '1px solid #475569', paddingBottom: '4px', marginBottom: '4px' }}>
           {t('performance.invested')} : {currency === 'EUR' ? `${formatEur(Math.round(costBasis))}€` : `$${formatEur(Math.round(costBasis))}`}
@@ -1178,7 +1193,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                             setPinnedTooltipData(null);
                             setShowStockBreakdown(false);
                           } else {
-                            setPinnedTooltipData({ data: clickedData, label: label, x: coord?.x ?? 100, y: coord?.y ?? 50 });
+                            setPinnedTooltipData({ data: clickedData, label: label, x: coord?.x ?? 100, y: coord?.y ?? 50, dataIndex: index });
                           }
                         }
                       }
@@ -1301,13 +1316,17 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         const data = (payload[0] as { payload?: typeof chartData[0] })?.payload;
                         if (!data) return null;
 
+                        // Find the index of this data point in chartData
+                        const dataIndex = chartData.findIndex(d => d.date === data.date);
+
                         // Pin is handled by chart onClick, not tooltip click
                         return renderTooltipContent(
                           data as Parameters<typeof renderTooltipContent>[0],
                           label as string,
                           false,
                           () => {}, // no-op, chart click handles pinning
-                          () => {}
+                          () => {},
+                          dataIndex >= 0 ? dataIndex : undefined
                         );
                       }}
                     />
@@ -1416,7 +1435,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       () => {
                         setPinnedTooltipData(null);
                         setShowStockBreakdown(false);
-                      }
+                      },
+                      pinnedTooltipData.dataIndex
                     )}
                   </div>
                 )}
