@@ -1337,7 +1337,9 @@ export function PortfolioPanel() {
                           </p>
                           {/* Tooltip */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
-                            {`${showAnnualizedMetrics ? t('performance.irrTooltip') : t('performance.mwrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\nIRR (${language === 'fr' ? 'annualisé' : 'annualized'}): ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%/y\nMWR (${language === 'fr' ? 'cumulé' : 'cumulative'}): ${cumulativeMwrPct >= 0 ? '+' : ''}${cumulativeMwrPct}%\n${language === 'fr' ? 'Période' : 'Period'}: ${periodYears.toFixed(2)} ${language === 'fr' ? 'ans' : 'years'}`}
+                            {showAnnualizedMetrics
+                              ? `${t('performance.irrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}% ${t('performance.perYear')}\n${language === 'fr' ? 'Période' : 'Period'}: ${periodYears.toFixed(2)} ${language === 'fr' ? 'ans' : 'years'}`
+                              : `${t('performance.mwrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n(1 + IRR)^${language === 'fr' ? 'années' : 'years'} − 1\n= (${(1 + annualizedMwrPct / 100).toFixed(3)})^${periodYears.toFixed(2)} − 1\n  → MWR = ${cumulativeMwrPct >= 0 ? '+' : ''}${cumulativeMwrPct}%`}
                           </div>
                         </div>
                       </div>
