@@ -1150,7 +1150,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         const displayData = (active && payload && payload.length > 0) ? { active, payload, label } : (isTooltipHovered ? tooltipData : null);
                         if (!displayData || !displayData.payload || displayData.payload.length === 0) return null;
 
-                        const data = (displayData.payload[0] as { payload?: Record<string, unknown> })?.payload;
+                        const data = (displayData.payload[0] as { payload?: typeof chartData[0] })?.payload;
                         if (!data) return null;
                         const displayLabel = displayData.label;
 

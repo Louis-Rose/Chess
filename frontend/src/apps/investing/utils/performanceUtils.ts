@@ -185,14 +185,6 @@ function parseDate(date: Date | string): Date {
 }
 
 /**
- * Gets the date string (YYYY-MM-DD) from a Date object.
- * Used to compare dates without timezone issues.
- */
-function toDateString(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
-
-/**
  * Rounds a number to avoid floating-point precision issues.
  */
 function roundPrecision(value: number, decimals: number = 10): number {
@@ -362,17 +354,12 @@ export function calculateTWR(
   // Sort valuations by date
   const sortedValuations = [...valuations].sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  // Sort cash flows by date
-  const sortedCashFlows = [...cashFlows].sort((a, b) => a.date.getTime() - b.date.getTime());
-
   // Calculate sub-period returns
   const subPeriodReturns: number[] = [];
   let previousValue = sortedValuations[0].value;
-  let previousDate = sortedValuations[0].date;
 
   for (let i = 1; i < sortedValuations.length; i++) {
     const currentValuation = sortedValuations[i];
-    const currentDate = currentValuation.date;
     const currentValueRaw = currentValuation.value;
 
     // End value should exclude stocks bought on the end date
@@ -385,7 +372,6 @@ export function calculateTWR(
     if (startingValue <= 0) {
       // Skip periods with zero or negative starting value
       previousValue = currentValueRaw;
-      previousDate = currentDate;
       continue;
     }
 
@@ -394,7 +380,6 @@ export function calculateTWR(
     subPeriodReturns.push(subPeriodReturn);
 
     previousValue = currentValueRaw;
-    previousDate = currentDate;
   }
 
   if (subPeriodReturns.length === 0) {
@@ -431,9 +416,6 @@ export function calculateTWRDetailed(
 
   // Sort valuations by date
   const sortedValuations = [...valuations].sort((a, b) => a.date.getTime() - b.date.getTime());
-
-  // Sort cash flows by date
-  const sortedCashFlows = [...cashFlows].sort((a, b) => a.date.getTime() - b.date.getTime());
 
   // Calculate sub-period returns with details
   const subPeriods: TWRSubPeriod[] = [];
