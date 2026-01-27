@@ -226,15 +226,36 @@ export function PortfolioPanel() {
   const [isHoldingsExpanded, setIsHoldingsExpanded] = useState(true);
   const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(true);
 
-  // Info banner state - persisted in localStorage
-  const [showMetricsInfo, setShowMetricsInfo] = useState(() => {
-    const dismissed = localStorage.getItem('metricsInfoDismissed');
+  // SR/CAGR example state - persisted in localStorage
+  const [showSrCagrExample, setShowSrCagrExample] = useState(() => {
+    const dismissed = localStorage.getItem('srCagrExampleDismissed');
     return dismissed !== 'true';
   });
 
-  const dismissMetricsInfo = () => {
-    setShowMetricsInfo(false);
-    localStorage.setItem('metricsInfoDismissed', 'true');
+  const dismissSrCagrExample = () => {
+    setShowSrCagrExample(false);
+    localStorage.setItem('srCagrExampleDismissed', 'true');
+  };
+
+  const showSrCagrExampleAgain = () => {
+    setShowSrCagrExample(true);
+    localStorage.removeItem('srCagrExampleDismissed');
+  };
+
+  // TWR/MWR/IRR example state - persisted in localStorage
+  const [showTwrMwrExample, setShowTwrMwrExample] = useState(() => {
+    const dismissed = localStorage.getItem('twrMwrExampleDismissed');
+    return dismissed !== 'true';
+  });
+
+  const dismissTwrMwrExample = () => {
+    setShowTwrMwrExample(false);
+    localStorage.setItem('twrMwrExampleDismissed', 'true');
+  };
+
+  const showTwrMwrExampleAgain = () => {
+    setShowTwrMwrExample(true);
+    localStorage.removeItem('twrMwrExampleDismissed');
   };
 
   // Advanced metrics section collapsed state - persisted in localStorage
@@ -639,12 +660,12 @@ export function PortfolioPanel() {
                   </div>
                 </div>
 
-                {/* Info Banner for SR/CAGR */}
+                {/* SR/CAGR Example */}
                 <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-lg p-3">
                   <div className="flex gap-2.5">
                     <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
                     <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
-                      {t('performance.metricsInfoText')}
+                      {t('performance.srCagrExample')}
                     </p>
                   </div>
                 </div>
@@ -1162,11 +1183,11 @@ export function PortfolioPanel() {
                         </div>
                       </div>
 
-                      {/* Info Banner for SR/CAGR - below the metrics */}
-                      {showMetricsInfo && (
+                      {/* SR/CAGR Example - below the metrics */}
+                      {showSrCagrExample ? (
                         <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-lg p-3 relative">
                           <button
-                            onClick={dismissMetricsInfo}
+                            onClick={dismissSrCagrExample}
                             className="absolute top-2 right-2 p-1 hover:bg-slate-200 dark:hover:bg-slate-500 rounded-full transition-colors"
                             title={language === 'fr' ? 'Fermer' : 'Close'}
                           >
@@ -1175,10 +1196,18 @@ export function PortfolioPanel() {
                           <div className="flex gap-2.5 pr-6">
                             <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
                             <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
-                              {t('performance.metricsInfoText')}
+                              {t('performance.srCagrExample')}
                             </p>
                           </div>
                         </div>
+                      ) : (
+                        <button
+                          onClick={showSrCagrExampleAgain}
+                          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors flex items-center gap-1"
+                        >
+                          <Info className="w-3 h-3" />
+                          {t('performance.showExample')}
+                        </button>
                       )}
 
                       {/* Divider */}
@@ -1245,14 +1274,31 @@ export function PortfolioPanel() {
                       </div>
 
                       {/* Example for TWR/MWR/IRR */}
-                      <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-lg p-3">
-                        <div className="flex gap-2.5">
-                          <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
-                          <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
-                            {t('performance.twrMwrExample')}
-                          </p>
+                      {showTwrMwrExample ? (
+                        <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-lg p-3 relative">
+                          <button
+                            onClick={dismissTwrMwrExample}
+                            className="absolute top-2 right-2 p-1 hover:bg-slate-200 dark:hover:bg-slate-500 rounded-full transition-colors"
+                            title={language === 'fr' ? 'Fermer' : 'Close'}
+                          >
+                            <X className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                          </button>
+                          <div className="flex gap-2.5 pr-6">
+                            <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
+                            <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
+                              {t('performance.twrMwrExample')}
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <button
+                          onClick={showTwrMwrExampleAgain}
+                          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors flex items-center gap-1"
+                        >
+                          <Info className="w-3 h-3" />
+                          {t('performance.showExample')}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
