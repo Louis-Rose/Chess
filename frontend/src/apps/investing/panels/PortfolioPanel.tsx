@@ -920,8 +920,18 @@ export function PortfolioPanel() {
             }
 
             // Filter holdings based on selected stocks from performance chart
-            const availableStocksFromComposition = compositionData.holdings?.map(h => h.ticker) || [];
-            const isFilteringStocks = selectedStocks.size > 0 && selectedStocks.size < availableStocksFromComposition.length;
+            // Get all stocks that ever existed (including sold-off) from performance data
+            const allStocksEver = new Set<string>();
+            if (performanceData?.data) {
+              for (const point of performanceData.data) {
+                if (point.stocks) {
+                  for (const ticker of Object.keys(point.stocks)) {
+                    allStocksEver.add(ticker);
+                  }
+                }
+              }
+            }
+            const isFilteringStocks = selectedStocks.size > 0 && selectedStocks.size < allStocksEver.size;
 
             // Calculate filtered totals if filtering
             let filteredTotalValue = compositionData.total_value_eur;
