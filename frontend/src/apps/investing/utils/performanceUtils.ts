@@ -355,13 +355,6 @@ export function calculateTWR(
   // Sort cash flows by date
   const sortedCashFlows = [...cashFlows].sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  // Build a map of cash flows by date (sum multiple flows on same day)
-  const cashFlowMap = new Map<number, number>();
-  for (const cf of sortedCashFlows) {
-    const dateKey = cf.date.getTime();
-    cashFlowMap.set(dateKey, (cashFlowMap.get(dateKey) || 0) + cf.amount);
-  }
-
   // Calculate sub-period returns
   const subPeriodReturns: number[] = [];
   let previousValue = sortedValuations[0].value;
@@ -371,10 +364,6 @@ export function calculateTWR(
     const currentValuation = sortedValuations[i];
     const currentDate = currentValuation.date;
     const currentValueRaw = currentValuation.value;
-
-    // Get any cash flow that occurred at the previous valuation date
-    // (The valuation is BEFORE the cash flow, so we add it to get the starting value for next period)
-    const cashFlowAtPrevDate = cashFlowMap.get(previousDate.getTime()) || 0;
 
     // Sum ALL cash flows that happened DURING this period (after start, up to and including end)
     // These cash flows are included in the end value but should be excluded for TWR
@@ -387,8 +376,8 @@ export function calculateTWR(
     }
     const endValue = currentValueRaw + cashFlowsDuringPeriod;
 
-    // Starting value for this sub-period = previous value + cash flow (deposit is negative, so we subtract)
-    const startingValue = previousValue - cashFlowAtPrevDate;
+    // Starting value = previous valuation (end-of-day value, already AFTER any cash flow on that date)
+    const startingValue = previousValue;
 
     if (startingValue <= 0) {
       // Skip periods with zero or negative starting value
@@ -443,13 +432,6 @@ export function calculateTWRDetailed(
   // Sort cash flows by date
   const sortedCashFlows = [...cashFlows].sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  // Build a map of cash flows by date (sum multiple flows on same day)
-  const cashFlowMap = new Map<number, number>();
-  for (const cf of sortedCashFlows) {
-    const dateKey = cf.date.getTime();
-    cashFlowMap.set(dateKey, (cashFlowMap.get(dateKey) || 0) + cf.amount);
-  }
-
   // Calculate sub-period returns with details
   const subPeriods: TWRSubPeriod[] = [];
   let previousValue = sortedValuations[0].value;
@@ -459,10 +441,6 @@ export function calculateTWRDetailed(
     const currentValuation = sortedValuations[i];
     const currentDate = currentValuation.date;
     const currentValueRaw = currentValuation.value;
-
-    // Get any cash flow that occurred at the previous valuation date
-    // (The valuation is BEFORE the cash flow, so we add it to get the starting value for next period)
-    const cashFlowAtPrevDate = cashFlowMap.get(previousDate.getTime()) || 0;
 
     // Sum ALL cash flows that happened DURING this period (after start, up to and including end)
     // These cash flows are included in the end value but should be excluded for TWR
@@ -475,8 +453,8 @@ export function calculateTWRDetailed(
     }
     const endValue = currentValueRaw + cashFlowsDuringPeriod;
 
-    // Starting value for this sub-period = previous value + cash flow (deposit is negative, so we subtract)
-    const startingValue = previousValue - cashFlowAtPrevDate;
+    // Starting value = previous valuation (end-of-day value, already AFTER any cash flow on that date)
+    const startingValue = previousValue;
 
     if (startingValue <= 0) {
       // Skip periods with zero or negative starting value
