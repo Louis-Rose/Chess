@@ -1162,19 +1162,29 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                     margin={{ top: 10, right: 50, left: 20, bottom: 70 }}
                     style={{ cursor: 'pointer' }}
                     onClick={(e: unknown) => {
-                      const event = e as { activeLabel?: string; activeIndex?: number };
-                      if (event && event.activeLabel && typeof event.activeIndex === 'number') {
-                        const clickedData = chartData[event.activeIndex];
-                        const clickedLabel = event.activeLabel;
+                      console.log('Click event:', e);
+                      const event = e as { activeLabel?: string; activeIndex?: number; activeTooltipIndex?: number };
+                      console.log('activeLabel:', event?.activeLabel, 'activeIndex:', event?.activeIndex, 'activeTooltipIndex:', event?.activeTooltipIndex);
+
+                      // Try activeTooltipIndex if activeIndex doesn't work
+                      const index = event?.activeIndex ?? event?.activeTooltipIndex;
+                      const label = event?.activeLabel;
+
+                      if (label && typeof index === 'number' && index >= 0 && index < chartData.length) {
+                        const clickedData = chartData[index];
+                        console.log('Found data:', clickedData);
                         if (clickedData) {
-                          // Toggle pin: if clicking same point, unpin; otherwise pin new point
-                          if (pinnedTooltipData && pinnedTooltipData.label === clickedLabel) {
+                          if (pinnedTooltipData && pinnedTooltipData.label === label) {
+                            console.log('Unpinning');
                             setPinnedTooltipData(null);
                             setShowStockBreakdown(false);
                           } else {
-                            setPinnedTooltipData({ data: clickedData, label: clickedLabel });
+                            console.log('Pinning tooltip');
+                            setPinnedTooltipData({ data: clickedData, label: label });
                           }
                         }
+                      } else {
+                        console.log('No valid index/label found');
                       }
                     }}
                   >
