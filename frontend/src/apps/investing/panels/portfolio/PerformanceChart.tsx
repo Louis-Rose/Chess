@@ -1211,7 +1211,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                                   const amountStr = tx.amount_eur
                                     ? ` (${currency === 'EUR' ? `${formatEur(Math.round(tx.amount_eur))}€` : `$${formatEur(Math.round(tx.amount_eur))}`})`
                                     : '';
-                                  const txDateStr = new Date(tx.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: '2-digit' });
+                                  const txDateStr = new Date(tx.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                                   return (
                                     <p key={idx} style={{ color: tx.type === 'BUY' ? '#22c55e' : '#f97316', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                                       {tx.type === 'BUY'
