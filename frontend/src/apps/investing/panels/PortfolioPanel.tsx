@@ -226,38 +226,6 @@ export function PortfolioPanel() {
   const [isHoldingsExpanded, setIsHoldingsExpanded] = useState(true);
   const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(true);
 
-  // SR/CAGR example state - persisted in localStorage
-  const [showSrCagrExample, setShowSrCagrExample] = useState(() => {
-    const dismissed = localStorage.getItem('srCagrExampleDismissed');
-    return dismissed !== 'true';
-  });
-
-  const dismissSrCagrExample = () => {
-    setShowSrCagrExample(false);
-    localStorage.setItem('srCagrExampleDismissed', 'true');
-  };
-
-  const showSrCagrExampleAgain = () => {
-    setShowSrCagrExample(true);
-    localStorage.removeItem('srCagrExampleDismissed');
-  };
-
-  // TWR/MWR/IRR example state - persisted in localStorage
-  const [showTwrMwrExample, setShowTwrMwrExample] = useState(() => {
-    const dismissed = localStorage.getItem('twrMwrExampleDismissed');
-    return dismissed !== 'true';
-  });
-
-  const dismissTwrMwrExample = () => {
-    setShowTwrMwrExample(false);
-    localStorage.setItem('twrMwrExampleDismissed', 'true');
-  };
-
-  const showTwrMwrExampleAgain = () => {
-    setShowTwrMwrExample(true);
-    localStorage.removeItem('twrMwrExampleDismissed');
-  };
-
   // Advanced metrics section collapsed state - persisted in localStorage
   const [isAdvancedMetricsExpanded, setIsAdvancedMetricsExpanded] = useState(() => {
     const saved = localStorage.getItem('advancedMetricsExpanded');
