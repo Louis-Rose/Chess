@@ -621,20 +621,22 @@ export function PortfolioPanel() {
             {/* Card 2: Advanced Performance Metrics (Collapsible - demo shows expanded) */}
             <div className="bg-slate-50 dark:bg-slate-700 rounded-xl">
               {/* Header */}
-              <div className="flex items-center justify-between p-4">
+              <div className="p-4">
                 <div className="flex items-center gap-2">
                   <ChevronDown className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                   <h4 className="text-base font-bold text-slate-800 dark:text-slate-100">
                     {t('performance.advancedMetrics')}
                   </h4>
                 </div>
-                <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-600 rounded-lg p-1">
-                  <span className="px-2 py-1 text-xs font-medium rounded bg-green-600 text-white">
-                    {t('performance.allTime')}
-                  </span>
-                  <span className="px-2 py-1 text-xs font-medium rounded text-slate-600 dark:text-slate-300">
-                    {t('performance.annualized')}
-                  </span>
+                <div className="flex justify-center mt-3">
+                  <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-600 rounded-lg p-1">
+                    <span className="px-2 py-1 text-xs font-medium rounded bg-green-600 text-white">
+                      {t('performance.allTime')}
+                    </span>
+                    <span className="px-2 py-1 text-xs font-medium rounded text-slate-600 dark:text-slate-300">
+                      {t('performance.annualized')}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1139,7 +1141,7 @@ export function PortfolioPanel() {
                 {/* Card 2: Advanced Performance Metrics (Collapsible) */}
                 <div className="bg-slate-50 dark:bg-slate-700 rounded-xl">
                   {/* Header - clickable to expand/collapse */}
-                  <div className="flex items-center justify-between p-4">
+                  <div className="p-4">
                     <button
                       onClick={toggleAdvancedMetrics}
                       className="flex items-center gap-2"
@@ -1150,27 +1152,29 @@ export function PortfolioPanel() {
                       </h4>
                     </button>
                     {isAdvancedMetricsExpanded && (
-                      <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-600 rounded-lg p-1">
-                        <button
-                          onClick={() => setShowAnnualizedMetrics(false)}
-                          className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                            !showAnnualizedMetrics
-                              ? 'bg-green-600 text-white'
-                              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
-                          }`}
-                        >
-                          {t('performance.allTime')}
-                        </button>
-                        <button
-                          onClick={() => setShowAnnualizedMetrics(true)}
-                          className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                            showAnnualizedMetrics
-                              ? 'bg-green-600 text-white'
-                              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
-                          }`}
-                        >
-                          {t('performance.annualized')}
-                        </button>
+                      <div className="flex justify-center mt-3">
+                        <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-600 rounded-lg p-1">
+                          <button
+                            onClick={() => setShowAnnualizedMetrics(false)}
+                            className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                              !showAnnualizedMetrics
+                                ? 'bg-green-600 text-white'
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
+                            }`}
+                          >
+                            {t('performance.allTime')}
+                          </button>
+                          <button
+                            onClick={() => setShowAnnualizedMetrics(true)}
+                            className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                              showAnnualizedMetrics
+                                ? 'bg-green-600 text-white'
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
+                            }`}
+                          >
+                            {t('performance.annualized')}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
