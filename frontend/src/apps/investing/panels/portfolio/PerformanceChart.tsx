@@ -98,10 +98,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   const [internalSelectedStocks, setInternalSelectedStocks] = useState<Set<string>>(new Set());
   const [stockSelectorOpen, setStockSelectorOpen] = useState(false);
 
-  // Tooltip hover state - keeps tooltip open when hovering on it
-  const [isTooltipHovered, setIsTooltipHovered] = useState(false);
-  const [tooltipData, setTooltipData] = useState<{ active: boolean; payload: unknown[]; label: string } | null>(null);
-  const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tooltip pinned state - click to pin tooltip
+  const [pinnedTooltipData, setPinnedTooltipData] = useState<{ payload: unknown[]; label: string } | null>(null);
 
   // Track if hovering on Portfolio line in tooltip to show stock breakdown
   const [showStockBreakdown, setShowStockBreakdown] = useState(false);
@@ -1123,36 +1121,31 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       wrapperStyle={{ zIndex: 100, pointerEvents: 'auto' }}
                       allowEscapeViewBox={{ x: false, y: true }}
                       offset={10}
+                      trigger="click"
                       content={({ active, payload, label }) => {
-                        // Update tooltip data when active
-                        if (active && payload && payload.length > 0) {
-                          if (tooltipTimeoutRef.current) {
-                            clearTimeout(tooltipTimeoutRef.current);
-                            tooltipTimeoutRef.current = null;
-                          }
-                          // Store data for when hovering on tooltip
-                          const newData = { active, payload: payload as unknown[], label: label as string };
-                          if (JSON.stringify(newData) !== JSON.stringify(tooltipData)) {
-                            setTooltipData(newData);
-                          }
-                        } else if (!isTooltipHovered) {
-                          // Schedule hiding tooltip after delay - longer delay to allow cursor to reach tooltip
-                          if (!tooltipTimeoutRef.current) {
-                            tooltipTimeoutRef.current = setTimeout(() => {
-                              setTooltipData(null);
-                              setShowStockBreakdown(false);
-                              tooltipTimeoutRef.current = null;
-                            }, 500);
-                          }
-                        }
+                        // Use pinned data if available, otherwise use hover data
+                        const displayData = pinnedTooltipData
+                          ? pinnedTooltipData
+                          : (active && payload && payload.length > 0)
+                            ? { payload: payload as unknown[], label: label as string }
+                            : null;
 
-                        // Use stored data if hovering on tooltip
-                        const displayData = (active && payload && payload.length > 0) ? { active, payload, label } : (isTooltipHovered ? tooltipData : null);
                         if (!displayData || !displayData.payload || displayData.payload.length === 0) return null;
 
                         const data = (displayData.payload[0] as { payload?: typeof chartData[0] })?.payload;
                         if (!data) return null;
                         const displayLabel = displayData.label;
+
+                        // Pin tooltip on click (if not already pinned to this data)
+                        const handlePin = () => {
+                          if (pinnedTooltipData && pinnedTooltipData.label === displayLabel) {
+                            // Clicking same point unpins
+                            setPinnedTooltipData(null);
+                            setShowStockBreakdown(false);
+                          } else {
+                            setPinnedTooltipData({ payload: displayData.payload, label: displayLabel });
+                          }
+                        };
 
                         const benchmarkTicker = benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY');
                         const portfolioValue = data.portfolio_value_eur;
@@ -1216,28 +1209,41 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                           return b.quantity - a.quantity;
                         });
 
+                        const isPinned = pinnedTooltipData !== null;
+
                         return (
                           <div
-                            style={{ padding: '20px', margin: '-20px' }}
-                            onMouseEnter={() => {
-                              if (tooltipTimeoutRef.current) {
-                                clearTimeout(tooltipTimeoutRef.current);
-                                tooltipTimeoutRef.current = null;
-                              }
-                              setIsTooltipHovered(true);
-                            }}
-                            onMouseLeave={() => {
-                              setIsTooltipHovered(false);
-                              setShowStockBreakdown(false);
-                              tooltipTimeoutRef.current = setTimeout(() => {
-                                setTooltipData(null);
-                                tooltipTimeoutRef.current = null;
-                              }, 100);
-                            }}
+                            style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: isPinned ? '2px solid #22c55e' : '1px solid #334155', padding: '6px 10px', fontSize: '12px', cursor: 'pointer', position: 'relative' }}
+                            onClick={handlePin}
                           >
-                          <div
-                            style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '6px 10px', fontSize: '12px' }}
-                          >
+                            {isPinned && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPinnedTooltipData(null);
+                                  setShowStockBreakdown(false);
+                                }}
+                                style={{
+                                  position: 'absolute',
+                                  top: '-8px',
+                                  right: '-8px',
+                                  width: '20px',
+                                  height: '20px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#ef4444',
+                                  border: 'none',
+                                  color: 'white',
+                                  fontSize: '12px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 'bold',
+                                }}
+                              >
+                                ×
+                              </button>
+                            )}
                             <p style={{ color: '#f1f5f9', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
                               {new Date(String(displayLabel)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                             </p>
@@ -1307,7 +1313,6 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                                 })}
                               </div>
                             )}
-                          </div>
                           </div>
                         );
                       }}
