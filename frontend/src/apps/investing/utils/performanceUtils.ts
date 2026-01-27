@@ -183,6 +183,14 @@ function parseDate(date: Date | string): Date {
 }
 
 /**
+ * Gets the date string (YYYY-MM-DD) from a Date object.
+ * Used to compare dates without timezone issues.
+ */
+function toDateString(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+/**
  * Rounds a number to avoid floating-point precision issues.
  */
 function roundPrecision(value: number, decimals: number = 10): number {
@@ -368,9 +376,13 @@ export function calculateTWR(
     // Sum ALL cash flows that happened DURING this period (after start, up to and including end)
     // These cash flows are included in the end value but should be excluded for TWR
     // value_before_flows = value_after_flows + sum_of_cash_flows (cash flows are negative for deposits)
+    // Use date strings for comparison to avoid timezone issues
+    const prevDateStr = toDateString(previousDate);
+    const currDateStr = toDateString(currentDate);
     let cashFlowsDuringPeriod = 0;
     for (const cf of sortedCashFlows) {
-      if (cf.date.getTime() > previousDate.getTime() && cf.date.getTime() <= currentDate.getTime()) {
+      const cfDateStr = toDateString(cf.date);
+      if (cfDateStr > prevDateStr && cfDateStr <= currDateStr) {
         cashFlowsDuringPeriod += cf.amount;
       }
     }
@@ -445,9 +457,13 @@ export function calculateTWRDetailed(
     // Sum ALL cash flows that happened DURING this period (after start, up to and including end)
     // These cash flows are included in the end value but should be excluded for TWR
     // value_before_flows = value_after_flows + sum_of_cash_flows (cash flows are negative for deposits)
+    // Use date strings for comparison to avoid timezone issues
+    const prevDateStr = toDateString(previousDate);
+    const currDateStr = toDateString(currentDate);
     let cashFlowsDuringPeriod = 0;
     for (const cf of sortedCashFlows) {
-      if (cf.date.getTime() > previousDate.getTime() && cf.date.getTime() <= currentDate.getTime()) {
+      const cfDateStr = toDateString(cf.date);
+      if (cfDateStr > prevDateStr && cfDateStr <= currDateStr) {
         cashFlowsDuringPeriod += cf.amount;
       }
     }
