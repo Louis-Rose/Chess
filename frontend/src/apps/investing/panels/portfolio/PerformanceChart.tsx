@@ -100,7 +100,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
   // Tooltip pinned state - click to pin tooltip
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [pinnedTooltipData, setPinnedTooltipData] = useState<{ data: any; label: string } | null>(null);
+  const [pinnedTooltipData, setPinnedTooltipData] = useState<{ data: any; label: string; x: number; y: number } | null>(null);
 
   // Track if hovering on Portfolio line in tooltip to show stock breakdown
   const [showStockBreakdown, setShowStockBreakdown] = useState(false);
@@ -1162,11 +1162,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                     margin={{ top: 10, right: 50, left: 20, bottom: 70 }}
                     style={{ cursor: 'pointer' }}
                     onClick={(e: unknown) => {
-                      const event = e as { activeLabel?: string; activeIndex?: string | number; activeTooltipIndex?: string | number };
+                      const event = e as { activeLabel?: string; activeIndex?: string | number; activeTooltipIndex?: string | number; activeCoordinate?: { x: number; y: number } };
                       // Parse index as number (Recharts returns it as string sometimes)
                       const rawIndex = event?.activeTooltipIndex ?? event?.activeIndex;
                       const index = typeof rawIndex === 'string' ? parseInt(rawIndex, 10) : rawIndex;
                       const label = event?.activeLabel;
+                      const coord = event?.activeCoordinate;
 
                       if (label && typeof index === 'number' && !isNaN(index) && index >= 0 && index < chartData.length) {
                         const clickedData = chartData[index];
@@ -1175,7 +1176,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                             setPinnedTooltipData(null);
                             setShowStockBreakdown(false);
                           } else {
-                            setPinnedTooltipData({ data: clickedData, label: label });
+                            setPinnedTooltipData({ data: clickedData, label: label, x: coord?.x ?? 100, y: coord?.y ?? 50 });
                           }
                         }
                       }
@@ -1398,8 +1399,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                 {pinnedTooltipData && (
                   <div style={{
                     position: 'absolute',
-                    top: '50px',
-                    left: '80px',
+                    top: `${pinnedTooltipData.y}px`,
+                    left: `${pinnedTooltipData.x + 15}px`,
                     zIndex: 1000,
                   }}>
                     {renderTooltipContent(
