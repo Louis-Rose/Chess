@@ -108,11 +108,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   // Helper to render tooltip content (used by both hover and pinned tooltips)
   const renderTooltipContent = (
     data: NonNullable<typeof performanceData>['data'][0] & { portfolio_value_eur: number; cost_basis_eur: number; benchmark_value_eur: number },
-    label: string,
+    _label: string, // unused, we use data.date instead
     isPinned: boolean,
     onPin: () => void,
     onClose: () => void,
-    dataIndex?: number // Index in chartData to determine date range
+    dataIndex?: number, // Index in chartData to determine date range
+    chartDataArr?: typeof chartData // Pass chartData for date range calculation
   ) => {
     const benchmarkTicker = benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY');
     const portfolioValue = data.portfolio_value_eur;
@@ -158,8 +159,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
     const currentDateObj = new Date(currentDateStr);
 
     // Get previous and next data point dates for range calculation
-    const prevDataPoint = dataIndex !== undefined && dataIndex > 0 ? chartData[dataIndex - 1] : null;
-    const nextDataPoint = dataIndex !== undefined && dataIndex < chartData.length - 1 ? chartData[dataIndex + 1] : null;
+    const prevDataPoint = dataIndex !== undefined && chartDataArr && dataIndex > 0 ? chartDataArr[dataIndex - 1] : null;
+    const nextDataPoint = dataIndex !== undefined && chartDataArr && dataIndex < chartDataArr.length - 1 ? chartDataArr[dataIndex + 1] : null;
 
     // Transactions from previous date (exclusive) to current date (inclusive)
     const prevDateObj = prevDataPoint ? new Date(prevDataPoint.date) : null;
@@ -1326,7 +1327,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                           false,
                           () => {}, // no-op, chart click handles pinning
                           () => {},
-                          dataIndex >= 0 ? dataIndex : undefined
+                          dataIndex >= 0 ? dataIndex : undefined,
+                          chartData
                         );
                       }}
                     />
@@ -1436,7 +1438,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         setPinnedTooltipData(null);
                         setShowStockBreakdown(false);
                       },
-                      pinnedTooltipData.dataIndex
+                      pinnedTooltipData.dataIndex,
+                      chartData
                     )}
                   </div>
                 )}
