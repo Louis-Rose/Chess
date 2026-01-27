@@ -502,7 +502,7 @@ export function calculateTWRDetailed(
  */
 export function calculateMWR(
   initialInvestment: number,
-  _cashFlows: CashFlow[],
+  cashFlows: CashFlow[],
   endingValue: number,
   endDate: Date | string,
   startDate: Date | string,
@@ -654,7 +654,7 @@ export function calculateAllMetrics(
   currentValue: number,
   startDate: Date | string,
   endDate: Date | string,
-  _cashFlows: CashFlow[] = [],
+  cashFlows: CashFlow[] = [],
   valuations: ValuationPoint[] = []
 ): {
   simpleReturn: PerformanceResult;
