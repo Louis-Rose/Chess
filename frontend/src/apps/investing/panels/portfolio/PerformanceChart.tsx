@@ -1136,13 +1136,13 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                             setTooltipData(newData);
                           }
                         } else if (!isTooltipHovered) {
-                          // Schedule hiding tooltip after delay
+                          // Schedule hiding tooltip after delay - longer delay to allow cursor to reach tooltip
                           if (!tooltipTimeoutRef.current) {
                             tooltipTimeoutRef.current = setTimeout(() => {
                               setTooltipData(null);
                               setShowStockBreakdown(false);
                               tooltipTimeoutRef.current = null;
-                            }, 100);
+                            }, 500);
                           }
                         }
 
@@ -1218,7 +1218,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
                         return (
                           <div
-                            style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '6px 10px', fontSize: '12px' }}
+                            style={{ padding: '20px', margin: '-20px' }}
                             onMouseEnter={() => {
                               if (tooltipTimeoutRef.current) {
                                 clearTimeout(tooltipTimeoutRef.current);
@@ -1234,6 +1234,9 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                                 tooltipTimeoutRef.current = null;
                               }, 100);
                             }}
+                          >
+                          <div
+                            style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '6px 10px', fontSize: '12px' }}
                           >
                             <p style={{ color: '#f1f5f9', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
                               {new Date(String(displayLabel)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
@@ -1304,6 +1307,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                                 })}
                               </div>
                             )}
+                          </div>
                           </div>
                         );
                       }}
