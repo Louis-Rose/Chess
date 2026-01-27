@@ -368,16 +368,16 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
         {/* Benchmark Toggle */}
         <div className="flex flex-col items-center">
           <span className="text-xs text-slate-500 dark:text-slate-400 mb-1">Benchmark:</span>
-          <div className="flex rounded-lg overflow-hidden border border-slate-300">
+          <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-600 rounded-lg p-1">
             <button
               onClick={() => onBenchmarkChange('NASDAQ')}
-              className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${benchmark === 'NASDAQ' ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+              className={`px-2 py-1 text-xs font-medium rounded transition-colors ${benchmark === 'NASDAQ' ? 'bg-green-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'}`}
             >
               Nasdaq
             </button>
             <button
               onClick={() => onBenchmarkChange('SP500')}
-              className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors ${benchmark === 'SP500' ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+              className={`px-2 py-1 text-xs font-medium rounded transition-colors ${benchmark === 'SP500' ? 'bg-green-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'}`}
             >
               S&P 500
             </button>
