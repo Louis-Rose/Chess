@@ -682,8 +682,8 @@ export function PortfolioPanel() {
                   </div>
                 </div>
 
-                {/* Row 2: TWR, MWR, IRR */}
-                <div className="grid grid-cols-3 gap-4">
+                {/* Row 2: TWR, MWR */}
+                <div className="grid grid-cols-2 gap-4">
                   {/* TWR */}
                   <div className="text-center relative group border-r border-slate-300 dark:border-slate-600 pr-4">
                     <div className="flex items-center justify-center gap-1.5 mb-1">
@@ -696,21 +696,10 @@ export function PortfolioPanel() {
                   </div>
 
                   {/* MWR */}
-                  <div className="text-center relative group border-r border-slate-300 dark:border-slate-600 pr-4">
-                    <div className="flex items-center justify-center gap-1.5 mb-1">
-                      <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                        {t('performance.mwr')}
-                      </p>
-                      <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
-                    </div>
-                    <p className="text-sm md:text-xl font-bold text-green-600">+14.8%</p>
-                  </div>
-
-                  {/* IRR */}
                   <div className="text-center relative group">
                     <div className="flex items-center justify-center gap-1.5 mb-1">
                       <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                        {t('performance.irr')}
+                        {t('performance.mwr')}
                       </p>
                       <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
                     </div>
@@ -1255,8 +1244,8 @@ export function PortfolioPanel() {
                         </div>
                       </div>
 
-                      {/* Row 2: TWR, MWR, IRR */}
-                      <div className="grid grid-cols-3 gap-4">
+                      {/* Row 2: TWR, MWR/IRR */}
+                      <div className="grid grid-cols-2 gap-4">
                         {/* TWR */}
                         <div className="text-center relative group border-r border-slate-300 dark:border-slate-600 pr-4">
                           <div className="flex items-center justify-center gap-1.5 mb-1">
@@ -1276,30 +1265,11 @@ export function PortfolioPanel() {
                           </div>
                         </div>
 
-                        {/* MWR */}
-                        <div className="text-center relative group border-r border-slate-300 dark:border-slate-600 pr-4">
-                          <div className="flex items-center justify-center gap-1.5 mb-1">
-                            <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                              {t('performance.mwr')}
-                            </p>
-                            <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
-                          </div>
-                          <p className={`text-sm md:text-xl font-bold ${annualizedMwrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {mwrSuccess
-                              ? `${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%${showAnnualizedMetrics ? ` ${t('performance.perYear')}` : ''}`
-                              : '—'}
-                          </p>
-                          {/* Tooltip */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                            {t('performance.mwrTooltip')}
-                          </div>
-                        </div>
-
-                        {/* IRR */}
+                        {/* MWR (shows as IRR when annualized) */}
                         <div className="text-center relative group">
                           <div className="flex items-center justify-center gap-1.5 mb-1">
                             <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
-                              {t('performance.irr')}
+                              {showAnnualizedMetrics ? t('performance.irr') : t('performance.mwr')}
                             </p>
                             <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
                           </div>
@@ -1310,7 +1280,7 @@ export function PortfolioPanel() {
                           </p>
                           {/* Tooltip */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
-                            {t('performance.irrTooltip')}
+                            {showAnnualizedMetrics ? t('performance.irrTooltip') : t('performance.mwrTooltip')}
                           </div>
                         </div>
                       </div>
