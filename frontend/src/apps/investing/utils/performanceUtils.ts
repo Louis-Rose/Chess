@@ -31,8 +31,10 @@ export interface CashFlow {
 export interface ValuationPoint {
   /** Date of the valuation */
   date: Date;
-  /** Total portfolio value at this date */
+  /** Total portfolio value at this date (after any transactions) */
   value: number;
+  /** Portfolio value excluding stocks bought on this date (for TWR end values) */
+  valueExcludingNewPurchases?: number;
 }
 
 /**
@@ -373,20 +375,9 @@ export function calculateTWR(
     const currentDate = currentValuation.date;
     const currentValueRaw = currentValuation.value;
 
-    // Sum ALL cash flows that happened DURING this period (after start, up to and including end)
-    // These cash flows are included in the end value but should be excluded for TWR
-    // value_before_flows = value_after_flows + sum_of_cash_flows (cash flows are negative for deposits)
-    // Use date strings for comparison to avoid timezone issues
-    const prevDateStr = toDateString(previousDate);
-    const currDateStr = toDateString(currentDate);
-    let cashFlowsDuringPeriod = 0;
-    for (const cf of sortedCashFlows) {
-      const cfDateStr = toDateString(cf.date);
-      if (cfDateStr > prevDateStr && cfDateStr <= currDateStr) {
-        cashFlowsDuringPeriod += cf.amount;
-      }
-    }
-    const endValue = currentValueRaw + cashFlowsDuringPeriod;
+    // End value should exclude stocks bought on the end date
+    // Use valueExcludingNewPurchases if available, otherwise fall back to raw value
+    const endValue = currentValuation.valueExcludingNewPurchases ?? currentValueRaw;
 
     // Starting value = previous valuation (end-of-day value, already AFTER any cash flow on that date)
     const startingValue = previousValue;
@@ -454,20 +445,9 @@ export function calculateTWRDetailed(
     const currentDate = currentValuation.date;
     const currentValueRaw = currentValuation.value;
 
-    // Sum ALL cash flows that happened DURING this period (after start, up to and including end)
-    // These cash flows are included in the end value but should be excluded for TWR
-    // value_before_flows = value_after_flows + sum_of_cash_flows (cash flows are negative for deposits)
-    // Use date strings for comparison to avoid timezone issues
-    const prevDateStr = toDateString(previousDate);
-    const currDateStr = toDateString(currentDate);
-    let cashFlowsDuringPeriod = 0;
-    for (const cf of sortedCashFlows) {
-      const cfDateStr = toDateString(cf.date);
-      if (cfDateStr > prevDateStr && cfDateStr <= currDateStr) {
-        cashFlowsDuringPeriod += cf.amount;
-      }
-    }
-    const endValue = currentValueRaw + cashFlowsDuringPeriod;
+    // End value should exclude stocks bought on the end date
+    // Use valueExcludingNewPurchases if available, otherwise fall back to raw value
+    const endValue = currentValuation.valueExcludingNewPurchases ?? currentValueRaw;
 
     // Starting value = previous valuation (end-of-day value, already AFTER any cash flow on that date)
     const startingValue = previousValue;

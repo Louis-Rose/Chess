@@ -1090,6 +1090,27 @@ export function PortfolioPanel() {
               // This prevents chain-linking many daily returns
               // Use filtered data to respect stock selection
               const cashFlowDates = new Set(cashFlows.map(cf => cf.date.toISOString().split('T')[0]));
+
+              // Build map of tickers bought on each date (for excluding from end values)
+              const tickersBoughtOnDate = new Map<string, Set<string>>();
+              for (const tx of filteredTransactions) {
+                if (tx.type === 'BUY' && tx.date > startDate) {
+                  if (!tickersBoughtOnDate.has(tx.date)) {
+                    tickersBoughtOnDate.set(tx.date, new Set());
+                  }
+                  tickersBoughtOnDate.get(tx.date)!.add(tx.ticker);
+                }
+              }
+
+              // For end values, exclude stocks bought ON that date (their value, not just cash spent)
+              const getValueExcludingNewPurchases = (dataPoint: typeof performanceData.data[0], excludeDate: string) => {
+                if (!dataPoint.stocks) return dataPoint.portfolio_value_eur;
+                const tickersToExclude = tickersBoughtOnDate.get(excludeDate) || new Set();
+                return Object.entries(dataPoint.stocks)
+                  .filter(([ticker]) => selectedStocks.has(ticker) && !tickersToExclude.has(ticker))
+                  .reduce((sum, [, stock]) => sum + stock.value_eur, 0);
+              };
+
               const relevantValuations: ValuationPoint[] = filteredPerfData
                 .filter((d, i) =>
                   i === 0 || // Start date
@@ -1098,7 +1119,10 @@ export function PortfolioPanel() {
                 )
                 .map(d => ({
                   date: new Date(d.date),
+                  // Use full value for start dates, exclude new purchases for end dates
                   value: getFilteredValue(d),
+                  // Also store the value excluding purchases on this date (for TWR end values)
+                  valueExcludingNewPurchases: getValueExcludingNewPurchases(d, d.date),
                 }));
 
               if (relevantValuations.length >= 2) {
