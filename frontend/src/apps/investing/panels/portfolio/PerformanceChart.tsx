@@ -1162,29 +1162,22 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                     margin={{ top: 10, right: 50, left: 20, bottom: 70 }}
                     style={{ cursor: 'pointer' }}
                     onClick={(e: unknown) => {
-                      console.log('Click event:', e);
-                      const event = e as { activeLabel?: string; activeIndex?: number; activeTooltipIndex?: number };
-                      console.log('activeLabel:', event?.activeLabel, 'activeIndex:', event?.activeIndex, 'activeTooltipIndex:', event?.activeTooltipIndex);
-
-                      // Try activeTooltipIndex if activeIndex doesn't work
-                      const index = event?.activeIndex ?? event?.activeTooltipIndex;
+                      const event = e as { activeLabel?: string; activeIndex?: string | number; activeTooltipIndex?: string | number };
+                      // Parse index as number (Recharts returns it as string sometimes)
+                      const rawIndex = event?.activeTooltipIndex ?? event?.activeIndex;
+                      const index = typeof rawIndex === 'string' ? parseInt(rawIndex, 10) : rawIndex;
                       const label = event?.activeLabel;
 
-                      if (label && typeof index === 'number' && index >= 0 && index < chartData.length) {
+                      if (label && typeof index === 'number' && !isNaN(index) && index >= 0 && index < chartData.length) {
                         const clickedData = chartData[index];
-                        console.log('Found data:', clickedData);
                         if (clickedData) {
                           if (pinnedTooltipData && pinnedTooltipData.label === label) {
-                            console.log('Unpinning');
                             setPinnedTooltipData(null);
                             setShowStockBreakdown(false);
                           } else {
-                            console.log('Pinning tooltip');
                             setPinnedTooltipData({ data: clickedData, label: label });
                           }
                         }
-                      } else {
-                        console.log('No valid index/label found');
                       }
                     }}
                   >
