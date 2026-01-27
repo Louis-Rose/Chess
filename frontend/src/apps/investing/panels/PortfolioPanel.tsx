@@ -999,10 +999,9 @@ export function PortfolioPanel() {
             if (performanceData?.data && performanceData.data.length > 1) {
               startDate = performanceData.data[0].date;
               endDate = performanceData.data[performanceData.data.length - 1].date;
-              // Use total invested capital (end cost basis), not just initial investment
-              const totalCostBasis = performanceData.data[performanceData.data.length - 1].cost_basis_eur;
+              // Use filtered cost basis to respect stock selection
               const cagrResult = calculateCAGR(
-                totalCostBasis,
+                filteredCostBasis,
                 filteredTotalValue,
                 startDate,
                 endDate,
@@ -1021,9 +1020,14 @@ export function PortfolioPanel() {
             let twrSuccess = false;
             let periodYears = 0;
             if (performanceData?.data && performanceData.data.length > 1 && performanceData.transactions) {
+              // Filter transactions by selected stocks
+              const filteredTransactions = isFilteringStocks
+                ? performanceData.transactions.filter(tx => selectedStocks.has(tx.ticker))
+                : performanceData.transactions;
+
               // Convert transactions to cash flows format
               // BUY = negative (money going in), SELL = positive (money coming out)
-              const cashFlows: CashFlow[] = performanceData.transactions
+              const cashFlows: CashFlow[] = filteredTransactions
                 .filter(tx => tx.date > startDate) // Exclude initial transactions
                 .map(tx => ({
                   date: new Date(tx.date),
@@ -1031,8 +1035,26 @@ export function PortfolioPanel() {
                 }))
                 .filter(cf => cf.amount !== 0);
 
-              // Get initial investment from first data point
-              const initialInvestment = performanceData.data[0].cost_basis_eur;
+              // Get initial investment - filtered by selected stocks if applicable
+              const getFilteredValue = (dataPoint: typeof performanceData.data[0]) => {
+                if (!isFilteringStocks || !dataPoint.stocks) {
+                  return dataPoint.portfolio_value_eur;
+                }
+                return Object.entries(dataPoint.stocks)
+                  .filter(([ticker]) => selectedStocks.has(ticker))
+                  .reduce((sum, [, stock]) => sum + stock.value_eur, 0);
+              };
+
+              const getFilteredCostBasis = (dataPoint: typeof performanceData.data[0]) => {
+                if (!isFilteringStocks || !dataPoint.stocks) {
+                  return dataPoint.cost_basis_eur;
+                }
+                return Object.entries(dataPoint.stocks)
+                  .filter(([ticker]) => selectedStocks.has(ticker))
+                  .reduce((sum, [, stock]) => sum + stock.cost_basis_eur, 0);
+              };
+
+              const initialInvestment = getFilteredCostBasis(performanceData.data[0]);
 
               // Calculate period in years for annualization
               const msPerYear = 365 * 24 * 60 * 60 * 1000;
@@ -1063,7 +1085,7 @@ export function PortfolioPanel() {
                 )
                 .map(d => ({
                   date: new Date(d.date),
-                  value: d.portfolio_value_eur,
+                  value: getFilteredValue(d),
                 }));
 
               if (relevantValuations.length >= 2) {
@@ -1075,12 +1097,19 @@ export function PortfolioPanel() {
               }
             }
 
-            // Calculate annualized versions if period > 1 year
+            // MWR from calculateMWR is already annualized (XIRR)
+            // For "All Time" display, we need to convert annualized rate to cumulative return
+            // Cumulative = (1 + annualized_rate)^years - 1
+            const annualizedMwrPct = mwrPct; // This is the IRR (annualized)
+            const cumulativeMwrPct = mwrSuccess && periodYears > 0
+              ? Math.round((Math.pow(1 + mwrPct / 100, periodYears) - 1) * 1000) / 10
+              : mwrPct;
+
+            // Calculate annualized TWR if period > 1 year
             const canAnnualize = periodYears >= 1;
             const annualizedTwrPct = canAnnualize && twrSuccess
               ? Math.round((Math.pow(1 + twrPct / 100, 1 / periodYears) - 1) * 1000) / 10
               : twrPct;
-            const annualizedMwrPct = mwrPct; // MWR/IRR is already annualized by design
 
             return (
               <div key="summary" className="space-y-4">
@@ -1274,9 +1303,9 @@ export function PortfolioPanel() {
                             </p>
                             <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
                           </div>
-                          <p className={`text-sm md:text-xl font-bold ${annualizedMwrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <p className={`text-sm md:text-xl font-bold ${(showAnnualizedMetrics ? annualizedMwrPct : cumulativeMwrPct) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {mwrSuccess
-                              ? `${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%${showAnnualizedMetrics ? ` ${t('performance.perYear')}` : ''}`
+                              ? `${(showAnnualizedMetrics ? annualizedMwrPct : cumulativeMwrPct) >= 0 ? '+' : ''}${showAnnualizedMetrics ? annualizedMwrPct : cumulativeMwrPct}%${showAnnualizedMetrics ? ` ${t('performance.perYear')}` : ''}`
                               : '—'}
                           </p>
                           {/* Tooltip */}
