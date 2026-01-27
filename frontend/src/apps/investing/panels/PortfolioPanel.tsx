@@ -14,7 +14,7 @@ import { TransactionForm } from './portfolio/TransactionForm';
 import { PortfolioComposition, type PortfolioCompositionHandle } from './portfolio/PortfolioComposition';
 import { PerformanceChart, type PerformanceChartHandle } from './portfolio/PerformanceChart';
 import { formatEur } from './portfolio/utils';
-import { calculateSimpleReturn, calculateCAGR, calculateMWR, type CashFlow } from '../utils/performanceUtils';
+import { calculateSimpleReturn, calculateCAGR, calculateMWR, calculateTWR, type CashFlow, type ValuationPoint } from '../utils/performanceUtils';
 
 // Types
 import type {
@@ -560,23 +560,8 @@ export function PortfolioPanel() {
 
           {/* Summary Cards */}
           <div className="space-y-4">
-            {/* Info Banner */}
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-              <div className="flex gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="font-semibold text-amber-800 dark:text-amber-200 text-sm mb-1">
-                    {t('performance.metricsInfoTitle')}
-                  </h4>
-                  <p className="text-amber-700 dark:text-amber-300 text-xs leading-relaxed">
-                    {t('performance.metricsInfoText')}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 space-y-4">
-              {/* Row 1: Capital & Value */}
+            {/* Card 1: Capital & Gains */}
+            <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
                   <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
@@ -595,9 +580,21 @@ export function PortfolioPanel() {
                   <p className="text-sm md:text-xl font-bold text-green-600">+590€ (+3%)</p>
                 </div>
               </div>
+            </div>
 
-              {/* Row 2: Performance Metrics */}
-              <div className="grid grid-cols-3 gap-4 pt-2 border-t border-slate-200 dark:border-slate-600">
+            {/* Info Banner (grey/white, above SR/CAGR card) */}
+            <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-xl p-3">
+              <div className="flex gap-2.5">
+                <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
+                <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
+                  {t('performance.metricsInfoText')}
+                </p>
+              </div>
+            </div>
+
+            {/* Card 2: Simple Return & CAGR */}
+            <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+              <div className="grid grid-cols-2 gap-4">
                 {/* Simple Return */}
                 <div className="text-center relative group">
                   <div className="flex items-center justify-center gap-1.5 mb-1">
@@ -627,8 +624,28 @@ export function PortfolioPanel() {
                     {t('performance.cagrTooltip')}
                   </div>
                 </div>
+              </div>
+            </div>
 
-                {/* MWR/IRR */}
+            {/* Card 3: TWR, MWR, IRR */}
+            <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+              <div className="grid grid-cols-3 gap-4">
+                {/* TWR */}
+                <div className="text-center relative group">
+                  <div className="flex items-center justify-center gap-1.5 mb-1">
+                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                      {t('performance.twr')}
+                    </p>
+                    <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                  </div>
+                  <p className="text-sm md:text-xl font-bold text-green-600">+32.8%</p>
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                    {t('performance.twrTooltip')}
+                  </div>
+                </div>
+
+                {/* MWR */}
                 <div className="text-center relative group">
                   <div className="flex items-center justify-center gap-1.5 mb-1">
                     <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -640,6 +657,21 @@ export function PortfolioPanel() {
                   {/* Tooltip */}
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
                     {t('performance.mwrTooltip')}
+                  </div>
+                </div>
+
+                {/* IRR */}
+                <div className="text-center relative group">
+                  <div className="flex items-center justify-center gap-1.5 mb-1">
+                    <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                      {t('performance.irr')}
+                    </p>
+                    <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                  </div>
+                  <p className="text-sm md:text-xl font-bold text-green-600">+14.8%</p>
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                    {t('performance.irrTooltip')}
                   </div>
                 </div>
               </div>
@@ -942,6 +974,8 @@ export function PortfolioPanel() {
             // Calculate MWR/IRR using transaction data as cash flows
             let mwrPct = 0;
             let mwrSuccess = false;
+            let twrPct = 0;
+            let twrSuccess = false;
             if (performanceData?.data && performanceData.data.length > 1 && performanceData.transactions) {
               // Convert transactions to cash flows format
               // BUY = negative (money going in), SELL = positive (money coming out)
@@ -969,36 +1003,27 @@ export function PortfolioPanel() {
                   mwrSuccess = true;
                 }
               }
+
+              // Calculate TWR using performance data as valuations
+              // We need valuations at cash flow dates
+              const valuations: ValuationPoint[] = performanceData.data.map(d => ({
+                date: new Date(d.date),
+                value: d.portfolio_value_eur,
+              }));
+
+              if (valuations.length >= 2) {
+                const twrResult = calculateTWR(valuations, cashFlows);
+                if (twrResult.success) {
+                  twrPct = twrResult.percentage;
+                  twrSuccess = true;
+                }
+              }
             }
 
             return (
               <div key="summary" className="space-y-4">
-                {/* Info Banner - Closable */}
-                {showMetricsInfo && (
-                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 relative">
-                    <button
-                      onClick={dismissMetricsInfo}
-                      className="absolute top-2 right-2 p-1 hover:bg-amber-100 dark:hover:bg-amber-800/30 rounded-full transition-colors"
-                      title={language === 'fr' ? 'Fermer' : 'Close'}
-                    >
-                      <X className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                    </button>
-                    <div className="flex gap-3 pr-6">
-                      <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="font-semibold text-amber-800 dark:text-amber-200 text-sm mb-1">
-                          {t('performance.metricsInfoTitle')}
-                        </h4>
-                        <p className="text-amber-700 dark:text-amber-300 text-xs leading-relaxed">
-                          {t('performance.metricsInfoText')}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 space-y-4">
-                  {/* Row 1: Capital & Value */}
+                {/* Card 1: Capital & Gains */}
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
                       <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{language === 'fr' ? 'Capital investi' : 'Invested Capital'}</p>
@@ -1041,9 +1066,32 @@ export function PortfolioPanel() {
                       </p>
                     </div>
                   </div>
+                </div>
 
-                  {/* Row 2: Performance Metrics */}
-                  <div className="grid grid-cols-3 gap-4 pt-2 border-t border-slate-200 dark:border-slate-600">
+                {/* Info Banner - Closable (grey/white colors, above SR/CAGR card) */}
+                {showMetricsInfo && (
+                  <div className="bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-xl p-3 relative">
+                    <button
+                      onClick={dismissMetricsInfo}
+                      className="absolute top-2 right-2 p-1 hover:bg-slate-200 dark:hover:bg-slate-500 rounded-full transition-colors"
+                      title={language === 'fr' ? 'Fermer' : 'Close'}
+                    >
+                      <X className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    </button>
+                    <div className="flex gap-2.5 pr-6">
+                      <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
+                          {t('performance.metricsInfoText')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Card 2: Simple Return & CAGR */}
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+                  <div className="grid grid-cols-2 gap-4">
                     {/* Simple Return */}
                     <div className="text-center relative group">
                       <div className="flex items-center justify-center gap-1.5 mb-1">
@@ -1081,8 +1129,32 @@ export function PortfolioPanel() {
                         {t('performance.cagrTooltip')}
                       </div>
                     </div>
+                  </div>
+                </div>
 
-                    {/* MWR/IRR */}
+                {/* Card 3: TWR, MWR, IRR */}
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    {/* TWR */}
+                    <div className="text-center relative group">
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                          {t('performance.twr')}
+                        </p>
+                        <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                      </div>
+                      <p className={`text-sm md:text-xl font-bold ${twrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {twrSuccess
+                          ? `${twrPct >= 0 ? '+' : ''}${twrPct}%`
+                          : '—'}
+                      </p>
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                        {t('performance.twrTooltip')}
+                      </div>
+                    </div>
+
+                    {/* MWR */}
                     <div className="text-center relative group">
                       <div className="flex items-center justify-center gap-1.5 mb-1">
                         <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -1098,6 +1170,25 @@ export function PortfolioPanel() {
                       {/* Tooltip */}
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
                         {t('performance.mwrTooltip')}
+                      </div>
+                    </div>
+
+                    {/* IRR */}
+                    <div className="text-center relative group">
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
+                          {t('performance.irr')}
+                        </p>
+                        <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                      </div>
+                      <p className={`text-sm md:text-xl font-bold ${mwrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {mwrSuccess
+                          ? `${mwrPct >= 0 ? '+' : ''}${mwrPct}%`
+                          : '—'}
+                      </p>
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64 text-left whitespace-normal">
+                        {t('performance.irrTooltip')}
                       </div>
                     </div>
                   </div>
