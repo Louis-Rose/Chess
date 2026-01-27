@@ -98,6 +98,14 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   const [internalSelectedStocks, setInternalSelectedStocks] = useState<Set<string>>(new Set());
   const [stockSelectorOpen, setStockSelectorOpen] = useState(false);
 
+  // Tooltip hover state - keeps tooltip open when hovering on it
+  const [isTooltipHovered, setIsTooltipHovered] = useState(false);
+  const [tooltipData, setTooltipData] = useState<{ active: boolean; payload: unknown[]; label: string } | null>(null);
+  const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Track if hovering on Portfolio line in tooltip to show stock breakdown
+  const [showStockBreakdown, setShowStockBreakdown] = useState(false);
+
   // Use controlled state if provided, otherwise use internal state
   const selectedStocks = controlledSelectedStocks ?? internalSelectedStocks;
   const setSelectedStocks = useCallback((newStocks: Set<string> | ((prev: Set<string>) => Set<string>)) => {
@@ -1112,13 +1120,39 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       ticks={yAxisTicks}
                     />
                     <Tooltip
-                      wrapperStyle={{ zIndex: 100 }}
+                      wrapperStyle={{ zIndex: 100, pointerEvents: 'auto' }}
                       allowEscapeViewBox={{ x: false, y: true }}
                       offset={10}
                       content={({ active, payload, label }) => {
-                        if (!active || !payload || payload.length === 0) return null;
-                        const data = payload[0]?.payload;
+                        // Update tooltip data when active
+                        if (active && payload && payload.length > 0) {
+                          if (tooltipTimeoutRef.current) {
+                            clearTimeout(tooltipTimeoutRef.current);
+                            tooltipTimeoutRef.current = null;
+                          }
+                          // Store data for when hovering on tooltip
+                          const newData = { active, payload: payload as unknown[], label: label as string };
+                          if (JSON.stringify(newData) !== JSON.stringify(tooltipData)) {
+                            setTooltipData(newData);
+                          }
+                        } else if (!isTooltipHovered) {
+                          // Schedule hiding tooltip after delay
+                          if (!tooltipTimeoutRef.current) {
+                            tooltipTimeoutRef.current = setTimeout(() => {
+                              setTooltipData(null);
+                              setShowStockBreakdown(false);
+                              tooltipTimeoutRef.current = null;
+                            }, 100);
+                          }
+                        }
+
+                        // Use stored data if hovering on tooltip
+                        const displayData = (active && payload && payload.length > 0) ? { active, payload, label } : (isTooltipHovered ? tooltipData : null);
+                        if (!displayData || !displayData.payload || displayData.payload.length === 0) return null;
+
+                        const data = (displayData.payload[0] as { payload?: Record<string, unknown> })?.payload;
                         if (!data) return null;
+                        const displayLabel = displayData.label;
 
                         const benchmarkTicker = benchmark === 'NASDAQ' ? (currency === 'EUR' ? 'EQQQ' : 'QQQ') : (currency === 'EUR' ? 'CSPX' : 'SPY');
                         const portfolioValue = data.portfolio_value_eur;
@@ -1183,16 +1217,63 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         });
 
                         return (
-                          <div style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '6px 10px', fontSize: '12px' }}>
+                          <div
+                            style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '6px 10px', fontSize: '12px' }}
+                            onMouseEnter={() => {
+                              if (tooltipTimeoutRef.current) {
+                                clearTimeout(tooltipTimeoutRef.current);
+                                tooltipTimeoutRef.current = null;
+                              }
+                              setIsTooltipHovered(true);
+                            }}
+                            onMouseLeave={() => {
+                              setIsTooltipHovered(false);
+                              setShowStockBreakdown(false);
+                              tooltipTimeoutRef.current = setTimeout(() => {
+                                setTooltipData(null);
+                                tooltipTimeoutRef.current = null;
+                              }, 100);
+                            }}
+                          >
                             <p style={{ color: '#f1f5f9', fontWeight: 'bold', marginBottom: '4px', fontSize: '11px' }}>
-                              {new Date(String(label)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                              {new Date(String(displayLabel)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                             </p>
                             <p style={{ color: '#94a3b8', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', borderBottom: '1px solid #475569', paddingBottom: '4px', marginBottom: '4px' }}>
                               {t('performance.invested')} : {currency === 'EUR' ? `${formatEur(Math.round(costBasis))}€` : `$${formatEur(Math.round(costBasis))}`}
                             </p>
-                            <p style={{ color: greenColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
-                              {t('performance.portfolio')} : {currency === 'EUR' ? `${formatEur(Math.round(portfolioValue))}€` : `$${formatEur(Math.round(portfolioValue))}`}
-                            </p>
+                            <div
+                              style={{ position: 'relative' }}
+                              onMouseEnter={() => setShowStockBreakdown(true)}
+                              onMouseLeave={() => setShowStockBreakdown(false)}
+                            >
+                              <p style={{ color: greenColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold', cursor: 'pointer' }}>
+                                {t('performance.portfolio')} : {currency === 'EUR' ? `${formatEur(Math.round(portfolioValue))}€` : `$${formatEur(Math.round(portfolioValue))}`}
+                                <span style={{ color: '#94a3b8', fontSize: '9px', marginLeft: '4px' }}>▼</span>
+                              </p>
+                              {showStockBreakdown && data.stocks && (
+                                <div style={{
+                                  backgroundColor: '#0f172a',
+                                  border: '1px solid #334155',
+                                  borderRadius: '4px',
+                                  padding: '4px 8px',
+                                  marginTop: '2px',
+                                  marginBottom: '4px',
+                                  maxHeight: '150px',
+                                  overflowY: 'auto'
+                                }}>
+                                  {Object.entries(data.stocks as Record<string, { value_eur: number; quantity: number }>)
+                                    .filter(([ticker]) => selectedStocks.has(ticker))
+                                    .sort((a, b) => b[1].value_eur - a[1].value_eur)
+                                    .map(([ticker, stockData]) => (
+                                      <p key={ticker} style={{ color: '#94a3b8', fontSize: '10px', padding: '1px 0', display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                                        <span style={{ color: '#e2e8f0' }}>{ticker}</span>
+                                        <span>{currency === 'EUR' ? `${formatEur(Math.round(stockData.value_eur))}€` : `$${formatEur(Math.round(stockData.value_eur))}`}</span>
+                                      </p>
+                                    ))
+                                  }
+                                </div>
+                              )}
+                            </div>
                             <p style={{ color: blueColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
                               {benchmarkTicker} : {currency === 'EUR' ? `${formatEur(Math.round(benchmarkValue))}€` : `$${formatEur(Math.round(benchmarkValue))}`}
                             </p>
