@@ -997,19 +997,32 @@ export function PortfolioPanel() {
             let startDate = '';
             let endDate = '';
             if (performanceData?.data && performanceData.data.length > 1) {
-              startDate = performanceData.data[0].date;
-              endDate = performanceData.data[performanceData.data.length - 1].date;
-              // Use filtered cost basis to respect stock selection
-              const cagrResult = calculateCAGR(
-                filteredCostBasis,
-                filteredTotalValue,
-                startDate,
-                endDate,
-                { shortPeriodBehavior: 'extrapolate', minimumDays: 30 }
-              );
-              if (cagrResult.success) {
-                cagrPct = cagrResult.percentage;
-                cagrSuccess = true;
+              // Filter data to only include dates when selected stocks have non-zero cost basis
+              const filteredData = isFilteringStocks
+                ? performanceData.data.filter(d => {
+                    if (!d.stocks) return false;
+                    const filteredCb = Object.entries(d.stocks)
+                      .filter(([ticker]) => selectedStocks.has(ticker))
+                      .reduce((sum, [, stock]) => sum + stock.cost_basis_eur, 0);
+                    return filteredCb > 0;
+                  })
+                : performanceData.data;
+
+              if (filteredData.length > 1) {
+                startDate = filteredData[0].date;
+                endDate = filteredData[filteredData.length - 1].date;
+                // Use filtered cost basis to respect stock selection
+                const cagrResult = calculateCAGR(
+                  filteredCostBasis,
+                  filteredTotalValue,
+                  startDate,
+                  endDate,
+                  { shortPeriodBehavior: 'extrapolate', minimumDays: 30 }
+                );
+                if (cagrResult.success) {
+                  cagrPct = cagrResult.percentage;
+                  cagrSuccess = true;
+                }
               }
             }
 
@@ -1019,7 +1032,7 @@ export function PortfolioPanel() {
             let twrPct = 0;
             let twrSuccess = false;
             let periodYears = 0;
-            if (performanceData?.data && performanceData.data.length > 1 && performanceData.transactions) {
+            if (performanceData?.data && performanceData.data.length > 1 && performanceData.transactions && startDate && endDate) {
               // Filter transactions by selected stocks
               const filteredTransactions = isFilteringStocks
                 ? performanceData.transactions.filter(tx => selectedStocks.has(tx.ticker))
@@ -1034,6 +1047,17 @@ export function PortfolioPanel() {
                   amount: tx.type === 'BUY' ? -(tx.amount_eur || 0) : (tx.amount_eur || 0),
                 }))
                 .filter(cf => cf.amount !== 0);
+
+              // Get filtered data for the selected stocks period
+              const filteredPerfData = isFilteringStocks
+                ? performanceData.data.filter(d => {
+                    if (!d.stocks) return false;
+                    const filteredCb = Object.entries(d.stocks)
+                      .filter(([ticker]) => selectedStocks.has(ticker))
+                      .reduce((sum, [, stock]) => sum + stock.cost_basis_eur, 0);
+                    return filteredCb > 0;
+                  })
+                : performanceData.data;
 
               // Get initial investment - filtered by selected stocks if applicable
               const getFilteredValue = (dataPoint: typeof performanceData.data[0]) => {
@@ -1054,7 +1078,9 @@ export function PortfolioPanel() {
                   .reduce((sum, [, stock]) => sum + stock.cost_basis_eur, 0);
               };
 
-              const initialInvestment = getFilteredCostBasis(performanceData.data[0]);
+              const initialInvestment = filteredPerfData.length > 0
+                ? getFilteredCostBasis(filteredPerfData[0])
+                : 0;
 
               // Calculate period in years for annualization
               const msPerYear = 365 * 24 * 60 * 60 * 1000;
@@ -1194,7 +1220,7 @@ export function PortfolioPanel() {
                           </p>
                           {/* Tooltip */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-72 text-left whitespace-pre-line">
-                            {`(${formatEur(filteredTotalValue)}€ - ${formatEur(filteredCostBasis)}€) / ${formatEur(filteredCostBasis)}€\n= ${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`}
+                            {`${t('performance.simpleReturnTooltip')}\n\n(${formatEur(filteredTotalValue)}€ - ${formatEur(filteredCostBasis)}€) / ${formatEur(filteredCostBasis)}€\n= ${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`}
                           </div>
                         </div>
 
@@ -1213,7 +1239,7 @@ export function PortfolioPanel() {
                           </p>
                           {/* Tooltip */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-72 text-left whitespace-pre-line">
-                            {`(${formatEur(filteredTotalValue)}€ / ${formatEur(filteredCostBasis)}€)^(1/${periodYears.toFixed(2)}y) - 1\n= ${cagrPct >= 0 ? '+' : ''}${cagrPct}% ${t('performance.perYear')}`}
+                            {`${t('performance.cagrTooltip')}\n\n(${formatEur(filteredTotalValue)}€ / ${formatEur(filteredCostBasis)}€)^(1/${periodYears.toFixed(2)}y) - 1\n= ${cagrPct >= 0 ? '+' : ''}${cagrPct}% ${t('performance.perYear')}`}
                           </div>
                         </div>
                       </div>
@@ -1291,9 +1317,7 @@ export function PortfolioPanel() {
                           </p>
                           {/* Tooltip */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-72 text-left whitespace-pre-line">
-                            {twrSuccess
-                              ? `${language === 'fr' ? 'Rendement total' : 'Total return'}: ${twrPct >= 0 ? '+' : ''}${twrPct}%\n${language === 'fr' ? 'Sur' : 'Over'} ${periodYears.toFixed(2)} ${language === 'fr' ? 'ans' : 'years'}${showAnnualizedMetrics ? `\n${language === 'fr' ? 'Annualisé' : 'Annualized'}: ${annualizedTwrPct >= 0 ? '+' : ''}${annualizedTwrPct}%/y` : ''}`
-                              : t('performance.twrTooltip')}
+                            {`${t('performance.twrTooltip')}\n\n${language === 'fr' ? 'Rendement total' : 'Total return'}: ${twrPct >= 0 ? '+' : ''}${twrPct}%\n${language === 'fr' ? 'Sur' : 'Over'} ${periodYears.toFixed(2)} ${language === 'fr' ? 'ans' : 'years'}${showAnnualizedMetrics ? `\n${language === 'fr' ? 'Annualisé' : 'Annualized'}: ${annualizedTwrPct >= 0 ? '+' : ''}${annualizedTwrPct}%/y` : ''}`}
                           </div>
                         </div>
 
@@ -1312,9 +1336,7 @@ export function PortfolioPanel() {
                           </p>
                           {/* Tooltip */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-72 text-left whitespace-pre-line">
-                            {mwrSuccess
-                              ? `IRR (${language === 'fr' ? 'annualisé' : 'annualized'}): ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%/y\nMWR (${language === 'fr' ? 'cumulé' : 'cumulative'}): ${cumulativeMwrPct >= 0 ? '+' : ''}${cumulativeMwrPct}%\n${language === 'fr' ? 'Sur' : 'Over'} ${periodYears.toFixed(2)} ${language === 'fr' ? 'ans' : 'years'}`
-                              : (showAnnualizedMetrics ? t('performance.irrTooltip') : t('performance.mwrTooltip'))}
+                            {`${showAnnualizedMetrics ? t('performance.irrTooltip') : t('performance.mwrTooltip')}\n\nIRR (${language === 'fr' ? 'annualisé' : 'annualized'}): ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%/y\nMWR (${language === 'fr' ? 'cumulé' : 'cumulative'}): ${cumulativeMwrPct >= 0 ? '+' : ''}${cumulativeMwrPct}%\n${language === 'fr' ? 'Sur' : 'Over'} ${periodYears.toFixed(2)} ${language === 'fr' ? 'ans' : 'years'}`}
                           </div>
                         </div>
                       </div>
