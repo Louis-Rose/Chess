@@ -830,6 +830,16 @@ def compute_portfolio_performance_from_transactions(transactions, benchmark_tick
     if weekly_dates[-1] != end_date_str:
         weekly_dates.append(end_date_str)
 
+    # Include all transaction dates for accurate TWR calculation
+    # TWR needs valuations at each cash flow date to create proper sub-periods
+    transaction_dates = set(tx['transaction_date'] for tx in sorted_txs)
+    for tx_date in transaction_dates:
+        if tx_date not in weekly_dates and tx_date >= start_date_str and tx_date <= end_date_str:
+            weekly_dates.append(tx_date)
+
+    # Sort all dates
+    weekly_dates = sorted(set(weekly_dates))
+
     # Track benchmark shares bought (as if we invested the same amount in benchmark at each transaction)
     # Pre-calculate: for each transaction, how many benchmark shares we'd get
     tx_benchmark_info = []
