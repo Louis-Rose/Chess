@@ -1121,7 +1121,6 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       wrapperStyle={{ zIndex: 100, pointerEvents: 'auto' }}
                       allowEscapeViewBox={{ x: false, y: true }}
                       offset={10}
-                      trigger="click"
                       content={({ active, payload, label }) => {
                         // Use pinned data if available, otherwise use hover data
                         const displayData = pinnedTooltipData
