@@ -327,41 +327,37 @@ def _save_cached_fx_rate(pair, date_str, rate):
         print(f"Error caching FX rate: {e}")
 
 # Stock color map for pie chart - brand colors where available
-# Vibrant color palette for stocks without a defined color
+# Vibrant color palette for stocks - optimized for dark mode visibility
+# Colors are ordered to maximize contrast between adjacent slices
 VIBRANT_COLORS = [
-    "#E53935",  # Red
-    "#D81B60",  # Pink
-    "#8E24AA",  # Purple
-    "#5E35B1",  # Deep Purple
-    "#3949AB",  # Indigo
-    "#1E88E5",  # Blue
-    "#039BE5",  # Light Blue
-    "#00ACC1",  # Cyan
-    "#00897B",  # Teal
-    "#43A047",  # Green
-    "#7CB342",  # Light Green
-    "#C0CA33",  # Lime
-    "#FDD835",  # Yellow
-    "#FFB300",  # Amber
-    "#FB8C00",  # Orange
-    "#F4511E",  # Deep Orange
-    "#6D4C41",  # Brown
-    "#546E7A",  # Blue Grey
-    "#EC407A",  # Pink 400
-    "#AB47BC",  # Purple 400
-    "#7E57C2",  # Deep Purple 400
-    "#5C6BC0",  # Indigo 400
-    "#42A5F5",  # Blue 400
-    "#29B6F6",  # Light Blue 400
-    "#26C6DA",  # Cyan 400
-    "#26A69A",  # Teal 400
-    "#66BB6A",  # Green 400
-    "#9CCC65",  # Light Green 400
-    "#D4E157",  # Lime 400
-    "#FFEE58",  # Yellow 400
-    "#FFCA28",  # Amber 400
-    "#FFA726",  # Orange 400
-    "#FF7043",  # Deep Orange 400
+    "#22C55E",  # Green 500 - bright green
+    "#F43F5E",  # Rose 500 - bright pink/red
+    "#3B82F6",  # Blue 500 - bright blue
+    "#F59E0B",  # Amber 500 - bright orange/gold
+    "#A855F7",  # Purple 500 - bright purple
+    "#14B8A6",  # Teal 500 - bright teal
+    "#EF4444",  # Red 500 - bright red
+    "#06B6D4",  # Cyan 500 - bright cyan
+    "#FACC15",  # Yellow 400 - bright yellow
+    "#EC4899",  # Pink 500 - bright magenta
+    "#84CC16",  # Lime 500 - bright lime
+    "#8B5CF6",  # Violet 500 - bright violet
+    "#FB923C",  # Orange 400 - bright orange
+    "#2DD4BF",  # Teal 400 - light teal
+    "#F472B6",  # Pink 400 - light pink
+    "#60A5FA",  # Blue 400 - light blue
+    "#4ADE80",  # Green 400 - light green
+    "#FBBF24",  # Amber 400 - gold
+    "#C084FC",  # Purple 400 - light purple
+    "#FB7185",  # Rose 400 - coral
+    "#34D399",  # Emerald 400 - emerald
+    "#38BDF8",  # Sky 400 - sky blue
+    "#FCD34D",  # Yellow 300 - light yellow
+    "#F87171",  # Red 400 - light red
+    "#A3E635",  # Lime 400 - bright lime
+    "#818CF8",  # Indigo 400 - light indigo
+    "#FDBA74",  # Orange 300 - peach
+    "#5EEAD4",  # Teal 300 - aqua
 ]
 
 
