@@ -1102,11 +1102,12 @@ export function PortfolioPanel() {
 
               // Calculate TWR - only use valuations at cash flow dates + start/end
               // This prevents chain-linking many daily returns
+              // Use filtered data to respect stock selection
               const cashFlowDates = new Set(cashFlows.map(cf => cf.date.toISOString().split('T')[0]));
-              const relevantValuations: ValuationPoint[] = performanceData.data
+              const relevantValuations: ValuationPoint[] = filteredPerfData
                 .filter((d, i) =>
                   i === 0 || // Start date
-                  i === performanceData.data.length - 1 || // End date
+                  i === filteredPerfData.length - 1 || // End date
                   cashFlowDates.has(d.date) // Cash flow dates
                 )
                 .map(d => ({
@@ -1219,8 +1220,8 @@ export function PortfolioPanel() {
                               : '—'}
                           </p>
                           {/* Tooltip */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-72 text-left whitespace-pre-line">
-                            {`${t('performance.simpleReturnTooltip')}\n\n(${formatEur(filteredTotalValue)}€ - ${formatEur(filteredCostBasis)}€) / ${formatEur(filteredCostBasis)}€\n= ${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
+                            {`${t('performance.simpleReturnTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n(${formatEur(filteredTotalValue)}€ − ${formatEur(filteredCostBasis)}€) ÷ ${formatEur(filteredCostBasis)}€\n  → ${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`}
                           </div>
                         </div>
 
@@ -1238,8 +1239,8 @@ export function PortfolioPanel() {
                               : '—'}
                           </p>
                           {/* Tooltip */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-72 text-left whitespace-pre-line">
-                            {`${t('performance.cagrTooltip')}\n\n(${formatEur(filteredTotalValue)}€ / ${formatEur(filteredCostBasis)}€)^(1/${periodYears.toFixed(2)}y) - 1\n= ${cagrPct >= 0 ? '+' : ''}${cagrPct}% ${t('performance.perYear')}`}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
+                            {`${t('performance.cagrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n(${formatEur(filteredTotalValue)}€ ÷ ${formatEur(filteredCostBasis)}€)^(1÷${periodYears.toFixed(2)}y) − 1\n  → ${cagrPct >= 0 ? '+' : ''}${cagrPct}% ${t('performance.perYear')}`}
                           </div>
                         </div>
                       </div>
@@ -1316,8 +1317,8 @@ export function PortfolioPanel() {
                               : '—'}
                           </p>
                           {/* Tooltip */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-72 text-left whitespace-pre-line">
-                            {`${t('performance.twrTooltip')}\n\n${language === 'fr' ? 'Rendement total' : 'Total return'}: ${twrPct >= 0 ? '+' : ''}${twrPct}%\n${language === 'fr' ? 'Sur' : 'Over'} ${periodYears.toFixed(2)} ${language === 'fr' ? 'ans' : 'years'}${showAnnualizedMetrics ? `\n${language === 'fr' ? 'Annualisé' : 'Annualized'}: ${annualizedTwrPct >= 0 ? '+' : ''}${annualizedTwrPct}%/y` : ''}`}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
+                            {`${t('performance.twrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${language === 'fr' ? 'Rendement total' : 'Total return'}: ${twrPct >= 0 ? '+' : ''}${twrPct}%\n${language === 'fr' ? 'Période' : 'Period'}: ${periodYears.toFixed(2)} ${language === 'fr' ? 'ans' : 'years'}${showAnnualizedMetrics ? `\n${language === 'fr' ? 'Annualisé' : 'Annualized'}: ${annualizedTwrPct >= 0 ? '+' : ''}${annualizedTwrPct}%/y` : ''}`}
                           </div>
                         </div>
 
@@ -1335,8 +1336,8 @@ export function PortfolioPanel() {
                               : '—'}
                           </p>
                           {/* Tooltip */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-72 text-left whitespace-pre-line">
-                            {`${showAnnualizedMetrics ? t('performance.irrTooltip') : t('performance.mwrTooltip')}\n\nIRR (${language === 'fr' ? 'annualisé' : 'annualized'}): ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%/y\nMWR (${language === 'fr' ? 'cumulé' : 'cumulative'}): ${cumulativeMwrPct >= 0 ? '+' : ''}${cumulativeMwrPct}%\n${language === 'fr' ? 'Sur' : 'Over'} ${periodYears.toFixed(2)} ${language === 'fr' ? 'ans' : 'years'}`}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-80 text-left whitespace-pre-line">
+                            {`${showAnnualizedMetrics ? t('performance.irrTooltip') : t('performance.mwrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\nIRR (${language === 'fr' ? 'annualisé' : 'annualized'}): ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%/y\nMWR (${language === 'fr' ? 'cumulé' : 'cumulative'}): ${cumulativeMwrPct >= 0 ? '+' : ''}${cumulativeMwrPct}%\n${language === 'fr' ? 'Période' : 'Period'}: ${periodYears.toFixed(2)} ${language === 'fr' ? 'ans' : 'years'}`}
                           </div>
                         </div>
                       </div>
