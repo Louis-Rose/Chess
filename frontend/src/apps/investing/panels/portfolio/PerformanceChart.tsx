@@ -1299,15 +1299,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         const data = (payload[0] as { payload?: typeof chartData[0] })?.payload;
                         if (!data) return null;
 
-                        const handlePin = () => {
-                          setPinnedTooltipData({ data: data as typeof pinnedTooltipData extends { data: infer T } ? T : never, label: label as string });
-                        };
-
+                        // Pin is handled by chart onClick, not tooltip click
                         return renderTooltipContent(
                           data as Parameters<typeof renderTooltipContent>[0],
                           label as string,
                           false,
-                          handlePin,
+                          () => {}, // no-op, chart click handles pinning
                           () => {}
                         );
                       }}
