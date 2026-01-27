@@ -171,8 +171,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
     return (
       <div
-        style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: isPinned ? '2px solid #22c55e' : '1px solid #334155', padding: '6px 10px', fontSize: '12px', cursor: 'pointer', position: 'relative' }}
-        onClick={onPin}
+        style={{ backgroundColor: '#1e293b', borderRadius: '6px', border: isPinned ? '2px solid #22c55e' : '1px solid #334155', padding: '6px 10px', fontSize: '12px', cursor: isPinned ? 'default' : 'pointer', position: 'relative' }}
+        onClick={isPinned ? undefined : onPin}
       >
         {isPinned && (
           <button
