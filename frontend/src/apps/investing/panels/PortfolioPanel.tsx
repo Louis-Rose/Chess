@@ -321,14 +321,21 @@ export function PortfolioPanel() {
   // Track if we've initialized the stock selection
   const hasInitializedStocks = useRef(false);
 
-  // Initialize selectedStocks to all stocks when performance data first loads
+  // Initialize selectedStocks to ALL stocks that ever existed (including sold-off ones)
   useEffect(() => {
     if (performanceData?.data && performanceData.data.length > 0 && !hasInitializedStocks.current) {
-      const lastPoint = performanceData.data[performanceData.data.length - 1];
-      if (lastPoint.stocks) {
-        hasInitializedStocks.current = true;
-        setSelectedStocks(new Set(Object.keys(lastPoint.stocks)));
+      hasInitializedStocks.current = true;
+      // Collect all unique tickers from all data points (not just last point)
+      // This includes stocks that were completely sold off
+      const allStocks = new Set<string>();
+      for (const point of performanceData.data) {
+        if (point.stocks) {
+          for (const ticker of Object.keys(point.stocks)) {
+            allStocks.add(ticker);
+          }
+        }
       }
+      setSelectedStocks(allStocks);
     }
   }, [performanceData?.data]);
 
