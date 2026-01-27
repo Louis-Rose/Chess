@@ -1162,21 +1162,19 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                     margin={{ top: 10, right: 50, left: 20, bottom: 70 }}
                     style={{ cursor: 'pointer' }}
                     onClick={(e: unknown) => {
-                      console.log('Chart clicked', e);
-                      const event = e as { activePayload?: Array<{ payload: typeof chartData[0] }> };
-                      if (event && event.activePayload && event.activePayload.length > 0) {
-                        const clickedData = event.activePayload[0].payload;
-                        const clickedLabel = clickedData.date;
-                        console.log('Pinning tooltip for', clickedLabel, clickedData);
-                        // Toggle pin: if clicking same point, unpin; otherwise pin new point
-                        if (pinnedTooltipData && pinnedTooltipData.label === clickedLabel) {
-                          setPinnedTooltipData(null);
-                          setShowStockBreakdown(false);
-                        } else {
-                          setPinnedTooltipData({ data: clickedData, label: clickedLabel });
+                      const event = e as { activeLabel?: string; activeIndex?: number };
+                      if (event && event.activeLabel && typeof event.activeIndex === 'number') {
+                        const clickedData = chartData[event.activeIndex];
+                        const clickedLabel = event.activeLabel;
+                        if (clickedData) {
+                          // Toggle pin: if clicking same point, unpin; otherwise pin new point
+                          if (pinnedTooltipData && pinnedTooltipData.label === clickedLabel) {
+                            setPinnedTooltipData(null);
+                            setShowStockBreakdown(false);
+                          } else {
+                            setPinnedTooltipData({ data: clickedData, label: clickedLabel });
+                          }
                         }
-                      } else {
-                        console.log('No activePayload in click event', event);
                       }
                     }}
                   >
