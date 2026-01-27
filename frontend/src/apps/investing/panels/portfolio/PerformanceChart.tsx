@@ -1394,12 +1394,15 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                 </ResponsiveContainer>
                 {/* Pinned tooltip overlay */}
                 {pinnedTooltipData && (
-                  <div style={{
-                    position: 'absolute',
-                    top: `${pinnedTooltipData.y}px`,
-                    left: `${pinnedTooltipData.x + 15}px`,
-                    zIndex: 1000,
-                  }}>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: `${pinnedTooltipData.y}px`,
+                      left: `${pinnedTooltipData.x + 15}px`,
+                      zIndex: 1000,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {renderTooltipContent(
                       pinnedTooltipData.data as Parameters<typeof renderTooltipContent>[0],
                       pinnedTooltipData.label,
