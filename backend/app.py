@@ -2889,6 +2889,7 @@ def get_stock_history(ticker):
 def get_financials_history(ticker):
     """Get historical financial data (quarterly income statement) for a stock."""
     import yfinance as yf
+    import pandas as pd
     from investing_utils import EUROPEAN_TICKER_MAP
 
     ticker = ticker.upper()
