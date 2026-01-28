@@ -1091,24 +1091,40 @@ export function PortfolioPanel() {
               // Use filtered data to respect stock selection
               const cashFlowDates = new Set(cashFlows.map(cf => cf.date.toISOString().split('T')[0]));
 
-              // Build map of tickers bought on each date (for excluding from end values)
-              const tickersBoughtOnDate = new Map<string, Set<string>>();
+              // Build map of shares bought on each date per ticker (for excluding from end values)
+              // Key: date, Value: Map<ticker, quantity bought>
+              const sharesBoughtOnDate = new Map<string, Map<string, number>>();
               for (const tx of filteredTransactions) {
                 if (tx.type === 'BUY' && tx.date > startDate) {
-                  if (!tickersBoughtOnDate.has(tx.date)) {
-                    tickersBoughtOnDate.set(tx.date, new Set());
+                  if (!sharesBoughtOnDate.has(tx.date)) {
+                    sharesBoughtOnDate.set(tx.date, new Map());
                   }
-                  tickersBoughtOnDate.get(tx.date)!.add(tx.ticker);
+                  const tickerMap = sharesBoughtOnDate.get(tx.date)!;
+                  tickerMap.set(tx.ticker, (tickerMap.get(tx.ticker) || 0) + tx.quantity);
                 }
               }
 
-              // For end values, exclude stocks bought ON that date (their value, not just cash spent)
+              // For end values, exclude only the VALUE of shares bought ON that date (not entire position)
               const getValueExcludingNewPurchases = (dataPoint: typeof performanceData.data[0], excludeDate: string) => {
                 if (!dataPoint.stocks) return dataPoint.portfolio_value_eur;
-                const tickersToExclude = tickersBoughtOnDate.get(excludeDate) || new Set();
-                return Object.entries(dataPoint.stocks)
-                  .filter(([ticker]) => selectedStocks.has(ticker) && !tickersToExclude.has(ticker))
-                  .reduce((sum, [, stock]) => sum + stock.value_eur, 0);
+                const tickerSharesBought = sharesBoughtOnDate.get(excludeDate);
+
+                let totalValue = 0;
+                for (const [ticker, stock] of Object.entries(dataPoint.stocks)) {
+                  if (!selectedStocks.has(ticker)) continue;
+
+                  // Check if any shares of this ticker were bought on this date
+                  const sharesBought = tickerSharesBought?.get(ticker) || 0;
+                  if (sharesBought > 0 && stock.quantity > 0) {
+                    // Calculate price per share and exclude only the newly bought shares' value
+                    const pricePerShare = stock.value_eur / stock.quantity;
+                    const valueToExclude = sharesBought * pricePerShare;
+                    totalValue += stock.value_eur - valueToExclude;
+                  } else {
+                    totalValue += stock.value_eur;
+                  }
+                }
+                return totalValue;
               };
 
               const relevantValuations: ValuationPoint[] = filteredPerfData
