@@ -134,11 +134,11 @@ function MiniChart({ ticker, metric, title, chartType, color, onExpand }: MiniCh
       className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors cursor-pointer text-left w-full"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
+      <div className="flex items-start justify-between mb-2">
+        <div>
           <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{title}</h3>
           {ttmChange !== null && (
-            <span className={`flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded ${
+            <span className={`inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded mt-1 ${
               ttmChange >= 0
                 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                 : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
