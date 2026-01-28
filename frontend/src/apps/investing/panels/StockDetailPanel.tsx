@@ -380,13 +380,13 @@ export function StockDetailPanel() {
                 href={irLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="self-center inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ml-4"
+                className="self-center inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ml-auto mr-auto"
               >
                 <span>{language === 'fr' ? 'Site Relations Investisseurs' : 'Investor Relations Website'}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
-            <div className="text-right flex-shrink-0 ml-auto">
+            <div className="text-right flex-shrink-0">
               {currentPrice !== null && (
                 <>
                   <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">

@@ -2917,6 +2917,15 @@ def get_financials_history(ticker):
         quarterly = stock.quarterly_income_stmt
         annual = stock.income_stmt
 
+        # Debug logging
+        print(f"[Financials] Ticker: {yf_ticker}, Metric: {metric}")
+        print(f"[Financials] Quarterly data shape: {quarterly.shape if quarterly is not None and not quarterly.empty else 'empty'}")
+        print(f"[Financials] Annual data shape: {annual.shape if annual is not None and not annual.empty else 'empty'}")
+        if quarterly is not None and not quarterly.empty:
+            print(f"[Financials] Quarterly index (first 10): {list(quarterly.index)[:10]}")
+        if annual is not None and not annual.empty:
+            print(f"[Financials] Annual index (first 10): {list(annual.index)[:10]}")
+
         data_points = []
 
         # Find the actual metric name in the data
@@ -2926,6 +2935,11 @@ def get_financials_history(ticker):
             for var in variations:
                 if var in df.index:
                     return var
+            # Also try case-insensitive matching
+            for var in variations:
+                for idx in df.index:
+                    if var.lower() == idx.lower():
+                        return idx
             return None
 
         # Process quarterly data
