@@ -216,6 +216,7 @@ export function StockDetailPanel() {
   const [displayCurrency, setDisplayCurrency] = useState<'EUR' | 'USD'>('USD');
   const [selectedMetric, setSelectedMetric] = useState<{ metric: string; label: string } | null>(null);
   const [showPriceModal, setShowPriceModal] = useState(false);
+  const [financialsDataView, setFinancialsDataView] = useState<'quarterly' | 'annual'>('quarterly');
 
   // Use TSLA as preview ticker when not authenticated
   const upperTicker = isAuthenticated ? (ticker?.toUpperCase() || '') : 'TSLA';
@@ -375,19 +376,21 @@ export function StockDetailPanel() {
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{displayName}</h1>
               <p className="text-slate-600 dark:text-slate-300">{upperTicker}</p>
             </div>
-            {irLink && (
-              <a
-                href={irLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="self-center inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ml-auto mr-auto"
-              >
-                <span>{language === 'fr' ? 'Site Relations Investisseurs' : 'Investor Relations Website'}</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            )}
-            <div className="text-right flex-shrink-0">
-              {currentPrice !== null && (
+            <div className="flex-1 flex justify-center">
+              {irLink && (
+                <a
+                  href={irLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <span>{language === 'fr' ? 'Site Relations Investisseurs' : 'Investor Relations Website'}</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+            <div className="text-right flex-shrink-0 min-w-[120px]">
+              {currentPrice !== null ? (
                 <>
                   <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                     {currencySymbol}{currentPrice.toFixed(2)}
@@ -398,6 +401,8 @@ export function StockDetailPanel() {
                     </p>
                   )}
                 </>
+              ) : (
+                <div className="h-[52px]" />
               )}
             </div>
           </div>
@@ -458,6 +463,8 @@ export function StockDetailPanel() {
           previousClose={stockHistoryData?.previous_close}
           priceCurrency={stockHistoryData?.currency}
           priceLoading={priceLoading}
+          dataView={financialsDataView}
+          onDataViewChange={setFinancialsDataView}
           onMetricClick={(metric, label) => setSelectedMetric({ metric, label })}
           onPriceClick={() => setShowPriceModal(true)}
         />

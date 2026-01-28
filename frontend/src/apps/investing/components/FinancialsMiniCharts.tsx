@@ -34,6 +34,7 @@ interface MiniChartProps {
   title: string;
   chartType: 'bar' | 'area';
   color: string;
+  dataView: 'quarterly' | 'annual';
   onExpand: () => void;
 }
 
@@ -71,7 +72,7 @@ const fetchFinancialsHistory = async (ticker: string, metric: string): Promise<F
   return response.data;
 };
 
-function MiniChart({ ticker, metric, title, chartType, color, onExpand }: MiniChartProps) {
+function MiniChart({ ticker, metric, title, chartType, color, dataView, onExpand }: MiniChartProps) {
   const { language } = useLanguage();
 
   const { data, isLoading } = useQuery({
@@ -80,20 +81,21 @@ function MiniChart({ ticker, metric, title, chartType, color, onExpand }: MiniCh
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
 
-  // Filter to last 3 years of data - prefer quarterly, fallback to annual
+  // Filter based on selected data view
   const getFilteredData = () => {
     if (!data?.data) return [];
     const now = new Date();
-    const cutoff = new Date(now.getFullYear() - 3, now.getMonth(), 1);
 
-    // Try quarterly data first
-    const quarterlyData = data.data
-      .filter(d => new Date(d.date) >= cutoff && d.type === 'quarterly')
-      .slice(-12);
+    if (dataView === 'quarterly') {
+      const cutoff = new Date(now.getFullYear() - 3, now.getMonth(), 1);
+      const quarterlyData = data.data
+        .filter(d => new Date(d.date) >= cutoff && d.type === 'quarterly')
+        .slice(-12);
+      // If no quarterly data, show annual as fallback
+      if (quarterlyData.length > 0) return quarterlyData;
+    }
 
-    if (quarterlyData.length > 0) return quarterlyData;
-
-    // Fall back to annual data for stocks without quarterly data (e.g., European stocks)
+    // Annual data
     const annualCutoff = new Date(now.getFullYear() - 10, 0, 1);
     return data.data
       .filter(d => new Date(d.date) >= annualCutoff && d.type === 'annual')
@@ -368,17 +370,21 @@ export function PriceMiniChart({ priceData, previousClose, currency, onExpand, i
   );
 }
 
+type DataViewType = 'quarterly' | 'annual';
+
 interface FinancialsMiniChartsProps {
   ticker: string;
   priceData?: { timestamp: string; price: number }[];
   previousClose?: number | null;
   priceCurrency?: string;
   priceLoading?: boolean;
+  dataView: DataViewType;
+  onDataViewChange: (view: DataViewType) => void;
   onMetricClick: (metric: string, label: string) => void;
   onPriceClick?: () => void;
 }
 
-export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCurrency, priceLoading, onMetricClick, onPriceClick }: FinancialsMiniChartsProps) {
+export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCurrency, priceLoading, dataView, onDataViewChange, onMetricClick, onPriceClick }: FinancialsMiniChartsProps) {
   const { language } = useLanguage();
 
   const metrics = [
@@ -391,28 +397,57 @@ export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCu
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {/* Price Chart */}
-      <PriceMiniChart
-        priceData={priceData}
-        previousClose={previousClose ?? null}
-        currency={priceCurrency || 'USD'}
-        onExpand={onPriceClick}
-        isLoading={priceLoading}
-      />
+    <div className="space-y-4">
+      {/* Data View Toggle */}
+      <div className="flex justify-end">
+        <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600">
+          <button
+            onClick={() => onDataViewChange('quarterly')}
+            className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+              dataView === 'quarterly'
+                ? 'bg-green-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            {language === 'fr' ? 'Trimestriel' : 'Quarterly'}
+          </button>
+          <button
+            onClick={() => onDataViewChange('annual')}
+            className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+              dataView === 'annual'
+                ? 'bg-green-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            {language === 'fr' ? 'Annuel' : 'Annual'}
+          </button>
+        </div>
+      </div>
 
-      {/* Financial Metrics */}
-      {metrics.map(({ metric, title, chartType, color }) => (
-        <MiniChart
-          key={metric}
-          ticker={ticker}
-          metric={metric}
-          title={title}
-          chartType={chartType}
-          color={color}
-          onExpand={() => onMetricClick(metric, title)}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {/* Price Chart */}
+        <PriceMiniChart
+          priceData={priceData}
+          previousClose={previousClose ?? null}
+          currency={priceCurrency || 'USD'}
+          onExpand={onPriceClick}
+          isLoading={priceLoading}
         />
-      ))}
+
+        {/* Financial Metrics */}
+        {metrics.map(({ metric, title, chartType, color }) => (
+          <MiniChart
+            key={metric}
+            ticker={ticker}
+            metric={metric}
+            title={title}
+            chartType={chartType}
+            color={color}
+            dataView={dataView}
+            onExpand={() => onMetricClick(metric, title)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
