@@ -2943,6 +2943,7 @@ def get_financials_history(ticker):
         # Process quarterly data
         if quarterly is not None and not quarterly.empty:
             actual_metric = find_metric_in_df(quarterly, metric_variations)
+            print(f"[Financials] Found metric: {actual_metric}")
             if actual_metric:
                 for col in quarterly.columns:
                     try:
@@ -2957,8 +2958,10 @@ def get_financials_history(ticker):
                                 'value': float(value),
                                 'type': 'quarterly'
                             })
-                    except:
+                    except Exception as e:
+                        print(f"[Financials] Error extracting value: {e}")
                         continue
+                print(f"[Financials] Extracted {len(data_points)} quarterly data points")
 
         # Also get annual data for longer history
         if annual is not None and not annual.empty:
