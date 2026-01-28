@@ -1032,7 +1032,7 @@ def get_user_portfolio(user_id):
     total_value_eur = 0
 
     for account in accounts:
-        holdings = compute_holdings_from_transactions(user_id, account['id'])
+        holdings = compute_holdings_from_transactions(user_id, [account['id']])
         if holdings:
             try:
                 composition = compute_portfolio_composition(holdings)
