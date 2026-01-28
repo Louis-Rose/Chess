@@ -97,6 +97,10 @@ function StockSelector({
   const selectedStock = selectedTicker ? findStockByTicker(selectedTicker) : null;
   const logoUrl = selectedTicker ? getCompanyLogoUrl(selectedTicker) : null;
 
+  // For drag preview - show the other stock (what will be here after swap)
+  const otherStock = otherTicker ? findStockByTicker(otherTicker) : null;
+  const otherLogoUrl = otherTicker ? getCompanyLogoUrl(otherTicker) : null;
+
   // Filter recent stocks to exclude the other selector's stock
   const filteredRecentStocks = recentStocks.filter(t => t !== otherTicker);
 
@@ -142,6 +146,11 @@ function StockSelector({
     }
   };
 
+  // Determine what to display - show preview of other stock when dragging over
+  const displayTicker = isDragOver && otherTicker ? otherTicker : selectedTicker;
+  const displayStock = isDragOver && otherTicker ? otherStock : selectedStock;
+  const displayLogo = isDragOver && otherTicker ? otherLogoUrl : logoUrl;
+
   return (
     <div className="flex-1">
       <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">{label}</label>
@@ -153,19 +162,19 @@ function StockSelector({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={`flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg border-2 cursor-grab active:cursor-grabbing transition-all ${
-            isDragOver ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-green-500'
+            isDragOver ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20' : 'border-green-500'
           }`}
         >
           <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-600 flex items-center justify-center overflow-hidden">
-            {logoUrl ? (
-              <img src={logoUrl} alt={selectedTicker} className="w-8 h-8 object-contain" />
+            {displayLogo ? (
+              <img src={displayLogo} alt={displayTicker || ''} className="w-8 h-8 object-contain" />
             ) : (
-              <span className="text-xs font-bold text-slate-400">{selectedTicker.slice(0, 2)}</span>
+              <span className="text-xs font-bold text-slate-400">{displayTicker?.slice(0, 2)}</span>
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">{selectedStock?.name || selectedTicker}</p>
-            <p className="text-sm text-slate-500">{selectedTicker}</p>
+            <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">{displayStock?.name || displayTicker}</p>
+            <p className="text-sm text-slate-500">{displayTicker}</p>
           </div>
           <button
             onClick={() => onSelect('')}
