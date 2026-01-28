@@ -218,12 +218,45 @@ export function StockDetailPanel() {
   const [dragStart, setDragStart] = useState<string | null>(null);
   const [dragEnd, setDragEnd] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  // Show previous close reference line
-  const [showPrevClose, setShowPrevClose] = useState(true);
 
-  // Reset zoom when period changes
+  // View history for "Prev." navigation
+  type ViewState = { period: ChartPeriod; zoomRange: { startIndex: number; endIndex: number } | null };
+  const [viewHistory, setViewHistory] = useState<ViewState[]>([]);
+  const skipHistoryRef = useRef(false); // Flag to skip adding to history when navigating back
+
+  // Push current state to history before changing period
+  const changePeriod = (newPeriod: ChartPeriod) => {
+    if (newPeriod !== chartPeriod) {
+      setViewHistory(prev => [...prev, { period: chartPeriod, zoomRange }]);
+      setChartPeriod(newPeriod);
+      setZoomRange(null);
+    }
+  };
+
+  // Push current state to history before zooming
+  const changeZoom = (newZoomRange: { startIndex: number; endIndex: number } | null) => {
+    if (JSON.stringify(newZoomRange) !== JSON.stringify(zoomRange)) {
+      setViewHistory(prev => [...prev, { period: chartPeriod, zoomRange }]);
+      setZoomRange(newZoomRange);
+    }
+  };
+
+  // Go back to previous view
+  const goBack = () => {
+    if (viewHistory.length > 0) {
+      const prevState = viewHistory[viewHistory.length - 1];
+      setViewHistory(prev => prev.slice(0, -1));
+      skipHistoryRef.current = true;
+      setChartPeriod(prevState.period);
+      setZoomRange(prevState.zoomRange);
+    }
+  };
+
+  // Reset zoom when period changes (but not when navigating back)
   useEffect(() => {
-    setZoomRange(null);
+    if (skipHistoryRef.current) {
+      skipHistoryRef.current = false;
+    }
   }, [chartPeriod]);
 
   // Use TSLA as preview ticker when not authenticated
@@ -533,22 +566,21 @@ export function StockDetailPanel() {
                         {language === 'fr' ? 'Historique des prix' : 'Price History'}
                       </h3>
                     </div>
-                    {/* Previous close / start reference toggle */}
+                    {/* Go back to previous view */}
                     <button
-                      onClick={() => setShowPrevClose(!showPrevClose)}
+                      onClick={goBack}
+                      disabled={viewHistory.length === 0}
                       className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded transition-colors w-fit ml-7 ${
-                        showPrevClose
-                          ? 'bg-slate-600 text-slate-200'
-                          : 'bg-slate-700 text-slate-500 hover:text-slate-300'
+                        viewHistory.length > 0
+                          ? 'bg-slate-600 text-slate-200 hover:bg-slate-500'
+                          : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'
                       }`}
-                      title={chartPeriod.startsWith('Y')
-                        ? (language === 'fr' ? 'Prix de départ' : 'Starting price')
-                        : (language === 'fr' ? 'Clôture précédente' : 'Previous close')}
+                      title={language === 'fr' ? 'Vue précédente' : 'Previous view'}
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
-                      {chartPeriod.startsWith('Y') ? 'Start' : 'Prev.'}
+                      Prev.
                     </button>
                   </div>
                   {/* Period Selectors */}
@@ -558,7 +590,7 @@ export function StockDetailPanel() {
                       value={chartPeriod.startsWith('Y') ? chartPeriod : ''}
                       onChange={(e) => {
                         if (e.target.value) {
-                          setChartPeriod(e.target.value as ChartPeriod);
+                          changePeriod(e.target.value as ChartPeriod);
                         }
                       }}
                       className={`px-2 py-1 text-xs rounded transition-colors cursor-pointer ${
@@ -581,7 +613,7 @@ export function StockDetailPanel() {
                       {(['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'MAX'] as ChartPeriod[]).map((period) => (
                         <button
                           key={period}
-                          onClick={() => setChartPeriod(period)}
+                          onClick={() => changePeriod(period)}
                           className={`px-2 py-1 text-xs rounded transition-colors ${
                             chartPeriod === period
                               ? 'bg-green-600 text-white font-medium'
@@ -676,7 +708,7 @@ export function StockDetailPanel() {
                         if (maxIdx - minIdx >= 1) {
                           // Convert to full data indices if we're already zoomed
                           const baseStartIdx = zoomRange ? zoomRange.startIndex : 0;
-                          setZoomRange({
+                          changeZoom({
                             startIndex: baseStartIdx + minIdx,
                             endIndex: baseStartIdx + maxIdx
                           });
@@ -693,7 +725,7 @@ export function StockDetailPanel() {
                       {/* Reset zoom button */}
                       {zoomRange && (
                         <button
-                          onClick={() => setZoomRange(null)}
+                          onClick={() => changeZoom(null)}
                           className="absolute top-0 right-0 z-10 flex items-center gap-1 px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors"
                         >
                           <ZoomOut className="w-3 h-3" />
@@ -759,27 +791,6 @@ export function StockDetailPanel() {
                               fillOpacity={0.2}
                             />
                           )}
-                          {showPrevClose && (() => {
-                            // For year periods, use first data point as reference (previous_close is irrelevant for historical years)
-                            // For other periods, use actual previous_close
-                            const refPrice = chartPeriod.startsWith('Y')
-                              ? displayData[0]?.price
-                              : stockHistoryData.previous_close;
-                            if (!refPrice) return null;
-                            return (
-                              <ReferenceLine
-                                y={refPrice}
-                                stroke="#64748b"
-                                strokeDasharray="4 4"
-                                label={{
-                                  value: chartPeriod.startsWith('Y') ? 'Start' : 'Prev',
-                                  position: 'right',
-                                  fill: '#64748b',
-                                  fontSize: 10,
-                                }}
-                              />
-                            );
-                          })()}
                           <Line
                             type="monotone"
                             dataKey="price"
