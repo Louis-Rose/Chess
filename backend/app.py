@@ -2895,17 +2895,17 @@ def get_financials_history(ticker):
     yf_ticker = EUROPEAN_TICKER_MAP.get(ticker, ticker)
     metric = request.args.get('metric', 'NetIncome')  # Default metric
 
-    # Map frontend metric names to yfinance column names
+    # Map frontend metric names to possible yfinance column names (try multiple variations)
     METRIC_MAP = {
-        'NetIncome': 'Net Income',
-        'Revenue': 'Total Revenue',
-        'GrossProfit': 'Gross Profit',
-        'OperatingIncome': 'Operating Income',
-        'EBITDA': 'EBITDA',
-        'EPS': 'Basic EPS',
+        'NetIncome': ['Net Income', 'Net Income Common Stockholders', 'Net Income From Continuing Operations'],
+        'Revenue': ['Total Revenue', 'Revenue', 'Operating Revenue'],
+        'GrossProfit': ['Gross Profit'],
+        'OperatingIncome': ['Operating Income', 'Operating Income Loss'],
+        'EBITDA': ['EBITDA', 'Normalized EBITDA'],
+        'EPS': ['Basic EPS', 'Diluted EPS'],
     }
 
-    yf_metric = METRIC_MAP.get(metric, metric)
+    metric_variations = METRIC_MAP.get(metric, [metric])
 
     try:
         stock = yf.Ticker(yf_ticker)
@@ -2919,41 +2919,54 @@ def get_financials_history(ticker):
 
         data_points = []
 
+        # Find the actual metric name in the data
+        def find_metric_in_df(df, variations):
+            if df is None or df.empty:
+                return None
+            for var in variations:
+                if var in df.index:
+                    return var
+            return None
+
         # Process quarterly data
-        if quarterly is not None and not quarterly.empty and yf_metric in quarterly.index:
-            for col in quarterly.columns:
-                try:
-                    value = quarterly.loc[yf_metric, col]
-                    if pd.notna(value):
-                        # col is a Timestamp
-                        date = col.to_pydatetime()
-                        quarter = f"Q{((date.month - 1) // 3) + 1} {date.year}"
-                        data_points.append({
-                            'date': date.strftime('%Y-%m-%d'),
-                            'quarter': quarter,
-                            'value': float(value),
-                            'type': 'quarterly'
-                        })
-                except:
-                    continue
+        if quarterly is not None and not quarterly.empty:
+            actual_metric = find_metric_in_df(quarterly, metric_variations)
+            if actual_metric:
+                for col in quarterly.columns:
+                    try:
+                        value = quarterly.loc[actual_metric, col]
+                        if pd.notna(value):
+                            # col is a Timestamp
+                            date = col.to_pydatetime()
+                            quarter = f"Q{((date.month - 1) // 3) + 1} {date.year}"
+                            data_points.append({
+                                'date': date.strftime('%Y-%m-%d'),
+                                'quarter': quarter,
+                                'value': float(value),
+                                'type': 'quarterly'
+                            })
+                    except:
+                        continue
 
         # Also get annual data for longer history
-        if annual is not None and not annual.empty and yf_metric in annual.index:
-            for col in annual.columns:
-                try:
-                    value = annual.loc[yf_metric, col]
-                    if pd.notna(value):
-                        date = col.to_pydatetime()
-                        # Only add if we don't have quarterly data for this year
-                        year_str = f"FY {date.year}"
-                        data_points.append({
-                            'date': date.strftime('%Y-%m-%d'),
-                            'quarter': year_str,
-                            'value': float(value),
-                            'type': 'annual'
-                        })
-                except:
-                    continue
+        if annual is not None and not annual.empty:
+            actual_metric = find_metric_in_df(annual, metric_variations)
+            if actual_metric:
+                for col in annual.columns:
+                    try:
+                        value = annual.loc[actual_metric, col]
+                        if pd.notna(value):
+                            date = col.to_pydatetime()
+                            # Only add if we don't have quarterly data for this year
+                            year_str = f"FY {date.year}"
+                            data_points.append({
+                                'date': date.strftime('%Y-%m-%d'),
+                                'quarter': year_str,
+                                'value': float(value),
+                                'type': 'annual'
+                            })
+                    except:
+                        continue
 
         # Sort by date (oldest first for charting)
         data_points.sort(key=lambda x: x['date'])

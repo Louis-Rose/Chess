@@ -403,15 +403,6 @@ export function StockDetailPanel() {
           )}
         </div>
 
-        {/* Financial Mini Charts Dashboard */}
-        <FinancialsMiniCharts
-          ticker={upperTicker}
-          priceData={stockHistoryData?.data}
-          previousClose={stockHistoryData?.previous_close}
-          priceCurrency={stockHistoryData?.currency}
-          onMetricClick={(metric, label) => setSelectedMetric({ metric, label })}
-        />
-
         {/* Key Metrics Summary */}
         {!marketCapLoading && marketCapData && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 shadow-sm">
@@ -459,6 +450,15 @@ export function StockDetailPanel() {
             </div>
           </div>
         )}
+
+        {/* Financial Mini Charts Dashboard */}
+        <FinancialsMiniCharts
+          ticker={upperTicker}
+          priceData={stockHistoryData?.data}
+          previousClose={stockHistoryData?.previous_close}
+          priceCurrency={stockHistoryData?.currency}
+          onMetricClick={(metric, label) => setSelectedMetric({ metric, label })}
+        />
 
         {/* Youtube Feed */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none overflow-hidden">
