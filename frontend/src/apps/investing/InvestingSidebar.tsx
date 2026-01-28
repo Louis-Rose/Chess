@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, Shield, PanelLeftClose, PanelLeftOpen, Clock, X } from 'lucide-react';
+import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, Shield, PanelLeftClose, PanelLeftOpen, Clock, X, GitCompare } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 // Cookie consent temporarily disabled
@@ -27,6 +27,7 @@ import { getCompanyLogoUrl } from './utils/companyLogos';
 const navItems = [
   { path: '/investing', icon: Home, labelEn: 'Welcome', labelFr: 'Accueil', end: true },
   { path: '/investing/financials', icon: TrendingUp, labelEn: 'Stock Research', labelFr: 'Recherche d\'actions' },
+  { path: '/investing/comparison', icon: GitCompare, labelEn: 'Compare Stocks', labelFr: 'Comparer' },
   { path: '/investing/portfolio', icon: Briefcase, labelEn: 'My Portfolio', labelFr: 'Mon Portefeuille' },
   { path: '/investing/watchlist', icon: Eye, labelEn: 'My Watchlist', labelFr: 'Ma Watchlist' },
   { path: '/investing/earnings', icon: Calendar, labelEn: 'Earnings Calendar', labelFr: 'Calendrier des Résultats' },
