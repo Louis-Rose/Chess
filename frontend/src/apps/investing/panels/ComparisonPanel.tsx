@@ -407,22 +407,22 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
         {language === 'fr' ? 'Métriques clés' : 'Key Metrics'}
       </h3>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-fixed">
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-700">
-              <th className="text-left py-2 text-slate-500 font-medium">Metric</th>
-              <th className="text-right py-2 text-orange-500 font-medium">{ticker1}</th>
-              <th className="text-right py-2 text-blue-500 font-medium">{ticker2}</th>
+              <th className="text-left py-2 text-slate-500 font-medium w-1/3">Metric</th>
+              <th className="text-center py-2 text-orange-500 font-medium w-1/3">{ticker1}</th>
+              <th className="text-center py-2 text-blue-500 font-medium w-1/3">{ticker2}</th>
             </tr>
           </thead>
           <tbody>
             {metrics.map(({ key, label, format }) => (
               <tr key={key} className="border-b border-slate-100 dark:border-slate-700/50">
                 <td className="py-2 text-slate-600 dark:text-slate-400">{label}</td>
-                <td className="py-2 text-right font-medium text-slate-900 dark:text-slate-100">
+                <td className="py-2 text-center font-medium text-slate-900 dark:text-slate-100">
                   {format((data1 as any)?.[key] ?? null)}
                 </td>
-                <td className="py-2 text-right font-medium text-slate-900 dark:text-slate-100">
+                <td className="py-2 text-center font-medium text-slate-900 dark:text-slate-100">
                   {format((data2 as any)?.[key] ?? null)}
                 </td>
               </tr>
