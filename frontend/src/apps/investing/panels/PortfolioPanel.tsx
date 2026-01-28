@@ -1091,32 +1091,49 @@ export function PortfolioPanel() {
               // Use filtered data to respect stock selection
               const cashFlowDates = new Set(cashFlows.map(cf => cf.date.toISOString().split('T')[0]));
 
-              // Build map of shares bought on each date per ticker (for excluding from end values)
-              // Key: date, Value: Map<ticker, quantity bought>
+              // Build maps of shares bought AND sold on each date per ticker
+              // For TWR end values: exclude buys, add back sells (to get value "before" transactions)
               const sharesBoughtOnDate = new Map<string, Map<string, number>>();
+              const sharesSoldOnDate = new Map<string, Map<string, { quantity: number; amount: number }>>();
+
               for (const tx of filteredTransactions) {
-                if (tx.type === 'BUY' && tx.date > startDate) {
-                  if (!sharesBoughtOnDate.has(tx.date)) {
-                    sharesBoughtOnDate.set(tx.date, new Map());
+                if (tx.date > startDate) {
+                  if (tx.type === 'BUY') {
+                    if (!sharesBoughtOnDate.has(tx.date)) {
+                      sharesBoughtOnDate.set(tx.date, new Map());
+                    }
+                    const tickerMap = sharesBoughtOnDate.get(tx.date)!;
+                    tickerMap.set(tx.ticker, (tickerMap.get(tx.ticker) || 0) + tx.quantity);
+                  } else if (tx.type === 'SELL') {
+                    if (!sharesSoldOnDate.has(tx.date)) {
+                      sharesSoldOnDate.set(tx.date, new Map());
+                    }
+                    const tickerMap = sharesSoldOnDate.get(tx.date)!;
+                    const existing = tickerMap.get(tx.ticker) || { quantity: 0, amount: 0 };
+                    tickerMap.set(tx.ticker, {
+                      quantity: existing.quantity + tx.quantity,
+                      amount: existing.amount + (tx.amount_eur || 0)
+                    });
                   }
-                  const tickerMap = sharesBoughtOnDate.get(tx.date)!;
-                  tickerMap.set(tx.ticker, (tickerMap.get(tx.ticker) || 0) + tx.quantity);
                 }
               }
 
-              // For end values, exclude only the VALUE of shares bought ON that date (not entire position)
-              const getValueExcludingNewPurchases = (dataPoint: typeof performanceData.data[0], excludeDate: string) => {
+              // For end values: subtract buys, add back sells (to get value "just before" transactions)
+              const getValueBeforeTransactions = (dataPoint: typeof performanceData.data[0], txDate: string) => {
                 if (!dataPoint.stocks) return dataPoint.portfolio_value_eur;
-                const tickerSharesBought = sharesBoughtOnDate.get(excludeDate);
+
+                const tickerSharesBought = sharesBoughtOnDate.get(txDate);
+                const tickerSharesSold = sharesSoldOnDate.get(txDate);
 
                 let totalValue = 0;
+
+                // Add value of stocks in portfolio (minus any bought on this date)
                 for (const [ticker, stock] of Object.entries(dataPoint.stocks)) {
                   if (!selectedStocks.has(ticker)) continue;
 
-                  // Check if any shares of this ticker were bought on this date
                   const sharesBought = tickerSharesBought?.get(ticker) || 0;
                   if (sharesBought > 0 && stock.quantity > 0) {
-                    // Calculate price per share and exclude only the newly bought shares' value
+                    // Exclude value of newly bought shares
                     const pricePerShare = stock.value_eur / stock.quantity;
                     const valueToExclude = sharesBought * pricePerShare;
                     totalValue += stock.value_eur - valueToExclude;
@@ -1124,6 +1141,18 @@ export function PortfolioPanel() {
                     totalValue += stock.value_eur;
                   }
                 }
+
+                // Add back value of stocks that were sold on this date
+                // (they were part of the portfolio at the START of this day)
+                if (tickerSharesSold) {
+                  for (const [ticker, { amount }] of tickerSharesSold.entries()) {
+                    if (selectedStocks.has(ticker)) {
+                      // Use the sale amount as the value (best approximation of value at sale time)
+                      totalValue += amount;
+                    }
+                  }
+                }
+
                 return totalValue;
               };
 
@@ -1138,7 +1167,7 @@ export function PortfolioPanel() {
                   // Use full value for start dates, exclude new purchases for end dates
                   value: getFilteredValue(d),
                   // Also store the value excluding purchases on this date (for TWR end values)
-                  valueExcludingNewPurchases: getValueExcludingNewPurchases(d, d.date),
+                  valueExcludingNewPurchases: getValueBeforeTransactions(d, d.date),
                 }));
 
               if (relevantValuations.length >= 2) {
