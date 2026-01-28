@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Minus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Upload } from 'lucide-react';
+import { Plus, Minus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Upload, ArrowDownUp } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
@@ -63,6 +63,8 @@ export function TransactionForm({
 
   // UI state
   const [showTransactions, setShowTransactions] = useState(() => transactions.length === 0);
+  const [showAddSection, setShowAddSection] = useState(false);  // Show/hide the add transactions section
+  const [sortNewestFirst, setSortNewestFirst] = useState(true);  // Transaction sort order
   const [addFormAccountId, setAddFormAccountId] = useState<number | null>(null);  // Which account to add transaction to
 
   // Auto-expand when selected account has no transactions
@@ -298,7 +300,11 @@ export function TransactionForm({
       const matchesType = filterType === 'ALL' || t.transaction_type === filterType;
       return matchesTicker && matchesType;
     })
-    .sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime());
+    .sort((a, b) => {
+      const dateA = new Date(a.transaction_date).getTime();
+      const dateB = new Date(b.transaction_date).getTime();
+      return sortNewestFirst ? dateB - dateA : dateA - dateB;
+    });
 
   return (
     <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
@@ -323,7 +329,19 @@ export function TransactionForm({
           {/* Header with title */}
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">{t('transactions.title')}</h3>
 
-          {/* Action buttons - grouped by account in cards (always visible) */}
+          {/* Add transactions toggle */}
+          <div className="flex justify-center mb-4">
+            <button
+              onClick={() => setShowAddSection(!showAddSection)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+            >
+              {showAddSection ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {language === 'fr' ? 'Ajouter des transactions' : 'Add transactions'}
+            </button>
+          </div>
+
+          {/* Action buttons - grouped by account in cards */}
+          {showAddSection && (
           <div className="flex flex-wrap justify-center gap-4 mb-4">
             {selectedAccountsWithBanks.map(account => {
               const isRevolut = account.bank?.toUpperCase() === 'REVOLUT';
@@ -431,10 +449,11 @@ export function TransactionForm({
               );
             })}
           </div>
+          )}
 
           {/* Filters - shown when there are transactions */}
           {uniqueTickers.length > 0 && (
-            <div className="flex justify-center gap-3 mb-6">
+            <div className="flex justify-center items-center gap-3 mb-6">
               <select
                 value={filterTicker}
                 onChange={(e) => setFilterTicker(e.target.value)}
@@ -456,6 +475,15 @@ export function TransactionForm({
                 <option value="BUY">{language === 'fr' ? 'Achats' : 'Buys only'}</option>
                 <option value="SELL">{language === 'fr' ? 'Ventes' : 'Sells only'}</option>
               </select>
+              <button
+                onClick={() => setSortNewestFirst(!sortNewestFirst)}
+                className="p-1.5 border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500 transition-colors"
+                title={sortNewestFirst
+                  ? (language === 'fr' ? 'Plus récentes en premier' : 'Newest first')
+                  : (language === 'fr' ? 'Plus anciennes en premier' : 'Oldest first')}
+              >
+                <ArrowDownUp className={`w-4 h-4 transition-transform ${!sortNewestFirst ? 'rotate-180' : ''}`} />
+              </button>
             </div>
           )}
 
