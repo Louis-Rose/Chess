@@ -410,9 +410,9 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
         <table className="w-full text-sm table-fixed">
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-700">
-              <th className="text-left py-2 text-slate-500 font-medium w-1/3">Metric</th>
-              <th className="text-center py-2 text-orange-500 font-medium w-1/3">{ticker1}</th>
-              <th className="text-center py-2 text-blue-500 font-medium w-1/3">{ticker2}</th>
+              <th className="text-left py-2 text-slate-500 font-medium w-[20%]">Metric</th>
+              <th className="text-center py-2 text-orange-500 font-medium w-[40%]">{ticker1}</th>
+              <th className="text-center py-2 text-blue-500 font-medium w-[40%]">{ticker2}</th>
             </tr>
           </thead>
           <tbody>
