@@ -42,6 +42,7 @@ interface PriceChartProps {
   previousClose: number | null;
   currency: string;
   onExpand?: () => void;
+  isLoading?: boolean;
 }
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -226,8 +227,18 @@ function MiniChart({ ticker, metric, title, chartType, color, onExpand }: MiniCh
   );
 }
 
-export function PriceMiniChart({ priceData, previousClose, currency, onExpand }: PriceChartProps) {
+export function PriceMiniChart({ priceData, previousClose, currency, onExpand, isLoading }: PriceChartProps) {
   const { language } = useLanguage();
+
+  if (isLoading) {
+    return (
+      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="h-[150px] flex items-center justify-center">
+          <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+        </div>
+      </div>
+    );
+  }
 
   if (!priceData || priceData.length === 0) {
     return (
@@ -338,11 +349,12 @@ interface FinancialsMiniChartsProps {
   priceData?: { timestamp: string; price: number }[];
   previousClose?: number | null;
   priceCurrency?: string;
+  priceLoading?: boolean;
   onMetricClick: (metric: string, label: string) => void;
   onPriceClick?: () => void;
 }
 
-export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCurrency, onMetricClick, onPriceClick }: FinancialsMiniChartsProps) {
+export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCurrency, priceLoading, onMetricClick, onPriceClick }: FinancialsMiniChartsProps) {
   const { language } = useLanguage();
 
   const metrics = [
@@ -362,6 +374,7 @@ export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCu
         previousClose={previousClose ?? null}
         currency={priceCurrency || 'USD'}
         onExpand={onPriceClick}
+        isLoading={priceLoading}
       />
 
       {/* Financial Metrics */}

@@ -231,7 +231,7 @@ export function StockDetailPanel() {
   }, [upperTicker, user?.id, isAuthenticated]);
 
   // Fetch stock history - only when authenticated
-  const { data: fetchedStockHistoryData } = useQuery({
+  const { data: fetchedStockHistoryData, isLoading: priceLoading } = useQuery({
     queryKey: ['stockHistory', upperTicker, chartPeriod, displayCurrency],
     queryFn: () => fetchStockHistory(upperTicker, chartPeriod, displayCurrency),
     enabled: !!upperTicker && isAuthenticated,
@@ -457,6 +457,7 @@ export function StockDetailPanel() {
           priceData={stockHistoryData?.data}
           previousClose={stockHistoryData?.previous_close}
           priceCurrency={stockHistoryData?.currency}
+          priceLoading={priceLoading}
           onMetricClick={(metric, label) => setSelectedMetric({ metric, label })}
           onPriceClick={() => setShowPriceModal(true)}
         />
