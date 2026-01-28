@@ -154,8 +154,12 @@ const TESLA_MOCK_DATA = {
   } as NewsFeedResponse,
 };
 
-const fetchStockHistory = async (ticker: string, period: ChartPeriod): Promise<StockHistoryData> => {
-  const response = await axios.get(`/api/investing/stock-history/${ticker}?period=${period}`);
+const fetchStockHistory = async (ticker: string, period: ChartPeriod, currency?: string): Promise<StockHistoryData> => {
+  const params = new URLSearchParams({ period });
+  if (currency && currency !== 'native') {
+    params.append('currency', currency);
+  }
+  const response = await axios.get(`/api/investing/stock-history/${ticker}?${params.toString()}`);
   return response.data;
 };
 
@@ -213,23 +217,6 @@ export function StockDetailPanel() {
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [question, setQuestion] = useState('');
   const [displayCurrency, setDisplayCurrency] = useState<'native' | 'EUR' | 'USD'>('native');
-  const [eurUsdRate, setEurUsdRate] = useState<number | null>(null);
-
-  // Fetch EUR/USD rate for currency conversion
-  useEffect(() => {
-    const fetchRate = async () => {
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        const response = await axios.post('/api/investing/fx-rates', { dates: [today] });
-        if (response.data.rates && response.data.rates[today]) {
-          setEurUsdRate(response.data.rates[today]);
-        }
-      } catch (err) {
-        console.error('Failed to fetch EUR/USD rate:', err);
-      }
-    };
-    fetchRate();
-  }, []);
 
   // Drag-to-zoom state for price chart
   const [zoomRange, setZoomRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
@@ -292,8 +279,8 @@ export function StockDetailPanel() {
 
   // Fetch stock history - only when authenticated
   const { data: fetchedStockHistoryData, isLoading: stockHistoryLoading } = useQuery({
-    queryKey: ['stockHistory', upperTicker, chartPeriod],
-    queryFn: () => fetchStockHistory(upperTicker, chartPeriod),
+    queryKey: ['stockHistory', upperTicker, chartPeriod, displayCurrency],
+    queryFn: () => fetchStockHistory(upperTicker, chartPeriod, displayCurrency),
     enabled: !!upperTicker && isAuthenticated,
   });
 
@@ -687,38 +674,12 @@ export function StockDetailPanel() {
                 ) : stockHistoryData?.data && stockHistoryData.data.length > 0 ? (() => {
                   // Apply zoom if set
                   const fullData = stockHistoryData.data;
-                  const zoomedData = zoomRange
+                  const displayData = zoomRange
                     ? fullData.slice(zoomRange.startIndex, zoomRange.endIndex + 1)
                     : fullData;
 
-                  // Convert prices based on display currency
-                  const nativeCurrency = stockHistoryData.currency || 'USD';
-                  const convertPrice = (price: number): number => {
-                    if (displayCurrency === 'native' || displayCurrency === nativeCurrency) {
-                      return price;
-                    }
-                    if (!eurUsdRate) return price; // No conversion without rate
-
-                    if (nativeCurrency === 'USD' && displayCurrency === 'EUR') {
-                      return price / eurUsdRate; // USD to EUR
-                    }
-                    if (nativeCurrency === 'EUR' && displayCurrency === 'USD') {
-                      return price * eurUsdRate; // EUR to USD
-                    }
-                    // For other currencies, approximate via USD
-                    // This is simplified - ideally fetch proper rates
-                    return price;
-                  };
-
-                  const displayData = zoomedData.map(d => ({
-                    ...d,
-                    price: convertPrice(d.price)
-                  }));
-
-                  // Determine display currency symbol
-                  const displaySymbol = displayCurrency === 'native'
-                    ? getCurrencySymbol(nativeCurrency)
-                    : displayCurrency === 'EUR' ? '€' : '$';
+                  // Currency is already converted by backend based on displayCurrency param
+                  const displaySymbol = getCurrencySymbol(stockHistoryData.currency || 'USD');
 
                   // Calculate range in days to determine tick format
                   const rangeDays = displayData.length > 1

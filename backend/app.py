@@ -2791,6 +2791,7 @@ def get_stock_history(ticker):
     # Map European tickers to Yahoo Finance format
     yf_ticker = EUROPEAN_TICKER_MAP.get(ticker, ticker)
     period = request.args.get('period', '1M')  # Default to 1 month
+    display_currency = request.args.get('currency', None)  # Optional: EUR or USD
 
     # Map period to yfinance parameters
     period_config = {
@@ -2823,21 +2824,61 @@ def get_stock_history(ticker):
         # Get previous close and currency for reference
         info = stock.info
         previous_close = info.get('previousClose') or info.get('regularMarketPreviousClose')
-        currency = info.get('currency') or get_stock_currency(ticker)
+        native_currency = info.get('currency') or get_stock_currency(ticker)
 
-        # Format data for frontend
+        # Determine output currency
+        output_currency = display_currency.upper() if display_currency else native_currency
+
+        # Fetch EUR/USD historical rates if currency conversion needed
+        fx_rates = {}
+        if output_currency != native_currency and output_currency in ('EUR', 'USD') and native_currency in ('EUR', 'USD'):
+            # Fetch EUR/USD rates for all dates
+            eurusd = yf.Ticker('EURUSD=X')
+            from datetime import timedelta
+            end_date_fx = (hist.index[-1].to_pydatetime() + timedelta(days=1)).strftime('%Y-%m-%d')
+            fx_hist = eurusd.history(start=hist.index[0].strftime('%Y-%m-%d'),
+                                      end=end_date_fx,
+                                      interval='1d')
+            for ts, row in fx_hist.iterrows():
+                date_str = ts.strftime('%Y-%m-%d')
+                fx_rates[date_str] = (row['Open'] + row['Close']) / 2
+
+        # Format data for frontend with optional currency conversion
         data = []
         for timestamp, row in hist.iterrows():
+            price = row['Close']
+
+            # Convert currency if needed
+            if output_currency != native_currency and native_currency in ('EUR', 'USD') and output_currency in ('EUR', 'USD'):
+                date_str = timestamp.strftime('%Y-%m-%d')
+                rate = fx_rates.get(date_str)
+                if rate:
+                    if native_currency == 'USD' and output_currency == 'EUR':
+                        price = price / rate  # USD to EUR
+                    elif native_currency == 'EUR' and output_currency == 'USD':
+                        price = price * rate  # EUR to USD
+
             data.append({
                 'timestamp': timestamp.isoformat(),
-                'price': round(row['Close'], 2),
+                'price': round(price, 2),
             })
+
+        # Convert previous_close too
+        if previous_close and output_currency != native_currency and fx_rates:
+            # Use most recent rate for previous_close
+            latest_rate = list(fx_rates.values())[-1] if fx_rates else None
+            if latest_rate:
+                if native_currency == 'USD' and output_currency == 'EUR':
+                    previous_close = previous_close / latest_rate
+                elif native_currency == 'EUR' and output_currency == 'USD':
+                    previous_close = previous_close * latest_rate
 
         return jsonify({
             'ticker': ticker,
             'period': period.upper(),
-            'previous_close': previous_close,
-            'currency': currency,
+            'previous_close': round(previous_close, 2) if previous_close else None,
+            'currency': output_currency,
+            'native_currency': native_currency,
             'data': data,
         })
     except Exception as e:
