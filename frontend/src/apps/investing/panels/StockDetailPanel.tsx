@@ -354,7 +354,7 @@ export function StockDetailPanel() {
       <div className="max-w-5xl mx-auto space-y-6 mt-6">
         {/* Stock Header */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-          <div className="flex items-start gap-4">
+          <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-lg bg-white dark:bg-slate-600 flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-500">
               {logoUrl ? (
                 <img

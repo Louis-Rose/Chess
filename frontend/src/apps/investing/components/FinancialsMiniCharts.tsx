@@ -171,7 +171,7 @@ function MiniChart({ ticker, metric, title, chartType, color, dataView, onExpand
         <div className="h-[120px]">
           <ResponsiveContainer width="100%" height="100%">
             {chartType === 'bar' ? (
-              <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+              <BarChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                 <XAxis
                   dataKey="quarter"
                   tick={{ fontSize: 8, fill: '#94a3b8' }}
@@ -207,7 +207,7 @@ function MiniChart({ ticker, metric, title, chartType, color, dataView, onExpand
                 </Bar>
               </BarChart>
             ) : (
-              <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+              <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                 <defs>
                   <linearGradient id={`gradient-${metric}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={color} stopOpacity={0.3} />
@@ -320,7 +320,7 @@ export function PriceMiniChart({ priceData, previousClose, currency, onExpand, i
       {/* Chart */}
       <div className="h-[120px]">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={priceData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+          <AreaChart data={priceData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
             <defs>
               <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={color} stopOpacity={0.3} />
