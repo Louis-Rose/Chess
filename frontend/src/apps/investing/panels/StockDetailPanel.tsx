@@ -536,7 +536,7 @@ export function StockDetailPanel() {
                     {/* Previous close toggle */}
                     <button
                       onClick={() => setShowPrevClose(!showPrevClose)}
-                      className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded transition-colors w-fit ${
+                      className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded transition-colors w-fit ml-7 ${
                         showPrevClose
                           ? 'bg-slate-600 text-slate-200'
                           : 'bg-slate-700 text-slate-500 hover:text-slate-300'
@@ -544,7 +544,7 @@ export function StockDetailPanel() {
                       title={language === 'fr' ? 'Clôture précédente' : 'Previous close'}
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
                       Prev.
                     </button>
