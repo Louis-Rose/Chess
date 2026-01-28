@@ -28,6 +28,7 @@ from auth import (
     create_refresh_token, set_auth_cookies, clear_auth_cookies,
     get_current_user, login_required, admin_required
 )
+from email_utils import send_admin_deletion_alert
 
 # Load environment-specific .env file
 env = os.environ.get('FLASK_ENV', 'dev')
@@ -368,6 +369,33 @@ def delete_user_account():
     user_id = request.user_id
 
     with get_db() as conn:
+        # Get user info and stats before deletion
+        cursor = conn.execute('SELECT name, email, created_at FROM users WHERE id = ?', (user_id,))
+        user = cursor.fetchone()
+
+        cursor = conn.execute('SELECT COUNT(*) as count FROM portfolio_transactions WHERE user_id = ?', (user_id,))
+        tx_count = cursor.fetchone()['count']
+
+        cursor = conn.execute('SELECT COUNT(*) as count FROM investment_accounts WHERE user_id = ?', (user_id,))
+        account_count = cursor.fetchone()['count']
+
+        if user:
+            # Send admin notification before deletion
+            try:
+                send_admin_deletion_alert(
+                    user_name=user['name'],
+                    user_email=user['email'],
+                    deletion_type='user_account',
+                    details={
+                        'User ID': user_id,
+                        'Account created': user['created_at'],
+                        'Transactions deleted': tx_count,
+                        'Investment accounts deleted': account_count,
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Failed to send deletion alert: {e}")
+
         # Delete user (cascades to all related tables)
         conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
 
@@ -1228,6 +1256,13 @@ def bulk_add_transactions():
         return jsonify({'error': 'No valid transactions to save', 'details': errors}), 400
 
     with get_db() as conn:
+        # Get user info and count existing transactions before clearing
+        cursor = conn.execute('SELECT name, email FROM users WHERE id = ?', (request.user_id,))
+        user = cursor.fetchone()
+
+        cursor = conn.execute('SELECT COUNT(*) as count FROM portfolio_transactions WHERE user_id = ?', (request.user_id,))
+        old_count = cursor.fetchone()['count']
+
         # Clear existing transactions
         conn.execute('DELETE FROM portfolio_transactions WHERE user_id = ?', (request.user_id,))
 
@@ -1237,6 +1272,22 @@ def bulk_add_transactions():
                 INSERT INTO portfolio_transactions (user_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share)
                 VALUES (?, ?, ?, ?, ?, ?)
             ''', (request.user_id, t['stock_ticker'], t['transaction_type'], t['quantity'], t['transaction_date'], t['price_per_share']))
+
+        # Send admin notification if there were existing transactions
+        if user and old_count > 0:
+            try:
+                send_admin_deletion_alert(
+                    user_name=user['name'],
+                    user_email=user['email'],
+                    deletion_type='bulk_replace',
+                    details={
+                        'Previous transactions': old_count,
+                        'New transactions': len(processed),
+                        'Tickers': ', '.join(set(t['stock_ticker'] for t in processed[:10])) + ('...' if len(processed) > 10 else ''),
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Failed to send deletion alert: {e}")
 
     return jsonify({
         'success': True,
@@ -2272,10 +2323,41 @@ def check_upload_status(token):
 def delete_transaction(transaction_id):
     """Delete a transaction by ID."""
     with get_db() as conn:
-        conn.execute(
-            'DELETE FROM portfolio_transactions WHERE user_id = ? AND id = ?',
-            (request.user_id, transaction_id)
-        )
+        # Get transaction and user info before deletion
+        cursor = conn.execute('''
+            SELECT pt.stock_ticker, pt.quantity, pt.transaction_type, pt.transaction_date,
+                   u.name, u.email
+            FROM portfolio_transactions pt
+            JOIN users u ON pt.user_id = u.id
+            WHERE pt.user_id = ? AND pt.id = ?
+        ''', (request.user_id, transaction_id))
+        row = cursor.fetchone()
+
+        if row:
+            ticker, qty, tx_type, tx_date, user_name, user_email = row['stock_ticker'], row['quantity'], row['transaction_type'], row['transaction_date'], row['name'], row['email']
+
+            conn.execute(
+                'DELETE FROM portfolio_transactions WHERE user_id = ? AND id = ?',
+                (request.user_id, transaction_id)
+            )
+
+            # Send admin notification (async, don't block response)
+            try:
+                send_admin_deletion_alert(
+                    user_name=user_name,
+                    user_email=user_email,
+                    deletion_type='transaction',
+                    details={
+                        'Transaction ID': transaction_id,
+                        'Ticker': ticker,
+                        'Type': tx_type,
+                        'Quantity': qty,
+                        'Date': tx_date,
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Failed to send deletion alert: {e}")
+
     return jsonify({'success': True, 'id': transaction_id})
 
 
@@ -3219,6 +3301,32 @@ def create_account():
 def delete_account(account_id):
     """Delete an investment account."""
     with get_db() as conn:
+        # Get account and user info before deletion
+        cursor = conn.execute('''
+            SELECT ia.name, ia.account_type, ia.bank, u.name as user_name, u.email
+            FROM investment_accounts ia
+            JOIN users u ON ia.user_id = u.id
+            WHERE ia.user_id = ? AND ia.id = ?
+        ''', (request.user_id, account_id))
+        row = cursor.fetchone()
+
+        if row:
+            # Send admin notification
+            try:
+                send_admin_deletion_alert(
+                    user_name=row['user_name'],
+                    user_email=row['email'],
+                    deletion_type='account',
+                    details={
+                        'Account ID': account_id,
+                        'Account name': row['name'],
+                        'Type': row['account_type'],
+                        'Bank': row['bank'],
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Failed to send deletion alert: {e}")
+
         conn.execute(
             'DELETE FROM investment_accounts WHERE user_id = ? AND id = ?',
             (request.user_id, account_id)
