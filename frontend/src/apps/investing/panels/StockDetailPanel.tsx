@@ -357,52 +357,55 @@ export function StockDetailPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Back button */}
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mb-6 mt-4"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span>{language === 'fr' ? 'Retour' : 'Back'}</span>
-      </button>
+      {/* Sticky Header */}
+      <div className="md:sticky md:top-0 z-20 bg-slate-200 dark:bg-slate-800 py-4 md:-mx-4 md:px-4">
+        {/* Back button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mb-4 ml-4 md:ml-0"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>{language === 'fr' ? 'Retour' : 'Back'}</span>
+        </button>
 
-      {/* Search Bar with Title */}
-      <div className="max-w-3xl mx-auto mb-6">
-        <div className="flex flex-col items-center gap-2 mb-6">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            {language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-lg italic">
-            {language === 'fr' ? 'Recherchez 2 500+ actions sur 8 marchés mondiaux' : 'Research 2,500+ stocks across 8 global markets'}
-          </p>
-          {/* Currency Toggle */}
-          <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600 mt-2">
-            <button
-              onClick={() => setDisplayCurrency('EUR')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                displayCurrency === 'EUR'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              EUR
-            </button>
-            <button
-              onClick={() => setDisplayCurrency('USD')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                displayCurrency === 'USD'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              USD
-            </button>
+        {/* Search Bar with Title */}
+        <div className="max-w-3xl mx-auto">
+          <div className="flex flex-col items-center gap-2 mb-4">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+              {language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 text-lg italic">
+              {language === 'fr' ? 'Recherchez 2 500+ actions sur 8 marchés mondiaux' : 'Research 2,500+ stocks across 8 global markets'}
+            </p>
+            {/* Currency Toggle */}
+            <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-white/20 mt-2">
+              <button
+                onClick={() => setDisplayCurrency('EUR')}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${
+                  displayCurrency === 'EUR'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500'
+                }`}
+              >
+                EUR €
+              </button>
+              <button
+                onClick={() => setDisplayCurrency('USD')}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${
+                  displayCurrency === 'USD'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500'
+                }`}
+              >
+                USD $
+              </button>
+            </div>
           </div>
+          <StockSearchBar />
         </div>
-        <StockSearchBar />
       </div>
 
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-6 mt-6">
         {/* Stock Header */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <div className="flex items-start gap-4">
