@@ -91,11 +91,16 @@ function MiniChart({ ticker, metric, title, chartType, color, dataView, onExpand
       const quarterlyData = data.data
         .filter(d => new Date(d.date) >= cutoff && d.type === 'quarterly')
         .slice(-12);
-      // If no quarterly data, show annual as fallback
+      // If no quarterly data, fall back to annual
       if (quarterlyData.length > 0) return quarterlyData;
+      // Fallback to annual for stocks without quarterly data (e.g., European)
+      const annualCutoff = new Date(now.getFullYear() - 10, 0, 1);
+      return data.data
+        .filter(d => new Date(d.date) >= annualCutoff && d.type === 'annual')
+        .slice(-10);
     }
 
-    // Annual data
+    // Annual data view - strictly show annual data
     const annualCutoff = new Date(now.getFullYear() - 10, 0, 1);
     return data.data
       .filter(d => new Date(d.date) >= annualCutoff && d.type === 'annual')
@@ -172,7 +177,7 @@ function MiniChart({ ticker, metric, title, chartType, color, dataView, onExpand
                   tick={{ fontSize: 8, fill: '#94a3b8' }}
                   tickLine={false}
                   axisLine={false}
-                  interval={Math.floor(chartData.length / 4)}
+                  interval={0}
                 />
                 <YAxis
                   tick={{ fontSize: 8, fill: '#94a3b8' }}
@@ -214,7 +219,7 @@ function MiniChart({ ticker, metric, title, chartType, color, dataView, onExpand
                   tick={{ fontSize: 8, fill: '#94a3b8' }}
                   tickLine={false}
                   axisLine={false}
-                  interval={Math.floor(chartData.length / 4)}
+                  interval={0}
                 />
                 <YAxis
                   tick={{ fontSize: 8, fill: '#94a3b8' }}
@@ -437,7 +442,7 @@ export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCu
         {/* Financial Metrics */}
         {metrics.map(({ metric, title, chartType, color }) => (
           <MiniChart
-            key={metric}
+            key={`${metric}-${dataView}`}
             ticker={ticker}
             metric={metric}
             title={title}

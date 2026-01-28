@@ -339,7 +339,7 @@ function ComparisonChart({
                   tick={{ fontSize: 9, fill: '#94a3b8' }}
                   tickLine={false}
                   axisLine={false}
-                  interval={Math.floor(mergedData.length / 4)}
+                  interval={0}
                 />
                 <YAxis
                   tick={{ fontSize: 9, fill: '#94a3b8' }}
@@ -546,7 +546,7 @@ export function ComparisonPanel() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {metrics.map(({ metric, title }) => (
               <ComparisonChart
-                key={metric}
+                key={`${metric}-${dataView}`}
                 ticker1={ticker1}
                 ticker2={ticker2}
                 metric={metric}
