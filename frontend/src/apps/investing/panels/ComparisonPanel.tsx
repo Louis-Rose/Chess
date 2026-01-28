@@ -3,11 +3,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Search, X, Loader2, TrendingUp, TrendingDown, Maximize2 } from 'lucide-react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Search, X, Loader2, TrendingUp } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { useAuth } from '../../../contexts/AuthContext';
-import { findStockByTicker, findStocksByQuery, Stock } from '../utils/allStocks';
+import { findStockByTicker, searchAllStocks, type Stock } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 
 interface FinancialsData {
@@ -81,7 +80,7 @@ function StockSelector({
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
-  const results = query.length >= 1 ? findStocksByQuery(query).filter(s => s.ticker !== otherTicker).slice(0, 8) : [];
+  const results = query.length >= 1 ? searchAllStocks(query).filter((s: Stock) => s.ticker !== otherTicker).slice(0, 8) : [];
   const selectedStock = selectedTicker ? findStockByTicker(selectedTicker) : null;
   const logoUrl = selectedTicker ? getCompanyLogoUrl(selectedTicker) : null;
 
@@ -123,7 +122,7 @@ function StockSelector({
           </div>
           {isOpen && results.length > 0 && (
             <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 rounded-lg shadow-lg border border-slate-200 dark:border-slate-600 max-h-60 overflow-y-auto">
-              {results.map((stock) => (
+              {results.map((stock: Stock) => (
                 <button
                   key={stock.ticker}
                   onClick={() => { onSelect(stock.ticker); setQuery(''); setIsOpen(false); }}
@@ -163,8 +162,6 @@ function ComparisonChart({
   title: string;
 }) {
   const { language } = useLanguage();
-  const stock1 = findStockByTicker(ticker1);
-  const stock2 = findStockByTicker(ticker2);
 
   const { data: data1, isLoading: loading1 } = useQuery({
     queryKey: ['financialsHistory', ticker1, metric],
@@ -258,7 +255,7 @@ function ComparisonChart({
                 />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1e293b', borderRadius: '6px', border: 'none', padding: '8px', fontSize: '11px' }}
-                  formatter={(value: number, name: string) => [formatValue(value, currency), name === 'value1' ? ticker1 : ticker2]}
+                  formatter={(value, name) => [formatValue(Number(value), currency), name === 'value1' ? ticker1 : ticker2]}
                 />
                 <Legend
                   formatter={(value) => value === 'value1' ? ticker1 : ticker2}
@@ -312,8 +309,6 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
   });
 
   const isLoading = loading1 || loading2;
-  const stock1 = findStockByTicker(ticker1);
-  const stock2 = findStockByTicker(ticker2);
 
   const metrics = [
     { key: 'market_cap', label: language === 'fr' ? 'Cap. boursière' : 'Market Cap', format: (v: number | null) => formatMarketCap(v) },
@@ -368,7 +363,6 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
 
 export function ComparisonPanel() {
   const { language } = useLanguage();
-  const { isAuthenticated } = useAuth();
   const [ticker1, setTicker1] = useState<string | null>(null);
   const [ticker2, setTicker2] = useState<string | null>(null);
 
