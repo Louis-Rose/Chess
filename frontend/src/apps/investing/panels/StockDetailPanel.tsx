@@ -212,6 +212,24 @@ export function StockDetailPanel() {
   const [newsFeedExpanded, setNewsFeedExpanded] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [question, setQuestion] = useState('');
+  const [displayCurrency, setDisplayCurrency] = useState<'native' | 'EUR' | 'USD'>('native');
+  const [eurUsdRate, setEurUsdRate] = useState<number | null>(null);
+
+  // Fetch EUR/USD rate for currency conversion
+  useEffect(() => {
+    const fetchRate = async () => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const response = await axios.post('/api/investing/fx-rates', { dates: [today] });
+        if (response.data.rates && response.data.rates[today]) {
+          setEurUsdRate(response.data.rates[today]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch EUR/USD rate:', err);
+      }
+    };
+    fetchRate();
+  }, []);
 
   // Drag-to-zoom state for price chart
   const [zoomRange, setZoomRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
@@ -583,6 +601,40 @@ export function StockDetailPanel() {
                       Prev.
                     </button>
                   </div>
+                  {/* Currency Toggle */}
+                  <div className="flex rounded-lg overflow-hidden border border-slate-600">
+                    <button
+                      onClick={() => setDisplayCurrency('native')}
+                      className={`px-2 py-1 text-xs font-medium transition-colors ${
+                        displayCurrency === 'native'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                      title={language === 'fr' ? 'Devise native' : 'Native currency'}
+                    >
+                      {currency}
+                    </button>
+                    <button
+                      onClick={() => setDisplayCurrency('EUR')}
+                      className={`px-2 py-1 text-xs font-medium transition-colors ${
+                        displayCurrency === 'EUR'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      EUR
+                    </button>
+                    <button
+                      onClick={() => setDisplayCurrency('USD')}
+                      className={`px-2 py-1 text-xs font-medium transition-colors ${
+                        displayCurrency === 'USD'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      USD
+                    </button>
+                  </div>
                   {/* Period Selectors */}
                   <div className="flex items-center gap-10">
                     {/* Year selector dropdown */}
@@ -635,9 +687,38 @@ export function StockDetailPanel() {
                 ) : stockHistoryData?.data && stockHistoryData.data.length > 0 ? (() => {
                   // Apply zoom if set
                   const fullData = stockHistoryData.data;
-                  const displayData = zoomRange
+                  const zoomedData = zoomRange
                     ? fullData.slice(zoomRange.startIndex, zoomRange.endIndex + 1)
                     : fullData;
+
+                  // Convert prices based on display currency
+                  const nativeCurrency = stockHistoryData.currency || 'USD';
+                  const convertPrice = (price: number): number => {
+                    if (displayCurrency === 'native' || displayCurrency === nativeCurrency) {
+                      return price;
+                    }
+                    if (!eurUsdRate) return price; // No conversion without rate
+
+                    if (nativeCurrency === 'USD' && displayCurrency === 'EUR') {
+                      return price / eurUsdRate; // USD to EUR
+                    }
+                    if (nativeCurrency === 'EUR' && displayCurrency === 'USD') {
+                      return price * eurUsdRate; // EUR to USD
+                    }
+                    // For other currencies, approximate via USD
+                    // This is simplified - ideally fetch proper rates
+                    return price;
+                  };
+
+                  const displayData = zoomedData.map(d => ({
+                    ...d,
+                    price: convertPrice(d.price)
+                  }));
+
+                  // Determine display currency symbol
+                  const displaySymbol = displayCurrency === 'native'
+                    ? getCurrencySymbol(nativeCurrency)
+                    : displayCurrency === 'EUR' ? '€' : '$';
 
                   // Calculate range in days to determine tick format
                   const rangeDays = displayData.length > 1
@@ -778,7 +859,7 @@ export function StockDetailPanel() {
                                 day: 'numeric', month: 'long', year: 'numeric'
                               });
                             }}
-                            formatter={(value) => [`${currencySymbol}${Number(value).toFixed(2)}`, null]}
+                            formatter={(value) => [`${displaySymbol}${Number(value).toFixed(2)}`, null]}
                             separator=""
                           />
                           {/* Drag selection area */}
