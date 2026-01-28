@@ -103,7 +103,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
   const [pinnedTooltipData, setPinnedTooltipData] = useState<{ data: any; label: string; x: number; y: number; dataIndex: number } | null>(null);
 
   // Track if hovering on Portfolio line in tooltip to show stock breakdown
-  const [showStockBreakdown, setShowStockBreakdown] = useState(false);
+  // We track the date to ensure breakdown closes when tooltip moves to a different point
+  const [stockBreakdownForDate, setStockBreakdownForDate] = useState<string | null>(null);
   // Track if breakdown was pinned by click (vs just hovering)
   const [stockBreakdownPinned, setStockBreakdownPinned] = useState(false);
 
@@ -213,12 +214,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           style={{ position: 'relative' }}
           onMouseEnter={() => {
             if (!stockBreakdownPinned) {
-              setShowStockBreakdown(true);
+              setStockBreakdownForDate(currentDateStr);
             }
           }}
           onMouseLeave={() => {
             if (!stockBreakdownPinned) {
-              setShowStockBreakdown(false);
+              setStockBreakdownForDate(null);
             }
           }}
           onClick={(e) => {
@@ -226,19 +227,24 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
             if (stockBreakdownPinned) {
               // Already pinned, unpin and close
               setStockBreakdownPinned(false);
-              setShowStockBreakdown(false);
+              setStockBreakdownForDate(null);
             } else {
               // Pin it open
               setStockBreakdownPinned(true);
-              setShowStockBreakdown(true);
+              setStockBreakdownForDate(currentDateStr);
             }
           }}
         >
-          <p style={{ color: greenColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold', cursor: 'pointer' }}>
-            {t('performance.portfolio')} : {currency === 'EUR' ? `${formatEur(Math.round(portfolioValue))}€` : `$${formatEur(Math.round(portfolioValue))}`}
-            <span style={{ color: '#94a3b8', fontSize: '9px', marginLeft: '4px' }}>{showStockBreakdown ? '▲' : '▼'}</span>
-          </p>
-          {showStockBreakdown && data.stocks && (
+          {/* Show breakdown if: pinned for this date, OR hovering on this date's tooltip */}
+          {(() => {
+            const showBreakdown = stockBreakdownForDate === currentDateStr;
+            return (
+              <>
+                <p style={{ color: greenColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold', cursor: 'pointer' }}>
+                  {t('performance.portfolio')} : {currency === 'EUR' ? `${formatEur(Math.round(portfolioValue))}€` : `$${formatEur(Math.round(portfolioValue))}`}
+                  <span style={{ color: '#94a3b8', fontSize: '9px', marginLeft: '4px' }}>{showBreakdown ? '▲' : '▼'}</span>
+                </p>
+                {showBreakdown && data.stocks && (
             <div style={{
               backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '4px',
               padding: '4px 8px', marginTop: '2px', marginBottom: '4px', maxHeight: '150px', overflowY: 'auto'
@@ -257,7 +263,10 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                 })
               }
             </div>
-          )}
+                )}
+              </>
+            );
+          })()}
         </div>
         <p style={{ color: blueColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
           {benchmarkTicker} : {currency === 'EUR' ? `${formatEur(Math.round(benchmarkValue))}€` : `$${formatEur(Math.round(benchmarkValue))}`}
@@ -1217,7 +1226,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                         if (clickedData) {
                           if (pinnedTooltipData && pinnedTooltipData.label === label) {
                             setPinnedTooltipData(null);
-                            setShowStockBreakdown(false);
+                            setStockBreakdownForDate(null);
                             setStockBreakdownPinned(false);
                           } else {
                             setPinnedTooltipData({ data: clickedData, label: label, x: coord?.x ?? 100, y: coord?.y ?? 50, dataIndex: index });
@@ -1458,12 +1467,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       true,
                       () => {
                         setPinnedTooltipData(null);
-                        setShowStockBreakdown(false);
+                        setStockBreakdownForDate(null);
                         setStockBreakdownPinned(false);
                       },
                       () => {
                         setPinnedTooltipData(null);
-                        setShowStockBreakdown(false);
+                        setStockBreakdownForDate(null);
                         setStockBreakdownPinned(false);
                       },
                       pinnedTooltipData.dataIndex,
