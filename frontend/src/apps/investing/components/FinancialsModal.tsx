@@ -77,7 +77,7 @@ export function FinancialsModal({ ticker, companyName, metric, metricLabel, onCl
     queryFn: () => fetchFinancialsHistory(ticker, metric),
   });
 
-  // Filter data based on time selection - only show quarterly data
+  // Filter data based on time selection - prefer quarterly, fallback to annual
   const getFilteredData = () => {
     if (!data?.data) return [];
     const now = new Date();
@@ -85,8 +85,12 @@ export function FinancialsModal({ ticker, companyName, metric, metricLabel, onCl
     const years = yearsMap[timeFilter];
     const cutoffDate = new Date(now.getFullYear() - years, now.getMonth(), now.getDate());
 
-    // Only show quarterly data (not annual FY data)
-    return data.data.filter(d => d.type === 'quarterly' && new Date(d.date) >= cutoffDate);
+    // Try quarterly data first
+    const quarterlyData = data.data.filter(d => d.type === 'quarterly' && new Date(d.date) >= cutoffDate);
+    if (quarterlyData.length > 0) return quarterlyData;
+
+    // Fall back to annual data for stocks without quarterly data (e.g., European stocks)
+    return data.data.filter(d => d.type === 'annual' && new Date(d.date) >= cutoffDate);
   };
 
   const filteredData = getFilteredData();
@@ -132,7 +136,7 @@ export function FinancialsModal({ ticker, companyName, metric, metricLabel, onCl
             </div>
             <div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {metricLabel} (TTM) - {ticker}
+                {metricLabel} - {ticker}
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">{companyName}</p>
             </div>
