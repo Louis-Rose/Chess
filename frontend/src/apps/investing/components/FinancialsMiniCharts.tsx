@@ -155,6 +155,7 @@ function MiniChart({ ticker, metric, title, chartType, color, onExpand }: MiniCh
                   width={45}
                 />
                 <Tooltip
+                  cursor={{ fill: 'transparent' }}
                   contentStyle={{
                     backgroundColor: '#1e293b',
                     borderRadius: '6px',
@@ -196,6 +197,7 @@ function MiniChart({ ticker, metric, title, chartType, color, onExpand }: MiniCh
                   width={45}
                 />
                 <Tooltip
+                  cursor={{ fill: 'transparent' }}
                   contentStyle={{
                     backgroundColor: '#1e293b',
                     borderRadius: '6px',
@@ -303,6 +305,7 @@ export function PriceMiniChart({ priceData, previousClose, currency, onExpand }:
               width={45}
             />
             <Tooltip
+              cursor={{ stroke: 'transparent' }}
               contentStyle={{
                 backgroundColor: '#1e293b',
                 borderRadius: '6px',

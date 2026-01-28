@@ -77,7 +77,7 @@ export function FinancialsModal({ ticker, companyName, metric, metricLabel, onCl
     queryFn: () => fetchFinancialsHistory(ticker, metric),
   });
 
-  // Filter data based on time selection
+  // Filter data based on time selection - only show quarterly data
   const getFilteredData = () => {
     if (!data?.data) return [];
     const now = new Date();
@@ -85,7 +85,8 @@ export function FinancialsModal({ ticker, companyName, metric, metricLabel, onCl
     const years = yearsMap[timeFilter];
     const cutoffDate = new Date(now.getFullYear() - years, now.getMonth(), now.getDate());
 
-    return data.data.filter(d => new Date(d.date) >= cutoffDate);
+    // Only show quarterly data (not annual FY data)
+    return data.data.filter(d => d.type === 'quarterly' && new Date(d.date) >= cutoffDate);
   };
 
   const filteredData = getFilteredData();
@@ -224,6 +225,7 @@ export function FinancialsModal({ ticker, companyName, metric, metricLabel, onCl
                       width={70}
                     />
                     <Tooltip
+                      cursor={{ fill: 'transparent' }}
                       contentStyle={{
                         backgroundColor: '#1e293b',
                         borderRadius: '8px',
