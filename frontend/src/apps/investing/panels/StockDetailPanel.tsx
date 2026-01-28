@@ -218,6 +218,8 @@ export function StockDetailPanel() {
   const [dragStart, setDragStart] = useState<string | null>(null);
   const [dragEnd, setDragEnd] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  // Show previous close reference line
+  const [showPrevClose, setShowPrevClose] = useState(true);
 
   // Reset zoom when period changes
   useEffect(() => {
@@ -524,11 +526,23 @@ export function StockDetailPanel() {
               {/* Price Chart */}
               <div className="bg-slate-800 dark:bg-slate-900 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <TrendingUp className="w-5 h-5 text-green-500" />
                     <h3 className="text-base font-semibold text-white">
                       {language === 'fr' ? 'Historique des prix' : 'Price History'}
                     </h3>
+                    {/* Previous close toggle */}
+                    <button
+                      onClick={() => setShowPrevClose(!showPrevClose)}
+                      className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                        showPrevClose
+                          ? 'bg-slate-600 text-slate-200'
+                          : 'bg-slate-700 text-slate-500 hover:text-slate-300'
+                      }`}
+                      title={language === 'fr' ? 'Clôture précédente' : 'Previous close'}
+                    >
+                      Prev.
+                    </button>
                   </div>
                   {/* Period Selectors */}
                   <div className="flex items-center gap-4">
@@ -738,7 +752,7 @@ export function StockDetailPanel() {
                               fillOpacity={0.2}
                             />
                           )}
-                          {stockHistoryData.previous_close && !zoomRange && (
+                          {showPrevClose && stockHistoryData.previous_close && !zoomRange && (
                             <ReferenceLine
                               y={stockHistoryData.previous_close}
                               stroke="#64748b"
