@@ -669,6 +669,22 @@ function ComparisonModal({
   const cagr3Y_2 = calculateCAGRForYears(data2?.data, 3);
   const cagr5Y_2 = calculateCAGRForYears(data2?.data, 5);
 
+  // Calculate total growth from first to last data point shown
+  const calcTotalGrowth = (dataPoints: typeof mergedData, valueKey: 'value1' | 'value2') => {
+    const filtered = dataPoints.filter(d => d[valueKey] !== undefined);
+    if (filtered.length < 2) return null;
+    const first = filtered[0];
+    const last = filtered[filtered.length - 1];
+    const firstVal = first[valueKey];
+    const lastVal = last[valueKey];
+    if (!firstVal || !lastVal || firstVal <= 0) return null;
+    const pctChange = ((lastVal - firstVal) / firstVal) * 100;
+    return { pct: pctChange, from: first.quarter, to: last.quarter };
+  };
+
+  const totalGrowth1 = calcTotalGrowth(mergedData, 'value1');
+  const totalGrowth2 = calcTotalGrowth(mergedData, 'value2');
+
   const formatGrowth = (value: number | null) => {
     if (value === null) return '-';
     return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -784,7 +800,7 @@ function ComparisonModal({
                       <p className="text-xs text-slate-400">{findStockByTicker(ticker1)?.name}</p>
                     </div>
                   </div>
-                  <div className="flex gap-4">
+                  <div className="flex gap-4 mb-2">
                     <span className={`text-sm ${getGrowthColor(cagr1Y_1)}`}>
                       1Y: {formatGrowth(cagr1Y_1)}
                     </span>
@@ -795,6 +811,11 @@ function ComparisonModal({
                       5Y: {formatGrowth(cagr5Y_1)}
                     </span>
                   </div>
+                  {totalGrowth1 && (
+                    <p className={`text-xs ${totalGrowth1.pct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {totalGrowth1.pct >= 0 ? '+' : ''}{totalGrowth1.pct.toFixed(1)}% from {totalGrowth1.from} to {totalGrowth1.to}
+                    </p>
+                  )}
                 </div>
                 <div className="w-px bg-slate-300 dark:bg-slate-600" />
                 <div className="text-center">
@@ -805,7 +826,7 @@ function ComparisonModal({
                       <p className="text-xs text-slate-400">{findStockByTicker(ticker2)?.name}</p>
                     </div>
                   </div>
-                  <div className="flex gap-4">
+                  <div className="flex gap-4 mb-2">
                     <span className={`text-sm ${getGrowthColor(cagr1Y_2)}`}>
                       1Y: {formatGrowth(cagr1Y_2)}
                     </span>
@@ -816,6 +837,11 @@ function ComparisonModal({
                       5Y: {formatGrowth(cagr5Y_2)}
                     </span>
                   </div>
+                  {totalGrowth2 && (
+                    <p className={`text-xs ${totalGrowth2.pct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {totalGrowth2.pct >= 0 ? '+' : ''}{totalGrowth2.pct.toFixed(1)}% from {totalGrowth2.from} to {totalGrowth2.to}
+                    </p>
+                  )}
                 </div>
               </div>
             </>
