@@ -4,16 +4,15 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowLeft, Loader2, TrendingUp, ExternalLink, MessageSquare, Send, ChevronDown, ChevronUp, Youtube, Calendar, RefreshCw, X, ZoomOut } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
+import { ArrowLeft, Loader2, ExternalLink, MessageSquare, Send, ChevronDown, ChevronUp, Youtube, Calendar, RefreshCw, X } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { findStockByTicker } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
 import { addRecentStock } from '../utils/recentStocks';
-import { StockSearchBar } from '../components/StockSearchBar';
 import { FinancialsModal } from '../components/FinancialsModal';
+import { FinancialsMiniCharts } from '../components/FinancialsMiniCharts';
 
 interface StockHistoryData {
   ticker: string;
@@ -211,60 +210,13 @@ export function StockDetailPanel() {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1M');
+  const [chartPeriod] = useState<ChartPeriod>('1M');
   const [videoFilter, setVideoFilter] = useState<'1M' | '3M' | 'ALL'>('ALL');
-  const [financialsExpanded, setFinancialsExpanded] = useState(true);
   const [newsFeedExpanded, setNewsFeedExpanded] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [question, setQuestion] = useState('');
   const [displayCurrency, setDisplayCurrency] = useState<'EUR' | 'USD'>('USD');
   const [selectedMetric, setSelectedMetric] = useState<{ metric: string; label: string } | null>(null);
-
-  // Drag-to-zoom state for price chart
-  const [zoomRange, setZoomRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
-  const [dragStart, setDragStart] = useState<string | null>(null);
-  const [dragEnd, setDragEnd] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-
-  // View history for "Prev." navigation
-  type ViewState = { period: ChartPeriod; zoomRange: { startIndex: number; endIndex: number } | null };
-  const [viewHistory, setViewHistory] = useState<ViewState[]>([]);
-  const skipHistoryRef = useRef(false); // Flag to skip adding to history when navigating back
-
-  // Push current state to history before changing period
-  const changePeriod = (newPeriod: ChartPeriod) => {
-    if (newPeriod !== chartPeriod) {
-      setViewHistory(prev => [...prev, { period: chartPeriod, zoomRange }]);
-      setChartPeriod(newPeriod);
-      setZoomRange(null);
-    }
-  };
-
-  // Push current state to history before zooming
-  const changeZoom = (newZoomRange: { startIndex: number; endIndex: number } | null) => {
-    if (JSON.stringify(newZoomRange) !== JSON.stringify(zoomRange)) {
-      setViewHistory(prev => [...prev, { period: chartPeriod, zoomRange }]);
-      setZoomRange(newZoomRange);
-    }
-  };
-
-  // Go back to previous view
-  const goBack = () => {
-    if (viewHistory.length > 0) {
-      const prevState = viewHistory[viewHistory.length - 1];
-      setViewHistory(prev => prev.slice(0, -1));
-      skipHistoryRef.current = true;
-      setChartPeriod(prevState.period);
-      setZoomRange(prevState.zoomRange);
-    }
-  };
-
-  // Reset zoom when period changes (but not when navigating back)
-  useEffect(() => {
-    if (skipHistoryRef.current) {
-      skipHistoryRef.current = false;
-    }
-  }, [chartPeriod]);
 
   // Use TSLA as preview ticker when not authenticated
   const upperTicker = isAuthenticated ? (ticker?.toUpperCase() || '') : 'TSLA';
@@ -399,12 +351,7 @@ export function StockDetailPanel() {
         </div>
       </div>
 
-      {/* Search Bar - not sticky */}
-      <div className="max-w-3xl mx-auto my-6">
-        <StockSearchBar />
-      </div>
-
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-6 mt-6">
         {/* Stock Header */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <div className="flex items-start gap-4">
@@ -459,427 +406,62 @@ export function StockDetailPanel() {
           )}
         </div>
 
-        {/* Financials (collapsible, contains metrics + price chart) */}
-        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none overflow-hidden">
-          {/* Header - clickable to toggle */}
-          <button
-            onClick={(e) => {
-              setFinancialsExpanded(!financialsExpanded);
-              setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
-            }}
-            className="w-full px-6 py-4 flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
-          >
-            {financialsExpanded ? (
-              <ChevronUp className="w-5 h-5 text-slate-500" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-slate-500" />
-            )}
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {language === 'fr' ? 'Données financières' : 'Financials'}
-            </h2>
-          </button>
+        {/* Financial Mini Charts Dashboard */}
+        <FinancialsMiniCharts
+          ticker={upperTicker}
+          priceData={stockHistoryData?.data}
+          previousClose={stockHistoryData?.previous_close}
+          priceCurrency={stockHistoryData?.currency}
+          onMetricClick={(metric, label) => setSelectedMetric({ metric, label })}
+        />
 
-          {/* Collapsible content */}
-          {financialsExpanded && (
-            <div className="px-6 pt-4 pb-6 space-y-6">
-              {/* Metrics */}
-              {marketCapLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-              ) : (
-                <>
-                  {/* Clickable financial metrics - opens historical chart modal */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                    {[
-                      { metric: 'Revenue', label: language === 'fr' ? 'Chiffre d\'affaires' : 'Revenue' },
-                      { metric: 'NetIncome', label: language === 'fr' ? 'Résultat net' : 'Net Income' },
-                      { metric: 'GrossProfit', label: language === 'fr' ? 'Marge brute' : 'Gross Profit' },
-                      { metric: 'OperatingIncome', label: language === 'fr' ? 'Résultat opérationnel' : 'Operating Income' },
-                    ].map(({ metric, label }) => (
-                      <button
-                        key={metric}
-                        onClick={() => setSelectedMetric({ metric, label })}
-                        className="p-3 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg text-left transition-colors group"
-                      >
-                        <p className="text-xs text-orange-600 dark:text-orange-400 uppercase tracking-wide mb-1 flex items-center gap-1">
-                          {label}
-                          <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                          </svg>
-                        </p>
-                        <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
-                          {language === 'fr' ? 'Voir historique' : 'View history'}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Standard metrics grid */}
-                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                        {language === 'fr' ? 'Cap. boursière' : 'Market Cap'}
-                      </p>
-                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {formatMarketCap(marketCapData?.market_cap ?? null, currency)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                        P/E Ratio
-                      </p>
-                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {marketCapData?.trailing_pe ? marketCapData.trailing_pe.toFixed(1) : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                        {language === 'fr' ? 'P/E prévu' : 'Forward P/E'}
-                      </p>
-                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {marketCapData?.forward_pe ? marketCapData.forward_pe.toFixed(1) : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                        {language === 'fr' ? 'Rendement div.' : 'Div. Yield'}
-                      </p>
-                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {marketCapData?.dividend_yield ? `${(marketCapData.dividend_yield * 100).toFixed(2)}%` : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                        Beta
-                      </p>
-                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {marketCapData?.beta ? marketCapData.beta.toFixed(2) : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                        P/B Ratio
-                      </p>
-                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {marketCapData?.price_to_book ? marketCapData.price_to_book.toFixed(2) : '-'}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setSelectedMetric({ metric: 'EPS', label: 'EPS' })}
-                      className="text-left hover:bg-slate-100 dark:hover:bg-slate-600 -m-2 p-2 rounded-lg transition-colors group"
-                    >
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
-                        EPS
-                        <svg className="w-3 h-3 text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                      </p>
-                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {marketCapData?.trailing_eps ? `${currencySymbol}${marketCapData.trailing_eps.toFixed(2)}` : '-'}
-                      </p>
-                    </button>
-                    <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                        {language === 'fr' ? 'Marge nette' : 'Profit Margin'}
-                      </p>
-                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {marketCapData?.profit_margin ? `${(marketCapData.profit_margin * 100).toFixed(1)}%` : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                        ROE
-                      </p>
-                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {marketCapData?.return_on_equity ? `${(marketCapData.return_on_equity * 100).toFixed(1)}%` : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                        {language === 'fr' ? 'Croiss. CA' : 'Rev. Growth'}
-                      </p>
-                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {marketCapData?.revenue_growth ? `${(marketCapData.revenue_growth * 100).toFixed(1)}%` : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                        52W High
-                      </p>
-                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {marketCapData?.fifty_two_week_high ? `${currencySymbol}${marketCapData.fifty_two_week_high.toFixed(2)}` : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                        52W Low
-                      </p>
-                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {marketCapData?.fifty_two_week_low ? `${currencySymbol}${marketCapData.fifty_two_week_low.toFixed(2)}` : '-'}
-                      </p>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Price Chart */}
-              <div className="bg-slate-800 dark:bg-slate-900 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-green-500" />
-                      <h3 className="text-base font-semibold text-white">
-                        {language === 'fr' ? 'Historique des prix' : 'Price History'}
-                      </h3>
-                    </div>
-                    {/* Go back to previous view */}
-                    <button
-                      onClick={goBack}
-                      disabled={viewHistory.length === 0}
-                      className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded transition-colors w-fit ml-7 ${
-                        viewHistory.length > 0
-                          ? 'bg-slate-600 text-slate-200 hover:bg-slate-500'
-                          : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'
-                      }`}
-                      title={language === 'fr' ? 'Vue précédente' : 'Previous view'}
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                      Prev.
-                    </button>
-                  </div>
-                  {/* Period Selectors */}
-                  <div className="flex items-center gap-10">
-                    {/* Year selector dropdown */}
-                    <select
-                      value={chartPeriod.startsWith('Y') ? chartPeriod : ''}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          changePeriod(e.target.value as ChartPeriod);
-                        }
-                      }}
-                      className={`px-2 py-1 text-xs rounded transition-colors cursor-pointer ${
-                        chartPeriod.startsWith('Y')
-                          ? 'bg-green-600 text-white font-medium'
-                          : 'bg-slate-700 text-slate-400 hover:text-white hover:bg-slate-600'
-                      }`}
-                    >
-                      <option value="" disabled className="bg-slate-800 text-slate-400">
-                        {language === 'fr' ? 'Année' : 'Year'}
-                      </option>
-                      {YEAR_OPTIONS.map((year) => (
-                        <option key={year} value={`Y${year}`} className="bg-slate-800 text-white">
-                          {year}
-                        </option>
-                      ))}
-                    </select>
-                    {/* Period buttons */}
-                    <div className="flex gap-1">
-                      {(['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'MAX'] as ChartPeriod[]).map((period) => (
-                        <button
-                          key={period}
-                          onClick={() => changePeriod(period)}
-                          className={`px-2 py-1 text-xs rounded transition-colors ${
-                            chartPeriod === period
-                              ? 'bg-green-600 text-white font-medium'
-                              : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                          }`}
-                        >
-                          {period}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Chart */}
-                {stockHistoryLoading ? (
-                  <div className="h-[250px] flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-green-500" />
-                  </div>
-                ) : stockHistoryData?.data && stockHistoryData.data.length > 0 ? (() => {
-                  // Apply zoom if set
-                  const fullData = stockHistoryData.data;
-                  const displayData = zoomRange
-                    ? fullData.slice(zoomRange.startIndex, zoomRange.endIndex + 1)
-                    : fullData;
-
-                  // Currency is already converted by backend based on displayCurrency param
-                  const displaySymbol = getCurrencySymbol(stockHistoryData.currency || 'USD');
-
-                  // Calculate range in days to determine tick format
-                  const rangeDays = displayData.length > 1
-                    ? Math.ceil((new Date(displayData[displayData.length - 1].timestamp).getTime() -
-                        new Date(displayData[0].timestamp).getTime()) / (1000 * 60 * 60 * 24))
-                    : 1;
-
-                  // Determine tick format based on zoom level
-                  const getTickFormatter = () => {
-                    if (chartPeriod === '1D') {
-                      return (ts: string) => {
-                        const d = new Date(ts);
-                        return d.toLocaleTimeString(language === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
-                      };
-                    }
-                    if (chartPeriod === '5D' && !zoomRange) {
-                      return (ts: string) => {
-                        const d = new Date(ts);
-                        return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'short' });
-                      };
-                    }
-                    // When zoomed in enough, show daily dates
-                    if (rangeDays <= 14) {
-                      return (ts: string) => {
-                        const d = new Date(ts);
-                        return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
-                      };
-                    }
-                    if (rangeDays <= 60) {
-                      return (ts: string) => {
-                        const d = new Date(ts);
-                        return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
-                      };
-                    }
-                    return (ts: string) => {
-                      const d = new Date(ts);
-                      return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
-                    };
-                  };
-
-                  // Handle drag events (activeLabel can be string | number | undefined)
-                  const handleMouseDown = (e: { activeLabel?: string | number }) => {
-                    if (e.activeLabel !== undefined) {
-                      const label = String(e.activeLabel);
-                      setDragStart(label);
-                      setDragEnd(label);
-                      setIsDragging(true);
-                    }
-                  };
-
-                  const handleMouseMove = (e: { activeLabel?: string | number }) => {
-                    if (isDragging && e.activeLabel !== undefined) {
-                      setDragEnd(String(e.activeLabel));
-                    }
-                  };
-
-                  const handleMouseUp = () => {
-                    if (isDragging && dragStart && dragEnd && dragStart !== dragEnd) {
-                      // Find indices in displayData
-                      const startIdx = displayData.findIndex(d => d.timestamp === dragStart);
-                      const endIdx = displayData.findIndex(d => d.timestamp === dragEnd);
-
-                      if (startIdx !== -1 && endIdx !== -1) {
-                        const minIdx = Math.min(startIdx, endIdx);
-                        const maxIdx = Math.max(startIdx, endIdx);
-
-                        // Only zoom if selection is at least 2 data points
-                        if (maxIdx - minIdx >= 1) {
-                          // Convert to full data indices if we're already zoomed
-                          const baseStartIdx = zoomRange ? zoomRange.startIndex : 0;
-                          changeZoom({
-                            startIndex: baseStartIdx + minIdx,
-                            endIndex: baseStartIdx + maxIdx
-                          });
-                        }
-                      }
-                    }
-                    setIsDragging(false);
-                    setDragStart(null);
-                    setDragEnd(null);
-                  };
-
-                  return (
-                    <div className="h-[250px] relative">
-                      {/* Reset zoom button */}
-                      {zoomRange && (
-                        <button
-                          onClick={() => changeZoom(null)}
-                          className="absolute top-0 right-0 z-10 flex items-center gap-1 px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors"
-                        >
-                          <ZoomOut className="w-3 h-3" />
-                          {language === 'fr' ? 'Réinitialiser' : 'Reset zoom'}
-                        </button>
-                      )}
-                      {/* Zoom hint */}
-                      {!zoomRange && displayData.length > 10 && (
-                        <div className="absolute top-0 right-0 z-10 text-[10px] text-slate-500 italic px-2">
-                          {language === 'fr' ? '💡 Glissez pour zoomer' : '💡 Drag to zoom'}
-                        </div>
-                      )}
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart
-                          data={displayData}
-                          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                          onMouseDown={handleMouseDown}
-                          onMouseMove={handleMouseMove}
-                          onMouseUp={handleMouseUp}
-                          onMouseLeave={handleMouseUp}
-                        >
-                          <XAxis
-                            dataKey="timestamp"
-                            tick={{ fontSize: 10, fill: '#94a3b8' }}
-                            tickFormatter={getTickFormatter()}
-                            stroke="#475569"
-                            axisLine={{ stroke: '#475569' }}
-                            tickLine={{ stroke: '#475569' }}
-                          />
-                          <YAxis
-                            domain={['auto', 'auto']}
-                            tick={{ fontSize: 10, fill: '#94a3b8' }}
-                            stroke="#475569"
-                            axisLine={{ stroke: '#475569' }}
-                            tickLine={{ stroke: '#475569' }}
-                            tickFormatter={(val) => val.toFixed(0)}
-                            width={45}
-                          />
-                          <Tooltip
-                            contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #475569', padding: '8px 12px' }}
-                            labelStyle={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}
-                            labelFormatter={(ts) => {
-                              const d = new Date(String(ts));
-                              if (chartPeriod === '1D' || chartPeriod === '5D') {
-                                return d.toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                                  day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-                                });
-                              }
-                              return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                                day: 'numeric', month: 'long', year: 'numeric'
-                              });
-                            }}
-                            formatter={(value) => [`${displaySymbol}${Number(value).toFixed(2)}`, null]}
-                            separator=""
-                          />
-                          {/* Drag selection area */}
-                          {isDragging && dragStart && dragEnd && (
-                            <ReferenceArea
-                              x1={dragStart}
-                              x2={dragEnd}
-                              strokeOpacity={0.3}
-                              fill="#22c55e"
-                              fillOpacity={0.2}
-                            />
-                          )}
-                          <Line
-                            type="monotone"
-                            dataKey="price"
-                            stroke="#22c55e"
-                            strokeWidth={2}
-                            dot={rangeDays <= 30 && displayData.length <= 60}
-                            activeDot={{ r: 4, fill: '#22c55e' }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  );
-                })() : (
-                  <div className="h-[250px] flex items-center justify-center text-slate-400">
-                    {language === 'fr' ? 'Aucune donnée disponible' : 'No data available'}
-                  </div>
-                )}
+        {/* Key Metrics Summary */}
+        {!marketCapLoading && marketCapData && (
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 shadow-sm">
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                  {language === 'fr' ? 'Cap. boursière' : 'Market Cap'}
+                </p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {formatMarketCap(marketCapData?.market_cap ?? null, currency)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">P/E Ratio</p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {marketCapData?.trailing_pe ? marketCapData.trailing_pe.toFixed(1) : '-'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                  {language === 'fr' ? 'Rendement div.' : 'Div. Yield'}
+                </p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {marketCapData?.dividend_yield ? `${(marketCapData.dividend_yield * 100).toFixed(2)}%` : '-'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Beta</p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {marketCapData?.beta ? marketCapData.beta.toFixed(2) : '-'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">52W High</p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {marketCapData?.fifty_two_week_high ? `${currencySymbol}${marketCapData.fifty_two_week_high.toFixed(2)}` : '-'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">52W Low</p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {marketCapData?.fifty_two_week_low ? `${currencySymbol}${marketCapData.fifty_two_week_low.toFixed(2)}` : '-'}
+                </p>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Youtube Feed */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none overflow-hidden">
