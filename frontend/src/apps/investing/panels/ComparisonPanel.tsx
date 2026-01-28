@@ -3,14 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Search, X, Loader2, TrendingUp, Eye } from 'lucide-react';
+import { Search, X, Loader2, TrendingUp, Eye, Maximize2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { findStockByTicker, searchAllStocks, type Stock } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { getRecentStocks, removeRecentStock, addRecentStock } from '../utils/recentStocks';
-import { FinancialsModal } from '../components/FinancialsModal';
+// Comparison modal is built inline below
 
 type DataViewType = 'quarterly' | 'annual';
 
@@ -314,12 +314,30 @@ function ComparisonChart({
     return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
   };
 
+  // Calculate CAGR from data
+  const calculateCAGR = (data: FinancialsData['data'] | undefined) => {
+    if (!data || data.length < 2) return null;
+    const sortedData = [...data].sort((a, b) => a.date.localeCompare(b.date));
+    const firstValue = sortedData[0]?.value;
+    const lastValue = sortedData[sortedData.length - 1]?.value;
+    if (!firstValue || firstValue <= 0 || !lastValue || lastValue <= 0) return null;
+    const years = sortedData.length > 4 ? sortedData.length / 4 : sortedData.length; // quarterly = /4, annual = count
+    const cagr = (Math.pow(lastValue / firstValue, 1 / years) - 1) * 100;
+    return cagr;
+  };
+
+  const cagr1 = calculateCAGR(data1?.data?.filter(d => d.type === (dataView === 'quarterly' ? 'quarterly' : 'annual')));
+  const cagr2 = calculateCAGR(data2?.data?.filter(d => d.type === (dataView === 'quarterly' ? 'quarterly' : 'annual')));
+
   return (
     <button
       onClick={onChartClick}
       className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors cursor-pointer text-left w-full"
     >
-      <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3">{title}</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{title}</h3>
+        <Maximize2 className="w-4 h-4 text-slate-400" />
+      </div>
 
       {isLoading ? (
         <div className="h-[200px] flex items-center justify-center">
@@ -363,21 +381,23 @@ function ComparisonChart({
             </ResponsiveContainer>
           </div>
 
-          {/* Growth rates comparison */}
+          {/* Growth rates comparison - CAGR */}
           <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
-                <p className="text-slate-500 mb-1">{ticker1}</p>
+                <p className="text-orange-500 font-medium mb-1">{ticker1}</p>
                 <div className="flex gap-2">
                   <span className={getGrowthColor(data1?.growth_rates['1Y'] ?? null)}>1Y: {formatGrowth(data1?.growth_rates['1Y'] ?? null)}</span>
                   <span className={getGrowthColor(data1?.growth_rates['5Y'] ?? null)}>5Y: {formatGrowth(data1?.growth_rates['5Y'] ?? null)}</span>
+                  {cagr1 !== null && <span className={getGrowthColor(cagr1)}>CAGR: {formatGrowth(cagr1)}</span>}
                 </div>
               </div>
               <div>
-                <p className="text-slate-500 mb-1">{ticker2}</p>
+                <p className="text-blue-500 font-medium mb-1">{ticker2}</p>
                 <div className="flex gap-2">
                   <span className={getGrowthColor(data2?.growth_rates['1Y'] ?? null)}>1Y: {formatGrowth(data2?.growth_rates['1Y'] ?? null)}</span>
                   <span className={getGrowthColor(data2?.growth_rates['5Y'] ?? null)}>5Y: {formatGrowth(data2?.growth_rates['5Y'] ?? null)}</span>
+                  {cagr2 !== null && <span className={getGrowthColor(cagr2)}>CAGR: {formatGrowth(cagr2)}</span>}
                 </div>
               </div>
             </div>
@@ -452,6 +472,206 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// Comparison Modal Component - shows both companies side by side
+function ComparisonModal({
+  ticker1,
+  ticker2,
+  metric,
+  metricLabel,
+  dataView,
+  onClose
+}: {
+  ticker1: string;
+  ticker2: string;
+  metric: string;
+  metricLabel: string;
+  dataView: DataViewType;
+  onClose: () => void;
+}) {
+  const { language } = useLanguage();
+  const logo1 = getCompanyLogoUrl(ticker1);
+  const logo2 = getCompanyLogoUrl(ticker2);
+
+  const { data: data1, isLoading: loading1 } = useQuery({
+    queryKey: ['financialsHistory', ticker1, metric],
+    queryFn: () => fetchFinancialsHistory(ticker1, metric),
+    staleTime: 1000 * 60 * 15,
+  });
+
+  const { data: data2, isLoading: loading2 } = useQuery({
+    queryKey: ['financialsHistory', ticker2, metric],
+    queryFn: () => fetchFinancialsHistory(ticker2, metric),
+    staleTime: 1000 * 60 * 15,
+  });
+
+  const isLoading = loading1 || loading2;
+  const currency = data1?.currency || data2?.currency || 'USD';
+
+  // Merge data for chart
+  const mergedData = (() => {
+    if (!data1?.data && !data2?.data) return [];
+    const dataMap = new Map<string, { quarter: string; value1?: number; value2?: number }>();
+    const now = new Date();
+
+    const getFilteredData = (data: FinancialsData['data'] | undefined) => {
+      if (!data) return [];
+      if (dataView === 'quarterly') {
+        const cutoff = new Date(now.getFullYear() - 5, now.getMonth(), 1);
+        const quarterlyData = data.filter(d => new Date(d.date) >= cutoff && d.type === 'quarterly');
+        if (quarterlyData.length > 0) return quarterlyData;
+      }
+      const annualCutoff = new Date(now.getFullYear() - 10, 0, 1);
+      return data.filter(d => new Date(d.date) >= annualCutoff && d.type === 'annual');
+    };
+
+    const filtered1 = getFilteredData(data1?.data);
+    const filtered2 = getFilteredData(data2?.data);
+
+    filtered1.forEach(d => dataMap.set(d.quarter, { quarter: d.quarter, value1: d.value }));
+    filtered2.forEach(d => {
+      const existing = dataMap.get(d.quarter);
+      if (existing) existing.value2 = d.value;
+      else dataMap.set(d.quarter, { quarter: d.quarter, value2: d.value });
+    });
+
+    return Array.from(dataMap.values()).sort((a, b) => a.quarter.localeCompare(b.quarter));
+  })();
+
+  // Calculate CAGR
+  const calculateCAGR = (data: FinancialsData['data'] | undefined, type: string) => {
+    if (!data) return null;
+    const filtered = data.filter(d => d.type === type).sort((a, b) => a.date.localeCompare(b.date));
+    if (filtered.length < 2) return null;
+    const first = filtered[0]?.value;
+    const last = filtered[filtered.length - 1]?.value;
+    if (!first || first <= 0 || !last || last <= 0) return null;
+    const years = type === 'quarterly' ? filtered.length / 4 : filtered.length;
+    if (years < 1) return null;
+    return (Math.pow(last / first, 1 / years) - 1) * 100;
+  };
+
+  const dataType = dataView === 'quarterly' ? 'quarterly' : 'annual';
+  const cagr1 = calculateCAGR(data1?.data, dataType);
+  const cagr2 = calculateCAGR(data2?.data, dataType);
+
+  const formatGrowth = (value: number | null) => {
+    if (value === null) return '-';
+    return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+  };
+
+  const getGrowthColor = (value: number | null) => {
+    if (value === null) return 'text-slate-400';
+    return value >= 0 ? 'text-green-500' : 'text-red-500';
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="relative w-full max-w-5xl bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{metricLabel}</h2>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-100 dark:bg-orange-900/30 rounded">
+                {logo1 && <img src={logo1} alt="" className="w-5 h-5 object-contain" />}
+                <span className="text-sm font-medium text-orange-600 dark:text-orange-400">{ticker1}</span>
+              </div>
+              <span className="text-slate-400">vs</span>
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 rounded">
+                {logo2 && <img src={logo2} alt="" className="w-5 h-5 object-contain" />}
+                <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{ticker2}</span>
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+
+        {/* Chart */}
+        <div className="p-6">
+          {isLoading ? (
+            <div className="h-[400px] flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+            </div>
+          ) : mergedData.length === 0 ? (
+            <div className="h-[400px] flex items-center justify-center text-slate-500">
+              {language === 'fr' ? 'Aucune donnée disponible' : 'No data available'}
+            </div>
+          ) : (
+            <>
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                    <XAxis
+                      dataKey="quarter"
+                      tick={{ fontSize: 10, fill: '#64748b' }}
+                      tickLine={{ stroke: '#cbd5e1' }}
+                      axisLine={{ stroke: '#cbd5e1' }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                      interval={0}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: '#64748b' }}
+                      tickLine={{ stroke: '#cbd5e1' }}
+                      axisLine={{ stroke: '#cbd5e1' }}
+                      tickFormatter={(val) => formatValue(val, currency)}
+                      width={70}
+                    />
+                    <Tooltip
+                      cursor={{ fill: 'transparent' }}
+                      contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: 'none', padding: '8px 12px' }}
+                      formatter={(value, name) => [formatValue(Number(value), currency), name === 'value1' ? ticker1 : ticker2]}
+                    />
+                    <Legend formatter={(value) => value === 'value1' ? ticker1 : ticker2} />
+                    <Bar dataKey="value1" fill="#f97316" name="value1" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="value2" fill="#3b82f6" name="value2" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* CAGR comparison */}
+              <div className="flex justify-center gap-6 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <div className="text-center">
+                  <p className="text-sm text-orange-500 font-medium mb-1">{ticker1}</p>
+                  <div className="flex gap-3">
+                    <span className={`text-sm ${getGrowthColor(data1?.growth_rates['1Y'] ?? null)}`}>
+                      1Y: {formatGrowth(data1?.growth_rates['1Y'] ?? null)}
+                    </span>
+                    <span className={`text-sm ${getGrowthColor(data1?.growth_rates['5Y'] ?? null)}`}>
+                      5Y: {formatGrowth(data1?.growth_rates['5Y'] ?? null)}
+                    </span>
+                    <span className={`text-sm font-semibold ${getGrowthColor(cagr1)}`}>
+                      CAGR: {formatGrowth(cagr1)}
+                    </span>
+                  </div>
+                </div>
+                <div className="w-px bg-slate-200 dark:bg-slate-700" />
+                <div className="text-center">
+                  <p className="text-sm text-blue-500 font-medium mb-1">{ticker2}</p>
+                  <div className="flex gap-3">
+                    <span className={`text-sm ${getGrowthColor(data2?.growth_rates['1Y'] ?? null)}`}>
+                      1Y: {formatGrowth(data2?.growth_rates['1Y'] ?? null)}
+                    </span>
+                    <span className={`text-sm ${getGrowthColor(data2?.growth_rates['5Y'] ?? null)}`}>
+                      5Y: {formatGrowth(data2?.growth_rates['5Y'] ?? null)}
+                    </span>
+                    <span className={`text-sm font-semibold ${getGrowthColor(cagr2)}`}>
+                      CAGR: {formatGrowth(cagr2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -568,13 +788,14 @@ export function ComparisonPanel() {
         </div>
       )}
 
-      {/* Modal for detailed view - use ticker1 when clicking charts */}
-      {selectedModal && ticker1 && (
-        <FinancialsModal
-          ticker={ticker1}
-          companyName={findStockByTicker(ticker1)?.name || ticker1}
+      {/* Comparison Modal - shows both companies */}
+      {selectedModal && ticker1 && ticker2 && (
+        <ComparisonModal
+          ticker1={ticker1}
+          ticker2={ticker2}
           metric={selectedModal.metric}
           metricLabel={selectedModal.title}
+          dataView={dataView}
           onClose={() => setSelectedModal(null)}
         />
       )}
