@@ -311,9 +311,7 @@ function ComparisonChart({
 
       if (dataView === 'quarterly') {
         const cutoff = new Date(now.getFullYear() - 3, now.getMonth(), 1);
-        const quarterlyData = data.filter(d => new Date(d.date) >= cutoff && d.type === 'quarterly');
-        // If no quarterly data, fall back to annual
-        if (quarterlyData.length > 0) return quarterlyData;
+        return data.filter(d => new Date(d.date) >= cutoff && d.type === 'quarterly');
       }
 
       // Annual data
@@ -602,8 +600,7 @@ function ComparisonModal({
       if (!data) return [];
       if (dataView === 'quarterly') {
         const cutoff = new Date(now.getFullYear() - 5, now.getMonth(), 1);
-        const quarterlyData = data.filter(d => new Date(d.date) >= cutoff && d.type === 'quarterly');
-        if (quarterlyData.length > 0) return quarterlyData;
+        return data.filter(d => new Date(d.date) >= cutoff && d.type === 'quarterly');
       }
       const annualCutoff = new Date(now.getFullYear() - 10, 0, 1);
       return data.filter(d => new Date(d.date) >= annualCutoff && d.type === 'annual');
