@@ -13,6 +13,7 @@ import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
 import { addRecentStock } from '../utils/recentStocks';
 import { StockSearchBar } from '../components/StockSearchBar';
+import { FinancialsModal } from '../components/FinancialsModal';
 
 interface StockHistoryData {
   ticker: string;
@@ -217,6 +218,7 @@ export function StockDetailPanel() {
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [question, setQuestion] = useState('');
   const [displayCurrency, setDisplayCurrency] = useState<'EUR' | 'USD'>('USD');
+  const [selectedMetric, setSelectedMetric] = useState<{ metric: string; label: string } | null>(null);
 
   // Drag-to-zoom state for price chart
   const [zoomRange, setZoomRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
@@ -491,104 +493,139 @@ export function StockDetailPanel() {
               {marketCapLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
               ) : (
-                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                      {language === 'fr' ? 'Cap. boursière' : 'Market Cap'}
-                    </p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {formatMarketCap(marketCapData?.market_cap ?? null, currency)}
-                    </p>
+                <>
+                  {/* Clickable financial metrics - opens historical chart modal */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    {[
+                      { metric: 'Revenue', label: language === 'fr' ? 'Chiffre d\'affaires' : 'Revenue' },
+                      { metric: 'NetIncome', label: language === 'fr' ? 'Résultat net' : 'Net Income' },
+                      { metric: 'GrossProfit', label: language === 'fr' ? 'Marge brute' : 'Gross Profit' },
+                      { metric: 'OperatingIncome', label: language === 'fr' ? 'Résultat opérationnel' : 'Operating Income' },
+                    ].map(({ metric, label }) => (
+                      <button
+                        key={metric}
+                        onClick={() => setSelectedMetric({ metric, label })}
+                        className="p-3 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg text-left transition-colors group"
+                      >
+                        <p className="text-xs text-orange-600 dark:text-orange-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                          {label}
+                          <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                        </p>
+                        <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                          {language === 'fr' ? 'Voir historique' : 'View history'}
+                        </p>
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                      P/E Ratio
-                    </p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.trailing_pe ? marketCapData.trailing_pe.toFixed(1) : '-'}
-                    </p>
+
+                  {/* Standard metrics grid */}
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                        {language === 'fr' ? 'Cap. boursière' : 'Market Cap'}
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {formatMarketCap(marketCapData?.market_cap ?? null, currency)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                        P/E Ratio
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {marketCapData?.trailing_pe ? marketCapData.trailing_pe.toFixed(1) : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                        {language === 'fr' ? 'P/E prévu' : 'Forward P/E'}
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {marketCapData?.forward_pe ? marketCapData.forward_pe.toFixed(1) : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                        {language === 'fr' ? 'Rendement div.' : 'Div. Yield'}
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {marketCapData?.dividend_yield ? `${(marketCapData.dividend_yield * 100).toFixed(2)}%` : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                        Beta
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {marketCapData?.beta ? marketCapData.beta.toFixed(2) : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                        P/B Ratio
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {marketCapData?.price_to_book ? marketCapData.price_to_book.toFixed(2) : '-'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedMetric({ metric: 'EPS', label: 'EPS' })}
+                      className="text-left hover:bg-slate-100 dark:hover:bg-slate-600 -m-2 p-2 rounded-lg transition-colors group"
+                    >
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                        EPS
+                        <svg className="w-3 h-3 text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {marketCapData?.trailing_eps ? `${currencySymbol}${marketCapData.trailing_eps.toFixed(2)}` : '-'}
+                      </p>
+                    </button>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                        {language === 'fr' ? 'Marge nette' : 'Profit Margin'}
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {marketCapData?.profit_margin ? `${(marketCapData.profit_margin * 100).toFixed(1)}%` : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                        ROE
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {marketCapData?.return_on_equity ? `${(marketCapData.return_on_equity * 100).toFixed(1)}%` : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                        {language === 'fr' ? 'Croiss. CA' : 'Rev. Growth'}
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {marketCapData?.revenue_growth ? `${(marketCapData.revenue_growth * 100).toFixed(1)}%` : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                        52W High
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {marketCapData?.fifty_two_week_high ? `${currencySymbol}${marketCapData.fifty_two_week_high.toFixed(2)}` : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                        52W Low
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {marketCapData?.fifty_two_week_low ? `${currencySymbol}${marketCapData.fifty_two_week_low.toFixed(2)}` : '-'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                      {language === 'fr' ? 'P/E prévu' : 'Forward P/E'}
-                    </p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.forward_pe ? marketCapData.forward_pe.toFixed(1) : '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                      {language === 'fr' ? 'Rendement div.' : 'Div. Yield'}
-                    </p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.dividend_yield ? `${(marketCapData.dividend_yield * 100).toFixed(2)}%` : '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                      Beta
-                    </p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.beta ? marketCapData.beta.toFixed(2) : '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                      P/B Ratio
-                    </p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.price_to_book ? marketCapData.price_to_book.toFixed(2) : '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                      EPS
-                    </p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.trailing_eps ? `${currencySymbol}${marketCapData.trailing_eps.toFixed(2)}` : '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                      {language === 'fr' ? 'Marge nette' : 'Profit Margin'}
-                    </p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.profit_margin ? `${(marketCapData.profit_margin * 100).toFixed(1)}%` : '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                      ROE
-                    </p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.return_on_equity ? `${(marketCapData.return_on_equity * 100).toFixed(1)}%` : '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                      {language === 'fr' ? 'Croiss. CA' : 'Rev. Growth'}
-                    </p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.revenue_growth ? `${(marketCapData.revenue_growth * 100).toFixed(1)}%` : '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                      52W High
-                    </p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.fifty_two_week_high ? `${currencySymbol}${marketCapData.fifty_two_week_high.toFixed(2)}` : '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                      52W Low
-                    </p>
-                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {marketCapData?.fifty_two_week_low ? `${currencySymbol}${marketCapData.fifty_two_week_low.toFixed(2)}` : '-'}
-                    </p>
-                  </div>
-                </div>
+                </>
               )}
 
               {/* Price Chart */}
@@ -1076,6 +1113,17 @@ export function StockDetailPanel() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Financials History Modal */}
+      {selectedMetric && (
+        <FinancialsModal
+          ticker={upperTicker}
+          companyName={displayName}
+          metric={selectedMetric.metric}
+          metricLabel={selectedMetric.label}
+          onClose={() => setSelectedMetric(null)}
+        />
       )}
     </div>
   );

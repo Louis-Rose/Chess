@@ -2885,6 +2885,132 @@ def get_stock_history(ticker):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/investing/financials-history/<ticker>', methods=['GET'])
+def get_financials_history(ticker):
+    """Get historical financial data (quarterly income statement) for a stock."""
+    import yfinance as yf
+    from investing_utils import EUROPEAN_TICKER_MAP
+
+    ticker = ticker.upper()
+    yf_ticker = EUROPEAN_TICKER_MAP.get(ticker, ticker)
+    metric = request.args.get('metric', 'NetIncome')  # Default metric
+
+    # Map frontend metric names to yfinance column names
+    METRIC_MAP = {
+        'NetIncome': 'Net Income',
+        'Revenue': 'Total Revenue',
+        'GrossProfit': 'Gross Profit',
+        'OperatingIncome': 'Operating Income',
+        'EBITDA': 'EBITDA',
+        'EPS': 'Basic EPS',
+    }
+
+    yf_metric = METRIC_MAP.get(metric, metric)
+
+    try:
+        stock = yf.Ticker(yf_ticker)
+        info = stock.info
+        company_name = info.get('shortName') or info.get('longName') or ticker
+        currency = info.get('financialCurrency') or info.get('currency') or 'USD'
+
+        # Get quarterly income statement (most detailed)
+        quarterly = stock.quarterly_income_stmt
+        annual = stock.income_stmt
+
+        data_points = []
+
+        # Process quarterly data
+        if quarterly is not None and not quarterly.empty and yf_metric in quarterly.index:
+            for col in quarterly.columns:
+                try:
+                    value = quarterly.loc[yf_metric, col]
+                    if pd.notna(value):
+                        # col is a Timestamp
+                        date = col.to_pydatetime()
+                        quarter = f"Q{((date.month - 1) // 3) + 1} {date.year}"
+                        data_points.append({
+                            'date': date.strftime('%Y-%m-%d'),
+                            'quarter': quarter,
+                            'value': float(value),
+                            'type': 'quarterly'
+                        })
+                except:
+                    continue
+
+        # Also get annual data for longer history
+        if annual is not None and not annual.empty and yf_metric in annual.index:
+            for col in annual.columns:
+                try:
+                    value = annual.loc[yf_metric, col]
+                    if pd.notna(value):
+                        date = col.to_pydatetime()
+                        # Only add if we don't have quarterly data for this year
+                        year_str = f"FY {date.year}"
+                        data_points.append({
+                            'date': date.strftime('%Y-%m-%d'),
+                            'quarter': year_str,
+                            'value': float(value),
+                            'type': 'annual'
+                        })
+                except:
+                    continue
+
+        # Sort by date (oldest first for charting)
+        data_points.sort(key=lambda x: x['date'])
+
+        # Calculate growth rates
+        def calc_growth(data, years):
+            if len(data) < 2:
+                return None
+            # Filter to quarterly data for more accurate comparison
+            quarterly_data = [d for d in data if d['type'] == 'quarterly']
+            if len(quarterly_data) < 4:  # Need at least 1 year of quarters
+                quarterly_data = data  # Fall back to all data
+
+            if len(quarterly_data) < 2:
+                return None
+
+            # Get TTM (trailing twelve months) values
+            current_value = sum(d['value'] for d in quarterly_data[-4:]) if len(quarterly_data) >= 4 else quarterly_data[-1]['value']
+
+            # Find value from N years ago
+            target_quarters = years * 4
+            if len(quarterly_data) > target_quarters:
+                past_value = sum(d['value'] for d in quarterly_data[-(target_quarters + 4):-target_quarters]) if len(quarterly_data) >= target_quarters + 4 else quarterly_data[-target_quarters - 1]['value']
+            elif len(quarterly_data) > 4:
+                # Use oldest available data
+                past_value = sum(d['value'] for d in quarterly_data[:4]) if len(quarterly_data) >= 4 else quarterly_data[0]['value']
+            else:
+                return None
+
+            if past_value == 0 or past_value is None:
+                return None
+
+            return round(((current_value / past_value) - 1) * 100, 2)
+
+        growth_rates = {
+            '1Y': calc_growth(data_points, 1),
+            '2Y': calc_growth(data_points, 2),
+            '5Y': calc_growth(data_points, 5),
+            '10Y': calc_growth(data_points, 10),
+        }
+
+        return jsonify({
+            'ticker': ticker,
+            'company_name': company_name,
+            'metric': metric,
+            'metric_label': yf_metric,
+            'currency': currency,
+            'data': data_points,
+            'growth_rates': growth_rates,
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 # =============================================================================
 # Investment Accounts API (for fee tracking)
 # =============================================================================
