@@ -2804,11 +2804,18 @@ def get_stock_history(ticker):
         'MAX': {'period': 'max', 'interval': '1mo'},
     }
 
-    config = period_config.get(period.upper(), period_config['1M'])
-
     try:
         stock = yf.Ticker(yf_ticker)
-        hist = stock.history(period=config['period'], interval=config['interval'])
+
+        # Handle year-specific periods like 'Y2024', 'Y2023', etc.
+        if period.upper().startswith('Y') and len(period) == 5:
+            year = int(period[1:])
+            start_date = f"{year}-01-01"
+            end_date = f"{year}-12-31"
+            hist = stock.history(start=start_date, end=end_date, interval='1d')
+        else:
+            config = period_config.get(period.upper(), period_config['1M'])
+            hist = stock.history(period=config['period'], interval=config['interval'])
 
         if hist.empty:
             return jsonify({'error': 'No data available'}), 404

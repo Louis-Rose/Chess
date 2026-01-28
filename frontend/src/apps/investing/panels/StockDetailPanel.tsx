@@ -71,7 +71,11 @@ interface NewsFeedResponse {
   from_cache: boolean;
 }
 
-type ChartPeriod = '1D' | '5D' | '1M' | '6M' | 'YTD' | '1Y' | '5Y' | 'MAX';
+type ChartPeriod = '1D' | '5D' | '1M' | '6M' | 'YTD' | '1Y' | '5Y' | 'MAX' | `Y${number}`;
+
+// Generate year options (current year down to 2015)
+const currentYear = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: currentYear - 2014 }, (_, i) => currentYear - i);
 
 // Mock data for Tesla - used for logged-off preview
 const TESLA_MOCK_DATA = {
@@ -527,7 +531,7 @@ export function StockDetailPanel() {
                     </h3>
                   </div>
                   {/* Period Selectors */}
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 items-center">
                     {(['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'MAX'] as ChartPeriod[]).map((period) => (
                       <button
                         key={period}
@@ -541,6 +545,29 @@ export function StockDetailPanel() {
                         {period}
                       </button>
                     ))}
+                    {/* Year selector dropdown */}
+                    <select
+                      value={chartPeriod.startsWith('Y') ? chartPeriod : ''}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setChartPeriod(e.target.value as ChartPeriod);
+                        }
+                      }}
+                      className={`px-1 py-1 text-xs rounded transition-colors bg-transparent border-none cursor-pointer ${
+                        chartPeriod.startsWith('Y')
+                          ? 'bg-green-600 text-white font-medium'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                      }`}
+                    >
+                      <option value="" disabled className="bg-slate-800 text-slate-400">
+                        {language === 'fr' ? 'Année' : 'Year'}
+                      </option>
+                      {YEAR_OPTIONS.map((year) => (
+                        <option key={year} value={`Y${year}`} className="bg-slate-800 text-white">
+                          {year}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
