@@ -143,17 +143,17 @@ function StockSelector({
               onChange={(e) => { setQuery(e.target.value); setIsOpen(true); }}
               onFocus={() => { setRecentStocks(getRecentStocks(user?.id)); setIsOpen(true); }}
               placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
-              className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-green-500"
+              className="w-full pl-10 pr-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
           {isOpen && ((query.length === 0 && filteredRecentStocks.length > 0) || (query.length > 0 && results.length > 0)) && (
-            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-600 max-h-60 overflow-y-auto">
+            <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-slate-300 max-h-60 overflow-y-auto">
               {/* Recent stocks when search is empty */}
               {query.length === 0 && filteredRecentStocks.length > 0 && (
                 <>
-                  <div className="px-4 py-2 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 flex items-center gap-2">
+                  <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
                     <Eye className="w-4 h-4 text-slate-500" />
-                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                    <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
                       {language === 'fr' ? 'Recherches récentes' : 'Recently searched'}
                     </span>
                   </div>
@@ -165,7 +165,7 @@ function StockSelector({
                       <div
                         key={ticker}
                         onClick={() => handleSelectStock(ticker)}
-                        className="w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 last:border-b-0 hover:bg-green-50 dark:hover:bg-slate-700 cursor-pointer group"
+                        className="w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 hover:bg-green-50 cursor-pointer group"
                       >
                         <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                           {recentLogoUrl ? (
@@ -174,8 +174,8 @@ function StockSelector({
                             <span className="text-[10px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
                           )}
                         </div>
-                        <span className="font-bold text-slate-800 dark:text-slate-200 w-16">{ticker}</span>
-                        <span className="text-slate-600 dark:text-slate-400 text-sm truncate flex-1">{displayName}</span>
+                        <span className="font-bold text-slate-800 w-16">{ticker}</span>
+                        <span className="text-slate-600 text-sm truncate flex-1">{displayName}</span>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -183,7 +183,7 @@ function StockSelector({
                             removeRecentStock(ticker, user?.id);
                             setRecentStocks(getRecentStocks(user?.id));
                           }}
-                          className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="p-1 rounded hover:bg-slate-200 opacity-0 group-hover:opacity-100 transition-opacity"
                           title={language === 'fr' ? 'Supprimer' : 'Remove'}
                         >
                           <X className="w-3.5 h-3.5 text-slate-400" />
@@ -200,7 +200,7 @@ function StockSelector({
                   <button
                     key={stock.ticker}
                     onClick={() => handleSelectStock(stock.ticker)}
-                    className="w-full px-4 py-2 text-left hover:bg-green-50 dark:hover:bg-slate-700 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+                    className="w-full px-4 py-2 text-left hover:bg-green-50 flex items-center gap-3 border-b border-slate-100 last:border-b-0"
                   >
                     <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                       {searchLogoUrl ? (
@@ -209,8 +209,8 @@ function StockSelector({
                         <span className="text-[10px] font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
                       )}
                     </div>
-                    <span className="font-bold text-slate-800 dark:text-slate-200 w-16">{stock.ticker}</span>
-                    <span className="text-slate-600 dark:text-slate-400 text-sm truncate">{stock.name}</span>
+                    <span className="font-bold text-slate-800 w-16">{stock.ticker}</span>
+                    <span className="text-slate-600 text-sm truncate">{stock.name}</span>
                   </button>
                 );
               })}
