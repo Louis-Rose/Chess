@@ -10,6 +10,9 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { findStockByTicker, searchAllStocks, type Stock } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { getRecentStocks, removeRecentStock, addRecentStock } from '../utils/recentStocks';
+import { FinancialsModal } from '../components/FinancialsModal';
+
+type DataViewType = 'quarterly' | 'annual';
 
 interface FinancialsData {
   ticker: string;
@@ -227,12 +230,16 @@ function ComparisonChart({
   ticker1,
   ticker2,
   metric,
-  title
+  title,
+  dataView,
+  onChartClick
 }: {
   ticker1: string;
   ticker2: string;
   metric: string;
   title: string;
+  dataView: DataViewType;
+  onChartClick: () => void;
 }) {
   const { language } = useLanguage();
 
@@ -253,34 +260,46 @@ function ComparisonChart({
   const isLoading = loading1 || loading2;
   const currency = data1?.currency || data2?.currency || 'USD';
 
-  // Merge data by quarter
+  // Merge data by quarter or year based on dataView
   const mergedData = (() => {
     if (!data1?.data && !data2?.data) return [];
 
-    const quarterMap = new Map<string, { quarter: string; value1?: number; value2?: number }>();
-
-    // Filter to last 3 years of quarterly data
+    const dataMap = new Map<string, { quarter: string; value1?: number; value2?: number }>();
     const now = new Date();
-    const cutoff = new Date(now.getFullYear() - 3, now.getMonth(), 1);
 
-    data1?.data
-      .filter(d => new Date(d.date) >= cutoff && d.type === 'quarterly')
-      .forEach(d => {
-        quarterMap.set(d.quarter, { quarter: d.quarter, value1: d.value });
-      });
+    // Helper to get filtered data for a stock
+    const getFilteredData = (data: FinancialsData['data'] | undefined) => {
+      if (!data) return [];
 
-    data2?.data
-      .filter(d => new Date(d.date) >= cutoff && d.type === 'quarterly')
-      .forEach(d => {
-        const existing = quarterMap.get(d.quarter);
-        if (existing) {
-          existing.value2 = d.value;
-        } else {
-          quarterMap.set(d.quarter, { quarter: d.quarter, value2: d.value });
-        }
-      });
+      if (dataView === 'quarterly') {
+        const cutoff = new Date(now.getFullYear() - 3, now.getMonth(), 1);
+        const quarterlyData = data.filter(d => new Date(d.date) >= cutoff && d.type === 'quarterly');
+        // If no quarterly data, fall back to annual
+        if (quarterlyData.length > 0) return quarterlyData;
+      }
 
-    return Array.from(quarterMap.values())
+      // Annual data
+      const annualCutoff = new Date(now.getFullYear() - 10, 0, 1);
+      return data.filter(d => new Date(d.date) >= annualCutoff && d.type === 'annual');
+    };
+
+    const filtered1 = getFilteredData(data1?.data);
+    const filtered2 = getFilteredData(data2?.data);
+
+    filtered1.forEach(d => {
+      dataMap.set(d.quarter, { quarter: d.quarter, value1: d.value });
+    });
+
+    filtered2.forEach(d => {
+      const existing = dataMap.get(d.quarter);
+      if (existing) {
+        existing.value2 = d.value;
+      } else {
+        dataMap.set(d.quarter, { quarter: d.quarter, value2: d.value });
+      }
+    });
+
+    return Array.from(dataMap.values())
       .sort((a, b) => a.quarter.localeCompare(b.quarter))
       .slice(-12);
   })();
@@ -296,7 +315,10 @@ function ComparisonChart({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+    <button
+      onClick={onChartClick}
+      className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors cursor-pointer text-left w-full"
+    >
       <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3">{title}</h3>
 
       {isLoading ? (
@@ -362,7 +384,7 @@ function ComparisonChart({
           </div>
         </>
       )}
-    </div>
+    </button>
   );
 }
 
@@ -408,18 +430,18 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
         {language === 'fr' ? 'Métriques clés' : 'Key Metrics'}
       </h3>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm table-fixed">
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-700">
-              <th className="text-left py-2 text-slate-500 font-medium w-[20%]">Metric</th>
-              <th className="text-center py-2 text-orange-500 font-medium w-[40%]">{ticker1}</th>
-              <th className="text-center py-2 text-blue-500 font-medium w-[40%]">{ticker2}</th>
+              <th className="text-left py-2 pr-4 text-slate-500 font-medium w-32 border-r border-slate-200 dark:border-slate-700">Metric</th>
+              <th className="text-center py-2 text-orange-500 font-medium">{ticker1}</th>
+              <th className="text-center py-2 text-blue-500 font-medium">{ticker2}</th>
             </tr>
           </thead>
           <tbody>
             {metrics.map(({ key, label, format }) => (
               <tr key={key} className="border-b border-slate-100 dark:border-slate-700/50">
-                <td className="py-2 text-slate-600 dark:text-slate-400">{label}</td>
+                <td className="py-2 pr-4 text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700">{label}</td>
                 <td className="py-2 text-center font-medium text-slate-900 dark:text-slate-100">
                   {format((data1 as any)?.[key] ?? null)}
                 </td>
@@ -439,6 +461,8 @@ export function ComparisonPanel() {
   const { language } = useLanguage();
   const [ticker1, setTicker1] = useState<string | null>(null);
   const [ticker2, setTicker2] = useState<string | null>(null);
+  const [dataView, setDataView] = useState<DataViewType>('quarterly');
+  const [selectedModal, setSelectedModal] = useState<{ metric: string; title: string } | null>(null);
 
   const bothSelected = ticker1 && ticker2;
 
@@ -492,6 +516,32 @@ export function ComparisonPanel() {
           {/* Key Metrics Table */}
           <MetricsComparison ticker1={ticker1} ticker2={ticker2} />
 
+          {/* Data View Toggle - Centered */}
+          <div className="flex justify-center">
+            <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600">
+              <button
+                onClick={() => setDataView('quarterly')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  dataView === 'quarterly'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                {language === 'fr' ? 'Trimestriel' : 'Quarterly'}
+              </button>
+              <button
+                onClick={() => setDataView('annual')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  dataView === 'annual'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                {language === 'fr' ? 'Annuel' : 'Annual'}
+              </button>
+            </div>
+          </div>
+
           {/* Financial Charts Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {metrics.map(({ metric, title }) => (
@@ -501,6 +551,8 @@ export function ComparisonPanel() {
                 ticker2={ticker2}
                 metric={metric}
                 title={title}
+                dataView={dataView}
+                onChartClick={() => setSelectedModal({ metric, title })}
               />
             ))}
           </div>
@@ -514,6 +566,17 @@ export function ComparisonPanel() {
               : 'Select two stocks to compare their financial metrics'}
           </p>
         </div>
+      )}
+
+      {/* Modal for detailed view - use ticker1 when clicking charts */}
+      {selectedModal && ticker1 && (
+        <FinancialsModal
+          ticker={ticker1}
+          companyName={findStockByTicker(ticker1)?.name || ticker1}
+          metric={selectedModal.metric}
+          metricLabel={selectedModal.title}
+          onClose={() => setSelectedModal(null)}
+        />
       )}
     </div>
   );

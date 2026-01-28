@@ -398,12 +398,12 @@ export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCu
 
   return (
     <div className="space-y-4">
-      {/* Data View Toggle */}
-      <div className="flex justify-end">
+      {/* Data View Toggle - Centered */}
+      <div className="flex justify-center">
         <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600">
           <button
             onClick={() => onDataViewChange('quarterly')}
-            className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
               dataView === 'quarterly'
                 ? 'bg-green-600 text-white'
                 : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
@@ -413,7 +413,7 @@ export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCu
           </button>
           <button
             onClick={() => onDataViewChange('annual')}
-            className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
               dataView === 'annual'
                 ? 'bg-green-600 text-white'
                 : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
