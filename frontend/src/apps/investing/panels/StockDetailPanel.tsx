@@ -550,7 +550,7 @@ export function StockDetailPanel() {
                     </button>
                   </div>
                   {/* Period Selectors */}
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-6">
                     {/* Year selector dropdown */}
                     <select
                       value={chartPeriod.startsWith('Y') ? chartPeriod : ''}
