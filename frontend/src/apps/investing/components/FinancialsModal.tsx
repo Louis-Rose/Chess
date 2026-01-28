@@ -95,12 +95,6 @@ export function FinancialsModal({ ticker, companyName, metric, metricLabel, onCl
   // Determine bar color based on value (positive = orange, negative = red)
   const getBarColor = (value: number) => value >= 0 ? '#f97316' : '#ef4444';
 
-  // Growth rate color
-  const getGrowthColor = (value: number | null) => {
-    if (value === null) return 'text-slate-400';
-    return value >= 0 ? 'text-green-500' : 'text-red-500';
-  };
-
   const formatGrowth = (value: number | null) => {
     if (value === null) return '-';
     return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
@@ -249,27 +243,25 @@ export function FinancialsModal({ ticker, companyName, metric, metricLabel, onCl
 
               {/* Growth Rates */}
               {data?.growth_rates && (
-                <div className="flex justify-center gap-6 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                  <div className="text-center">
-                    <span className={`text-sm font-medium ${getGrowthColor(data.growth_rates['1Y'])}`}>
-                      1Y: {formatGrowth(data.growth_rates['1Y'])}
-                    </span>
-                  </div>
-                  <div className="text-center">
-                    <span className={`text-sm font-medium ${getGrowthColor(data.growth_rates['2Y'])}`}>
-                      2Y: {formatGrowth(data.growth_rates['2Y'])}
-                    </span>
-                  </div>
-                  <div className="text-center">
-                    <span className={`text-sm font-medium ${getGrowthColor(data.growth_rates['5Y'])}`}>
-                      5Y: {formatGrowth(data.growth_rates['5Y'])}
-                    </span>
-                  </div>
-                  <div className="text-center">
-                    <span className={`text-sm font-medium ${getGrowthColor(data.growth_rates['10Y'])}`}>
-                      10Y: {formatGrowth(data.growth_rates['10Y'])}
-                    </span>
-                  </div>
+                <div className="flex justify-center gap-3 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                  {(['1Y', '2Y', '5Y', '10Y'] as const).map((period) => {
+                    const value = data.growth_rates[period];
+                    const isPositive = value !== null && value >= 0;
+                    return (
+                      <div
+                        key={period}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium ${
+                          value === null
+                            ? 'bg-slate-100 dark:bg-slate-700 text-slate-400'
+                            : isPositive
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                            : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                        }`}
+                      >
+                        {period}: {formatGrowth(value)}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </>
