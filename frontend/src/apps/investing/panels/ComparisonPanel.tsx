@@ -812,9 +812,14 @@ function ComparisonModal({
                     </span>
                   </div>
                   {totalGrowth1 && (
-                    <p className={`text-xs ${totalGrowth1.pct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {totalGrowth1.pct >= 0 ? '+' : ''}{totalGrowth1.pct.toFixed(1)}% from {totalGrowth1.from} to {totalGrowth1.to}
-                    </p>
+                    <div className="text-center">
+                      <p className={`text-sm font-medium ${totalGrowth1.pct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {totalGrowth1.pct >= 0 ? '+' : ''}{totalGrowth1.pct.toFixed(1)}%
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        ({totalGrowth1.from} → {totalGrowth1.to})
+                      </p>
+                    </div>
                   )}
                 </div>
                 <div className="w-px bg-slate-300 dark:bg-slate-600" />
@@ -838,9 +843,14 @@ function ComparisonModal({
                     </span>
                   </div>
                   {totalGrowth2 && (
-                    <p className={`text-xs ${totalGrowth2.pct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {totalGrowth2.pct >= 0 ? '+' : ''}{totalGrowth2.pct.toFixed(1)}% from {totalGrowth2.from} to {totalGrowth2.to}
-                    </p>
+                    <div className="text-center">
+                      <p className={`text-sm font-medium ${totalGrowth2.pct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {totalGrowth2.pct >= 0 ? '+' : ''}{totalGrowth2.pct.toFixed(1)}%
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        ({totalGrowth2.from} → {totalGrowth2.to})
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
