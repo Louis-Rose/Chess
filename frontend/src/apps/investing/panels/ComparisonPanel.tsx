@@ -490,15 +490,6 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
 
   const isLoading = loading1 || loading2;
 
-  // Format growth percentage
-  const formatGrowthPct = (v: number | null) => {
-    if (v === null) return null;
-    const pct = v * 100;
-    return { value: pct, display: `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%` };
-  };
-
-  const growth1 = formatGrowthPct(data1?.revenue_growth ?? null);
-  const growth2 = formatGrowthPct(data2?.revenue_growth ?? null);
 
   const metrics = [
     { key: 'market_cap', label: language === 'fr' ? 'Cap. boursière' : 'Market Cap', format: (v: number | null) => formatMarketCap(v) },
@@ -538,11 +529,6 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
                   <span className="text-orange-500 font-medium">{ticker1}</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-normal truncate max-w-[150px]">{stock1?.name}</p>
                 </div>
-                {growth1 && (
-                  <span className={`text-xs font-medium ml-2 ${growth1.value >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {growth1.display}
-                  </span>
-                )}
               </div>
             </th>
             <th className="py-3 px-4">
@@ -552,11 +538,6 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
                   <span className="text-blue-500 font-medium">{ticker2}</span>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-normal truncate max-w-[150px]">{stock2?.name}</p>
                 </div>
-                {growth2 && (
-                  <span className={`text-xs font-medium ml-2 ${growth2.value >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {growth2.display}
-                  </span>
-                )}
               </div>
             </th>
           </tr>
