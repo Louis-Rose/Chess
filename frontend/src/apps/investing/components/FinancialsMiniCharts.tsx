@@ -159,10 +159,12 @@ function MiniChart({ ticker, metric, title, chartType, color, onExpand }: MiniCh
                     backgroundColor: '#1e293b',
                     borderRadius: '6px',
                     border: 'none',
-                    padding: '6px 10px',
-                    fontSize: '11px',
+                    padding: '8px 12px',
+                    fontSize: '12px',
                   }}
-                  labelStyle={{ color: '#94a3b8', marginBottom: '2px' }}
+                  labelStyle={{ color: '#e2e8f0', fontWeight: 500 }}
+                  itemStyle={{ color: '#ffffff' }}
+                  separator=": "
                   formatter={(value) => [formatValue(Number(value), currency), title]}
                 />
                 <Bar dataKey="value" radius={[2, 2, 0, 0]}>
@@ -198,10 +200,12 @@ function MiniChart({ ticker, metric, title, chartType, color, onExpand }: MiniCh
                     backgroundColor: '#1e293b',
                     borderRadius: '6px',
                     border: 'none',
-                    padding: '6px 10px',
-                    fontSize: '11px',
+                    padding: '8px 12px',
+                    fontSize: '12px',
                   }}
-                  labelStyle={{ color: '#94a3b8', marginBottom: '2px' }}
+                  labelStyle={{ color: '#e2e8f0', fontWeight: 500 }}
+                  itemStyle={{ color: '#ffffff' }}
+                  separator=": "
                   formatter={(value) => [formatValue(Number(value), currency), title]}
                 />
                 <Area
@@ -303,10 +307,12 @@ export function PriceMiniChart({ priceData, previousClose, currency, onExpand }:
                 backgroundColor: '#1e293b',
                 borderRadius: '6px',
                 border: 'none',
-                padding: '6px 10px',
-                fontSize: '11px',
+                padding: '8px 12px',
+                fontSize: '12px',
               }}
-              labelStyle={{ color: '#94a3b8', marginBottom: '2px' }}
+              labelStyle={{ color: '#e2e8f0', fontWeight: 500 }}
+              itemStyle={{ color: '#ffffff' }}
+              separator=": "
               labelFormatter={(ts) => new Date(String(ts)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               formatter={(value) => [`${currencySymbol}${Number(value).toFixed(2)}`, 'Price']}
             />

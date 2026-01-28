@@ -38,7 +38,7 @@ interface FinancialsData {
   };
 }
 
-type TimeFilter = 'ALL' | '5Y' | '10Y';
+type TimeFilter = 'ALL' | '10Y' | '5Y' | '3Y' | '1Y';
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: '$',
@@ -81,7 +81,7 @@ export function FinancialsModal({ ticker, companyName, metric, metricLabel, onCl
   const getFilteredData = () => {
     if (!data?.data) return [];
     const now = new Date();
-    const yearsMap: Record<TimeFilter, number> = { 'ALL': 100, '5Y': 5, '10Y': 10 };
+    const yearsMap: Record<TimeFilter, number> = { 'ALL': 100, '10Y': 10, '5Y': 5, '3Y': 3, '1Y': 1 };
     const years = yearsMap[timeFilter];
     const cutoffDate = new Date(now.getFullYear() - years, now.getMonth(), now.getDate());
 
@@ -155,7 +155,7 @@ export function FinancialsModal({ ticker, companyName, metric, metricLabel, onCl
               </button>
               {showFilterDropdown && (
                 <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-700 rounded-lg shadow-lg border border-slate-200 dark:border-slate-600 z-10 overflow-hidden">
-                  {(['ALL', '10Y', '5Y'] as TimeFilter[]).map((filter) => (
+                  {(['ALL', '10Y', '5Y', '3Y', '1Y'] as TimeFilter[]).map((filter) => (
                     <button
                       key={filter}
                       onClick={() => {
@@ -230,7 +230,9 @@ export function FinancialsModal({ ticker, companyName, metric, metricLabel, onCl
                         border: 'none',
                         padding: '8px 12px',
                       }}
-                      labelStyle={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}
+                      labelStyle={{ color: '#e2e8f0', fontSize: '12px', fontWeight: 500 }}
+                      itemStyle={{ color: '#ffffff' }}
+                      separator=": "
                       formatter={(value) => [formatValue(Number(value), currency), metricLabel]}
                       labelFormatter={(label) => label}
                     />
