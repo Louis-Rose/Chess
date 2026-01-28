@@ -327,6 +327,7 @@ function ComparisonChart({
                   width={50}
                 />
                 <Tooltip
+                  cursor={{ fill: 'transparent' }}
                   contentStyle={{ backgroundColor: '#1e293b', borderRadius: '6px', border: 'none', padding: '8px', fontSize: '11px' }}
                   formatter={(value, name) => [formatValue(Number(value), currency), name === 'value1' ? ticker1 : ticker2]}
                 />
