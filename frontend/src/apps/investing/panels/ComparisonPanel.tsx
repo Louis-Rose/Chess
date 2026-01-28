@@ -74,18 +74,23 @@ function StockSelector({
   selectedTicker,
   onSelect,
   label,
-  otherTicker
+  otherTicker,
+  position,
+  onSwap
 }: {
   selectedTicker: string | null;
   onSelect: (ticker: string) => void;
   label: string;
   otherTicker: string | null;
+  position: 'left' | 'right';
+  onSwap: () => void;
 }) {
   const { language } = useLanguage();
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [recentStocks, setRecentStocks] = useState<string[]>(() => getRecentStocks(user?.id));
+  const [isDragOver, setIsDragOver] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const results = query.length >= 1 ? searchAllStocks(query).filter((s: Stock) => s.ticker !== otherTicker).slice(0, 8) : [];
@@ -113,11 +118,44 @@ function StockSelector({
     setIsOpen(false);
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('text/plain', position);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const fromPosition = e.dataTransfer.getData('text/plain');
+    if (fromPosition !== position) {
+      onSwap();
+    }
+  };
+
   return (
     <div className="flex-1">
       <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">{label}</label>
       {selectedTicker ? (
-        <div className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg border-2 border-green-500">
+        <div
+          draggable
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg border-2 cursor-grab active:cursor-grabbing transition-all ${
+            isDragOver ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-green-500'
+          }`}
+        >
           <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-600 flex items-center justify-center overflow-hidden">
             {logoUrl ? (
               <img src={logoUrl} alt={selectedTicker} className="w-8 h-8 object-contain" />
@@ -803,6 +841,8 @@ export function ComparisonPanel() {
             onSelect={(t) => setTicker1(t || null)}
             label={language === 'fr' ? 'Première action' : 'First Stock'}
             otherTicker={ticker2}
+            position="left"
+            onSwap={() => { setTicker1(ticker2); setTicker2(ticker1); }}
           />
           <div className="flex items-center justify-center">
             <span className="text-2xl font-bold text-slate-300 dark:text-slate-500">VS</span>
@@ -812,6 +852,8 @@ export function ComparisonPanel() {
             onSelect={(t) => setTicker2(t || null)}
             label={language === 'fr' ? 'Deuxième action' : 'Second Stock'}
             otherTicker={ticker1}
+            position="right"
+            onSwap={() => { setTicker1(ticker2); setTicker2(ticker1); }}
           />
         </div>
       </div>
