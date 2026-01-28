@@ -2762,7 +2762,7 @@ def get_market_cap():
                 'currency': currency,
                 'trailing_pe': info.get('trailingPE'),
                 'forward_pe': info.get('forwardPE'),
-                'dividend_yield': info.get('dividendYield'),
+                'dividend_yield': info.get('trailingAnnualDividendYield') or info.get('dividendYield'),
                 'beta': info.get('beta'),
                 'price_to_book': info.get('priceToBook'),
                 'trailing_eps': info.get('trailingEps'),

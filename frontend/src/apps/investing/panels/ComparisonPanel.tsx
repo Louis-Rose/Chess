@@ -1,7 +1,7 @@
 // Stocks Comparison Panel - Compare two stocks side by side
 
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Search, X, Loader2, TrendingUp, Eye, Maximize2 } from 'lucide-react';
@@ -867,10 +867,30 @@ function ComparisonModal({
 
 export function ComparisonPanel() {
   const { language } = useLanguage();
-  const [ticker1, setTicker1] = useState<string | null>(null);
-  const [ticker2, setTicker2] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Initialize from URL params
+  const [ticker1, setTicker1Internal] = useState<string | null>(() => searchParams.get('t1'));
+  const [ticker2, setTicker2Internal] = useState<string | null>(() => searchParams.get('t2'));
   const [dataView, setDataView] = useState<DataViewType>('quarterly');
   const [selectedModal, setSelectedModal] = useState<{ metric: string; title: string } | null>(null);
+
+  // Sync state with URL params
+  const setTicker1 = (ticker: string | null) => {
+    setTicker1Internal(ticker);
+    const newParams = new URLSearchParams(searchParams);
+    if (ticker) newParams.set('t1', ticker);
+    else newParams.delete('t1');
+    setSearchParams(newParams, { replace: true });
+  };
+
+  const setTicker2 = (ticker: string | null) => {
+    setTicker2Internal(ticker);
+    const newParams = new URLSearchParams(searchParams);
+    if (ticker) newParams.set('t2', ticker);
+    else newParams.delete('t2');
+    setSearchParams(newParams, { replace: true });
+  };
 
   const bothSelected = ticker1 && ticker2;
 
