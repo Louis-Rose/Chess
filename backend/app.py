@@ -3012,7 +3012,7 @@ def get_financials_history(ticker):
             'ticker': ticker,
             'company_name': company_name,
             'metric': metric,
-            'metric_label': yf_metric,
+            'metric_label': metric_variations[0] if metric_variations else metric,
             'currency': currency,
             'data': data_points,
             'growth_rates': growth_rates,
