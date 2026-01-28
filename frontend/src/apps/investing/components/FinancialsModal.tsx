@@ -231,7 +231,7 @@ export function FinancialsModal({ ticker, companyName, metric, metricLabel, onCl
                         padding: '8px 12px',
                       }}
                       labelStyle={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}
-                      formatter={(value: number) => [formatValue(value, currency), metricLabel]}
+                      formatter={(value) => [formatValue(Number(value), currency), metricLabel]}
                       labelFormatter={(label) => label}
                     />
                     <Bar dataKey="value" radius={[2, 2, 0, 0]}>
