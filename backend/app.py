@@ -2922,8 +2922,12 @@ def get_financials_history(ticker):
 
         # Debug logging
         print(f"[Financials] Ticker: {yf_ticker}, Metric: {metric}, Looking for: {metric_variations}")
+        print(f"[Financials] Quarterly data available: {quarterly is not None and not quarterly.empty}")
+        print(f"[Financials] Annual data available: {annual is not None and not annual.empty}")
         if quarterly is not None and not quarterly.empty:
             print(f"[Financials] Quarterly index (ALL): {list(quarterly.index)}")
+        if annual is not None and not annual.empty:
+            print(f"[Financials] Annual index (ALL): {list(annual.index)}")
 
         data_points = []
 

@@ -80,26 +80,50 @@ function MiniChart({ ticker, metric, title, chartType, color, onExpand }: MiniCh
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
 
-  // Filter to last 3 years of quarterly data
+  // Filter to last 3 years of data - prefer quarterly, fallback to annual
   const getFilteredData = () => {
     if (!data?.data) return [];
     const now = new Date();
     const cutoff = new Date(now.getFullYear() - 3, now.getMonth(), 1);
-    return data.data
+
+    // Try quarterly data first
+    const quarterlyData = data.data
       .filter(d => new Date(d.date) >= cutoff && d.type === 'quarterly')
-      .slice(-12); // Last 12 quarters max
+      .slice(-12);
+
+    if (quarterlyData.length > 0) return quarterlyData;
+
+    // Fall back to annual data for stocks without quarterly data (e.g., European stocks)
+    const annualCutoff = new Date(now.getFullYear() - 10, 0, 1);
+    return data.data
+      .filter(d => new Date(d.date) >= annualCutoff && d.type === 'annual')
+      .slice(-10);
   };
 
   const chartData = getFilteredData();
   const currency = data?.currency || 'USD';
 
-  // Calculate TTM change
+  // Calculate YoY or TTM change depending on data type
   const getTTMChange = () => {
-    if (!chartData || chartData.length < 5) return null;
-    const currentTTM = chartData.slice(-4).reduce((sum, d) => sum + d.value, 0);
-    const previousTTM = chartData.slice(-8, -4).reduce((sum, d) => sum + d.value, 0);
-    if (previousTTM === 0) return null;
-    return ((currentTTM - previousTTM) / Math.abs(previousTTM)) * 100;
+    if (!chartData || chartData.length < 2) return null;
+
+    // Check if we have quarterly or annual data
+    const isQuarterly = chartData[0]?.type === 'quarterly';
+
+    if (isQuarterly && chartData.length >= 8) {
+      // TTM calculation for quarterly data
+      const currentTTM = chartData.slice(-4).reduce((sum, d) => sum + d.value, 0);
+      const previousTTM = chartData.slice(-8, -4).reduce((sum, d) => sum + d.value, 0);
+      if (previousTTM === 0) return null;
+      return ((currentTTM - previousTTM) / Math.abs(previousTTM)) * 100;
+    } else if (chartData.length >= 2) {
+      // YoY calculation for annual data or limited quarterly data
+      const current = chartData[chartData.length - 1].value;
+      const previous = chartData[chartData.length - 2].value;
+      if (previous === 0) return null;
+      return ((current - previous) / Math.abs(previous)) * 100;
+    }
+    return null;
   };
 
   const ttmChange = getTTMChange();
