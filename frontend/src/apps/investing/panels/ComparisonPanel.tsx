@@ -454,7 +454,7 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-700">
               <th className="text-left py-2 pr-4 text-slate-500 font-medium w-32 border-r border-slate-200 dark:border-slate-700">Metric</th>
-              <th className="text-center py-2 text-orange-500 font-medium">{ticker1}</th>
+              <th className="text-center py-2 text-orange-500 font-medium border-r border-slate-200 dark:border-slate-700">{ticker1}</th>
               <th className="text-center py-2 text-blue-500 font-medium">{ticker2}</th>
             </tr>
           </thead>
@@ -462,7 +462,7 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
             {metrics.map(({ key, label, format }) => (
               <tr key={key} className="border-b border-slate-100 dark:border-slate-700/50">
                 <td className="py-2 pr-4 text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700">{label}</td>
-                <td className="py-2 text-center font-medium text-slate-900 dark:text-slate-100">
+                <td className="py-2 text-center font-medium text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-700">
                   {format((data1 as any)?.[key] ?? null)}
                 </td>
                 <td className="py-2 text-center font-medium text-slate-900 dark:text-slate-100">
