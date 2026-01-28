@@ -368,9 +368,9 @@ export function StockDetailPanel() {
           <span>{language === 'fr' ? 'Retour' : 'Back'}</span>
         </button>
 
-        {/* Search Bar with Title */}
+        {/* Title and Currency Toggle */}
         <div className="max-w-3xl mx-auto">
-          <div className="flex flex-col items-center gap-2 mb-4">
+          <div className="flex flex-col items-center gap-2">
             <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
               {language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}
             </h2>
@@ -401,11 +401,15 @@ export function StockDetailPanel() {
               </button>
             </div>
           </div>
-          <StockSearchBar />
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto space-y-6 mt-6">
+      {/* Search Bar - not sticky */}
+      <div className="max-w-3xl mx-auto my-6">
+        <StockSearchBar />
+      </div>
+
+      <div className="max-w-3xl mx-auto space-y-6">
         {/* Stock Header */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <div className="flex items-start gap-4">
