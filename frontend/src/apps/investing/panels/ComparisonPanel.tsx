@@ -683,19 +683,19 @@ function ComparisonModal({
                 </ResponsiveContainer>
               </div>
 
-              {/* CAGR comparison */}
+              {/* Growth rates comparison */}
               <div className="flex justify-center gap-12 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                 <div className="text-center">
                   <p className="text-sm text-orange-500 font-medium mb-2">{ticker1}</p>
                   <div className="flex gap-4">
                     <span className={`text-sm ${getGrowthColor(cagr1Y_1)}`}>
-                      1Y CAGR: {formatGrowth(cagr1Y_1)}
+                      1Y: {formatGrowth(cagr1Y_1)}
                     </span>
                     <span className={`text-sm ${getGrowthColor(cagr3Y_1)}`}>
-                      3Y CAGR: {formatGrowth(cagr3Y_1)}
+                      3Y: {formatGrowth(cagr3Y_1)}
                     </span>
                     <span className={`text-sm ${getGrowthColor(cagr5Y_1)}`}>
-                      5Y CAGR: {formatGrowth(cagr5Y_1)}
+                      5Y: {formatGrowth(cagr5Y_1)}
                     </span>
                   </div>
                 </div>
@@ -704,13 +704,13 @@ function ComparisonModal({
                   <p className="text-sm text-blue-500 font-medium mb-2">{ticker2}</p>
                   <div className="flex gap-4">
                     <span className={`text-sm ${getGrowthColor(cagr1Y_2)}`}>
-                      1Y CAGR: {formatGrowth(cagr1Y_2)}
+                      1Y: {formatGrowth(cagr1Y_2)}
                     </span>
                     <span className={`text-sm ${getGrowthColor(cagr3Y_2)}`}>
-                      3Y CAGR: {formatGrowth(cagr3Y_2)}
+                      3Y: {formatGrowth(cagr3Y_2)}
                     </span>
                     <span className={`text-sm ${getGrowthColor(cagr5Y_2)}`}>
-                      5Y CAGR: {formatGrowth(cagr5Y_2)}
+                      5Y: {formatGrowth(cagr5Y_2)}
                     </span>
                   </div>
                 </div>
