@@ -531,20 +531,7 @@ export function StockDetailPanel() {
                     </h3>
                   </div>
                   {/* Period Selectors */}
-                  <div className="flex gap-1 items-center">
-                    {(['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'MAX'] as ChartPeriod[]).map((period) => (
-                      <button
-                        key={period}
-                        onClick={() => setChartPeriod(period)}
-                        className={`px-2 py-1 text-xs rounded transition-colors ${
-                          chartPeriod === period
-                            ? 'bg-green-600 text-white font-medium'
-                            : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                        }`}
-                      >
-                        {period}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-4">
                     {/* Year selector dropdown */}
                     <select
                       value={chartPeriod.startsWith('Y') ? chartPeriod : ''}
@@ -553,10 +540,10 @@ export function StockDetailPanel() {
                           setChartPeriod(e.target.value as ChartPeriod);
                         }
                       }}
-                      className={`px-1 py-1 text-xs rounded transition-colors bg-transparent border-none cursor-pointer ${
+                      className={`px-2 py-1 text-xs rounded transition-colors cursor-pointer ${
                         chartPeriod.startsWith('Y')
                           ? 'bg-green-600 text-white font-medium'
-                          : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                          : 'bg-slate-700 text-slate-400 hover:text-white hover:bg-slate-600'
                       }`}
                     >
                       <option value="" disabled className="bg-slate-800 text-slate-400">
@@ -568,6 +555,22 @@ export function StockDetailPanel() {
                         </option>
                       ))}
                     </select>
+                    {/* Period buttons */}
+                    <div className="flex gap-1">
+                      {(['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'MAX'] as ChartPeriod[]).map((period) => (
+                        <button
+                          key={period}
+                          onClick={() => setChartPeriod(period)}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            chartPeriod === period
+                              ? 'bg-green-600 text-white font-medium'
+                              : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                          }`}
+                        >
+                          {period}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
