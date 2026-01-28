@@ -322,7 +322,7 @@ export function StockDetailPanel() {
         </button>
 
         {/* Currency Toggle - centered */}
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="flex justify-center">
             <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-white/20">
               <button
@@ -350,7 +350,7 @@ export function StockDetailPanel() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto space-y-6 mt-6">
+      <div className="max-w-5xl mx-auto space-y-6 mt-6">
         {/* Stock Header */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <div className="flex items-start gap-4">

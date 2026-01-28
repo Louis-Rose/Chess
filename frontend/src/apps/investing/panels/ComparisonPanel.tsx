@@ -453,7 +453,7 @@ export function ComparisonPanel() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-6 text-center max-w-xl mx-auto">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
           {language === 'fr' ? 'Comparaison d\'actions' : 'Stocks Comparison'}
         </h1>
