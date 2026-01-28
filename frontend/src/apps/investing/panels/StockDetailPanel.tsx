@@ -757,7 +757,7 @@ export function StockDetailPanel() {
                               fillOpacity={0.2}
                             />
                           )}
-                          {showPrevClose && stockHistoryData.previous_close && !zoomRange && (
+                          {showPrevClose && stockHistoryData.previous_close && (
                             <ReferenceLine
                               y={stockHistoryData.previous_close}
                               stroke="#64748b"
