@@ -2896,13 +2896,15 @@ def get_financials_history(ticker):
     metric = request.args.get('metric', 'NetIncome')  # Default metric
 
     # Map frontend metric names to possible yfinance column names (try multiple variations)
+    # Note: yfinance uses specific names like 'Net Income From Continuing Operation Net Minority Interest'
     METRIC_MAP = {
-        'NetIncome': ['Net Income', 'Net Income Common Stockholders', 'Net Income From Continuing Operations'],
-        'Revenue': ['Total Revenue', 'Revenue', 'Operating Revenue'],
-        'GrossProfit': ['Gross Profit'],
-        'OperatingIncome': ['Operating Income', 'Operating Income Loss'],
+        'NetIncome': ['Net Income', 'Net Income Common Stockholders', 'Net Income From Continuing Operations',
+                      'Net Income From Continuing Operation Net Minority Interest', 'Net Income Including Noncontrolling Interests'],
+        'Revenue': ['Total Revenue', 'Revenue', 'Operating Revenue', 'Total Operating Income As Reported'],
+        'GrossProfit': ['Gross Profit', 'Gross Margin'],
+        'OperatingIncome': ['Operating Income', 'Operating Income Loss', 'EBIT', 'Operating Income/Loss'],
         'EBITDA': ['EBITDA', 'Normalized EBITDA'],
-        'EPS': ['Basic EPS', 'Diluted EPS'],
+        'EPS': ['Basic EPS', 'Diluted EPS', 'Basic Earnings Per Share', 'Diluted Earnings Per Share'],
     }
 
     metric_variations = METRIC_MAP.get(metric, [metric])
@@ -2918,13 +2920,9 @@ def get_financials_history(ticker):
         annual = stock.income_stmt
 
         # Debug logging
-        print(f"[Financials] Ticker: {yf_ticker}, Metric: {metric}")
-        print(f"[Financials] Quarterly data shape: {quarterly.shape if quarterly is not None and not quarterly.empty else 'empty'}")
-        print(f"[Financials] Annual data shape: {annual.shape if annual is not None and not annual.empty else 'empty'}")
+        print(f"[Financials] Ticker: {yf_ticker}, Metric: {metric}, Looking for: {metric_variations}")
         if quarterly is not None and not quarterly.empty:
-            print(f"[Financials] Quarterly index (first 10): {list(quarterly.index)[:10]}")
-        if annual is not None and not annual.empty:
-            print(f"[Financials] Annual index (first 10): {list(annual.index)[:10]}")
+            print(f"[Financials] Quarterly index (ALL): {list(quarterly.index)}")
 
         data_points = []
 
