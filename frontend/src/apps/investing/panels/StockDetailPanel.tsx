@@ -1,11 +1,11 @@
 // Stock detail panel - view individual stock info and price chart
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowLeft, Loader2, TrendingUp, ExternalLink, MessageSquare, Send, ChevronDown, ChevronUp, Youtube, Calendar, RefreshCw, X } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { ArrowLeft, Loader2, TrendingUp, ExternalLink, MessageSquare, Send, ChevronDown, ChevronUp, Youtube, Calendar, RefreshCw, X, ZoomOut } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { findStockByTicker } from '../utils/allStocks';
@@ -208,6 +208,17 @@ export function StockDetailPanel() {
   const [newsFeedExpanded, setNewsFeedExpanded] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [question, setQuestion] = useState('');
+
+  // Drag-to-zoom state for price chart
+  const [zoomRange, setZoomRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
+  const [dragStart, setDragStart] = useState<string | null>(null);
+  const [dragEnd, setDragEnd] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Reset zoom when period changes
+  useEffect(() => {
+    setZoomRange(null);
+  }, [chartPeriod]);
 
   // Use TSLA as preview ticker when not authenticated
   const upperTicker = isAuthenticated ? (ticker?.toUpperCase() || '') : 'TSLA';
@@ -538,78 +549,190 @@ export function StockDetailPanel() {
                   <div className="h-[250px] flex items-center justify-center">
                     <Loader2 className="w-8 h-8 animate-spin text-green-500" />
                   </div>
-                ) : stockHistoryData?.data && stockHistoryData.data.length > 0 ? (
-                  <div className="h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={stockHistoryData.data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                        <XAxis
-                          dataKey="timestamp"
-                          tick={{ fontSize: 10, fill: '#94a3b8' }}
-                          tickFormatter={(ts) => {
-                            const d = new Date(ts);
-                            if (chartPeriod === '1D') {
-                              return d.toLocaleTimeString(language === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
-                            }
-                            if (chartPeriod === '5D') {
-                              return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'short' });
-                            }
-                            return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
-                          }}
-                          stroke="#475569"
-                          axisLine={{ stroke: '#475569' }}
-                          tickLine={{ stroke: '#475569' }}
-                        />
-                        <YAxis
-                          domain={['auto', 'auto']}
-                          tick={{ fontSize: 10, fill: '#94a3b8' }}
-                          stroke="#475569"
-                          axisLine={{ stroke: '#475569' }}
-                          tickLine={{ stroke: '#475569' }}
-                          tickFormatter={(val) => val.toFixed(0)}
-                          width={45}
-                        />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #475569', padding: '8px 12px' }}
-                          labelStyle={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}
-                          labelFormatter={(ts) => {
-                            const d = new Date(String(ts));
-                            if (chartPeriod === '1D' || chartPeriod === '5D') {
-                              return d.toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-                              });
-                            }
-                            return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
-                              day: 'numeric', month: 'long', year: 'numeric'
-                            });
-                          }}
-                          formatter={(value) => [`${currencySymbol}${Number(value).toFixed(2)}`, null]}
-                          separator=""
-                        />
-                        {stockHistoryData.previous_close && (
-                          <ReferenceLine
-                            y={stockHistoryData.previous_close}
-                            stroke="#64748b"
-                            strokeDasharray="4 4"
-                            label={{
-                              value: 'P',
-                              position: 'right',
-                              fill: '#64748b',
-                              fontSize: 10,
-                            }}
+                ) : stockHistoryData?.data && stockHistoryData.data.length > 0 ? (() => {
+                  // Apply zoom if set
+                  const fullData = stockHistoryData.data;
+                  const displayData = zoomRange
+                    ? fullData.slice(zoomRange.startIndex, zoomRange.endIndex + 1)
+                    : fullData;
+
+                  // Calculate range in days to determine tick format
+                  const rangeDays = displayData.length > 1
+                    ? Math.ceil((new Date(displayData[displayData.length - 1].timestamp).getTime() -
+                        new Date(displayData[0].timestamp).getTime()) / (1000 * 60 * 60 * 24))
+                    : 1;
+
+                  // Determine tick format based on zoom level
+                  const getTickFormatter = () => {
+                    if (chartPeriod === '1D') {
+                      return (ts: string) => {
+                        const d = new Date(ts);
+                        return d.toLocaleTimeString(language === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+                      };
+                    }
+                    if (chartPeriod === '5D' && !zoomRange) {
+                      return (ts: string) => {
+                        const d = new Date(ts);
+                        return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'short' });
+                      };
+                    }
+                    // When zoomed in enough, show daily dates
+                    if (rangeDays <= 14) {
+                      return (ts: string) => {
+                        const d = new Date(ts);
+                        return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
+                      };
+                    }
+                    if (rangeDays <= 60) {
+                      return (ts: string) => {
+                        const d = new Date(ts);
+                        return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
+                      };
+                    }
+                    return (ts: string) => {
+                      const d = new Date(ts);
+                      return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
+                    };
+                  };
+
+                  // Handle drag events
+                  const handleMouseDown = (e: { activeLabel?: string }) => {
+                    if (e.activeLabel) {
+                      setDragStart(e.activeLabel);
+                      setDragEnd(e.activeLabel);
+                      setIsDragging(true);
+                    }
+                  };
+
+                  const handleMouseMove = (e: { activeLabel?: string }) => {
+                    if (isDragging && e.activeLabel) {
+                      setDragEnd(e.activeLabel);
+                    }
+                  };
+
+                  const handleMouseUp = () => {
+                    if (isDragging && dragStart && dragEnd && dragStart !== dragEnd) {
+                      // Find indices in displayData
+                      const startIdx = displayData.findIndex(d => d.timestamp === dragStart);
+                      const endIdx = displayData.findIndex(d => d.timestamp === dragEnd);
+
+                      if (startIdx !== -1 && endIdx !== -1) {
+                        const minIdx = Math.min(startIdx, endIdx);
+                        const maxIdx = Math.max(startIdx, endIdx);
+
+                        // Only zoom if selection is at least 2 data points
+                        if (maxIdx - minIdx >= 1) {
+                          // Convert to full data indices if we're already zoomed
+                          const baseStartIdx = zoomRange ? zoomRange.startIndex : 0;
+                          setZoomRange({
+                            startIndex: baseStartIdx + minIdx,
+                            endIndex: baseStartIdx + maxIdx
+                          });
+                        }
+                      }
+                    }
+                    setIsDragging(false);
+                    setDragStart(null);
+                    setDragEnd(null);
+                  };
+
+                  return (
+                    <div className="h-[250px] relative">
+                      {/* Reset zoom button */}
+                      {zoomRange && (
+                        <button
+                          onClick={() => setZoomRange(null)}
+                          className="absolute top-0 right-0 z-10 flex items-center gap-1 px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors"
+                        >
+                          <ZoomOut className="w-3 h-3" />
+                          {language === 'fr' ? 'Réinitialiser' : 'Reset zoom'}
+                        </button>
+                      )}
+                      {/* Zoom hint */}
+                      {!zoomRange && displayData.length > 10 && (
+                        <div className="absolute top-0 right-0 z-10 text-[10px] text-slate-500 italic px-2">
+                          {language === 'fr' ? '💡 Glissez pour zoomer' : '💡 Drag to zoom'}
+                        </div>
+                      )}
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={displayData}
+                          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                          onMouseDown={handleMouseDown}
+                          onMouseMove={handleMouseMove}
+                          onMouseUp={handleMouseUp}
+                          onMouseLeave={handleMouseUp}
+                        >
+                          <XAxis
+                            dataKey="timestamp"
+                            tick={{ fontSize: 10, fill: '#94a3b8' }}
+                            tickFormatter={getTickFormatter()}
+                            stroke="#475569"
+                            axisLine={{ stroke: '#475569' }}
+                            tickLine={{ stroke: '#475569' }}
                           />
-                        )}
-                        <Line
-                          type="monotone"
-                          dataKey="price"
-                          stroke="#22c55e"
-                          strokeWidth={2}
-                          dot={false}
-                          activeDot={{ r: 4, fill: '#22c55e' }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
+                          <YAxis
+                            domain={['auto', 'auto']}
+                            tick={{ fontSize: 10, fill: '#94a3b8' }}
+                            stroke="#475569"
+                            axisLine={{ stroke: '#475569' }}
+                            tickLine={{ stroke: '#475569' }}
+                            tickFormatter={(val) => val.toFixed(0)}
+                            width={45}
+                          />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #475569', padding: '8px 12px' }}
+                            labelStyle={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}
+                            labelFormatter={(ts) => {
+                              const d = new Date(String(ts));
+                              if (chartPeriod === '1D' || chartPeriod === '5D') {
+                                return d.toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                                  day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                                });
+                              }
+                              return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                                day: 'numeric', month: 'long', year: 'numeric'
+                              });
+                            }}
+                            formatter={(value) => [`${currencySymbol}${Number(value).toFixed(2)}`, null]}
+                            separator=""
+                          />
+                          {/* Drag selection area */}
+                          {isDragging && dragStart && dragEnd && (
+                            <ReferenceArea
+                              x1={dragStart}
+                              x2={dragEnd}
+                              strokeOpacity={0.3}
+                              fill="#22c55e"
+                              fillOpacity={0.2}
+                            />
+                          )}
+                          {stockHistoryData.previous_close && !zoomRange && (
+                            <ReferenceLine
+                              y={stockHistoryData.previous_close}
+                              stroke="#64748b"
+                              strokeDasharray="4 4"
+                              label={{
+                                value: 'P',
+                                position: 'right',
+                                fill: '#64748b',
+                                fontSize: 10,
+                              }}
+                            />
+                          )}
+                          <Line
+                            type="monotone"
+                            dataKey="price"
+                            stroke="#22c55e"
+                            strokeWidth={2}
+                            dot={rangeDays <= 30 && displayData.length <= 60}
+                            activeDot={{ r: 4, fill: '#22c55e' }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  );
+                })() : (
                   <div className="h-[250px] flex items-center justify-center text-slate-400">
                     {language === 'fr' ? 'Aucune donnée disponible' : 'No data available'}
                   </div>

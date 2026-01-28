@@ -104,6 +104,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
   // Track if hovering on Portfolio line in tooltip to show stock breakdown
   const [showStockBreakdown, setShowStockBreakdown] = useState(false);
+  // Track if breakdown was pinned by click (vs just hovering)
+  const [stockBreakdownPinned, setStockBreakdownPinned] = useState(false);
 
   // Helper to render tooltip content (used by both hover and pinned tooltips)
   const renderTooltipContent = (
@@ -209,10 +211,27 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
         </p>
         <div
           style={{ position: 'relative' }}
-          onMouseEnter={() => setShowStockBreakdown(true)}
+          onMouseEnter={() => {
+            if (!stockBreakdownPinned) {
+              setShowStockBreakdown(true);
+            }
+          }}
+          onMouseLeave={() => {
+            if (!stockBreakdownPinned) {
+              setShowStockBreakdown(false);
+            }
+          }}
           onClick={(e) => {
             e.stopPropagation();
-            setShowStockBreakdown(!showStockBreakdown);
+            if (stockBreakdownPinned) {
+              // Already pinned, unpin and close
+              setStockBreakdownPinned(false);
+              setShowStockBreakdown(false);
+            } else {
+              // Pin it open
+              setStockBreakdownPinned(true);
+              setShowStockBreakdown(true);
+            }
           }}
         >
           <p style={{ color: greenColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold', cursor: 'pointer' }}>
@@ -1199,6 +1218,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                           if (pinnedTooltipData && pinnedTooltipData.label === label) {
                             setPinnedTooltipData(null);
                             setShowStockBreakdown(false);
+                            setStockBreakdownPinned(false);
                           } else {
                             setPinnedTooltipData({ data: clickedData, label: label, x: coord?.x ?? 100, y: coord?.y ?? 50, dataIndex: index });
                           }
@@ -1439,10 +1459,12 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       () => {
                         setPinnedTooltipData(null);
                         setShowStockBreakdown(false);
+                        setStockBreakdownPinned(false);
                       },
                       () => {
                         setPinnedTooltipData(null);
                         setShowStockBreakdown(false);
+                        setStockBreakdownPinned(false);
                       },
                       pinnedTooltipData.dataIndex,
                       chartData
