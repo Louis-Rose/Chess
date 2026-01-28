@@ -414,8 +414,9 @@ function ComparisonChart({
                   formatter={(value, name) => [formatValue(Number(value), currency), name === 'value1' ? ticker1 : ticker2]}
                 />
                 <Legend
-                  formatter={(value) => value === 'value1' ? ticker1 : ticker2}
-                  wrapperStyle={{ fontSize: '11px' }}
+                  formatter={(value) => <span style={{ marginRight: '20px' }}>{value === 'value1' ? ticker1 : ticker2}</span>}
+                  wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
+                  iconSize={10}
                 />
                 <Bar dataKey="value1" fill="#f97316" name="value1" radius={[2, 2, 0, 0]} />
                 <Bar dataKey="value2" fill="#3b82f6" name="value2" radius={[2, 2, 0, 0]} />
@@ -500,10 +501,15 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm table-fixed">
+        <colgroup>
+          <col className="w-32" />
+          <col className="w-1/2" />
+          <col className="w-1/2" />
+        </colgroup>
         <thead>
           <tr className="border-b border-slate-200 dark:border-slate-700">
-            <th className="text-left py-3 px-4 text-white font-semibold w-36 border-r border-slate-200 dark:border-slate-700 bg-slate-700 dark:bg-slate-700">
+            <th className="text-left py-3 px-4 text-white font-semibold border-r border-slate-200 dark:border-slate-700 bg-slate-700 dark:bg-slate-700">
               {language === 'fr' ? 'Métriques clés' : 'Key Metrics'}
             </th>
             <th className="py-3 px-4 border-r border-slate-200 dark:border-slate-700">
@@ -751,7 +757,7 @@ function ComparisonModal({
                       contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: 'none', padding: '8px 12px' }}
                       formatter={(value, name) => [formatValue(Number(value), currency), name === 'value1' ? ticker1 : ticker2]}
                     />
-                    <Legend formatter={(value) => value === 'value1' ? ticker1 : ticker2} />
+                    <Legend formatter={(value) => <span style={{ marginRight: '24px' }}>{value === 'value1' ? ticker1 : ticker2}</span>} wrapperStyle={{ paddingTop: '10px' }} iconSize={12} />
                     <Bar dataKey="value1" fill="#f97316" name="value1" radius={[2, 2, 0, 0]} />
                     <Bar dataKey="value2" fill="#3b82f6" name="value2" radius={[2, 2, 0, 0]} />
                   </BarChart>
