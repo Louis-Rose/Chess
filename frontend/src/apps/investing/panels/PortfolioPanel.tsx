@@ -948,11 +948,16 @@ export function PortfolioPanel() {
             }
 
             const PRIVATE_COST_BASIS = 10000;
-            const actualCostBasis = currency === 'EUR' ? filteredCostBasis : filteredCostBasis;
+            const eurusdRate = compositionData.eurusd_rate || 1;
+            const actualCostBasis = currency === 'EUR' ? filteredCostBasis : filteredCostBasis * eurusdRate;
             const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;
 
-            const displayCostBasis = privateMode ? PRIVATE_COST_BASIS : filteredCostBasis;
-            const displayTotalValue = filteredTotalValue * scaleFactor;
+            // Convert to display currency
+            const costBasisInCurrency = currency === 'EUR' ? filteredCostBasis : filteredCostBasis * eurusdRate;
+            const totalValueInCurrency = currency === 'EUR' ? filteredTotalValue : filteredTotalValue * eurusdRate;
+
+            const displayCostBasis = privateMode ? PRIVATE_COST_BASIS : costBasisInCurrency;
+            const displayTotalValue = totalValueInCurrency * scaleFactor;
 
             const unrealizedGainEur = filteredTotalValue - filteredCostBasis;
             const unrealizedGainPctEur = filteredCostBasis > 0

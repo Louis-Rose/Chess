@@ -800,7 +800,17 @@ function ComparisonModal({
                       <p className="text-xs text-slate-400">{findStockByTicker(ticker1)?.name}</p>
                     </div>
                   </div>
-                  <div className="flex gap-4 mb-2">
+                  {totalGrowth1 && (
+                    <div className="text-center mb-2">
+                      <p className="text-xs text-slate-400 mb-0.5">
+                        ({totalGrowth1.from} → {totalGrowth1.to})
+                      </p>
+                      <p className={`text-sm font-medium ${totalGrowth1.pct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {totalGrowth1.pct >= 0 ? '+' : ''}{totalGrowth1.pct.toFixed(1)}%
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex gap-4">
                     <span className={`text-sm ${getGrowthColor(cagr1Y_1)}`}>
                       1Y: {formatGrowth(cagr1Y_1)}
                     </span>
@@ -811,16 +821,6 @@ function ComparisonModal({
                       5Y: {formatGrowth(cagr5Y_1)}
                     </span>
                   </div>
-                  {totalGrowth1 && (
-                    <div className="text-center">
-                      <p className={`text-sm font-medium ${totalGrowth1.pct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {totalGrowth1.pct >= 0 ? '+' : ''}{totalGrowth1.pct.toFixed(1)}%
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        ({totalGrowth1.from} → {totalGrowth1.to})
-                      </p>
-                    </div>
-                  )}
                 </div>
                 <div className="w-px bg-slate-300 dark:bg-slate-600" />
                 <div className="text-center">
@@ -831,7 +831,17 @@ function ComparisonModal({
                       <p className="text-xs text-slate-400">{findStockByTicker(ticker2)?.name}</p>
                     </div>
                   </div>
-                  <div className="flex gap-4 mb-2">
+                  {totalGrowth2 && (
+                    <div className="text-center mb-2">
+                      <p className="text-xs text-slate-400 mb-0.5">
+                        ({totalGrowth2.from} → {totalGrowth2.to})
+                      </p>
+                      <p className={`text-sm font-medium ${totalGrowth2.pct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {totalGrowth2.pct >= 0 ? '+' : ''}{totalGrowth2.pct.toFixed(1)}%
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex gap-4">
                     <span className={`text-sm ${getGrowthColor(cagr1Y_2)}`}>
                       1Y: {formatGrowth(cagr1Y_2)}
                     </span>
@@ -842,16 +852,6 @@ function ComparisonModal({
                       5Y: {formatGrowth(cagr5Y_2)}
                     </span>
                   </div>
-                  {totalGrowth2 && (
-                    <div className="text-center">
-                      <p className={`text-sm font-medium ${totalGrowth2.pct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {totalGrowth2.pct >= 0 ? '+' : ''}{totalGrowth2.pct.toFixed(1)}%
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        ({totalGrowth2.from} → {totalGrowth2.to})
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
             </>
