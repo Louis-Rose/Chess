@@ -483,17 +483,18 @@ function ComparisonModal({
   ticker2,
   metric,
   metricLabel,
-  dataView,
+  initialDataView,
   onClose
 }: {
   ticker1: string;
   ticker2: string;
   metric: string;
   metricLabel: string;
-  dataView: DataViewType;
+  initialDataView: DataViewType;
   onClose: () => void;
 }) {
   const { language } = useLanguage();
+  const [dataView, setDataView] = useState<DataViewType>(initialDataView);
   const logo1 = getCompanyLogoUrl(ticker1);
   const logo2 = getCompanyLogoUrl(ticker2);
 
@@ -588,9 +589,34 @@ function ComparisonModal({
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
-            <X className="w-5 h-5 text-slate-500" />
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Data View Toggle */}
+            <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600">
+              <button
+                onClick={() => setDataView('quarterly')}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  dataView === 'quarterly'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                {language === 'fr' ? 'Trim.' : 'Quarterly'}
+              </button>
+              <button
+                onClick={() => setDataView('annual')}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  dataView === 'annual'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                {language === 'fr' ? 'Annuel' : 'Annual'}
+              </button>
+            </div>
+            <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+              <X className="w-5 h-5 text-slate-500" />
+            </button>
+          </div>
         </div>
 
         {/* Chart */}
@@ -610,20 +636,20 @@ function ComparisonModal({
                   <BarChart data={mergedData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
                     <XAxis
                       dataKey="quarter"
-                      tick={{ fontSize: 10, fill: '#64748b' }}
-                      tickLine={{ stroke: '#cbd5e1' }}
-                      axisLine={{ stroke: '#cbd5e1' }}
+                      tick={{ fontSize: 12, fill: '#e2e8f0', fontWeight: 500 }}
+                      tickLine={{ stroke: '#475569' }}
+                      axisLine={{ stroke: '#475569' }}
                       angle={-45}
                       textAnchor="end"
                       height={60}
                       interval={0}
                     />
                     <YAxis
-                      tick={{ fontSize: 10, fill: '#64748b' }}
-                      tickLine={{ stroke: '#cbd5e1' }}
-                      axisLine={{ stroke: '#cbd5e1' }}
+                      tick={{ fontSize: 12, fill: '#e2e8f0', fontWeight: 500 }}
+                      tickLine={{ stroke: '#475569' }}
+                      axisLine={{ stroke: '#475569' }}
                       tickFormatter={(val) => formatValue(val, currency)}
-                      width={70}
+                      width={80}
                     />
                     <Tooltip
                       cursor={{ fill: 'transparent' }}
@@ -795,7 +821,7 @@ export function ComparisonPanel() {
           ticker2={ticker2}
           metric={selectedModal.metric}
           metricLabel={selectedModal.title}
-          dataView={dataView}
+          initialDataView={dataView}
           onClose={() => setSelectedModal(null)}
         />
       )}
