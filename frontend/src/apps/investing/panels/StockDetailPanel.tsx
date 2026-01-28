@@ -216,7 +216,7 @@ export function StockDetailPanel() {
   const [newsFeedExpanded, setNewsFeedExpanded] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [question, setQuestion] = useState('');
-  const [displayCurrency, setDisplayCurrency] = useState<'native' | 'EUR' | 'USD'>('native');
+  const [displayCurrency, setDisplayCurrency] = useState<'EUR' | 'USD'>('USD');
 
   // Drag-to-zoom state for price chart
   const [zoomRange, setZoomRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
@@ -375,6 +375,29 @@ export function StockDetailPanel() {
           <p className="text-slate-500 dark:text-slate-400 text-lg italic">
             {language === 'fr' ? 'Recherchez 2 500+ actions sur 8 marchés mondiaux' : 'Research 2,500+ stocks across 8 global markets'}
           </p>
+          {/* Currency Toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600 mt-2">
+            <button
+              onClick={() => setDisplayCurrency('EUR')}
+              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                displayCurrency === 'EUR'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              EUR
+            </button>
+            <button
+              onClick={() => setDisplayCurrency('USD')}
+              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                displayCurrency === 'USD'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              USD
+            </button>
+          </div>
         </div>
         <StockSearchBar />
       </div>
@@ -586,40 +609,6 @@ export function StockDetailPanel() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
                       Prev.
-                    </button>
-                  </div>
-                  {/* Currency Toggle */}
-                  <div className="flex rounded-lg overflow-hidden border border-slate-600">
-                    <button
-                      onClick={() => setDisplayCurrency('native')}
-                      className={`px-2 py-1 text-xs font-medium transition-colors ${
-                        displayCurrency === 'native'
-                          ? 'bg-green-600 text-white'
-                          : 'bg-slate-700 text-slate-400 hover:text-white'
-                      }`}
-                      title={language === 'fr' ? 'Devise native' : 'Native currency'}
-                    >
-                      {currency}
-                    </button>
-                    <button
-                      onClick={() => setDisplayCurrency('EUR')}
-                      className={`px-2 py-1 text-xs font-medium transition-colors ${
-                        displayCurrency === 'EUR'
-                          ? 'bg-green-600 text-white'
-                          : 'bg-slate-700 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      EUR
-                    </button>
-                    <button
-                      onClick={() => setDisplayCurrency('USD')}
-                      className={`px-2 py-1 text-xs font-medium transition-colors ${
-                        displayCurrency === 'USD'
-                          ? 'bg-green-600 text-white'
-                          : 'bg-slate-700 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      USD
                     </button>
                   </div>
                   {/* Period Selectors */}
