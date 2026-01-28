@@ -370,17 +370,10 @@ export function StockDetailPanel() {
           <span>{language === 'fr' ? 'Retour' : 'Back'}</span>
         </button>
 
-        {/* Title and Currency Toggle */}
+        {/* Currency Toggle - centered */}
         <div className="max-w-3xl mx-auto">
-          <div className="flex flex-col items-center gap-2">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-              {language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-lg italic">
-              {language === 'fr' ? 'Recherchez 2 500+ actions sur 8 marchés mondiaux' : 'Research 2,500+ stocks across 8 global markets'}
-            </p>
-            {/* Currency Toggle */}
-            <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-white/20 mt-2">
+          <div className="flex justify-center">
+            <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-white/20">
               <button
                 onClick={() => setDisplayCurrency('EUR')}
                 className={`px-3 py-2 text-sm font-medium transition-colors ${
