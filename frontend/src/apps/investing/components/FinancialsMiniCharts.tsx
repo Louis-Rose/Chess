@@ -104,7 +104,10 @@ function MiniChart({ ticker, metric, title, chartType, color, onExpand }: MiniCh
   const ttmChange = getTTMChange();
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+    <button
+      onClick={onExpand}
+      className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors cursor-pointer text-left w-full"
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
@@ -120,13 +123,7 @@ function MiniChart({ ticker, metric, title, chartType, color, onExpand }: MiniCh
             </span>
           )}
         </div>
-        <button
-          onClick={onExpand}
-          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
-          title={language === 'fr' ? 'Agrandir' : 'Expand'}
-        >
-          <Maximize2 className="w-4 h-4 text-slate-400" />
-        </button>
+        <Maximize2 className="w-4 h-4 text-slate-400" />
       </div>
 
       {/* Chart */}
@@ -219,7 +216,7 @@ function MiniChart({ ticker, metric, title, chartType, color, onExpand }: MiniCh
           </ResponsiveContainer>
         </div>
       )}
-    </div>
+    </button>
   );
 }
 
@@ -243,8 +240,15 @@ export function PriceMiniChart({ priceData, previousClose, currency, onExpand }:
   const color = isPositive ? '#22c55e' : '#ef4444';
   const currencySymbol = getCurrencySymbol(currency);
 
+  const CardWrapper = onExpand ? 'button' : 'div';
+
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+    <CardWrapper
+      onClick={onExpand}
+      className={`bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 text-left w-full ${
+        onExpand ? 'hover:border-slate-300 dark:hover:border-slate-600 transition-colors cursor-pointer' : ''
+      }`}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
@@ -262,15 +266,7 @@ export function PriceMiniChart({ priceData, previousClose, currency, onExpand }:
             </span>
           )}
         </div>
-        {onExpand && (
-          <button
-            onClick={onExpand}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
-            title={language === 'fr' ? 'Agrandir' : 'Expand'}
-          >
-            <Maximize2 className="w-4 h-4 text-slate-400" />
-          </button>
-        )}
+        {onExpand && <Maximize2 className="w-4 h-4 text-slate-400" />}
       </div>
 
       {/* Chart */}
@@ -324,7 +320,7 @@ export function PriceMiniChart({ priceData, previousClose, currency, onExpand }:
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </CardWrapper>
   );
 }
 
@@ -334,9 +330,10 @@ interface FinancialsMiniChartsProps {
   previousClose?: number | null;
   priceCurrency?: string;
   onMetricClick: (metric: string, label: string) => void;
+  onPriceClick?: () => void;
 }
 
-export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCurrency, onMetricClick }: FinancialsMiniChartsProps) {
+export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCurrency, onMetricClick, onPriceClick }: FinancialsMiniChartsProps) {
   const { language } = useLanguage();
 
   const metrics = [
@@ -355,6 +352,7 @@ export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCu
         priceData={priceData}
         previousClose={previousClose ?? null}
         currency={priceCurrency || 'USD'}
+        onExpand={onPriceClick}
       />
 
       {/* Financial Metrics */}

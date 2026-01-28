@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { ArrowLeft, Loader2, ExternalLink, MessageSquare, Send, ChevronDown, ChevronUp, Youtube, Calendar, RefreshCw, X } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { findStockByTicker } from '../utils/allStocks';
@@ -214,6 +215,7 @@ export function StockDetailPanel() {
   const [question, setQuestion] = useState('');
   const [displayCurrency, setDisplayCurrency] = useState<'EUR' | 'USD'>('USD');
   const [selectedMetric, setSelectedMetric] = useState<{ metric: string; label: string } | null>(null);
+  const [showPriceModal, setShowPriceModal] = useState(false);
 
   // Use TSLA as preview ticker when not authenticated
   const upperTicker = isAuthenticated ? (ticker?.toUpperCase() || '') : 'TSLA';
@@ -369,7 +371,7 @@ export function StockDetailPanel() {
                 <span className="text-xl font-bold text-slate-400">{upperTicker.slice(0, 2)}</span>
               )}
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{displayName}</h1>
               <p className="text-slate-600 dark:text-slate-300">{upperTicker}</p>
             </div>
@@ -378,13 +380,13 @@ export function StockDetailPanel() {
                 href={irLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="self-center inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg text-sm font-medium transition-colors flex-shrink-0"
+                className="self-center inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ml-4"
               >
                 <span>{language === 'fr' ? 'Site Relations Investisseurs' : 'Investor Relations Website'}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
-            <div className="text-right flex-shrink-0">
+            <div className="text-right flex-shrink-0 ml-auto">
               {currentPrice !== null && (
                 <>
                   <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
@@ -456,6 +458,7 @@ export function StockDetailPanel() {
           previousClose={stockHistoryData?.previous_close}
           priceCurrency={stockHistoryData?.currency}
           onMetricClick={(metric, label) => setSelectedMetric({ metric, label })}
+          onPriceClick={() => setShowPriceModal(true)}
         />
 
         {/* Youtube Feed */}
@@ -694,6 +697,103 @@ export function StockDetailPanel() {
           metricLabel={selectedMetric.label}
           onClose={() => setSelectedMetric(null)}
         />
+      )}
+
+      {/* Price Modal */}
+      {showPriceModal && stockHistoryData?.data && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowPriceModal(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-600">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt={`${upperTicker} logo`} className="w-8 h-8 object-contain" />
+                  ) : (
+                    <span className="text-xs font-bold text-slate-400">{upperTicker.slice(0, 2)}</span>
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    {language === 'fr' ? 'Prix' : 'Price'} - {upperTicker}
+                  </h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{displayName}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPriceModal(false)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+
+            {/* Chart */}
+            <div className="p-6">
+              <div className="h-[350px]">
+                {(() => {
+                  const priceData = stockHistoryData.data;
+                  const previousClose = stockHistoryData.previous_close;
+                  const currentPrice = priceData[priceData.length - 1]?.price;
+                  const startPrice = previousClose || priceData[0]?.price;
+                  const priceChangeVal = currentPrice && startPrice ? ((currentPrice - startPrice) / startPrice) * 100 : null;
+                  const isPositive = priceChangeVal !== null && priceChangeVal >= 0;
+                  const lineColor = isPositive ? '#22c55e' : '#ef4444';
+                  const modalCurrencySymbol = getCurrencySymbol(stockHistoryData.currency || 'USD');
+
+                  return (
+                    <>
+                      {priceChangeVal !== null && (
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className={`text-2xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                            {isPositive ? '+' : ''}{priceChangeVal.toFixed(2)}%
+                          </span>
+                          <span className="text-slate-500 dark:text-slate-400">
+                            ({language === 'fr' ? '1 mois' : '1 month'})
+                          </span>
+                        </div>
+                      )}
+                      <div className="h-[280px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={priceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <XAxis
+                              dataKey="timestamp"
+                              tick={{ fontSize: 11, fill: '#64748b' }}
+                              tickLine={{ stroke: '#cbd5e1' }}
+                              axisLine={{ stroke: '#cbd5e1' }}
+                              tickFormatter={(ts) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            />
+                            <YAxis
+                              domain={['auto', 'auto']}
+                              tick={{ fontSize: 11, fill: '#64748b' }}
+                              tickLine={{ stroke: '#cbd5e1' }}
+                              axisLine={{ stroke: '#cbd5e1' }}
+                              tickFormatter={(val) => `${modalCurrencySymbol}${val.toFixed(0)}`}
+                              width={60}
+                            />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: 'none', padding: '8px 12px' }}
+                              labelStyle={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}
+                              labelFormatter={(ts) => new Date(String(ts)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              formatter={(value) => [`${modalCurrencySymbol}${Number(value).toFixed(2)}`, 'Price']}
+                            />
+                            <Line type="monotone" dataKey="price" stroke={lineColor} strokeWidth={2} dot={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
