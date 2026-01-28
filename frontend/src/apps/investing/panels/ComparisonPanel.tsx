@@ -761,7 +761,13 @@ function ComparisonModal({
               {/* Growth rates comparison */}
               <div className="flex justify-center gap-12 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                 <div className="text-center">
-                  <p className="text-sm text-orange-500 font-medium mb-2">{ticker1}</p>
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    {logo1 && <img src={logo1} alt="" className="w-5 h-5 object-contain" />}
+                    <div>
+                      <p className="text-sm text-orange-500 font-medium">{ticker1}</p>
+                      <p className="text-xs text-slate-400">{findStockByTicker(ticker1)?.name}</p>
+                    </div>
+                  </div>
                   <div className="flex gap-4">
                     <span className={`text-sm ${getGrowthColor(cagr1Y_1)}`}>
                       1Y: {formatGrowth(cagr1Y_1)}
@@ -776,7 +782,13 @@ function ComparisonModal({
                 </div>
                 <div className="w-px bg-slate-300 dark:bg-slate-600" />
                 <div className="text-center">
-                  <p className="text-sm text-blue-500 font-medium mb-2">{ticker2}</p>
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    {logo2 && <img src={logo2} alt="" className="w-5 h-5 object-contain" />}
+                    <div>
+                      <p className="text-sm text-blue-500 font-medium">{ticker2}</p>
+                      <p className="text-xs text-slate-400">{findStockByTicker(ticker2)?.name}</p>
+                    </div>
+                  </div>
                   <div className="flex gap-4">
                     <span className={`text-sm ${getGrowthColor(cagr1Y_2)}`}>
                       1Y: {formatGrowth(cagr1Y_2)}
