@@ -415,6 +415,10 @@ function ComparisonChart({
 // Key Metrics Comparison
 function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: string }) {
   const { language } = useLanguage();
+  const logo1 = getCompanyLogoUrl(ticker1);
+  const logo2 = getCompanyLogoUrl(ticker2);
+  const stock1 = findStockByTicker(ticker1);
+  const stock2 = findStockByTicker(ticker2);
 
   const { data: data1, isLoading: loading1 } = useQuery({
     queryKey: ['marketCap', ticker1],
@@ -429,6 +433,16 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
   });
 
   const isLoading = loading1 || loading2;
+
+  // Format growth percentage
+  const formatGrowthPct = (v: number | null) => {
+    if (v === null) return null;
+    const pct = v * 100;
+    return { value: pct, display: `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%` };
+  };
+
+  const growth1 = formatGrowthPct(data1?.revenue_growth ?? null);
+  const growth2 = formatGrowthPct(data2?.revenue_growth ?? null);
 
   const metrics = [
     { key: 'market_cap', label: language === 'fr' ? 'Cap. boursière' : 'Market Cap', format: (v: number | null) => formatMarketCap(v) },
@@ -456,8 +470,34 @@ function MetricsComparison({ ticker1, ticker2 }: { ticker1: string; ticker2: str
             <th className="text-left py-3 px-4 text-white font-semibold w-36 border-r border-slate-200 dark:border-slate-700 bg-slate-700 dark:bg-slate-700">
               {language === 'fr' ? 'Métriques clés' : 'Key Metrics'}
             </th>
-            <th className="text-center py-3 text-orange-500 font-medium w-[calc(50%-4.5rem)] border-r border-slate-200 dark:border-slate-700">{ticker1}</th>
-            <th className="text-center py-3 text-blue-500 font-medium w-[calc(50%-4.5rem)]">{ticker2}</th>
+            <th className="py-3 px-4 border-r border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-center gap-2">
+                {logo1 && <img src={logo1} alt="" className="w-6 h-6 object-contain" />}
+                <div className="text-left">
+                  <span className="text-orange-500 font-medium">{ticker1}</span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal truncate max-w-[150px]">{stock1?.name}</p>
+                </div>
+                {growth1 && (
+                  <span className={`text-xs font-medium ml-2 ${growth1.value >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {growth1.display}
+                  </span>
+                )}
+              </div>
+            </th>
+            <th className="py-3 px-4">
+              <div className="flex items-center justify-center gap-2">
+                {logo2 && <img src={logo2} alt="" className="w-6 h-6 object-contain" />}
+                <div className="text-left">
+                  <span className="text-blue-500 font-medium">{ticker2}</span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal truncate max-w-[150px]">{stock2?.name}</p>
+                </div>
+                {growth2 && (
+                  <span className={`text-xs font-medium ml-2 ${growth2.value >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {growth2.display}
+                  </span>
+                )}
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody>
