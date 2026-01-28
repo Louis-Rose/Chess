@@ -533,7 +533,7 @@ export function StockDetailPanel() {
                         {language === 'fr' ? 'Historique des prix' : 'Price History'}
                       </h3>
                     </div>
-                    {/* Previous close toggle */}
+                    {/* Previous close / start reference toggle */}
                     <button
                       onClick={() => setShowPrevClose(!showPrevClose)}
                       className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded transition-colors w-fit ml-7 ${
@@ -541,12 +541,14 @@ export function StockDetailPanel() {
                           ? 'bg-slate-600 text-slate-200'
                           : 'bg-slate-700 text-slate-500 hover:text-slate-300'
                       }`}
-                      title={language === 'fr' ? 'Clôture précédente' : 'Previous close'}
+                      title={chartPeriod.startsWith('Y')
+                        ? (language === 'fr' ? 'Prix de départ' : 'Starting price')
+                        : (language === 'fr' ? 'Clôture précédente' : 'Previous close')}
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
-                      Prev.
+                      {chartPeriod.startsWith('Y') ? 'Start' : 'Prev.'}
                     </button>
                   </div>
                   {/* Period Selectors */}
@@ -757,19 +759,27 @@ export function StockDetailPanel() {
                               fillOpacity={0.2}
                             />
                           )}
-                          {showPrevClose && stockHistoryData.previous_close && (
-                            <ReferenceLine
-                              y={stockHistoryData.previous_close}
-                              stroke="#64748b"
-                              strokeDasharray="4 4"
-                              label={{
-                                value: 'P',
-                                position: 'right',
-                                fill: '#64748b',
-                                fontSize: 10,
-                              }}
-                            />
-                          )}
+                          {showPrevClose && (() => {
+                            // For year periods, use first data point as reference (previous_close is irrelevant for historical years)
+                            // For other periods, use actual previous_close
+                            const refPrice = chartPeriod.startsWith('Y')
+                              ? displayData[0]?.price
+                              : stockHistoryData.previous_close;
+                            if (!refPrice) return null;
+                            return (
+                              <ReferenceLine
+                                y={refPrice}
+                                stroke="#64748b"
+                                strokeDasharray="4 4"
+                                label={{
+                                  value: chartPeriod.startsWith('Y') ? 'Start' : 'Prev',
+                                  position: 'right',
+                                  fill: '#64748b',
+                                  fontSize: 10,
+                                }}
+                              />
+                            );
+                          })()}
                           <Line
                             type="monotone"
                             dataKey="price"
