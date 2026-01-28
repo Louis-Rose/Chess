@@ -1,6 +1,7 @@
 // Stocks Comparison Panel - Compare two stocks side by side
 
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Search, X, Loader2, TrendingUp, Eye, Maximize2 } from 'lucide-react';
@@ -165,17 +166,19 @@ function StockSelector({
             isDragOver ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20' : 'border-green-500'
           }`}
         >
-          <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-600 flex items-center justify-center overflow-hidden">
-            {displayLogo ? (
-              <img src={displayLogo} alt={displayTicker || ''} className="w-8 h-8 object-contain" />
-            ) : (
-              <span className="text-xs font-bold text-slate-400">{displayTicker?.slice(0, 2)}</span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">{displayStock?.name || displayTicker}</p>
-            <p className="text-sm text-slate-500">{displayTicker}</p>
-          </div>
+          <Link to={`/investing/stock/${displayTicker}`} className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity">
+            <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-600 flex items-center justify-center overflow-hidden">
+              {displayLogo ? (
+                <img src={displayLogo} alt={displayTicker || ''} className="w-8 h-8 object-contain" />
+              ) : (
+                <span className="text-xs font-bold text-slate-400">{displayTicker?.slice(0, 2)}</span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">{displayStock?.name || displayTicker}</p>
+              <p className="text-sm text-slate-500">{displayTicker}</p>
+            </div>
+          </Link>
           <button
             onClick={() => onSelect('')}
             className="p-1 hover:bg-slate-100 dark:hover:bg-slate-600 rounded"
@@ -704,15 +707,15 @@ function ComparisonModal({
           <div className="flex items-center gap-4 flex-1">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{metricLabel}</h2>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-100 dark:bg-orange-900/30 rounded">
+              <Link to={`/investing/stock/${ticker1}`} className="flex items-center gap-1.5 px-2 py-1 bg-orange-100 dark:bg-orange-900/30 rounded hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors">
                 {logo1 && <img src={logo1} alt="" className="w-5 h-5 object-contain" />}
                 <span className="text-sm font-medium text-orange-600 dark:text-orange-400">{ticker1}</span>
-              </div>
+              </Link>
               <span className="text-slate-400">vs</span>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 rounded">
+              <Link to={`/investing/stock/${ticker2}`} className="flex items-center gap-1.5 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
                 {logo2 && <img src={logo2} alt="" className="w-5 h-5 object-contain" />}
                 <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{ticker2}</span>
-              </div>
+              </Link>
             </div>
           </div>
           {/* Center: Toggle */}
