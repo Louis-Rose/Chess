@@ -436,7 +436,7 @@ function ComparisonChart({
                   formatter={(value, name) => [formatValue(Number(value), currency), name === 'value1' ? ticker1 : ticker2]}
                 />
                 <Legend
-                  formatter={(value) => <span style={{ marginRight: '20px' }}>{value === 'value1' ? ticker1 : ticker2}</span>}
+                  formatter={(value) => <span style={{ marginRight: '48px' }}>{value === 'value1' ? ticker1 : ticker2}</span>}
                   wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
                   iconSize={10}
                 />
@@ -786,7 +786,7 @@ function ComparisonModal({
                       contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: 'none', padding: '8px 12px' }}
                       formatter={(value, name) => [formatValue(Number(value), currency), name === 'value1' ? ticker1 : ticker2]}
                     />
-                    <Legend formatter={(value) => <span style={{ marginRight: '24px' }}>{value === 'value1' ? ticker1 : ticker2}</span>} wrapperStyle={{ paddingTop: '10px' }} iconSize={12} />
+                    <Legend formatter={(value) => <span style={{ marginRight: '64px' }}>{value === 'value1' ? ticker1 : ticker2}</span>} wrapperStyle={{ paddingTop: '10px' }} iconSize={12} />
                     <Bar dataKey="value1" fill="#f97316" name="value1" radius={[2, 2, 0, 0]} />
                     <Bar dataKey="value2" fill="#3b82f6" name="value2" radius={[2, 2, 0, 0]} />
                   </BarChart>
@@ -873,11 +873,13 @@ export function ComparisonPanel() {
   const [ticker1, setTicker1Internal] = useState<string | null>(() => searchParams.get('t1'));
   const [ticker2, setTicker2Internal] = useState<string | null>(() => searchParams.get('t2'));
   const [dataView, setDataView] = useState<DataViewType>('quarterly');
+  const [hasAutoSetDataView, setHasAutoSetDataView] = useState(false);
   const [selectedModal, setSelectedModal] = useState<{ metric: string; title: string } | null>(null);
 
   // Sync state with URL params
   const setTicker1 = (ticker: string | null) => {
     setTicker1Internal(ticker);
+    setHasAutoSetDataView(false); // Reset when ticker changes
     const newParams = new URLSearchParams(searchParams);
     if (ticker) newParams.set('t1', ticker);
     else newParams.delete('t1');
@@ -886,6 +888,7 @@ export function ComparisonPanel() {
 
   const setTicker2 = (ticker: string | null) => {
     setTicker2Internal(ticker);
+    setHasAutoSetDataView(false); // Reset when ticker changes
     const newParams = new URLSearchParams(searchParams);
     if (ticker) newParams.set('t2', ticker);
     else newParams.delete('t2');
@@ -893,6 +896,40 @@ export function ComparisonPanel() {
   };
 
   const bothSelected = ticker1 && ticker2;
+
+  // Fetch Revenue data to check for quarterly availability
+  const { data: revenueData1 } = useQuery({
+    queryKey: ['financialsHistory', ticker1, 'Revenue'],
+    queryFn: () => fetchFinancialsHistory(ticker1!, 'Revenue'),
+    enabled: !!ticker1,
+    staleTime: 1000 * 60 * 15,
+  });
+
+  const { data: revenueData2 } = useQuery({
+    queryKey: ['financialsHistory', ticker2, 'Revenue'],
+    queryFn: () => fetchFinancialsHistory(ticker2!, 'Revenue'),
+    enabled: !!ticker2,
+    staleTime: 1000 * 60 * 15,
+  });
+
+  // Auto-select dataView based on data availability
+  useEffect(() => {
+    if (!bothSelected || hasAutoSetDataView) return;
+    if (!revenueData1?.data || !revenueData2?.data) return;
+
+    const hasQuarterly1 = revenueData1.data.some(d => d.type === 'quarterly');
+    const hasQuarterly2 = revenueData2.data.some(d => d.type === 'quarterly');
+    const hasAnnual1 = revenueData1.data.some(d => d.type === 'annual');
+    const hasAnnual2 = revenueData2.data.some(d => d.type === 'annual');
+
+    // Default to quarterly if both have it, otherwise annual
+    if (hasQuarterly1 && hasQuarterly2) {
+      setDataView('quarterly');
+    } else if (hasAnnual1 || hasAnnual2) {
+      setDataView('annual');
+    }
+    setHasAutoSetDataView(true);
+  }, [bothSelected, revenueData1, revenueData2, hasAutoSetDataView]);
 
   const metrics = [
     { metric: 'Revenue', title: language === 'fr' ? 'Chiffre d\'affaires' : 'Revenue' },
@@ -928,7 +965,7 @@ export function ComparisonPanel() {
             position="left"
             onSwap={() => { setTicker1(ticker2); setTicker2(ticker1); }}
           />
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center self-end mb-3">
             <span className="text-2xl font-bold text-slate-300 dark:text-slate-500">VS</span>
           </div>
           <StockSelector
