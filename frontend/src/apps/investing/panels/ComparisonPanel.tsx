@@ -345,7 +345,17 @@ function ComparisonChart({
     });
 
     return Array.from(dataMap.values())
-      .sort((a, b) => a.quarter.localeCompare(b.quarter))
+      .sort((a, b) => {
+        // Parse quarter format like "Q1 2025" or "FY 2024" to sort chronologically
+        const parseQuarter = (q: string) => {
+          const fyMatch = q.match(/FY\s*(\d{4})/);
+          if (fyMatch) return new Date(parseInt(fyMatch[1]), 11, 31).getTime(); // End of year
+          const qMatch = q.match(/Q(\d)\s*(\d{4})/);
+          if (qMatch) return new Date(parseInt(qMatch[2]), (parseInt(qMatch[1]) - 1) * 3 + 2, 28).getTime();
+          return 0;
+        };
+        return parseQuarter(a.quarter) - parseQuarter(b.quarter);
+      })
       .slice(-12);
   })();
 
@@ -631,7 +641,17 @@ function ComparisonModal({
       else dataMap.set(d.quarter, { quarter: d.quarter, value2: d.value });
     });
 
-    return Array.from(dataMap.values()).sort((a, b) => a.quarter.localeCompare(b.quarter));
+    return Array.from(dataMap.values()).sort((a, b) => {
+      // Parse quarter format like "Q1 2025" or "FY 2024" to sort chronologically
+      const parseQuarter = (q: string) => {
+        const fyMatch = q.match(/FY\s*(\d{4})/);
+        if (fyMatch) return new Date(parseInt(fyMatch[1]), 11, 31).getTime(); // End of year
+        const qMatch = q.match(/Q(\d)\s*(\d{4})/);
+        if (qMatch) return new Date(parseInt(qMatch[2]), (parseInt(qMatch[1]) - 1) * 3 + 2, 28).getTime();
+        return 0;
+      };
+      return parseQuarter(a.quarter) - parseQuarter(b.quarter);
+    });
   })();
 
   // Calculate CAGR for specific number of years
