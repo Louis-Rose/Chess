@@ -1,6 +1,6 @@
 // Stock detail panel - view individual stock info and price chart
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
@@ -595,18 +595,19 @@ export function StockDetailPanel() {
                     };
                   };
 
-                  // Handle drag events
-                  const handleMouseDown = (e: { activeLabel?: string }) => {
-                    if (e.activeLabel) {
-                      setDragStart(e.activeLabel);
-                      setDragEnd(e.activeLabel);
+                  // Handle drag events (activeLabel can be string | number | undefined)
+                  const handleMouseDown = (e: { activeLabel?: string | number }) => {
+                    if (e.activeLabel !== undefined) {
+                      const label = String(e.activeLabel);
+                      setDragStart(label);
+                      setDragEnd(label);
                       setIsDragging(true);
                     }
                   };
 
-                  const handleMouseMove = (e: { activeLabel?: string }) => {
-                    if (isDragging && e.activeLabel) {
-                      setDragEnd(e.activeLabel);
+                  const handleMouseMove = (e: { activeLabel?: string | number }) => {
+                    if (isDragging && e.activeLabel !== undefined) {
+                      setDragEnd(String(e.activeLabel));
                     }
                   };
 
