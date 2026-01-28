@@ -369,11 +369,22 @@ export function StockDetailPanel() {
                 <span className="text-xl font-bold text-slate-400">{upperTicker.slice(0, 2)}</span>
               )}
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{displayName}</h1>
               <p className="text-slate-600 dark:text-slate-300">{upperTicker}</p>
             </div>
-            <div className="text-right">
+            {irLink && (
+              <a
+                href={irLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="self-center inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg text-sm font-medium transition-colors flex-shrink-0"
+              >
+                <span>{language === 'fr' ? 'Site Relations Investisseurs' : 'Investor Relations Website'}</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+            <div className="text-right flex-shrink-0">
               {currentPrice !== null && (
                 <>
                   <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
@@ -388,19 +399,6 @@ export function StockDetailPanel() {
               )}
             </div>
           </div>
-          {irLink && (
-            <div className="flex justify-center mt-4">
-              <a
-                href={irLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg text-sm font-medium transition-colors"
-              >
-                <span>{language === 'fr' ? 'Site Relations Investisseurs' : 'Investor Relations Website'}</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
-          )}
         </div>
 
         {/* Key Metrics Summary */}
