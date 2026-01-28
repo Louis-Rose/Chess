@@ -315,7 +315,7 @@ export function TransactionForm({
             setShowTransactions(!showTransactions);
             setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
           }}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+          className="w-52 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm"
         >
           {showTransactions ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           {showTransactions
@@ -333,7 +333,7 @@ export function TransactionForm({
           <div className="flex justify-center mb-4">
             <button
               onClick={() => setShowAddSection(!showAddSection)}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+              className="w-52 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm"
             >
               {showAddSection ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               {language === 'fr' ? 'Ajouter des transactions' : 'Add transactions'}
@@ -453,28 +453,34 @@ export function TransactionForm({
 
           {/* Filters - shown when there are transactions */}
           {uniqueTickers.length > 0 && (
-            <div className="flex justify-center items-center gap-3 mb-6">
-              <select
-                value={filterTicker}
-                onChange={(e) => setFilterTicker(e.target.value)}
-                className="px-3 py-1.5 border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <option value="">{t('transactions.allStocks')}</option>
-                {uniqueTickers.map(ticker => {
-                  const stock = findStockByTicker(ticker);
-                  const label = stock ? `${stock.name} (${ticker})` : ticker;
-                  return <option key={ticker} value={ticker}>{label}</option>;
-                })}
-              </select>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value as 'ALL' | 'BUY' | 'SELL')}
-                className="px-3 py-1.5 border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <option value="ALL">{language === 'fr' ? 'Achats & Ventes' : 'Buys & Sells'}</option>
-                <option value="BUY">{language === 'fr' ? 'Achats' : 'Buys only'}</option>
-                <option value="SELL">{language === 'fr' ? 'Ventes' : 'Sells only'}</option>
-              </select>
+            <div className="flex items-center mb-6">
+              {/* Spacer for balance */}
+              <div className="w-10" />
+              {/* Centered filters */}
+              <div className="flex-1 flex justify-center items-center gap-3">
+                <select
+                  value={filterTicker}
+                  onChange={(e) => setFilterTicker(e.target.value)}
+                  className="px-3 py-1.5 border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="">{t('transactions.allStocks')}</option>
+                  {uniqueTickers.map(ticker => {
+                    const stock = findStockByTicker(ticker);
+                    const label = stock ? `${stock.name} (${ticker})` : ticker;
+                    return <option key={ticker} value={ticker}>{label}</option>;
+                  })}
+                </select>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value as 'ALL' | 'BUY' | 'SELL')}
+                  className="px-3 py-1.5 border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="ALL">{language === 'fr' ? 'Achats & Ventes' : 'Buys & Sells'}</option>
+                  <option value="BUY">{language === 'fr' ? 'Achats' : 'Buys only'}</option>
+                  <option value="SELL">{language === 'fr' ? 'Ventes' : 'Sells only'}</option>
+                </select>
+              </div>
+              {/* Sort icon on far right */}
               <button
                 onClick={() => setSortNewestFirst(!sortNewestFirst)}
                 className="p-1.5 border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500 transition-colors"
