@@ -1,6 +1,5 @@
 // Mini charts dashboard for financial metrics
 
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Maximize2, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';

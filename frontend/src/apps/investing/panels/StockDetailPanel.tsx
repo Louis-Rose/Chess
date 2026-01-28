@@ -73,9 +73,6 @@ interface NewsFeedResponse {
 
 type ChartPeriod = '1D' | '5D' | '1M' | '6M' | 'YTD' | '1Y' | '5Y' | 'MAX' | `Y${number}`;
 
-// Generate year options (current year down to 2015)
-const currentYear = new Date().getFullYear();
-const YEAR_OPTIONS = Array.from({ length: currentYear - 2014 }, (_, i) => currentYear - i);
 
 // Mock data for Tesla - used for logged-off preview
 const TESLA_MOCK_DATA = {
@@ -232,7 +229,7 @@ export function StockDetailPanel() {
   }, [upperTicker, user?.id, isAuthenticated]);
 
   // Fetch stock history - only when authenticated
-  const { data: fetchedStockHistoryData, isLoading: stockHistoryLoading } = useQuery({
+  const { data: fetchedStockHistoryData } = useQuery({
     queryKey: ['stockHistory', upperTicker, chartPeriod, displayCurrency],
     queryFn: () => fetchStockHistory(upperTicker, chartPeriod, displayCurrency),
     enabled: !!upperTicker && isAuthenticated,
