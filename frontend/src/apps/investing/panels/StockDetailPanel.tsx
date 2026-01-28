@@ -526,21 +526,26 @@ export function StockDetailPanel() {
               {/* Price Chart */}
               <div className="bg-slate-800 dark:bg-slate-900 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <TrendingUp className="w-5 h-5 text-green-500" />
-                    <h3 className="text-base font-semibold text-white">
-                      {language === 'fr' ? 'Historique des prix' : 'Price History'}
-                    </h3>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-green-500" />
+                      <h3 className="text-base font-semibold text-white">
+                        {language === 'fr' ? 'Historique des prix' : 'Price History'}
+                      </h3>
+                    </div>
                     {/* Previous close toggle */}
                     <button
                       onClick={() => setShowPrevClose(!showPrevClose)}
-                      className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                      className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded transition-colors w-fit ${
                         showPrevClose
                           ? 'bg-slate-600 text-slate-200'
                           : 'bg-slate-700 text-slate-500 hover:text-slate-300'
                       }`}
                       title={language === 'fr' ? 'Clôture précédente' : 'Previous close'}
                     >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                      </svg>
                       Prev.
                     </button>
                   </div>
