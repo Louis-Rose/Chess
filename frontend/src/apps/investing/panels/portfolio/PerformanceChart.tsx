@@ -209,6 +209,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
         </p>
         <div
           style={{ position: 'relative' }}
+          onMouseEnter={() => setShowStockBreakdown(true)}
           onClick={(e) => {
             e.stopPropagation();
             setShowStockBreakdown(!showStockBreakdown);
@@ -226,12 +227,15 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
               {Object.entries(data.stocks as Record<string, { value_eur: number; quantity: number }>)
                 .filter(([ticker]) => selectedStocks.has(ticker))
                 .sort((a, b) => b[1].value_eur - a[1].value_eur)
-                .map(([ticker, stockData]) => (
-                  <p key={ticker} style={{ color: '#94a3b8', fontSize: '10px', padding: '1px 0', display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-                    <span style={{ color: '#e2e8f0' }}>{ticker}</span>
-                    <span>{currency === 'EUR' ? `${formatEur(Math.round(stockData.value_eur))}€` : `$${formatEur(Math.round(stockData.value_eur))}`}</span>
-                  </p>
-                ))
+                .map(([ticker, stockData]) => {
+                  const pricePerShare = stockData.quantity > 0 ? (stockData.value_eur / stockData.quantity).toFixed(2) : '0';
+                  return (
+                    <p key={ticker} style={{ color: '#94a3b8', fontSize: '10px', padding: '1px 0', display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                      <span style={{ color: '#e2e8f0' }}>{stockData.quantity} x {ticker} ({currency === 'EUR' ? `${pricePerShare}€` : `$${pricePerShare}`})</span>
+                      <span>{currency === 'EUR' ? `${formatEur(Math.round(stockData.value_eur))}€` : `$${formatEur(Math.round(stockData.value_eur))}`}</span>
+                    </p>
+                  );
+                })
               }
             </div>
           )}
