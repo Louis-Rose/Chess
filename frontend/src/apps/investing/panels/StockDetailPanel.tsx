@@ -12,6 +12,7 @@ import { findStockByTicker } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
 import { addRecentStock } from '../utils/recentStocks';
+import { STOCK_GICS_MAP, getSectorByCode } from '../utils/gics';
 import { FinancialsModal } from '../components/FinancialsModal';
 import { FinancialsMiniCharts } from '../components/FinancialsMiniCharts';
 
@@ -375,6 +376,24 @@ export function StockDetailPanel() {
             <div className="min-w-0">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{displayName}</h1>
               <p className="text-slate-600 dark:text-slate-300">{upperTicker}</p>
+              {(() => {
+                const gicsCode = STOCK_GICS_MAP[upperTicker];
+                if (gicsCode) {
+                  const sectorCode = gicsCode.slice(0, 2);
+                  const sector = getSectorByCode(sectorCode);
+                  if (sector) {
+                    return (
+                      <button
+                        onClick={() => navigate(`/investing/financials?sector=${sectorCode}`)}
+                        className="text-sm text-purple-600 dark:text-purple-400 hover:underline mt-1"
+                      >
+                        {sector.name} (GICS: {sectorCode})
+                      </button>
+                    );
+                  }
+                }
+                return null;
+              })()}
             </div>
             <div className="flex-1 flex justify-center">
               {irLink && (

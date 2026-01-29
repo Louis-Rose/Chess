@@ -252,7 +252,7 @@ export function FinancialsPanel() {
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-medium text-slate-800 dark:text-slate-100 text-sm">{sector.name}</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-100 text-base">{sector.name}</span>
                       <span className="text-xs text-slate-500 dark:text-slate-300">GICS: {sector.code}</span>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
@@ -274,7 +274,7 @@ export function FinancialsPanel() {
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-medium text-slate-800 dark:text-slate-100 text-sm">{group.name}</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-100 text-base">{group.name}</span>
                       <span className="text-xs text-slate-500 dark:text-slate-300">GICS: {group.code}</span>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
@@ -296,7 +296,7 @@ export function FinancialsPanel() {
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-medium text-slate-800 dark:text-slate-100 text-sm">{industry.name}</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-100 text-base">{industry.name}</span>
                       <span className="text-xs text-slate-500 dark:text-slate-300">GICS: {industry.code}</span>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
@@ -318,7 +318,7 @@ export function FinancialsPanel() {
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-medium text-slate-800 dark:text-slate-100 text-sm">{subIndustry.name}</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-100 text-base">{subIndustry.name}</span>
                       <span className="text-xs text-slate-500 dark:text-slate-300">GICS: {subIndustry.code}</span>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
