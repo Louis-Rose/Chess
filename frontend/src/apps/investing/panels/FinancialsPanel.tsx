@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronRight, Layers, Loader2 } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { findStockByTicker } from '../utils/allStocks';
@@ -25,7 +25,6 @@ export function FinancialsPanel() {
     const industryGroupCode = searchParams.get('industryGroup');
     const industryCode = searchParams.get('industry');
     const subIndustryCode = searchParams.get('subIndustry');
-    const showGICS = searchParams.get('gics') === '1';
 
     let selectedSector: GICSSector | null = null;
     let selectedIndustryGroup: GICSIndustryGroup | null = null;
@@ -45,14 +44,13 @@ export function FinancialsPanel() {
       }
     }
 
-    return { showGICS, selectedSector, selectedIndustryGroup, selectedIndustry, selectedSubIndustry };
+    return { selectedSector, selectedIndustryGroup, selectedIndustry, selectedSubIndustry };
   }, [searchParams]);
 
-  const { showGICS, selectedSector, selectedIndustryGroup, selectedIndustry, selectedSubIndustry } = gicsState;
+  const { selectedSector, selectedIndustryGroup, selectedIndustry, selectedSubIndustry } = gicsState;
 
   // Helper to update URL params
   const updateGICSParams = useCallback((params: {
-    gics?: boolean;
     sector?: string | null;
     industryGroup?: string | null;
     industry?: string | null;
@@ -60,14 +58,6 @@ export function FinancialsPanel() {
   }) => {
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev);
-
-      if (params.gics !== undefined) {
-        if (params.gics) {
-          newParams.set('gics', '1');
-        } else {
-          newParams.delete('gics');
-        }
-      }
 
       if (params.sector !== undefined) {
         if (params.sector) {
@@ -148,21 +138,6 @@ export function FinancialsPanel() {
     });
   };
 
-  const handleShowGICS = (show: boolean) => {
-    if (show) {
-      updateGICSParams({ gics: true });
-    } else {
-      // Hide and reset all selections
-      updateGICSParams({
-        gics: false,
-        sector: null,
-        industryGroup: null,
-        industry: null,
-        subIndustry: null
-      });
-    }
-  };
-
   if (authLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -188,44 +163,27 @@ export function FinancialsPanel() {
       </div>
 
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Search Bar */}
-        <StockSearchBar />
+        {/* Search Individual Stocks */}
+        <div>
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">
+            {language === 'fr' ? 'Rechercher des actions' : 'Search Individual Stocks'}
+          </h3>
+          <StockSearchBar />
+        </div>
 
-        {/* GICS Industry Search Toggle */}
-        {!showGICS && (
-          <button
-            onClick={() => handleShowGICS(true)}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 dark:bg-slate-700 rounded-xl border border-dashed border-slate-300 dark:border-slate-500 text-slate-500 dark:text-slate-400 hover:border-purple-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-          >
-            <span className="text-lg font-medium">+</span>
-            <Layers className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {language === 'fr' ? 'Rechercher par industrie (GICS)' : 'Search by industry (GICS)'}
-            </span>
-          </button>
-        )}
+        {/* Horizontal Separator */}
+        <div className="flex items-center gap-4">
+          <div className="flex-1 h-px bg-slate-300 dark:bg-slate-600"></div>
+          <span className="text-sm text-slate-400 dark:text-slate-500">{language === 'fr' ? 'ou' : 'or'}</span>
+          <div className="flex-1 h-px bg-slate-300 dark:bg-slate-600"></div>
+        </div>
 
-        {/* GICS Industry Search */}
-        {showGICS && (
+        {/* GICS Industry Search - Always visible */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-          {/* Close button centered at top */}
-          <button
-            onClick={() => handleShowGICS(false)}
-            className="w-full flex items-center justify-center gap-2 mb-4 py-2 text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-          >
-            <span className="text-lg font-medium">−</span>
-            <Layers className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {language === 'fr' ? 'Rechercher par industrie (GICS)' : 'Search by industry (GICS)'}
-            </span>
-          </button>
-
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                {language === 'fr' ? 'Secteurs GICS' : 'GICS Sectors'}
-              </h3>
-            </div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+              {language === 'fr' ? 'Rechercher par secteur' : 'Search by Sector'}
+            </h3>
             {selectedSector && (
               <button
                 onClick={handleResetGICS}
@@ -235,6 +193,9 @@ export function FinancialsPanel() {
               </button>
             )}
           </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+            GICS: Global Industry Classification Standard
+          </p>
 
           {/* Breadcrumb */}
           {selectedSector && (
@@ -414,7 +375,6 @@ export function FinancialsPanel() {
             );
           })()}
         </div>
-        )}
       </div>
     </div>
   );
