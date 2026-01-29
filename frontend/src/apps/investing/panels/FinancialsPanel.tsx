@@ -162,7 +162,7 @@ export function FinancialsPanel() {
         <PWAInstallPrompt className="max-w-md w-full mt-2" />
       </div>
 
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         {/* Search Individual Stocks - Title inside card */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
