@@ -206,7 +206,7 @@ export function StockSearchBar({ className = '', hideContainer = false }: StockS
                         <button
                           type="button"
                           onClick={(e) => handleGICSClick(e, ticker)}
-                          className="px-2 py-0.5 text-xs font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded transition-colors"
+                          className="px-2 py-1 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-md shadow-sm transition-colors"
                         >
                           GICS: {STOCK_GICS_MAP[ticker]}
                         </button>
@@ -262,7 +262,7 @@ export function StockSearchBar({ className = '', hideContainer = false }: StockS
                     <button
                       type="button"
                       onClick={(e) => handleGICSClick(e, stock.ticker)}
-                      className="px-2 py-0.5 text-xs font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded transition-colors flex-shrink-0"
+                      className="px-2 py-1 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-md shadow-sm transition-colors flex-shrink-0"
                     >
                       GICS: {STOCK_GICS_MAP[stock.ticker]}
                     </button>
