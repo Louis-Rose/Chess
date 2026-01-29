@@ -11,9 +11,10 @@ import { addRecentStock, getRecentStocks, removeRecentStock } from '../utils/rec
 
 interface StockSearchBarProps {
   className?: string;
+  hideContainer?: boolean;
 }
 
-export function StockSearchBar({ className = '' }: StockSearchBarProps) {
+export function StockSearchBar({ className = '', hideContainer = false }: StockSearchBarProps) {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const { user } = useAuth();
@@ -54,7 +55,7 @@ export function StockSearchBar({ className = '' }: StockSearchBarProps) {
   };
 
   return (
-    <div className={`bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none ${className}`}>
+    <div className={hideContainer ? className : `bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none ${className}`}>
       {/* Market Filter Toggles */}
       <div className="mb-3">
         <span className="text-sm text-slate-500 dark:text-slate-400 block mb-2">{language === 'fr' ? 'Marchés:' : 'Markets:'}</span>

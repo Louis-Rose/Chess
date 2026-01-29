@@ -7,7 +7,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { findStockByTicker } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
-import { GICS_SECTORS, getStocksBySubIndustry, type GICSSector, type GICSIndustryGroup, type GICSIndustry, type GICSSubIndustry } from '../utils/gics';
+import { GICS_SECTORS, getStocksBySubIndustry, getStocksBySector, getStocksByIndustryGroup, getStocksByIndustry, type GICSSector, type GICSIndustryGroup, type GICSIndustry, type GICSSubIndustry } from '../utils/gics';
 import { addRecentStock } from '../utils/recentStocks';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { StockSearchBar } from '../components/StockSearchBar';
@@ -163,26 +163,22 @@ export function FinancialsPanel() {
       </div>
 
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Search Individual Stocks */}
-        <div>
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">
+        {/* Search Individual Stocks - Title inside card */}
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
             {language === 'fr' ? 'Rechercher des actions' : 'Search Individual Stocks'}
           </h3>
-          <StockSearchBar />
+          <StockSearchBar hideContainer />
         </div>
 
         {/* Horizontal Separator */}
-        <div className="flex items-center gap-4">
-          <div className="flex-1 h-px bg-slate-300 dark:bg-slate-600"></div>
-          <span className="text-sm text-slate-400 dark:text-slate-500">{language === 'fr' ? 'ou' : 'or'}</span>
-          <div className="flex-1 h-px bg-slate-300 dark:bg-slate-600"></div>
-        </div>
+        <div className="h-px bg-slate-300 dark:bg-slate-600"></div>
 
         {/* GICS Industry Search - Always visible */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-1">
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-              {language === 'fr' ? 'Rechercher par secteur' : 'Search by Sector'}
+              {language === 'fr' ? 'Rechercher par secteur GICS' : 'Search by GICS Sector'}
             </h3>
             {selectedSector && (
               <button
@@ -194,7 +190,7 @@ export function FinancialsPanel() {
             )}
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-            GICS: Global Industry Classification Standard
+            Global Industry Classification Standard
           </p>
 
           {/* Breadcrumb */}
@@ -249,70 +245,94 @@ export function FinancialsPanel() {
           {/* Level 1: Sectors */}
           {!selectedSector && (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {GICS_SECTORS.map((sector) => (
-                <button
-                  key={sector.code}
-                  onClick={() => handleSelectSector(sector)}
-                  className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
-                >
-                  <span className="text-xs text-slate-400 dark:text-slate-400">{sector.code}</span>
-                  <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{sector.name}</p>
-                </button>
-              ))}
+              {GICS_SECTORS.map((sector) => {
+                const companyCount = getStocksBySector(sector.code).length;
+                return (
+                  <button
+                    key={sector.code}
+                    onClick={() => handleSelectSector(sector)}
+                    className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
+                  >
+                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-1">{sector.name}</p>
+                    <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-400">
+                      <span>Code: {sector.code}</span>
+                      <span>Companies: {companyCount}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
 
           {/* Level 2: Industry Groups */}
           {selectedSector && !selectedIndustryGroup && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {selectedSector.industryGroups.map((group) => (
-                <button
-                  key={group.code}
-                  onClick={() => handleSelectIndustryGroup(group)}
-                  className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left flex items-center justify-between"
-                >
-                  <div>
-                    <span className="text-xs text-slate-400 dark:text-slate-400">{group.code}</span>
-                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{group.name}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </button>
-              ))}
+              {selectedSector.industryGroups.map((group) => {
+                const companyCount = getStocksByIndustryGroup(group.code).length;
+                return (
+                  <button
+                    key={group.code}
+                    onClick={() => handleSelectIndustryGroup(group)}
+                    className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-1">{group.name}</p>
+                      <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-400">
+                        <span>Code: {group.code}</span>
+                        <span>Companies: {companyCount}</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  </button>
+                );
+              })}
             </div>
           )}
 
           {/* Level 3: Industries */}
           {selectedIndustryGroup && !selectedIndustry && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {selectedIndustryGroup.industries.map((industry) => (
-                <button
-                  key={industry.code}
-                  onClick={() => handleSelectIndustry(industry)}
-                  className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left flex items-center justify-between"
-                >
-                  <div>
-                    <span className="text-xs text-slate-400 dark:text-slate-400">{industry.code}</span>
-                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{industry.name}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </button>
-              ))}
+              {selectedIndustryGroup.industries.map((industry) => {
+                const companyCount = getStocksByIndustry(industry.code).length;
+                return (
+                  <button
+                    key={industry.code}
+                    onClick={() => handleSelectIndustry(industry)}
+                    className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-1">{industry.name}</p>
+                      <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-400">
+                        <span>Code: {industry.code}</span>
+                        <span>Companies: {companyCount}</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  </button>
+                );
+              })}
             </div>
           )}
 
           {/* Level 4: Sub-Industries */}
           {selectedIndustry && !selectedSubIndustry && (
             <div className="grid grid-cols-1 gap-2">
-              {selectedIndustry.subIndustries.map((subIndustry) => (
-                <button
-                  key={subIndustry.code}
-                  onClick={() => handleSelectSubIndustry(subIndustry)}
-                  className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
-                >
-                  <span className="text-xs text-slate-400 dark:text-slate-400">{subIndustry.code}</span>
-                  <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{subIndustry.name}</p>
-                </button>
-              ))}
+              {selectedIndustry.subIndustries.map((subIndustry) => {
+                const companyCount = getStocksBySubIndustry(subIndustry.code).length;
+                return (
+                  <button
+                    key={subIndustry.code}
+                    onClick={() => handleSelectSubIndustry(subIndustry)}
+                    className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
+                  >
+                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-1">{subIndustry.name}</p>
+                    <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-400">
+                      <span>Code: {subIndustry.code}</span>
+                      <span>Companies: {companyCount}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
 
