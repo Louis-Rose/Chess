@@ -185,7 +185,7 @@ export function InvestingSidebar() {
                 <div
                   key={ticker}
                   onClick={() => navigate(`/investing/stock/${ticker}`)}
-                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer group"
+                  className="flex items-center gap-1.5 ml-4 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer group"
                 >
                   <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                     {logoUrl ? (
