@@ -183,12 +183,13 @@ export function InvestingSidebar() {
             {recentStocks.map((ticker) => {
               const logoUrl = getCompanyLogoUrl(ticker);
               const stock = findStockByTicker(ticker);
-              const displayName = stock?.name || ticker;
+              // Remove "Class A/B/C" suffixes from company names
+              const displayName = (stock?.name || ticker).replace(/\s+Class\s+[A-Z]$/i, '');
               return (
                 <div
                   key={ticker}
                   onClick={() => navigate(`/investing/stock/${ticker}`)}
-                  className="flex items-center gap-1.5 ml-4 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer group"
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer group"
                 >
                   <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                     {logoUrl ? (
@@ -207,7 +208,7 @@ export function InvestingSidebar() {
                       <span className="text-[7px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
                     )}
                   </div>
-                  <span className="text-sm font-medium text-slate-200 truncate">{displayName} ({ticker})</span>
+                  <span className="text-xs font-medium text-slate-200 truncate">{displayName} ({ticker})</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
