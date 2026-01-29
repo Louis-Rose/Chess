@@ -12,7 +12,7 @@ import { findStockByTicker } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
 import { addRecentStock } from '../utils/recentStocks';
-import { STOCK_GICS_MAP, getSectorByCode, getSubIndustryByCode, getIndustryByCode, getIndustryGroupByCode } from '../utils/gics';
+import { STOCK_GICS_MAP, getSectorByCode, getSubIndustryByCode } from '../utils/gics';
 import { FinancialsModal } from '../components/FinancialsModal';
 import { FinancialsMiniCharts } from '../components/FinancialsMiniCharts';
 
