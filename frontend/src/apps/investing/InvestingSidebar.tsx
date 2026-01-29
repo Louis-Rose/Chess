@@ -23,6 +23,7 @@ import { LanguageToggle } from '../../components/LanguageToggle';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { getRecentStocks, removeRecentStock } from './utils/recentStocks';
 import { getCompanyLogoUrl } from './utils/companyLogos';
+import { findStockByTicker } from './utils/allStocks';
 
 const navItems = [
   { path: '/investing', icon: Home, labelEn: 'Welcome', labelFr: 'Accueil', end: true },
@@ -181,6 +182,8 @@ export function InvestingSidebar() {
           <div className="flex flex-col gap-1">
             {recentStocks.map((ticker) => {
               const logoUrl = getCompanyLogoUrl(ticker);
+              const stock = findStockByTicker(ticker);
+              const displayName = stock?.name || ticker;
               return (
                 <div
                   key={ticker}
@@ -204,7 +207,7 @@ export function InvestingSidebar() {
                       <span className="text-[7px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
                     )}
                   </div>
-                  <span className="text-sm font-medium text-slate-200 truncate">{ticker}</span>
+                  <span className="text-sm font-medium text-slate-200 truncate">{displayName} ({ticker})</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
