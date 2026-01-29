@@ -253,8 +253,8 @@ export function FinancialsPanel() {
                     onClick={() => handleSelectSector(sector)}
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
                   >
-                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-2">{sector.name} ({sector.code})</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
+                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-3">{sector.name} (GICS code: {sector.code})</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
                   </button>
                 );
               })}
@@ -273,8 +273,8 @@ export function FinancialsPanel() {
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left flex items-center justify-between"
                   >
                     <div>
-                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-2">{group.name} ({group.code})</p>
-                      <p className="text-xs text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
+                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-3">{group.name} (GICS code: {group.code})</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </button>
@@ -295,8 +295,8 @@ export function FinancialsPanel() {
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left flex items-center justify-between"
                   >
                     <div>
-                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-2">{industry.name} ({industry.code})</p>
-                      <p className="text-xs text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
+                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-3">{industry.name} (GICS code: {industry.code})</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </button>
@@ -316,8 +316,8 @@ export function FinancialsPanel() {
                     onClick={() => handleSelectSubIndustry(subIndustry)}
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
                   >
-                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-2">{subIndustry.name} ({subIndustry.code})</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
+                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-3">{subIndustry.name} (GICS code: {subIndustry.code})</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
                   </button>
                 );
               })}
