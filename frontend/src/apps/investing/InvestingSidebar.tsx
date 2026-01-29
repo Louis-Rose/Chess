@@ -178,7 +178,7 @@ export function InvestingSidebar() {
               {language === 'fr' ? 'Recherches récentes' : 'Recently searched'}
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="flex flex-col gap-1">
             {recentStocks.map((ticker) => {
               const logoUrl = getCompanyLogoUrl(ticker);
               return (

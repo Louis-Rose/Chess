@@ -1,7 +1,7 @@
 // Manage recently searched stocks in localStorage (per user)
 
 const STORAGE_KEY_PREFIX = 'recent-stocks';
-const MAX_RECENT = 10;
+const MAX_RECENT = 6;
 
 function getStorageKey(userId?: number): string {
   return userId ? `${STORAGE_KEY_PREFIX}-${userId}` : STORAGE_KEY_PREFIX;
