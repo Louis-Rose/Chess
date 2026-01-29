@@ -349,12 +349,15 @@ export function FinancialsPanel() {
                       {stocksInSubIndustry.map((ticker) => {
                         const stock = findStockByTicker(ticker);
                         const logoUrl = getCompanyLogoUrl(ticker);
+                        // Shorten company name if too long (max ~20 chars)
+                        const fullName = stock?.name || '';
+                        const shortName = fullName.length > 20 ? fullName.slice(0, 18) + '...' : fullName;
                         return (
                           <button
                             key={ticker}
                             onClick={() => handleSelectStock(ticker)}
                             className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors bg-white dark:bg-slate-600 border-purple-200 dark:border-purple-700 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-800/50"
-                            title={stock?.name || ticker}
+                            title={fullName || ticker}
                           >
                             <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                               {logoUrl ? (
@@ -373,7 +376,9 @@ export function FinancialsPanel() {
                                 <span className="text-[8px] font-bold text-slate-500 dark:text-slate-300">{ticker.slice(0, 2)}</span>
                               )}
                             </div>
-                            <span className="font-medium text-sm text-purple-800 dark:text-purple-100">{ticker}</span>
+                            <span className="font-medium text-sm text-purple-800 dark:text-purple-100">
+                              {shortName ? `${shortName} (${ticker})` : ticker}
+                            </span>
                           </button>
                         );
                       })}
