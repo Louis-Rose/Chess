@@ -208,8 +208,8 @@ export function InvestingSidebar() {
                       <span className="text-[7px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
                     )}
                   </div>
-                  <span className="text-xs font-medium text-slate-200 truncate flex-1 min-w-0">{displayName}</span>
-                  <span className="text-xs font-medium text-slate-400 flex-shrink-0">({ticker})</span>
+                  <span className="text-xs font-medium text-slate-200 truncate min-w-0">{displayName}</span>
+                  <span className="text-xs font-medium text-slate-200 flex-shrink-0">({ticker})</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
