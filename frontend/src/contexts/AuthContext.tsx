@@ -48,34 +48,91 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const hasRecordedSettings = useRef(false);
   const isLoggingOut = useRef(false);
+  const isRefreshing = useRef(false);
+  const refreshSubscribers = useRef<((success: boolean) => void)[]>([]);
 
-  // Set up axios interceptor to auto-logout on 401 responses
+  // Helper to notify all waiting requests after refresh attempt
+  const onRefreshComplete = (success: boolean) => {
+    refreshSubscribers.current.forEach(callback => callback(success));
+    refreshSubscribers.current = [];
+  };
+
+  // Helper to add request to queue waiting for refresh
+  const addRefreshSubscriber = (callback: (success: boolean) => void) => {
+    refreshSubscribers.current.push(callback);
+  };
+
+  // Set up axios interceptor with token refresh on 401
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
-      (error) => {
-        // Auto-logout on 401, but not for auth endpoints (to avoid loops)
+      async (error) => {
+        const originalRequest = error.config;
+
+        // Skip refresh logic for auth endpoints or if already retried
         if (
-          error.response?.status === 401 &&
-          !error.config?.url?.includes('/api/auth/') &&
-          user &&
-          !isLoggingOut.current
+          error.response?.status !== 401 ||
+          originalRequest?.url?.includes('/api/auth/') ||
+          originalRequest?._retry
         ) {
-          isLoggingOut.current = true;
-          setUser(null);
-          queryClient.clear();
-          posthog.reset();
-          // Small delay to let state settle, then allow future logouts
-          setTimeout(() => { isLoggingOut.current = false; }, 1000);
+          return Promise.reject(error);
         }
-        return Promise.reject(error);
+
+        // If already refreshing, queue this request
+        if (isRefreshing.current) {
+          return new Promise((resolve, reject) => {
+            addRefreshSubscriber((success: boolean) => {
+              if (success) {
+                originalRequest._retry = true;
+                resolve(axios(originalRequest));
+              } else {
+                reject(error);
+              }
+            });
+          });
+        }
+
+        // Start refresh
+        isRefreshing.current = true;
+        originalRequest._retry = true;
+
+        try {
+          const refreshResponse = await fetch('/api/auth/refresh', {
+            method: 'POST',
+            credentials: 'include'
+          });
+
+          if (refreshResponse.ok) {
+            // Refresh succeeded - notify waiting requests and retry original
+            isRefreshing.current = false;
+            onRefreshComplete(true);
+            return axios(originalRequest);
+          } else {
+            // Refresh failed - logout
+            throw new Error('Refresh failed');
+          }
+        } catch (refreshError) {
+          // Refresh failed - logout user
+          isRefreshing.current = false;
+          onRefreshComplete(false);
+
+          if (!isLoggingOut.current) {
+            isLoggingOut.current = true;
+            setUser(null);
+            queryClient.clear();
+            posthog.reset();
+            setTimeout(() => { isLoggingOut.current = false; }, 1000);
+          }
+
+          return Promise.reject(error);
+        }
       }
     );
 
     return () => {
       axios.interceptors.response.eject(interceptor);
     };
-  }, [user, queryClient]);
+  }, [queryClient]);
 
   // Record theme and device for analytics (only once per session when user is authenticated)
   const recordUserSettings = () => {
@@ -171,10 +228,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/me', {
+      let response = await fetch('/api/auth/me', {
         credentials: 'include'
       });
-      const data = await response.json();
+      let data = await response.json();
+
+      // If no user returned, try refreshing the token (access token may be expired)
+      if (!data.user) {
+        const refreshResponse = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'include'
+        });
+
+        if (refreshResponse.ok) {
+          // Refresh succeeded, try getting user again
+          response = await fetch('/api/auth/me', {
+            credentials: 'include'
+          });
+          data = await response.json();
+        }
+      }
+
       setUser(data.user);
 
       // Handle PostHog for returning user
