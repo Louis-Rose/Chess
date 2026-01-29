@@ -1,7 +1,7 @@
 // Financials panel - search stocks
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronRight, Layers, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -15,49 +15,152 @@ import { StockDetailPanel } from './StockDetailPanel';
 
 export function FinancialsPanel() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
 
-  // GICS state
-  const [showGICS, setShowGICS] = useState(false);
-  const [selectedSector, setSelectedSector] = useState<GICSSector | null>(null);
-  const [selectedIndustryGroup, setSelectedIndustryGroup] = useState<GICSIndustryGroup | null>(null);
-  const [selectedIndustry, setSelectedIndustry] = useState<GICSIndustry | null>(null);
-  const [selectedSubIndustry, setSelectedSubIndustry] = useState<GICSSubIndustry | null>(null);
+  // Derive GICS state from URL params
+  const gicsState = useMemo(() => {
+    const sectorCode = searchParams.get('sector');
+    const industryGroupCode = searchParams.get('industryGroup');
+    const industryCode = searchParams.get('industry');
+    const subIndustryCode = searchParams.get('subIndustry');
+    const showGICS = searchParams.get('gics') === '1';
+
+    let selectedSector: GICSSector | null = null;
+    let selectedIndustryGroup: GICSIndustryGroup | null = null;
+    let selectedIndustry: GICSIndustry | null = null;
+    let selectedSubIndustry: GICSSubIndustry | null = null;
+
+    if (sectorCode) {
+      selectedSector = GICS_SECTORS.find(s => s.code === sectorCode) || null;
+      if (selectedSector && industryGroupCode) {
+        selectedIndustryGroup = selectedSector.industryGroups.find(g => g.code === industryGroupCode) || null;
+        if (selectedIndustryGroup && industryCode) {
+          selectedIndustry = selectedIndustryGroup.industries.find(i => i.code === industryCode) || null;
+          if (selectedIndustry && subIndustryCode) {
+            selectedSubIndustry = selectedIndustry.subIndustries.find(si => si.code === subIndustryCode) || null;
+          }
+        }
+      }
+    }
+
+    return { showGICS, selectedSector, selectedIndustryGroup, selectedIndustry, selectedSubIndustry };
+  }, [searchParams]);
+
+  const { showGICS, selectedSector, selectedIndustryGroup, selectedIndustry, selectedSubIndustry } = gicsState;
+
+  // Helper to update URL params
+  const updateGICSParams = useCallback((params: {
+    gics?: boolean;
+    sector?: string | null;
+    industryGroup?: string | null;
+    industry?: string | null;
+    subIndustry?: string | null;
+  }) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+
+      if (params.gics !== undefined) {
+        if (params.gics) {
+          newParams.set('gics', '1');
+        } else {
+          newParams.delete('gics');
+        }
+      }
+
+      if (params.sector !== undefined) {
+        if (params.sector) {
+          newParams.set('sector', params.sector);
+        } else {
+          newParams.delete('sector');
+        }
+      }
+
+      if (params.industryGroup !== undefined) {
+        if (params.industryGroup) {
+          newParams.set('industryGroup', params.industryGroup);
+        } else {
+          newParams.delete('industryGroup');
+        }
+      }
+
+      if (params.industry !== undefined) {
+        if (params.industry) {
+          newParams.set('industry', params.industry);
+        } else {
+          newParams.delete('industry');
+        }
+      }
+
+      if (params.subIndustry !== undefined) {
+        if (params.subIndustry) {
+          newParams.set('subIndustry', params.subIndustry);
+        } else {
+          newParams.delete('subIndustry');
+        }
+      }
+
+      return newParams;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const handleSelectStock = (ticker: string) => {
     addRecentStock(ticker);
     navigate(`/investing/stock/${ticker}`);
   };
 
-  // GICS handlers
+  // GICS handlers - update URL params
   const handleSelectSector = (sector: GICSSector) => {
-    setSelectedSector(sector);
-    setSelectedIndustryGroup(null);
-    setSelectedIndustry(null);
-    setSelectedSubIndustry(null);
+    updateGICSParams({
+      sector: sector.code,
+      industryGroup: null,
+      industry: null,
+      subIndustry: null
+    });
   };
 
   const handleSelectIndustryGroup = (group: GICSIndustryGroup) => {
-    setSelectedIndustryGroup(group);
-    setSelectedIndustry(null);
-    setSelectedSubIndustry(null);
+    updateGICSParams({
+      industryGroup: group.code,
+      industry: null,
+      subIndustry: null
+    });
   };
 
   const handleSelectIndustry = (industry: GICSIndustry) => {
-    setSelectedIndustry(industry);
-    setSelectedSubIndustry(null);
+    updateGICSParams({
+      industry: industry.code,
+      subIndustry: null
+    });
   };
 
   const handleSelectSubIndustry = (subIndustry: GICSSubIndustry) => {
-    setSelectedSubIndustry(subIndustry);
+    updateGICSParams({ subIndustry: subIndustry.code });
   };
 
   const handleResetGICS = () => {
-    setSelectedSector(null);
-    setSelectedIndustryGroup(null);
-    setSelectedIndustry(null);
-    setSelectedSubIndustry(null);
+    updateGICSParams({
+      sector: null,
+      industryGroup: null,
+      industry: null,
+      subIndustry: null
+    });
+  };
+
+  const handleShowGICS = (show: boolean) => {
+    if (show) {
+      updateGICSParams({ gics: true });
+    } else {
+      // Hide and reset all selections
+      updateGICSParams({
+        gics: false,
+        sector: null,
+        industryGroup: null,
+        industry: null,
+        subIndustry: null
+      });
+    }
   };
 
   if (authLoading) {
@@ -91,7 +194,7 @@ export function FinancialsPanel() {
         {/* GICS Industry Search Toggle */}
         {!showGICS && (
           <button
-            onClick={() => setShowGICS(true)}
+            onClick={() => handleShowGICS(true)}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 dark:bg-slate-700 rounded-xl border border-dashed border-slate-300 dark:border-slate-500 text-slate-500 dark:text-slate-400 hover:border-purple-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
           >
             <span className="text-lg font-medium">+</span>
@@ -107,7 +210,7 @@ export function FinancialsPanel() {
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           {/* Close button centered at top */}
           <button
-            onClick={() => { setShowGICS(false); handleResetGICS(); }}
+            onClick={() => handleShowGICS(false)}
             className="w-full flex items-center justify-center gap-2 mb-4 py-2 text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
           >
             <span className="text-lg font-medium">−</span>
@@ -144,7 +247,7 @@ export function FinancialsPanel() {
               </button>
               <ChevronRight className="w-4 h-4 text-slate-400" />
               <button
-                onClick={() => { setSelectedIndustryGroup(null); setSelectedIndustry(null); setSelectedSubIndustry(null); }}
+                onClick={() => updateGICSParams({ industryGroup: null, industry: null, subIndustry: null })}
                 className={`${selectedIndustryGroup ? 'text-purple-600 hover:underline' : 'text-slate-700 dark:text-slate-300 font-medium'}`}
               >
                 {selectedSector.name}
@@ -153,7 +256,7 @@ export function FinancialsPanel() {
                 <>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                   <button
-                    onClick={() => { setSelectedIndustry(null); setSelectedSubIndustry(null); }}
+                    onClick={() => updateGICSParams({ industry: null, subIndustry: null })}
                     className={`${selectedIndustry ? 'text-purple-600 hover:underline' : 'text-slate-700 dark:text-slate-300 font-medium'}`}
                   >
                     {selectedIndustryGroup.name}
@@ -164,7 +267,7 @@ export function FinancialsPanel() {
                 <>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                   <button
-                    onClick={() => { setSelectedSubIndustry(null); }}
+                    onClick={() => updateGICSParams({ subIndustry: null })}
                     className={`${selectedSubIndustry ? 'text-purple-600 hover:underline' : 'text-slate-700 dark:text-slate-300 font-medium'}`}
                   >
                     {selectedIndustry.name}
