@@ -194,26 +194,26 @@ export function FinancialsPanel() {
 
           {/* Breadcrumb */}
           {selectedSector && (
-            <div className="flex items-center gap-1 text-sm mb-4 flex-wrap">
+            <div className="flex items-center gap-2 text-sm mb-4 flex-wrap bg-slate-100 dark:bg-slate-600 rounded-lg px-3 py-2">
               <button
                 onClick={handleResetGICS}
-                className="text-purple-600 hover:underline"
+                className="text-purple-600 dark:text-purple-400 hover:underline font-medium"
               >
                 GICS
               </button>
-              <ChevronRight className="w-4 h-4 text-slate-400" />
+              <span className="text-slate-400">/</span>
               <button
                 onClick={() => updateGICSParams({ industryGroup: null, industry: null, subIndustry: null })}
-                className={`${selectedIndustryGroup ? 'text-purple-600 hover:underline' : 'text-slate-700 dark:text-slate-300 font-medium'}`}
+                className={`${selectedIndustryGroup ? 'text-purple-600 dark:text-purple-400 hover:underline' : 'text-slate-800 dark:text-white font-semibold'}`}
               >
                 {selectedSector.name}
               </button>
               {selectedIndustryGroup && (
                 <>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                  <span className="text-slate-400">/</span>
                   <button
                     onClick={() => updateGICSParams({ industry: null, subIndustry: null })}
-                    className={`${selectedIndustry ? 'text-purple-600 hover:underline' : 'text-slate-700 dark:text-slate-300 font-medium'}`}
+                    className={`${selectedIndustry ? 'text-purple-600 dark:text-purple-400 hover:underline' : 'text-slate-800 dark:text-white font-semibold'}`}
                   >
                     {selectedIndustryGroup.name}
                   </button>
@@ -221,10 +221,10 @@ export function FinancialsPanel() {
               )}
               {selectedIndustry && (
                 <>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                  <span className="text-slate-400">/</span>
                   <button
                     onClick={() => updateGICSParams({ subIndustry: null })}
-                    className={`${selectedSubIndustry ? 'text-purple-600 hover:underline' : 'text-slate-700 dark:text-slate-300 font-medium'}`}
+                    className={`${selectedSubIndustry ? 'text-purple-600 dark:text-purple-400 hover:underline' : 'text-slate-800 dark:text-white font-semibold'}`}
                   >
                     {selectedIndustry.name}
                   </button>
@@ -232,8 +232,8 @@ export function FinancialsPanel() {
               )}
               {selectedSubIndustry && (
                 <>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                  <span className="text-slate-700 dark:text-slate-300 font-medium">
+                  <span className="text-slate-400">/</span>
+                  <span className="text-slate-800 dark:text-white font-semibold">
                     {selectedSubIndustry.name}
                   </span>
                 </>
