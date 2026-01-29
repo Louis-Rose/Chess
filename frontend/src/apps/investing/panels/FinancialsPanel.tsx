@@ -177,18 +177,10 @@ export function FinancialsPanel() {
 
         {/* GICS Industry Search - Always visible */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-          <div className="flex items-center justify-between mb-3">
+          <div className="mb-3">
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
               {language === 'fr' ? 'Rechercher par secteur GICS (Global Industry Classification Standard)' : 'Search by GICS Sector (Global Industry Classification Standard)'}
             </h3>
-            {selectedSector && (
-              <button
-                onClick={handleResetGICS}
-                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-              >
-                {language === 'fr' ? 'Réinitialiser' : 'Reset'}
-              </button>
-            )}
           </div>
           <div className="h-px bg-slate-300 dark:bg-slate-500 mb-4"></div>
 
