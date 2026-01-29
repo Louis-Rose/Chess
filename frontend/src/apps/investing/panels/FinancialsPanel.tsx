@@ -162,7 +162,7 @@ export function FinancialsPanel() {
         <PWAInstallPrompt className="max-w-md w-full mt-2" />
       </div>
 
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Search Individual Stocks - Title inside card */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
@@ -176,9 +176,9 @@ export function FinancialsPanel() {
 
         {/* GICS Industry Search - Always visible */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-              {language === 'fr' ? 'Rechercher par secteur GICS' : 'Search by GICS Sector'}
+              {language === 'fr' ? 'Rechercher par secteur GICS (Global Industry Classification Standard)' : 'Search by GICS Sector (Global Industry Classification Standard)'}
             </h3>
             {selectedSector && (
               <button
@@ -189,6 +189,7 @@ export function FinancialsPanel() {
               </button>
             )}
           </div>
+          <div className="h-px bg-slate-300 dark:bg-slate-500 mb-4"></div>
 
           {/* Breadcrumb */}
           {selectedSector && (
@@ -250,7 +251,10 @@ export function FinancialsPanel() {
                     onClick={() => handleSelectSector(sector)}
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
                   >
-                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-3">{sector.name} (GICS: {sector.code})</p>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-medium text-slate-800 dark:text-slate-100 text-sm">{sector.name}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-300">GICS: {sector.code}</span>
+                    </div>
                     <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
                   </button>
                 );
@@ -267,13 +271,13 @@ export function FinancialsPanel() {
                   <button
                     key={group.code}
                     onClick={() => handleSelectIndustryGroup(group)}
-                    className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left flex items-center justify-between"
+                    className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
                   >
-                    <div>
-                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-3">{group.name} (GICS: {group.code})</p>
-                      <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-medium text-slate-800 dark:text-slate-100 text-sm">{group.name}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-300">GICS: {group.code}</span>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                    <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
                   </button>
                 );
               })}
@@ -289,13 +293,13 @@ export function FinancialsPanel() {
                   <button
                     key={industry.code}
                     onClick={() => handleSelectIndustry(industry)}
-                    className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left flex items-center justify-between"
+                    className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
                   >
-                    <div>
-                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-3">{industry.name} (GICS: {industry.code})</p>
-                      <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-medium text-slate-800 dark:text-slate-100 text-sm">{industry.name}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-300">GICS: {industry.code}</span>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                    <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
                   </button>
                 );
               })}
@@ -313,7 +317,10 @@ export function FinancialsPanel() {
                     onClick={() => handleSelectSubIndustry(subIndustry)}
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
                   >
-                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-3">{subIndustry.name} (GICS: {subIndustry.code})</p>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-medium text-slate-800 dark:text-slate-100 text-sm">{subIndustry.name}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-300">GICS: {subIndustry.code}</span>
+                    </div>
                     <p className="text-sm text-slate-600 dark:text-slate-100 text-center">{companyCount} companies</p>
                   </button>
                 );
