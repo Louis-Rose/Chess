@@ -253,11 +253,9 @@ export function FinancialsPanel() {
                     onClick={() => handleSelectSector(sector)}
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
                   >
-                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-1">{sector.name}</p>
-                    <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-400">
-                      <span>Code: {sector.code}</span>
-                      <span>Companies: {companyCount}</span>
-                    </div>
+                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{sector.name}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-100">GICS code: {sector.code}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-100">{companyCount} companies</p>
                   </button>
                 );
               })}
@@ -276,11 +274,9 @@ export function FinancialsPanel() {
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left flex items-center justify-between"
                   >
                     <div>
-                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-1">{group.name}</p>
-                      <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-400">
-                        <span>Code: {group.code}</span>
-                        <span>Companies: {companyCount}</span>
-                      </div>
+                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{group.name}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-100">GICS code: {group.code}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-100">{companyCount} companies</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </button>
@@ -301,11 +297,9 @@ export function FinancialsPanel() {
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left flex items-center justify-between"
                   >
                     <div>
-                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-1">{industry.name}</p>
-                      <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-400">
-                        <span>Code: {industry.code}</span>
-                        <span>Companies: {companyCount}</span>
-                      </div>
+                      <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{industry.name}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-100">GICS code: {industry.code}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-100">{companyCount} companies</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </button>
@@ -325,11 +319,9 @@ export function FinancialsPanel() {
                     onClick={() => handleSelectSubIndustry(subIndustry)}
                     className="p-3 bg-white dark:bg-slate-600 rounded-lg border border-slate-200 dark:border-slate-500 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-slate-500 transition-colors text-left"
                   >
-                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm mb-1">{subIndustry.name}</p>
-                    <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-400">
-                      <span>Code: {subIndustry.code}</span>
-                      <span>Companies: {companyCount}</span>
-                    </div>
+                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{subIndustry.name}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-100">GICS code: {subIndustry.code}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-100">{companyCount} companies</p>
                   </button>
                 );
               })}
