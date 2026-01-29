@@ -12,7 +12,7 @@ import { findStockByTicker } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
 import { addRecentStock } from '../utils/recentStocks';
-import { STOCK_GICS_MAP, getSectorByCode } from '../utils/gics';
+import { STOCK_GICS_MAP, getSectorByCode, getSubIndustryByCode, getIndustryByCode, getIndustryGroupByCode } from '../utils/gics';
 import { FinancialsModal } from '../components/FinancialsModal';
 import { FinancialsMiniCharts } from '../components/FinancialsMiniCharts';
 
@@ -378,19 +378,36 @@ export function StockDetailPanel() {
               <p className="text-slate-600 dark:text-slate-300">{upperTicker}</p>
               {(() => {
                 const gicsCode = STOCK_GICS_MAP[upperTicker];
-                if (gicsCode) {
+                if (!gicsCode) return null;
+
+                // Try to get the most precise level
+                const subIndustry = getSubIndustryByCode(gicsCode);
+                if (subIndustry) {
                   const sectorCode = gicsCode.slice(0, 2);
-                  const sector = getSectorByCode(sectorCode);
-                  if (sector) {
-                    return (
-                      <button
-                        onClick={() => navigate(`/investing/financials?sector=${sectorCode}`)}
-                        className="text-sm text-purple-600 dark:text-purple-400 hover:underline mt-1"
-                      >
-                        {sector.name} (GICS: {sectorCode})
-                      </button>
-                    );
-                  }
+                  const industryGroupCode = gicsCode.slice(0, 4);
+                  const industryCode = gicsCode.slice(0, 6);
+                  return (
+                    <button
+                      onClick={() => navigate(`/investing/financials?sector=${sectorCode}&industryGroup=${industryGroupCode}&industry=${industryCode}&subIndustry=${gicsCode}`)}
+                      className="inline-flex items-center gap-2 mt-1 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/50 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {subIndustry.name} (GICS: {gicsCode})
+                    </button>
+                  );
+                }
+
+                // Fallback to sector if sub-industry not found
+                const sectorCode = gicsCode.slice(0, 2);
+                const sector = getSectorByCode(sectorCode);
+                if (sector) {
+                  return (
+                    <button
+                      onClick={() => navigate(`/investing/financials?sector=${sectorCode}`)}
+                      className="inline-flex items-center gap-2 mt-1 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/50 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {sector.name} (GICS: {sectorCode})
+                    </button>
+                  );
                 }
                 return null;
               })()}

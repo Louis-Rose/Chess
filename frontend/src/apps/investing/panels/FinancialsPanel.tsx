@@ -165,9 +165,10 @@ export function FinancialsPanel() {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Search Individual Stocks - Title inside card */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">
             {language === 'fr' ? 'Rechercher des actions' : 'Search Individual Stocks'}
           </h3>
+          <div className="h-px bg-slate-300 dark:bg-slate-500 mb-4"></div>
           <StockSearchBar hideContainer />
         </div>
 
