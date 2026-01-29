@@ -356,6 +356,7 @@ export function StockDetailPanel() {
         {/* Stock Header */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <div className="flex items-center gap-4">
+            {/* Left: Logo + Name/Ticker */}
             <div className="w-16 h-16 rounded-lg bg-white dark:bg-slate-600 flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-500">
               {logoUrl ? (
                 <img
@@ -376,58 +377,12 @@ export function StockDetailPanel() {
             <div className="min-w-0">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{displayName}</h1>
               <p className="text-slate-600 dark:text-slate-300">{upperTicker}</p>
-              {(() => {
-                const gicsCode = STOCK_GICS_MAP[upperTicker];
-                if (!gicsCode) return null;
-
-                // Try to get the most precise level
-                const subIndustry = getSubIndustryByCode(gicsCode);
-                if (subIndustry) {
-                  const sectorCode = gicsCode.slice(0, 2);
-                  const industryGroupCode = gicsCode.slice(0, 4);
-                  const industryCode = gicsCode.slice(0, 6);
-                  return (
-                    <button
-                      onClick={() => navigate(`/investing/financials?sector=${sectorCode}&industryGroup=${industryGroupCode}&industry=${industryCode}&subIndustry=${gicsCode}`)}
-                      className="inline-flex items-center gap-2 mt-1 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/50 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      {subIndustry.name} (GICS: {gicsCode})
-                    </button>
-                  );
-                }
-
-                // Fallback to sector if sub-industry not found
-                const sectorCode = gicsCode.slice(0, 2);
-                const sector = getSectorByCode(sectorCode);
-                if (sector) {
-                  return (
-                    <button
-                      onClick={() => navigate(`/investing/financials?sector=${sectorCode}`)}
-                      className="inline-flex items-center gap-2 mt-1 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/50 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      {sector.name} (GICS: {sectorCode})
-                    </button>
-                  );
-                }
-                return null;
-              })()}
             </div>
+
+            {/* Center: Price */}
             <div className="flex-1 flex justify-center">
-              {irLink && (
-                <a
-                  href={irLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg text-sm font-medium transition-colors"
-                >
-                  <span>{language === 'fr' ? 'Site Relations Investisseurs' : 'Investor Relations Website'}</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              )}
-            </div>
-            <div className="text-right flex-shrink-0 min-w-[120px]">
               {currentPrice !== null ? (
-                <>
+                <div className="text-center">
                   <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                     {currencySymbol}{currentPrice.toFixed(2)}
                   </p>
@@ -436,10 +391,58 @@ export function StockDetailPanel() {
                       {priceChange >= 0 ? '+' : ''}{currencySymbol}{Math.abs(priceChange).toFixed(2)} ({priceChange >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%)
                     </p>
                   )}
-                </>
+                </div>
               ) : (
                 <div className="h-[52px]" />
               )}
+            </div>
+
+            {/* Right: GICS + IR buttons */}
+            <div className="flex flex-col gap-2 items-end flex-shrink-0">
+              {irLink && (
+                <a
+                  href={irLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <span>{language === 'fr' ? 'Relations Investisseurs' : 'Investor Relations'}</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+              {(() => {
+                const gicsCode = STOCK_GICS_MAP[upperTicker];
+                if (!gicsCode) return null;
+
+                const subIndustry = getSubIndustryByCode(gicsCode);
+                if (subIndustry) {
+                  const sectorCode = gicsCode.slice(0, 2);
+                  const industryGroupCode = gicsCode.slice(0, 4);
+                  const industryCode = gicsCode.slice(0, 6);
+                  return (
+                    <button
+                      onClick={() => navigate(`/investing/financials?sector=${sectorCode}&industryGroup=${industryGroupCode}&industry=${industryCode}&subIndustry=${gicsCode}`)}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/50 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {subIndustry.name} (GICS: {gicsCode})
+                    </button>
+                  );
+                }
+
+                const sectorCode = gicsCode.slice(0, 2);
+                const sector = getSectorByCode(sectorCode);
+                if (sector) {
+                  return (
+                    <button
+                      onClick={() => navigate(`/investing/financials?sector=${sectorCode}`)}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/50 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {sector.name} (GICS: {sectorCode})
+                    </button>
+                  );
+                }
+                return null;
+              })()}
             </div>
           </div>
         </div>
