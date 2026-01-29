@@ -1068,6 +1068,13 @@
     "region": "europe",
     "ir": "https://aalberts.com/investors"
   },
+  "AAP": {
+    "name": "Advance Auto Parts",
+    "yfinance": "AAP",
+    "region": "us",
+    "ir": "https://ir.advanceautoparts.com",
+    "logo": "advanceautoparts.com"
+  },
   "AAPL": {
     "name": "Apple",
     "yfinance": "AAPL",
@@ -1328,6 +1335,13 @@
     "yfinance": "AEGA.OL",
     "region": "europe"
   },
+  "AEGON": {
+    "name": "Aegon",
+    "yfinance": "AGN.AS",
+    "region": "europe",
+    "ir": "https://www.aegon.com/investors",
+    "logo": "aegon.com"
+  },
   "AEM": {
     "name": "Agnico Eagle Mines",
     "yfinance": "AEM",
@@ -1391,6 +1405,13 @@
     "name": "AG1",
     "yfinance": "AG1.DE",
     "region": "europe"
+  },
+  "AGCO": {
+    "name": "AGCO Corporation",
+    "yfinance": "AGCO",
+    "region": "us",
+    "ir": "https://investors.agcocorp.com",
+    "logo": "agcocorp.com"
   },
   "AGFB": {
     "name": "AGFB",
@@ -1460,6 +1481,13 @@
     "yfinance": "AIXA.DE",
     "region": "europe",
     "ir": "https://www.aixtron.com/en/investors"
+  },
+  "AIXTRON": {
+    "name": "Aixtron",
+    "yfinance": "AIXA.DE",
+    "region": "europe",
+    "ir": "https://www.aixtron.com/en/investors",
+    "logo": "aixtron.com"
   },
   "AIZ": {
     "name": "Assurant",
@@ -1610,6 +1638,13 @@
     "yfinance": "ALIF-B.ST",
     "region": "europe"
   },
+  "ALK": {
+    "name": "Alaska Air Group",
+    "yfinance": "ALK",
+    "region": "us",
+    "ir": "https://investor.alaskaair.com",
+    "logo": "alaskaair.com"
+  },
   "ALK-B": {
     "name": "ALK-B",
     "yfinance": "ALK-B.CO",
@@ -1674,6 +1709,13 @@
     "name": "ALNEV",
     "yfinance": "ALNEV.PA",
     "region": "europe"
+  },
+  "ALNY": {
+    "name": "Alnylam Pharmaceuticals",
+    "yfinance": "ALNY",
+    "region": "us",
+    "ir": "https://investors.alnylam.com",
+    "logo": "alnylam.com"
   },
   "ALO": {
     "name": "Alstom",
@@ -1805,6 +1847,13 @@
     "region": "us",
     "ir": "https://investors.ametek.com/"
   },
+  "AMG": {
+    "name": "Affiliated Managers Group",
+    "yfinance": "AMG",
+    "region": "us",
+    "ir": "https://www.amg.com/investor-relations",
+    "logo": "amg.com"
+  },
   "AMGN": {
     "name": "Amgen",
     "yfinance": "AMGN",
@@ -1855,6 +1904,13 @@
     "ir": "https://ir.aboutamazon.com",
     "logo": "amazon.com"
   },
+  "AN": {
+    "name": "AutoNation",
+    "yfinance": "AN",
+    "region": "us",
+    "ir": "https://investors.autonation.com",
+    "logo": "autonation.com"
+  },
   "ANA": {
     "name": "ANA",
     "yfinance": "ANA.MC",
@@ -1883,6 +1939,13 @@
     "yfinance": "ANET",
     "region": "us",
     "ir": "https://investors.arista.com"
+  },
+  "ANF": {
+    "name": "Abercrombie & Fitch",
+    "yfinance": "ANF",
+    "region": "us",
+    "ir": "https://corporate.abercrombie.com/investors",
+    "logo": "abercrombie.com"
   },
   "ANOT": {
     "name": "ANOT",
@@ -2093,6 +2156,20 @@
     "yfinance": "ARL",
     "region": "us"
   },
+  "ARM": {
+    "name": "Arm Holdings",
+    "yfinance": "ARM",
+    "region": "us",
+    "ir": "https://arm.com/company/investors",
+    "logo": "arm.com"
+  },
+  "AROUNDTOWN": {
+    "name": "Aroundtown",
+    "yfinance": "AT1.DE",
+    "region": "europe",
+    "ir": "https://www.aroundtown.de/investors",
+    "logo": "aroundtown.de"
+  },
   "ARYN": {
     "name": "Aryzta",
     "yfinance": "ARYN.SW",
@@ -2202,6 +2279,13 @@
     "yfinance": "ATEA.OL",
     "region": "europe"
   },
+  "ATL": {
+    "name": "Atlantia",
+    "yfinance": "ATL.MI",
+    "region": "europe",
+    "ir": "https://www.atlantia.com/en/investors",
+    "logo": "atlantia.com"
+  },
   "ATLA-DK": {
     "name": "ATLA-DK",
     "yfinance": "ATLA-DK.CO",
@@ -2223,6 +2307,13 @@
     "yfinance": "ATO.PA",
     "region": "us",
     "ir": "https://www.atos.net/en/investors"
+  },
+  "ATOS": {
+    "name": "Atos",
+    "yfinance": "ATO.PA",
+    "region": "europe",
+    "ir": "https://atos.net/en/investors",
+    "logo": "atos.net"
   },
   "ATRAV": {
     "name": "ATRAV",
@@ -2269,6 +2360,13 @@
     "region": "europe",
     "ir": "https://plc.autotrader.co.uk/investors/"
   },
+  "AUTOLIV": {
+    "name": "Autoliv",
+    "yfinance": "ALV",
+    "region": "us",
+    "ir": "https://www.autoliv.com/investors",
+    "logo": "autoliv.com"
+  },
   "AV.": {
     "name": "Aviva",
     "yfinance": "AV.",
@@ -2313,6 +2411,13 @@
     "region": "us",
     "ir": "https://ir.amwater.com"
   },
+  "AXA": {
+    "name": "AXA",
+    "yfinance": "CS.PA",
+    "region": "europe",
+    "ir": "https://www.axa.com/en/investor",
+    "logo": "axa.com"
+  },
   "AXFO": {
     "name": "AXFO",
     "yfinance": "AXFO.ST",
@@ -2340,6 +2445,13 @@
     "name": "AYGAZ",
     "yfinance": "AYGAZ.OL",
     "region": "europe"
+  },
+  "AYI": {
+    "name": "Acuity Brands",
+    "yfinance": "AYI",
+    "region": "us",
+    "ir": "https://investors.acuitybrands.com",
+    "logo": "acuitybrands.com"
   },
   "AZE": {
     "name": "AZE",
@@ -2755,6 +2867,13 @@
     "yfinance": "BICO.ST",
     "region": "europe"
   },
+  "BIDU": {
+    "name": "Baidu",
+    "yfinance": "BIDU",
+    "region": "us",
+    "ir": "https://ir.baidu.com",
+    "logo": "baidu.com"
+  },
   "BIE": {
     "name": "BIE",
     "yfinance": "BIE.MI",
@@ -2793,6 +2912,13 @@
     "yfinance": "BIM.PA",
     "region": "europe",
     "ir": "https://www.biomerieux.com/en/investors"
+  },
+  "BIO": {
+    "name": "Bio-Rad Laboratories",
+    "yfinance": "BIO",
+    "region": "us",
+    "ir": "https://www.bio-rad.com/en-us/corporate/investor-relations",
+    "logo": "bio-rad.com"
   },
   "BIO3": {
     "name": "BIO3",
@@ -2902,6 +3028,13 @@
     "region": "us",
     "ir": "https://ir.blackrock.com",
     "logo": "blackrock.com"
+  },
+  "BLL": {
+    "name": "Ball Corporation",
+    "yfinance": "BALL",
+    "region": "us",
+    "ir": "https://ball.com/investors",
+    "logo": "ball.com"
   },
   "BLND": {
     "name": "British Land",
@@ -3210,6 +3343,13 @@
     "region": "europe",
     "ir": "https://www.bt.com/about/investors"
   },
+  "BTI": {
+    "name": "British American Tobacco",
+    "yfinance": "BTI",
+    "region": "us",
+    "ir": "https://www.bat.com/investors",
+    "logo": "bat.com"
+  },
   "BTRW": {
     "name": "Barratt Redrow",
     "yfinance": "BTRW",
@@ -3262,6 +3402,13 @@
     "yfinance": "BWA",
     "region": "us",
     "ir": "https://www.borgwarner.com/investors"
+  },
+  "BWDY": {
+    "name": "Bowlero",
+    "yfinance": "BOWL",
+    "region": "us",
+    "ir": "https://ir.bowlerocorp.com",
+    "logo": "bowlerocorp.com"
   },
   "BWO": {
     "name": "BWO",
@@ -3402,6 +3549,13 @@
     "yfinance": "CAMB.BR",
     "region": "europe"
   },
+  "CAMPARI": {
+    "name": "Davide Campari-Milano",
+    "yfinance": "CPR.MI",
+    "region": "europe",
+    "ir": "https://www.camparigroup.com/en/investor",
+    "logo": "camparigroup.com"
+  },
   "CAP": {
     "name": "Capgemini",
     "yfinance": "CAP.PA",
@@ -3436,6 +3590,13 @@
     "name": "CARD",
     "yfinance": "CARD.L",
     "region": "europe"
+  },
+  "CARL": {
+    "name": "Carl Zeiss Meditec",
+    "yfinance": "AFX.DE",
+    "region": "europe",
+    "ir": "https://www.zeiss.com/meditec-ag/investor-relations",
+    "logo": "zeiss.com"
   },
   "CARL A": {
     "name": "Carlsberg",
@@ -3682,6 +3843,13 @@
     "yfinance": "CGG.PA",
     "region": "europe"
   },
+  "CGI": {
+    "name": "CGI Inc",
+    "yfinance": "GIB",
+    "region": "canada",
+    "ir": "https://www.cgi.com/en/investors",
+    "logo": "cgi.com"
+  },
   "CHD": {
     "name": "Church & Dwight",
     "yfinance": "CHD",
@@ -3715,6 +3883,13 @@
     "region": "us",
     "ir": "https://ir.charter.com",
     "logo": "charter.com"
+  },
+  "CHWY": {
+    "name": "Chewy",
+    "yfinance": "CHWY",
+    "region": "us",
+    "ir": "https://investor.chewy.com",
+    "logo": "chewy.com"
   },
   "CI": {
     "name": "Cigna Group",
@@ -3799,6 +3974,13 @@
     "region": "canada",
     "ir": "https://www.cibc.com/en/about-cibc/investor-relations.html",
     "logo": "cibc.com"
+  },
+  "CMA": {
+    "name": "Comerica",
+    "yfinance": "CMA",
+    "region": "us",
+    "ir": "https://investor.comerica.com",
+    "logo": "comerica.com"
   },
   "CMBN": {
     "name": "Cembra Money Bank",
@@ -3931,6 +4113,13 @@
     "ir": "https://www.cochlear.com/us/en/corporate/investors",
     "logo": "cochlear.com"
   },
+  "COHR": {
+    "name": "Coherent",
+    "yfinance": "COHR",
+    "region": "us",
+    "ir": "https://investor.coherent.com",
+    "logo": "coherent.com"
+  },
   "COIN": {
     "name": "Coinbase Global",
     "yfinance": "COIN",
@@ -3975,6 +4164,13 @@
     "yfinance": "CON.DE",
     "region": "europe",
     "ir": "https://www.continental.com/en/investors"
+  },
+  "CONT": {
+    "name": "Continental",
+    "yfinance": "CON.DE",
+    "region": "europe",
+    "ir": "https://www.continental.com/en/investors",
+    "logo": "continental.com"
   },
   "COO": {
     "name": "Cooper Companies",
@@ -4060,6 +4256,13 @@
     "yfinance": "CPR.MI",
     "region": "europe",
     "ir": "https://www.camparigroup.com/en/page/investors"
+  },
+  "CPRI": {
+    "name": "Capri Holdings",
+    "yfinance": "CPRI",
+    "region": "us",
+    "ir": "https://www.capriholdings.com/investors",
+    "logo": "capriholdings.com"
   },
   "CPRT": {
     "name": "Copart",
@@ -4236,6 +4439,13 @@
     "region": "canada",
     "ir": "https://www.canadianutilities.com/en/investor-centre.html",
     "logo": "canadianutilities.com"
+  },
+  "CUBE": {
+    "name": "CubeSmart",
+    "yfinance": "CUBE",
+    "region": "us",
+    "ir": "https://investors.cubesmart.com",
+    "logo": "cubesmart.com"
   },
   "CUR": {
     "name": "CUR",
@@ -4425,6 +4635,13 @@
     "ir": "https://investor.deere.com",
     "logo": "deere.com"
   },
+  "DEA": {
+    "name": "Easterly Government Properties",
+    "yfinance": "DEA",
+    "region": "us",
+    "ir": "https://www.easterlyreit.com/investors",
+    "logo": "easterlyreit.com"
+  },
   "DEC": {
     "name": "JCDecaux",
     "yfinance": "DEC.PA",
@@ -4452,6 +4669,13 @@
     "yfinance": "DEMANT.CO",
     "region": "europe",
     "ir": "https://www.demant.com/investors"
+  },
+  "DEO": {
+    "name": "Diageo",
+    "yfinance": "DEO",
+    "region": "us",
+    "ir": "https://www.diageo.com/en/investors",
+    "logo": "diageo.com"
   },
   "DEQ": {
     "name": "DEQ",
@@ -4652,6 +4876,13 @@
     "region": "us",
     "ir": "https://ir.healthpeak.com"
   },
+  "DOCN": {
+    "name": "DigitalOcean",
+    "yfinance": "DOCN",
+    "region": "us",
+    "ir": "https://investors.digitalocean.com",
+    "logo": "digitalocean.com"
+  },
   "DOCU": {
     "name": "DOCU",
     "yfinance": "DOCU",
@@ -4711,6 +4942,13 @@
     "yfinance": "DPLM.L",
     "region": "europe",
     "ir": "https://www.diplomaplc.com/investors/"
+  },
+  "DPS": {
+    "name": "Keurig Dr Pepper",
+    "yfinance": "KDP",
+    "region": "us",
+    "ir": "https://investors.keurigdrpepper.com",
+    "logo": "keurigdrpepper.com"
   },
   "DPW": {
     "name": "DPW",
@@ -4830,6 +5068,13 @@
     "yfinance": "DWNI.DE",
     "region": "europe"
   },
+  "DWS": {
+    "name": "DWS Group",
+    "yfinance": "DWS.DE",
+    "region": "europe",
+    "ir": "https://www.dws.com/en-lu/About-Us/investor-relations",
+    "logo": "dws.com"
+  },
   "DXCM": {
     "name": "Dexcom",
     "yfinance": "DXCM",
@@ -4940,6 +5185,13 @@
     "region": "europe",
     "ir": "https://www.edp.com/en/investors"
   },
+  "EDPR": {
+    "name": "EDP Renováveis",
+    "yfinance": "EDPR.LS",
+    "region": "europe",
+    "ir": "https://www.edpr.com/en/investors",
+    "logo": "edpr.com"
+  },
   "EDV": {
     "name": "EDV",
     "yfinance": "EDV.L",
@@ -4977,6 +5229,13 @@
     "name": "EGL",
     "yfinance": "EGL.LS",
     "region": "europe"
+  },
+  "EIF": {
+    "name": "Eiffage",
+    "yfinance": "FGR.PA",
+    "region": "europe",
+    "ir": "https://www.eiffage.com/en/shareholders-investors",
+    "logo": "eiffage.com"
   },
   "EIX": {
     "name": "Edison International",
@@ -5234,6 +5493,13 @@
     "region": "us",
     "ir": "https://entaingroup.com/investor-relations/"
   },
+  "ENTG": {
+    "name": "Entegris",
+    "yfinance": "ENTG",
+    "region": "us",
+    "ir": "https://investors.entegris.com",
+    "logo": "entegris.com"
+  },
   "ENTRA": {
     "name": "ENTRA",
     "yfinance": "ENTRA.OL",
@@ -5453,6 +5719,13 @@
     "region": "us",
     "ir": "https://investors.evergy.com"
   },
+  "EVRI": {
+    "name": "Everi Holdings",
+    "yfinance": "EVRI",
+    "region": "us",
+    "ir": "https://www.everi.com/investor-relations",
+    "logo": "everi.com"
+  },
   "EVS": {
     "name": "EVS",
     "yfinance": "EVS.BR",
@@ -5510,6 +5783,13 @@
     "yfinance": "EXPN.L",
     "region": "europe",
     "ir": "https://www.experianplc.com/investors"
+  },
+  "EXPO": {
+    "name": "Exponent",
+    "yfinance": "EXPO",
+    "region": "us",
+    "ir": "https://ir.exponent.com",
+    "logo": "exponent.com"
   },
   "EXR": {
     "name": "Extra Space Storage",
@@ -5904,6 +6184,13 @@
     "ir": "https://www.fresnilloplc.com/investors",
     "logo": "fresnilloplc.com"
   },
+  "FRESEN": {
+    "name": "Fresenius",
+    "yfinance": "FRE.DE",
+    "region": "europe",
+    "ir": "https://www.fresenius.com/investors",
+    "logo": "fresenius.com"
+  },
   "FRO": {
     "name": "FRO",
     "yfinance": "FRO.OL",
@@ -6181,6 +6468,13 @@
     "yfinance": "GFI.PA",
     "region": "europe"
   },
+  "GFL": {
+    "name": "GFL Environmental",
+    "yfinance": "GFL",
+    "region": "us",
+    "ir": "https://investors.gflenv.com",
+    "logo": "gflenv.com"
+  },
   "GFL.TO": {
     "name": "GFL Environmental",
     "yfinance": "GFL.TO",
@@ -6241,6 +6535,13 @@
     "region": "europe",
     "ir": "https://www.gjensidige.no/group/investor-relations"
   },
+  "GJFS": {
+    "name": "Gjensidige Forsikring",
+    "yfinance": "GJF.OL",
+    "region": "europe",
+    "ir": "https://www.gjensidige.com/group/investor-relations",
+    "logo": "gjensidige.com"
+  },
   "GKB": {
     "name": "Graubundner Kantonalbank",
     "yfinance": "GKB.SW",
@@ -6286,6 +6587,13 @@
     "name": "Galapagos",
     "yfinance": "GLPG.BR",
     "region": "europe"
+  },
+  "GLPI": {
+    "name": "Gaming and Leisure Properties",
+    "yfinance": "GLPI",
+    "region": "us",
+    "ir": "https://www.glpropinc.com/investors",
+    "logo": "glpropinc.com"
   },
   "GLW": {
     "name": "Corning",
@@ -6415,6 +6723,13 @@
     "region": "us",
     "ir": "https://investors.globalpaymentsinc.com/"
   },
+  "GPS": {
+    "name": "Gap Inc",
+    "yfinance": "GPS",
+    "region": "us",
+    "ir": "https://investors.gapinc.com",
+    "logo": "gap.com"
+  },
   "GPT.AX": {
     "name": "GPT Group",
     "yfinance": "GPT.AX",
@@ -6517,6 +6832,13 @@
     "ir": "https://www.greatwestlifeco.com/investors.html",
     "logo": "greatwestlifeco.com"
   },
+  "GWR": {
+    "name": "Great Portland Estates",
+    "yfinance": "GPE.L",
+    "region": "europe",
+    "ir": "https://www.gpe.co.uk/investors",
+    "logo": "gpe.co.uk"
+  },
   "GWW": {
     "name": "W.W. Grainger",
     "yfinance": "GWW",
@@ -6533,6 +6855,13 @@
     "name": "GYC",
     "yfinance": "GYC.DE",
     "region": "europe"
+  },
+  "H": {
+    "name": "Hyatt Hotels",
+    "yfinance": "H",
+    "region": "us",
+    "ir": "https://investors.hyatt.com",
+    "logo": "hyatt.com"
   },
   "H.TO": {
     "name": "Hydro One",
@@ -6592,6 +6921,13 @@
     "name": "HAV",
     "yfinance": "HAV.PA",
     "region": "europe"
+  },
+  "HAYS": {
+    "name": "Hays",
+    "yfinance": "HAS.L",
+    "region": "europe",
+    "ir": "https://www.haysplc.com/investors",
+    "logo": "haysplc.com"
   },
   "HBAN": {
     "name": "Huntington Bancshares",
@@ -6709,6 +7045,13 @@
     "yfinance": "HEXA-B.ST",
     "region": "europe"
   },
+  "HEXAB": {
+    "name": "Hexagon",
+    "yfinance": "HEXA-B.ST",
+    "region": "europe",
+    "ir": "https://hexagon.com/investors",
+    "logo": "hexagon.com"
+  },
   "HFG": {
     "name": "HFG",
     "yfinance": "HFG.DE",
@@ -6745,6 +7088,13 @@
     "yfinance": "HIK.L",
     "region": "europe",
     "ir": "https://www.hikma.com/investors"
+  },
+  "HIKMA": {
+    "name": "Hikma Pharmaceuticals",
+    "yfinance": "HIK.L",
+    "region": "europe",
+    "ir": "https://www.hikma.com/investors",
+    "logo": "hikma.com"
   },
   "HIM": {
     "name": "HIM",
@@ -6859,6 +7209,13 @@
     "name": "HOLM-B",
     "yfinance": "HOLM-B.ST",
     "region": "europe"
+  },
+  "HOLMEN": {
+    "name": "Holmen",
+    "yfinance": "HOLM-B.ST",
+    "region": "europe",
+    "ir": "https://www.holmen.com/en/investors",
+    "logo": "holmen.com"
   },
   "HOLN": {
     "name": "Holcim",
@@ -6989,6 +7346,13 @@
     "yfinance": "HUBN.SW",
     "region": "swiss",
     "ir": "https://www.hubersuhner.com/en/company/investors"
+  },
+  "HUBS": {
+    "name": "HubSpot",
+    "yfinance": "HUBS",
+    "region": "us",
+    "ir": "https://ir.hubspot.com",
+    "logo": "hubspot.com"
   },
   "HUH1V": {
     "name": "Huhtamaki",
@@ -7293,11 +7657,25 @@
     "yfinance": "INDU-C.ST",
     "region": "europe"
   },
+  "INDV": {
+    "name": "Indivior",
+    "yfinance": "INDV.L",
+    "region": "europe",
+    "ir": "https://www.indivior.com/investors",
+    "logo": "indivior.com"
+  },
   "INF": {
     "name": "Informa",
     "yfinance": "INF.L",
     "region": "europe",
     "ir": "https://www.informa.com/investors"
+  },
+  "INFY": {
+    "name": "Infosys",
+    "yfinance": "INFY",
+    "region": "us",
+    "ir": "https://www.infosys.com/investors",
+    "logo": "infosys.com"
   },
   "ING": {
     "name": "ING",
@@ -7450,6 +7828,20 @@
     "yfinance": "IPS.PA",
     "region": "europe"
   },
+  "IPSEN": {
+    "name": "Ipsen",
+    "yfinance": "IPN.PA",
+    "region": "europe",
+    "ir": "https://www.ipsen.com/investors",
+    "logo": "ipsen.com"
+  },
+  "IPSOS": {
+    "name": "Ipsos",
+    "yfinance": "IPS.PA",
+    "region": "europe",
+    "ir": "https://www.ipsos.com/en/investors",
+    "logo": "ipsos.com"
+  },
   "IQV": {
     "name": "IQVIA",
     "yfinance": "IQV",
@@ -7589,6 +7981,13 @@
     "region": "us",
     "ir": "https://investors.johnsoncontrols.com"
   },
+  "JD SPORTS": {
+    "name": "JD Sports Fashion",
+    "yfinance": "JD.L",
+    "region": "europe",
+    "ir": "https://www.jdplc.com/investors",
+    "logo": "jdplc.com"
+  },
   "JD.": {
     "name": "JD.",
     "yfinance": "JD.",
@@ -7633,6 +8032,13 @@
     "yfinance": "JKHY",
     "region": "us",
     "ir": "https://ir.jackhenry.com"
+  },
+  "JLL": {
+    "name": "Jones Lang LaSalle",
+    "yfinance": "JLL",
+    "region": "us",
+    "ir": "https://ir.jll.com",
+    "logo": "jll.com"
   },
   "JM": {
     "name": "JM",
@@ -7690,6 +8096,13 @@
     "name": "JUST",
     "yfinance": "JUST.L",
     "region": "europe"
+  },
+  "JWN": {
+    "name": "Nordstrom",
+    "yfinance": "JWN",
+    "region": "us",
+    "ir": "https://investor.nordstrom.com",
+    "logo": "nordstrom.com"
   },
   "JYSK": {
     "name": "Jyske Bank",
@@ -7908,6 +8321,13 @@
     "region": "us",
     "ir": "https://ir.kla.com"
   },
+  "KLEP": {
+    "name": "Klepierre",
+    "yfinance": "LI.PA",
+    "region": "europe",
+    "ir": "https://www.klepierre.com/en/finance",
+    "logo": "klepierre.com"
+  },
   "KMB": {
     "name": "Kimberly-Clark",
     "yfinance": "KMB",
@@ -7947,6 +8367,13 @@
     "yfinance": "KNIN.SW",
     "region": "swiss",
     "ir": "https://newsroom.kuehne-nagel.com/investor-relations/"
+  },
+  "KNORR": {
+    "name": "Knorr-Bremse",
+    "yfinance": "KBX.DE",
+    "region": "europe",
+    "ir": "https://ir.knorr-bremse.com/en",
+    "logo": "knorr-bremse.com"
   },
   "KNOS": {
     "name": "KNOS",
@@ -8052,6 +8479,13 @@
     "yfinance": "KSLAV.HE",
     "region": "europe"
   },
+  "KSS": {
+    "name": "Kohl's",
+    "yfinance": "KSS",
+    "region": "us",
+    "ir": "https://investors.kohls.com",
+    "logo": "kohls.com"
+  },
   "KVUE": {
     "name": "Kenvue",
     "yfinance": "KVUE",
@@ -8131,10 +8565,31 @@
     "region": "us",
     "ir": "https://investors.leidos.com"
   },
+  "LEA": {
+    "name": "Lear Corporation",
+    "yfinance": "LEA",
+    "region": "us",
+    "ir": "https://ir.lear.com",
+    "logo": "lear.com"
+  },
   "LEG": {
     "name": "LEG Immobilien",
     "yfinance": "LEG.DE",
     "region": "europe"
+  },
+  "LEGI": {
+    "name": "Legrand",
+    "yfinance": "LR.PA",
+    "region": "europe",
+    "ir": "https://www.legrandgroup.com/en/finance",
+    "logo": "legrandgroup.com"
+  },
+  "LEGR": {
+    "name": "Legrand",
+    "yfinance": "LR.PA",
+    "region": "europe",
+    "ir": "https://www.legrandgroup.com/en/finance",
+    "logo": "legrandgroup.com"
   },
   "LEHN": {
     "name": "LEHN",
@@ -8296,6 +8751,13 @@
     "yfinance": "LNA.PA",
     "region": "europe"
   },
+  "LNC": {
+    "name": "Lincoln National",
+    "yfinance": "LNC",
+    "region": "us",
+    "ir": "https://www.lincolnfinancial.com/public/individuals/aboutus/investorrelations",
+    "logo": "lincolnfinancial.com"
+  },
   "LNDN": {
     "name": "Lindt & Sprungli",
     "yfinance": "LNDN.SW",
@@ -8316,6 +8778,13 @@
     "name": "LOG",
     "yfinance": "LOG.MC",
     "region": "europe"
+  },
+  "LOGI": {
+    "name": "Logitech",
+    "yfinance": "LOGI",
+    "region": "us",
+    "ir": "https://ir.logitech.com",
+    "logo": "logitech.com"
   },
   "LOGN": {
     "name": "Logitech",
@@ -8363,6 +8832,13 @@
     "name": "LPK",
     "yfinance": "LPK.DE",
     "region": "europe"
+  },
+  "LPLA": {
+    "name": "LPL Financial",
+    "yfinance": "LPLA",
+    "region": "us",
+    "ir": "https://investor.lpl.com",
+    "logo": "lpl.com"
   },
   "LPP": {
     "name": "LPP",
@@ -8430,6 +8906,13 @@
     "region": "europe",
     "ir": "https://www.outokumpu.com/en/investors",
     "logo": "outokumpu.com"
+  },
+  "LUMN": {
+    "name": "Lumen Technologies",
+    "yfinance": "LUMN",
+    "region": "us",
+    "ir": "https://ir.lumen.com",
+    "logo": "lumen.com"
   },
   "LUN": {
     "name": "H. Lundbeck",
@@ -8520,6 +9003,13 @@
     "region": "us",
     "ir": "https://investors.livenationentertainment.com"
   },
+  "M6": {
+    "name": "Metropole Television",
+    "yfinance": "MMT.PA",
+    "region": "europe",
+    "ir": "https://www.groupem6.fr/en/finance",
+    "logo": "groupem6.fr"
+  },
   "MA": {
     "name": "Mastercard",
     "yfinance": "MA",
@@ -8580,6 +9070,13 @@
     "name": "Mapfre",
     "yfinance": "MAP.MC",
     "region": "europe"
+  },
+  "MAPFRE": {
+    "name": "Mapfre",
+    "yfinance": "MAP.MC",
+    "region": "europe",
+    "ir": "https://www.mapfre.com/en/shareholders-and-investors",
+    "logo": "mapfre.com"
   },
   "MAR": {
     "name": "Marriott International",
@@ -8857,6 +9354,13 @@
     "yfinance": "MKS",
     "region": "us"
   },
+  "MKSI": {
+    "name": "MKS Instruments",
+    "yfinance": "MKSI",
+    "region": "us",
+    "ir": "https://investor.mksinst.com",
+    "logo": "mksinst.com"
+  },
   "MKTX": {
     "name": "MarketAxess",
     "yfinance": "MKTX",
@@ -9089,6 +9593,13 @@
     "name": "MRV",
     "yfinance": "MRV.PA",
     "region": "europe"
+  },
+  "MRVL": {
+    "name": "Marvell Technology",
+    "yfinance": "MRVL",
+    "region": "us",
+    "ir": "https://investor.marvell.com",
+    "logo": "marvell.com"
   },
   "MS": {
     "name": "Morgan Stanley",
@@ -9350,6 +9861,13 @@
     "ir": "https://www.nemetschek.com/en/investor-relations",
     "logo": "nemetschek.com"
   },
+  "NEMETSCHEK": {
+    "name": "Nemetschek",
+    "yfinance": "NEM.DE",
+    "region": "europe",
+    "ir": "https://ir.nemetschek.com/en",
+    "logo": "nemetschek.com"
+  },
   "NEM_US": {
     "name": "Newmont",
     "yfinance": "NEM",
@@ -9401,6 +9919,13 @@
     "name": "NEWC",
     "yfinance": "NEWC.CO",
     "region": "europe"
+  },
+  "NEXI": {
+    "name": "Nexi",
+    "yfinance": "NEXI.MI",
+    "region": "europe",
+    "ir": "https://www.nexi.it/en/investors",
+    "logo": "nexi.it"
   },
   "NEXT": {
     "name": "NEXT",
@@ -9527,6 +10052,13 @@
     "yfinance": "NOHO.HE",
     "region": "europe"
   },
+  "NOK": {
+    "name": "Nokia",
+    "yfinance": "NOK",
+    "region": "us",
+    "ir": "https://www.nokia.com/about-us/investors",
+    "logo": "nokia.com"
+  },
   "NOKIA": {
     "name": "Nokia",
     "yfinance": "NOKIA.HE",
@@ -9629,6 +10161,13 @@
     "yfinance": "NSIS B",
     "region": "us"
   },
+  "NSP": {
+    "name": "Insperity",
+    "yfinance": "NSP",
+    "region": "us",
+    "ir": "https://investors.insperity.com",
+    "logo": "insperity.com"
+  },
   "NST.AX": {
     "name": "Northern Star Resources",
     "yfinance": "NST.AX",
@@ -9676,6 +10215,13 @@
     "yfinance": "NVR",
     "region": "us",
     "ir": "https://www.nvrinc.com/investors"
+  },
+  "NVS": {
+    "name": "Novartis",
+    "yfinance": "NVS",
+    "region": "us",
+    "ir": "https://www.novartis.com/investors",
+    "logo": "novartis.com"
   },
   "NWC.TO": {
     "name": "North West Company",
@@ -9739,6 +10285,13 @@
     "name": "NYR",
     "yfinance": "NYR.BR",
     "region": "europe"
+  },
+  "NYT": {
+    "name": "New York Times",
+    "yfinance": "NYT",
+    "region": "us",
+    "ir": "https://investors.nytco.com",
+    "logo": "nytco.com"
   },
   "NZYM-B": {
     "name": "NZYM-B",
@@ -9918,6 +10471,13 @@
     "region": "europe",
     "ir": "https://www.orange.com/en/investors"
   },
+  "ORAN": {
+    "name": "Orange",
+    "yfinance": "ORAN",
+    "region": "us",
+    "ir": "https://www.orange.com/en/investors",
+    "logo": "orange.com"
+  },
   "ORCL": {
     "name": "Oracle",
     "yfinance": "ORCL",
@@ -9961,6 +10521,13 @@
     "region": "us",
     "ir": "https://corporate.oreillyauto.com/investor-relations",
     "logo": "oreillyauto.com"
+  },
+  "ORN": {
+    "name": "Orion Corporation",
+    "yfinance": "ORNAV.HE",
+    "region": "europe",
+    "ir": "https://www.orion.fi/en/investors",
+    "logo": "orion.fi"
   },
   "ORNA": {
     "name": "Orior",
@@ -10041,6 +10608,13 @@
     "yfinance": "OTIS",
     "region": "us",
     "ir": "https://investors.otis.com"
+  },
+  "OTP": {
+    "name": "OTP Bank",
+    "yfinance": "OTP.BD",
+    "region": "europe",
+    "ir": "https://www.otpbank.hu/portal/en/ir",
+    "logo": "otpbank.hu"
   },
   "OTS": {
     "name": "OTS",
@@ -10203,6 +10777,13 @@
     "name": "PEAB-B",
     "yfinance": "PEAB-B.ST",
     "region": "europe"
+  },
+  "PEAK": {
+    "name": "Healthpeak Properties",
+    "yfinance": "PEAK",
+    "region": "us",
+    "ir": "https://ir.healthpeak.com",
+    "logo": "healthpeak.com"
   },
   "PEDU": {
     "name": "PEDU",
@@ -10378,6 +10959,13 @@
     "region": "us",
     "ir": "https://investors.packagingcorp.com"
   },
+  "PKI": {
+    "name": "PerkinElmer",
+    "yfinance": "PKI",
+    "region": "us",
+    "ir": "https://ir.perkinelmer.com",
+    "logo": "perkinelmer.com"
+  },
   "PKN": {
     "name": "Orlen",
     "yfinance": "PKN",
@@ -10547,6 +11135,13 @@
     "yfinance": "POOL-B.ST",
     "region": "europe"
   },
+  "PORSCHE": {
+    "name": "Porsche AG",
+    "yfinance": "P911.DE",
+    "region": "europe",
+    "ir": "https://investorrelations.porsche.com",
+    "logo": "porsche.com"
+  },
   "POS": {
     "name": "POS",
     "yfinance": "POS.VI",
@@ -10600,6 +11195,13 @@
     "name": "PRM",
     "yfinance": "PRM.MI",
     "region": "europe"
+  },
+  "PRO7": {
+    "name": "ProSiebenSat.1 Media",
+    "yfinance": "PSM.DE",
+    "region": "europe",
+    "ir": "https://www.prosiebensat1.com/en/investor-relations",
+    "logo": "prosiebensat1.com"
   },
   "PROB": {
     "name": "PROB",
@@ -10702,6 +11304,13 @@
     "yfinance": "PST",
     "region": "us"
   },
+  "PSTG": {
+    "name": "Pure Storage",
+    "yfinance": "PSTG",
+    "region": "us",
+    "ir": "https://investor.purestorage.com",
+    "logo": "purestorage.com"
+  },
   "PSX": {
     "name": "Phillips 66",
     "yfinance": "PSX",
@@ -10740,6 +11349,13 @@
     "name": "PUUILO",
     "yfinance": "PUUILO.HE",
     "region": "europe"
+  },
+  "PVH": {
+    "name": "PVH Corp",
+    "yfinance": "PVH",
+    "region": "us",
+    "ir": "https://www.pvh.com/investor-relations",
+    "logo": "pvh.com"
   },
   "PWR": {
     "name": "Quanta Services",
@@ -10821,6 +11437,13 @@
     "yfinance": "QRVO",
     "region": "us",
     "ir": "https://ir.qorvo.com/"
+  },
+  "QSR": {
+    "name": "Restaurant Brands International",
+    "yfinance": "QSR",
+    "region": "us",
+    "ir": "https://www.rbi.com/investors",
+    "logo": "rbi.com"
   },
   "QT1V": {
     "name": "QT1V",
@@ -10946,6 +11569,13 @@
     "name": "RDW",
     "yfinance": "RDW.L",
     "region": "europe"
+  },
+  "RE": {
+    "name": "Everest Re Group",
+    "yfinance": "RE",
+    "region": "us",
+    "ir": "https://www.everestre.com/investors",
+    "logo": "everestre.com"
   },
   "REA.AX": {
     "name": "REA Group",
@@ -11130,6 +11760,13 @@
     "ir": "https://www.riotinto.com/investors",
     "logo": "riotinto.com"
   },
+  "RIVN": {
+    "name": "Rivian Automotive",
+    "yfinance": "RIVN",
+    "region": "us",
+    "ir": "https://rivian.com/investors",
+    "logo": "rivian.com"
+  },
   "RJF": {
     "name": "Raymond James Financial",
     "yfinance": "RJF",
@@ -11292,6 +11929,13 @@
     "yfinance": "RS1",
     "region": "us"
   },
+  "RSA": {
+    "name": "RSA Insurance Group",
+    "yfinance": "RSA.L",
+    "region": "europe",
+    "ir": "https://www.rsagroup.com/investors",
+    "logo": "rsagroup.com"
+  },
   "RSG": {
     "name": "Republic Services",
     "yfinance": "RSG",
@@ -11309,6 +11953,13 @@
     "name": "RSW",
     "yfinance": "RSW.L",
     "region": "europe"
+  },
+  "RTL": {
+    "name": "RTL Group",
+    "yfinance": "RTL.BR",
+    "region": "europe",
+    "ir": "https://company.rtl.com/en/investors",
+    "logo": "rtl.com"
   },
   "RTLL": {
     "name": "RTL Group",
@@ -11543,6 +12194,13 @@
     "ir": "https://www.saracen.com.au/investors",
     "logo": "saracen.com.au"
   },
+  "SARTORIUS": {
+    "name": "Sartorius",
+    "yfinance": "SRT3.DE",
+    "region": "europe",
+    "ir": "https://www.sartorius.com/en/company/investor-relations",
+    "logo": "sartorius.com"
+  },
   "SAS-DK": {
     "name": "SAS-DK",
     "yfinance": "SAS-DK.CO",
@@ -11562,6 +12220,13 @@
     "name": "SAVE",
     "yfinance": "SAVE.ST",
     "region": "europe"
+  },
+  "SAVILLS": {
+    "name": "Savills",
+    "yfinance": "SVS.L",
+    "region": "europe",
+    "ir": "https://ir.savills.com",
+    "logo": "savills.com"
   },
   "SAX": {
     "name": "SAX",
@@ -11653,6 +12318,13 @@
     "yfinance": "SCHD.BR",
     "region": "europe"
   },
+  "SCHIBSTED": {
+    "name": "Schibsted",
+    "yfinance": "SCHA.OL",
+    "region": "europe",
+    "ir": "https://schibsted.com/ir",
+    "logo": "schibsted.com"
+  },
   "SCHL": {
     "name": "SCHL",
     "yfinance": "SCHL.BR",
@@ -11691,6 +12363,20 @@
     "region": "swiss",
     "ir": "https://www.swisscom.ch/en/about/investors.html",
     "logo": "swisscom.ch"
+  },
+  "SCOM": {
+    "name": "Scout24",
+    "yfinance": "G24.DE",
+    "region": "europe",
+    "ir": "https://www.scout24.com/en/investor-relations",
+    "logo": "scout24.com"
+  },
+  "SCOR": {
+    "name": "SCOR",
+    "yfinance": "SCR.PA",
+    "region": "europe",
+    "ir": "https://www.scor.com/en/investors",
+    "logo": "scor.com"
   },
   "SCP": {
     "name": "SCP",
@@ -11779,6 +12465,27 @@
     "name": "SECU-B",
     "yfinance": "SECU-B.ST",
     "region": "europe"
+  },
+  "SEDG": {
+    "name": "SolarEdge Technologies",
+    "yfinance": "SEDG",
+    "region": "us",
+    "ir": "https://investors.solaredge.com",
+    "logo": "solaredge.com"
+  },
+  "SEE": {
+    "name": "Sealed Air",
+    "yfinance": "SEE",
+    "region": "us",
+    "ir": "https://ir.sealedair.com",
+    "logo": "sealedair.com"
+  },
+  "SEGRO": {
+    "name": "SEGRO",
+    "yfinance": "SGRO.L",
+    "region": "europe",
+    "ir": "https://www.segro.com/investors",
+    "logo": "segro.com"
   },
   "SEK.AX": {
     "name": "Seek",
@@ -12001,6 +12708,13 @@
     "ir": "https://www.sika.com/en/investors.html",
     "logo": "sika.com"
   },
+  "SILTRONIC": {
+    "name": "Siltronic",
+    "yfinance": "WAF.DE",
+    "region": "europe",
+    "ir": "https://www.siltronic.com/en/investors",
+    "logo": "siltronic.com"
+  },
   "SIM": {
     "name": "SimCorp",
     "yfinance": "SIM.CO",
@@ -12090,6 +12804,13 @@
     "name": "SLBEN",
     "yfinance": "SLBEN.LS",
     "region": "europe"
+  },
+  "SLF": {
+    "name": "Sun Life Financial",
+    "yfinance": "SLF",
+    "region": "us",
+    "ir": "https://www.sunlife.com/en/investors",
+    "logo": "sunlife.com"
   },
   "SLF.TO": {
     "name": "Sun Life Financial",
@@ -12199,7 +12920,7 @@
     "region": "europe"
   },
   "SNOW": {
-    "name": "SNOW",
+    "name": "Snowflake",
     "yfinance": "SNOW",
     "region": "us",
     "ir": "https://investors.snowflake.com",
@@ -12226,6 +12947,13 @@
     "yfinance": "SNTN.VI",
     "region": "europe"
   },
+  "SNY": {
+    "name": "Sanofi",
+    "yfinance": "SNY",
+    "region": "us",
+    "ir": "https://www.sanofi.com/en/investors",
+    "logo": "sanofi.com"
+  },
   "SO": {
     "name": "Southern Company",
     "yfinance": "SO",
@@ -12241,6 +12969,13 @@
     "name": "Sofina",
     "yfinance": "SOF",
     "region": "us"
+  },
+  "SOFI": {
+    "name": "SoFi Technologies",
+    "yfinance": "SOFI",
+    "region": "us",
+    "ir": "https://investors.sofi.com",
+    "logo": "sofi.com"
   },
   "SOFTG": {
     "name": "Softwareone Holding",
@@ -12364,6 +13099,13 @@
     "yfinance": "SPL",
     "region": "us"
   },
+  "SPLK": {
+    "name": "Splunk",
+    "yfinance": "SPLK",
+    "region": "us",
+    "ir": "https://investors.splunk.com",
+    "logo": "splunk.com"
+  },
   "SPM": {
     "name": "Saipem",
     "yfinance": "SPM.MI",
@@ -12467,6 +13209,13 @@
     "name": "SSA1S",
     "yfinance": "SSA1S.HE",
     "region": "europe"
+  },
+  "SSAB": {
+    "name": "SSAB",
+    "yfinance": "SSAB-A.ST",
+    "region": "europe",
+    "ir": "https://www.ssab.com/en/company/investors",
+    "logo": "ssab.com"
   },
   "SSAB-A": {
     "name": "SSAB-A",
@@ -12627,6 +13376,13 @@
     "yfinance": "STR.VI",
     "region": "europe"
   },
+  "STRA": {
+    "name": "Straumann",
+    "yfinance": "STMN.SW",
+    "region": "swiss",
+    "ir": "https://www.straumann.com/group/en/home/investors",
+    "logo": "straumann.com"
+  },
   "STS": {
     "name": "STS",
     "yfinance": "STS.L",
@@ -12749,6 +13505,13 @@
     "yfinance": "SWED-A.ST",
     "region": "europe"
   },
+  "SWISSCOM": {
+    "name": "Swisscom",
+    "yfinance": "SCMN.SW",
+    "region": "swiss",
+    "ir": "https://www.swisscom.ch/en/about/investors",
+    "logo": "swisscom.ch"
+  },
   "SWK": {
     "name": "Stanley Black & Decker",
     "yfinance": "SWK",
@@ -12813,6 +13576,13 @@
     "region": "us",
     "ir": "https://investors.stryker.com",
     "logo": "stryker.com"
+  },
+  "SYMRISE": {
+    "name": "Symrise",
+    "yfinance": "SY1.DE",
+    "region": "europe",
+    "ir": "https://www.symrise.com/investors",
+    "logo": "symrise.com"
   },
   "SYNT": {
     "name": "SYNT",
@@ -12883,6 +13653,20 @@
     "yfinance": "TCLB.CO",
     "region": "europe"
   },
+  "TCOM": {
+    "name": "Trip.com Group",
+    "yfinance": "TCOM",
+    "region": "us",
+    "ir": "https://investors.trip.com",
+    "logo": "trip.com"
+  },
+  "TCS": {
+    "name": "Tata Consultancy Services",
+    "yfinance": "TCS.NS",
+    "region": "europe",
+    "ir": "https://www.tcs.com/investor-relations",
+    "logo": "tcs.com"
+  },
   "TD.TO": {
     "name": "Toronto-Dominion Bank",
     "yfinance": "TD.TO",
@@ -12906,6 +13690,20 @@
     "yfinance": "TDY",
     "region": "us",
     "ir": "https://www.teledyne.com/investors"
+  },
+  "TE": {
+    "name": "TE Connectivity",
+    "yfinance": "TEL",
+    "region": "us",
+    "ir": "https://investors.te.com",
+    "logo": "te.com"
+  },
+  "TEAM": {
+    "name": "Atlassian",
+    "yfinance": "TEAM",
+    "region": "us",
+    "ir": "https://investors.atlassian.com",
+    "logo": "atlassian.com"
   },
   "TECH": {
     "name": "Bio-Techne",
@@ -12971,6 +13769,13 @@
     "yfinance": "TEL2-B.ST",
     "region": "europe"
   },
+  "TELENOR": {
+    "name": "Telenor",
+    "yfinance": "TEL.OL",
+    "region": "europe",
+    "ir": "https://www.telenor.com/investors",
+    "logo": "telenor.com"
+  },
   "TELIA": {
     "name": "Telia Company",
     "yfinance": "TELIA",
@@ -13022,6 +13827,13 @@
     "yfinance": "TEXF.BR",
     "region": "europe"
   },
+  "TF1": {
+    "name": "TF1",
+    "yfinance": "TFI.PA",
+    "region": "europe",
+    "ir": "https://www.groupe-tf1.fr/en/investors",
+    "logo": "groupe-tf1.fr"
+  },
   "TFC": {
     "name": "Truist Financial",
     "yfinance": "TFC",
@@ -13056,6 +13868,13 @@
     "region": "us",
     "ir": "https://corporate.target.com/investors",
     "logo": "target.com"
+  },
+  "THC": {
+    "name": "Tenet Healthcare",
+    "yfinance": "THC",
+    "region": "us",
+    "ir": "https://investor.tenethealth.com",
+    "logo": "tenethealth.com"
   },
   "THCG": {
     "name": "THCG",
@@ -13223,6 +14042,13 @@
     "name": "TOKMAN",
     "yfinance": "TOKMAN.HE",
     "region": "europe"
+  },
+  "TOL": {
+    "name": "Toll Brothers",
+    "yfinance": "TOL",
+    "region": "us",
+    "ir": "https://investors.tollbrothers.com",
+    "logo": "tollbrothers.com"
   },
   "TOM": {
     "name": "Tomra Systems",
@@ -13441,6 +14267,13 @@
     "yfinance": "TWEKA.AS",
     "region": "europe"
   },
+  "TWLO": {
+    "name": "Twilio",
+    "yfinance": "TWLO",
+    "region": "us",
+    "ir": "https://investors.twilio.com",
+    "logo": "twilio.com"
+  },
   "TXN": {
     "name": "TXN",
     "yfinance": "TXN",
@@ -13550,6 +14383,13 @@
     "yfinance": "UDR",
     "region": "us",
     "ir": "https://www.udr.com/investors/"
+  },
+  "UGI": {
+    "name": "UGI Corporation",
+    "yfinance": "UGI",
+    "region": "us",
+    "ir": "https://www.ugicorp.com/investors",
+    "logo": "ugicorp.com"
   },
   "UHR": {
     "name": "Swatch Group",
@@ -13681,6 +14521,13 @@
     "yfinance": "USE.DE",
     "region": "europe"
   },
+  "USFD": {
+    "name": "US Foods",
+    "yfinance": "USFD",
+    "region": "us",
+    "ir": "https://ir.usfoods.com",
+    "logo": "usfoods.com"
+  },
   "UTDI": {
     "name": "United Internet",
     "yfinance": "UTDI",
@@ -13774,6 +14621,13 @@
     "yfinance": "VASTB.AS",
     "region": "europe"
   },
+  "VAT": {
+    "name": "VAT Group",
+    "yfinance": "VACN.SW",
+    "region": "swiss",
+    "ir": "https://www.vatvalve.com/investors",
+    "logo": "vatvalve.com"
+  },
   "VATN": {
     "name": "VATN",
     "yfinance": "VATN.SW",
@@ -13807,10 +14661,24 @@
     "ir": "https://www.vicinity.com.au/investors",
     "logo": "vicinity.com.au"
   },
+  "VEEV": {
+    "name": "Veeva Systems",
+    "yfinance": "VEEV",
+    "region": "us",
+    "ir": "https://ir.veeva.com",
+    "logo": "veeva.com"
+  },
   "VEI": {
     "name": "VEI",
     "yfinance": "VEI.OL",
     "region": "europe"
+  },
+  "VEOLIA": {
+    "name": "Veolia Environnement",
+    "yfinance": "VIE.PA",
+    "region": "europe",
+    "ir": "https://www.veolia.com/en/investors",
+    "logo": "veolia.com"
   },
   "VEON": {
     "name": "VEON",
@@ -13827,10 +14695,24 @@
     "yfinance": "VERB.VI",
     "region": "europe"
   },
+  "VERBUND": {
+    "name": "Verbund",
+    "yfinance": "VER.VI",
+    "region": "europe",
+    "ir": "https://www.verbund.com/en-de/about-verbund/investor-relations",
+    "logo": "verbund.com"
+  },
   "VERK": {
     "name": "VERK",
     "yfinance": "VERK.HE",
     "region": "europe"
+  },
+  "VESTAS": {
+    "name": "Vestas Wind Systems",
+    "yfinance": "VWS.CO",
+    "region": "europe",
+    "ir": "https://www.vestas.com/en/investor",
+    "logo": "vestas.com"
   },
   "VET": {
     "name": "VET",
@@ -13901,6 +14783,13 @@
     "yfinance": "VIL.PA",
     "region": "europe"
   },
+  "VINCI": {
+    "name": "Vinci",
+    "yfinance": "DG.PA",
+    "region": "europe",
+    "ir": "https://www.vinci.com/vinci.nsf/en/investors",
+    "logo": "vinci.com"
+  },
   "VINCIT": {
     "name": "VINCIT",
     "yfinance": "VINCIT.HE",
@@ -13936,6 +14825,13 @@
     "name": "VIVAP",
     "yfinance": "VIVAP.AS",
     "region": "europe"
+  },
+  "VIVI": {
+    "name": "Vivendi",
+    "yfinance": "VIV.PA",
+    "region": "europe",
+    "ir": "https://www.vivendi.com/en/shareholders-investors",
+    "logo": "vivendi.com"
   },
   "VIVO": {
     "name": "VIVO",
@@ -14025,6 +14921,13 @@
     "region": "swiss",
     "ir": "https://www.vontobel.com/en-ch/about-vontobel/investor-relations/"
   },
+  "VONOVIA": {
+    "name": "Vonovia",
+    "yfinance": "VNA.DE",
+    "region": "europe",
+    "ir": "https://investoren.vonovia.de/en",
+    "logo": "vonovia.de"
+  },
   "VOS": {
     "name": "VOS",
     "yfinance": "VOS.DE",
@@ -14041,6 +14944,13 @@
     "region": "europe",
     "ir": "https://www.volkswagenag.com/en/InvestorRelations.html",
     "logo": "volkswagen.com"
+  },
+  "VOYA": {
+    "name": "Voya Financial",
+    "yfinance": "VOYA",
+    "region": "us",
+    "ir": "https://investors.voya.com",
+    "logo": "voya.com"
   },
   "VPK": {
     "name": "Koninklijke Vopak",
@@ -14113,6 +15023,13 @@
     "region": "swiss",
     "ir": "https://www.vzch.com/en/investors"
   },
+  "W": {
+    "name": "Wayfair",
+    "yfinance": "W",
+    "region": "us",
+    "ir": "https://investor.wayfair.com",
+    "logo": "wayfair.com"
+  },
   "WAB": {
     "name": "Wabtec",
     "yfinance": "WAB",
@@ -14128,6 +15045,13 @@
     "name": "Siltronic",
     "yfinance": "WAF.DE",
     "region": "europe"
+  },
+  "WAL": {
+    "name": "Western Alliance Bancorporation",
+    "yfinance": "WAL",
+    "region": "us",
+    "ir": "https://www.westernalliancebancorporation.com/investor-relations",
+    "logo": "westernalliancebank.com"
   },
   "WALL-B": {
     "name": "WALL-B",
@@ -14166,10 +15090,24 @@
     "ir": "https://ir.wbd.com",
     "logo": "wbd.com"
   },
+  "WCC": {
+    "name": "WESCO International",
+    "yfinance": "WCC",
+    "region": "us",
+    "ir": "https://investors.wesco.com",
+    "logo": "wesco.com"
+  },
   "WCH": {
     "name": "WCH",
     "yfinance": "WCH.DE",
     "region": "europe"
+  },
+  "WCN": {
+    "name": "Waste Connections",
+    "yfinance": "WCN",
+    "region": "us",
+    "ir": "https://investors.wasteconnections.com",
+    "logo": "wasteconnections.com"
   },
   "WCN.TO": {
     "name": "Waste Connections",
@@ -14290,10 +15228,24 @@
     "yfinance": "WINT.ST",
     "region": "europe"
   },
+  "WIT": {
+    "name": "Wipro",
+    "yfinance": "WIT",
+    "region": "us",
+    "ir": "https://www.wipro.com/investors",
+    "logo": "wipro.com"
+  },
   "WIX": {
     "name": "WIX",
     "yfinance": "WIX.L",
     "region": "europe"
+  },
+  "WIZZ": {
+    "name": "Wizz Air",
+    "yfinance": "WIZZ.L",
+    "region": "europe",
+    "ir": "https://wizzair.com/en-gb/information-and-services/investor-relations",
+    "logo": "wizzair.com"
   },
   "WKL": {
     "name": "Wolters Kluwer",
@@ -14430,6 +15382,13 @@
     "region": "australia",
     "ir": "https://www.wisetechglobal.com/investors",
     "logo": "wisetechglobal.com"
+  },
+  "WTRG": {
+    "name": "Essential Utilities",
+    "yfinance": "WTRG",
+    "region": "us",
+    "ir": "https://ir.essential.co",
+    "logo": "essential.co"
   },
   "WTW": {
     "name": "Willis Towers Watson",
@@ -14601,6 +15560,20 @@
     "name": "ZEN",
     "yfinance": "ZEN.BR",
     "region": "europe"
+  },
+  "ZG": {
+    "name": "Zillow Group",
+    "yfinance": "ZG",
+    "region": "us",
+    "ir": "https://investors.zillowgroup.com",
+    "logo": "zillowgroup.com"
+  },
+  "ZION": {
+    "name": "Zions Bancorporation",
+    "yfinance": "ZION",
+    "region": "us",
+    "ir": "https://investor.zionsbancorporation.com",
+    "logo": "zionsbank.com"
   },
   "ZM": {
     "name": "ZM",
