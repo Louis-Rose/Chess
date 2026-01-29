@@ -8,6 +8,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { addRecentStock, getRecentStocks, removeRecentStock } from '../utils/recentStocks';
+import { STOCK_GICS_MAP } from '../utils/gics';
 
 interface StockSearchBarProps {
   className?: string;
@@ -52,6 +53,18 @@ export function StockSearchBar({ className = '', hideContainer = false }: StockS
     setShowStockDropdown(false);
     addRecentStock(ticker, user?.id);
     navigate(`/investing/stock/${ticker}`);
+  };
+
+  const handleGICSClick = (e: React.MouseEvent, ticker: string) => {
+    e.stopPropagation();
+    const gicsCode = STOCK_GICS_MAP[ticker];
+    if (gicsCode) {
+      const sectorCode = gicsCode.slice(0, 2);
+      const industryGroupCode = gicsCode.slice(0, 4);
+      const industryCode = gicsCode.slice(0, 6);
+      setShowStockDropdown(false);
+      navigate(`/investing/financials?sector=${sectorCode}&industryGroup=${industryGroupCode}&industry=${industryCode}&subIndustry=${gicsCode}`);
+    }
   };
 
   return (
@@ -189,6 +202,15 @@ export function StockSearchBar({ className = '', hideContainer = false }: StockS
                       </div>
                       <span className="font-bold text-slate-800 w-16">{ticker}</span>
                       <span className="text-slate-600 text-sm truncate flex-1">{displayName}</span>
+                      {STOCK_GICS_MAP[ticker] && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleGICSClick(e, ticker)}
+                          className="px-2 py-0.5 text-xs font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded transition-colors"
+                        >
+                          GICS: {STOCK_GICS_MAP[ticker]}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -235,7 +257,16 @@ export function StockSearchBar({ className = '', hideContainer = false }: StockS
                     )}
                   </div>
                   <span className="font-bold text-slate-800 w-16">{stock.ticker}</span>
-                  <span className="text-slate-600 text-sm truncate">{stock.name}</span>
+                  <span className="text-slate-600 text-sm truncate flex-1">{stock.name}</span>
+                  {STOCK_GICS_MAP[stock.ticker] && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleGICSClick(e, stock.ticker)}
+                      className="px-2 py-0.5 text-xs font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded transition-colors flex-shrink-0"
+                    >
+                      GICS: {STOCK_GICS_MAP[stock.ticker]}
+                    </button>
+                  )}
                 </button>
               );
             })}
