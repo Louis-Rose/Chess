@@ -345,43 +345,44 @@ export function FinancialsPanel() {
                     <p className="text-sm text-purple-700 dark:text-purple-300">
                       {language === 'fr' ? `${stocksInSubIndustry.length} action(s) dans cette sous-industrie:` : `${stocksInSubIndustry.length} stock(s) in this sub-industry:`}
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                      {stocksInSubIndustry.map((ticker) => {
-                        const stock = findStockByTicker(ticker);
-                        const logoUrl = getCompanyLogoUrl(ticker);
-                        // Shorten company name if too long (max ~20 chars)
-                        const fullName = stock?.name || '';
-                        const shortName = fullName.length > 20 ? fullName.slice(0, 18) + '...' : fullName;
-                        return (
-                          <button
-                            key={ticker}
-                            onClick={() => handleSelectStock(ticker)}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors bg-white dark:bg-slate-600 border-purple-200 dark:border-purple-700 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-800/50"
-                            title={fullName || ticker}
-                          >
-                            <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
-                              {logoUrl ? (
-                                <img
-                                  src={logoUrl}
-                                  alt={`${ticker} logo`}
-                                  className="w-5 h-5 object-contain"
-                                  onError={(e) => {
-                                    const parent = e.currentTarget.parentElement;
-                                    if (parent) {
-                                      parent.innerHTML = `<span class="text-[8px] font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
-                                    }
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-[8px] font-bold text-slate-500 dark:text-slate-300">{ticker.slice(0, 2)}</span>
-                              )}
-                            </div>
-                            <span className="font-medium text-sm text-purple-800 dark:text-purple-100">
-                              {shortName ? `${shortName} (${ticker})` : ticker}
-                            </span>
-                          </button>
-                        );
-                      })}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {stocksInSubIndustry
+                        .map((ticker) => ({ ticker, stock: findStockByTicker(ticker) }))
+                        .sort((a, b) => (a.stock?.name || a.ticker).localeCompare(b.stock?.name || b.ticker))
+                        .map(({ ticker, stock }) => {
+                          const logoUrl = getCompanyLogoUrl(ticker);
+                          const fullName = stock?.name || '';
+                          const shortName = fullName.length > 25 ? fullName.slice(0, 23) + '...' : fullName;
+                          return (
+                            <button
+                              key={ticker}
+                              onClick={() => handleSelectStock(ticker)}
+                              className="flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-slate-600 border-purple-200 dark:border-purple-700 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-800/50"
+                              title={fullName || ticker}
+                            >
+                              <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                                {logoUrl ? (
+                                  <img
+                                    src={logoUrl}
+                                    alt={`${ticker} logo`}
+                                    className="w-5 h-5 object-contain"
+                                    onError={(e) => {
+                                      const parent = e.currentTarget.parentElement;
+                                      if (parent) {
+                                        parent.innerHTML = `<span class="text-[8px] font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="text-[8px] font-bold text-slate-500 dark:text-slate-300">{ticker.slice(0, 2)}</span>
+                                )}
+                              </div>
+                              <span className="font-medium text-sm text-purple-800 dark:text-purple-100 truncate">
+                                {shortName ? `${shortName} (${ticker})` : ticker}
+                              </span>
+                            </button>
+                          );
+                        })}
                     </div>
                   </div>
                 ) : (
