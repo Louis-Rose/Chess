@@ -172,8 +172,8 @@ export function InvestingSidebar() {
 
       {/* Recent Stocks - only show when authenticated, scrollable section */}
       {isAuthenticated && recentStocks.length > 0 && !isCollapsed && (
-        <div className="px-2 py-4 flex-1 min-h-0 overflow-y-auto">
-          <div className="flex items-center gap-2 mb-3 text-slate-400">
+        <div className="py-4 flex-1 min-h-0 overflow-y-auto">
+          <div className="flex items-center gap-2 mb-3 px-2 text-slate-400">
             <Clock className="w-4 h-4" />
             <span className="text-xs font-medium uppercase tracking-wide">
               {language === 'fr' ? 'Recherches récentes' : 'Recently searched'}
@@ -208,14 +208,14 @@ export function InvestingSidebar() {
                       <span className="text-[7px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
                     )}
                   </div>
-                  <span className="text-xs font-medium text-slate-200 truncate">{displayName} ({ticker})</span>
+                  <span className="text-xs font-medium text-slate-200 truncate flex-1 min-w-0">{displayName} ({ticker})</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       removeRecentStock(ticker, user?.id);
                       setRecentStocks(getRecentStocks(user?.id));
                     }}
-                    className="p-0.5 rounded hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
+                    className="p-0.5 rounded hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                     title={language === 'fr' ? 'Supprimer' : 'Remove'}
                   >
                     <X className="w-3 h-3 text-slate-400" />
