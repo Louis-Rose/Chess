@@ -197,14 +197,14 @@ export function FinancialsPanel() {
             <div className="flex items-center gap-2 text-sm mb-4 flex-wrap bg-slate-100 dark:bg-slate-600 rounded-lg px-3 py-2">
               <button
                 onClick={handleResetGICS}
-                className="text-purple-600 dark:text-purple-400 hover:underline font-medium"
+                className="text-purple-600 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-100 font-medium transition-colors"
               >
                 GICS
               </button>
               <span className="text-slate-400">/</span>
               <button
                 onClick={() => updateGICSParams({ industryGroup: null, industry: null, subIndustry: null })}
-                className={`${selectedIndustryGroup ? 'text-purple-600 dark:text-purple-400 hover:underline' : 'text-slate-800 dark:text-white font-semibold'}`}
+                className={`transition-colors ${selectedIndustryGroup ? 'text-purple-600 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-100' : 'text-slate-800 dark:text-white font-semibold'}`}
               >
                 {selectedSector.name}
               </button>
@@ -213,7 +213,7 @@ export function FinancialsPanel() {
                   <span className="text-slate-400">/</span>
                   <button
                     onClick={() => updateGICSParams({ industry: null, subIndustry: null })}
-                    className={`${selectedIndustry ? 'text-purple-600 dark:text-purple-400 hover:underline' : 'text-slate-800 dark:text-white font-semibold'}`}
+                    className={`transition-colors ${selectedIndustry ? 'text-purple-600 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-100' : 'text-slate-800 dark:text-white font-semibold'}`}
                   >
                     {selectedIndustryGroup.name}
                   </button>
@@ -224,7 +224,7 @@ export function FinancialsPanel() {
                   <span className="text-slate-400">/</span>
                   <button
                     onClick={() => updateGICSParams({ subIndustry: null })}
-                    className={`${selectedSubIndustry ? 'text-purple-600 dark:text-purple-400 hover:underline' : 'text-slate-800 dark:text-white font-semibold'}`}
+                    className={`transition-colors ${selectedSubIndustry ? 'text-purple-600 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-100' : 'text-slate-800 dark:text-white font-semibold'}`}
                   >
                     {selectedIndustry.name}
                   </button>
