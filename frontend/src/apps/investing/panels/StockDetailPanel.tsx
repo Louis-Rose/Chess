@@ -393,7 +393,7 @@ export function StockDetailPanel() {
                   )}
                 </div>
               ) : (
-                <div className="h-[52px]" />
+                <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
               )}
             </div>
 
