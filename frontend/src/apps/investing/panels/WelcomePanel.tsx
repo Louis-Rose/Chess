@@ -201,16 +201,6 @@ export function InvestingWelcomePanel() {
       descFr: 'Gérez la liste des actions que vous souhaitez suivre.',
     },
     {
-      icon: Calendar,
-      iconBg: 'bg-amber-600',
-      hoverBorder: 'hover:border-amber-500',
-      path: '/investing/earnings',
-      titleEn: 'Earnings Calendar',
-      titleFr: 'Calendrier des Résultats',
-      descEn: 'Track upcoming earnings releases for your holdings.',
-      descFr: 'Suivez les prochaines publications de résultats de vos positions.',
-    },
-    {
       icon: GitCompare,
       iconBg: 'bg-indigo-600',
       hoverBorder: 'hover:border-indigo-500',
@@ -298,7 +288,7 @@ export function InvestingWelcomePanel() {
             {/* Portfolio Value Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-green-500 transition-colors h-[140px] flex flex-col"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-green-500 transition-colors h-[200px] flex flex-col"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -342,7 +332,7 @@ export function InvestingWelcomePanel() {
             {/* Performance Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-blue-500 transition-colors h-[140px] flex flex-col"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-blue-500 transition-colors h-[200px] flex flex-col"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -386,9 +376,9 @@ export function InvestingWelcomePanel() {
             {/* Top Movers Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-orange-500 transition-colors h-[140px] flex flex-col"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-orange-500 transition-colors h-[200px] flex flex-col overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-3 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
                     <Flame className="w-4 h-4 text-white" />
@@ -413,24 +403,26 @@ export function InvestingWelcomePanel() {
                 </div>
               </div>
               {topMoversLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                <div className="flex-1 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                </div>
               ) : topMovers.length > 0 ? (
-                <div className="space-y-1.5 flex-1">
+                <div className="space-y-2 flex-1 overflow-hidden">
                   {topMovers.map((stock) => {
                     const logoUrl = getCompanyLogoUrl(stock.ticker);
                     return (
                       <div key={stock.ticker} className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden">
+                          <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                             {logoUrl ? (
                               <img src={logoUrl} alt={stock.ticker} className="w-4 h-4 object-contain" />
                             ) : (
                               <span className="text-[8px] font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
                             )}
                           </div>
-                          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
                         </div>
-                        <span className={`text-xs font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
                         </span>
                       </div>
@@ -447,9 +439,9 @@ export function InvestingWelcomePanel() {
             {/* Upcoming Earnings Card */}
             <div
               onClick={() => navigate('/investing/earnings')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-amber-500 transition-colors h-[140px] flex flex-col"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-amber-500 transition-colors h-[200px] flex flex-col overflow-hidden"
             >
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 flex-shrink-0">
                 <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
                   <Calendar className="w-4 h-4 text-white" />
                 </div>
@@ -458,28 +450,30 @@ export function InvestingWelcomePanel() {
                 </span>
               </div>
               {earningsLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                <div className="flex-1 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                </div>
               ) : upcomingEarnings.length > 0 ? (
-                <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[100px]">
+                <div className="space-y-2 flex-1 overflow-y-auto">
                   {upcomingEarnings.map((earning) => {
                     const logoUrl = getCompanyLogoUrl(earning.ticker);
                     return (
                       <div key={earning.ticker} className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden">
+                          <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                             {logoUrl ? (
                               <img src={logoUrl} alt={earning.ticker} className="w-4 h-4 object-contain" />
                             ) : (
                               <span className="text-[8px] font-bold text-slate-500">{earning.ticker.slice(0, 2)}</span>
                             )}
                           </div>
-                          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{earning.ticker}</span>
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{earning.ticker}</span>
                         </div>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                        <span className="text-sm font-bold text-white">
                           {earning.remaining_days !== null ? (
                             earning.remaining_days === 0
                               ? (language === 'fr' ? "Aujourd'hui" : 'Today')
-                              : `${earning.remaining_days}${language === 'fr' ? 'j' : 'd'}`
+                              : `${earning.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`
                           ) : 'TBD'}
                           {earning.remaining_days !== null && !earning.date_confirmed && ' ~'}
                         </span>
