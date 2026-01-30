@@ -104,7 +104,7 @@ const fetchPerformance = async (): Promise<PerformanceData> => {
 };
 
 const fetchEarnings = async (): Promise<EarningsResponse> => {
-  const response = await axios.get('/api/investing/earnings-calendar?include_portfolio=true&include_watchlist=false');
+  const response = await axios.get('/api/investing/earnings-calendar?include_portfolio=true&include_watchlist=true');
   return response.data;
 };
 
@@ -195,10 +195,11 @@ export function InvestingWelcomePanel() {
     return { change, changePct };
   };
 
-  // Get top movers (sorted by absolute gain_pct)
+  // Get top movers (sorted by absolute gain_pct, exclude invalid tickers with 0 price)
   const getTopMovers = () => {
     if (!compositionData?.holdings) return [];
     return [...compositionData.holdings]
+      .filter(h => h.current_price > 0)
       .sort((a, b) => Math.abs(b.gain_pct) - Math.abs(a.gain_pct))
       .slice(0, 3);
   };
