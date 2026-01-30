@@ -170,13 +170,13 @@ export function InvestingWelcomePanel() {
     staleTime: 1000 * 60 * 15,
   });
 
-  // Get upcoming earnings (next 3)
+  // Get upcoming earnings - include all, sort by date (TBD at end)
   const getUpcomingEarnings = () => {
     if (!earningsData?.earnings) return [];
     return earningsData.earnings
-      .filter(e => e.next_earnings_date && e.remaining_days !== null && e.remaining_days >= 0)
+      .filter(e => e.remaining_days === null || e.remaining_days >= 0)
       .sort((a, b) => (a.remaining_days ?? 999) - (b.remaining_days ?? 999))
-      .slice(0, 10);
+      .slice(0, 15);
   };
 
   const features = [
@@ -480,8 +480,8 @@ export function InvestingWelcomePanel() {
                             earning.remaining_days === 0
                               ? (language === 'fr' ? "Aujourd'hui" : 'Today')
                               : `${earning.remaining_days}${language === 'fr' ? 'j' : 'd'}`
-                          ) : '—'}
-                          {!earning.date_confirmed && ' ~'}
+                          ) : 'TBD'}
+                          {earning.remaining_days !== null && !earning.date_confirmed && ' ~'}
                         </span>
                       </div>
                     );
