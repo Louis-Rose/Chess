@@ -9,7 +9,6 @@ import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
-import { StockSearchBar } from '../components/StockSearchBar';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 
 interface FeatureCardProps {
@@ -525,11 +524,6 @@ export function InvestingWelcomePanel() {
               onClick={isAuthenticated ? () => navigate(feature.path) : undefined}
             />
           ))}
-        </div>
-
-        {/* Stock Search Section */}
-        <div className="max-w-2xl mx-auto mt-[10vh]">
-          <StockSearchBar />
         </div>
 
         {/* Legal notices */}
