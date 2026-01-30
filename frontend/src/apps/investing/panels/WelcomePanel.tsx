@@ -275,7 +275,7 @@ export function InvestingWelcomePanel() {
         </div>
       )}
 
-      <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700 mt-8">
+      <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700 mt-8 flex flex-col min-h-[calc(100vh-200px)]">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
             {language === 'fr' ? 'Bienvenue' : 'Welcome'}{isAuthenticated && user?.name ? `, ${user.name}` : ''} !
@@ -461,7 +461,7 @@ export function InvestingWelcomePanel() {
         </div>
 
         {/* Legal notices */}
-        <div className="text-center mt-[40vh] pb-2">
+        <div className="text-center mt-auto pb-2">
           <Link
             to="/cgu"
             className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-sm transition-colors"
