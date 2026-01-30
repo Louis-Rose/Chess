@@ -293,7 +293,7 @@ export function InvestingWelcomePanel() {
 
         {/* Portfolio Summary Cards - only for authenticated users with holdings */}
         {isAuthenticated && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-6xl mx-auto mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-7xl mx-auto mb-8">
             {/* Portfolio Value & Performance Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
