@@ -293,11 +293,11 @@ export function InvestingWelcomePanel() {
 
         {/* Portfolio Summary Cards - only for authenticated users with holdings */}
         {isAuthenticated && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-6xl mx-auto mb-8">
             {/* Portfolio Value & Performance Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-green-500 transition-colors h-[250px] flex flex-col"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-green-500 transition-colors h-[200px] flex flex-col"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -366,7 +366,7 @@ export function InvestingWelcomePanel() {
             {/* Top Movers Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-orange-500 transition-colors h-[250px] flex flex-col overflow-hidden"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-orange-500 transition-colors h-[200px] flex flex-col overflow-hidden"
             >
               <div className="flex items-center justify-between mb-3 flex-shrink-0">
                 <div className="flex items-center gap-2">
@@ -429,7 +429,7 @@ export function InvestingWelcomePanel() {
             {/* Upcoming Earnings Card */}
             <div
               onClick={() => navigate('/investing/earnings')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-amber-500 transition-colors h-[250px] flex flex-col overflow-hidden"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-amber-500 transition-colors h-[200px] flex flex-col overflow-hidden"
             >
               <div className="flex items-center gap-2 mb-3 flex-shrink-0">
                 <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
