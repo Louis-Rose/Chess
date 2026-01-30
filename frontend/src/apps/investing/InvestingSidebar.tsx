@@ -216,7 +216,7 @@ export function InvestingSidebar() {
                       removeRecentStock(ticker, user?.id);
                       setRecentStocks(getRecentStocks(user?.id));
                     }}
-                    className="p-0.5 rounded hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                    className="ml-auto p-0.5 rounded hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                     title={language === 'fr' ? 'Supprimer' : 'Remove'}
                   >
                     <X className="w-3 h-3 text-slate-400" />
@@ -229,7 +229,7 @@ export function InvestingSidebar() {
       )}
 
       {/* Theme, Language, Collapse & Legal - at bottom */}
-      <div className={`mt-auto flex-shrink-0 ${isCollapsed ? 'px-0' : 'px-2'} pt-4 border-t border-slate-700`}>
+      <div className={`mt-auto flex-shrink-0 ${isCollapsed ? 'px-0' : 'px-2'} pt-4`}>
         <div className="flex flex-col items-center gap-3">
           <ThemeToggle collapsed={isCollapsed} />
           <LanguageToggle collapsed={isCollapsed} />
