@@ -1,6 +1,6 @@
 // Investing Welcome panel
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Briefcase, Eye, Calendar, TrendingUp, Loader2, PartyPopper, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -159,6 +159,16 @@ export function InvestingWelcomePanel() {
         {/* Stock Search Section */}
         <div className="max-w-2xl mx-auto mt-[10vh]">
           <StockSearchBar />
+        </div>
+
+        {/* Legal notices */}
+        <div className="text-center mt-16 pb-8">
+          <Link
+            to="/cgu"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-sm transition-colors"
+          >
+            {language === 'fr' ? 'Mentions légales' : 'Legal notices'}
+          </Link>
         </div>
       </div>
     </>

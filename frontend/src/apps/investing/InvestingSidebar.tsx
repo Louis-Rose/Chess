@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, Shield, PanelLeftClose, PanelLeftOpen, Clock, X, GitCompare, Newspaper } from 'lucide-react';
+import { Loader2, Home, Briefcase, Eye, Calendar, TrendingUp, Shield, Clock, X, GitCompare, Newspaper } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 // Cookie consent temporarily disabled
@@ -235,37 +235,11 @@ export function InvestingSidebar() {
         )}
       </div>
 
-      {/* Theme, Language, Collapse & Legal - at bottom */}
+      {/* Theme & Language - at bottom */}
       <div className={`mt-auto flex-shrink-0 ${isCollapsed ? 'px-0' : 'px-2'} pt-4`}>
         <div className="flex flex-col items-center gap-3">
           <ThemeToggle collapsed={isCollapsed} />
           <LanguageToggle collapsed={isCollapsed} />
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm transition-colors"
-            title={isCollapsed ? (language === 'fr' ? 'Développer' : 'Expand') : (language === 'fr' ? 'Réduire' : 'Collapse')}
-          >
-            {isCollapsed ? <PanelLeftOpen className="w-5 h-5 text-slate-400" /> : <PanelLeftClose className="w-5 h-5 text-slate-400" />}
-            {!isCollapsed && <span className="text-slate-200 font-medium">{language === 'fr' ? 'Réduire' : 'Collapse'}</span>}
-          </button>
-          {!isCollapsed && (
-            <div className="flex flex-col items-center gap-1">
-              <Link
-                to="/cgu"
-                className="text-slate-500 hover:text-slate-300 text-xs transition-colors"
-              >
-                {language === 'fr' ? 'Mentions légales' : 'Legal notices'}
-              </Link>
-              {/* Cookie consent temporarily disabled
-              <button
-                onClick={resetConsent}
-                className="text-slate-500 hover:text-slate-300 text-xs transition-colors"
-              >
-                {language === 'fr' ? 'Gérer les cookies' : 'Manage cookies'}
-              </button>
-              */}
-            </div>
-          )}
         </div>
       </div>
     </div>
