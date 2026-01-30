@@ -130,107 +130,110 @@ export function InvestingSidebar() {
       </div>
       */}
 
-      {/* Navigation */}
-      <div className={`flex flex-col gap-1 ${isCollapsed ? 'px-0' : 'px-2'} py-4 border-b border-slate-700 flex-shrink-0`}>
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.end}
-            title={isCollapsed ? (language === 'fr' ? item.labelFr : item.labelEn) : undefined}
-            className={({ isActive }) =>
-              `flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-lg text-left transition-colors ${
-                isActive
-                  ? 'bg-green-600 text-white'
-                  : 'text-slate-300 hover:bg-slate-800'
-              }`
-            }
-          >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            {!isCollapsed && <span>{language === 'fr' ? item.labelFr : item.labelEn}</span>}
-          </NavLink>
-        ))}
-      </div>
-
-      {/* Admin Link - only visible to admins */}
-      {user?.is_admin && (
-        <div className={`${isCollapsed ? 'px-0' : 'px-2'} py-2 border-b border-slate-700 flex-shrink-0`}>
-          <NavLink
-            to="/investing/admin"
-            title={isCollapsed ? 'Admin' : undefined}
-            className={({ isActive }) =>
-              `flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-lg transition-colors ${
-                isActive
-                  ? 'bg-amber-600 text-white'
-                  : 'text-amber-400 hover:bg-slate-800'
-              }`
-            }
-          >
-            <Shield className="w-5 h-5 flex-shrink-0" />
-            {!isCollapsed && <span>Admin</span>}
-          </NavLink>
+      {/* Scrollable middle section: Navigation + Admin + Recent Stocks */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {/* Navigation */}
+        <div className={`flex flex-col gap-1 ${isCollapsed ? 'px-0' : 'px-2'} py-4 border-b border-slate-700`}>
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.end}
+              title={isCollapsed ? (language === 'fr' ? item.labelFr : item.labelEn) : undefined}
+              className={({ isActive }) =>
+                `flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-lg text-left transition-colors ${
+                  isActive
+                    ? 'bg-green-600 text-white'
+                    : 'text-slate-300 hover:bg-slate-800'
+                }`
+              }
+            >
+              <item.icon className="w-5 h-5 flex-shrink-0" />
+              {!isCollapsed && <span>{language === 'fr' ? item.labelFr : item.labelEn}</span>}
+            </NavLink>
+          ))}
         </div>
-      )}
 
-      {/* Recent Stocks - show when authenticated and not collapsed */}
-      {isAuthenticated && !isCollapsed && (
-        <div className="py-4 flex-1 min-h-0 overflow-y-auto border-b border-slate-700">
-          <div className="flex items-center gap-2 mb-3 px-2 text-slate-400">
-            <Clock className="w-4 h-4" />
-            <span className="text-xs font-medium uppercase tracking-wide">
-              {language === 'fr' ? 'Recherches récentes' : 'Recently searched'}
-            </span>
+        {/* Admin Link - only visible to admins */}
+        {user?.is_admin && (
+          <div className={`${isCollapsed ? 'px-0' : 'px-2'} py-2 border-b border-slate-700`}>
+            <NavLink
+              to="/investing/admin"
+              title={isCollapsed ? 'Admin' : undefined}
+              className={({ isActive }) =>
+                `flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-lg transition-colors ${
+                  isActive
+                    ? 'bg-amber-600 text-white'
+                    : 'text-amber-400 hover:bg-slate-800'
+                }`
+              }
+            >
+              <Shield className="w-5 h-5 flex-shrink-0" />
+              {!isCollapsed && <span>Admin</span>}
+            </NavLink>
           </div>
-          {recentStocks.length > 0 && (
-            <div className="flex flex-col gap-1">
-              {recentStocks.map((ticker) => {
-                const logoUrl = getCompanyLogoUrl(ticker);
-                const stock = findStockByTicker(ticker);
-                // Remove "Class A/B/C" suffixes from company names
-                const displayName = (stock?.name || ticker).replace(/\s+Class\s+[A-Z]$/i, '');
-                return (
-                  <div
-                    key={ticker}
-                    onClick={() => navigate(`/investing/stock/${ticker}`)}
-                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer group"
-                  >
-                    <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {logoUrl ? (
-                        <img
-                          src={logoUrl}
-                          alt={ticker}
-                          className="w-4 h-4 object-contain"
-                          onError={(e) => {
-                            const parent = e.currentTarget.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `<span class="text-[7px] font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
-                            }
-                          }}
-                        />
-                      ) : (
-                        <span className="text-[7px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
-                      )}
-                    </div>
-                    <span className="text-xs font-medium text-slate-200 truncate min-w-0">{displayName}</span>
-                    <span className="text-xs font-medium text-slate-200 flex-shrink-0">({ticker})</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeRecentStock(ticker, user?.id);
-                        setRecentStocks(getRecentStocks(user?.id));
-                      }}
-                      className="ml-auto p-0.5 rounded hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                      title={language === 'fr' ? 'Supprimer' : 'Remove'}
-                    >
-                      <X className="w-3 h-3 text-slate-400" />
-                    </button>
-                  </div>
-                );
-              })}
+        )}
+
+        {/* Recent Stocks - show when authenticated and not collapsed */}
+        {isAuthenticated && !isCollapsed && (
+          <div className="py-4 border-b border-slate-700">
+            <div className="flex items-center gap-2 mb-3 px-2 text-slate-400">
+              <Clock className="w-4 h-4" />
+              <span className="text-xs font-medium uppercase tracking-wide">
+                {language === 'fr' ? 'Recherches récentes' : 'Recently searched'}
+              </span>
             </div>
-          )}
-        </div>
-      )}
+            {recentStocks.length > 0 && (
+              <div className="flex flex-col gap-1">
+                {recentStocks.map((ticker) => {
+                  const logoUrl = getCompanyLogoUrl(ticker);
+                  const stock = findStockByTicker(ticker);
+                  // Remove "Class A/B/C" suffixes from company names
+                  const displayName = (stock?.name || ticker).replace(/\s+Class\s+[A-Z]$/i, '');
+                  return (
+                    <div
+                      key={ticker}
+                      onClick={() => navigate(`/investing/stock/${ticker}`)}
+                      className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer group"
+                    >
+                      <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {logoUrl ? (
+                          <img
+                            src={logoUrl}
+                            alt={ticker}
+                            className="w-4 h-4 object-contain"
+                            onError={(e) => {
+                              const parent = e.currentTarget.parentElement;
+                              if (parent) {
+                                parent.innerHTML = `<span class="text-[7px] font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
+                              }
+                            }}
+                          />
+                        ) : (
+                          <span className="text-[7px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
+                        )}
+                      </div>
+                      <span className="text-xs font-medium text-slate-200 truncate min-w-0">{displayName}</span>
+                      <span className="text-xs font-medium text-slate-200 flex-shrink-0">({ticker})</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeRecentStock(ticker, user?.id);
+                          setRecentStocks(getRecentStocks(user?.id));
+                        }}
+                        className="ml-auto p-0.5 rounded hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                        title={language === 'fr' ? 'Supprimer' : 'Remove'}
+                      >
+                        <X className="w-3 h-3 text-slate-400" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Theme, Language, Collapse & Legal - at bottom */}
       <div className={`mt-auto flex-shrink-0 ${isCollapsed ? 'px-0' : 'px-2'} pt-4`}>
