@@ -2754,6 +2754,70 @@ def get_portfolio_composition():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/investing/portfolio/performance-1m', methods=['GET'])
+@login_required
+def get_portfolio_performance_1m():
+    """Get simple 1-month portfolio performance (lightweight)."""
+    from investing_utils import fetch_stock_price, get_fx_rate_to_eur, get_stock_currency
+
+    account_ids_str = request.args.get('account_ids')
+    if account_ids_str:
+        account_ids = [int(x) for x in account_ids_str.split(',') if x.strip()]
+    else:
+        account_id = request.args.get('account_id', type=int)
+        account_ids = [account_id] if account_id else None
+
+    holdings = compute_holdings_from_transactions(request.user_id, account_ids)
+
+    if not holdings:
+        return jsonify({'performance_1m': None, 'message': 'No holdings'})
+
+    # Get date 30 days ago
+    today = datetime.now()
+    month_ago = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+
+    current_value = 0
+    month_ago_value = 0
+
+    for h in holdings:
+        ticker = h['stock_ticker']
+        qty = h['quantity']
+
+        # Get current price (from composition calculation, already cached)
+        try:
+            from investing_utils import fetch_current_stock_prices_batch
+            prices = fetch_current_stock_prices_batch([ticker])
+            current_price = prices.get(ticker, 0) or 0
+        except:
+            current_price = 0
+
+        # Get price from 30 days ago
+        try:
+            past_price = fetch_stock_price(ticker, month_ago)
+            if past_price is None:
+                past_price = current_price  # Fallback to current if no historical data
+        except:
+            past_price = current_price
+
+        # Convert to EUR
+        currency = get_stock_currency(ticker)
+        fx_rate = get_fx_rate_to_eur(currency)
+
+        current_value += (current_price or 0) * qty * fx_rate
+        month_ago_value += (past_price or 0) * qty * fx_rate
+
+    if month_ago_value > 0:
+        perf_pct = ((current_value - month_ago_value) / month_ago_value) * 100
+    else:
+        perf_pct = 0
+
+    return jsonify({
+        'performance_1m': round(perf_pct, 2),
+        'current_value': round(current_value, 2),
+        'month_ago_value': round(month_ago_value, 2)
+    })
+
+
 @app.route('/api/investing/portfolio/performance', methods=['GET'])
 @login_required
 def get_portfolio_performance():

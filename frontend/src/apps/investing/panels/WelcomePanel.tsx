@@ -78,9 +78,20 @@ interface EarningsResponse {
   earnings: EarningsItem[];
 }
 
+interface Performance1MData {
+  performance_1m: number | null;
+  current_value: number;
+  month_ago_value: number;
+}
+
 // API fetchers
 const fetchComposition = async (): Promise<CompositionData> => {
   const response = await axios.get('/api/investing/portfolio/composition');
+  return response.data;
+};
+
+const fetchPerformance1M = async (): Promise<Performance1MData> => {
+  const response = await axios.get('/api/investing/portfolio/performance-1m');
   return response.data;
 };
 
@@ -133,6 +144,12 @@ export function InvestingWelcomePanel() {
     staleTime: 1000 * 60 * 30,
   });
 
+  const { data: perf1MData, isLoading: perf1MLoading } = useQuery({
+    queryKey: ['performance-1m-summary'],
+    queryFn: fetchPerformance1M,
+    enabled: isAuthenticated && (compositionData?.holdings?.length ?? 0) > 0,
+    staleTime: 1000 * 60 * 15,
+  });
 
   // Get top movers (sorted by absolute gain_pct, exclude invalid tickers with 0 price)
   const getTopMovers = () => {
@@ -217,7 +234,7 @@ export function InvestingWelcomePanel() {
   const portfolioValue = valueCurrency === 'EUR'
     ? compositionData?.total_value_eur
     : compositionData?.total_value_usd;
-  const totalGainPct = compositionData?.total_gain_pct;
+  const perf1M = perf1MData?.performance_1m;
   const topMovers = getTopMovers();
   const upcomingEarnings = getUpcomingEarnings();
   const hasHoldings = (compositionData?.holdings?.length ?? 0) > 0;
@@ -320,14 +337,14 @@ export function InvestingWelcomePanel() {
                   <BarChart3 className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {language === 'fr' ? 'Performance Totale' : 'Total Return'}
+                  {language === 'fr' ? 'Perf. 1 Mois' : '1M Perf.'}
                 </span>
               </div>
-              {compositionLoading ? (
+              {perf1MLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-              ) : hasHoldings && totalGainPct !== undefined ? (
-                <p className={`text-2xl font-bold ${totalGainPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {totalGainPct >= 0 ? '+' : ''}{totalGainPct.toFixed(1)}%
+              ) : hasHoldings && perf1M !== undefined && perf1M !== null ? (
+                <p className={`text-2xl font-bold ${perf1M >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {perf1M >= 0 ? '+' : ''}{perf1M.toFixed(1)}%
                 </p>
               ) : (
                 <p className="text-sm text-slate-400 italic">
