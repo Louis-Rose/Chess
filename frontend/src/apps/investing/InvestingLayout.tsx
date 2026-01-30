@@ -28,8 +28,8 @@ export function InvestingLayout() {
           <span className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">LUMNA</span>
         </Link>
         <div className="flex items-center gap-1">
-          <ThemeToggle collapsed />
-          <LanguageToggle collapsed />
+          <ThemeToggle />
+          <LanguageToggle />
           {isAuthenticated ? (
             authLoading ? (
               <Loader2 className="w-5 h-5 animate-spin text-slate-500 dark:text-slate-400" />
