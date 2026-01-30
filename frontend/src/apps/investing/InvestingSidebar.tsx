@@ -43,20 +43,11 @@ export function InvestingSidebar() {
   // Cookie consent temporarily disabled
   // const { resetConsent } = useCookieConsent();
 
-  // Collapsed state with localStorage persistence
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('sidebar-collapsed') === 'true';
-    }
-    return false;
-  });
+  // Sidebar is always expanded (collapse feature removed)
+  const isCollapsed = false;
 
   // Recent stocks
   const [recentStocks, setRecentStocks] = useState<string[]>([]);
-
-  useEffect(() => {
-    localStorage.setItem('sidebar-collapsed', String(isCollapsed));
-  }, [isCollapsed]);
 
   // Load recent stocks and refresh on navigation/focus or custom event
   useEffect(() => {
