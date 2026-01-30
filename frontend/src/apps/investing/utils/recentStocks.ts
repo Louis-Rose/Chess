@@ -27,6 +27,8 @@ export function addRecentStock(ticker: string, userId?: number): void {
   // Keep only MAX_RECENT
   const trimmed = filtered.slice(0, MAX_RECENT);
   localStorage.setItem(getStorageKey(userId), JSON.stringify(trimmed));
+  // Notify listeners that recent stocks changed
+  window.dispatchEvent(new CustomEvent('recent-stocks-updated'));
 }
 
 export function removeRecentStock(ticker: string, userId?: number): void {

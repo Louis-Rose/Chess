@@ -57,9 +57,12 @@ export function InvestingSidebar() {
     localStorage.setItem('sidebar-collapsed', String(isCollapsed));
   }, [isCollapsed]);
 
-  // Load recent stocks and refresh on navigation/focus
+  // Load recent stocks and refresh on navigation/focus or custom event
   useEffect(() => {
-    setRecentStocks(getRecentStocks(user?.id));
+    const refresh = () => setRecentStocks(getRecentStocks(user?.id));
+    refresh();
+    window.addEventListener('recent-stocks-updated', refresh);
+    return () => window.removeEventListener('recent-stocks-updated', refresh);
   }, [location.pathname, user?.id]);
 
   return (
