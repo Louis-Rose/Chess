@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Briefcase, Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, BarChart3, Flame } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, BarChart3, Flame } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -224,16 +224,6 @@ export function InvestingWelcomePanel() {
       descFr: 'Données financières et analyses sur toute entreprise cotée.',
     },
     {
-      icon: Briefcase,
-      iconBg: 'bg-green-600',
-      hoverBorder: 'hover:border-green-500',
-      path: '/investing/portfolio',
-      titleEn: 'My Portfolio',
-      titleFr: 'Mon Portefeuille',
-      descEn: 'View your holdings, track performance, and analyze your investment distribution.',
-      descFr: 'Consultez vos positions, suivez la performance et analysez la répartition de vos investissements.',
-    },
-    {
       icon: Eye,
       iconBg: 'bg-blue-600',
       hoverBorder: 'hover:border-blue-500',
@@ -349,7 +339,7 @@ export function InvestingWelcomePanel() {
                     <Wallet className="w-4 h-4 text-white" />
                   </div>
                   <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    {language === 'fr' ? 'Valeur' : 'Value'}
+                    {language === 'fr' ? 'Valeur du Portefeuille' : 'Portfolio Value'}
                   </span>
                 </div>
                 <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
