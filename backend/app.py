@@ -2500,6 +2500,7 @@ def compute_holdings_from_transactions(user_id, account_ids=None):
     """Helper to compute current holdings from transactions using FIFO.
     Tracks both USD and EUR cost basis (EUR uses historical rates at transaction time).
     Optionally filters by account_ids (list of account IDs).
+    Excludes orphan transactions (null account_id) when no specific accounts are specified.
     """
     from investing_utils import fetch_eurusd_rate
 
@@ -2513,9 +2514,10 @@ def compute_holdings_from_transactions(user_id, account_ids=None):
                 (user_id, *account_ids)
             )
         else:
+            # Exclude orphan transactions (null account_id) - only include transactions with valid accounts
             cursor = conn.execute(
                 '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share, price_currency
-                   FROM portfolio_transactions WHERE user_id = ?
+                   FROM portfolio_transactions WHERE user_id = ? AND account_id IS NOT NULL
                    ORDER BY transaction_date ASC, id ASC''',
                 (user_id,)
             )
