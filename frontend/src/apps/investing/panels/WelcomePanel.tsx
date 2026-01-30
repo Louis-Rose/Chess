@@ -315,13 +315,13 @@ export function InvestingWelcomePanel() {
                 </div>
               </div>
               {compositionLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                <Loader2 className="w-5 h-5 animate-spin text-slate-400 mx-auto" />
               ) : hasHoldings && portfolioValue !== undefined ? (
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 text-center">
                   {formatCurrency(portfolioValue, valueCurrency)}
                 </p>
               ) : (
-                <p className="text-sm text-slate-400 italic">
+                <p className="text-sm text-slate-400 italic text-center">
                   {language === 'fr' ? 'Aucune position' : 'No holdings'}
                 </p>
               )}
@@ -341,13 +341,13 @@ export function InvestingWelcomePanel() {
                 </span>
               </div>
               {perf1MLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                <Loader2 className="w-5 h-5 animate-spin text-slate-400 mx-auto" />
               ) : hasHoldings && perf1M !== undefined && perf1M !== null ? (
-                <p className={`text-2xl font-bold ${perf1M >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <p className={`text-2xl font-bold text-center ${perf1M >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {perf1M >= 0 ? '+' : ''}{perf1M.toFixed(1)}%
                 </p>
               ) : (
-                <p className="text-sm text-slate-400 italic">
+                <p className="text-sm text-slate-400 italic text-center">
                   {language === 'fr' ? 'Pas de données' : 'No data'}
                 </p>
               )}
