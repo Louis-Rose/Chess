@@ -227,10 +227,10 @@ export function InvestingSidebar() {
       </div>
 
       {/* Theme & Language - at bottom */}
-      <div className={`mt-auto flex-shrink-0 ${isCollapsed ? 'px-0' : 'px-2'} pt-4`}>
-        <div className="flex flex-col items-center gap-3">
-          <ThemeToggle collapsed={isCollapsed} />
-          <LanguageToggle collapsed={isCollapsed} />
+      <div className="mt-auto flex-shrink-0 px-2 pt-4">
+        <div className="flex items-center justify-center gap-2">
+          <ThemeToggle />
+          <LanguageToggle />
         </div>
       </div>
     </div>

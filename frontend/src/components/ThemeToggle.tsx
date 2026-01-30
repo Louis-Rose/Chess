@@ -2,11 +2,7 @@ import { Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 
-interface ThemeToggleProps {
-  collapsed?: boolean;
-}
-
-export function ThemeToggle({ collapsed = false }: ThemeToggleProps) {
+export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const { language } = useLanguage();
 
@@ -41,17 +37,15 @@ export function ThemeToggle({ collapsed = false }: ThemeToggleProps) {
   return (
     <button
       onClick={cycleTheme}
-      className={`flex items-center ${collapsed ? 'justify-center p-2' : 'gap-2 px-3 py-1.5'} rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-sm transition-colors`}
+      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-sm transition-colors"
       title={language === 'fr' ? 'Changer le thème' : 'Change theme'}
     >
       <span className="text-slate-500 dark:text-slate-400">
         {getIcon()}
       </span>
-      {!collapsed && (
-        <span className="text-slate-700 dark:text-slate-200 font-medium">
-          {getLabel()}
-        </span>
-      )}
+      <span className="text-slate-700 dark:text-slate-200 font-medium">
+        {getLabel()}
+      </span>
     </button>
   );
 }
