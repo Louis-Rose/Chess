@@ -1,8 +1,8 @@
 // Stock detail panel - view individual stock info and price chart
 
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { ArrowLeft, Loader2, ExternalLink, MessageSquare, Send, ChevronDown, ChevronUp, Youtube, Calendar, RefreshCw, X } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -207,6 +207,7 @@ function formatDate(dateStr: string, language: string): string {
 export function StockDetailPanel() {
   const { ticker } = useParams<{ ticker: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { language } = useLanguage();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [chartPeriod] = useState<ChartPeriod>('1M');
@@ -374,10 +375,17 @@ export function StockDetailPanel() {
                 <span className="text-xl font-bold text-slate-400">{upperTicker.slice(0, 2)}</span>
               )}
             </div>
-            <Link to={`/investing/stock/${upperTicker}`} className="min-w-0 hover:opacity-80 transition-opacity">
+            <button
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ['stockHistory', upperTicker] });
+                queryClient.invalidateQueries({ queryKey: ['marketCap', upperTicker] });
+                queryClient.invalidateQueries({ queryKey: ['newsFeed', upperTicker] });
+              }}
+              className="min-w-0 text-left hover:opacity-80 transition-opacity cursor-pointer"
+            >
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{displayName}</h1>
               <p className="text-slate-600 dark:text-slate-300">{upperTicker}</p>
-            </Link>
+            </button>
 
             {/* Center: Price */}
             <div className="flex-1 flex justify-center">
