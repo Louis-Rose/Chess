@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, BarChart3, Flame } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, WalletCards, BarChart3, Flame } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -331,12 +331,12 @@ export function InvestingWelcomePanel() {
             {/* Portfolio Value Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-green-500 transition-colors"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-green-500 transition-colors min-h-[100px]"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                    <Wallet className="w-4 h-4 text-white" />
+                    <WalletCards className="w-4 h-4 text-white" />
                   </div>
                   <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
                     {language === 'fr' ? 'Valeur du Portefeuille' : 'Portfolio Value'}
@@ -373,7 +373,7 @@ export function InvestingWelcomePanel() {
             {/* Performance Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-blue-500 transition-colors"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-blue-500 transition-colors min-h-[100px]"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -412,7 +412,7 @@ export function InvestingWelcomePanel() {
             {/* Top Movers Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-orange-500 transition-colors"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-orange-500 transition-colors min-h-[100px]"
             >
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
@@ -457,7 +457,7 @@ export function InvestingWelcomePanel() {
             {/* Upcoming Earnings Card */}
             <div
               onClick={() => navigate('/investing/earnings')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-amber-500 transition-colors"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-amber-500 transition-colors min-h-[100px]"
             >
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
