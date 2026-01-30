@@ -228,7 +228,7 @@ def _get_cached_current_price(ticker):
             row = cursor.fetchone()
             if row:
                 # Check if cache is fresh (within TTL)
-                created_at = datetime.strptime(row['created_at'], "%Y-%m-%d %H:%M:%S")
+                created_at = row['created_at'] if isinstance(row['created_at'], datetime) else datetime.strptime(row['created_at'], "%Y-%m-%d %H:%M:%S")
                 age_minutes = (datetime.now() - created_at).total_seconds() / 60
                 if age_minutes < CURRENT_PRICE_TTL_MINUTES:
                     return row['close_price']
@@ -292,7 +292,7 @@ def _get_cached_current_fx_rate(pair):
             row = cursor.fetchone()
             if row:
                 # Check if cache is fresh (within TTL)
-                created_at = datetime.strptime(row['created_at'], "%Y-%m-%d %H:%M:%S")
+                created_at = row['created_at'] if isinstance(row['created_at'], datetime) else datetime.strptime(row['created_at'], "%Y-%m-%d %H:%M:%S")
                 age_minutes = (datetime.now() - created_at).total_seconds() / 60
                 if age_minutes < CURRENT_PRICE_TTL_MINUTES:
                     return row['rate']
