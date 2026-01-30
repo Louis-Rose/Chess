@@ -2397,22 +2397,6 @@ def delete_transaction(transaction_id):
                 (request.user_id, transaction_id)
             )
 
-            # Send admin notification (async, don't block response)
-            try:
-                send_admin_deletion_alert(
-                    user_name=user_name,
-                    user_email=user_email,
-                    deletion_type='transaction',
-                    details={
-                        'Transaction ID': transaction_id,
-                        'Ticker': ticker,
-                        'Type': tx_type,
-                        'Quantity': qty,
-                        'Date': tx_date,
-                    }
-                )
-            except Exception as e:
-                logger.error(f"Failed to send deletion alert: {e}")
 
     return jsonify({'success': True, 'id': transaction_id})
 

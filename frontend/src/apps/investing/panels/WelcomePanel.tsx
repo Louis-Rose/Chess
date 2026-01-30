@@ -147,7 +147,6 @@ export function InvestingWelcomePanel() {
 
   // Summary card states
   const [valueCurrency, setValueCurrency] = useState<'EUR' | 'USD'>('EUR');
-  const [perfPeriod, setPerfPeriod] = useState<7 | 30>(30);
   const [moversPeriod, setMoversPeriod] = useState<7 | 30>(30);
 
   // Fetch portfolio data
@@ -165,9 +164,16 @@ export function InvestingWelcomePanel() {
     staleTime: 1000 * 60 * 30,
   });
 
-  const { data: perfData, isLoading: perfLoading } = useQuery({
-    queryKey: ['performance-period', perfPeriod],
-    queryFn: () => fetchPerformance(perfPeriod),
+  const { data: perf7Data, isLoading: perf7Loading } = useQuery({
+    queryKey: ['performance-period', 7],
+    queryFn: () => fetchPerformance(7),
+    enabled: isAuthenticated && (compositionData?.holdings?.length ?? 0) > 0,
+    staleTime: 1000 * 60 * 15,
+  });
+
+  const { data: perf30Data, isLoading: perf30Loading } = useQuery({
+    queryKey: ['performance-period', 30],
+    queryFn: () => fetchPerformance(30),
     enabled: isAuthenticated && (compositionData?.holdings?.length ?? 0) > 0,
     staleTime: 1000 * 60 * 15,
   });
@@ -243,7 +249,9 @@ export function InvestingWelcomePanel() {
   const portfolioValue = valueCurrency === 'EUR'
     ? compositionData?.total_value_eur
     : compositionData?.total_value_usd;
-  const perfValue = perfData?.performance;
+  const perf7Value = perf7Data?.performance;
+  const perf30Value = perf30Data?.performance;
+  const perfLoading = perf7Loading || perf30Loading;
   const topMovers = topMoversData?.movers ?? [];
   const upcomingEarnings = getUpcomingEarnings();
   const hasHoldings = (compositionData?.holdings?.length ?? 0) > 0;
@@ -308,35 +316,19 @@ export function InvestingWelcomePanel() {
                     {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setValueCurrency('EUR'); }}
-                      className={`px-2 py-0.5 text-xs font-medium ${valueCurrency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                    >
-                      €
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setValueCurrency('USD'); }}
-                      className={`px-2 py-0.5 text-xs font-medium ${valueCurrency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                    >
-                      $
-                    </button>
-                  </div>
-                  <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setPerfPeriod(7); }}
-                      className={`px-2 py-0.5 text-xs font-medium ${perfPeriod === 7 ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                    >
-                      1W
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setPerfPeriod(30); }}
-                      className={`px-2 py-0.5 text-xs font-medium ${perfPeriod === 30 ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                    >
-                      1M
-                    </button>
-                  </div>
+                <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setValueCurrency('EUR'); }}
+                    className={`px-2 py-0.5 text-xs font-medium ${valueCurrency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    €
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setValueCurrency('USD'); }}
+                    className={`px-2 py-0.5 text-xs font-medium ${valueCurrency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    $
+                  </button>
                 </div>
               </div>
               <div className="flex-1 flex flex-col items-center justify-center gap-1">
@@ -349,10 +341,22 @@ export function InvestingWelcomePanel() {
                     </p>
                     {perfLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                    ) : perfValue !== undefined && perfValue !== null ? (
-                      <p className={`text-lg font-semibold ${perfValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {perfValue >= 0 ? '+' : ''}{perfValue.toFixed(1)}%
-                      </p>
+                    ) : (perf7Value !== undefined && perf7Value !== null) || (perf30Value !== undefined && perf30Value !== null) ? (
+                      <div className="flex items-center gap-3 text-base font-semibold">
+                        {perf7Value !== undefined && perf7Value !== null && (
+                          <span className={perf7Value >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            {perf7Value >= 0 ? '+' : ''}{perf7Value.toFixed(1)}% <span className="text-slate-400 font-normal">1W</span>
+                          </span>
+                        )}
+                        {perf7Value !== undefined && perf7Value !== null && perf30Value !== undefined && perf30Value !== null && (
+                          <span className="text-slate-500">|</span>
+                        )}
+                        {perf30Value !== undefined && perf30Value !== null && (
+                          <span className={perf30Value >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            {perf30Value >= 0 ? '+' : ''}{perf30Value.toFixed(1)}% <span className="text-slate-400 font-normal">1M</span>
+                          </span>
+                        )}
+                      </div>
                     ) : null}
                   </>
                 ) : (
