@@ -131,15 +131,6 @@ const formatCurrency = (value: number, currency: 'EUR' | 'USD'): string => {
   return `${symbol}${value.toFixed(2)}`;
 };
 
-// Helper to format date
-const formatDate = (dateStr: string, language: string): string => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
-};
-
 export function InvestingWelcomePanel() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading, user, isNewUser, clearNewUserFlag } = useAuth();
