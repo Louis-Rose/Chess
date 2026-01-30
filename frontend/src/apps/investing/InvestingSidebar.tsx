@@ -77,7 +77,7 @@ export function InvestingSidebar() {
       </Link>
 
       {/* User Menu */}
-      <div className={`flex justify-center items-center mb-4 ${isCollapsed ? 'px-0' : 'px-2'} pb-4 border-b border-slate-700 flex-shrink-0 min-h-[48px]`}>
+      <div className={`flex justify-center items-center mb-4 ${isCollapsed ? 'px-0' : 'px-2'} pb-4 border-b border-slate-700 flex-shrink-0 min-h-[64px]`}>
         {authLoading ? (
           <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
         ) : isAuthenticated ? (
