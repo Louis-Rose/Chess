@@ -1,13 +1,13 @@
 // News Feed panel - aggregated YouTube videos from watchlist companies
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Loader2, Youtube, Calendar, FileText, ChevronDown, ChevronUp, RefreshCw, Eye } from 'lucide-react';
+import { Loader2, Youtube, Calendar, FileText, ChevronDown, ChevronUp, RefreshCw, Eye, X, Plus, Search, Info } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { findStockByTicker } from '../utils/allStocks';
+import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 
 interface Video {
@@ -34,6 +34,14 @@ interface VideoWithCompany extends Video {
 const fetchWatchlist = async (): Promise<{ symbols: string[] }> => {
   const response = await axios.get('/api/investing/watchlist');
   return response.data;
+};
+
+const addToWatchlist = async (symbol: string): Promise<void> => {
+  await axios.post('/api/investing/watchlist', { symbol });
+};
+
+const removeFromWatchlist = async (symbol: string): Promise<void> => {
+  await axios.delete(`/api/investing/watchlist/${symbol}`);
 };
 
 const fetchNewsFeed = async (ticker: string, companyName: string): Promise<NewsFeedResponse> => {
@@ -71,12 +79,20 @@ function getTranscriptUrl(videoId: string): string {
 
 export function NewsFeedPanel() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
   const [videoFilter, setVideoFilter] = useState<'1M' | '3M' | 'ALL'>('ALL');
   const [selectedVideo, setSelectedVideo] = useState<VideoWithCompany | null>(null);
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'combined' | 'by-company'>('combined');
+
+  // Stock search state
+  const [stockSearch, setStockSearch] = useState('');
+  const [stockResults, setStockResults] = useState<Stock[]>([]);
+  const [showStockDropdown, setShowStockDropdown] = useState(false);
+  const [indexFilter] = useState<IndexFilter>({ sp500: true, stoxx600: true });
+  const stockDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch watchlist
   const { data: watchlistData, isLoading: watchlistLoading } = useQuery({
@@ -86,6 +102,53 @@ export function NewsFeedPanel() {
   });
 
   const watchlist = watchlistData?.symbols ?? [];
+
+  // Mutations for add/remove
+  const addMutation = useMutation({
+    mutationFn: addToWatchlist,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
+      queryClient.invalidateQueries({ queryKey: ['watchlist-news-feed'] });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: removeFromWatchlist,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
+      queryClient.invalidateQueries({ queryKey: ['watchlist-news-feed'] });
+    },
+  });
+
+  // Stock search effect
+  useEffect(() => {
+    const results = searchAllStocks(stockSearch, indexFilter);
+    setStockResults(results);
+    setShowStockDropdown(results.length > 0 && stockSearch.length > 0);
+  }, [stockSearch, indexFilter]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (stockDropdownRef.current && !stockDropdownRef.current.contains(event.target as Node)) {
+        setShowStockDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectStock = (stock: Stock) => {
+    if (!watchlist.includes(stock.ticker)) {
+      addMutation.mutate(stock.ticker);
+    }
+    setStockSearch('');
+    setShowStockDropdown(false);
+  };
+
+  const handleRemoveStock = (ticker: string) => {
+    removeMutation.mutate(ticker);
+  };
 
   // Fetch news for all watchlist companies
   const { data: allNewsData, isLoading: newsLoading, refetch: refetchNews, isFetching: newsFetching } = useQuery({
@@ -195,39 +258,6 @@ export function NewsFeedPanel() {
     );
   }
 
-  // Empty watchlist
-  if (watchlist.length === 0) {
-    return (
-      <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700">
-        <div className="flex flex-col items-center gap-2 mb-6 mt-8">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            {language === 'fr' ? 'Fil d\'actualités' : 'News Feed'}
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-lg italic">
-            {language === 'fr' ? 'Vidéos YouTube de votre watchlist' : 'YouTube videos from your watchlist'}
-          </p>
-        </div>
-
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-8 text-center">
-            <Eye className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-600 dark:text-slate-300 mb-4">
-              {language === 'fr'
-                ? 'Votre watchlist est vide. Ajoutez des entreprises pour voir leurs actualités.'
-                : 'Your watchlist is empty. Add companies to see their news.'}
-            </p>
-            <button
-              onClick={() => navigate('/investing/watchlist')}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {language === 'fr' ? 'Gérer ma watchlist' : 'Manage my watchlist'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700">
       <div className="flex flex-col items-center gap-2 mb-6 mt-8">
@@ -240,179 +270,355 @@ export function NewsFeedPanel() {
       </div>
 
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Controls */}
-        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 shadow-sm flex flex-wrap items-center gap-4">
-          {/* View mode toggle */}
-          <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
-            <button
-              onClick={() => setViewMode('combined')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                viewMode === 'combined'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500'
-              }`}
-            >
-              {language === 'fr' ? 'Combiné' : 'Combined'}
-            </button>
-            <button
-              onClick={() => setViewMode('by-company')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                viewMode === 'by-company'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500'
-              }`}
-            >
-              {language === 'fr' ? 'Par entreprise' : 'By Company'}
-            </button>
-          </div>
-
-          {/* Time filter */}
-          <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
-            {(['1M', '3M', 'ALL'] as const).map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setVideoFilter(filter)}
-                className={`px-2 py-1.5 text-sm font-medium transition-colors ${
-                  videoFilter === filter
-                    ? 'bg-red-500 text-white'
-                    : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500'
-                }`}
-              >
-                {filter === 'ALL' ? (language === 'fr' ? 'Tout' : 'All') : filter}
-              </button>
-            ))}
-          </div>
-
-          {/* Refresh button */}
-          <button
-            onClick={() => refetchNews()}
-            disabled={newsFetching}
-            className="ml-auto text-slate-500 hover:text-red-600 flex items-center gap-2 text-sm disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${newsFetching ? 'animate-spin' : ''}`} />
-            {language === 'fr' ? 'Actualiser' : 'Refresh'}
-          </button>
-        </div>
-
-        {/* Loading news */}
-        {newsLoading ? (
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-8">
-            <div className="flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-red-500" />
-            </div>
-          </div>
-        ) : viewMode === 'combined' ? (
-          /* Combined view */
-          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-600 flex items-center gap-3">
-              <Youtube className="w-5 h-5 text-red-500" />
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {language === 'fr' ? 'Toutes les vidéos' : 'All Videos'}
-              </h3>
-              <span className="text-slate-500 dark:text-slate-400 text-sm">
-                ({filteredVideos.length})
-              </span>
-            </div>
-
-            {filteredVideos.length === 0 ? (
-              <div className="p-8 text-center">
-                <Youtube className="w-12 h-12 text-slate-400 mx-auto mb-2" />
-                <p className="text-slate-500 dark:text-slate-400">
-                  {language === 'fr'
-                    ? 'Aucune vidéo trouvée pour cette période'
-                    : 'No videos found for this period'}
-                </p>
+        {/* Tracked Companies Section */}
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 shadow-sm">
+          {/* Header with title and info tooltip */}
+          <div className="flex items-center gap-2 mb-4">
+            <Eye className="w-5 h-5 text-blue-500" />
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {language === 'fr' ? 'Entreprises suivies' : 'Tracked Companies'}
+            </h3>
+            <span className="text-slate-500 dark:text-slate-400 text-sm">
+              ({watchlist.length})
+            </span>
+            {/* Info tooltip */}
+            <div className="relative group ml-1">
+              <Info className="w-4 h-4 text-slate-400 cursor-help" />
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 w-72 text-left whitespace-pre-line pointer-events-none">
+                {language === 'fr'
+                  ? "Le fil d'actualités agrège les vidéos YouTube de toutes les entreprises de votre watchlist.\n\n• Ajoutez des entreprises avec la barre de recherche\n• Supprimez-les en cliquant sur le ✕\n• Les vidéos proviennent de chaînes financières vérifiées (CNBC, Bloomberg, Yahoo Finance...)\n• Cliquez sur une vidéo pour la regarder"
+                  : "The news feed aggregates YouTube videos from all companies in your watchlist.\n\n• Add companies using the search bar\n• Remove them by clicking the ✕\n• Videos come from verified financial channels (CNBC, Bloomberg, Yahoo Finance...)\n• Click a video to watch it"}
               </div>
+            </div>
+          </div>
+
+          {/* Company chips */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {watchlist.length === 0 ? (
+              <p className="text-slate-500 dark:text-slate-400 text-sm italic">
+                {language === 'fr'
+                  ? 'Aucune entreprise suivie. Ajoutez-en ci-dessous.'
+                  : 'No companies tracked. Add some below.'}
+              </p>
             ) : (
-              <div className="divide-y divide-slate-200 dark:divide-slate-600">
-                {filteredVideos.map((video) => (
-                  <VideoCard
-                    key={`${video.ticker}-${video.video_id}`}
-                    video={video}
-                    language={language}
-                    onPlay={() => setSelectedVideo(video)}
-                    onCompanyClick={() => navigate(`/investing/stock/${video.ticker}`)}
-                    showCompany
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          /* By company view */
-          <div className="space-y-4">
-            {videosByCompany.map(({ ticker, companyName, videos }) => {
-              const isExpanded = expandedCompanies.has(ticker) || expandedCompanies.size === 0;
-              const logoUrl = getCompanyLogoUrl(ticker);
+              watchlist.map((ticker) => {
+                const stock = findStockByTicker(ticker);
+                const displayName = stock?.name || ticker;
+                const logoUrl = getCompanyLogoUrl(ticker);
 
-              return (
-                <div key={ticker} className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm overflow-hidden">
-                  {/* Company header */}
-                  <button
-                    onClick={() => toggleCompany(ticker)}
-                    className="w-full px-6 py-4 flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                return (
+                  <div
+                    key={ticker}
+                    className="flex items-center gap-2 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-full pl-1 pr-2 py-1 group hover:border-blue-300 dark:hover:border-blue-500 transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-500">
+                    {/* Logo */}
+                    <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-500">
                       {logoUrl ? (
                         <img
                           src={logoUrl}
-                          alt={`${ticker} logo`}
-                          className="w-8 h-8 object-contain"
+                          alt={ticker}
+                          className="w-5 h-5 object-contain"
                           onError={(e) => {
                             const parent = e.currentTarget.parentElement;
                             if (parent) {
-                              parent.innerHTML = `<span class="text-xs font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
+                              parent.innerHTML = `<span class="text-[8px] font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
                             }
                           }}
                         />
                       ) : (
-                        <span className="text-xs font-bold text-slate-500">{ticker.slice(0, 2)}</span>
+                        <span className="text-[8px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
                       )}
                     </div>
-                    <div className="text-left min-w-0 flex-1">
-                      <p className="font-semibold text-slate-900 dark:text-slate-100">{companyName}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{ticker}</p>
-                    </div>
-                    <span className="text-sm text-slate-500 dark:text-slate-400 mr-2">
-                      {videos.length} {language === 'fr' ? 'vidéo(s)' : 'video(s)'}
-                    </span>
-                    {isExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-slate-400" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-slate-400" />
-                    )}
-                  </button>
-
-                  {/* Videos */}
-                  {isExpanded && (
-                    <div className="border-t border-slate-200 dark:border-slate-600">
-                      {videos.length === 0 ? (
-                        <div className="p-6 text-center">
-                          <p className="text-slate-500 dark:text-slate-400 text-sm">
-                            {language === 'fr'
-                              ? 'Aucune vidéo trouvée pour cette période'
-                              : 'No videos found for this period'}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="divide-y divide-slate-200 dark:divide-slate-600">
-                          {videos.map((video) => (
-                            <VideoCard
-                              key={video.video_id}
-                              video={video}
-                              language={language}
-                              onPlay={() => setSelectedVideo(video)}
-                              showCompany={false}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    {/* Ticker */}
+                    <button
+                      onClick={() => navigate(`/investing/stock/${ticker}`)}
+                      className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      title={displayName}
+                    >
+                      {ticker}
+                    </button>
+                    {/* Remove button */}
+                    <button
+                      onClick={() => handleRemoveStock(ticker)}
+                      disabled={removeMutation.isPending}
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                      title={language === 'fr' ? 'Supprimer' : 'Remove'}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                );
+              })
+            )}
           </div>
+
+          {/* Add company search */}
+          <div className="relative" ref={stockDropdownRef}>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder={language === 'fr' ? 'Ajouter une entreprise...' : 'Add a company...'}
+                  value={stockSearch}
+                  onChange={(e) => setStockSearch(e.target.value)}
+                  onFocus={() => stockSearch && setShowStockDropdown(stockResults.length > 0)}
+                  className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+              </div>
+              {addMutation.isPending && (
+                <div className="flex items-center px-3">
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                </div>
+              )}
+            </div>
+
+            {/* Search dropdown */}
+            {showStockDropdown && stockResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-500 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
+                {stockResults.map((stock) => {
+                  const isInWatchlist = watchlist.includes(stock.ticker);
+                  const logoUrl = getCompanyLogoUrl(stock.ticker);
+                  return (
+                    <button
+                      key={stock.ticker}
+                      type="button"
+                      onClick={() => handleSelectStock(stock)}
+                      disabled={isInWatchlist}
+                      className={`w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 dark:border-slate-600 last:border-b-0 ${
+                        isInWatchlist
+                          ? 'bg-slate-50 dark:bg-slate-600 text-slate-400 cursor-not-allowed'
+                          : 'hover:bg-blue-50 dark:hover:bg-slate-600'
+                      }`}
+                    >
+                      <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200">
+                        {logoUrl ? (
+                          <img
+                            src={logoUrl}
+                            alt={stock.ticker}
+                            className="w-5 h-5 object-contain"
+                            onError={(e) => {
+                              const parent = e.currentTarget.parentElement;
+                              if (parent) {
+                                parent.innerHTML = `<span class="text-[8px] font-bold text-slate-500">${stock.ticker.slice(0, 2)}</span>`;
+                              }
+                            }}
+                          />
+                        ) : (
+                          <span className="text-[8px] font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
+                        )}
+                      </div>
+                      <span className="font-bold text-slate-800 dark:text-slate-100 w-16">{stock.ticker}</span>
+                      <span className="text-slate-600 dark:text-slate-300 text-sm truncate">{stock.name}</span>
+                      {isInWatchlist && (
+                        <span className="text-xs text-slate-400 ml-auto flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          {language === 'fr' ? 'Suivi' : 'Tracked'}
+                        </span>
+                      )}
+                      {!isInWatchlist && (
+                        <Plus className="w-4 h-4 text-blue-500 ml-auto" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Empty state when no companies */}
+        {watchlist.length === 0 ? (
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-8 text-center">
+            <Youtube className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+            <p className="text-slate-600 dark:text-slate-300 mb-2">
+              {language === 'fr'
+                ? 'Ajoutez des entreprises ci-dessus pour voir leurs actualités'
+                : 'Add companies above to see their news'}
+            </p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
+              {language === 'fr'
+                ? 'Les vidéos des chaînes financières les plus populaires seront affichées ici'
+                : 'Videos from popular financial channels will be displayed here'}
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Controls */}
+            <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 shadow-sm flex flex-wrap items-center gap-4">
+              {/* View mode toggle */}
+              <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
+                <button
+                  onClick={() => setViewMode('combined')}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                    viewMode === 'combined'
+                      ? 'bg-red-500 text-white'
+                      : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500'
+                  }`}
+                >
+                  {language === 'fr' ? 'Combiné' : 'Combined'}
+                </button>
+                <button
+                  onClick={() => setViewMode('by-company')}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                    viewMode === 'by-company'
+                      ? 'bg-red-500 text-white'
+                      : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500'
+                  }`}
+                >
+                  {language === 'fr' ? 'Par entreprise' : 'By Company'}
+                </button>
+              </div>
+
+              {/* Time filter */}
+              <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
+                {(['1M', '3M', 'ALL'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setVideoFilter(filter)}
+                    className={`px-2 py-1.5 text-sm font-medium transition-colors ${
+                      videoFilter === filter
+                        ? 'bg-red-500 text-white'
+                        : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500'
+                    }`}
+                  >
+                    {filter === 'ALL' ? (language === 'fr' ? 'Tout' : 'All') : filter}
+                  </button>
+                ))}
+              </div>
+
+              {/* Refresh button */}
+              <button
+                onClick={() => refetchNews()}
+                disabled={newsFetching}
+                className="ml-auto text-slate-500 hover:text-red-600 flex items-center gap-2 text-sm disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${newsFetching ? 'animate-spin' : ''}`} />
+                {language === 'fr' ? 'Actualiser' : 'Refresh'}
+              </button>
+            </div>
+
+            {/* Loading news */}
+            {newsLoading ? (
+              <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-8">
+                <div className="flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+                </div>
+              </div>
+            ) : viewMode === 'combined' ? (
+              /* Combined view */
+              <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-600 flex items-center gap-3">
+                  <Youtube className="w-5 h-5 text-red-500" />
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    {language === 'fr' ? 'Toutes les vidéos' : 'All Videos'}
+                  </h3>
+                  <span className="text-slate-500 dark:text-slate-400 text-sm">
+                    ({filteredVideos.length})
+                  </span>
+                </div>
+
+                {filteredVideos.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <Youtube className="w-12 h-12 text-slate-400 mx-auto mb-2" />
+                    <p className="text-slate-500 dark:text-slate-400">
+                      {language === 'fr'
+                        ? 'Aucune vidéo trouvée pour cette période'
+                        : 'No videos found for this period'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-200 dark:divide-slate-600">
+                    {filteredVideos.map((video) => (
+                      <VideoCard
+                        key={`${video.ticker}-${video.video_id}`}
+                        video={video}
+                        language={language}
+                        onPlay={() => setSelectedVideo(video)}
+                        onCompanyClick={() => navigate(`/investing/stock/${video.ticker}`)}
+                        showCompany
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* By company view */
+              <div className="space-y-4">
+                {videosByCompany.map(({ ticker, companyName, videos }) => {
+                  const isExpanded = expandedCompanies.has(ticker) || expandedCompanies.size === 0;
+                  const logoUrl = getCompanyLogoUrl(ticker);
+
+                  return (
+                    <div key={ticker} className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm overflow-hidden">
+                      {/* Company header */}
+                      <button
+                        onClick={() => toggleCompany(ticker)}
+                        className="w-full px-6 py-4 flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-500">
+                          {logoUrl ? (
+                            <img
+                              src={logoUrl}
+                              alt={`${ticker} logo`}
+                              className="w-8 h-8 object-contain"
+                              onError={(e) => {
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `<span class="text-xs font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
+                                }
+                              }}
+                            />
+                          ) : (
+                            <span className="text-xs font-bold text-slate-500">{ticker.slice(0, 2)}</span>
+                          )}
+                        </div>
+                        <div className="text-left min-w-0 flex-1">
+                          <p className="font-semibold text-slate-900 dark:text-slate-100">{companyName}</p>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">{ticker}</p>
+                        </div>
+                        <span className="text-sm text-slate-500 dark:text-slate-400 mr-2">
+                          {videos.length} {language === 'fr' ? 'vidéo(s)' : 'video(s)'}
+                        </span>
+                        {isExpanded ? (
+                          <ChevronUp className="w-5 h-5 text-slate-400" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-slate-400" />
+                        )}
+                      </button>
+
+                      {/* Videos */}
+                      {isExpanded && (
+                        <div className="border-t border-slate-200 dark:border-slate-600">
+                          {videos.length === 0 ? (
+                            <div className="p-6 text-center">
+                              <p className="text-slate-500 dark:text-slate-400 text-sm">
+                                {language === 'fr'
+                                  ? 'Aucune vidéo trouvée pour cette période'
+                                  : 'No videos found for this period'}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="divide-y divide-slate-200 dark:divide-slate-600">
+                              {videos.map((video) => (
+                                <VideoCard
+                                  key={video.video_id}
+                                  video={video}
+                                  language={language}
+                                  onPlay={() => setSelectedVideo(video)}
+                                  showCompany={false}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
 
