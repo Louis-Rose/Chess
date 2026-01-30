@@ -296,7 +296,7 @@ export function InvestingWelcomePanel() {
                     <Wallet className="w-4 h-4 text-white" />
                   </div>
                   <span className="text-base font-bold text-white">
-                    {language === 'fr' ? 'Valeur du Portefeuille' : 'Portfolio Value'}
+                    {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
                   </span>
                 </div>
                 <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
@@ -407,7 +407,7 @@ export function InvestingWelcomePanel() {
                   <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
                 </div>
               ) : topMovers.length > 0 ? (
-                <div className="space-y-2 flex-1 overflow-hidden">
+                <div className="space-y-2 flex-1 overflow-y-auto scrollbar-hide">
                   {topMovers.map((stock) => {
                     const logoUrl = getCompanyLogoUrl(stock.ticker);
                     return (
@@ -454,7 +454,7 @@ export function InvestingWelcomePanel() {
                   <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
                 </div>
               ) : upcomingEarnings.length > 0 ? (
-                <div className="space-y-2 flex-1 overflow-y-auto">
+                <div className="space-y-2 flex-1 overflow-y-auto scrollbar-hide pr-1">
                   {upcomingEarnings.map((earning) => {
                     const logoUrl = getCompanyLogoUrl(earning.ticker);
                     return (
@@ -488,6 +488,12 @@ export function InvestingWelcomePanel() {
               )}
             </div>
           </div>
+        )}
+
+        {isAuthenticated && (
+          <p className="text-center text-xs text-slate-500 dark:text-slate-500 mb-6 -mt-4">
+            {language === 'fr' ? 'Cliquez sur une carte pour plus de détails' : 'Click any card for more details'}
+          </p>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
