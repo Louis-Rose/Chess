@@ -3383,6 +3383,12 @@ def delete_account(account_id):
             except Exception as e:
                 logger.error(f"Failed to send deletion alert: {e}")
 
+        # First delete associated transactions
+        conn.execute(
+            'DELETE FROM portfolio_transactions WHERE user_id = ? AND account_id = ?',
+            (request.user_id, account_id)
+        )
+        # Then delete the account
         conn.execute(
             'DELETE FROM investment_accounts WHERE user_id = ? AND id = ?',
             (request.user_id, account_id)
