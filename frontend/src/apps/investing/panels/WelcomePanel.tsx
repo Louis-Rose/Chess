@@ -66,20 +66,6 @@ interface CompositionData {
   eurusd_rate: number;
 }
 
-interface PerformanceDataPoint {
-  date: string;
-  portfolio_value_eur: number;
-  portfolio_growth_eur: number;
-  cost_basis_eur: number;
-}
-
-interface PerformanceData {
-  data: PerformanceDataPoint[];
-  summary: {
-    portfolio_return_eur: number;
-  };
-}
-
 interface EarningsItem {
   ticker: string;
   next_earnings_date: string | null;
@@ -95,11 +81,6 @@ interface EarningsResponse {
 // API fetchers
 const fetchComposition = async (): Promise<CompositionData> => {
   const response = await axios.get('/api/investing/portfolio/composition');
-  return response.data;
-};
-
-const fetchPerformance = async (): Promise<PerformanceData> => {
-  const response = await axios.get('/api/investing/portfolio/performance?benchmark=NASDAQ&currency=EUR');
   return response.data;
 };
 
@@ -136,20 +117,12 @@ export function InvestingWelcomePanel() {
 
   // Summary card states
   const [valueCurrency, setValueCurrency] = useState<'EUR' | 'USD'>('EUR');
-  const [perfPeriod, setPerfPeriod] = useState<'1D' | '1W' | '1M'>('1W');
 
   // Fetch portfolio data
   const { data: compositionData, isLoading: compositionLoading } = useQuery({
     queryKey: ['composition-summary'],
     queryFn: fetchComposition,
     enabled: isAuthenticated,
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const { data: performanceData, isLoading: performanceLoading } = useQuery({
-    queryKey: ['performance-summary'],
-    queryFn: fetchPerformance,
-    enabled: isAuthenticated && (compositionData?.holdings?.length ?? 0) > 0,
     staleTime: 1000 * 60 * 5,
   });
 
@@ -160,40 +133,6 @@ export function InvestingWelcomePanel() {
     staleTime: 1000 * 60 * 30,
   });
 
-  // Calculate performance for different periods
-  const getPerformanceForPeriod = () => {
-    if (!performanceData?.data || performanceData.data.length === 0) return null;
-
-    const data = performanceData.data;
-    const latestPoint = data[data.length - 1];
-    const latestValue = latestPoint.portfolio_value_eur;
-
-    let daysBack = 1;
-    if (perfPeriod === '1W') daysBack = 7;
-    if (perfPeriod === '1M') daysBack = 30;
-
-    // Find the point closest to daysBack ago
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() - daysBack);
-
-    let comparePoint = data[0];
-    for (const point of data) {
-      const pointDate = new Date(point.date);
-      if (pointDate <= targetDate) {
-        comparePoint = point;
-      } else {
-        break;
-      }
-    }
-
-    const compareValue = comparePoint.portfolio_value_eur;
-    if (compareValue === 0) return null;
-
-    const change = latestValue - compareValue;
-    const changePct = ((latestValue - compareValue) / compareValue) * 100;
-
-    return { change, changePct };
-  };
 
   // Get top movers (sorted by absolute gain_pct, exclude invalid tickers with 0 price)
   const getTopMovers = () => {
@@ -278,7 +217,7 @@ export function InvestingWelcomePanel() {
   const portfolioValue = valueCurrency === 'EUR'
     ? compositionData?.total_value_eur
     : compositionData?.total_value_usd;
-  const perfData = getPerformanceForPeriod();
+  const totalGainPct = compositionData?.total_gain_pct;
   const topMovers = getTopMovers();
   const upcomingEarnings = getUpcomingEarnings();
   const hasHoldings = (compositionData?.holdings?.length ?? 0) > 0;
@@ -376,32 +315,19 @@ export function InvestingWelcomePanel() {
               onClick={() => navigate('/investing/portfolio')}
               className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-blue-500 transition-colors min-h-[100px]"
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <BarChart3 className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    {language === 'fr' ? 'Perf.' : 'Perf.'}
-                  </span>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <BarChart3 className="w-4 h-4 text-white" />
                 </div>
-                <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
-                  {(['1D', '1W', '1M'] as const).map((p) => (
-                    <button
-                      key={p}
-                      onClick={(e) => { e.stopPropagation(); setPerfPeriod(p); }}
-                      className={`px-1.5 py-0.5 text-xs font-medium ${perfPeriod === p ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {language === 'fr' ? 'Performance Totale' : 'Total Return'}
+                </span>
               </div>
-              {performanceLoading ? (
+              {compositionLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-              ) : hasHoldings && perfData ? (
-                <p className={`text-2xl font-bold ${perfData.changePct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {perfData.changePct >= 0 ? '+' : ''}{perfData.changePct.toFixed(2)}%
+              ) : hasHoldings && totalGainPct !== undefined ? (
+                <p className={`text-2xl font-bold ${totalGainPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {totalGainPct >= 0 ? '+' : ''}{totalGainPct.toFixed(1)}%
                 </p>
               ) : (
                 <p className="text-sm text-slate-400 italic">
