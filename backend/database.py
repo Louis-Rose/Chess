@@ -130,8 +130,6 @@ def init_db():
         # PostgreSQL schema is initialized via docker-entrypoint-initdb.d
         # Run migrations for any new columns
         with get_db() as conn:
-            conn.execute("SELECT 1")
-            print("[Database] PostgreSQL connection verified")
 
             # Migration: Add price_currency column to portfolio_transactions if not exists
             conn.execute("""
