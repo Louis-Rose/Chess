@@ -8,5 +8,17 @@ export default defineConfig({
     proxy: {
       '/api': 'http://127.0.0.1:5001'
     }
+  },
+  build: {
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          charts: ['recharts'],
+          query: ['@tanstack/react-query'],
+        }
+      }
+    }
   }
 })
