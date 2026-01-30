@@ -165,15 +165,15 @@ export function InvestingSidebar() {
 
       {/* Recent Stocks - scrollable section, show when authenticated and not collapsed */}
       {isAuthenticated && !isCollapsed && (
-        <div className="flex-1 min-h-0 overflow-y-auto py-4 border-b border-slate-700">
-          <div className="flex items-center gap-2 mb-3 px-2 text-slate-400">
+        <div className="flex-1 min-h-0 flex flex-col py-4 border-b border-slate-700">
+          <div className="flex items-center gap-2 mb-3 px-2 text-slate-400 flex-shrink-0">
             <Clock className="w-4 h-4" />
             <span className="text-xs font-medium uppercase tracking-wide">
               {language === 'fr' ? 'Recherches récentes' : 'Recently searched'}
             </span>
           </div>
           {recentStocks.length > 0 && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 overflow-y-auto">
               {recentStocks.map((ticker) => {
                 const logoUrl = getCompanyLogoUrl(ticker);
                 const stock = findStockByTicker(ticker);
