@@ -110,9 +110,6 @@ case "$1" in
                 ELAPSED=$((SECONDS - START_TIME))
                 echo ""
                 echo "✓ Completed in ${ELAPSED}s"
-                echo ""
-                echo "=== Tailing logs (Ctrl+C to exit) ==="
-                sudo journalctl -u chess-backend -f
                 ;;
 
             status)
