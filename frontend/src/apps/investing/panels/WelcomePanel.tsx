@@ -461,7 +461,7 @@ export function InvestingWelcomePanel() {
         </div>
 
         {/* Legal notices */}
-        <div className="text-center mt-[20vh] pb-2">
+        <div className="text-center mt-[40vh] pb-2">
           <Link
             to="/cgu"
             className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-sm transition-colors"
