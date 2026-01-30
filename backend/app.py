@@ -2872,8 +2872,8 @@ def get_portfolio_top_movers():
             'past_price': round(past_price, 2)
         })
 
-    # Sort by absolute change
-    movers.sort(key=lambda x: abs(x['change_pct']), reverse=True)
+    # Sort by change (best to worst)
+    movers.sort(key=lambda x: x['change_pct'], reverse=True)
 
     return jsonify({
         'movers': movers[:5],

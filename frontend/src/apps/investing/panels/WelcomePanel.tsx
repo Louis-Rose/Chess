@@ -185,7 +185,7 @@ export function InvestingWelcomePanel() {
     return earningsData.earnings
       .filter(e => e.next_earnings_date && e.remaining_days !== null && e.remaining_days >= 0)
       .sort((a, b) => (a.remaining_days ?? 999) - (b.remaining_days ?? 999))
-      .slice(0, 3);
+      .slice(0, 10);
   };
 
   const features = [
@@ -307,14 +307,14 @@ export function InvestingWelcomePanel() {
             {/* Portfolio Value Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-green-500 transition-colors min-h-[100px]"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-green-500 transition-colors min-h-[140px] flex flex-col"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
                     <Wallet className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  <span className="text-base font-bold text-white">
                     {language === 'fr' ? 'Valeur du Portefeuille' : 'Portfolio Value'}
                   </span>
                 </div>
@@ -333,30 +333,32 @@ export function InvestingWelcomePanel() {
                   </button>
                 </div>
               </div>
-              {compositionLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400 mx-auto" />
-              ) : hasHoldings && portfolioValue !== undefined ? (
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 text-center">
-                  {formatCurrency(portfolioValue, valueCurrency)}
-                </p>
-              ) : (
-                <p className="text-sm text-slate-400 italic text-center">
-                  {language === 'fr' ? 'Aucune position' : 'No holdings'}
-                </p>
-              )}
+              <div className="flex-1 flex items-center justify-center">
+                {compositionLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                ) : hasHoldings && portfolioValue !== undefined ? (
+                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+                    {formatCurrency(portfolioValue, valueCurrency)}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-400 italic">
+                    {language === 'fr' ? 'Aucune position' : 'No holdings'}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Performance Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-blue-500 transition-colors min-h-[100px]"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-blue-500 transition-colors min-h-[140px] flex flex-col"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                     <BarChart3 className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  <span className="text-base font-bold text-white">
                     {language === 'fr' ? 'Performance' : 'Performance'}
                   </span>
                 </div>
@@ -375,30 +377,32 @@ export function InvestingWelcomePanel() {
                   </button>
                 </div>
               </div>
-              {perfLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400 mx-auto" />
-              ) : hasHoldings && perfValue !== undefined && perfValue !== null ? (
-                <p className={`text-2xl font-bold text-center ${perfValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {perfValue >= 0 ? '+' : ''}{perfValue.toFixed(1)}%
-                </p>
-              ) : (
-                <p className="text-sm text-slate-400 italic text-center">
-                  {language === 'fr' ? 'Pas de données' : 'No data'}
-                </p>
-              )}
+              <div className="flex-1 flex items-center justify-center">
+                {perfLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                ) : hasHoldings && perfValue !== undefined && perfValue !== null ? (
+                  <p className={`text-3xl font-bold ${perfValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {perfValue >= 0 ? '+' : ''}{perfValue.toFixed(1)}%
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-400 italic">
+                    {language === 'fr' ? 'Pas de données' : 'No data'}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Top Movers Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-orange-500 transition-colors min-h-[100px]"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-orange-500 transition-colors min-h-[140px] flex flex-col"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
                     <Flame className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  <span className="text-base font-bold text-white">
                     {language === 'fr' ? 'Top Mouvements' : 'Top Movers'}
                   </span>
                 </div>
@@ -420,7 +424,7 @@ export function InvestingWelcomePanel() {
               {topMoversLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
               ) : topMovers.length > 0 ? (
-                <div className="space-y-1">
+                <div className="space-y-1.5 flex-1">
                   {topMovers.map((stock) => {
                     const logoUrl = getCompanyLogoUrl(stock.ticker);
                     return (
@@ -452,20 +456,20 @@ export function InvestingWelcomePanel() {
             {/* Upcoming Earnings Card */}
             <div
               onClick={() => navigate('/investing/earnings')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-amber-500 transition-colors min-h-[100px]"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-amber-500 transition-colors min-h-[140px] flex flex-col"
             >
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
                   <Calendar className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                <span className="text-base font-bold text-white">
                   {language === 'fr' ? 'Résultats à venir' : 'Upcoming Earnings'}
                 </span>
               </div>
               {earningsLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
               ) : upcomingEarnings.length > 0 ? (
-                <div className="space-y-1">
+                <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[100px]">
                   {upcomingEarnings.map((earning) => {
                     const logoUrl = getCompanyLogoUrl(earning.ticker);
                     return (
@@ -481,7 +485,11 @@ export function InvestingWelcomePanel() {
                           <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{earning.ticker}</span>
                         </div>
                         <span className="text-xs text-slate-500 dark:text-slate-400">
-                          {earning.next_earnings_date ? formatDate(earning.next_earnings_date, language) : '—'}
+                          {earning.remaining_days !== null ? (
+                            earning.remaining_days === 0
+                              ? (language === 'fr' ? "Aujourd'hui" : 'Today')
+                              : `${earning.remaining_days}${language === 'fr' ? 'j' : 'd'}`
+                          ) : '—'}
                           {!earning.date_confirmed && ' ~'}
                         </span>
                       </div>
