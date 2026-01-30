@@ -167,21 +167,21 @@ export function InvestingWelcomePanel() {
   const { data: perf7Data, isLoading: perf7Loading } = useQuery({
     queryKey: ['performance-period', 7],
     queryFn: () => fetchPerformance(7),
-    enabled: isAuthenticated && (compositionData?.holdings?.length ?? 0) > 0,
+    enabled: isAuthenticated,
     staleTime: 1000 * 60 * 15,
   });
 
   const { data: perf30Data, isLoading: perf30Loading } = useQuery({
     queryKey: ['performance-period', 30],
     queryFn: () => fetchPerformance(30),
-    enabled: isAuthenticated && (compositionData?.holdings?.length ?? 0) > 0,
+    enabled: isAuthenticated,
     staleTime: 1000 * 60 * 15,
   });
 
   const { data: topMoversData, isLoading: topMoversLoading } = useQuery({
     queryKey: ['top-movers', moversPeriod],
     queryFn: () => fetchTopMovers(moversPeriod),
-    enabled: isAuthenticated && (compositionData?.holdings?.length ?? 0) > 0,
+    enabled: isAuthenticated,
     staleTime: 1000 * 60 * 15,
   });
 
