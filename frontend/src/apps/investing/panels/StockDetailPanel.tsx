@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { ArrowLeft, Loader2, ExternalLink, MessageSquare, Send, ChevronDown, ChevronUp, Youtube, Calendar, RefreshCw, X } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -207,6 +207,7 @@ function formatDate(dateStr: string, language: string): string {
 export function StockDetailPanel() {
   const { ticker } = useParams<{ ticker: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { language } = useLanguage();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [chartPeriod] = useState<ChartPeriod>('1M');
@@ -218,6 +219,7 @@ export function StockDetailPanel() {
   const [selectedMetric, setSelectedMetric] = useState<{ metric: string; label: string } | null>(null);
   const [showPriceModal, setShowPriceModal] = useState(false);
   const [financialsDataView, setFinancialsDataView] = useState<'quarterly' | 'annual'>('quarterly');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Use TSLA as preview ticker when not authenticated
   const upperTicker = isAuthenticated ? (ticker?.toUpperCase() || '') : 'TSLA';
@@ -230,7 +232,7 @@ export function StockDetailPanel() {
     if (upperTicker && user?.id && isAuthenticated) {
       addRecentStock(upperTicker, user.id);
     }
-  }, [upperTicker, user?.id, isAuthenticated]);
+  }, [upperTicker, user?.id, isAuthenticated, refreshKey]);
 
   // Fetch stock history - only when authenticated
   const { data: fetchedStockHistoryData, isLoading: priceLoading } = useQuery({
@@ -376,7 +378,11 @@ export function StockDetailPanel() {
             </div>
             <button
               onClick={() => {
-                window.location.href = `/investing/stock/${upperTicker}`;
+                // Refresh data and re-add to recently searched
+                queryClient.invalidateQueries({ queryKey: ['stockHistory', upperTicker] });
+                queryClient.invalidateQueries({ queryKey: ['marketCap', upperTicker] });
+                queryClient.invalidateQueries({ queryKey: ['newsFeed', upperTicker] });
+                setRefreshKey(k => k + 1);
               }}
               className="min-w-0 text-left hover:opacity-80 transition-opacity cursor-pointer"
             >
