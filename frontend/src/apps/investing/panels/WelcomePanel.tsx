@@ -78,10 +78,24 @@ interface EarningsResponse {
   earnings: EarningsItem[];
 }
 
-interface Performance1MData {
-  performance_1m: number | null;
+interface PerformanceData {
+  performance: number | null;
+  performance_1m?: number | null;
+  days: number;
   current_value: number;
-  month_ago_value: number;
+  past_value: number;
+}
+
+interface TopMover {
+  ticker: string;
+  change_pct: number;
+  current_price: number;
+  past_price: number;
+}
+
+interface TopMoversData {
+  movers: TopMover[];
+  days: number;
 }
 
 // API fetchers
@@ -90,8 +104,13 @@ const fetchComposition = async (): Promise<CompositionData> => {
   return response.data;
 };
 
-const fetchPerformance1M = async (): Promise<Performance1MData> => {
-  const response = await axios.get('/api/investing/portfolio/performance-1m');
+const fetchPerformance = async (days: number): Promise<PerformanceData> => {
+  const response = await axios.get(`/api/investing/portfolio/performance-period?days=${days}`);
+  return response.data;
+};
+
+const fetchTopMovers = async (days: number): Promise<TopMoversData> => {
+  const response = await axios.get(`/api/investing/portfolio/top-movers?days=${days}`);
   return response.data;
 };
 
@@ -128,6 +147,8 @@ export function InvestingWelcomePanel() {
 
   // Summary card states
   const [valueCurrency, setValueCurrency] = useState<'EUR' | 'USD'>('EUR');
+  const [perfPeriod, setPerfPeriod] = useState<7 | 30>(30);
+  const [moversPeriod, setMoversPeriod] = useState<7 | 30>(30);
 
   // Fetch portfolio data
   const { data: compositionData, isLoading: compositionLoading } = useQuery({
@@ -144,21 +165,19 @@ export function InvestingWelcomePanel() {
     staleTime: 1000 * 60 * 30,
   });
 
-  const { data: perf1MData, isLoading: perf1MLoading } = useQuery({
-    queryKey: ['performance-1m-summary'],
-    queryFn: fetchPerformance1M,
+  const { data: perfData, isLoading: perfLoading } = useQuery({
+    queryKey: ['performance-period', perfPeriod],
+    queryFn: () => fetchPerformance(perfPeriod),
     enabled: isAuthenticated && (compositionData?.holdings?.length ?? 0) > 0,
     staleTime: 1000 * 60 * 15,
   });
 
-  // Get top movers (sorted by absolute gain_pct, exclude invalid tickers with 0 price)
-  const getTopMovers = () => {
-    if (!compositionData?.holdings) return [];
-    return [...compositionData.holdings]
-      .filter(h => h.current_price > 0)
-      .sort((a, b) => Math.abs(b.gain_pct) - Math.abs(a.gain_pct))
-      .slice(0, 3);
-  };
+  const { data: topMoversData, isLoading: topMoversLoading } = useQuery({
+    queryKey: ['top-movers', moversPeriod],
+    queryFn: () => fetchTopMovers(moversPeriod),
+    enabled: isAuthenticated && (compositionData?.holdings?.length ?? 0) > 0,
+    staleTime: 1000 * 60 * 15,
+  });
 
   // Get upcoming earnings (next 3)
   const getUpcomingEarnings = () => {
@@ -234,8 +253,8 @@ export function InvestingWelcomePanel() {
   const portfolioValue = valueCurrency === 'EUR'
     ? compositionData?.total_value_eur
     : compositionData?.total_value_usd;
-  const perf1M = perf1MData?.performance_1m;
-  const topMovers = getTopMovers();
+  const perfValue = perfData?.performance;
+  const topMovers = topMoversData?.movers ?? [];
   const upcomingEarnings = getUpcomingEarnings();
   const hasHoldings = (compositionData?.holdings?.length ?? 0) > 0;
 
@@ -332,19 +351,35 @@ export function InvestingWelcomePanel() {
               onClick={() => navigate('/investing/portfolio')}
               className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-blue-500 transition-colors min-h-[100px]"
             >
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <BarChart3 className="w-4 h-4 text-white" />
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <BarChart3 className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                    {language === 'fr' ? 'Performance' : 'Performance'}
+                  </span>
                 </div>
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {language === 'fr' ? 'Perf. 1 Mois' : '1M Perf.'}
-                </span>
+                <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setPerfPeriod(7); }}
+                    className={`px-2 py-0.5 text-xs font-medium ${perfPeriod === 7 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    1W
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setPerfPeriod(30); }}
+                    className={`px-2 py-0.5 text-xs font-medium ${perfPeriod === 30 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    1M
+                  </button>
+                </div>
               </div>
-              {perf1MLoading ? (
+              {perfLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-slate-400 mx-auto" />
-              ) : hasHoldings && perf1M !== undefined && perf1M !== null ? (
-                <p className={`text-2xl font-bold text-center ${perf1M >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {perf1M >= 0 ? '+' : ''}{perf1M.toFixed(1)}%
+              ) : hasHoldings && perfValue !== undefined && perfValue !== null ? (
+                <p className={`text-2xl font-bold text-center ${perfValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {perfValue >= 0 ? '+' : ''}{perfValue.toFixed(1)}%
                 </p>
               ) : (
                 <p className="text-sm text-slate-400 italic text-center">
@@ -358,15 +393,31 @@ export function InvestingWelcomePanel() {
               onClick={() => navigate('/investing/portfolio')}
               className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-orange-500 transition-colors min-h-[100px]"
             >
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
-                  <Flame className="w-4 h-4 text-white" />
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+                    <Flame className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                    {language === 'fr' ? 'Top Mouvements' : 'Top Movers'}
+                  </span>
                 </div>
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {language === 'fr' ? 'Top Mouvements' : 'Top Movers'}
-                </span>
+                <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMoversPeriod(7); }}
+                    className={`px-2 py-0.5 text-xs font-medium ${moversPeriod === 7 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    1W
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMoversPeriod(30); }}
+                    className={`px-2 py-0.5 text-xs font-medium ${moversPeriod === 30 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    1M
+                  </button>
+                </div>
               </div>
-              {compositionLoading ? (
+              {topMoversLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
               ) : topMovers.length > 0 ? (
                 <div className="space-y-1">
@@ -384,8 +435,8 @@ export function InvestingWelcomePanel() {
                           </div>
                           <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
                         </div>
-                        <span className={`text-xs font-bold ${stock.gain_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {stock.gain_pct >= 0 ? '+' : ''}{stock.gain_pct.toFixed(1)}%
+                        <span className={`text-xs font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
                         </span>
                       </div>
                     );

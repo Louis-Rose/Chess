@@ -2755,10 +2755,15 @@ def get_portfolio_composition():
 
 
 @app.route('/api/investing/portfolio/performance-1m', methods=['GET'])
+@app.route('/api/investing/portfolio/performance-period', methods=['GET'])
 @login_required
-def get_portfolio_performance_1m():
-    """Get simple 1-month portfolio performance (lightweight)."""
-    from investing_utils import fetch_stock_price, get_fx_rate_to_eur, get_stock_currency
+def get_portfolio_performance_period():
+    """Get portfolio performance over a period (lightweight). Supports days=7 or days=30."""
+    from investing_utils import fetch_stock_price, get_fx_rate_to_eur, get_stock_currency, fetch_current_stock_prices_batch
+
+    days = request.args.get('days', 30, type=int)
+    if days not in [7, 30]:
+        days = 30
 
     account_ids_str = request.args.get('account_ids')
     if account_ids_str:
@@ -2770,51 +2775,107 @@ def get_portfolio_performance_1m():
     holdings = compute_holdings_from_transactions(request.user_id, account_ids)
 
     if not holdings:
-        return jsonify({'performance_1m': None, 'message': 'No holdings'})
+        return jsonify({'performance': None, 'performance_1m': None, 'message': 'No holdings'})
 
-    # Get date 30 days ago
     today = datetime.now()
-    month_ago = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+    past_date = (today - timedelta(days=days)).strftime('%Y-%m-%d')
+
+    # Batch fetch current prices
+    all_tickers = [h['stock_ticker'] for h in holdings]
+    prices = fetch_current_stock_prices_batch(all_tickers)
 
     current_value = 0
-    month_ago_value = 0
+    past_value = 0
 
     for h in holdings:
         ticker = h['stock_ticker']
         qty = h['quantity']
 
-        # Get current price (from composition calculation, already cached)
-        try:
-            from investing_utils import fetch_current_stock_prices_batch
-            prices = fetch_current_stock_prices_batch([ticker])
-            current_price = prices.get(ticker, 0) or 0
-        except:
-            current_price = 0
+        current_price = prices.get(ticker, 0) or 0
 
-        # Get price from 30 days ago
         try:
-            past_price = fetch_stock_price(ticker, month_ago)
+            past_price = fetch_stock_price(ticker, past_date)
             if past_price is None:
-                past_price = current_price  # Fallback to current if no historical data
+                past_price = current_price
         except:
             past_price = current_price
 
-        # Convert to EUR
         currency = get_stock_currency(ticker)
         fx_rate = get_fx_rate_to_eur(currency)
 
         current_value += (current_price or 0) * qty * fx_rate
-        month_ago_value += (past_price or 0) * qty * fx_rate
+        past_value += (past_price or 0) * qty * fx_rate
 
-    if month_ago_value > 0:
-        perf_pct = ((current_value - month_ago_value) / month_ago_value) * 100
+    if past_value > 0:
+        perf_pct = ((current_value - past_value) / past_value) * 100
     else:
         perf_pct = 0
 
     return jsonify({
-        'performance_1m': round(perf_pct, 2),
+        'performance': round(perf_pct, 2),
+        'performance_1m': round(perf_pct, 2),  # backward compat
+        'days': days,
         'current_value': round(current_value, 2),
-        'month_ago_value': round(month_ago_value, 2)
+        'past_value': round(past_value, 2)
+    })
+
+
+@app.route('/api/investing/portfolio/top-movers', methods=['GET'])
+@login_required
+def get_portfolio_top_movers():
+    """Get top movers in portfolio based on price change over period."""
+    from investing_utils import fetch_stock_price, get_fx_rate_to_eur, get_stock_currency, fetch_current_stock_prices_batch
+
+    days = request.args.get('days', 30, type=int)
+    if days not in [7, 30]:
+        days = 30
+
+    account_ids_str = request.args.get('account_ids')
+    if account_ids_str:
+        account_ids = [int(x) for x in account_ids_str.split(',') if x.strip()]
+    else:
+        account_id = request.args.get('account_id', type=int)
+        account_ids = [account_id] if account_id else None
+
+    holdings = compute_holdings_from_transactions(request.user_id, account_ids)
+
+    if not holdings:
+        return jsonify({'movers': [], 'days': days})
+
+    today = datetime.now()
+    past_date = (today - timedelta(days=days)).strftime('%Y-%m-%d')
+
+    all_tickers = [h['stock_ticker'] for h in holdings]
+    prices = fetch_current_stock_prices_batch(all_tickers)
+
+    movers = []
+    for h in holdings:
+        ticker = h['stock_ticker']
+        current_price = prices.get(ticker, 0) or 0
+        if current_price <= 0:
+            continue
+
+        try:
+            past_price = fetch_stock_price(ticker, past_date)
+            if past_price is None or past_price <= 0:
+                continue
+        except:
+            continue
+
+        change_pct = ((current_price - past_price) / past_price) * 100
+        movers.append({
+            'ticker': ticker,
+            'change_pct': round(change_pct, 1),
+            'current_price': round(current_price, 2),
+            'past_price': round(past_price, 2)
+        })
+
+    # Sort by absolute change
+    movers.sort(key=lambda x: abs(x['change_pct']), reverse=True)
+
+    return jsonify({
+        'movers': movers[:5],
+        'days': days
     })
 
 

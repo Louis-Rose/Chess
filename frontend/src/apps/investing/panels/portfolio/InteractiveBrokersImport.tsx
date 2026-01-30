@@ -4,12 +4,12 @@ import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 
 // Import screenshots as static assets
-import step1Image from '../../../../assets/ibkr-import/step1.webp';
-import step2Image from '../../../../assets/ibkr-import/step2.webp';
-import step3Image from '../../../../assets/ibkr-import/step3.webp';
-import step4Image from '../../../../assets/ibkr-import/step4.webp';
-import step5Image from '../../../../assets/ibkr-import/step5.webp';
-import step6Image from '../../../../assets/ibkr-import/step6.webp';
+import step1Image from '../../../../assets/ibkr-import/step1.png';
+import step2Image from '../../../../assets/ibkr-import/step2.png';
+import step3Image from '../../../../assets/ibkr-import/step3.png';
+import step4Image from '../../../../assets/ibkr-import/step4.png';
+import step5Image from '../../../../assets/ibkr-import/step5.png';
+import step6Image from '../../../../assets/ibkr-import/step6.png';
 
 interface ParsedTransaction {
   stock_ticker: string;
