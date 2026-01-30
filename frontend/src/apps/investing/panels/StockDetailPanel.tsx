@@ -1,7 +1,7 @@
 // Stock detail panel - view individual stock info and price chart
 
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { ArrowLeft, Loader2, ExternalLink, MessageSquare, Send, ChevronDown, ChevronUp, Youtube, Calendar, RefreshCw, X } from 'lucide-react';
@@ -374,10 +374,10 @@ export function StockDetailPanel() {
                 <span className="text-xl font-bold text-slate-400">{upperTicker.slice(0, 2)}</span>
               )}
             </div>
-            <div className="min-w-0">
+            <Link to={`/investing/stock/${upperTicker}`} className="min-w-0 hover:opacity-80 transition-opacity">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{displayName}</h1>
               <p className="text-slate-600 dark:text-slate-300">{upperTicker}</p>
-            </div>
+            </Link>
 
             {/* Center: Price */}
             <div className="flex-1 flex justify-center">
