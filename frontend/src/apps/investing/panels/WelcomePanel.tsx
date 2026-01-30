@@ -331,7 +331,7 @@ export function InvestingWelcomePanel() {
                   </button>
                 </div>
               </div>
-              <div className="flex-1 flex flex-col items-center justify-center gap-2">
+              <div className="flex-1 flex flex-col items-center justify-center gap-3">
                 {compositionLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
                 ) : hasHoldings && portfolioValue !== undefined ? (
