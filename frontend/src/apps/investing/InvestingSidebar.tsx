@@ -152,7 +152,7 @@ export function InvestingSidebar() {
               to="/investing/admin"
               title={isCollapsed ? 'Admin' : undefined}
               className={({ isActive }) =>
-                `flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-lg transition-colors ${
+                `flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-2.5 rounded-lg transition-colors ${
                   isActive
                     ? 'bg-amber-600 text-white'
                     : 'text-amber-400 hover:bg-slate-800'
