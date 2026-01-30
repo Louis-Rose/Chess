@@ -78,7 +78,7 @@ export function InvestingSidebar() {
       </Link>
 
       {/* User Menu */}
-      <div className={`flex justify-center items-center mb-4 ${isCollapsed ? 'px-0' : 'px-2'} pb-4 border-b border-slate-700 flex-shrink-0 min-h-[64px]`}>
+      <div className={`flex justify-center items-center ${isCollapsed ? 'px-0' : 'px-2'} pb-4 border-b border-slate-700 flex-shrink-0 min-h-[64px]`}>
         {authLoading ? (
           <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
         ) : isAuthenticated ? (
@@ -133,7 +133,7 @@ export function InvestingSidebar() {
       {/* Scrollable middle section: Navigation + Admin + Recent Stocks */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         {/* Navigation */}
-        <div className={`flex flex-col gap-1 ${isCollapsed ? 'px-0' : 'px-2'} py-4 border-b border-slate-700`}>
+        <div className={`flex flex-col gap-1 ${isCollapsed ? 'px-0' : 'px-2'} pt-2 pb-4 border-b border-slate-700`}>
           {navItems.map((item) => (
             <NavLink
               key={item.path}
