@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, BarChart3, Flame } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, BarChart3, Flame, Info } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -277,9 +277,19 @@ export function InvestingWelcomePanel() {
 
       <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700 mt-8 flex flex-col min-h-[calc(100vh-200px)]">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-            {language === 'fr' ? 'Bienvenue' : 'Welcome'}{isAuthenticated && user?.name ? `, ${user.name}` : ''} !
-          </h2>
+          <div className="flex items-center justify-center gap-2">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {language === 'fr' ? 'Bienvenue' : 'Welcome'}{isAuthenticated && user?.name ? `, ${user.name}` : ''} !
+            </h2>
+            {isAuthenticated && (
+              <div className="relative group">
+                <Info className="w-4 h-4 text-slate-400 cursor-help" />
+                <div className="absolute left-1/2 -translate-x-1/2 top-6 px-3 py-1.5 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                  {language === 'fr' ? 'Cliquez sur une carte pour plus de détails' : 'Click any card for more details'}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Portfolio Summary Cards - only for authenticated users with holdings */}
@@ -488,12 +498,6 @@ export function InvestingWelcomePanel() {
               )}
             </div>
           </div>
-        )}
-
-        {isAuthenticated && (
-          <p className="text-center text-xs text-slate-500 dark:text-slate-500 mb-6 -mt-4">
-            {language === 'fr' ? 'Cliquez sur une carte pour plus de détails' : 'Click any card for more details'}
-          </p>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
