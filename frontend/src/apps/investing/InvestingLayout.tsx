@@ -46,7 +46,7 @@ export function InvestingLayout() {
       <div className="hidden md:block">
         <InvestingSidebar />
       </div>
-      <main className={`flex-1 p-4 md:p-8 pb-20 md:pb-8 ${!isAuthenticated && !authLoading ? 'blur-[1.5px] opacity-70 pointer-events-none select-none' : ''}`}>
+      <main className={`flex-1 p-4 md:p-8 pb-20 md:pb-2 ${!isAuthenticated && !authLoading ? 'blur-[1.5px] opacity-70 pointer-events-none select-none' : ''}`}>
         <Outlet />
       </main>
       {/* Bottom nav: visible on mobile, hidden on md+ */}

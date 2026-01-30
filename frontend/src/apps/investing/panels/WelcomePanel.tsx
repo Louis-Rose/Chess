@@ -1,7 +1,7 @@
 // Investing Welcome panel
 
 import { useNavigate, Link } from 'react-router-dom';
-import { Briefcase, Eye, Calendar, TrendingUp, Loader2, PartyPopper, X } from 'lucide-react';
+import { Briefcase, Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -88,6 +88,26 @@ export function InvestingWelcomePanel() {
       descEn: 'Track upcoming earnings releases for your holdings.',
       descFr: 'Suivez les prochaines publications de résultats de vos positions.',
     },
+    {
+      icon: GitCompare,
+      iconBg: 'bg-indigo-600',
+      hoverBorder: 'hover:border-indigo-500',
+      path: '/investing/comparison',
+      titleEn: 'Compare Stocks',
+      titleFr: 'Comparer',
+      descEn: 'Compare multiple stocks side by side.',
+      descFr: 'Comparez plusieurs actions côte à côte.',
+    },
+    {
+      icon: Newspaper,
+      iconBg: 'bg-red-600',
+      hoverBorder: 'hover:border-red-500',
+      path: '/investing/news-feed',
+      titleEn: 'News Feed',
+      titleFr: 'Fil d\'actualités',
+      descEn: 'YouTube videos from verified financial channels.',
+      descFr: 'Vidéos YouTube de chaînes financières vérifiées.',
+    },
   ];
 
   if (authLoading) {
@@ -142,7 +162,7 @@ export function InvestingWelcomePanel() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
           {features.map((feature) => (
             <FeatureCard
               key={feature.path}
