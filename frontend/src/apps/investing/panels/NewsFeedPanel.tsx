@@ -240,7 +240,7 @@ export function NewsFeedPanel() {
             {language === 'fr' ? 'Fil d\'actualités' : 'News Feed'}
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-lg italic">
-            {language === 'fr' ? 'Vidéos YouTube de votre watchlist' : 'YouTube videos from your watchlist'}
+            {language === 'fr' ? 'Vidéos YouTube de chaines financières vérifiées' : 'YouTube videos from verified financial channels'}
           </p>
         </div>
 
