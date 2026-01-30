@@ -298,7 +298,7 @@ export function InvestingWelcomePanel() {
             {/* Portfolio Value Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-green-500 transition-colors min-h-[140px] flex flex-col"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-green-500 transition-colors h-[140px] flex flex-col"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -342,7 +342,7 @@ export function InvestingWelcomePanel() {
             {/* Performance Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-blue-500 transition-colors min-h-[140px] flex flex-col"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-blue-500 transition-colors h-[140px] flex flex-col"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -386,7 +386,7 @@ export function InvestingWelcomePanel() {
             {/* Top Movers Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-orange-500 transition-colors min-h-[140px] flex flex-col"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-orange-500 transition-colors h-[140px] flex flex-col"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -447,7 +447,7 @@ export function InvestingWelcomePanel() {
             {/* Upcoming Earnings Card */}
             <div
               onClick={() => navigate('/investing/earnings')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-amber-500 transition-colors min-h-[140px] flex flex-col"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-amber-500 transition-colors h-[140px] flex flex-col"
             >
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
