@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { ArrowLeft, Loader2, ExternalLink, MessageSquare, Send, ChevronDown, ChevronUp, Youtube, Calendar, RefreshCw, X } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -207,7 +207,6 @@ function formatDate(dateStr: string, language: string): string {
 export function StockDetailPanel() {
   const { ticker } = useParams<{ ticker: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { language } = useLanguage();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [chartPeriod] = useState<ChartPeriod>('1M');
@@ -377,9 +376,7 @@ export function StockDetailPanel() {
             </div>
             <button
               onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ['stockHistory', upperTicker] });
-                queryClient.invalidateQueries({ queryKey: ['marketCap', upperTicker] });
-                queryClient.invalidateQueries({ queryKey: ['newsFeed', upperTicker] });
+                window.location.href = `/investing/stock/${upperTicker}`;
               }}
               className="min-w-0 text-left hover:opacity-80 transition-opacity cursor-pointer"
             >
