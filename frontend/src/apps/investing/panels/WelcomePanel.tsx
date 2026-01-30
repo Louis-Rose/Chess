@@ -283,8 +283,8 @@ export function InvestingWelcomePanel() {
             </h2>
             {isAuthenticated && (
               <div className="relative group">
-                <Info className="w-4 h-4 text-slate-400 cursor-help" />
-                <div className="absolute left-1/2 -translate-x-1/2 top-6 px-3 py-1.5 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity whitespace-nowrap z-10 after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3">
                   {language === 'fr' ? 'Cliquez sur une carte pour plus de détails' : 'Click any card for more details'}
                 </div>
               </div>
