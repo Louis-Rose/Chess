@@ -319,13 +319,13 @@ export function InvestingWelcomePanel() {
                 <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
                   <button
                     onClick={(e) => { e.stopPropagation(); setValueCurrency('EUR'); }}
-                    className={`w-8 h-6 text-xs font-medium flex items-center justify-center ${valueCurrency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    className={`w-8 h-6 text-sm font-medium flex items-center justify-center ${valueCurrency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                   >
                     €
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setValueCurrency('USD'); }}
-                    className={`w-8 h-6 text-xs font-medium flex items-center justify-center ${valueCurrency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    className={`w-8 h-6 text-sm font-medium flex items-center justify-center ${valueCurrency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                   >
                     $
                   </button>
