@@ -312,7 +312,7 @@ export function InvestingWelcomePanel() {
                   <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
                     <Wallet className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-base font-bold text-white">
+                  <span className="text-2xl font-bold text-white">
                     {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
                   </span>
                 </div>
@@ -342,7 +342,7 @@ export function InvestingWelcomePanel() {
                     {perfLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
                     ) : (perf7Value !== undefined && perf7Value !== null) || (perf30Value !== undefined && perf30Value !== null) ? (
-                      <div className="flex items-center gap-3 text-base font-semibold">
+                      <div className="flex items-center gap-3 text-lg font-semibold">
                         {perf7Value !== undefined && perf7Value !== null && (
                           <span className={perf7Value >= 0 ? 'text-green-600' : 'text-red-600'}>
                             {perf7Value >= 0 ? '+' : ''}{perf7Value.toFixed(1)}% (1W)
