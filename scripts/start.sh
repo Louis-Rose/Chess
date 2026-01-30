@@ -53,6 +53,8 @@ case "$1" in
         case "$COMMAND" in
             start)
                 echo "=== Starting production services ==="
+                START_TIME=$SECONDS
+
                 # Install backend dependencies
                 echo "Installing backend dependencies..."
                 cd "$ROOT_DIR/backend"
@@ -70,6 +72,10 @@ case "$1" in
                 sudo systemctl start nginx
                 echo "Services started."
                 sudo systemctl status chess-backend --no-pager
+
+                ELAPSED=$((SECONDS - START_TIME))
+                echo ""
+                echo "✓ Completed in ${ELAPSED}s"
                 ;;
 
             stop)
@@ -81,6 +87,8 @@ case "$1" in
 
             restart)
                 echo "=== Restarting production services ==="
+                START_TIME=$SECONDS
+
                 # Install backend dependencies
                 echo "Installing backend dependencies..."
                 cd "$ROOT_DIR/backend"
@@ -98,6 +106,10 @@ case "$1" in
                 sudo systemctl restart nginx
                 echo "Services restarted."
                 sudo systemctl status chess-backend --no-pager
+
+                ELAPSED=$((SECONDS - START_TIME))
+                echo ""
+                echo "✓ Completed in ${ELAPSED}s"
                 echo ""
                 echo "=== Tailing logs (Ctrl+C to exit) ==="
                 sudo journalctl -u chess-backend -f
