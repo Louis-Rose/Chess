@@ -15,6 +15,7 @@ import { StockViewDetailPanel } from './panels/StockViewDetailPanel';
 import { DeleteAccountPanel } from './panels/DeleteAccountPanel';
 import { SettingsPanel } from './panels/SettingsPanel';
 import { ComparisonPanel } from './panels/ComparisonPanel';
+import { NewsFeedPanel } from './panels/NewsFeedPanel';
 
 export function InvestingApp() {
   useEffect(() => {
@@ -31,6 +32,7 @@ export function InvestingApp() {
         <Route path="watchlist" element={<WatchlistPanel />} />
         <Route path="earnings" element={<EarningsCalendarPanel />} />
         <Route path="comparison" element={<ComparisonPanel />} />
+        <Route path="news-feed" element={<NewsFeedPanel />} />
         <Route path="financials" element={<FinancialsPanel />} />
         <Route path="stock/:ticker" element={<StockDetailPanel />} />
         <Route path="admin" element={<AdminPanel />} />
