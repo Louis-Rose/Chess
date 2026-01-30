@@ -1187,6 +1187,21 @@ def add_transaction():
 
     try:
         with get_db() as conn:
+            # Check for duplicate transaction
+            cursor = conn.execute('''
+                SELECT id FROM portfolio_transactions
+                WHERE user_id = ? AND stock_ticker = ? AND transaction_type = ?
+                AND quantity = ? AND transaction_date = ? AND (account_id = ? OR (account_id IS NULL AND ? IS NULL))
+            ''', (request.user_id, stock_ticker, transaction_type, quantity, transaction_date, account_id, account_id))
+            existing = cursor.fetchone()
+            if existing:
+                return jsonify({
+                    'success': True,
+                    'id': existing['id'],
+                    'duplicate': True,
+                    'message': 'Transaction already exists'
+                }), 200
+
             cursor = conn.execute('''
                 INSERT INTO portfolio_transactions (user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share, price_currency)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -1200,6 +1215,7 @@ def add_transaction():
     return jsonify({
         'success': True,
         'id': transaction_id,
+        'duplicate': False,
         'account_id': account_id,
         'stock_ticker': stock_ticker,
         'transaction_type': transaction_type,
@@ -1294,6 +1310,46 @@ def bulk_add_transactions():
         'count': len(processed),
         'transactions': processed,
         'errors': errors if errors else None
+    })
+
+
+@app.route('/api/investing/transactions/cleanup-duplicates', methods=['POST'])
+@login_required
+def cleanup_duplicate_transactions():
+    """Remove duplicate transactions, keeping only one of each unique transaction."""
+    with get_db() as conn:
+        # Find all duplicates (same ticker, type, quantity, date, account)
+        # Keep the one with the lowest id
+        cursor = conn.execute('''
+            SELECT stock_ticker, transaction_type, quantity, transaction_date, account_id, COUNT(*) as cnt, MIN(id) as keep_id
+            FROM portfolio_transactions
+            WHERE user_id = ?
+            GROUP BY stock_ticker, transaction_type, quantity, transaction_date, account_id
+            HAVING COUNT(*) > 1
+        ''', (request.user_id,))
+        duplicates = cursor.fetchall()
+
+        if not duplicates:
+            return jsonify({'success': True, 'removed': 0, 'message': 'No duplicates found'})
+
+        total_removed = 0
+        for dup in duplicates:
+            # Delete all duplicates except the one with the lowest id
+            cursor = conn.execute('''
+                DELETE FROM portfolio_transactions
+                WHERE user_id = ? AND stock_ticker = ? AND transaction_type = ?
+                AND quantity = ? AND transaction_date = ?
+                AND (account_id = ? OR (account_id IS NULL AND ? IS NULL))
+                AND id != ?
+            ''', (request.user_id, dup['stock_ticker'], dup['transaction_type'],
+                  dup['quantity'], dup['transaction_date'], dup['account_id'], dup['account_id'], dup['keep_id']))
+            total_removed += cursor.rowcount
+
+    return jsonify({
+        'success': True,
+        'removed': total_removed,
+        'duplicate_groups': len(duplicates),
+        'message': f'Removed {total_removed} duplicate transactions'
     })
 
 
