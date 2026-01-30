@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, BarChart3, Flame } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, Flame } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -121,14 +121,23 @@ const fetchEarnings = async (): Promise<EarningsResponse> => {
 
 // Helper to format currency
 const formatCurrency = (value: number, currency: 'EUR' | 'USD'): string => {
-  const symbol = currency === 'EUR' ? '€' : '$';
+  if (currency === 'EUR') {
+    if (Math.abs(value) >= 1000000) {
+      return `${(value / 1000000).toFixed(2)}M€`;
+    }
+    if (Math.abs(value) >= 1000) {
+      return `${(value / 1000).toFixed(1)}K€`;
+    }
+    return `${value.toFixed(2)}€`;
+  }
+  // USD - symbol at start
   if (Math.abs(value) >= 1000000) {
-    return `${symbol}${(value / 1000000).toFixed(2)}M`;
+    return `$${(value / 1000000).toFixed(2)}M`;
   }
   if (Math.abs(value) >= 1000) {
-    return `${symbol}${(value / 1000).toFixed(1)}K`;
+    return `$${(value / 1000).toFixed(1)}K`;
   }
-  return `${symbol}${value.toFixed(2)}`;
+  return `$${value.toFixed(2)}`;
 };
 
 export function InvestingWelcomePanel() {
@@ -284,8 +293,8 @@ export function InvestingWelcomePanel() {
 
         {/* Portfolio Summary Cards - only for authenticated users with holdings */}
         {isAuthenticated && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto mb-8">
-            {/* Portfolio Value Card */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto mb-8">
+            {/* Portfolio Value & Performance Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
               className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-green-500 transition-colors h-[200px] flex flex-col"
@@ -299,75 +308,56 @@ export function InvestingWelcomePanel() {
                     {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
                   </span>
                 </div>
-                <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setValueCurrency('EUR'); }}
-                    className={`px-2 py-0.5 text-xs font-medium ${valueCurrency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                  >
-                    €
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setValueCurrency('USD'); }}
-                    className={`px-2 py-0.5 text-xs font-medium ${valueCurrency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                  >
-                    $
-                  </button>
+                <div className="flex items-center gap-2">
+                  <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setValueCurrency('EUR'); }}
+                      className={`px-2 py-0.5 text-xs font-medium ${valueCurrency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    >
+                      €
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setValueCurrency('USD'); }}
+                      className={`px-2 py-0.5 text-xs font-medium ${valueCurrency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    >
+                      $
+                    </button>
+                  </div>
+                  <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setPerfPeriod(7); }}
+                      className={`px-2 py-0.5 text-xs font-medium ${perfPeriod === 7 ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    >
+                      1W
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setPerfPeriod(30); }}
+                      className={`px-2 py-0.5 text-xs font-medium ${perfPeriod === 30 ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    >
+                      1M
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="flex-1 flex items-center justify-center">
+              <div className="flex-1 flex flex-col items-center justify-center gap-1">
                 {compositionLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
                 ) : hasHoldings && portfolioValue !== undefined ? (
-                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                    {formatCurrency(portfolioValue, valueCurrency)}
-                  </p>
+                  <>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+                      {formatCurrency(portfolioValue, valueCurrency)}
+                    </p>
+                    {perfLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                    ) : perfValue !== undefined && perfValue !== null ? (
+                      <p className={`text-lg font-semibold ${perfValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {perfValue >= 0 ? '+' : ''}{perfValue.toFixed(1)}%
+                      </p>
+                    ) : null}
+                  </>
                 ) : (
                   <p className="text-sm text-slate-400 italic">
                     {language === 'fr' ? 'Aucune position' : 'No holdings'}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Performance Card */}
-            <div
-              onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-blue-500 transition-colors h-[200px] flex flex-col"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <BarChart3 className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-base font-bold text-white">
-                    {language === 'fr' ? 'Performance' : 'Performance'}
-                  </span>
-                </div>
-                <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setPerfPeriod(7); }}
-                    className={`px-2 py-0.5 text-xs font-medium ${perfPeriod === 7 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                  >
-                    1W
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setPerfPeriod(30); }}
-                    className={`px-2 py-0.5 text-xs font-medium ${perfPeriod === 30 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                  >
-                    1M
-                  </button>
-                </div>
-              </div>
-              <div className="flex-1 flex items-center justify-center">
-                {perfLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-                ) : hasHoldings && perfValue !== undefined && perfValue !== null ? (
-                  <p className={`text-3xl font-bold ${perfValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {perfValue >= 0 ? '+' : ''}{perfValue.toFixed(1)}%
-                  </p>
-                ) : (
-                  <p className="text-sm text-slate-400 italic">
-                    {language === 'fr' ? 'Pas de données' : 'No data'}
                   </p>
                 )}
               </div>
