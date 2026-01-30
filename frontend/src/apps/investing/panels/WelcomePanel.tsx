@@ -1,12 +1,16 @@
 // Investing Welcome panel
 
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Briefcase, Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import { Briefcase, Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, BarChart3, Flame } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { StockSearchBar } from '../components/StockSearchBar';
+import { getCompanyLogoUrl } from '../utils/companyLogos';
 
 interface FeatureCardProps {
   icon: LucideIcon;
@@ -42,10 +46,172 @@ function FeatureCard({ icon: Icon, iconBg, hoverBorder, title, description, onCl
   );
 }
 
+// Types
+interface CompositionItem {
+  ticker: string;
+  quantity: number;
+  current_price: number;
+  current_value: number;
+  cost_basis: number;
+  gain: number;
+  gain_pct: number;
+  weight: number;
+}
+
+interface CompositionData {
+  holdings: CompositionItem[];
+  total_value_eur: number;
+  total_value_usd: number;
+  total_cost_basis_eur: number;
+  total_gain_pct: number;
+  eurusd_rate: number;
+}
+
+interface PerformanceDataPoint {
+  date: string;
+  portfolio_value_eur: number;
+  portfolio_growth_eur: number;
+  cost_basis_eur: number;
+}
+
+interface PerformanceData {
+  data: PerformanceDataPoint[];
+  summary: {
+    portfolio_return_eur: number;
+  };
+}
+
+interface EarningsItem {
+  ticker: string;
+  next_earnings_date: string | null;
+  remaining_days: number | null;
+  date_confirmed: boolean;
+  source: 'portfolio' | 'watchlist';
+}
+
+interface EarningsResponse {
+  earnings: EarningsItem[];
+}
+
+// API fetchers
+const fetchComposition = async (): Promise<CompositionData> => {
+  const response = await axios.get('/api/investing/portfolio/composition');
+  return response.data;
+};
+
+const fetchPerformance = async (): Promise<PerformanceData> => {
+  const response = await axios.get('/api/investing/portfolio/performance?benchmark=NASDAQ&currency=EUR');
+  return response.data;
+};
+
+const fetchEarnings = async (): Promise<EarningsResponse> => {
+  const response = await axios.get('/api/investing/earnings-calendar?include_portfolio=true&include_watchlist=false');
+  return response.data;
+};
+
+// Helper to format currency
+const formatCurrency = (value: number, currency: 'EUR' | 'USD'): string => {
+  const symbol = currency === 'EUR' ? '€' : '$';
+  if (Math.abs(value) >= 1000000) {
+    return `${symbol}${(value / 1000000).toFixed(2)}M`;
+  }
+  if (Math.abs(value) >= 1000) {
+    return `${symbol}${(value / 1000).toFixed(1)}K`;
+  }
+  return `${symbol}${value.toFixed(2)}`;
+};
+
+// Helper to format date
+const formatDate = (dateStr: string, language: string): string => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
 export function InvestingWelcomePanel() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading, user, isNewUser, clearNewUserFlag } = useAuth();
   const { language } = useLanguage();
+
+  // Summary card states
+  const [valueCurrency, setValueCurrency] = useState<'EUR' | 'USD'>('EUR');
+  const [perfPeriod, setPerfPeriod] = useState<'1D' | '1W' | '1M'>('1W');
+
+  // Fetch portfolio data
+  const { data: compositionData, isLoading: compositionLoading } = useQuery({
+    queryKey: ['composition-summary'],
+    queryFn: fetchComposition,
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: performanceData, isLoading: performanceLoading } = useQuery({
+    queryKey: ['performance-summary'],
+    queryFn: fetchPerformance,
+    enabled: isAuthenticated && (compositionData?.holdings?.length ?? 0) > 0,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: earningsData, isLoading: earningsLoading } = useQuery({
+    queryKey: ['earnings-summary'],
+    queryFn: fetchEarnings,
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  // Calculate performance for different periods
+  const getPerformanceForPeriod = () => {
+    if (!performanceData?.data || performanceData.data.length === 0) return null;
+
+    const data = performanceData.data;
+    const latestPoint = data[data.length - 1];
+    const latestValue = latestPoint.portfolio_value_eur;
+
+    let daysBack = 1;
+    if (perfPeriod === '1W') daysBack = 7;
+    if (perfPeriod === '1M') daysBack = 30;
+
+    // Find the point closest to daysBack ago
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() - daysBack);
+
+    let comparePoint = data[0];
+    for (const point of data) {
+      const pointDate = new Date(point.date);
+      if (pointDate <= targetDate) {
+        comparePoint = point;
+      } else {
+        break;
+      }
+    }
+
+    const compareValue = comparePoint.portfolio_value_eur;
+    if (compareValue === 0) return null;
+
+    const change = latestValue - compareValue;
+    const changePct = ((latestValue - compareValue) / compareValue) * 100;
+
+    return { change, changePct };
+  };
+
+  // Get top movers (sorted by absolute gain_pct)
+  const getTopMovers = () => {
+    if (!compositionData?.holdings) return [];
+    return [...compositionData.holdings]
+      .sort((a, b) => Math.abs(b.gain_pct) - Math.abs(a.gain_pct))
+      .slice(0, 3);
+  };
+
+  // Get upcoming earnings (next 3)
+  const getUpcomingEarnings = () => {
+    if (!earningsData?.earnings) return [];
+    return earningsData.earnings
+      .filter(e => e.next_earnings_date && e.remaining_days !== null && e.remaining_days >= 0)
+      .sort((a, b) => (a.remaining_days ?? 999) - (b.remaining_days ?? 999))
+      .slice(0, 3);
+  };
 
   const features = [
     {
@@ -119,6 +285,14 @@ export function InvestingWelcomePanel() {
     );
   }
 
+  const portfolioValue = valueCurrency === 'EUR'
+    ? compositionData?.total_value_eur
+    : compositionData?.total_value_usd;
+  const perfData = getPerformanceForPeriod();
+  const topMovers = getTopMovers();
+  const upcomingEarnings = getUpcomingEarnings();
+  const hasHoldings = (compositionData?.holdings?.length ?? 0) > 0;
+
   return (
     <>
       <div className="text-center space-y-6">
@@ -161,6 +335,183 @@ export function InvestingWelcomePanel() {
             {language === 'fr' ? 'Bienvenue' : 'Welcome'}{isAuthenticated && user?.name ? `, ${user.name}` : ''} !
           </h2>
         </div>
+
+        {/* Portfolio Summary Cards - only for authenticated users with holdings */}
+        {isAuthenticated && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto mb-8">
+            {/* Portfolio Value Card */}
+            <div
+              onClick={() => navigate('/investing/portfolio')}
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-green-500 transition-colors"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                    <Wallet className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                    {language === 'fr' ? 'Valeur' : 'Value'}
+                  </span>
+                </div>
+                <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setValueCurrency('EUR'); }}
+                    className={`px-2 py-0.5 text-xs font-medium ${valueCurrency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    €
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setValueCurrency('USD'); }}
+                    className={`px-2 py-0.5 text-xs font-medium ${valueCurrency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    $
+                  </button>
+                </div>
+              </div>
+              {compositionLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+              ) : hasHoldings && portfolioValue !== undefined ? (
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                  {formatCurrency(portfolioValue, valueCurrency)}
+                </p>
+              ) : (
+                <p className="text-sm text-slate-400 italic">
+                  {language === 'fr' ? 'Aucune position' : 'No holdings'}
+                </p>
+              )}
+            </div>
+
+            {/* Performance Card */}
+            <div
+              onClick={() => navigate('/investing/portfolio')}
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-blue-500 transition-colors"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <BarChart3 className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                    {language === 'fr' ? 'Perf.' : 'Perf.'}
+                  </span>
+                </div>
+                <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+                  {(['1D', '1W', '1M'] as const).map((p) => (
+                    <button
+                      key={p}
+                      onClick={(e) => { e.stopPropagation(); setPerfPeriod(p); }}
+                      className={`px-1.5 py-0.5 text-xs font-medium ${perfPeriod === p ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {performanceLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+              ) : hasHoldings && perfData ? (
+                <p className={`text-2xl font-bold ${perfData.changePct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {perfData.changePct >= 0 ? '+' : ''}{perfData.changePct.toFixed(2)}%
+                </p>
+              ) : (
+                <p className="text-sm text-slate-400 italic">
+                  {language === 'fr' ? 'Pas de données' : 'No data'}
+                </p>
+              )}
+            </div>
+
+            {/* Top Movers Card */}
+            <div
+              onClick={() => navigate('/investing/portfolio')}
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-orange-500 transition-colors"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+                  <Flame className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {language === 'fr' ? 'Top Mouvements' : 'Top Movers'}
+                </span>
+              </div>
+              {compositionLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+              ) : topMovers.length > 0 ? (
+                <div className="space-y-1">
+                  {topMovers.map((stock) => {
+                    const logoUrl = getCompanyLogoUrl(stock.ticker);
+                    return (
+                      <div key={stock.ticker} className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden">
+                            {logoUrl ? (
+                              <img src={logoUrl} alt={stock.ticker} className="w-4 h-4 object-contain" />
+                            ) : (
+                              <span className="text-[8px] font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
+                            )}
+                          </div>
+                          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
+                        </div>
+                        <span className={`text-xs font-bold ${stock.gain_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {stock.gain_pct >= 0 ? '+' : ''}{stock.gain_pct.toFixed(1)}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400 italic">
+                  {language === 'fr' ? 'Aucune position' : 'No holdings'}
+                </p>
+              )}
+            </div>
+
+            {/* Upcoming Earnings Card */}
+            <div
+              onClick={() => navigate('/investing/earnings')}
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-4 cursor-pointer hover:border-amber-500 transition-colors"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {language === 'fr' ? 'Résultats à venir' : 'Upcoming Earnings'}
+                </span>
+              </div>
+              {earningsLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+              ) : upcomingEarnings.length > 0 ? (
+                <div className="space-y-1">
+                  {upcomingEarnings.map((earning) => {
+                    const logoUrl = getCompanyLogoUrl(earning.ticker);
+                    return (
+                      <div key={earning.ticker} className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden">
+                            {logoUrl ? (
+                              <img src={logoUrl} alt={earning.ticker} className="w-4 h-4 object-contain" />
+                            ) : (
+                              <span className="text-[8px] font-bold text-slate-500">{earning.ticker.slice(0, 2)}</span>
+                            )}
+                          </div>
+                          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{earning.ticker}</span>
+                        </div>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {earning.next_earnings_date ? formatDate(earning.next_earnings_date, language) : '—'}
+                          {!earning.date_confirmed && ' ~'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400 italic">
+                  {language === 'fr' ? 'Aucun résultat prévu' : 'No upcoming earnings'}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
           {features.map((feature) => (
