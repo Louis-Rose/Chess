@@ -171,61 +171,63 @@ export function InvestingSidebar() {
         </div>
       )}
 
-      {/* Recent Stocks - only show when authenticated, scrollable section */}
-      {isAuthenticated && recentStocks.length > 0 && !isCollapsed && (
-        <div className="py-4 flex-1 min-h-0 overflow-y-auto">
+      {/* Recent Stocks - show when authenticated and not collapsed */}
+      {isAuthenticated && !isCollapsed && (
+        <div className="py-4 flex-1 min-h-0 overflow-y-auto border-b border-slate-700">
           <div className="flex items-center gap-2 mb-3 px-2 text-slate-400">
             <Clock className="w-4 h-4" />
             <span className="text-xs font-medium uppercase tracking-wide">
               {language === 'fr' ? 'Recherches récentes' : 'Recently searched'}
             </span>
           </div>
-          <div className="flex flex-col gap-1">
-            {recentStocks.map((ticker) => {
-              const logoUrl = getCompanyLogoUrl(ticker);
-              const stock = findStockByTicker(ticker);
-              // Remove "Class A/B/C" suffixes from company names
-              const displayName = (stock?.name || ticker).replace(/\s+Class\s+[A-Z]$/i, '');
-              return (
-                <div
-                  key={ticker}
-                  onClick={() => navigate(`/investing/stock/${ticker}`)}
-                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer group"
-                >
-                  <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {logoUrl ? (
-                      <img
-                        src={logoUrl}
-                        alt={ticker}
-                        className="w-4 h-4 object-contain"
-                        onError={(e) => {
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) {
-                            parent.innerHTML = `<span class="text-[7px] font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
-                          }
-                        }}
-                      />
-                    ) : (
-                      <span className="text-[7px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
-                    )}
-                  </div>
-                  <span className="text-xs font-medium text-slate-200 truncate min-w-0">{displayName}</span>
-                  <span className="text-xs font-medium text-slate-200 flex-shrink-0">({ticker})</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeRecentStock(ticker, user?.id);
-                      setRecentStocks(getRecentStocks(user?.id));
-                    }}
-                    className="ml-auto p-0.5 rounded hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                    title={language === 'fr' ? 'Supprimer' : 'Remove'}
+          {recentStocks.length > 0 && (
+            <div className="flex flex-col gap-1">
+              {recentStocks.map((ticker) => {
+                const logoUrl = getCompanyLogoUrl(ticker);
+                const stock = findStockByTicker(ticker);
+                // Remove "Class A/B/C" suffixes from company names
+                const displayName = (stock?.name || ticker).replace(/\s+Class\s+[A-Z]$/i, '');
+                return (
+                  <div
+                    key={ticker}
+                    onClick={() => navigate(`/investing/stock/${ticker}`)}
+                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer group"
                   >
-                    <X className="w-3 h-3 text-slate-400" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+                    <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {logoUrl ? (
+                        <img
+                          src={logoUrl}
+                          alt={ticker}
+                          className="w-4 h-4 object-contain"
+                          onError={(e) => {
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<span class="text-[7px] font-bold text-slate-500">${ticker.slice(0, 2)}</span>`;
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span className="text-[7px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
+                      )}
+                    </div>
+                    <span className="text-xs font-medium text-slate-200 truncate min-w-0">{displayName}</span>
+                    <span className="text-xs font-medium text-slate-200 flex-shrink-0">({ticker})</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeRecentStock(ticker, user?.id);
+                        setRecentStocks(getRecentStocks(user?.id));
+                      }}
+                      className="ml-auto p-0.5 rounded hover:bg-slate-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                      title={language === 'fr' ? 'Supprimer' : 'Remove'}
+                    >
+                      <X className="w-3 h-3 text-slate-400" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
