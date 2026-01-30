@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, WalletCards, BarChart3, Flame } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, BarChart3, Flame } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -293,7 +293,7 @@ export function InvestingWelcomePanel() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                    <WalletCards className="w-4 h-4 text-white" />
+                    <Wallet className="w-4 h-4 text-white" />
                   </div>
                   <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
                     {language === 'fr' ? 'Valeur du Portefeuille' : 'Portfolio Value'}
