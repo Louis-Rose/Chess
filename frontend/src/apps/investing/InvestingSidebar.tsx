@@ -133,7 +133,7 @@ export function InvestingSidebar() {
       {/* Scrollable middle section: Navigation + Admin + Recent Stocks */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         {/* Navigation */}
-        <div className={`flex flex-col gap-1 ${isCollapsed ? 'px-0' : 'px-2'} pt-2 pb-4 border-b border-slate-700`}>
+        <div className={`flex flex-col gap-0.5 ${isCollapsed ? 'px-0' : 'px-2'} pt-2 pb-4 border-b border-slate-700`}>
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -141,7 +141,7 @@ export function InvestingSidebar() {
               end={item.end}
               title={isCollapsed ? (language === 'fr' ? item.labelFr : item.labelEn) : undefined}
               className={({ isActive }) =>
-                `flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-lg text-left transition-colors ${
+                `flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-2.5 rounded-lg text-left transition-colors ${
                   isActive
                     ? 'bg-green-600 text-white'
                     : 'text-slate-300 hover:bg-slate-800'
