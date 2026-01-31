@@ -334,7 +334,7 @@ export function InvestingWelcomePanel() {
                       <div className="flex items-center gap-3 text-lg font-semibold">
                         {perf7Value !== undefined && perf7Value !== null && (
                           <span className={perf7Value >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {perf7Value >= 0 ? '+' : ''}{perf7Value.toFixed(1)}% ({language === 'fr' ? 'Semaine' : 'Last week'})
+                            {language === 'fr' ? 'Semaine' : 'Last week'}: {perf7Value >= 0 ? '+' : ''}{perf7Value.toFixed(1)}%
                           </span>
                         )}
                         {perf7Value !== undefined && perf7Value !== null && perf30Value !== undefined && perf30Value !== null && (
@@ -342,7 +342,7 @@ export function InvestingWelcomePanel() {
                         )}
                         {perf30Value !== undefined && perf30Value !== null && (
                           <span className={perf30Value >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {perf30Value >= 0 ? '+' : ''}{perf30Value.toFixed(1)}% ({language === 'fr' ? 'Mois' : 'Last month'})
+                            {language === 'fr' ? 'Mois' : 'Last month'}: {perf30Value >= 0 ? '+' : ''}{perf30Value.toFixed(1)}%
                           </span>
                         )}
                       </div>
