@@ -3582,9 +3582,13 @@ def remove_from_earnings_watchlist(symbol):
 
 
 def fetch_earnings_from_yfinance(ticker):
-    """Fetch earnings date from yfinance for a single ticker."""
+    """Fetch earnings date from yfinance for a single ticker.
+    Returns (date_string, date_confirmed, is_estimated).
+    If no future date found, estimates based on last earnings + 3 months.
+    """
     import yfinance as yf
     from investing_utils import get_yfinance_ticker
+    from dateutil.relativedelta import relativedelta
 
     try:
         # Convert to yfinance ticker (add exchange suffix for European stocks)
@@ -3623,13 +3627,32 @@ def fetch_earnings_from_yfinance(ticker):
                 next_earnings_date = next_earnings_date.date()
             elif isinstance(next_earnings_date, str):
                 next_earnings_date = datetime.strptime(next_earnings_date, '%Y-%m-%d').date()
-            return next_earnings_date.strftime('%Y-%m-%d'), date_confirmed
+            return next_earnings_date.strftime('%Y-%m-%d'), date_confirmed, False
 
-        return None, False
+        # No future earnings date found - try to estimate from historical data
+        try:
+            earnings_dates = stock.earnings_dates
+            if earnings_dates is not None and len(earnings_dates) > 0:
+                # Get the most recent past earnings date
+                today = datetime.now().date()
+                past_dates = [d.date() if hasattr(d, 'date') else d for d in earnings_dates.index]
+                past_dates = [d for d in past_dates if d <= today]
+                if past_dates:
+                    last_earnings = max(past_dates)
+                    # Estimate next earnings as last + 3 months
+                    estimated_date = last_earnings + relativedelta(months=3)
+                    # If estimated date is in the past, add another 3 months
+                    while estimated_date <= today:
+                        estimated_date = estimated_date + relativedelta(months=3)
+                    return estimated_date.strftime('%Y-%m-%d'), False, True
+        except Exception:
+            pass
+
+        return None, False, False
 
     except Exception as e:
         print(f"Error fetching earnings for {ticker}: {e}")
-        return None, False
+        return None, False, False
 
 
 def get_cached_earnings(ticker):
@@ -3719,15 +3742,17 @@ def get_earnings_calendar():
         # Try to get from cache first
         cached_date, cached_confirmed, is_fresh = get_cached_earnings(ticker)
 
+        is_estimated = False
         if is_fresh:
             # Use cached data
             next_earnings_date = cached_date
             date_confirmed = cached_confirmed
         else:
             # Fetch fresh data from yfinance
-            next_earnings_date, date_confirmed = fetch_earnings_from_yfinance(ticker)
-            # Save to cache (even if None, to avoid repeated fetches)
-            save_earnings_cache(ticker, next_earnings_date, date_confirmed)
+            next_earnings_date, date_confirmed, is_estimated = fetch_earnings_from_yfinance(ticker)
+            # Save to cache (even if None, to avoid repeated fetches) - don't cache estimated dates
+            if not is_estimated:
+                save_earnings_cache(ticker, next_earnings_date, date_confirmed)
 
         if next_earnings_date:
             earnings_date = datetime.strptime(next_earnings_date, '%Y-%m-%d').date()
@@ -3736,8 +3761,9 @@ def get_earnings_calendar():
             # Handle past earnings dates
             if remaining_days < 0:
                 # Cached date is stale, try to refresh
-                next_earnings_date, date_confirmed = fetch_earnings_from_yfinance(ticker)
-                save_earnings_cache(ticker, next_earnings_date, date_confirmed)
+                next_earnings_date, date_confirmed, is_estimated = fetch_earnings_from_yfinance(ticker)
+                if not is_estimated:
+                    save_earnings_cache(ticker, next_earnings_date, date_confirmed)
                 if next_earnings_date:
                     earnings_date = datetime.strptime(next_earnings_date, '%Y-%m-%d').date()
                     remaining_days = (earnings_date - today).days
@@ -3748,6 +3774,7 @@ def get_earnings_calendar():
                             'next_earnings_date': None,
                             'remaining_days': None,
                             'date_confirmed': False,
+                            'is_estimated': False,
                             'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
                         })
                         continue
@@ -3758,6 +3785,7 @@ def get_earnings_calendar():
                         'next_earnings_date': None,
                         'remaining_days': None,
                         'date_confirmed': False,
+                        'is_estimated': False,
                         'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
                     })
                     continue
@@ -3767,6 +3795,7 @@ def get_earnings_calendar():
                 'next_earnings_date': next_earnings_date,
                 'remaining_days': remaining_days,
                 'date_confirmed': date_confirmed,
+                'is_estimated': is_estimated,
                 'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
             })
         else:
@@ -3775,6 +3804,7 @@ def get_earnings_calendar():
                 'next_earnings_date': None,
                 'remaining_days': None,
                 'date_confirmed': False,
+                'is_estimated': False,
                 'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
             })
 

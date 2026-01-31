@@ -71,6 +71,7 @@ interface EarningsItem {
   next_earnings_date: string | null;
   remaining_days: number | null;
   date_confirmed: boolean;
+  is_estimated?: boolean;
   source: 'portfolio' | 'watchlist';
 }
 
@@ -501,9 +502,9 @@ export function InvestingWelcomePanel() {
                           {earning.remaining_days !== null ? (
                             earning.remaining_days === 0
                               ? (language === 'fr' ? "Aujourd'hui" : 'Today')
-                              : `${earning.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`
+                              : `${earning.is_estimated ? '~' : ''}${earning.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`
                           ) : (language === 'fr' ? '~3 mois' : '~3 months')}
-                          {earning.remaining_days !== null && !earning.date_confirmed && ' ~'}
+                          {earning.remaining_days !== null && !earning.date_confirmed && !earning.is_estimated && ' ~'}
                         </span>
                       </div>
                     );
