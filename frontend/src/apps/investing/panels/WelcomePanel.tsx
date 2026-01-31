@@ -119,25 +119,14 @@ const fetchEarnings = async (): Promise<EarningsResponse> => {
   return response.data;
 };
 
-// Helper to format currency
+// Helper to format currency - always show complete numbers
 const formatCurrency = (value: number, currency: 'EUR' | 'USD'): string => {
+  const rounded = Math.round(value);
   if (currency === 'EUR') {
-    if (Math.abs(value) >= 1000000) {
-      return `${(value / 1000000).toFixed(2)}M€`;
-    }
-    if (Math.abs(value) >= 1000) {
-      return `${(value / 1000).toFixed(1)}K€`;
-    }
-    return `${value.toFixed(2)}€`;
+    return `${rounded.toLocaleString('fr-FR')}€`;
   }
   // USD - symbol at start
-  if (Math.abs(value) >= 1000000) {
-    return `$${(value / 1000000).toFixed(2)}M`;
-  }
-  if (Math.abs(value) >= 1000) {
-    return `$${(value / 1000).toFixed(1)}K`;
-  }
-  return `$${value.toFixed(2)}`;
+  return `$${rounded.toLocaleString('en-US')}`;
 };
 
 export function InvestingWelcomePanel() {
@@ -345,7 +334,7 @@ export function InvestingWelcomePanel() {
                       <div className="flex items-center gap-3 text-lg font-semibold">
                         {perf7Value !== undefined && perf7Value !== null && (
                           <span className={perf7Value >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {perf7Value >= 0 ? '+' : ''}{perf7Value.toFixed(1)}% (1W)
+                            {perf7Value >= 0 ? '+' : ''}{perf7Value.toFixed(1)}% ({language === 'fr' ? 'semaine' : 'last week'})
                           </span>
                         )}
                         {perf7Value !== undefined && perf7Value !== null && perf30Value !== undefined && perf30Value !== null && (
@@ -353,7 +342,7 @@ export function InvestingWelcomePanel() {
                         )}
                         {perf30Value !== undefined && perf30Value !== null && (
                           <span className={perf30Value >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {perf30Value >= 0 ? '+' : ''}{perf30Value.toFixed(1)}% (1M)
+                            {perf30Value >= 0 ? '+' : ''}{perf30Value.toFixed(1)}% ({language === 'fr' ? 'mois' : 'last month'})
                           </span>
                         )}
                       </div>
@@ -384,15 +373,15 @@ export function InvestingWelcomePanel() {
                 <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
                   <button
                     onClick={(e) => { e.stopPropagation(); setMoversPeriod(7); }}
-                    className={`w-8 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 7 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 7 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                   >
-                    1W
+                    {language === 'fr' ? 'Semaine' : 'Week'}
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setMoversPeriod(30); }}
-                    className={`w-8 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 30 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 30 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                   >
-                    1M
+                    {language === 'fr' ? 'Mois' : 'Month'}
                   </button>
                 </div>
               </div>
