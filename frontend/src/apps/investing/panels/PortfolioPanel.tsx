@@ -204,6 +204,11 @@ const duplicateAccount = async (id: number): Promise<Account> => {
   return response.data;
 };
 
+const renameAccount = async ({ id, name }: { id: number; name: string }): Promise<Account> => {
+  const response = await axios.put(`/api/investing/accounts/${id}/rename`, { name });
+  return response.data;
+};
+
 const reorderAccounts = async (accountIds: number[]): Promise<void> => {
   await axios.put('/api/investing/accounts/reorder', { account_ids: accountIds });
 };
@@ -430,6 +435,13 @@ export function PortfolioPanel() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setSelectedAccountIds([newAccount.id]);
+    },
+  });
+
+  const renameAccountMutation = useMutation({
+    mutationFn: renameAccount,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
     },
   });
 
@@ -823,10 +835,12 @@ export function PortfolioPanel() {
           onCreateAccount={(data) => createAccountMutation.mutate(data)}
           onDeleteAccount={(id) => deleteAccountMutation.mutate(id)}
           onDuplicateAccount={(id) => duplicateAccountMutation.mutate(id)}
+          onRenameAccount={(id, name) => renameAccountMutation.mutate({ id, name })}
           onReorderAccounts={(ids) => reorderAccountsMutation.mutate(ids)}
           isCreating={createAccountMutation.isPending}
           isDeleting={deleteAccountMutation.isPending}
           isDuplicating={duplicateAccountMutation.isPending}
+          isRenaming={renameAccountMutation.isPending}
         />
 
         {/* Prompt to select account when none selected */}

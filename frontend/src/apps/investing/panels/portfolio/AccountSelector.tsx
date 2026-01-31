@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Minus, Trash2, Loader2, Building2, Wallet, GripVertical, Copy } from 'lucide-react';
+import { Plus, Minus, Trash2, Loader2, Building2, Wallet, GripVertical, Copy, Pencil } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import type { Account, BankInfo, AccountTypeInfo } from './types';
 import { FeesDisplay } from './FeesDisplay';
@@ -19,10 +19,12 @@ interface AccountSelectorProps {
   onCreateAccount: (data: { name: string; account_type: string; bank: string }) => void;
   onDeleteAccount: (id: number) => void;
   onDuplicateAccount: (id: number) => void;
+  onRenameAccount: (id: number, name: string) => void;
   onReorderAccounts: (accountIds: number[]) => void;
   isCreating: boolean;
   isDeleting: boolean;
   isDuplicating: boolean;
+  isRenaming: boolean;
 }
 
 export function AccountSelector({
@@ -34,10 +36,12 @@ export function AccountSelector({
   onCreateAccount,
   onDeleteAccount,
   onDuplicateAccount,
+  onRenameAccount,
   onReorderAccounts,
   isCreating,
   isDeleting,
   isDuplicating,
+  isRenaming,
 }: AccountSelectorProps) {
   const { language, t } = useLanguage();
 
@@ -52,6 +56,9 @@ export function AccountSelector({
   const [dragOverAccountId, setDragOverAccountId] = useState<number | null>(null);
   const [waitingForNewAccount, setWaitingForNewAccount] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; accountId: number } | null>(null);
+  const [renamingAccountId, setRenamingAccountId] = useState<number | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
   const expectedAccountCount = useRef<number>(0);
   const dragNodeRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -65,6 +72,26 @@ export function AccountSelector({
       return () => document.removeEventListener('click', handleClick);
     }
   }, [contextMenu]);
+
+  // Focus rename input when shown
+  useEffect(() => {
+    if (renamingAccountId !== null && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [renamingAccountId]);
+
+  // Clear rename state when rename completes
+  useEffect(() => {
+    if (!isRenaming && renamingAccountId !== null) {
+      // Check if the account name was updated
+      const account = accounts.find(a => a.id === renamingAccountId);
+      if (account && account.name === renameValue.trim()) {
+        setRenamingAccountId(null);
+        setRenameValue('');
+      }
+    }
+  }, [isRenaming, accounts, renamingAccountId, renameValue]);
 
   // Clear pending delete when clicking outside
   useEffect(() => {
@@ -91,6 +118,26 @@ export function AccountSelector({
       setShowAddAccountForm(false);
     }
   }, [accounts.length, waitingForNewAccount]);
+
+  // Handle rename submission
+  const handleRenameSubmit = () => {
+    if (renamingAccountId !== null && renameValue.trim()) {
+      onRenameAccount(renamingAccountId, renameValue.trim());
+    }
+  };
+
+  const handleRenameCancel = () => {
+    setRenamingAccountId(null);
+    setRenameValue('');
+  };
+
+  const startRenaming = (accountId: number) => {
+    const account = accounts.find(a => a.id === accountId);
+    if (account) {
+      setRenamingAccountId(accountId);
+      setRenameValue(account.name);
+    }
+  };
 
   // Find first unused account number based on existing names
   const getNextAccountNumber = () => {
@@ -474,7 +521,28 @@ export function AccountSelector({
                         onMouseDown={(e) => e.stopPropagation()}
                       />
                       <Wallet className={`w-4 h-4 ${isSelected ? 'text-green-600' : 'text-slate-400'}`} />
-                      <span className={`font-bold ${isSelected ? 'text-green-700 dark:text-green-400' : 'text-slate-800 dark:text-slate-200'}`}>{account.name}</span>
+                      {renamingAccountId === account.id ? (
+                        <input
+                          ref={renameInputRef}
+                          type="text"
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            e.stopPropagation();
+                            if (e.key === 'Enter') {
+                              handleRenameSubmit();
+                            } else if (e.key === 'Escape') {
+                              handleRenameCancel();
+                            }
+                          }}
+                          onBlur={handleRenameSubmit}
+                          onClick={(e) => e.stopPropagation()}
+                          disabled={isRenaming}
+                          className="font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-700 border border-green-500 rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 w-32"
+                        />
+                      ) : (
+                        <span className={`font-bold ${isSelected ? 'text-green-700 dark:text-green-400' : 'text-slate-800 dark:text-slate-200'}`}>{account.name}</span>
+                      )}
                       <div className="ml-auto flex items-center gap-2">
                         {isSelected && (
                           <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded">
@@ -552,6 +620,16 @@ export function AccountSelector({
           className="fixed bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg py-1 z-50"
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
+          <button
+            onClick={() => {
+              startRenaming(contextMenu.accountId);
+              setContextMenu(null);
+            }}
+            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 flex items-center gap-2"
+          >
+            <Pencil className="w-4 h-4" />
+            {language === 'fr' ? 'Renommer' : 'Rename'}
+          </button>
           <button
             onClick={() => {
               onDuplicateAccount(contextMenu.accountId);

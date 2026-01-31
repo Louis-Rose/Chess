@@ -3821,6 +3821,46 @@ def duplicate_account(account_id):
     })
 
 
+@app.route('/api/investing/accounts/<int:account_id>/rename', methods=['PUT'])
+@login_required
+def rename_account(account_id):
+    """Rename an investment account."""
+    data = request.get_json()
+    new_name = data.get('name', '').strip()
+
+    if not new_name:
+        return jsonify({'error': 'Name is required'}), 400
+
+    with get_db() as conn:
+        # Verify account belongs to user
+        cursor = conn.execute('''
+            SELECT id, account_type, bank
+            FROM investment_accounts
+            WHERE user_id = ? AND id = ?
+        ''', (request.user_id, account_id))
+        account = cursor.fetchone()
+
+        if not account:
+            return jsonify({'error': 'Account not found'}), 404
+
+        # Update the name
+        conn.execute('''
+            UPDATE investment_accounts
+            SET name = ?
+            WHERE user_id = ? AND id = ?
+        ''', (new_name, request.user_id, account_id))
+
+    return jsonify({
+        'success': True,
+        'id': account_id,
+        'name': new_name,
+        'account_type': account['account_type'],
+        'bank': account['bank'],
+        'bank_info': BANKS[account['bank']],
+        'type_info': ACCOUNT_TYPES[account['account_type']],
+    })
+
+
 @app.route('/api/investing/accounts/reorder', methods=['PUT'])
 @login_required
 def reorder_accounts():
