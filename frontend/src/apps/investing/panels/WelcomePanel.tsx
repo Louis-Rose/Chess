@@ -739,9 +739,9 @@ export function InvestingWelcomePanel() {
                         <>
                           <span className="text-sm text-emerald-500 font-bold text-right tabular-nums">
                             {dividend.total_dividend !== null && dividend.quantity && dividend.dividend_amount ? (
-                              <>{dividend.amount_source !== 'yfinance' && '~'}${dividend.total_dividend!.toFixed(2)}</>
+                              <>{!dividend.confirmed && '~'}${dividend.total_dividend!.toFixed(2)}</>
                             ) : dividend.dividend_amount !== null ? (
-                              <>{dividend.amount_source !== 'yfinance' && '~'}${dividend.dividend_amount.toFixed(2)}</>
+                              <>{!dividend.confirmed && '~'}${dividend.dividend_amount.toFixed(2)}</>
                             ) : null}
                           </span>
                           <span className="text-sm text-emerald-500 tabular-nums">
