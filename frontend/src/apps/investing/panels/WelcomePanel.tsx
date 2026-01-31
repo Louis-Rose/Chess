@@ -502,8 +502,8 @@ export function InvestingWelcomePanel() {
                           {earning.remaining_days !== null ? (
                             earning.remaining_days === 0
                               ? (language === 'fr' ? "Aujourd'hui" : 'Today')
-                              : `${earning.is_estimated ? '~' : ''}${earning.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`
-                          ) : (language === 'fr' ? '~3 mois' : '~3 months')}
+                              : `${earning.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`
+                          ) : (language === 'fr' ? '~90 jours' : '~90 days')}
                           {earning.remaining_days !== null && !earning.date_confirmed && !earning.is_estimated && ' ~'}
                         </span>
                       </div>
