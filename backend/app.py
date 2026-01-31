@@ -4231,64 +4231,63 @@ def get_dividends_calendar():
                 if dividend_yield < 1:
                     dividend_yield = dividend_yield * 100
 
-            # Check FMP for upcoming dividend (try both ticker formats)
-            fmp_data = fmp_dividends.get(ticker) or fmp_dividends.get(yf_ticker)
-
             ex_date_str = None
             remaining_days = None
             dividend_amount = None
             payment_date = None
             confirmed = False
+            amount_source = None  # 'yfinance' (official), 'fmp', or 'estimate'
 
-            amount_source = None  # 'fmp', 'yfinance', or None
+            # Estimate frequency (needed for date estimation fallback)
+            freq_days = None
+            if dividend_rate and last_dividend and last_dividend > 0:
+                ratio = dividend_rate / last_dividend
+                if ratio > 3.5:
+                    frequency = 'Quarterly'
+                    freq_days = 91
+                elif ratio > 1.8:
+                    frequency = 'Semi-Annual'
+                    freq_days = 182
+                else:
+                    frequency = 'Annual'
+                    freq_days = 365
 
-            if fmp_data:
-                # Use FMP data for upcoming dividend
-                ex_date_str = fmp_data.get('date')
-                payment_date = fmp_data.get('paymentDate')
-                dividend_amount = fmp_data.get('adjDividend') or fmp_data.get('dividend')
-                if ex_date_str:
-                    ex_date = datetime.strptime(ex_date_str, '%Y-%m-%d').date()
-                    remaining_days = (ex_date - today).days
+            # Priority 1: Yahoo Finance ex-dividend date (official source)
+            yf_ex_date = info.get('exDividendDate')
+            if yf_ex_date:
+                yf_date = datetime.fromtimestamp(yf_ex_date).date()
+                if yf_date >= today:
+                    # Future date from Yahoo Finance - this is official
+                    ex_date_str = yf_date.strftime('%Y-%m-%d')
+                    remaining_days = (yf_date - today).days
                     confirmed = True
-                    amount_source = 'fmp'
-            else:
-                # Estimate frequency first (needed for date estimation)
-                freq_days = None
-                if dividend_rate and last_dividend and last_dividend > 0:
-                    ratio = dividend_rate / last_dividend
-                    if ratio > 3.5:
-                        frequency = 'Quarterly'
-                        freq_days = 91
-                    elif ratio > 1.8:
-                        frequency = 'Semi-Annual'
-                        freq_days = 182
-                    else:
-                        frequency = 'Annual'
-                        freq_days = 365
+                    dividend_amount = last_dividend
+                    amount_source = 'yfinance'
 
-                # Fall back to yfinance ex-dividend date
-                yf_ex_date = info.get('exDividendDate')
-                if yf_ex_date:
-                    last_ex_date = datetime.fromtimestamp(yf_ex_date).date()
-                    # If it's in the future, use it as confirmed
-                    if last_ex_date >= today:
-                        ex_date_str = last_ex_date.strftime('%Y-%m-%d')
-                        remaining_days = (last_ex_date - today).days
+            # Priority 2: FMP calendar (fallback, marked with ~)
+            if not ex_date_str:
+                fmp_data = fmp_dividends.get(ticker) or fmp_dividends.get(yf_ticker)
+                if fmp_data:
+                    ex_date_str = fmp_data.get('date')
+                    payment_date = fmp_data.get('paymentDate')
+                    dividend_amount = fmp_data.get('adjDividend') or fmp_data.get('dividend')
+                    if ex_date_str:
+                        ex_date = datetime.strptime(ex_date_str, '%Y-%m-%d').date()
+                        remaining_days = (ex_date - today).days
                         confirmed = True
-                    elif freq_days:
-                        # Estimate next ex-dividend date based on frequency
-                        estimated_date = last_ex_date
-                        while estimated_date < today:
-                            estimated_date = estimated_date + timedelta(days=freq_days)
-                        ex_date_str = estimated_date.strftime('%Y-%m-%d')
-                        remaining_days = (estimated_date - today).days
-                        confirmed = False  # It's an estimate
+                        amount_source = 'fmp'
 
-                # Use last dividend as estimate
+            # Priority 3: Estimate from last ex-dividend date + frequency
+            if not ex_date_str and yf_ex_date and freq_days:
+                last_ex_date = datetime.fromtimestamp(yf_ex_date).date()
+                estimated_date = last_ex_date
+                while estimated_date < today:
+                    estimated_date = estimated_date + timedelta(days=freq_days)
+                ex_date_str = estimated_date.strftime('%Y-%m-%d')
+                remaining_days = (estimated_date - today).days
+                confirmed = False
                 dividend_amount = last_dividend
-                if last_dividend:
-                    amount_source = 'estimate'
+                amount_source = 'estimate'
 
             # Estimate frequency from dividend rate vs last dividend (if not already done)
             if frequency is None and dividend_rate and last_dividend and last_dividend > 0:
