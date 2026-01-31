@@ -76,6 +76,11 @@ interface TopMoversData {
   days: number;
 }
 
+interface Account {
+  id: number;
+  name: string;
+}
+
 // Card IDs
 const ALL_CARD_IDS = [
   'portfolio',
@@ -134,6 +139,11 @@ const fetchEarnings = async (sourceFilter: EarningsSourceFilter): Promise<Earnin
 const fetchDividends = async (accountIds: number[]): Promise<DividendsResponse> => {
   const params = accountIds.length > 0 ? `?account_ids=${accountIds.join(',')}` : '';
   const response = await axios.get(`/api/investing/dividends-calendar${params}`);
+  return response.data;
+};
+
+const fetchAccounts = async (): Promise<{ accounts: Account[] }> => {
+  const response = await axios.get('/api/investing/accounts');
   return response.data;
 };
 
@@ -250,6 +260,13 @@ export function InvestingWelcomePanel() {
   }, [savedCardOrder]);
 
   // Fetch portfolio data (filtered by selected accounts)
+  const { data: accountsData } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: fetchAccounts,
+    enabled: isAuthenticated,
+  });
+  const accounts = accountsData?.accounts ?? [];
+
   const { data: compositionData, isLoading: compositionLoading } = useQuery({
     queryKey: ['composition-summary', selectedAccountIds],
     queryFn: () => fetchComposition(selectedAccountIds),
@@ -424,13 +441,23 @@ export function InvestingWelcomePanel() {
             className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-green-500`}
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Wallet className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
-                </span>
+                <div className="min-w-0">
+                  <span className="text-xl font-bold text-white block">
+                    {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
+                  </span>
+                  {selectedAccountIds.length > 0 && accounts.length > 0 && (
+                    <span className="text-xs text-slate-400 truncate block">
+                      {accounts
+                        .filter(a => selectedAccountIds.includes(a.id))
+                        .map(a => a.name)
+                        .join(', ')}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
                 <button
