@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, Flame, Briefcase } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase, Search } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -71,7 +71,6 @@ const ALL_CARD_IDS = [
   'earnings',
   'watchlist',
   'stock-research',
-  'compare-stocks',
   'news-feed',
 ] as const;
 
@@ -644,38 +643,25 @@ export function InvestingWelcomePanel() {
             className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-purple-500`}
           >
             <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-                            <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-4 h-4 text-white" />
               </div>
               <h3 className="text-xl font-bold text-white">
                 {language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}
               </h3>
             </div>
-            <p className="text-slate-400 text-sm flex-1">
-              {language === 'fr' ? 'Données financières et analyses sur toute entreprise cotée.' : 'Financials and insights on any listed company.'}
-            </p>
-          </div>
-        );
-
-      case 'compare-stocks':
-        return (
-          <div
-            key={cardId}
-            {...cardProps}
-            onClick={() => !isDragging && navigate('/investing/comparison')}
-            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-indigo-500`}
-          >
-            <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-                            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                <GitCompare className="w-4 h-4 text-white" />
+            {/* Search bar preview */}
+            <div className="flex-1 flex flex-col justify-center">
+              <div className="relative pointer-events-none">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <div className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-600 border border-slate-300 dark:border-slate-500 rounded-lg text-slate-400 dark:text-slate-400 text-sm">
+                  {language === 'fr' ? 'Rechercher 2 500+ actions...' : 'Search 2,500+ stocks...'}
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-white">
-                {language === 'fr' ? 'Comparer' : 'Compare Stocks'}
-              </h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs mt-2 text-center">
+                {language === 'fr' ? '8 marchés mondiaux • Secteurs GICS' : '8 global markets • GICS sectors'}
+              </p>
             </div>
-            <p className="text-slate-400 text-sm flex-1">
-              {language === 'fr' ? 'Comparez plusieurs actions côte à côte.' : 'Compare multiple stocks side by side.'}
-            </p>
           </div>
         );
 
@@ -758,7 +744,7 @@ export function InvestingWelcomePanel() {
 
         {/* Feature cards for non-authenticated users */}
         {!isAuthenticated && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-[10%] mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-[10%] mb-8">
             <div
               className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col"
             >
@@ -770,24 +756,18 @@ export function InvestingWelcomePanel() {
                   {language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}
                 </h3>
               </div>
-              <p className="text-slate-400 text-sm flex-1">
-                {language === 'fr' ? 'Données financières et analyses sur toute entreprise cotée.' : 'Financials and insights on any listed company.'}
-              </p>
-            </div>
-            <div
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col"
-            >
-              <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                  <GitCompare className="w-4 h-4 text-white" />
+              {/* Search bar preview */}
+              <div className="flex-1 flex flex-col justify-center">
+                <div className="relative pointer-events-none">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <div className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-600 border border-slate-300 dark:border-slate-500 rounded-lg text-slate-400 dark:text-slate-400 text-sm">
+                    {language === 'fr' ? 'Rechercher 2 500+ actions...' : 'Search 2,500+ stocks...'}
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Comparer' : 'Compare Stocks'}
-                </h3>
+                <p className="text-slate-500 dark:text-slate-400 text-xs mt-2 text-center">
+                  {language === 'fr' ? '8 marchés mondiaux • Secteurs GICS' : '8 global markets • GICS sectors'}
+                </p>
               </div>
-              <p className="text-slate-400 text-sm flex-1">
-                {language === 'fr' ? 'Comparez plusieurs actions côte à côte.' : 'Compare multiple stocks side by side.'}
-              </p>
             </div>
             <div
               className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col"

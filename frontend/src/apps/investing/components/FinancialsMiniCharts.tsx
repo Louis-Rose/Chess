@@ -1,10 +1,12 @@
 // Mini charts dashboard for financial metrics
 
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { Maximize2, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface DataPoint {
   date: string;
@@ -36,6 +38,12 @@ interface MiniChartProps {
   color: string;
   dataView: 'quarterly' | 'annual';
   onExpand: () => void;
+  // Drag & drop props
+  isDragOver?: boolean;
+  onDragStart?: (e: React.DragEvent<HTMLButtonElement>) => void;
+  onDragEnd?: () => void;
+  onDragOver?: (e: React.DragEvent<HTMLButtonElement>) => void;
+  onDrop?: (e: React.DragEvent<HTMLButtonElement>) => void;
 }
 
 interface PriceChartProps {
@@ -44,6 +52,12 @@ interface PriceChartProps {
   currency: string;
   onExpand?: () => void;
   isLoading?: boolean;
+  // Drag & drop props
+  isDragOver?: boolean;
+  onDragStart?: (e: React.DragEvent<HTMLDivElement | HTMLButtonElement>) => void;
+  onDragEnd?: () => void;
+  onDragOver?: (e: React.DragEvent<HTMLDivElement | HTMLButtonElement>) => void;
+  onDrop?: (e: React.DragEvent<HTMLDivElement | HTMLButtonElement>) => void;
 }
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -72,7 +86,7 @@ const fetchFinancialsHistory = async (ticker: string, metric: string): Promise<F
   return response.data;
 };
 
-function MiniChart({ ticker, metric, title, chartType, color, dataView, onExpand }: MiniChartProps) {
+function MiniChart({ ticker, metric, title, chartType, color, dataView, onExpand, isDragOver, onDragStart, onDragEnd, onDragOver, onDrop }: MiniChartProps) {
   const { language } = useLanguage();
 
   const { data, isLoading } = useQuery({
@@ -80,6 +94,8 @@ function MiniChart({ ticker, metric, title, chartType, color, dataView, onExpand
     queryFn: () => fetchFinancialsHistory(ticker, metric),
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
+
+  const dragOverClass = isDragOver ? 'ring-2 ring-purple-500 ring-offset-2' : '';
 
   // Filter based on selected data view
   const getFilteredData = () => {
@@ -138,7 +154,12 @@ function MiniChart({ ticker, metric, title, chartType, color, dataView, onExpand
   return (
     <button
       onClick={onExpand}
-      className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors cursor-pointer text-left w-full"
+      draggable={!!onDragStart}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      className={`bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors cursor-pointer text-left w-full ${dragOverClass}`}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
@@ -258,12 +279,20 @@ function MiniChart({ ticker, metric, title, chartType, color, dataView, onExpand
   );
 }
 
-export function PriceMiniChart({ priceData, previousClose, currency, onExpand, isLoading }: PriceChartProps) {
+export function PriceMiniChart({ priceData, previousClose, currency, onExpand, isLoading, isDragOver, onDragStart, onDragEnd, onDragOver, onDrop }: PriceChartProps) {
   const { language } = useLanguage();
+  const dragOverClass = isDragOver ? 'ring-2 ring-purple-500 ring-offset-2' : '';
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+      <div
+        className={`bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 ${dragOverClass}`}
+        draggable={!!onDragStart}
+        onDragStart={onDragStart as React.DragEventHandler<HTMLDivElement>}
+        onDragEnd={onDragEnd}
+        onDragOver={onDragOver as React.DragEventHandler<HTMLDivElement>}
+        onDrop={onDrop as React.DragEventHandler<HTMLDivElement>}
+      >
         <div className="h-[150px] flex items-center justify-center">
           <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
         </div>
@@ -273,7 +302,14 @@ export function PriceMiniChart({ priceData, previousClose, currency, onExpand, i
 
   if (!priceData || priceData.length === 0) {
     return (
-      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+      <div
+        className={`bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 ${dragOverClass}`}
+        draggable={!!onDragStart}
+        onDragStart={onDragStart as React.DragEventHandler<HTMLDivElement>}
+        onDragEnd={onDragEnd}
+        onDragOver={onDragOver as React.DragEventHandler<HTMLDivElement>}
+        onDrop={onDrop as React.DragEventHandler<HTMLDivElement>}
+      >
         <div className="h-[150px] flex items-center justify-center text-slate-400 text-xs">
           {language === 'fr' ? 'Pas de données' : 'No data'}
         </div>
@@ -293,7 +329,12 @@ export function PriceMiniChart({ priceData, previousClose, currency, onExpand, i
   return (
     <CardWrapper
       onClick={onExpand}
-      className={`bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 text-left w-full ${
+      draggable={!!onDragStart}
+      onDragStart={onDragStart as React.DragEventHandler<HTMLButtonElement | HTMLDivElement>}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver as React.DragEventHandler<HTMLButtonElement | HTMLDivElement>}
+      onDrop={onDrop as React.DragEventHandler<HTMLButtonElement | HTMLDivElement>}
+      className={`bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 text-left w-full ${dragOverClass} ${
         onExpand ? 'hover:border-slate-300 dark:hover:border-slate-600 transition-colors cursor-pointer' : ''
       }`}
     >
@@ -377,6 +418,33 @@ export function PriceMiniChart({ priceData, previousClose, currency, onExpand, i
 
 type DataViewType = 'quarterly' | 'annual';
 
+// Card IDs for financial charts
+const ALL_FINANCIAL_CARD_IDS = [
+  'price',
+  'Revenue',
+  'NetIncome',
+  'GrossProfit',
+  'OperatingIncome',
+  'EBITDA',
+  'EPS',
+] as const;
+
+type FinancialCardId = typeof ALL_FINANCIAL_CARD_IDS[number];
+
+// Grid has 9 slots (3x3), some can be empty (null)
+const FINANCIAL_GRID_SIZE = 9;
+type FinancialGridSlot = FinancialCardId | null;
+const DEFAULT_FINANCIAL_GRID: FinancialGridSlot[] = [...ALL_FINANCIAL_CARD_IDS, null, null];
+
+const fetchFinancialCardOrder = async (): Promise<FinancialGridSlot[] | null> => {
+  const response = await axios.get('/api/preferences/financial-card-order');
+  return response.data.order;
+};
+
+const saveFinancialCardOrder = async (order: FinancialGridSlot[]): Promise<void> => {
+  await axios.put('/api/preferences/financial-card-order', { order });
+};
+
 interface FinancialsMiniChartsProps {
   ticker: string;
   priceData?: { timestamp: string; price: number }[];
@@ -391,15 +459,168 @@ interface FinancialsMiniChartsProps {
 
 export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCurrency, priceLoading, dataView, onDataViewChange, onMetricClick, onPriceClick }: FinancialsMiniChartsProps) {
   const { language } = useLanguage();
+  const { isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
 
-  const metrics = [
-    { metric: 'Revenue', title: language === 'fr' ? 'Chiffre d\'affaires (TTM)' : 'Revenue (TTM)', chartType: 'bar' as const, color: '#f97316' },
-    { metric: 'NetIncome', title: language === 'fr' ? 'Résultat net (TTM)' : 'Net Income (TTM)', chartType: 'bar' as const, color: '#f97316' },
-    { metric: 'GrossProfit', title: language === 'fr' ? 'Marge brute (TTM)' : 'Gross Profit (TTM)', chartType: 'bar' as const, color: '#22c55e' },
-    { metric: 'OperatingIncome', title: language === 'fr' ? 'Résultat opérationnel (TTM)' : 'Operating Income (TTM)', chartType: 'bar' as const, color: '#3b82f6' },
-    { metric: 'EBITDA', title: 'EBITDA (TTM)', chartType: 'bar' as const, color: '#8b5cf6' },
-    { metric: 'EPS', title: 'EPS (TTM)', chartType: 'bar' as const, color: '#06b6d4' },
-  ];
+  // Grid slots state (9 slots, some can be empty)
+  const [gridSlots, setGridSlots] = useState<FinancialGridSlot[]>([...DEFAULT_FINANCIAL_GRID]);
+
+  // Drag & drop state
+  const [draggedCardId, setDraggedCardId] = useState<FinancialCardId | null>(null);
+  const [dragOverSlotIndex, setDragOverSlotIndex] = useState<number | null>(null);
+  const dragNodeRef = useRef<HTMLElement | null>(null);
+
+  // Fetch card order
+  const { data: savedCardOrder } = useQuery({
+    queryKey: ['financial-card-order'],
+    queryFn: fetchFinancialCardOrder,
+    enabled: isAuthenticated,
+    staleTime: Infinity,
+  });
+
+  // Save card order mutation
+  const saveOrderMutation = useMutation({
+    mutationFn: saveFinancialCardOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['financial-card-order'] });
+    },
+  });
+
+  // Update grid slots when loaded from server
+  useEffect(() => {
+    if (savedCardOrder && savedCardOrder.length > 0) {
+      // Validate slots - keep valid card IDs and nulls
+      const validSlots: FinancialGridSlot[] = savedCardOrder.map(slot =>
+        slot === null || ALL_FINANCIAL_CARD_IDS.includes(slot as FinancialCardId) ? slot as FinancialGridSlot : null
+      );
+      // Ensure we have exactly FINANCIAL_GRID_SIZE slots
+      while (validSlots.length < FINANCIAL_GRID_SIZE) validSlots.push(null);
+      // Find any missing cards and add them to empty slots
+      const presentCards = validSlots.filter((s): s is FinancialCardId => s !== null);
+      const missingCards = ALL_FINANCIAL_CARD_IDS.filter(id => !presentCards.includes(id));
+      for (const card of missingCards) {
+        const emptyIndex = validSlots.findIndex(s => s === null);
+        if (emptyIndex !== -1) validSlots[emptyIndex] = card;
+      }
+      setGridSlots(validSlots.slice(0, FINANCIAL_GRID_SIZE));
+    }
+  }, [savedCardOrder]);
+
+  // Drag & drop handlers
+  const handleDragStart = (e: React.DragEvent, cardId: FinancialCardId, node: HTMLElement) => {
+    setDraggedCardId(cardId);
+    dragNodeRef.current = node;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', cardId);
+    setTimeout(() => {
+      if (dragNodeRef.current) {
+        dragNodeRef.current.style.opacity = '0.4';
+      }
+    }, 0);
+  };
+
+  const handleDragEnd = () => {
+    if (dragNodeRef.current) {
+      dragNodeRef.current.style.opacity = '1';
+    }
+    setDraggedCardId(null);
+    setDragOverSlotIndex(null);
+    dragNodeRef.current = null;
+  };
+
+  const handleSlotDragOver = (e: React.DragEvent, slotIndex: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverSlotIndex !== slotIndex) {
+      setDragOverSlotIndex(slotIndex);
+    }
+  };
+
+  const handleSlotDrop = (e: React.DragEvent, targetSlotIndex: number) => {
+    e.preventDefault();
+
+    const draggedId = draggedCardId;
+    handleDragEnd();
+
+    if (draggedId === null) return;
+
+    const draggedSlotIndex = gridSlots.findIndex(slot => slot === draggedId);
+    if (draggedSlotIndex === -1 || draggedSlotIndex === targetSlotIndex) return;
+
+    const newSlots = [...gridSlots];
+    // Swap: dragged card goes to target slot, target slot content goes to dragged slot
+    [newSlots[draggedSlotIndex], newSlots[targetSlotIndex]] = [newSlots[targetSlotIndex], newSlots[draggedSlotIndex]];
+    setGridSlots(newSlots);
+    saveOrderMutation.mutate(newSlots);
+  };
+
+  const metrics: Record<string, { title: string; chartType: 'bar' | 'area'; color: string }> = {
+    Revenue: { title: language === 'fr' ? 'Chiffre d\'affaires (TTM)' : 'Revenue (TTM)', chartType: 'bar', color: '#f97316' },
+    NetIncome: { title: language === 'fr' ? 'Résultat net (TTM)' : 'Net Income (TTM)', chartType: 'bar', color: '#f97316' },
+    GrossProfit: { title: language === 'fr' ? 'Marge brute (TTM)' : 'Gross Profit (TTM)', chartType: 'bar', color: '#22c55e' },
+    OperatingIncome: { title: language === 'fr' ? 'Résultat opérationnel (TTM)' : 'Operating Income (TTM)', chartType: 'bar', color: '#3b82f6' },
+    EBITDA: { title: 'EBITDA (TTM)', chartType: 'bar', color: '#8b5cf6' },
+    EPS: { title: 'EPS (TTM)', chartType: 'bar', color: '#06b6d4' },
+  };
+
+  // Render a grid slot (card or empty)
+  const renderSlot = (slotIndex: number) => {
+    const cardId = gridSlots[slotIndex];
+    const isDragOver = dragOverSlotIndex === slotIndex;
+
+    // Empty slot
+    if (cardId === null) {
+      return (
+        <div
+          key={`empty-${slotIndex}`}
+          className={`rounded-xl h-[180px] transition-colors ${isDragOver ? 'bg-slate-200 dark:bg-slate-700/50 ring-2 ring-purple-500' : ''}`}
+          onDragOver={(e) => handleSlotDragOver(e, slotIndex)}
+          onDrop={(e) => handleSlotDrop(e, slotIndex)}
+        />
+      );
+    }
+
+    // Price chart
+    if (cardId === 'price') {
+      return (
+        <PriceMiniChart
+          key={cardId}
+          priceData={priceData}
+          previousClose={previousClose ?? null}
+          currency={priceCurrency || 'USD'}
+          onExpand={onPriceClick}
+          isLoading={priceLoading}
+          isDragOver={isDragOver}
+          onDragStart={(e) => handleDragStart(e, cardId, e.currentTarget as HTMLElement)}
+          onDragEnd={handleDragEnd}
+          onDragOver={(e) => handleSlotDragOver(e, slotIndex)}
+          onDrop={(e) => handleSlotDrop(e, slotIndex)}
+        />
+      );
+    }
+
+    // Financial metric charts
+    const metricConfig = metrics[cardId];
+    if (!metricConfig) return null;
+
+    return (
+      <MiniChart
+        key={`${cardId}-${dataView}`}
+        ticker={ticker}
+        metric={cardId}
+        title={metricConfig.title}
+        chartType={metricConfig.chartType}
+        color={metricConfig.color}
+        dataView={dataView}
+        onExpand={() => onMetricClick(cardId, metricConfig.title)}
+        isDragOver={isDragOver}
+        onDragStart={(e) => handleDragStart(e, cardId, e.currentTarget)}
+        onDragEnd={handleDragEnd}
+        onDragOver={(e) => handleSlotDragOver(e, slotIndex)}
+        onDrop={(e) => handleSlotDrop(e, slotIndex)}
+      />
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -430,28 +651,7 @@ export function FinancialsMiniCharts({ ticker, priceData, previousClose, priceCu
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Price Chart */}
-        <PriceMiniChart
-          priceData={priceData}
-          previousClose={previousClose ?? null}
-          currency={priceCurrency || 'USD'}
-          onExpand={onPriceClick}
-          isLoading={priceLoading}
-        />
-
-        {/* Financial Metrics */}
-        {metrics.map(({ metric, title, chartType, color }) => (
-          <MiniChart
-            key={`${metric}-${dataView}`}
-            ticker={ticker}
-            metric={metric}
-            title={title}
-            chartType={chartType}
-            color={color}
-            dataView={dataView}
-            onExpand={() => onMetricClick(metric, title)}
-          />
-        ))}
+        {gridSlots.map((_, index) => renderSlot(index))}
       </div>
     </div>
   );
