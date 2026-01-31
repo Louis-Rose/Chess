@@ -4277,6 +4277,81 @@ def get_dividends_calendar():
     return jsonify({'dividends': dividends_data})
 
 
+@app.route('/api/investing/dividend-history/<ticker>', methods=['GET'])
+@login_required
+def get_dividend_history(ticker):
+    """Get dividend payment history for a stock."""
+    import yfinance as yf
+    from investing_utils import get_yfinance_ticker
+
+    try:
+        yf_ticker = get_yfinance_ticker(ticker)
+        stock = yf.Ticker(yf_ticker)
+
+        # Get dividend history
+        dividends = stock.dividends
+
+        if dividends is None or dividends.empty:
+            return jsonify({
+                'ticker': ticker,
+                'history': [],
+                'growth_rates': {'1Y': None, '2Y': None, '5Y': None, '10Y': None}
+            })
+
+        # Convert to list of dicts with date and amount
+        history = []
+        for date, amount in dividends.items():
+            history.append({
+                'date': date.strftime('%Y-%m-%d'),
+                'amount': round(float(amount), 4),
+                'quarter': date.strftime('%b %Y')
+            })
+
+        # Calculate growth rates (comparing annual totals)
+        def calc_annual_growth(years):
+            if len(history) < 4:  # Need at least a year of data
+                return None
+
+            now = datetime.now()
+            current_year_start = datetime(now.year - 1, now.month, now.day)
+            past_year_start = datetime(now.year - 1 - years, now.month, now.day)
+            past_year_end = datetime(now.year - years, now.month, now.day)
+
+            current_total = sum(
+                h['amount'] for h in history
+                if datetime.strptime(h['date'], '%Y-%m-%d') >= current_year_start
+            )
+            past_total = sum(
+                h['amount'] for h in history
+                if past_year_start <= datetime.strptime(h['date'], '%Y-%m-%d') < past_year_end
+            )
+
+            if past_total == 0:
+                return None
+            return round(((current_total - past_total) / past_total) * 100, 2)
+
+        growth_rates = {
+            '1Y': calc_annual_growth(1),
+            '2Y': calc_annual_growth(2),
+            '5Y': calc_annual_growth(5),
+            '10Y': calc_annual_growth(10),
+        }
+
+        return jsonify({
+            'ticker': ticker,
+            'history': history,
+            'growth_rates': growth_rates
+        })
+
+    except Exception as e:
+        app.logger.warning(f"Failed to fetch dividend history for {ticker}: {e}")
+        return jsonify({
+            'ticker': ticker,
+            'history': [],
+            'growth_rates': {'1Y': None, '2Y': None, '5Y': None, '10Y': None}
+        })
+
+
 @app.route('/api/investing/earnings-alerts', methods=['GET'])
 @login_required
 def get_earnings_alert_preferences():

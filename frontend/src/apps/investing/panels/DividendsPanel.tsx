@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { DollarSign, Loader2, Briefcase, CheckCircle2, HelpCircle } from 'lucide-react';
+import { DollarSign, Loader2, Briefcase, CheckCircle2, HelpCircle, X, TrendingUp, TrendingDown } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -34,6 +35,28 @@ interface Account {
   bank: string;
 }
 
+interface DividendHistoryPoint {
+  date: string;
+  amount: number;
+  quarter: string;
+}
+
+interface DividendHistoryResponse {
+  ticker: string;
+  history: DividendHistoryPoint[];
+  growth_rates: {
+    '1Y': number | null;
+    '2Y': number | null;
+    '5Y': number | null;
+    '10Y': number | null;
+  };
+}
+
+const fetchDividendHistory = async (ticker: string): Promise<DividendHistoryResponse> => {
+  const response = await axios.get(`/api/investing/dividend-history/${ticker}`);
+  return response.data;
+};
+
 const fetchDividends = async (accountIds: number[]): Promise<DividendsResponse> => {
   const params = accountIds.length > 0 ? `?account_ids=${accountIds.join(',')}` : '';
   const response = await axios.get(`/api/investing/dividends-calendar${params}`);
@@ -61,6 +84,9 @@ export function DividendsPanel() {
     }
     return [];
   });
+
+  // Selected ticker for dividend history chart modal
+  const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
 
   // Fetch accounts
   const { data: accountsData } = useQuery({
@@ -104,6 +130,14 @@ export function DividendsPanel() {
     queryKey: ['dividends-calendar', selectedAccountIds],
     queryFn: () => fetchDividends(selectedAccountIds),
     enabled: isAuthenticated && selectedAccountIds.length > 0,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  // Fetch dividend history for selected ticker
+  const { data: historyData, isLoading: historyLoading } = useQuery({
+    queryKey: ['dividend-history', selectedTicker],
+    queryFn: () => fetchDividendHistory(selectedTicker!),
+    enabled: !!selectedTicker,
     staleTime: 1000 * 60 * 30,
   });
 
@@ -266,7 +300,8 @@ export function DividendsPanel() {
                     return (
                       <tr
                         key={item.ticker}
-                        className={`border-b border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors ${!paysDividends ? 'opacity-60' : ''}`}
+                        onClick={() => paysDividends && setSelectedTicker(item.ticker)}
+                        className={`border-b border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors ${!paysDividends ? 'opacity-60' : 'cursor-pointer'}`}
                       >
                         <td className="py-4 pl-2">
                           <div className="flex items-center gap-2">
@@ -397,6 +432,111 @@ export function DividendsPanel() {
           </div>
         )}
       </div>
+
+      {/* Dividend History Chart Modal */}
+      {selectedTicker && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedTicker(null)}>
+          <div
+            className="bg-slate-800 rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center overflow-hidden">
+                  {getCompanyLogoUrl(selectedTicker) ? (
+                    <img src={getCompanyLogoUrl(selectedTicker)!} alt={selectedTicker} className="w-8 h-8 object-contain" />
+                  ) : (
+                    <span className="text-sm font-bold text-slate-500">{selectedTicker.slice(0, 2)}</span>
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">
+                    {language === 'fr' ? 'Historique des Dividendes' : 'Dividend History'} - {selectedTicker}
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedTicker(null)}
+                className="p-2 rounded-lg hover:bg-slate-700 transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+
+            {/* Chart */}
+            {historyLoading ? (
+              <div className="h-[300px] flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+              </div>
+            ) : historyData?.history && historyData.history.length > 0 ? (
+              <>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={historyData.history.slice(-20)} margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>
+                      <XAxis
+                        dataKey="quarter"
+                        tick={{ fontSize: 10, fill: '#94a3b8' }}
+                        tickLine={false}
+                        axisLine={{ stroke: '#475569' }}
+                        angle={-45}
+                        textAnchor="end"
+                        interval={0}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 10, fill: '#94a3b8' }}
+                        tickLine={false}
+                        axisLine={{ stroke: '#475569' }}
+                        tickFormatter={(val) => `$${val.toFixed(2)}`}
+                        width={50}
+                      />
+                      <Tooltip
+                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                        contentStyle={{
+                          backgroundColor: '#1e293b',
+                          borderRadius: '8px',
+                          border: '1px solid #475569',
+                          padding: '10px 14px',
+                        }}
+                        labelStyle={{ color: '#e2e8f0', fontWeight: 600, marginBottom: 4 }}
+                        itemStyle={{ color: '#10b981' }}
+                        formatter={(value) => [`$${Number(value).toFixed(4)}`, 'Dividend']}
+                      />
+                      <Bar dataKey="amount" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Growth rates */}
+                <div className="flex flex-wrap justify-center gap-3 mt-6">
+                  {(['1Y', '2Y', '5Y', '10Y'] as const).map((period) => {
+                    const rate = historyData.growth_rates[period];
+                    if (rate === null) return null;
+                    const isPositive = rate >= 0;
+                    return (
+                      <span
+                        key={period}
+                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium border ${
+                          isPositive
+                            ? 'border-green-500/50 text-green-400'
+                            : 'border-red-500/50 text-red-400'
+                        }`}
+                      >
+                        {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                        {period}: {isPositive ? '+' : ''}{rate.toFixed(2)}%
+                      </span>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="h-[200px] flex items-center justify-center text-slate-400">
+                {language === 'fr' ? 'Aucun historique disponible' : 'No history available'}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
