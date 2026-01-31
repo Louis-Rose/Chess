@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Loader2, Youtube, Calendar, FileText, ChevronDown, ChevronUp, RefreshCw, Eye, X, Plus, Search, Info } from 'lucide-react';
+import { Loader2, Youtube, Calendar, FileText, ChevronDown, ChevronUp, RefreshCw, Eye, X, Plus, Search, Info, Briefcase } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
@@ -29,10 +29,26 @@ interface NewsFeedResponse {
 interface VideoWithCompany extends Video {
   ticker: string;
   companyName: string;
+  isPortfolio?: boolean;
+  isWatchlist?: boolean;
 }
 
 const fetchWatchlist = async (): Promise<{ symbols: string[] }> => {
   const response = await axios.get('/api/investing/watchlist');
+  return response.data;
+};
+
+interface CompositionItem {
+  ticker: string;
+  quantity: number;
+}
+
+interface CompositionData {
+  holdings: CompositionItem[];
+}
+
+const fetchComposition = async (): Promise<CompositionData> => {
+  const response = await axios.get('/api/investing/portfolio/composition');
   return response.data;
 };
 
@@ -101,7 +117,18 @@ export function NewsFeedPanel() {
     enabled: isAuthenticated,
   });
 
+  // Fetch portfolio composition
+  const { data: compositionData, isLoading: compositionLoading } = useQuery({
+    queryKey: ['composition-for-news'],
+    queryFn: fetchComposition,
+    enabled: isAuthenticated,
+  });
+
   const watchlist = watchlistData?.symbols ?? [];
+  const portfolioTickers = compositionData?.holdings?.map(h => h.ticker) ?? [];
+
+  // Combine watchlist and portfolio, removing duplicates
+  const allTrackedCompanies = [...new Set([...portfolioTickers, ...watchlist])];
 
   // Mutations for add/remove
   const addMutation = useMutation({
@@ -150,14 +177,14 @@ export function NewsFeedPanel() {
     removeMutation.mutate(ticker);
   };
 
-  // Fetch news for all watchlist companies
+  // Fetch news for all tracked companies (portfolio + watchlist)
   const { data: allNewsData, isLoading: newsLoading, refetch: refetchNews, isFetching: newsFetching } = useQuery({
-    queryKey: ['watchlist-news-feed', watchlist],
+    queryKey: ['watchlist-news-feed', allTrackedCompanies],
     queryFn: async () => {
-      if (watchlist.length === 0) return [];
+      if (allTrackedCompanies.length === 0) return [];
 
       const results = await Promise.all(
-        watchlist.map(async (ticker) => {
+        allTrackedCompanies.map(async (ticker) => {
           const stock = findStockByTicker(ticker);
           const companyName = stock?.name || ticker;
           try {
@@ -166,15 +193,17 @@ export function NewsFeedPanel() {
               ticker,
               companyName,
               videos: response.videos,
+              isPortfolio: portfolioTickers.includes(ticker),
+              isWatchlist: watchlist.includes(ticker),
             };
           } catch {
-            return { ticker, companyName, videos: [] };
+            return { ticker, companyName, videos: [], isPortfolio: portfolioTickers.includes(ticker), isWatchlist: watchlist.includes(ticker) };
           }
         })
       );
       return results;
     },
-    enabled: isAuthenticated && watchlist.length > 0,
+    enabled: isAuthenticated && allTrackedCompanies.length > 0,
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
 
@@ -184,6 +213,8 @@ export function NewsFeedPanel() {
       ...video,
       ticker: company.ticker,
       companyName: company.companyName,
+      isPortfolio: company.isPortfolio,
+      isWatchlist: company.isWatchlist,
     }))
   );
 
@@ -204,11 +235,12 @@ export function NewsFeedPanel() {
   });
 
   // Group videos by company for by-company view
-  const videosByCompany = watchlist.map((ticker) => {
+  const videosByCompany = allTrackedCompanies.map((ticker) => {
     const stock = findStockByTicker(ticker);
     const companyName = stock?.name || ticker;
     const companyVideos = filteredVideos.filter((v) => v.ticker === ticker);
-    return { ticker, companyName, videos: companyVideos };
+    const isPortfolio = portfolioTickers.includes(ticker);
+    return { ticker, companyName, videos: companyVideos, isPortfolio };
   });
 
   const toggleCompany = (ticker: string) => {
@@ -222,7 +254,7 @@ export function NewsFeedPanel() {
   };
 
   // Loading state
-  if (authLoading || (isAuthenticated && watchlistLoading)) {
+  if (authLoading || (isAuthenticated && (watchlistLoading || compositionLoading))) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <Loader2 className="w-10 h-10 text-red-500 animate-spin mb-4" />
@@ -279,38 +311,50 @@ export function NewsFeedPanel() {
               {language === 'fr' ? 'Entreprises suivies' : 'Tracked Companies'}
             </h3>
             <span className="text-slate-500 dark:text-slate-400 text-sm">
-              ({watchlist.length})
+              ({allTrackedCompanies.length})
             </span>
             {/* Info tooltip */}
             <div className="relative group ml-1">
               <Info className="w-4 h-4 text-slate-400 cursor-help" />
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 w-72 text-left whitespace-pre-line pointer-events-none">
                 {language === 'fr'
-                  ? "Le fil d'actualités agrège les vidéos YouTube de toutes les entreprises de votre watchlist.\n\n• Ajoutez des entreprises avec la barre de recherche\n• Supprimez-les en cliquant sur le ✕\n• Les vidéos proviennent de chaînes financières vérifiées (CNBC, Bloomberg, Yahoo Finance...)\n• Cliquez sur une vidéo pour la regarder"
-                  : "The news feed aggregates YouTube videos from all companies in your watchlist.\n\n• Add companies using the search bar\n• Remove them by clicking the ✕\n• Videos come from verified financial channels (CNBC, Bloomberg, Yahoo Finance...)\n• Click a video to watch it"}
+                  ? "Le fil d'actualités agrège les vidéos YouTube de toutes les entreprises de votre portefeuille et watchlist.\n\n• Les entreprises du portefeuille sont automatiquement incluses\n• Ajoutez des entreprises supplémentaires avec la barre de recherche\n• Les vidéos proviennent de chaînes financières vérifiées (CNBC, Bloomberg, Yahoo Finance...)"
+                  : "The news feed aggregates YouTube videos from all companies in your portfolio and watchlist.\n\n• Portfolio companies are automatically included\n• Add extra companies using the search bar\n• Videos come from verified financial channels (CNBC, Bloomberg, Yahoo Finance...)"}
               </div>
             </div>
           </div>
 
           {/* Company chips */}
           <div className="flex flex-wrap gap-2 mb-4">
-            {watchlist.length === 0 ? (
+            {allTrackedCompanies.length === 0 ? (
               <p className="text-slate-500 dark:text-slate-400 text-sm italic">
                 {language === 'fr'
                   ? 'Aucune entreprise suivie. Ajoutez-en ci-dessous.'
                   : 'No companies tracked. Add some below.'}
               </p>
             ) : (
-              watchlist.map((ticker) => {
+              allTrackedCompanies.map((ticker) => {
                 const stock = findStockByTicker(ticker);
                 const displayName = stock?.name || ticker;
                 const logoUrl = getCompanyLogoUrl(ticker);
+                const isPortfolio = portfolioTickers.includes(ticker);
+                const isWatchlistOnly = watchlist.includes(ticker) && !isPortfolio;
 
                 return (
                   <div
                     key={ticker}
-                    className="flex items-center gap-2 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-full pl-1 pr-2 py-1 group hover:border-blue-300 dark:hover:border-blue-500 transition-colors"
+                    className={`flex items-center gap-2 bg-white dark:bg-slate-600 border rounded-full pl-1 pr-2 py-1 group transition-colors ${
+                      isPortfolio
+                        ? 'border-green-300 dark:border-green-600'
+                        : 'border-slate-200 dark:border-slate-500 hover:border-blue-300 dark:hover:border-blue-500'
+                    }`}
                   >
+                    {/* Source indicator */}
+                    {isPortfolio && (
+                      <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center flex-shrink-0" title={language === 'fr' ? 'Portefeuille' : 'Portfolio'}>
+                        <Briefcase className="w-3 h-3 text-green-600 dark:text-green-400" />
+                      </div>
+                    )}
                     {/* Logo */}
                     <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-500">
                       {logoUrl ? (
@@ -337,15 +381,17 @@ export function NewsFeedPanel() {
                     >
                       {ticker}
                     </button>
-                    {/* Remove button */}
-                    <button
-                      onClick={() => handleRemoveStock(ticker)}
-                      disabled={removeMutation.isPending}
-                      className="w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                      title={language === 'fr' ? 'Supprimer' : 'Remove'}
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+                    {/* Remove button - only show for watchlist-only items */}
+                    {isWatchlistOnly && (
+                      <button
+                        onClick={() => handleRemoveStock(ticker)}
+                        disabled={removeMutation.isPending}
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                        title={language === 'fr' ? 'Supprimer' : 'Remove'}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 );
               })
@@ -428,7 +474,7 @@ export function NewsFeedPanel() {
         </div>
 
         {/* Empty state when no companies */}
-        {watchlist.length === 0 ? (
+        {allTrackedCompanies.length === 0 ? (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-8 text-center">
             <Youtube className="w-16 h-16 text-slate-400 mx-auto mb-4" />
             <p className="text-slate-600 dark:text-slate-300 mb-2">
