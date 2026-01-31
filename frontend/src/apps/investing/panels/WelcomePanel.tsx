@@ -441,11 +441,11 @@ export function InvestingWelcomePanel() {
                     {language === 'fr' ? 'Résultats à venir' : 'Upcoming Earnings'}
                   </span>
                 </div>
-                <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+                <div className="flex rounded border border-slate-300 dark:border-slate-600">
                   <div className="relative group">
                     <button
                       onClick={(e) => { e.stopPropagation(); setEarningsSource('both'); }}
-                      className={`px-2 h-6 text-sm font-medium flex items-center justify-center ${earningsSource === 'both' ? 'bg-amber-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                      className={`px-2 h-6 text-sm font-medium flex items-center justify-center rounded-l ${earningsSource === 'both' ? 'bg-amber-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                     >
                       {language === 'fr' ? 'Tout' : 'All'}
                     </button>
@@ -467,7 +467,7 @@ export function InvestingWelcomePanel() {
                   <div className="relative group">
                     <button
                       onClick={(e) => { e.stopPropagation(); setEarningsSource('watchlist'); }}
-                      className={`w-8 h-6 flex items-center justify-center ${earningsSource === 'watchlist' ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                      className={`w-8 h-6 flex items-center justify-center rounded-r ${earningsSource === 'watchlist' ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                     >
                       <Eye className="w-4 h-4" />
                     </button>
