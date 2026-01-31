@@ -651,11 +651,11 @@ export function InvestingWelcomePanel() {
                 {language === 'fr' ? 'Recherche & Comparaison' : 'Research & Compare Stocks'}
               </h3>
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden flex items-start justify-center">
               <img
                 src={stockResearchPreview}
                 alt="Stock research preview"
-                className="w-full h-full object-cover object-top"
+                className="w-[140%] max-w-none -mt-1"
               />
             </div>
           </div>
@@ -752,11 +752,11 @@ export function InvestingWelcomePanel() {
                   {language === 'fr' ? 'Recherche & Comparaison' : 'Research & Compare Stocks'}
                 </h3>
               </div>
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden flex items-start justify-center">
                 <img
                   src={stockResearchPreview}
                   alt="Stock research preview"
-                  className="w-full h-full object-cover object-top"
+                  className="w-[140%] max-w-none -mt-1"
                 />
               </div>
             </div>
