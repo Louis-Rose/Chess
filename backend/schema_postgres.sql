@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     user_id INTEGER UNIQUE NOT NULL,
     chess_username TEXT,
     preferred_time_class TEXT DEFAULT 'rapid',
+    dashboard_card_order TEXT,  -- JSON array of card IDs for custom order
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

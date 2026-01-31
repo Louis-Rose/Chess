@@ -488,6 +488,60 @@ def update_preferences():
     return jsonify({'success': True, 'preferences': updates})
 
 
+@app.route('/api/preferences/dashboard-card-order', methods=['GET'])
+@login_required
+def get_dashboard_card_order():
+    """Get user's dashboard card order."""
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT dashboard_card_order
+            FROM user_preferences WHERE user_id = ?
+        ''', (request.user_id,))
+        row = cursor.fetchone()
+
+    if row and row['dashboard_card_order']:
+        import json
+        try:
+            return jsonify({'order': json.loads(row['dashboard_card_order'])})
+        except json.JSONDecodeError:
+            return jsonify({'order': None})
+    return jsonify({'order': None})
+
+
+@app.route('/api/preferences/dashboard-card-order', methods=['PUT'])
+@login_required
+def update_dashboard_card_order():
+    """Update user's dashboard card order."""
+    import json
+    data = request.get_json()
+    order = data.get('order')
+
+    if not isinstance(order, list):
+        return jsonify({'error': 'Order must be a list'}), 400
+
+    order_json = json.dumps(order)
+
+    with get_db() as conn:
+        # Check if user_preferences row exists
+        cursor = conn.execute(
+            'SELECT id FROM user_preferences WHERE user_id = ?',
+            (request.user_id,)
+        )
+        if cursor.fetchone():
+            conn.execute('''
+                UPDATE user_preferences
+                SET dashboard_card_order = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ?
+            ''', (order_json, request.user_id))
+        else:
+            conn.execute('''
+                INSERT INTO user_preferences (user_id, dashboard_card_order)
+                VALUES (?, ?)
+            ''', (request.user_id, order_json))
+
+    return jsonify({'success': True, 'order': order})
+
+
 # ============= ACTIVITY TRACKING =============
 
 @app.route('/api/activity/heartbeat', methods=['POST'])
