@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, Flame, Briefcase, GripVertical } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, Flame, Briefcase } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -408,8 +408,7 @@ export function InvestingWelcomePanel() {
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <GripVertical className="w-4 h-4 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
                   <Wallet className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">
@@ -479,8 +478,7 @@ export function InvestingWelcomePanel() {
           >
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <div className="flex items-center gap-2">
-                <GripVertical className="w-4 h-4 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+                                <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
                   <Flame className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">
@@ -547,8 +545,7 @@ export function InvestingWelcomePanel() {
           >
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <div className="flex items-center gap-2">
-                <GripVertical className="w-4 h-4 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
+                                <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
                   <Calendar className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">
@@ -641,8 +638,7 @@ export function InvestingWelcomePanel() {
           >
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <div className="flex items-center gap-2">
-                <GripVertical className="w-4 h-4 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <Eye className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">
@@ -708,8 +704,7 @@ export function InvestingWelcomePanel() {
             className={`${cardBaseClass} ${dragClass} cursor-pointer hover:border-purple-500`}
           >
             <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-              <GripVertical className="w-4 h-4 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                            <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-4 h-4 text-white" />
               </div>
               <h3 className="text-xl font-bold text-white">
@@ -731,8 +726,7 @@ export function InvestingWelcomePanel() {
             className={`${cardBaseClass} ${dragClass} cursor-pointer hover:border-indigo-500`}
           >
             <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-              <GripVertical className="w-4 h-4 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
                 <GitCompare className="w-4 h-4 text-white" />
               </div>
               <h3 className="text-xl font-bold text-white">
@@ -754,8 +748,7 @@ export function InvestingWelcomePanel() {
             className={`${cardBaseClass} ${dragClass} cursor-pointer hover:border-red-500`}
           >
             <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-              <GripVertical className="w-4 h-4 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                            <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
                 <Newspaper className="w-4 h-4 text-white" />
               </div>
               <h3 className="text-xl font-bold text-white">
