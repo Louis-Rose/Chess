@@ -21,7 +21,7 @@ interface FeatureCardProps {
 }
 
 function FeatureCard({ icon: Icon, iconBg, hoverBorder, title, description, onClick }: FeatureCardProps) {
-  const baseClasses = "bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 text-left transition-colors";
+  const baseClasses = "bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 text-left transition-colors h-[200px] flex flex-col";
   const interactiveClasses = onClick ? `${hoverBorder} cursor-pointer` : '';
 
   return (
@@ -30,15 +30,15 @@ function FeatureCard({ icon: Icon, iconBg, hoverBorder, title, description, onCl
       disabled={!onClick}
       className={`${baseClasses} ${interactiveClasses}`}
     >
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`w-10 h-10 ${iconBg} rounded-lg flex items-center justify-center`}>
-          <Icon className="w-5 h-5 text-white" />
+      <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+        <div className={`w-8 h-8 ${iconBg} rounded-lg flex items-center justify-center`}>
+          <Icon className="w-4 h-4 text-white" />
         </div>
-        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+        <h3 className="text-xl font-bold text-white">
           {title}
         </h3>
       </div>
-      <p className="text-slate-500 dark:text-slate-400 text-sm">
+      <p className="text-slate-400 text-sm flex-1">
         {description}
       </p>
     </button>
@@ -302,7 +302,7 @@ export function InvestingWelcomePanel() {
 
         {/* Portfolio Summary Cards - only for authenticated users with holdings */}
         {isAuthenticated && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-[10%] mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-[10%] mb-8">
             {/* Portfolio Value & Performance Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
