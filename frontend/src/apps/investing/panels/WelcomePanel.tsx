@@ -752,7 +752,7 @@ export function InvestingWelcomePanel() {
                           <span className="text-sm text-slate-400 text-right tabular-nums ml-1">
                             {dividend.remaining_days !== null && (
                               <>
-                                (<span className={dividend.confirmed ? 'invisible' : ''}>~</span>
+                                ({!dividend.confirmed && '~'}
                                 {dividend.remaining_days === 0
                                   ? (language === 'fr' ? "aujourd'hui" : 'today')
                                   : `${dividend.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
