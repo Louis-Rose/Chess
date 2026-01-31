@@ -319,7 +319,7 @@ export function InvestingWelcomePanel() {
       return (
         <div
           key={`empty-${slotIndex}`}
-          className={`border-2 border-dashed border-slate-600 rounded-xl h-[200px] flex items-center justify-center transition-colors ${dragOverClass} ${isDragOver ? 'border-blue-500 bg-blue-500/10' : ''}`}
+          className={`rounded-xl h-[200px] transition-colors ${isDragOver ? 'bg-slate-700/50 ring-2 ring-blue-500' : ''}`}
           onDragOver={(e) => handleSlotDragOver(e, slotIndex)}
           onDrop={(e) => handleSlotDrop(e, slotIndex)}
         />
