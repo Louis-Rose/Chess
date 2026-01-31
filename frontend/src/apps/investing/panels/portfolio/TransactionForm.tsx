@@ -966,26 +966,32 @@ export function TransactionForm({
                         )}
                       </div>
                       <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => startEditing(tx)}
-                          disabled={editingId !== null}
-                          className={`p-1 ${editingId !== null ? 'text-slate-300' : 'text-slate-400 hover:text-blue-500'}`}
-                          title={language === 'fr' ? 'Modifier' : 'Edit'}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => onDeleteTransaction(tx.id)}
-                          disabled={deletingId === tx.id}
-                          className={`p-1 ${deletingId === tx.id ? 'text-slate-300' : 'text-slate-400 hover:text-red-500'}`}
-                          title={language === 'fr' ? 'Supprimer' : 'Delete'}
-                        >
-                          {deletingId === tx.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </button>
+                        {editingId === tx.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-green-600" />
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => startEditing(tx)}
+                              disabled={editingId !== null || deletingId !== null}
+                              className={`p-1 ${editingId !== null || deletingId !== null ? 'text-slate-300' : 'text-slate-400 hover:text-blue-500'}`}
+                              title={language === 'fr' ? 'Modifier' : 'Edit'}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => onDeleteTransaction(tx.id)}
+                              disabled={deletingId === tx.id || editingId !== null}
+                              className={`p-1 ${deletingId === tx.id || editingId !== null ? 'text-slate-300' : 'text-slate-400 hover:text-red-500'}`}
+                              title={language === 'fr' ? 'Supprimer' : 'Delete'}
+                            >
+                              {deletingId === tx.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}
