@@ -394,7 +394,7 @@ export function InvestingWelcomePanel() {
                   </button>
                 </div>
               </div>
-              {topMoversLoading ? (
+              {compositionLoading || topMoversLoading ? (
                 <div className="flex-1 flex items-center justify-center">
                   <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
                 </div>
