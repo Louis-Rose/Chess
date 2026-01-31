@@ -19,6 +19,8 @@ interface DividendData {
   frequency: string | null;
   confirmed: boolean;
   pays_dividends?: boolean;
+  quantity?: number;
+  total_dividend?: number | null;
 }
 
 interface DividendsResponse {

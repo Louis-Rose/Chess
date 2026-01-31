@@ -4183,7 +4183,8 @@ def get_dividends_calendar():
 
     # Get portfolio holdings
     holdings = compute_holdings_from_transactions(request.user_id, account_ids)
-    portfolio_tickers = [h['stock_ticker'] for h in holdings if h['quantity'] > 0]
+    holdings_by_ticker = {h['stock_ticker']: h['quantity'] for h in holdings if h['quantity'] > 0}
+    portfolio_tickers = list(holdings_by_ticker.keys())
 
     if not portfolio_tickers:
         return jsonify({'dividends': []})
@@ -4238,16 +4239,21 @@ def get_dividends_calendar():
 
             # Include all stocks, with pays_dividends flag
             pays_dividends = bool(dividend_rate or ex_date_str)
+            quantity = holdings_by_ticker.get(ticker, 0)
+            dividend_per_share = round(last_dividend, 4) if last_dividend else None
+            total_dividend = round(quantity * last_dividend, 2) if last_dividend and quantity else None
             dividends_data.append({
                 'ticker': ticker,
                 'ex_dividend_date': ex_date_str,
                 'payment_date': None,  # Not always available
                 'remaining_days': remaining_days,
-                'dividend_amount': round(last_dividend, 4) if last_dividend else None,
+                'dividend_amount': dividend_per_share,
                 'dividend_yield': round(dividend_yield, 2) if dividend_yield else None,
                 'frequency': frequency,
                 'confirmed': ex_date_str is not None,
                 'pays_dividends': pays_dividends,
+                'quantity': quantity,
+                'total_dividend': total_dividend,
             })
         except Exception as e:
             app.logger.warning(f"Failed to fetch dividend data for {ticker}: {e}")
