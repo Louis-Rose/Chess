@@ -502,7 +502,7 @@ export function InvestingWelcomePanel() {
                             earning.remaining_days === 0
                               ? (language === 'fr' ? "Aujourd'hui" : 'Today')
                               : `${earning.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`
-                          ) : 'TBD'}
+                          ) : (language === 'fr' ? '~3 mois' : '~3 months')}
                           {earning.remaining_days !== null && !earning.date_confirmed && ' ~'}
                         </span>
                       </div>
