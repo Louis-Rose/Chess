@@ -236,7 +236,7 @@ export function InvestingWelcomePanel() {
     initialPositions.current = positions;
   }, []);
 
-  // Calculate transform for a card based on preview position
+  // Calculate transform for a card based on preview position (swap behavior)
   const getTransform = useCallback((cardId: CardId, originalIndex: number): { x: number; y: number } => {
     if (draggedCardId === null || dragOverCardId === null) {
       return { x: 0, y: 0 };
@@ -247,17 +247,12 @@ export function InvestingWelcomePanel() {
 
     if (draggedIndex === -1 || targetIndex === -1) return { x: 0, y: 0 };
 
+    // Only the dragged card and target card move (swap)
     let visualIndex = originalIndex;
     if (cardId === draggedCardId) {
       visualIndex = targetIndex;
-    } else if (draggedIndex < targetIndex) {
-      if (originalIndex > draggedIndex && originalIndex <= targetIndex) {
-        visualIndex = originalIndex - 1;
-      }
-    } else if (draggedIndex > targetIndex) {
-      if (originalIndex >= targetIndex && originalIndex < draggedIndex) {
-        visualIndex = originalIndex + 1;
-      }
+    } else if (cardId === dragOverCardId) {
+      visualIndex = draggedIndex;
     }
 
     if (visualIndex === originalIndex) return { x: 0, y: 0 };
@@ -334,8 +329,8 @@ export function InvestingWelcomePanel() {
     const targetIndex = newOrder.findIndex(id => id === targetCardId);
 
     if (draggedIndex !== -1 && targetIndex !== -1) {
-      const [draggedCard] = newOrder.splice(draggedIndex, 1);
-      newOrder.splice(targetIndex, 0, draggedCard);
+      // Swap the two cards
+      [newOrder[draggedIndex], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[draggedIndex]];
       setCardOrder(newOrder);
       saveOrderMutation.mutate(newOrder);
     }
