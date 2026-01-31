@@ -449,7 +449,7 @@ export function InvestingWelcomePanel() {
                     >
                       {language === 'fr' ? 'Tout' : 'All'}
                     </button>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-75 z-50 w-32 text-center pointer-events-none">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-slate-600 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-75 z-50 w-44 text-center pointer-events-none">
                       {language === 'fr' ? 'Portefeuille et watchlist' : 'Both owned stocks and watchlist stocks'}
                     </div>
                   </div>
@@ -460,7 +460,7 @@ export function InvestingWelcomePanel() {
                     >
                       <Briefcase className="w-4 h-4" />
                     </button>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-75 z-50 w-28 text-center pointer-events-none">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-slate-600 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-75 z-50 w-44 text-center pointer-events-none">
                       {language === 'fr' ? 'Portefeuille uniquement' : 'Portfolio stocks only'}
                     </div>
                   </div>
@@ -471,7 +471,7 @@ export function InvestingWelcomePanel() {
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-75 z-50 w-28 text-center pointer-events-none">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-slate-600 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-75 z-50 w-44 text-center pointer-events-none">
                       {language === 'fr' ? 'Watchlist uniquement' : 'Watchlist stocks only'}
                     </div>
                   </div>
