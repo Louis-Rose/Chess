@@ -723,7 +723,7 @@ export function InvestingWelcomePanel() {
                         <div className="text-right">
                           {dividend.total_dividend !== null && dividend.quantity && dividend.dividend_amount ? (
                             <div className="text-sm">
-                              <span className="text-emerald-500 font-bold">${dividend.total_dividend.toFixed(2)}</span>
+                              <span className="text-emerald-500 font-bold">${dividend.total_dividend!.toFixed(2)}</span>
                               <span className="text-slate-400 text-xs ml-1">
                                 ({dividend.quantity} × ${dividend.dividend_amount.toFixed(2)})
                               </span>
