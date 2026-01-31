@@ -2513,7 +2513,7 @@ def delete_transaction(transaction_id):
 @login_required
 def update_transaction(transaction_id):
     """Update a transaction by ID."""
-    from investing_utils import fetch_historical_price
+    from investing_utils import fetch_stock_price, get_stock_currency
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No data provided'}), 400
@@ -2552,10 +2552,10 @@ def update_transaction(transaction_id):
         currency = existing['price_currency']
         if new_ticker != existing['stock_ticker'] or new_date != existing['transaction_date']:
             try:
-                price_data = fetch_historical_price(new_ticker, new_date)
-                if price_data and price_data.get('price'):
-                    price = price_data['price']
-                    currency = price_data.get('currency', 'USD')
+                new_price = fetch_stock_price(new_ticker, new_date)
+                if new_price:
+                    price = new_price
+                    currency = get_stock_currency(new_ticker) or 'USD'
             except Exception:
                 pass  # Keep existing price if fetch fails
 

@@ -83,18 +83,23 @@ type GridSlot = CardId | null;
 const DEFAULT_GRID: GridSlot[] = [...ALL_CARD_IDS, null, null];
 
 // API fetchers
-const fetchComposition = async (): Promise<CompositionData> => {
-  const response = await axios.get('/api/investing/portfolio/composition');
+const fetchComposition = async (accountIds: number[]): Promise<CompositionData> => {
+  const params = accountIds.length > 0 ? `?account_ids=${accountIds.join(',')}` : '';
+  const response = await axios.get(`/api/investing/portfolio/composition${params}`);
   return response.data;
 };
 
-const fetchPerformance = async (days: number): Promise<PerformanceData> => {
-  const response = await axios.get(`/api/investing/portfolio/performance-period?days=${days}`);
+const fetchPerformance = async (days: number, accountIds: number[]): Promise<PerformanceData> => {
+  const params = new URLSearchParams({ days: String(days) });
+  if (accountIds.length > 0) params.append('account_ids', accountIds.join(','));
+  const response = await axios.get(`/api/investing/portfolio/performance-period?${params}`);
   return response.data;
 };
 
-const fetchTopMovers = async (days: number): Promise<TopMoversData> => {
-  const response = await axios.get(`/api/investing/portfolio/top-movers?days=${days}`);
+const fetchTopMovers = async (days: number, accountIds: number[]): Promise<TopMoversData> => {
+  const params = new URLSearchParams({ days: String(days) });
+  if (accountIds.length > 0) params.append('account_ids', accountIds.join(','));
+  const response = await axios.get(`/api/investing/portfolio/top-movers?${params}`);
   return response.data;
 };
 
@@ -147,6 +152,44 @@ export function InvestingWelcomePanel() {
   const [watchlistMoversPeriod, setWatchlistMoversPeriod] = useState<7 | 30>(30);
   const [earningsSource, setEarningsSource] = useState<EarningsSourceFilter>('both');
 
+  // Selected accounts from localStorage (shared with PortfolioPanel)
+  const [selectedAccountIds, setSelectedAccountIds] = useState<number[]>(() => {
+    const saved = localStorage.getItem('selectedAccountIds');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
+
+  // Sync with localStorage changes (when user changes selection on PortfolioPanel)
+  useEffect(() => {
+    const syncFromStorage = () => {
+      const saved = localStorage.getItem('selectedAccountIds');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setSelectedAccountIds(parsed);
+        } catch {
+          // ignore parse errors
+        }
+      }
+    };
+
+    // Check on focus (when returning to this tab/page)
+    window.addEventListener('focus', syncFromStorage);
+    // Also listen for storage events from other tabs
+    window.addEventListener('storage', syncFromStorage);
+
+    return () => {
+      window.removeEventListener('focus', syncFromStorage);
+      window.removeEventListener('storage', syncFromStorage);
+    };
+  }, []);
+
   // Drag & drop state
   const [draggedCardId, setDraggedCardId] = useState<CardId | null>(null);
   const [dragOverSlotIndex, setDragOverSlotIndex] = useState<number | null>(null);
@@ -188,11 +231,11 @@ export function InvestingWelcomePanel() {
     }
   }, [savedCardOrder]);
 
-  // Fetch portfolio data
+  // Fetch portfolio data (filtered by selected accounts)
   const { data: compositionData, isLoading: compositionLoading } = useQuery({
-    queryKey: ['composition-summary'],
-    queryFn: fetchComposition,
-    enabled: isAuthenticated,
+    queryKey: ['composition-summary', selectedAccountIds],
+    queryFn: () => fetchComposition(selectedAccountIds),
+    enabled: isAuthenticated && selectedAccountIds.length > 0,
     staleTime: 1000 * 60 * 5,
   });
 
@@ -204,23 +247,23 @@ export function InvestingWelcomePanel() {
   });
 
   const { data: perf7Data, isLoading: perf7Loading } = useQuery({
-    queryKey: ['performance-period', 7],
-    queryFn: () => fetchPerformance(7),
-    enabled: isAuthenticated && (compositionData?.holdings?.length ?? 0) > 0,
+    queryKey: ['performance-period', 7, selectedAccountIds],
+    queryFn: () => fetchPerformance(7, selectedAccountIds),
+    enabled: isAuthenticated && selectedAccountIds.length > 0 && (compositionData?.holdings?.length ?? 0) > 0,
     staleTime: 1000 * 60 * 15,
   });
 
   const { data: perf30Data, isLoading: perf30Loading } = useQuery({
-    queryKey: ['performance-period', 30],
-    queryFn: () => fetchPerformance(30),
-    enabled: isAuthenticated && (compositionData?.holdings?.length ?? 0) > 0,
+    queryKey: ['performance-period', 30, selectedAccountIds],
+    queryFn: () => fetchPerformance(30, selectedAccountIds),
+    enabled: isAuthenticated && selectedAccountIds.length > 0 && (compositionData?.holdings?.length ?? 0) > 0,
     staleTime: 1000 * 60 * 15,
   });
 
   const { data: topMoversData, isLoading: topMoversLoading } = useQuery({
-    queryKey: ['top-movers', moversPeriod],
-    queryFn: () => fetchTopMovers(moversPeriod),
-    enabled: isAuthenticated && (compositionData?.holdings?.length ?? 0) > 0,
+    queryKey: ['top-movers', moversPeriod, selectedAccountIds],
+    queryFn: () => fetchTopMovers(moversPeriod, selectedAccountIds),
+    enabled: isAuthenticated && selectedAccountIds.length > 0 && (compositionData?.holdings?.length ?? 0) > 0,
     staleTime: 1000 * 60 * 15,
   });
 
