@@ -285,7 +285,8 @@ export function TransactionForm({
         transaction_date: newDate,
         account_id: addFormAccountId,
       });
-      resetForm(true);
+      resetForm();
+      setNewType('BUY');
     }
   };
 
