@@ -761,10 +761,10 @@ export function InvestingWelcomePanel() {
                           </span>
                         </>
                       ) : (
-                        <span className="text-sm text-slate-400 col-span-3">
+                        <span className="text-sm text-slate-400 col-span-3 text-right">
                           {language === 'fr'
-                          ? `${dividend.ticker} ne verse pas de dividendes`
-                          : `${dividend.ticker} does not pay dividends`}
+                          ? 'Ne verse pas de dividendes'
+                          : 'Does not pay dividends'}
                         </span>
                       )}
                     </div>
