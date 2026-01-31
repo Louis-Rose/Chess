@@ -724,7 +724,7 @@ export function InvestingWelcomePanel() {
                   const logoUrl = getCompanyLogoUrl(dividend.ticker);
                   const paysDividends = dividend.pays_dividends !== false;
                   return (
-                    <div key={dividend.ticker} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-x-2">
+                    <div key={dividend.ticker} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-x-1">
                       <div className="flex items-center gap-1.5">
                         <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                           {logoUrl ? (
@@ -739,9 +739,9 @@ export function InvestingWelcomePanel() {
                         <>
                           <span className="text-sm text-emerald-500 font-bold text-right tabular-nums">
                             {dividend.total_dividend !== null && dividend.quantity && dividend.dividend_amount ? (
-                              <>{!dividend.confirmed && '~'}${dividend.total_dividend!.toFixed(2)}</>
+                              <><span className={dividend.confirmed ? 'invisible' : ''}>~</span>${dividend.total_dividend!.toFixed(2)}</>
                             ) : dividend.dividend_amount !== null ? (
-                              <>{!dividend.confirmed && '~'}${dividend.dividend_amount.toFixed(2)}</>
+                              <><span className={dividend.confirmed ? 'invisible' : ''}>~</span>${dividend.dividend_amount.toFixed(2)}</>
                             ) : null}
                           </span>
                           <span className="text-sm text-emerald-500 tabular-nums">
@@ -749,13 +749,13 @@ export function InvestingWelcomePanel() {
                               <>({dividend.quantity} × ${dividend.dividend_amount.toFixed(2)})</>
                             )}
                           </span>
-                          <span className="text-sm text-slate-400 text-right tabular-nums w-20">
+                          <span className="text-sm text-slate-400 text-right tabular-nums ml-1">
                             {dividend.remaining_days !== null && (
                               <>
-                                ({dividend.confirmed === false && '~'}
+                                (<span className={dividend.confirmed ? 'invisible' : ''}>~</span>
                                 {dividend.remaining_days === 0
                                   ? (language === 'fr' ? "aujourd'hui" : 'today')
-                                  : `${dividend.remaining_days} ${language === 'fr' ? 'j' : 'd'}`})
+                                  : `${dividend.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
                               </>
                             )}
                           </span>
