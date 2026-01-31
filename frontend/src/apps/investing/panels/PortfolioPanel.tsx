@@ -163,6 +163,18 @@ const deleteTransaction = async (id: number): Promise<void> => {
   await axios.delete(`/api/investing/transactions/${id}`);
 };
 
+interface EditTransactionData {
+  stock_ticker: string;
+  transaction_type: 'BUY' | 'SELL';
+  quantity: number;
+  transaction_date: string;
+}
+
+const updateTransaction = async ({ id, data }: { id: number; data: EditTransactionData }): Promise<Transaction> => {
+  const response = await axios.put(`/api/investing/transactions/${id}`, data);
+  return response.data;
+};
+
 const fetchAccounts = async (): Promise<{ accounts: Account[] }> => {
   const response = await axios.get('/api/investing/accounts');
   return response.data;
@@ -378,6 +390,16 @@ export function PortfolioPanel() {
     },
     onSettled: () => {
       // Refetch to ensure sync with server
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['holdings'] });
+      queryClient.invalidateQueries({ queryKey: ['composition'] });
+      queryClient.invalidateQueries({ queryKey: ['performance'] });
+    },
+  });
+
+  const editMutation = useMutation({
+    mutationFn: updateTransaction,
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['holdings'] });
       queryClient.invalidateQueries({ queryKey: ['composition'] });
@@ -831,6 +853,7 @@ export function PortfolioPanel() {
               .filter(a => selectedAccountIds.includes(a.id))
               .map(account => ({ id: account.id, bank: account.bank, name: account.name }))}
             onAddTransaction={(tx) => addMutation.mutate(tx)}
+            onEditTransaction={(id, data) => editMutation.mutate({ id, data })}
             onDeleteTransaction={(id) => deleteMutation.mutate(id)}
             onRefresh={() => {
               queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -839,7 +862,8 @@ export function PortfolioPanel() {
               queryClient.invalidateQueries({ queryKey: ['performance'] });
             }}
             isAdding={addMutation.isPending}
-            deletingId={deleteMutation.isPending ? deleteMutation.variables : null}
+            editingId={editMutation.isPending ? editMutation.variables?.id ?? null : null}
+            deletingId={deleteMutation.isPending ? deleteMutation.variables ?? null : null}
             addError={addMutation.error as Error | null}
             privateMode={privateMode}
             displayCurrency={currency}

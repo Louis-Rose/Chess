@@ -2509,6 +2509,96 @@ def delete_transaction(transaction_id):
     return jsonify({'success': True, 'id': transaction_id})
 
 
+@app.route('/api/investing/transactions/<int:transaction_id>', methods=['PUT'])
+@login_required
+def update_transaction(transaction_id):
+    """Update a transaction by ID."""
+    from investing_utils import fetch_historical_price
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    with get_db() as conn:
+        # Verify transaction belongs to user
+        cursor = conn.execute(
+            'SELECT id, stock_ticker, transaction_date, price_per_share, price_currency FROM portfolio_transactions WHERE user_id = ? AND id = ?',
+            (request.user_id, transaction_id)
+        )
+        existing = cursor.fetchone()
+        if not existing:
+            return jsonify({'error': 'Transaction not found'}), 404
+
+        # Extract update fields
+        new_ticker = data.get('stock_ticker', existing['stock_ticker']).upper().strip()
+        new_type = data.get('transaction_type')
+        new_quantity = data.get('quantity')
+        new_date = data.get('transaction_date', existing['transaction_date'])
+
+        # Validate transaction type
+        if new_type and new_type not in ('BUY', 'SELL'):
+            return jsonify({'error': 'Invalid transaction type'}), 400
+
+        # Validate quantity
+        if new_quantity is not None:
+            try:
+                new_quantity = float(new_quantity)
+                if new_quantity <= 0:
+                    return jsonify({'error': 'Quantity must be positive'}), 400
+            except (TypeError, ValueError):
+                return jsonify({'error': 'Invalid quantity'}), 400
+
+        # Re-fetch price if ticker or date changed
+        price = existing['price_per_share']
+        currency = existing['price_currency']
+        if new_ticker != existing['stock_ticker'] or new_date != existing['transaction_date']:
+            try:
+                price_data = fetch_historical_price(new_ticker, new_date)
+                if price_data and price_data.get('price'):
+                    price = price_data['price']
+                    currency = price_data.get('currency', 'USD')
+            except Exception:
+                pass  # Keep existing price if fetch fails
+
+        # Build update query
+        updates = []
+        params = []
+
+        updates.append('stock_ticker = ?')
+        params.append(new_ticker)
+
+        if new_type:
+            updates.append('transaction_type = ?')
+            params.append(new_type)
+
+        if new_quantity is not None:
+            updates.append('quantity = ?')
+            params.append(new_quantity)
+
+        updates.append('transaction_date = ?')
+        params.append(new_date)
+
+        updates.append('price_per_share = ?')
+        params.append(price)
+
+        updates.append('price_currency = ?')
+        params.append(currency)
+
+        params.extend([request.user_id, transaction_id])
+
+        conn.execute(f'''
+            UPDATE portfolio_transactions
+            SET {', '.join(updates)}
+            WHERE user_id = ? AND id = ?
+        ''', params)
+
+    return jsonify({
+        'success': True,
+        'id': transaction_id,
+        'price_per_share': price,
+        'price_currency': currency
+    })
+
+
 @app.route('/api/investing/fx-rates', methods=['POST'])
 @login_required
 def get_fx_rates():

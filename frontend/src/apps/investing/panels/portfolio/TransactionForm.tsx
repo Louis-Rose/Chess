@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Minus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Upload, ArrowDownUp } from 'lucide-react';
+import { Plus, Minus, Trash2, Loader2, Search, ArrowUpCircle, ArrowDownCircle, Upload, ArrowDownUp, Pencil, Check, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useLanguage } from '../../../../contexts/LanguageContext';
@@ -31,14 +31,23 @@ interface SelectedAccountWithBank {
   name: string;
 }
 
+interface EditTransaction {
+  stock_ticker: string;
+  transaction_type: 'BUY' | 'SELL';
+  quantity: number;
+  transaction_date: string;
+}
+
 interface TransactionFormProps {
   transactions: Transaction[];
   selectedAccountIds: number[];  // All selected accounts (for filtering)
   selectedAccountsWithBanks: SelectedAccountWithBank[];  // All selected accounts with their bank info
   onAddTransaction: (transaction: NewTransaction) => void;
+  onEditTransaction: (id: number, transaction: EditTransaction) => void;
   onDeleteTransaction: (id: number) => void;
   onRefresh: () => void;
   isAdding: boolean;
+  editingId: number | null;
   deletingId: number | null;
   addError?: Error | null;
   privateMode: boolean;
@@ -50,9 +59,11 @@ export function TransactionForm({
   selectedAccountIds,
   selectedAccountsWithBanks,
   onAddTransaction,
+  onEditTransaction,
   onDeleteTransaction,
   onRefresh,
   isAdding,
+  editingId,
   deletingId,
   addError,
   privateMode,
@@ -100,6 +111,15 @@ export function TransactionForm({
   }, [selectedAccountIds, revolutImportAccountId, creditMutuelImportAccountId, ibkrImportAccountId, addFormAccountId]);
   const [filterTicker, setFilterTicker] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'BUY' | 'SELL'>('ALL');
+
+  // Edit state
+  const [editFormId, setEditFormId] = useState<number | null>(null);
+  const [editTicker, setEditTicker] = useState('');
+  const [editType, setEditType] = useState<'BUY' | 'SELL'>('BUY');
+  const [editQuantity, setEditQuantity] = useState('');
+  const [editYear, setEditYear] = useState('');
+  const [editMonth, setEditMonth] = useState('');
+  const [editDay, setEditDay] = useState('');
 
   // Get unique transaction dates that need FX conversion
   const datesNeedingFxRates = useMemo(() => {
@@ -287,6 +307,40 @@ export function TransactionForm({
       });
       resetForm();
       setNewType('BUY');
+    }
+  };
+
+  const startEditing = (tx: Transaction) => {
+    const date = new Date(tx.transaction_date);
+    setEditFormId(tx.id);
+    setEditTicker(tx.stock_ticker);
+    setEditType(tx.transaction_type);
+    setEditQuantity(String(tx.quantity));
+    setEditYear(String(date.getFullYear()));
+    setEditMonth(String(date.getMonth() + 1).padStart(2, '0'));
+    setEditDay(String(date.getDate()).padStart(2, '0'));
+  };
+
+  const cancelEditing = () => {
+    setEditFormId(null);
+    setEditTicker('');
+    setEditType('BUY');
+    setEditQuantity('');
+    setEditYear('');
+    setEditMonth('');
+    setEditDay('');
+  };
+
+  const handleSaveEdit = () => {
+    if (editFormId && editTicker.trim() && editQuantity && parseFloat(editQuantity) > 0 && editYear && editMonth && editDay) {
+      const editDate = `${editYear}-${editMonth}-${editDay.padStart(2, '0')}`;
+      onEditTransaction(editFormId, {
+        stock_ticker: editTicker.toUpperCase().trim(),
+        transaction_type: editType,
+        quantity: parseFloat(editQuantity),
+        transaction_date: editDate,
+      });
+      cancelEditing();
     }
   };
 
@@ -800,48 +854,141 @@ export function TransactionForm({
           ) : (
             <div className="space-y-2 max-h-[500px] overflow-auto">
               {filteredTransactions.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <div className={`px-2 py-1 rounded text-xs font-bold ${tx.transaction_type === 'BUY' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {tx.transaction_type === 'BUY' ? t('transactions.buy') : t('transactions.sell')}
+                <div key={tx.id} className="bg-white p-3 rounded-lg border border-slate-200">
+                  {editFormId === tx.id ? (
+                    /* Edit mode */
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {/* Type toggle */}
+                      <div className="flex rounded overflow-hidden border border-slate-300">
+                        <button
+                          onClick={() => setEditType('BUY')}
+                          className={`px-2 py-1 text-xs font-bold ${editType === 'BUY' ? 'bg-green-600 text-white' : 'bg-white text-slate-600'}`}
+                        >
+                          {t('transactions.buy')}
+                        </button>
+                        <button
+                          onClick={() => setEditType('SELL')}
+                          className={`px-2 py-1 text-xs font-bold ${editType === 'SELL' ? 'bg-red-600 text-white' : 'bg-white text-slate-600'}`}
+                        >
+                          {t('transactions.sell')}
+                        </button>
+                      </div>
+                      {/* Ticker */}
+                      <input
+                        type="text"
+                        value={editTicker}
+                        onChange={(e) => setEditTicker(e.target.value.toUpperCase())}
+                        className="w-20 px-2 py-1 border border-slate-300 rounded text-sm font-bold text-slate-800"
+                      />
+                      {/* Quantity */}
+                      <input
+                        type="number"
+                        value={editQuantity}
+                        onChange={(e) => setEditQuantity(e.target.value)}
+                        min="0.01"
+                        step="0.01"
+                        className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-slate-600"
+                      />
+                      <span className="text-slate-600 text-sm">{t('transactions.shares')}</span>
+                      {/* Date */}
+                      <select
+                        value={editYear}
+                        onChange={(e) => setEditYear(e.target.value)}
+                        className="px-2 py-1 border border-slate-300 rounded text-sm text-slate-600"
+                      >
+                        {years.map(y => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                      <select
+                        value={editMonth}
+                        onChange={(e) => setEditMonth(e.target.value)}
+                        className="px-2 py-1 border border-slate-300 rounded text-sm text-slate-600"
+                      >
+                        {months.map(m => <option key={m.value} value={m.value}>{m.label.slice(0, 3)}</option>)}
+                      </select>
+                      <input
+                        type="number"
+                        value={editDay}
+                        onChange={(e) => setEditDay(e.target.value)}
+                        min="1"
+                        max="31"
+                        className="w-14 px-2 py-1 border border-slate-300 rounded text-sm text-slate-600"
+                      />
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 ml-auto">
+                        <button
+                          onClick={handleSaveEdit}
+                          disabled={editingId === tx.id || !editTicker.trim() || !editQuantity}
+                          className="p-1.5 text-green-600 hover:bg-green-50 rounded disabled:opacity-50"
+                          title={language === 'fr' ? 'Enregistrer' : 'Save'}
+                        >
+                          {editingId === tx.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={cancelEditing}
+                          className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded"
+                          title={language === 'fr' ? 'Annuler' : 'Cancel'}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => navigate(`/investing/stock/${tx.stock_ticker}`)}
-                      className="font-bold text-slate-800 w-16 hover:text-green-600 hover:underline text-left"
-                    >
-                      {tx.stock_ticker}
-                    </button>
-                    <span className="text-slate-600">{privateMode ? '**' : tx.quantity} {t('transactions.shares')}</span>
-                    <span className="text-slate-400">@</span>
-                    <span className="text-slate-600">
-                      {needsConversionLoading(tx.price_currency || 'EUR', tx.transaction_date) ? (
-                        <span className="inline-flex items-center gap-1">
-                          <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    /* View mode */
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <div className={`px-2 py-1 rounded text-xs font-bold ${tx.transaction_type === 'BUY' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {tx.transaction_type === 'BUY' ? t('transactions.buy') : t('transactions.sell')}
+                        </div>
+                        <button
+                          onClick={() => navigate(`/investing/stock/${tx.stock_ticker}`)}
+                          className="font-bold text-slate-800 w-16 hover:text-green-600 hover:underline text-left"
+                        >
+                          {tx.stock_ticker}
+                        </button>
+                        <span className="text-slate-600">{privateMode ? '**' : tx.quantity} {t('transactions.shares')}</span>
+                        <span className="text-slate-400">@</span>
+                        <span className="text-slate-600">
+                          {needsConversionLoading(tx.price_currency || 'EUR', tx.transaction_date) ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            </span>
+                          ) : (
+                            <>{getCurrencySymbol(displayCurrency)}{convertPrice(tx.price_per_share, tx.price_currency || 'EUR', tx.transaction_date).toFixed(2)}</>
+                          )}
                         </span>
-                      ) : (
-                        <>{getCurrencySymbol(displayCurrency)}{convertPrice(tx.price_per_share, tx.price_currency || 'EUR', tx.transaction_date).toFixed(2)}</>
-                      )}
-                    </span>
-                    <span className="text-slate-400 text-sm">
-                      {new Date(tx.transaction_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                    </span>
-                    {selectedAccountIds.length > 1 && tx.account_name && (
-                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
-                        {tx.account_name}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => onDeleteTransaction(tx.id)}
-                    disabled={deletingId === tx.id}
-                    className={`p-1 ${deletingId === tx.id ? 'text-slate-300' : 'text-slate-400 hover:text-red-500'}`}
-                  >
-                    {deletingId === tx.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
-                  </button>
+                        <span className="text-slate-400 text-sm">
+                          {new Date(tx.transaction_date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        </span>
+                        {selectedAccountIds.length > 1 && tx.account_name && (
+                          <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                            {tx.account_name}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => startEditing(tx)}
+                          disabled={editingId !== null}
+                          className={`p-1 ${editingId !== null ? 'text-slate-300' : 'text-slate-400 hover:text-blue-500'}`}
+                          title={language === 'fr' ? 'Modifier' : 'Edit'}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => onDeleteTransaction(tx.id)}
+                          disabled={deletingId === tx.id}
+                          className={`p-1 ${deletingId === tx.id ? 'text-slate-300' : 'text-slate-400 hover:text-red-500'}`}
+                          title={language === 'fr' ? 'Supprimer' : 'Delete'}
+                        >
+                          {deletingId === tx.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
