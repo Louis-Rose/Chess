@@ -382,13 +382,13 @@ export function InvestingWelcomePanel() {
                 <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
                   <button
                     onClick={(e) => { e.stopPropagation(); setMoversPeriod(7); }}
-                    className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 7 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    className={`px-2 h-6 text-base font-medium flex items-center justify-center ${moversPeriod === 7 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                   >
                     {language === 'fr' ? 'Semaine' : 'Week'}
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setMoversPeriod(30); }}
-                    className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 30 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    className={`px-2 h-6 text-base font-medium flex items-center justify-center ${moversPeriod === 30 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                   >
                     {language === 'fr' ? 'Mois' : 'Month'}
                   </button>
@@ -453,23 +453,23 @@ export function InvestingWelcomePanel() {
                     <button
                       onClick={(e) => { e.stopPropagation(); setEarningsSource('both'); }}
                       title={language === 'fr' ? 'Les deux' : 'Both'}
-                      className={`px-1.5 h-6 text-xs font-medium flex items-center justify-center ${earningsSource === 'both' ? 'bg-amber-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                      className={`px-2 h-6 text-base font-medium flex items-center justify-center ${earningsSource === 'both' ? 'bg-amber-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                     >
                       {language === 'fr' ? 'Tout' : 'All'}
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setEarningsSource('portfolio'); }}
                       title={language === 'fr' ? 'Portefeuille' : 'Portfolio'}
-                      className={`w-7 h-6 flex items-center justify-center ${earningsSource === 'portfolio' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                      className={`w-8 h-6 flex items-center justify-center ${earningsSource === 'portfolio' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                     >
-                      <Briefcase className="w-3 h-3" />
+                      <Briefcase className="w-4 h-4" />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setEarningsSource('watchlist'); }}
                       title="Watchlist"
-                      className={`w-7 h-6 flex items-center justify-center ${earningsSource === 'watchlist' ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                      className={`w-8 h-6 flex items-center justify-center ${earningsSource === 'watchlist' ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                     >
-                      <Eye className="w-3 h-3" />
+                      <Eye className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
