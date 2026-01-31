@@ -4253,23 +4253,45 @@ def get_dividends_calendar():
                     confirmed = True
                     amount_source = 'fmp'
             else:
+                # Estimate frequency first (needed for date estimation)
+                freq_days = None
+                if dividend_rate and last_dividend and last_dividend > 0:
+                    ratio = dividend_rate / last_dividend
+                    if ratio > 3.5:
+                        frequency = 'Quarterly'
+                        freq_days = 91
+                    elif ratio > 1.8:
+                        frequency = 'Semi-Annual'
+                        freq_days = 182
+                    else:
+                        frequency = 'Annual'
+                        freq_days = 365
+
                 # Fall back to yfinance ex-dividend date
                 yf_ex_date = info.get('exDividendDate')
                 if yf_ex_date:
-                    ex_date = datetime.fromtimestamp(yf_ex_date).date()
-                    # Only use if it's in the future
-                    if ex_date >= today:
-                        ex_date_str = ex_date.strftime('%Y-%m-%d')
-                        remaining_days = (ex_date - today).days
+                    last_ex_date = datetime.fromtimestamp(yf_ex_date).date()
+                    # If it's in the future, use it as confirmed
+                    if last_ex_date >= today:
+                        ex_date_str = last_ex_date.strftime('%Y-%m-%d')
+                        remaining_days = (last_ex_date - today).days
                         confirmed = True
+                    elif freq_days:
+                        # Estimate next ex-dividend date based on frequency
+                        estimated_date = last_ex_date
+                        while estimated_date < today:
+                            estimated_date = estimated_date + timedelta(days=freq_days)
+                        ex_date_str = estimated_date.strftime('%Y-%m-%d')
+                        remaining_days = (estimated_date - today).days
+                        confirmed = False  # It's an estimate
+
                 # Use last dividend as estimate
                 dividend_amount = last_dividend
                 if last_dividend:
                     amount_source = 'estimate'
 
-            # Estimate frequency from dividend rate vs last dividend
-            frequency = None
-            if dividend_rate and last_dividend and last_dividend > 0:
+            # Estimate frequency from dividend rate vs last dividend (if not already done)
+            if frequency is None and dividend_rate and last_dividend and last_dividend > 0:
                 ratio = dividend_rate / last_dividend
                 if ratio > 3.5:
                     frequency = 'Quarterly'

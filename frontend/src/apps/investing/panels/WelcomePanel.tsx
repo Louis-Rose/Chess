@@ -54,6 +54,7 @@ interface DividendItem {
   quantity?: number;
   total_dividend?: number | null;
   amount_source?: 'fmp' | 'estimate' | null;
+  confirmed?: boolean;
 }
 
 interface DividendsResponse {
@@ -752,7 +753,8 @@ export function InvestingWelcomePanel() {
                           ) : null}
                           {dividend.remaining_days !== null && (
                             <span className="text-slate-400 ml-2">
-                              ({dividend.remaining_days === 0
+                              ({dividend.confirmed === false && '~'}
+                              {dividend.remaining_days === 0
                                 ? (language === 'fr' ? "aujourd'hui" : 'today')
                                 : `${dividend.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
                             </span>
