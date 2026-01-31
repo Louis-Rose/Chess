@@ -4222,12 +4222,14 @@ def get_dividends_calendar():
 
             # Get basic dividend info from yfinance
             dividend_rate = info.get('dividendRate')  # Annual dividend
-            dividend_yield = info.get('dividendYield')  # As decimal
+            dividend_yield = info.get('dividendYield')  # As decimal (0.02 = 2%)
             last_dividend = info.get('lastDividendValue')
 
-            # Convert yield to percentage
+            # Convert yield to percentage (only if it's in decimal form)
             if dividend_yield:
-                dividend_yield = dividend_yield * 100
+                # If yield > 1, it's likely already a percentage; if < 1, it's decimal
+                if dividend_yield < 1:
+                    dividend_yield = dividend_yield * 100
 
             # Check FMP for upcoming dividend (try both ticker formats)
             fmp_data = fmp_dividends.get(ticker) or fmp_dividends.get(yf_ticker)

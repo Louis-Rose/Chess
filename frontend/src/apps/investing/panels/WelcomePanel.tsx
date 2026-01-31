@@ -734,25 +734,25 @@ export function InvestingWelcomePanel() {
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{dividend.ticker}</span>
                       </div>
                       {paysDividends ? (
-                        <div className="text-right text-sm">
+                        <span className="text-sm text-emerald-500">
                           {dividend.total_dividend !== null && dividend.quantity && dividend.dividend_amount ? (
-                            <span className="text-emerald-500">
+                            <>
                               <span className="font-bold">${dividend.total_dividend!.toFixed(2)}</span>
-                              <span className="text-xs ml-1">
+                              <span className="ml-1">
                                 ({dividend.quantity} × ${dividend.dividend_amount.toFixed(2)})
                               </span>
-                            </span>
+                            </>
                           ) : dividend.dividend_amount !== null ? (
-                            <span className="text-emerald-500 font-bold">${dividend.dividend_amount.toFixed(2)}</span>
+                            <span className="font-bold">${dividend.dividend_amount.toFixed(2)}</span>
                           ) : null}
                           {dividend.remaining_days !== null && (
-                            <span className="text-slate-400 text-xs ml-2">
-                              {dividend.remaining_days === 0
+                            <span className="text-slate-400 ml-2">
+                              ({dividend.remaining_days === 0
                                 ? (language === 'fr' ? "aujourd'hui" : 'today')
-                                : `${dividend.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`}
+                                : `${dividend.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
                             </span>
                           )}
-                        </div>
+                        </span>
                       ) : (
                         <span className="text-sm text-slate-500 italic">
                           {language === 'fr' ? 'Pas de dividende' : 'No dividend'}
