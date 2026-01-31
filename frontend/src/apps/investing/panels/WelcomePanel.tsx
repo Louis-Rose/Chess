@@ -655,7 +655,7 @@ export function InvestingWelcomePanel() {
               <img
                 src={stockResearchPreview}
                 alt="Stock research preview"
-                className="w-[140%] max-w-none -mt-1"
+                className="w-[75%] -mt-1"
               />
             </div>
           </div>
@@ -756,7 +756,7 @@ export function InvestingWelcomePanel() {
                 <img
                   src={stockResearchPreview}
                   alt="Stock research preview"
-                  className="w-[140%] max-w-none -mt-1"
+                  className="w-[75%] -mt-1"
                 />
               </div>
             </div>
