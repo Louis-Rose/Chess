@@ -153,7 +153,7 @@ export function InvestingWelcomePanel() {
   const dragNodeRef = useRef<HTMLDivElement | null>(null);
 
   // Fetch card order
-  const { data: savedCardOrder, isLoading: cardOrderLoading, isFetched: cardOrderFetched } = useQuery({
+  const { data: savedCardOrder, isFetched: cardOrderFetched } = useQuery({
     queryKey: ['dashboard-card-order'],
     queryFn: fetchCardOrder,
     enabled: isAuthenticated,
