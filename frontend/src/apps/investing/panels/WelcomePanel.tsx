@@ -367,8 +367,7 @@ export function InvestingWelcomePanel() {
 
             {/* Top Movers Card */}
             <div
-              onClick={() => navigate('/investing/portfolio')}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-orange-500 transition-colors h-[200px] flex flex-col overflow-hidden"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col overflow-hidden"
             >
               <div className="flex items-center justify-between mb-3 flex-shrink-0">
                 <div className="flex items-center gap-2">
@@ -443,27 +442,39 @@ export function InvestingWelcomePanel() {
                   </span>
                 </div>
                 <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setEarningsSource('both'); }}
-                    title={language === 'fr' ? 'Portefeuille et watchlist' : 'Both owned stocks and watchlist stocks'}
-                    className={`px-2 h-6 text-sm font-medium flex items-center justify-center ${earningsSource === 'both' ? 'bg-amber-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                  >
-                    {language === 'fr' ? 'Tout' : 'All'}
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setEarningsSource('portfolio'); }}
-                    title={language === 'fr' ? 'Portefeuille uniquement' : 'Portfolio stocks only'}
-                    className={`w-8 h-6 flex items-center justify-center ${earningsSource === 'portfolio' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                  >
-                    <Briefcase className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setEarningsSource('watchlist'); }}
-                    title={language === 'fr' ? 'Watchlist uniquement' : 'Watchlist stocks only'}
-                    className={`w-8 h-6 flex items-center justify-center ${earningsSource === 'watchlist' ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
+                  <div className="relative group">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEarningsSource('both'); }}
+                      className={`px-2 h-6 text-sm font-medium flex items-center justify-center ${earningsSource === 'both' ? 'bg-amber-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    >
+                      {language === 'fr' ? 'Tout' : 'All'}
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-75 z-10 whitespace-nowrap pointer-events-none">
+                      {language === 'fr' ? 'Portefeuille et watchlist' : 'Both owned stocks and watchlist stocks'}
+                    </div>
+                  </div>
+                  <div className="relative group">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEarningsSource('portfolio'); }}
+                      className={`w-8 h-6 flex items-center justify-center ${earningsSource === 'portfolio' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    >
+                      <Briefcase className="w-4 h-4" />
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-75 z-10 whitespace-nowrap pointer-events-none">
+                      {language === 'fr' ? 'Portefeuille uniquement' : 'Portfolio stocks only'}
+                    </div>
+                  </div>
+                  <div className="relative group">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEarningsSource('watchlist'); }}
+                      className={`w-8 h-6 flex items-center justify-center ${earningsSource === 'watchlist' ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-75 z-10 whitespace-nowrap pointer-events-none">
+                      {language === 'fr' ? 'Watchlist uniquement' : 'Watchlist stocks only'}
+                    </div>
+                  </div>
                 </div>
               </div>
               {earningsLoading ? (
