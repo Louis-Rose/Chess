@@ -4240,6 +4240,8 @@ def get_dividends_calendar():
             payment_date = None
             confirmed = False
 
+            amount_source = None  # 'fmp', 'yfinance', or None
+
             if fmp_data:
                 # Use FMP data for upcoming dividend
                 ex_date_str = fmp_data.get('date')
@@ -4249,6 +4251,7 @@ def get_dividends_calendar():
                     ex_date = datetime.strptime(ex_date_str, '%Y-%m-%d').date()
                     remaining_days = (ex_date - today).days
                     confirmed = True
+                    amount_source = 'fmp'
             else:
                 # Fall back to yfinance ex-dividend date
                 yf_ex_date = info.get('exDividendDate')
@@ -4259,7 +4262,10 @@ def get_dividends_calendar():
                         ex_date_str = ex_date.strftime('%Y-%m-%d')
                         remaining_days = (ex_date - today).days
                         confirmed = True
+                # Use last dividend as estimate
                 dividend_amount = last_dividend
+                if last_dividend:
+                    amount_source = 'estimate'
 
             # Estimate frequency from dividend rate vs last dividend
             frequency = None
@@ -4290,6 +4296,7 @@ def get_dividends_calendar():
                 'pays_dividends': pays_dividends,
                 'quantity': quantity,
                 'total_dividend': total_dividend,
+                'amount_source': amount_source,  # 'fmp' = confirmed, 'estimate' = based on last dividend
             })
         except Exception as e:
             app.logger.warning(f"Failed to fetch dividend data for {ticker}: {e}")

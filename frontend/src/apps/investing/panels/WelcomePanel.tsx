@@ -53,6 +53,7 @@ interface DividendItem {
   pays_dividends?: boolean;
   quantity?: number;
   total_dividend?: number | null;
+  amount_source?: 'fmp' | 'estimate' | null;
 }
 
 interface DividendsResponse {
@@ -737,13 +738,17 @@ export function InvestingWelcomePanel() {
                         <span className="text-sm text-emerald-500">
                           {dividend.total_dividend !== null && dividend.quantity && dividend.dividend_amount ? (
                             <>
-                              <span className="font-bold">${dividend.total_dividend!.toFixed(2)}</span>
+                              <span className="font-bold">
+                                {dividend.amount_source === 'estimate' && '~'}${dividend.total_dividend!.toFixed(2)}
+                              </span>
                               <span className="ml-1">
                                 ({dividend.quantity} × ${dividend.dividend_amount.toFixed(2)})
                               </span>
                             </>
                           ) : dividend.dividend_amount !== null ? (
-                            <span className="font-bold">${dividend.dividend_amount.toFixed(2)}</span>
+                            <span className="font-bold">
+                              {dividend.amount_source === 'estimate' && '~'}${dividend.dividend_amount.toFixed(2)}
+                            </span>
                           ) : null}
                           {dividend.remaining_days !== null && (
                             <span className="text-slate-400 ml-2">
