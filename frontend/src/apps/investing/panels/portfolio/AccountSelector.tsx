@@ -88,17 +88,18 @@ export function AccountSelector({
     }
   }, [renamingAccountId]);
 
-  // Clear rename state when rename completes
+  // Track if rename API call was made
+  const renameSubmittedRef = useRef(false);
+
+  // Clear rename state when rename completes successfully
   useEffect(() => {
-    if (!isRenaming && renamingAccountId !== null) {
-      // Check if the account name was updated
-      const account = accounts.find(a => a.id === renamingAccountId);
-      if (account && account.name === renameValue.trim()) {
-        setRenamingAccountId(null);
-        setRenameValue('');
-      }
+    if (!isRenaming && renamingAccountId !== null && renameSubmittedRef.current) {
+      // Rename API call completed, clear the state
+      setRenamingAccountId(null);
+      setRenameValue('');
+      renameSubmittedRef.current = false;
     }
-  }, [isRenaming, accounts, renamingAccountId, renameValue]);
+  }, [isRenaming, renamingAccountId]);
 
   // Clear pending delete when clicking outside
   useEffect(() => {
@@ -129,6 +130,7 @@ export function AccountSelector({
   // Handle rename submission
   const handleRenameSubmit = () => {
     if (renamingAccountId !== null && renameValue.trim()) {
+      renameSubmittedRef.current = true;
       onRenameAccount(renamingAccountId, renameValue.trim());
     }
   };
