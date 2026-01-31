@@ -328,25 +328,27 @@ export function InvestingWelcomePanel() {
                     <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
                       {formatCurrency(portfolioValue, valueCurrency)}
                     </p>
-                    {perfLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                    ) : (perf7Value !== undefined && perf7Value !== null) || (perf30Value !== undefined && perf30Value !== null) ? (
-                      <div className="flex items-center gap-3 text-lg font-semibold">
-                        {perf7Value !== undefined && perf7Value !== null && (
-                          <span className={perf7Value >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {language === 'fr' ? 'Semaine' : 'Last week'}: {perf7Value >= 0 ? '+' : ''}{perf7Value.toFixed(1)}%
-                          </span>
-                        )}
-                        {perf7Value !== undefined && perf7Value !== null && perf30Value !== undefined && perf30Value !== null && (
-                          <span className="text-slate-500">|</span>
-                        )}
-                        {perf30Value !== undefined && perf30Value !== null && (
-                          <span className={perf30Value >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {language === 'fr' ? 'Mois' : 'Last month'}: {perf30Value >= 0 ? '+' : ''}{perf30Value.toFixed(1)}%
-                          </span>
-                        )}
-                      </div>
-                    ) : null}
+                    <div className="h-7 flex items-center justify-center">
+                      {perfLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                      ) : (perf7Value !== undefined && perf7Value !== null) || (perf30Value !== undefined && perf30Value !== null) ? (
+                        <div className="flex items-center gap-3 text-lg font-semibold">
+                          {perf7Value !== undefined && perf7Value !== null && (
+                            <span className={perf7Value >= 0 ? 'text-green-600' : 'text-red-600'}>
+                              {language === 'fr' ? 'Semaine' : 'Last week'}: {perf7Value >= 0 ? '+' : ''}{perf7Value.toFixed(1)}%
+                            </span>
+                          )}
+                          {perf7Value !== undefined && perf7Value !== null && perf30Value !== undefined && perf30Value !== null && (
+                            <span className="text-slate-500">|</span>
+                          )}
+                          {perf30Value !== undefined && perf30Value !== null && (
+                            <span className={perf30Value >= 0 ? 'text-green-600' : 'text-red-600'}>
+                              {language === 'fr' ? 'Mois' : 'Last month'}: {perf30Value >= 0 ? '+' : ''}{perf30Value.toFixed(1)}%
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
                   </>
                 ) : (
                   <p className="text-sm text-slate-400 italic">
