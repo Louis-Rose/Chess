@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Plus, X, Loader2, Search } from 'lucide-react';
+import { Eye, X, Loader2, Search } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -85,16 +85,6 @@ export function WatchlistPanel() {
     setShowStockDropdown(false);
   };
 
-  const handleAddSymbol = (e: React.FormEvent) => {
-    e.preventDefault();
-    const ticker = stockSearch.trim().toUpperCase();
-    if (ticker && !watchlist.includes(ticker)) {
-      addMutation.mutate(ticker);
-      setStockSearch('');
-      setShowStockDropdown(false);
-    }
-  };
-
   const handleRemoveSymbol = (symbol: string) => {
     removeMutation.mutate(symbol);
   };
@@ -137,20 +127,14 @@ export function WatchlistPanel() {
                 <span className="text-sm text-slate-700 dark:text-slate-300">STOXX Europe 600</span>
               </label>
             </div>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800"
-                  disabled
-                />
-              </div>
-              <button className="bg-blue-600 text-white px-6 py-2 rounded-lg flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                {language === 'fr' ? 'Ajouter' : 'Add'}
-              </button>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800"
+                disabled
+              />
             </div>
           </div>
 
@@ -244,68 +228,58 @@ export function WatchlistPanel() {
               <span className="text-sm text-slate-700 dark:text-slate-300">STOXX Europe 600</span>
             </label>
           </div>
-          <form onSubmit={handleAddSymbol} className="flex gap-2">
-            <div className="relative flex-1" ref={stockDropdownRef}>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
-                  value={stockSearch}
-                  onChange={(e) => setStockSearch(e.target.value)}
-                  onFocus={() => stockSearch && setShowStockDropdown(stockResults.length > 0)}
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              {showStockDropdown && stockResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
-                  {stockResults.map((stock) => {
-                    const isInWatchlist = watchlist.includes(stock.ticker);
-                    const logoUrl = getCompanyLogoUrl(stock.ticker);
-                    return (
-                      <button
-                        key={stock.ticker}
-                        type="button"
-                        onClick={() => handleSelectStock(stock)}
-                        disabled={isInWatchlist}
-                        className={`w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 ${isInWatchlist ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'hover:bg-blue-50'}`}
-                      >
-                        <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
-                          {logoUrl && (
-                            <img
-                              src={logoUrl}
-                              alt={`${stock.ticker} logo`}
-                              className="w-6 h-6 object-contain"
-                              onError={(e) => {
-                                const parent = e.currentTarget.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = `<span class="text-[10px] font-bold text-slate-500">${stock.ticker.slice(0, 2)}</span>`;
-                                }
-                              }}
-                            />
-                          )}
-                          {!logoUrl && (
-                            <span className="text-[10px] font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
-                          )}
-                        </div>
-                        <span className="font-bold text-slate-800 w-16">{stock.ticker}</span>
-                        <span className="text-slate-600 text-sm truncate">{stock.name}</span>
-                        {isInWatchlist && <span className="text-xs text-slate-400 ml-auto">{language === 'fr' ? 'Ajouté' : 'Added'}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+          <div className="relative" ref={stockDropdownRef}>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder={language === 'fr' ? 'Rechercher...' : 'Search stocks...'}
+                value={stockSearch}
+                onChange={(e) => setStockSearch(e.target.value)}
+                onFocus={() => stockSearch && setShowStockDropdown(stockResults.length > 0)}
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
-            <button
-              type="submit"
-              disabled={!stockSearch.trim() || addMutation.isPending}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {addMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              {language === 'fr' ? 'Ajouter' : 'Add'}
-            </button>
-          </form>
+            {showStockDropdown && stockResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
+                {stockResults.map((stock) => {
+                  const isInWatchlist = watchlist.includes(stock.ticker);
+                  const logoUrl = getCompanyLogoUrl(stock.ticker);
+                  return (
+                    <button
+                      key={stock.ticker}
+                      type="button"
+                      onClick={() => handleSelectStock(stock)}
+                      disabled={isInWatchlist}
+                      className={`w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 ${isInWatchlist ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'hover:bg-blue-50'}`}
+                    >
+                      <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {logoUrl && (
+                          <img
+                            src={logoUrl}
+                            alt={`${stock.ticker} logo`}
+                            className="w-6 h-6 object-contain"
+                            onError={(e) => {
+                              const parent = e.currentTarget.parentElement;
+                              if (parent) {
+                                parent.innerHTML = `<span class="text-[10px] font-bold text-slate-500">${stock.ticker.slice(0, 2)}</span>`;
+                              }
+                            }}
+                          />
+                        )}
+                        {!logoUrl && (
+                          <span className="text-[10px] font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
+                        )}
+                      </div>
+                      <span className="font-bold text-slate-800 w-16">{stock.ticker}</span>
+                      <span className="text-slate-600 text-sm truncate">{stock.name}</span>
+                      {isInWatchlist && <span className="text-xs text-slate-400 ml-auto">{language === 'fr' ? 'Ajouté' : 'Added'}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Watchlist */}
