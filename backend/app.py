@@ -3617,6 +3617,66 @@ def delete_account(account_id):
     return jsonify({'success': True, 'id': account_id})
 
 
+@app.route('/api/investing/accounts/<int:account_id>/duplicate', methods=['POST'])
+@login_required
+def duplicate_account(account_id):
+    """Duplicate an investment account with all its transactions."""
+    with get_db() as conn:
+        # Get original account
+        cursor = conn.execute('''
+            SELECT name, account_type, bank
+            FROM investment_accounts
+            WHERE user_id = ? AND id = ?
+        ''', (request.user_id, account_id))
+        original = cursor.fetchone()
+
+        if not original:
+            return jsonify({'error': 'Account not found'}), 404
+
+        # Create new account with "Copy of" prefix
+        new_name = f"Copy of {original['name']}"
+
+        # Get max display_order for this user
+        cursor = conn.execute(
+            'SELECT COALESCE(MAX(display_order), -1) + 1 as next_order FROM investment_accounts WHERE user_id = ?',
+            (request.user_id,)
+        )
+        next_order = cursor.fetchone()['next_order']
+
+        # Create the new account
+        cursor = conn.execute('''
+            INSERT INTO investment_accounts (user_id, name, account_type, bank, display_order)
+            VALUES (?, ?, ?, ?, ?)
+            RETURNING id
+        ''', (request.user_id, new_name, original['account_type'], original['bank'], next_order))
+        new_account_id = cursor.fetchone()['id']
+
+        # Copy all transactions from original account to new account
+        cursor = conn.execute('''
+            SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share, price_currency
+            FROM portfolio_transactions
+            WHERE user_id = ? AND account_id = ?
+        ''', (request.user_id, account_id))
+        transactions = cursor.fetchall()
+
+        for tx in transactions:
+            conn.execute('''
+                INSERT INTO portfolio_transactions (user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share, price_currency)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (request.user_id, new_account_id, tx['stock_ticker'], tx['transaction_type'], tx['quantity'], tx['transaction_date'], tx['price_per_share'], tx['price_currency']))
+
+    return jsonify({
+        'success': True,
+        'id': new_account_id,
+        'name': new_name,
+        'account_type': original['account_type'],
+        'bank': original['bank'],
+        'bank_info': BANKS[original['bank']],
+        'type_info': ACCOUNT_TYPES[original['account_type']],
+        'transactions_copied': len(transactions),
+    })
+
+
 @app.route('/api/investing/accounts/reorder', methods=['PUT'])
 @login_required
 def reorder_accounts():

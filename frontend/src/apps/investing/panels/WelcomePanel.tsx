@@ -422,7 +422,7 @@ export function InvestingWelcomePanel() {
                   <Flame className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Top Mouvements' : 'Top Movers'}
+                  {language === 'fr' ? 'Mouvements Portefeuille' : 'Portfolio Moves'}
                 </span>
               </div>
               <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
@@ -582,7 +582,7 @@ export function InvestingWelcomePanel() {
                   <Eye className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}
+                  {language === 'fr' ? 'Mouvements Watchlist' : 'Watchlist Moves'}
                 </span>
               </div>
               <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">

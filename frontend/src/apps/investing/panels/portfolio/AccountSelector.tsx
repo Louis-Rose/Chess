@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Minus, Trash2, Loader2, Building2, Wallet, GripVertical } from 'lucide-react';
+import { Plus, Minus, Trash2, Loader2, Building2, Wallet, GripVertical, Copy } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import type { Account, BankInfo, AccountTypeInfo } from './types';
 import { FeesDisplay } from './FeesDisplay';
@@ -18,9 +18,11 @@ interface AccountSelectorProps {
   accountTypes: Record<string, AccountTypeInfo>;
   onCreateAccount: (data: { name: string; account_type: string; bank: string }) => void;
   onDeleteAccount: (id: number) => void;
+  onDuplicateAccount: (id: number) => void;
   onReorderAccounts: (accountIds: number[]) => void;
   isCreating: boolean;
   isDeleting: boolean;
+  isDuplicating: boolean;
 }
 
 export function AccountSelector({
@@ -31,9 +33,11 @@ export function AccountSelector({
   accountTypes,
   onCreateAccount,
   onDeleteAccount,
+  onDuplicateAccount,
   onReorderAccounts,
   isCreating,
   isDeleting,
+  isDuplicating,
 }: AccountSelectorProps) {
   const { language, t } = useLanguage();
 
@@ -47,10 +51,20 @@ export function AccountSelector({
   const [draggedAccountId, setDraggedAccountId] = useState<number | null>(null);
   const [dragOverAccountId, setDragOverAccountId] = useState<number | null>(null);
   const [waitingForNewAccount, setWaitingForNewAccount] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; accountId: number } | null>(null);
   const expectedAccountCount = useRef<number>(0);
   const dragNodeRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const initialPositions = useRef<CardPosition[]>([]);
+
+  // Close context menu on click outside
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    if (contextMenu) {
+      document.addEventListener('click', handleClick);
+      return () => document.removeEventListener('click', handleClick);
+    }
+  }, [contextMenu]);
 
   // Clear pending delete when clicking outside
   useEffect(() => {
@@ -419,6 +433,10 @@ export function AccountSelector({
                     onDragOver={(e) => handleDragOver(e, account.id)}
                     onDrop={(e) => handleDrop(e, account.id)}
                     onClick={() => !isBeingDeleted && !isDragging && onToggleAccount(account.id)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setContextMenu({ x: e.clientX, y: e.clientY, accountId: account.id });
+                    }}
                     style={{
                       transform: hasTransform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
                       transition: draggedAccountId ? 'transform 200ms ease-out' : undefined,
@@ -526,6 +544,30 @@ export function AccountSelector({
             />
           )}
         </>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg py-1 z-50"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            onClick={() => {
+              onDuplicateAccount(contextMenu.accountId);
+              setContextMenu(null);
+            }}
+            disabled={isDuplicating}
+            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 flex items-center gap-2 disabled:opacity-50"
+          >
+            {isDuplicating ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
+            {language === 'fr' ? 'Dupliquer' : 'Duplicate'}
+          </button>
+        </div>
       )}
     </div>
   );

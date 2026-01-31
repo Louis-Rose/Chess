@@ -187,6 +187,11 @@ const deleteAccount = async (id: number): Promise<void> => {
   await axios.delete(`/api/investing/accounts/${id}`);
 };
 
+const duplicateAccount = async (id: number): Promise<Account> => {
+  const response = await axios.post(`/api/investing/accounts/${id}/duplicate`);
+  return response.data;
+};
+
 const reorderAccounts = async (accountIds: number[]): Promise<void> => {
   await axios.put('/api/investing/accounts/reorder', { account_ids: accountIds });
 };
@@ -394,6 +399,15 @@ export function PortfolioPanel() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       // Remove deleted account from selection
       setSelectedAccountIds(prev => prev.filter(id => id !== deletedId));
+    },
+  });
+
+  const duplicateAccountMutation = useMutation({
+    mutationFn: duplicateAccount,
+    onSuccess: (newAccount) => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      setSelectedAccountIds([newAccount.id]);
     },
   });
 
@@ -786,9 +800,11 @@ export function PortfolioPanel() {
           accountTypes={accountTypes}
           onCreateAccount={(data) => createAccountMutation.mutate(data)}
           onDeleteAccount={(id) => deleteAccountMutation.mutate(id)}
+          onDuplicateAccount={(id) => duplicateAccountMutation.mutate(id)}
           onReorderAccounts={(ids) => reorderAccountsMutation.mutate(ids)}
           isCreating={createAccountMutation.isPending}
           isDeleting={deleteAccountMutation.isPending}
+          isDuplicating={duplicateAccountMutation.isPending}
         />
 
         {/* Prompt to select account when none selected */}
