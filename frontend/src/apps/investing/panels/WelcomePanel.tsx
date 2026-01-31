@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase, Search } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -640,27 +640,66 @@ export function InvestingWelcomePanel() {
             key={cardId}
             {...cardProps}
             onClick={() => !isDragging && navigate('/investing/financials')}
-            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-purple-500`}
+            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-purple-500 overflow-hidden`}
           >
-            <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+            <div className="flex items-center gap-2 mb-2 flex-shrink-0">
               <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-4 h-4 text-white" />
               </div>
               <h3 className="text-xl font-bold text-white">
-                {language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}
+                {language === 'fr' ? 'Recherche & Comparaison' : 'Research & Compare Stocks'}
               </h3>
             </div>
-            {/* Search bar preview */}
-            <div className="flex-1 flex flex-col justify-center">
-              <div className="relative pointer-events-none">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <div className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-600 border border-slate-300 dark:border-slate-500 rounded-lg text-slate-400 dark:text-slate-400 text-sm">
-                  {language === 'fr' ? 'Rechercher 2 500+ actions...' : 'Search 2,500+ stocks...'}
+            {/* Mini stock detail preview */}
+            <div className="flex-1 flex flex-col pointer-events-none">
+              {/* Mini header */}
+              <div className="flex items-center gap-2 mb-2 px-2 py-1.5 bg-slate-700/50 rounded-lg">
+                <div className="w-5 h-5 rounded bg-white flex items-center justify-center text-[8px] font-bold text-blue-600">G</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-semibold text-white truncate">Alphabet Inc.</div>
+                  <div className="text-[8px] text-slate-400">GOOG</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] font-bold text-white">$338.53</div>
+                  <div className="text-[8px] text-red-400">-0.04%</div>
                 </div>
               </div>
-              <p className="text-slate-500 dark:text-slate-400 text-xs mt-2 text-center">
-                {language === 'fr' ? '8 marchés mondiaux • Secteurs GICS' : '8 global markets • GICS sectors'}
-              </p>
+              {/* Mini charts grid */}
+              <div className="grid grid-cols-3 gap-1.5 flex-1">
+                {/* Revenue */}
+                <div className="bg-slate-700/30 rounded p-1.5">
+                  <div className="text-[7px] text-slate-400 mb-0.5">Revenue</div>
+                  <div className="flex items-end gap-0.5 h-6">
+                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '60%' }}></div>
+                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '70%' }}></div>
+                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '75%' }}></div>
+                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '85%' }}></div>
+                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '100%' }}></div>
+                  </div>
+                </div>
+                {/* Net Income */}
+                <div className="bg-slate-700/30 rounded p-1.5">
+                  <div className="text-[7px] text-slate-400 mb-0.5">Net Income</div>
+                  <div className="flex items-end gap-0.5 h-6">
+                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '50%' }}></div>
+                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '65%' }}></div>
+                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '70%' }}></div>
+                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '80%' }}></div>
+                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '100%' }}></div>
+                  </div>
+                </div>
+                {/* EBITDA */}
+                <div className="bg-slate-700/30 rounded p-1.5">
+                  <div className="text-[7px] text-slate-400 mb-0.5">EBITDA</div>
+                  <div className="flex items-end gap-0.5 h-6">
+                    <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '55%' }}></div>
+                    <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '60%' }}></div>
+                    <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '75%' }}></div>
+                    <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '85%' }}></div>
+                    <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '100%' }}></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -746,27 +785,66 @@ export function InvestingWelcomePanel() {
         {!isAuthenticated && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-[10%] mb-8">
             <div
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col overflow-hidden"
             >
-              <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+              <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                 <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-4 h-4 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Recherche d\'actions' : 'Stock Research'}
+                  {language === 'fr' ? 'Recherche & Comparaison' : 'Research & Compare Stocks'}
                 </h3>
               </div>
-              {/* Search bar preview */}
-              <div className="flex-1 flex flex-col justify-center">
-                <div className="relative pointer-events-none">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <div className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-600 border border-slate-300 dark:border-slate-500 rounded-lg text-slate-400 dark:text-slate-400 text-sm">
-                    {language === 'fr' ? 'Rechercher 2 500+ actions...' : 'Search 2,500+ stocks...'}
+              {/* Mini stock detail preview */}
+              <div className="flex-1 flex flex-col pointer-events-none">
+                {/* Mini header */}
+                <div className="flex items-center gap-2 mb-2 px-2 py-1.5 bg-slate-700/50 rounded-lg">
+                  <div className="w-5 h-5 rounded bg-white flex items-center justify-center text-[8px] font-bold text-blue-600">G</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-semibold text-white truncate">Alphabet Inc.</div>
+                    <div className="text-[8px] text-slate-400">GOOG</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-bold text-white">$338.53</div>
+                    <div className="text-[8px] text-red-400">-0.04%</div>
                   </div>
                 </div>
-                <p className="text-slate-500 dark:text-slate-400 text-xs mt-2 text-center">
-                  {language === 'fr' ? '8 marchés mondiaux • Secteurs GICS' : '8 global markets • GICS sectors'}
-                </p>
+                {/* Mini charts grid */}
+                <div className="grid grid-cols-3 gap-1.5 flex-1">
+                  {/* Revenue */}
+                  <div className="bg-slate-700/30 rounded p-1.5">
+                    <div className="text-[7px] text-slate-400 mb-0.5">Revenue</div>
+                    <div className="flex items-end gap-0.5 h-6">
+                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '60%' }}></div>
+                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '70%' }}></div>
+                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '75%' }}></div>
+                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '85%' }}></div>
+                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '100%' }}></div>
+                    </div>
+                  </div>
+                  {/* Net Income */}
+                  <div className="bg-slate-700/30 rounded p-1.5">
+                    <div className="text-[7px] text-slate-400 mb-0.5">Net Income</div>
+                    <div className="flex items-end gap-0.5 h-6">
+                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '50%' }}></div>
+                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '65%' }}></div>
+                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '70%' }}></div>
+                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '80%' }}></div>
+                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '100%' }}></div>
+                    </div>
+                  </div>
+                  {/* EBITDA */}
+                  <div className="bg-slate-700/30 rounded p-1.5">
+                    <div className="text-[7px] text-slate-400 mb-0.5">EBITDA</div>
+                    <div className="flex items-end gap-0.5 h-6">
+                      <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '55%' }}></div>
+                      <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '60%' }}></div>
+                      <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '75%' }}></div>
+                      <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '85%' }}></div>
+                      <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '100%' }}></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div
