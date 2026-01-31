@@ -630,8 +630,10 @@ export function AccountSelector({
         >
           <button
             onClick={() => {
-              startRenaming(contextMenu.accountId);
+              const accountId = contextMenu.accountId;
               setContextMenu(null);
+              // Use setTimeout to ensure context menu is closed before showing input
+              setTimeout(() => startRenaming(accountId), 0);
             }}
             className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 flex items-center gap-2"
           >
