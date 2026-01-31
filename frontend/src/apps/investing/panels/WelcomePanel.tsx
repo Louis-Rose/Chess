@@ -678,7 +678,11 @@ export function InvestingWelcomePanel() {
                               </span>
                             )}
                           </>
-                        ) : (language === 'fr' ? '~90 jours' : '~90 days')}
+                        ) : (
+                          <span className="text-slate-500 font-normal italic">
+                            {language === 'fr' ? 'Non annoncé' : 'Not announced'}
+                          </span>
+                        )}
                       </span>
                     </div>
                   );
@@ -730,21 +734,21 @@ export function InvestingWelcomePanel() {
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{dividend.ticker}</span>
                       </div>
                       {paysDividends ? (
-                        <div className="text-right">
+                        <div className="text-right text-sm">
                           {dividend.total_dividend !== null && dividend.quantity && dividend.dividend_amount ? (
-                            <div className="text-sm">
-                              <span className="text-emerald-500 font-bold">${dividend.total_dividend!.toFixed(2)}</span>
-                              <span className="text-slate-400 text-xs ml-1">
+                            <span className="text-emerald-500">
+                              <span className="font-bold">${dividend.total_dividend!.toFixed(2)}</span>
+                              <span className="text-xs ml-1">
                                 ({dividend.quantity} × ${dividend.dividend_amount.toFixed(2)})
                               </span>
-                            </div>
+                            </span>
                           ) : dividend.dividend_amount !== null ? (
-                            <span className="text-sm text-emerald-500 font-bold">${dividend.dividend_amount.toFixed(2)}</span>
+                            <span className="text-emerald-500 font-bold">${dividend.dividend_amount.toFixed(2)}</span>
                           ) : null}
                           {dividend.remaining_days !== null && (
-                            <span className="text-xs text-slate-400">
+                            <span className="text-slate-400 text-xs ml-2">
                               {dividend.remaining_days === 0
-                                ? (language === 'fr' ? "Aujourd'hui" : 'Today')
+                                ? (language === 'fr' ? "aujourd'hui" : 'today')
                                 : `${dividend.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`}
                             </span>
                           )}
