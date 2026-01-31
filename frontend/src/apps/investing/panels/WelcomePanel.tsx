@@ -1,6 +1,6 @@
 // Investing Welcome panel
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -64,14 +64,6 @@ interface TopMoversData {
   days: number;
 }
 
-interface CardPosition {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 // Card IDs
 const ALL_CARD_IDS = [
   'portfolio',
@@ -84,6 +76,11 @@ const ALL_CARD_IDS = [
 ] as const;
 
 type CardId = typeof ALL_CARD_IDS[number];
+
+// Grid has 9 slots (3x3), some can be empty (null)
+const GRID_SIZE = 9;
+type GridSlot = CardId | null;
+const DEFAULT_GRID: GridSlot[] = [...ALL_CARD_IDS, null, null];
 
 // API fetchers
 const fetchComposition = async (): Promise<CompositionData> => {
@@ -117,12 +114,12 @@ const fetchEarnings = async (sourceFilter: EarningsSourceFilter): Promise<Earnin
   return response.data;
 };
 
-const fetchCardOrder = async (): Promise<CardId[] | null> => {
+const fetchCardOrder = async (): Promise<GridSlot[] | null> => {
   const response = await axios.get('/api/preferences/dashboard-card-order');
   return response.data.order;
 };
 
-const saveCardOrder = async (order: CardId[]): Promise<void> => {
+const saveCardOrder = async (order: GridSlot[]): Promise<void> => {
   await axios.put('/api/preferences/dashboard-card-order', { order });
 };
 
@@ -141,8 +138,8 @@ export function InvestingWelcomePanel() {
   const { isAuthenticated, isLoading: authLoading, user, isNewUser, clearNewUserFlag } = useAuth();
   const { language } = useLanguage();
 
-  // Card order state
-  const [cardOrder, setCardOrder] = useState<CardId[]>([...ALL_CARD_IDS]);
+  // Grid slots state (9 slots, some can be empty)
+  const [gridSlots, setGridSlots] = useState<GridSlot[]>([...DEFAULT_GRID]);
 
   // Summary card states
   const [valueCurrency, setValueCurrency] = useState<'EUR' | 'USD'>('EUR');
@@ -152,10 +149,8 @@ export function InvestingWelcomePanel() {
 
   // Drag & drop state
   const [draggedCardId, setDraggedCardId] = useState<CardId | null>(null);
-  const [dragOverCardId, setDragOverCardId] = useState<CardId | null>(null);
+  const [dragOverSlotIndex, setDragOverSlotIndex] = useState<number | null>(null);
   const dragNodeRef = useRef<HTMLDivElement | null>(null);
-  const cardRefs = useRef<Map<CardId, HTMLDivElement>>(new Map());
-  const initialPositions = useRef<CardPosition[]>([]);
 
   // Fetch card order
   const { data: savedCardOrder } = useQuery({
@@ -173,13 +168,23 @@ export function InvestingWelcomePanel() {
     },
   });
 
-  // Update card order when loaded from server
+  // Update grid slots when loaded from server
   useEffect(() => {
     if (savedCardOrder && savedCardOrder.length > 0) {
-      // Validate that all saved IDs are valid and add any missing ones
-      const validOrder = savedCardOrder.filter((id): id is CardId => ALL_CARD_IDS.includes(id as CardId));
-      const missingIds = ALL_CARD_IDS.filter(id => !validOrder.includes(id));
-      setCardOrder([...validOrder, ...missingIds]);
+      // Validate slots - keep valid card IDs and nulls
+      const validSlots: GridSlot[] = savedCardOrder.map(slot =>
+        slot === null || ALL_CARD_IDS.includes(slot as CardId) ? slot as GridSlot : null
+      );
+      // Ensure we have exactly GRID_SIZE slots
+      while (validSlots.length < GRID_SIZE) validSlots.push(null);
+      // Find any missing cards and add them to empty slots
+      const presentCards = validSlots.filter((s): s is CardId => s !== null);
+      const missingCards = ALL_CARD_IDS.filter(id => !presentCards.includes(id));
+      for (const card of missingCards) {
+        const emptyIndex = validSlots.findIndex(s => s === null);
+        if (emptyIndex !== -1) validSlots[emptyIndex] = card;
+      }
+      setGridSlots(validSlots.slice(0, GRID_SIZE));
     }
   }, [savedCardOrder]);
 
@@ -226,50 +231,8 @@ export function InvestingWelcomePanel() {
     staleTime: 1000 * 60 * 15,
   });
 
-  // Capture card positions on drag start
-  const capturePositions = useCallback(() => {
-    const positions: CardPosition[] = [];
-    cardRefs.current.forEach((el, id) => {
-      const rect = el.getBoundingClientRect();
-      positions.push({ id, x: rect.left, y: rect.top, width: rect.width, height: rect.height });
-    });
-    initialPositions.current = positions;
-  }, []);
-
-  // Calculate transform for a card based on preview position (swap behavior)
-  const getTransform = useCallback((cardId: CardId, originalIndex: number): { x: number; y: number } => {
-    if (draggedCardId === null || dragOverCardId === null) {
-      return { x: 0, y: 0 };
-    }
-
-    const draggedIndex = cardOrder.findIndex(id => id === draggedCardId);
-    const targetIndex = cardOrder.findIndex(id => id === dragOverCardId);
-
-    if (draggedIndex === -1 || targetIndex === -1) return { x: 0, y: 0 };
-
-    // Only the dragged card and target card move (swap)
-    let visualIndex = originalIndex;
-    if (cardId === draggedCardId) {
-      visualIndex = targetIndex;
-    } else if (cardId === dragOverCardId) {
-      visualIndex = draggedIndex;
-    }
-
-    if (visualIndex === originalIndex) return { x: 0, y: 0 };
-
-    const currentPos = initialPositions.current.find(p => p.id === cardId);
-    const targetPos = initialPositions.current[visualIndex];
-    if (!currentPos || !targetPos) return { x: 0, y: 0 };
-
-    return {
-      x: targetPos.x - currentPos.x,
-      y: targetPos.y - currentPos.y,
-    };
-  }, [draggedCardId, dragOverCardId, cardOrder]);
-
   // Drag & drop handlers
   const handleDragStart = (e: React.DragEvent, cardId: CardId, node: HTMLDivElement) => {
-    capturePositions();
     setDraggedCardId(cardId);
     dragNodeRef.current = node;
     e.dataTransfer.effectAllowed = 'move';
@@ -277,7 +240,6 @@ export function InvestingWelcomePanel() {
     setTimeout(() => {
       if (dragNodeRef.current) {
         dragNodeRef.current.style.opacity = '0.4';
-        dragNodeRef.current.style.pointerEvents = 'none';
       }
     }, 0);
   };
@@ -285,55 +247,36 @@ export function InvestingWelcomePanel() {
   const handleDragEnd = () => {
     if (dragNodeRef.current) {
       dragNodeRef.current.style.opacity = '1';
-      dragNodeRef.current.style.pointerEvents = '';
     }
     setDraggedCardId(null);
-    setDragOverCardId(null);
+    setDragOverSlotIndex(null);
     dragNodeRef.current = null;
   };
 
-  const handleDragOver = (e: React.DragEvent, cardId: CardId) => {
+  const handleSlotDragOver = (e: React.DragEvent, slotIndex: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    if (cardId !== draggedCardId && dragOverCardId !== cardId) {
-      setDragOverCardId(cardId);
+    if (dragOverSlotIndex !== slotIndex) {
+      setDragOverSlotIndex(slotIndex);
     }
   };
 
-  const handleContainerDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleContainerDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (dragOverCardId !== null) {
-      handleDrop(e, dragOverCardId);
-    } else {
-      handleDragEnd();
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent, targetCardId: CardId) => {
+  const handleSlotDrop = (e: React.DragEvent, targetSlotIndex: number) => {
     e.preventDefault();
 
     const draggedId = draggedCardId;
     handleDragEnd();
 
-    if (draggedId === null || draggedId === targetCardId) {
-      return;
-    }
+    if (draggedId === null) return;
 
-    const newOrder = [...cardOrder];
-    const draggedIndex = newOrder.findIndex(id => id === draggedId);
-    const targetIndex = newOrder.findIndex(id => id === targetCardId);
+    const draggedSlotIndex = gridSlots.findIndex(slot => slot === draggedId);
+    if (draggedSlotIndex === -1 || draggedSlotIndex === targetSlotIndex) return;
 
-    if (draggedIndex !== -1 && targetIndex !== -1) {
-      // Swap the two cards
-      [newOrder[draggedIndex], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[draggedIndex]];
-      setCardOrder(newOrder);
-      saveOrderMutation.mutate(newOrder);
-    }
+    const newSlots = [...gridSlots];
+    // Swap: dragged card goes to target slot, target slot content goes to dragged slot
+    [newSlots[draggedSlotIndex], newSlots[targetSlotIndex]] = [newSlots[targetSlotIndex], newSlots[draggedSlotIndex]];
+    setGridSlots(newSlots);
+    saveOrderMutation.mutate(newSlots);
   };
 
   // Get upcoming earnings
@@ -365,31 +308,33 @@ export function InvestingWelcomePanel() {
   const upcomingEarnings = getUpcomingEarnings();
   const hasHoldings = (compositionData?.holdings?.length ?? 0) > 0;
 
-  // Render individual card by ID
-  const renderCard = (cardId: CardId, index: number) => {
-    const transform = getTransform(cardId, index);
-    const hasTransform = transform.x !== 0 || transform.y !== 0;
-    const isDragging = draggedCardId === cardId;
-    const isDragOver = dragOverCardId === cardId;
+  // Render a grid slot (card or empty)
+  const renderSlot = (slotIndex: number) => {
+    const cardId = gridSlots[slotIndex];
+    const isDragOver = dragOverSlotIndex === slotIndex;
+    const dragOverClass = isDragOver ? 'ring-2 ring-blue-500 ring-offset-2' : '';
 
+    // Empty slot
+    if (cardId === null) {
+      return (
+        <div
+          key={`empty-${slotIndex}`}
+          className={`border-2 border-dashed border-slate-600 rounded-xl h-[200px] flex items-center justify-center transition-colors ${dragOverClass} ${isDragOver ? 'border-blue-500 bg-blue-500/10' : ''}`}
+          onDragOver={(e) => handleSlotDragOver(e, slotIndex)}
+          onDrop={(e) => handleSlotDrop(e, slotIndex)}
+        />
+      );
+    }
+
+    const isDragging = draggedCardId === cardId;
     const cardBaseClass = "bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col transition-colors group";
-    const dragClass = isDragOver ? 'ring-2 ring-blue-500 ring-offset-2' : '';
 
     const cardProps = {
-      ref: (el: HTMLDivElement | null) => {
-        if (el) cardRefs.current.set(cardId, el);
-        else cardRefs.current.delete(cardId);
-      },
       draggable: true,
       onDragStart: (e: React.DragEvent<HTMLDivElement>) => handleDragStart(e, cardId, e.currentTarget),
       onDragEnd: handleDragEnd,
-      onDragOver: (e: React.DragEvent<HTMLDivElement>) => handleDragOver(e, cardId),
-      onDrop: (e: React.DragEvent<HTMLDivElement>) => handleDrop(e, cardId),
-      style: {
-        transform: hasTransform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
-        transition: draggedCardId ? 'transform 200ms ease-out' : undefined,
-        zIndex: isDragging ? 10 : undefined,
-      },
+      onDragOver: (e: React.DragEvent<HTMLDivElement>) => handleSlotDragOver(e, slotIndex),
+      onDrop: (e: React.DragEvent<HTMLDivElement>) => handleSlotDrop(e, slotIndex),
     };
 
     switch (cardId) {
@@ -399,7 +344,7 @@ export function InvestingWelcomePanel() {
             key={cardId}
             {...cardProps}
             onClick={() => !isDragging && navigate('/investing/portfolio')}
-            className={`${cardBaseClass} ${dragClass} cursor-pointer hover:border-green-500`}
+            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-green-500`}
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -469,7 +414,7 @@ export function InvestingWelcomePanel() {
           <div
             key={cardId}
             {...cardProps}
-            className={`${cardBaseClass} ${dragClass} overflow-hidden`}
+            className={`${cardBaseClass} ${dragOverClass} overflow-hidden`}
           >
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -536,7 +481,7 @@ export function InvestingWelcomePanel() {
             key={cardId}
             {...cardProps}
             onClick={() => !isDragging && navigate('/investing/earnings')}
-            className={`${cardBaseClass} ${dragClass} cursor-pointer hover:border-amber-500`}
+            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-amber-500`}
           >
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -629,7 +574,7 @@ export function InvestingWelcomePanel() {
             key={cardId}
             {...cardProps}
             onClick={() => !isDragging && navigate('/investing/watchlist')}
-            className={`${cardBaseClass} ${dragClass} cursor-pointer hover:border-blue-500 overflow-hidden`}
+            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-blue-500 overflow-hidden`}
           >
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -696,7 +641,7 @@ export function InvestingWelcomePanel() {
             key={cardId}
             {...cardProps}
             onClick={() => !isDragging && navigate('/investing/financials')}
-            className={`${cardBaseClass} ${dragClass} cursor-pointer hover:border-purple-500`}
+            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-purple-500`}
           >
             <div className="flex items-center gap-2 mb-3 flex-shrink-0">
                             <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
@@ -718,7 +663,7 @@ export function InvestingWelcomePanel() {
             key={cardId}
             {...cardProps}
             onClick={() => !isDragging && navigate('/investing/comparison')}
-            className={`${cardBaseClass} ${dragClass} cursor-pointer hover:border-indigo-500`}
+            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-indigo-500`}
           >
             <div className="flex items-center gap-2 mb-3 flex-shrink-0">
                             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
@@ -740,7 +685,7 @@ export function InvestingWelcomePanel() {
             key={cardId}
             {...cardProps}
             onClick={() => !isDragging && navigate('/investing/news-feed')}
-            className={`${cardBaseClass} ${dragClass} cursor-pointer hover:border-red-500`}
+            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-red-500`}
           >
             <div className="flex items-center gap-2 mb-3 flex-shrink-0">
                             <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
@@ -806,12 +751,8 @@ export function InvestingWelcomePanel() {
 
         {/* Unified Card Grid - only for authenticated users */}
         {isAuthenticated && (
-          <div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-[10%] mb-8"
-            onDragOver={handleContainerDragOver}
-            onDrop={handleContainerDrop}
-          >
-            {cardOrder.map((cardId, index) => renderCard(cardId, index))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-[10%] mb-8">
+            {gridSlots.map((_, index) => renderSlot(index))}
           </div>
         )}
 
