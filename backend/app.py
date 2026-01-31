@@ -4171,6 +4171,102 @@ def get_earnings_calendar():
     })
 
 
+@app.route('/api/investing/dividends-calendar', methods=['GET'])
+@login_required
+def get_dividends_calendar():
+    """Get upcoming dividend dates for portfolio holdings."""
+    import yfinance as yf
+    from investing_utils import get_yfinance_ticker
+
+    account_ids_str = request.args.get('account_ids', '')
+    account_ids = [int(x) for x in account_ids_str.split(',') if x.strip()] if account_ids_str else None
+
+    # Get portfolio holdings
+    holdings = compute_holdings_from_transactions(request.user_id, account_ids)
+    portfolio_tickers = [h['stock_ticker'] for h in holdings if h['quantity'] > 0]
+
+    if not portfolio_tickers:
+        return jsonify({'dividends': []})
+
+    today = datetime.now().date()
+    dividends_data = []
+
+    for ticker in portfolio_tickers:
+        try:
+            yf_ticker = get_yfinance_ticker(ticker)
+            stock = yf.Ticker(yf_ticker)
+            info = stock.info
+
+            # Get dividend info
+            dividend_rate = info.get('dividendRate')  # Annual dividend
+            dividend_yield = info.get('dividendYield')  # As decimal
+            ex_dividend_date = info.get('exDividendDate')  # Unix timestamp
+
+            # Convert yield to percentage
+            if dividend_yield:
+                dividend_yield = dividend_yield * 100
+
+            # Convert ex-dividend date
+            ex_date_str = None
+            remaining_days = None
+            if ex_dividend_date:
+                ex_date = datetime.fromtimestamp(ex_dividend_date).date()
+                ex_date_str = ex_date.strftime('%Y-%m-%d')
+                remaining_days = (ex_date - today).days
+
+            # Get payment frequency from calendar if available
+            frequency = None
+            try:
+                calendar = stock.calendar
+                if calendar is not None and not calendar.empty:
+                    # Check for dividend frequency
+                    if 'Dividend Date' in calendar.columns:
+                        frequency = 'Quarterly'  # Most common, default assumption
+            except Exception:
+                pass
+
+            # Estimate frequency from dividend rate vs last dividend
+            last_dividend = info.get('lastDividendValue')
+            if dividend_rate and last_dividend and last_dividend > 0:
+                ratio = dividend_rate / last_dividend
+                if ratio > 3.5:
+                    frequency = 'Quarterly'
+                elif ratio > 1.8:
+                    frequency = 'Semi-Annual'
+                else:
+                    frequency = 'Annual'
+
+            # Only include if there's dividend data
+            if dividend_rate or ex_date_str:
+                dividends_data.append({
+                    'ticker': ticker,
+                    'ex_dividend_date': ex_date_str,
+                    'payment_date': None,  # Not always available
+                    'remaining_days': remaining_days,
+                    'dividend_amount': round(last_dividend, 4) if last_dividend else None,
+                    'dividend_yield': round(dividend_yield, 2) if dividend_yield else None,
+                    'frequency': frequency,
+                    'confirmed': ex_date_str is not None,
+                })
+        except Exception as e:
+            app.logger.warning(f"Failed to fetch dividend data for {ticker}: {e}")
+            continue
+
+    # Sort by remaining days (future dates first, then nulls, then past dates)
+    def sort_key(x):
+        days = x['remaining_days']
+        if days is None:
+            return (1, 9999)  # Nulls after future dates
+        elif days < 0:
+            return (2, -days)  # Past dates last
+        else:
+            return (0, days)  # Future dates first
+
+    dividends_data.sort(key=sort_key)
+
+    return jsonify({'dividends': dividends_data})
+
+
 @app.route('/api/investing/earnings-alerts', methods=['GET'])
 @login_required
 def get_earnings_alert_preferences():

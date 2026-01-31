@@ -7,6 +7,7 @@ import { InvestingWelcomePanel } from './panels/WelcomePanel';
 import { PortfolioPanel } from './panels/PortfolioPanel';
 import { WatchlistPanel } from './panels/WatchlistPanel';
 import { EarningsCalendarPanel } from './panels/EarningsCalendarPanel';
+import { DividendsPanel } from './panels/DividendsPanel';
 import { FinancialsPanel } from './panels/FinancialsPanel';
 import { StockDetailPanel } from './panels/StockDetailPanel';
 import { AdminPanel } from './panels/AdminPanel';
@@ -31,6 +32,7 @@ export function InvestingApp() {
         <Route path="portfolio" element={<PortfolioPanel />} />
         <Route path="watchlist" element={<WatchlistPanel />} />
         <Route path="earnings" element={<EarningsCalendarPanel />} />
+        <Route path="dividends" element={<DividendsPanel />} />
         <Route path="comparison" element={<ComparisonPanel />} />
         <Route path="news-feed" element={<NewsFeedPanel />} />
         <Route path="financials" element={<FinancialsPanel />} />

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase, DollarSign } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -45,6 +45,17 @@ interface EarningsResponse {
   earnings: EarningsItem[];
 }
 
+interface DividendItem {
+  ticker: string;
+  ex_dividend_date: string | null;
+  remaining_days: number | null;
+  dividend_amount: number | null;
+}
+
+interface DividendsResponse {
+  dividends: DividendItem[];
+}
+
 interface PerformanceData {
   performance: number | null;
   performance_1m?: number | null;
@@ -70,6 +81,7 @@ const ALL_CARD_IDS = [
   'portfolio',
   'top-movers',
   'earnings',
+  'dividends',
   'watchlist',
   'stock-research',
   'news-feed',
@@ -116,6 +128,12 @@ const fetchEarnings = async (sourceFilter: EarningsSourceFilter): Promise<Earnin
     include_watchlist: (sourceFilter === 'both' || sourceFilter === 'watchlist') ? 'true' : 'false',
   });
   const response = await axios.get(`/api/investing/earnings-calendar?${params}`);
+  return response.data;
+};
+
+const fetchDividends = async (accountIds: number[]): Promise<DividendsResponse> => {
+  const params = accountIds.length > 0 ? `?account_ids=${accountIds.join(',')}` : '';
+  const response = await axios.get(`/api/investing/dividends-calendar${params}`);
   return response.data;
 };
 
@@ -246,6 +264,13 @@ export function InvestingWelcomePanel() {
     staleTime: 1000 * 60 * 30,
   });
 
+  const { data: dividendsData, isLoading: dividendsLoading } = useQuery({
+    queryKey: ['dividends-summary', selectedAccountIds],
+    queryFn: () => fetchDividends(selectedAccountIds),
+    enabled: isAuthenticated && selectedAccountIds.length > 0,
+    staleTime: 1000 * 60 * 30,
+  });
+
   const { data: perf7Data, isLoading: perf7Loading } = useQuery({
     queryKey: ['performance-period', 7, selectedAccountIds],
     queryFn: () => fetchPerformance(7, selectedAccountIds),
@@ -331,6 +356,14 @@ export function InvestingWelcomePanel() {
       .slice(0, 15);
   };
 
+  const getUpcomingDividends = () => {
+    if (!dividendsData?.dividends) return [];
+    return dividendsData.dividends
+      .filter(d => d.remaining_days === null || d.remaining_days >= 0)
+      .sort((a, b) => (a.remaining_days ?? 999) - (b.remaining_days ?? 999))
+      .slice(0, 10);
+  };
+
   if (authLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -349,6 +382,7 @@ export function InvestingWelcomePanel() {
   const topMovers = topMoversData?.movers ?? [];
   const watchlistMovers = watchlistMoversData?.movers ?? [];
   const upcomingEarnings = getUpcomingEarnings();
+  const upcomingDividends = getUpcomingDividends();
   const hasHoldings = (compositionData?.holdings?.length ?? 0) > 0;
 
   // Render a grid slot (card or empty)
@@ -606,6 +640,68 @@ export function InvestingWelcomePanel() {
             ) : (
               <p className="text-sm text-slate-400 italic">
                 {language === 'fr' ? 'Aucun résultat prévu' : 'No upcoming earnings'}
+              </p>
+            )}
+          </div>
+        );
+
+      case 'dividends':
+        return (
+          <div
+            key={cardId}
+            {...cardProps}
+            onClick={() => !isDragging && navigate('/investing/dividends')}
+            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-emerald-500`}
+          >
+            <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-xl font-bold text-white">
+                {language === 'fr' ? 'Dividendes à venir' : 'Upcoming Dividends'}
+              </span>
+            </div>
+            {dividendsLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+              </div>
+            ) : upcomingDividends.length > 0 ? (
+              <div className="space-y-2 flex-1 overflow-y-auto scrollbar-hide pr-1">
+                {upcomingDividends.map((dividend) => {
+                  const logoUrl = getCompanyLogoUrl(dividend.ticker);
+                  return (
+                    <div key={dividend.ticker} className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {logoUrl ? (
+                            <img src={logoUrl} alt={dividend.ticker} className="w-4 h-4 object-contain" />
+                          ) : (
+                            <span className="text-[8px] font-bold text-slate-500">{dividend.ticker.slice(0, 2)}</span>
+                          )}
+                        </div>
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{dividend.ticker}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {dividend.dividend_amount !== null && (
+                          <span className="text-sm text-emerald-500 font-medium">
+                            ${dividend.dividend_amount.toFixed(2)}
+                          </span>
+                        )}
+                        <span className="text-sm font-bold text-white">
+                          {dividend.remaining_days !== null ? (
+                            dividend.remaining_days === 0
+                              ? (language === 'fr' ? "Aujourd'hui" : 'Today')
+                              : `${dividend.remaining_days}j`
+                          ) : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 italic">
+                {language === 'fr' ? 'Aucun dividende prévu' : 'No upcoming dividends'}
               </p>
             )}
           </div>
