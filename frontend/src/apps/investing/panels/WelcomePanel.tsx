@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, Flame } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, GitCompare, Newspaper, Wallet, Flame, Briefcase, Info } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -114,8 +114,14 @@ const fetchTopMovers = async (days: number): Promise<TopMoversData> => {
   return response.data;
 };
 
-const fetchEarnings = async (): Promise<EarningsResponse> => {
-  const response = await axios.get('/api/investing/earnings-calendar?include_portfolio=true&include_watchlist=true');
+type EarningsSourceFilter = 'portfolio' | 'watchlist' | 'both';
+
+const fetchEarnings = async (sourceFilter: EarningsSourceFilter): Promise<EarningsResponse> => {
+  const params = new URLSearchParams({
+    include_portfolio: (sourceFilter === 'both' || sourceFilter === 'portfolio') ? 'true' : 'false',
+    include_watchlist: (sourceFilter === 'both' || sourceFilter === 'watchlist') ? 'true' : 'false',
+  });
+  const response = await axios.get(`/api/investing/earnings-calendar?${params}`);
   return response.data;
 };
 
@@ -137,6 +143,7 @@ export function InvestingWelcomePanel() {
   // Summary card states
   const [valueCurrency, setValueCurrency] = useState<'EUR' | 'USD'>('EUR');
   const [moversPeriod, setMoversPeriod] = useState<7 | 30>(30);
+  const [earningsSource, setEarningsSource] = useState<EarningsSourceFilter>('both');
 
   // Fetch portfolio data
   const { data: compositionData, isLoading: compositionLoading } = useQuery({
@@ -147,8 +154,8 @@ export function InvestingWelcomePanel() {
   });
 
   const { data: earningsData, isLoading: earningsLoading } = useQuery({
-    queryKey: ['earnings-summary'],
-    queryFn: fetchEarnings,
+    queryKey: ['earnings-summary', earningsSource],
+    queryFn: () => fetchEarnings(earningsSource),
     enabled: isAuthenticated,
     staleTime: 1000 * 60 * 30,
   });
@@ -426,13 +433,46 @@ export function InvestingWelcomePanel() {
               onClick={() => navigate('/investing/earnings')}
               className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-amber-500 transition-colors h-[200px] flex flex-col overflow-hidden"
             >
-              <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-                <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-4 h-4 text-white" />
+              <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
+                    <Calendar className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-xl font-bold text-white">
+                    {language === 'fr' ? 'Résultats à venir' : 'Upcoming Earnings'}
+                  </span>
                 </div>
-                <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Résultats à venir' : 'Upcoming Earnings'}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <div className="relative group">
+                    <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                    <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap">
+                      {language === 'fr' ? 'Filtrer par source' : 'Filter by source'}
+                    </div>
+                  </div>
+                  <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEarningsSource('portfolio'); }}
+                      title={language === 'fr' ? 'Portefeuille' : 'Portfolio'}
+                      className={`w-7 h-6 flex items-center justify-center ${earningsSource === 'portfolio' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    >
+                      <Briefcase className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEarningsSource('watchlist'); }}
+                      title="Watchlist"
+                      className={`w-7 h-6 flex items-center justify-center ${earningsSource === 'watchlist' ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    >
+                      <Eye className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEarningsSource('both'); }}
+                      title={language === 'fr' ? 'Les deux' : 'Both'}
+                      className={`px-1.5 h-6 text-xs font-medium flex items-center justify-center ${earningsSource === 'both' ? 'bg-amber-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    >
+                      {language === 'fr' ? 'Tout' : 'All'}
+                    </button>
+                  </div>
+                </div>
               </div>
               {earningsLoading ? (
                 <div className="flex-1 flex items-center justify-center">
