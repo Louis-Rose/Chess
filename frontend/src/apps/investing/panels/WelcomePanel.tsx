@@ -153,7 +153,7 @@ export function InvestingWelcomePanel() {
   const dragNodeRef = useRef<HTMLDivElement | null>(null);
 
   // Fetch card order
-  const { data: savedCardOrder } = useQuery({
+  const { data: savedCardOrder, isLoading: cardOrderLoading, isFetched: cardOrderFetched } = useQuery({
     queryKey: ['dashboard-card-order'],
     queryFn: fetchCardOrder,
     enabled: isAuthenticated,
@@ -731,8 +731,8 @@ export function InvestingWelcomePanel() {
           </h2>
         </div>
 
-        {/* Unified Card Grid - only for authenticated users */}
-        {isAuthenticated && (
+        {/* Unified Card Grid - only for authenticated users, wait for card order to load */}
+        {isAuthenticated && cardOrderFetched && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-[10%] mb-8">
             {gridSlots.map((_, index) => renderSlot(index))}
           </div>
