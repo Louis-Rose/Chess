@@ -4236,26 +4236,30 @@ def get_dividends_calendar():
                 else:
                     frequency = 'Annual'
 
-            # Only include if there's dividend data
-            if dividend_rate or ex_date_str:
-                dividends_data.append({
-                    'ticker': ticker,
-                    'ex_dividend_date': ex_date_str,
-                    'payment_date': None,  # Not always available
-                    'remaining_days': remaining_days,
-                    'dividend_amount': round(last_dividend, 4) if last_dividend else None,
-                    'dividend_yield': round(dividend_yield, 2) if dividend_yield else None,
-                    'frequency': frequency,
-                    'confirmed': ex_date_str is not None,
-                })
+            # Include all stocks, with pays_dividends flag
+            pays_dividends = bool(dividend_rate or ex_date_str)
+            dividends_data.append({
+                'ticker': ticker,
+                'ex_dividend_date': ex_date_str,
+                'payment_date': None,  # Not always available
+                'remaining_days': remaining_days,
+                'dividend_amount': round(last_dividend, 4) if last_dividend else None,
+                'dividend_yield': round(dividend_yield, 2) if dividend_yield else None,
+                'frequency': frequency,
+                'confirmed': ex_date_str is not None,
+                'pays_dividends': pays_dividends,
+            })
         except Exception as e:
             app.logger.warning(f"Failed to fetch dividend data for {ticker}: {e}")
             continue
 
-    # Sort by remaining days (future dates first, then nulls, then past dates)
+    # Sort: dividend payers with future dates first, then past dates, then non-payers
     def sort_key(x):
         days = x['remaining_days']
-        if days is None:
+        pays = x.get('pays_dividends', True)
+        if not pays:
+            return (3, x['ticker'])  # Non-dividend payers last, alphabetically
+        elif days is None:
             return (1, 9999)  # Nulls after future dates
         elif days < 0:
             return (2, -days)  # Past dates last

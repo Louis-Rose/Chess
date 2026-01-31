@@ -18,6 +18,7 @@ interface DividendData {
   dividend_yield: number | null;
   frequency: string | null;
   confirmed: boolean;
+  pays_dividends?: boolean;
 }
 
 interface DividendsResponse {
@@ -259,10 +260,11 @@ export function DividendsPanel() {
                 <tbody>
                   {data.dividends.map((item) => {
                     const logoUrl = getCompanyLogoUrl(item.ticker);
+                    const paysDividends = item.pays_dividends !== false;
                     return (
                       <tr
                         key={item.ticker}
-                        className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                        className={`border-b border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors ${!paysDividends ? 'opacity-60' : ''}`}
                       >
                         <td className="py-4 pl-2">
                           <div className="flex items-center gap-2">
@@ -276,73 +278,83 @@ export function DividendsPanel() {
                             <span className="font-bold text-slate-800 dark:text-slate-100">{item.ticker}</span>
                           </div>
                         </td>
-                        <td className="py-4">
-                          {item.ex_dividend_date ? (
-                            <span className="text-slate-700 dark:text-slate-200">
-                              <span className="hidden sm:inline">
-                                {new Date(item.ex_dividend_date).toLocaleDateString(
-                                  language === 'fr' ? 'fr-FR' : 'en-US',
-                                  { day: 'numeric', month: 'long', year: 'numeric' }
-                                )}
+                        <td className="py-4" colSpan={paysDividends ? 1 : 6}>
+                          {paysDividends ? (
+                            item.ex_dividend_date ? (
+                              <span className="text-slate-700 dark:text-slate-200">
+                                <span className="hidden sm:inline">
+                                  {new Date(item.ex_dividend_date).toLocaleDateString(
+                                    language === 'fr' ? 'fr-FR' : 'en-US',
+                                    { day: 'numeric', month: 'long', year: 'numeric' }
+                                  )}
+                                </span>
+                                <span className="sm:hidden">
+                                  {new Date(item.ex_dividend_date).toLocaleDateString(
+                                    language === 'fr' ? 'fr-FR' : 'en-US',
+                                    { day: 'numeric', month: 'short' }
+                                  )}
+                                </span>
                               </span>
-                              <span className="sm:hidden">
-                                {new Date(item.ex_dividend_date).toLocaleDateString(
-                                  language === 'fr' ? 'fr-FR' : 'en-US',
-                                  { day: 'numeric', month: 'short' }
-                                )}
-                              </span>
+                            ) : (
+                              <span className="text-slate-400 italic">N/A</span>
+                            )
+                          ) : (
+                            <span className="text-slate-400 italic">
+                              {language === 'fr' ? 'Pas de dividende' : 'No dividend'}
                             </span>
-                          ) : (
-                            <span className="text-slate-400 italic">N/A</span>
                           )}
                         </td>
-                        <td className="py-4 text-center hidden sm:table-cell">
-                          {item.remaining_days !== null ? (
-                            <span className={`inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-full text-sm font-medium ${
-                              item.remaining_days <= 7
-                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                                : 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200'
-                            }`}>
-                              {item.remaining_days}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
-                        </td>
-                        <td className="py-4 text-center">
-                          {item.confirmed ? (
-                            <CheckCircle2 className="w-5 h-5 text-green-600 mx-auto" />
-                          ) : (
-                            <HelpCircle className="w-5 h-5 text-slate-400 mx-auto" />
-                          )}
-                        </td>
-                        <td className="py-4 text-right">
-                          {item.dividend_amount !== null ? (
-                            <span className="text-slate-700 dark:text-slate-200 font-medium">
-                              ${item.dividend_amount.toFixed(2)}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
-                        </td>
-                        <td className="py-4 text-right hidden sm:table-cell">
-                          {item.dividend_yield !== null ? (
-                            <span className="text-green-600 font-medium">
-                              {item.dividend_yield.toFixed(2)}%
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
-                        </td>
-                        <td className="py-4 text-center hidden md:table-cell">
-                          {item.frequency ? (
-                            <span className="text-xs px-2 py-1 bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded">
-                              {item.frequency}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
-                        </td>
+                        {paysDividends && (
+                          <>
+                            <td className="py-4 text-center hidden sm:table-cell">
+                              {item.remaining_days !== null ? (
+                                <span className={`inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-full text-sm font-medium ${
+                                  item.remaining_days <= 7
+                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                                    : 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200'
+                                }`}>
+                                  {item.remaining_days}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                            <td className="py-4 text-center">
+                              {item.confirmed ? (
+                                <CheckCircle2 className="w-5 h-5 text-green-600 mx-auto" />
+                              ) : (
+                                <HelpCircle className="w-5 h-5 text-slate-400 mx-auto" />
+                              )}
+                            </td>
+                            <td className="py-4 text-right">
+                              {item.dividend_amount !== null ? (
+                                <span className="text-slate-700 dark:text-slate-200 font-medium">
+                                  ${item.dividend_amount.toFixed(2)}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                            <td className="py-4 text-right hidden sm:table-cell">
+                              {item.dividend_yield !== null ? (
+                                <span className="text-green-600 font-medium">
+                                  {item.dividend_yield.toFixed(2)}%
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                            <td className="py-4 text-center hidden md:table-cell">
+                              {item.frequency ? (
+                                <span className="text-xs px-2 py-1 bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded">
+                                  {item.frequency}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                          </>
+                        )}
                       </tr>
                     );
                   })}
@@ -359,6 +371,10 @@ export function DividendsPanel() {
                 <span className="inline-flex items-center gap-1">
                   <HelpCircle className="w-4 h-4 text-slate-400" />
                   {language === 'fr' ? 'Date estimée' : 'Estimated date'}
+                </span>
+                <span className="inline-flex items-center gap-1 opacity-60">
+                  <span className="italic">{language === 'fr' ? 'Grisé' : 'Grayed'}</span>
+                  = {language === 'fr' ? 'Pas de dividende' : 'No dividend'}
                 </span>
               </div>
             </div>

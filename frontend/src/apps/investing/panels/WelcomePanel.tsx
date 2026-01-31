@@ -50,6 +50,7 @@ interface DividendItem {
   ex_dividend_date: string | null;
   remaining_days: number | null;
   dividend_amount: number | null;
+  pays_dividends?: boolean;
 }
 
 interface DividendsResponse {
@@ -375,9 +376,16 @@ export function InvestingWelcomePanel() {
 
   const getUpcomingDividends = () => {
     if (!dividendsData?.dividends) return [];
+    // Sort: dividend payers with upcoming dates first, then non-payers
     return dividendsData.dividends
-      .filter(d => d.remaining_days === null || d.remaining_days >= 0)
-      .sort((a, b) => (a.remaining_days ?? 999) - (b.remaining_days ?? 999))
+      .filter(d => d.pays_dividends !== false ? (d.remaining_days === null || d.remaining_days >= 0) : true)
+      .sort((a, b) => {
+        // Non-payers go to the end
+        if (a.pays_dividends === false && b.pays_dividends !== false) return 1;
+        if (a.pays_dividends !== false && b.pays_dividends === false) return -1;
+        if (a.pays_dividends === false && b.pays_dividends === false) return a.ticker.localeCompare(b.ticker);
+        return (a.remaining_days ?? 999) - (b.remaining_days ?? 999);
+      })
       .slice(0, 10);
   };
 
@@ -696,6 +704,7 @@ export function InvestingWelcomePanel() {
               <div className="space-y-2 flex-1 overflow-y-auto scrollbar-hide pr-1">
                 {upcomingDividends.map((dividend) => {
                   const logoUrl = getCompanyLogoUrl(dividend.ticker);
+                  const paysDividends = dividend.pays_dividends !== false;
                   return (
                     <div key={dividend.ticker} className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
@@ -708,20 +717,26 @@ export function InvestingWelcomePanel() {
                         </div>
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{dividend.ticker}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {dividend.dividend_amount !== null && (
-                          <span className="text-sm text-emerald-500 font-medium">
-                            ${dividend.dividend_amount.toFixed(2)}
+                      {paysDividends ? (
+                        <div className="flex items-center gap-2">
+                          {dividend.dividend_amount !== null && (
+                            <span className="text-sm text-emerald-500 font-medium">
+                              ${dividend.dividend_amount.toFixed(2)}
+                            </span>
+                          )}
+                          <span className="text-sm font-bold text-white">
+                            {dividend.remaining_days !== null ? (
+                              dividend.remaining_days === 0
+                                ? (language === 'fr' ? "Aujourd'hui" : 'Today')
+                                : `${dividend.remaining_days}j`
+                            ) : '—'}
                           </span>
-                        )}
-                        <span className="text-sm font-bold text-white">
-                          {dividend.remaining_days !== null ? (
-                            dividend.remaining_days === 0
-                              ? (language === 'fr' ? "Aujourd'hui" : 'Today')
-                              : `${dividend.remaining_days}j`
-                          ) : '—'}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-slate-500 italic">
+                          {language === 'fr' ? 'Pas de dividende' : 'No dividend'}
                         </span>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
