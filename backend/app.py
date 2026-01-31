@@ -2865,6 +2865,62 @@ def get_portfolio_top_movers():
     })
 
 
+@app.route('/api/investing/watchlist/top-movers', methods=['GET'])
+@login_required
+def get_watchlist_top_movers():
+    """Get top movers in watchlist based on price change over period."""
+    from investing_utils import fetch_stock_price, fetch_current_stock_prices_batch
+
+    days = request.args.get('days', 30, type=int)
+    if days not in [7, 30]:
+        days = 30
+
+    # Get watchlist tickers
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT stock_ticker FROM watchlist WHERE user_id = ?',
+            (request.user_id,)
+        )
+        watchlist_tickers = [row['stock_ticker'] for row in cursor.fetchall()]
+
+    if not watchlist_tickers:
+        return jsonify({'movers': [], 'days': days})
+
+    today = datetime.now()
+    past_date = (today - timedelta(days=days)).strftime('%Y-%m-%d')
+
+    prices = fetch_current_stock_prices_batch(watchlist_tickers)
+
+    movers = []
+    for ticker in watchlist_tickers:
+        current_price = prices.get(ticker, 0) or 0
+        if current_price <= 0:
+            continue
+
+        try:
+            past_price = fetch_stock_price(ticker, past_date)
+            if past_price is None or past_price <= 0:
+                continue
+        except:
+            continue
+
+        change_pct = ((current_price - past_price) / past_price) * 100
+        movers.append({
+            'ticker': ticker,
+            'change_pct': round(change_pct, 1),
+            'current_price': round(current_price, 2),
+            'past_price': round(past_price, 2)
+        })
+
+    # Sort by change (best to worst)
+    movers.sort(key=lambda x: x['change_pct'], reverse=True)
+
+    return jsonify({
+        'movers': movers[:5],
+        'days': days
+    })
+
+
 @app.route('/api/investing/portfolio/performance', methods=['GET'])
 @login_required
 def get_portfolio_performance():

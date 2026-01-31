@@ -115,6 +115,11 @@ const fetchTopMovers = async (days: number): Promise<TopMoversData> => {
   return response.data;
 };
 
+const fetchWatchlistMovers = async (days: number): Promise<TopMoversData> => {
+  const response = await axios.get(`/api/investing/watchlist/top-movers?days=${days}`);
+  return response.data;
+};
+
 type EarningsSourceFilter = 'portfolio' | 'watchlist' | 'both';
 
 const fetchEarnings = async (sourceFilter: EarningsSourceFilter): Promise<EarningsResponse> => {
@@ -144,6 +149,7 @@ export function InvestingWelcomePanel() {
   // Summary card states
   const [valueCurrency, setValueCurrency] = useState<'EUR' | 'USD'>('EUR');
   const [moversPeriod, setMoversPeriod] = useState<7 | 30>(30);
+  const [watchlistMoversPeriod, setWatchlistMoversPeriod] = useState<7 | 30>(30);
   const [earningsSource, setEarningsSource] = useState<EarningsSourceFilter>('both');
 
   // Fetch portfolio data
@@ -182,6 +188,13 @@ export function InvestingWelcomePanel() {
     staleTime: 1000 * 60 * 15,
   });
 
+  const { data: watchlistMoversData, isLoading: watchlistMoversLoading } = useQuery({
+    queryKey: ['watchlist-movers', watchlistMoversPeriod],
+    queryFn: () => fetchWatchlistMovers(watchlistMoversPeriod),
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 15,
+  });
+
   // Get upcoming earnings - include all, sort by date (TBD at end)
   const getUpcomingEarnings = () => {
     if (!earningsData?.earnings) return [];
@@ -201,16 +214,6 @@ export function InvestingWelcomePanel() {
       titleFr: 'Recherche d\'actions',
       descEn: 'Financials and insights on any listed company.',
       descFr: 'Données financières et analyses sur toute entreprise cotée.',
-    },
-    {
-      icon: Eye,
-      iconBg: 'bg-blue-600',
-      hoverBorder: 'hover:border-blue-500',
-      path: '/investing/watchlist',
-      titleEn: 'My Watchlist',
-      titleFr: 'Ma Watchlist',
-      descEn: 'Manage the list of stocks you want to follow.',
-      descFr: 'Gérez la liste des actions que vous souhaitez suivre.',
     },
     {
       icon: GitCompare,
@@ -250,6 +253,7 @@ export function InvestingWelcomePanel() {
   const perf30Value = perf30Data?.performance;
   const perfLoading = perf7Loading || perf30Loading;
   const topMovers = topMoversData?.movers ?? [];
+  const watchlistMovers = watchlistMoversData?.movers ?? [];
   const upcomingEarnings = getUpcomingEarnings();
   const hasHoldings = (compositionData?.holdings?.length ?? 0) > 0;
 
@@ -298,7 +302,7 @@ export function InvestingWelcomePanel() {
 
         {/* Portfolio Summary Cards - only for authenticated users with holdings */}
         {isAuthenticated && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-[10%] mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-[10%] mb-8">
             {/* Portfolio Value & Performance Card */}
             <div
               onClick={() => navigate('/investing/portfolio')}
@@ -513,6 +517,69 @@ export function InvestingWelcomePanel() {
               ) : (
                 <p className="text-sm text-slate-400 italic">
                   {language === 'fr' ? 'Aucun résultat prévu' : 'No upcoming earnings'}
+                </p>
+              )}
+            </div>
+
+            {/* My Watchlist Card */}
+            <div
+              onClick={() => navigate('/investing/watchlist')}
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 cursor-pointer hover:border-blue-500 transition-colors h-[200px] flex flex-col overflow-hidden"
+            >
+              <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <Eye className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-xl font-bold text-white">
+                    {language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}
+                  </span>
+                </div>
+                <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(7); }}
+                    className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${watchlistMoversPeriod === 7 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    {language === 'fr' ? 'Sem. préc.' : 'Prev. week'}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(30); }}
+                    className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${watchlistMoversPeriod === 30 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    {language === 'fr' ? 'Mois préc.' : 'Prev. month'}
+                  </button>
+                </div>
+              </div>
+              {watchlistMoversLoading ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                </div>
+              ) : watchlistMovers.length > 0 ? (
+                <div className="space-y-2 flex-1 overflow-y-auto scrollbar-hide">
+                  {watchlistMovers.map((stock) => {
+                    const logoUrl = getCompanyLogoUrl(stock.ticker);
+                    return (
+                      <div key={stock.ticker} className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {logoUrl ? (
+                              <img src={logoUrl} alt={stock.ticker} className="w-4 h-4 object-contain" />
+                            ) : (
+                              <span className="text-[8px] font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
+                            )}
+                          </div>
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
+                        </div>
+                        <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400 italic">
+                  {language === 'fr' ? 'Aucune action suivie' : 'No stocks in watchlist'}
                 </p>
               )}
             </div>
