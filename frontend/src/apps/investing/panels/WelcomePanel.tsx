@@ -53,7 +53,7 @@ interface DividendItem {
   pays_dividends?: boolean;
   quantity?: number;
   total_dividend?: number | null;
-  amount_source?: 'fmp' | 'estimate' | null;
+  amount_source?: 'yfinance' | 'fmp' | 'estimate' | null;
   confirmed?: boolean;
 }
 
