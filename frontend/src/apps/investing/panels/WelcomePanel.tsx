@@ -9,6 +9,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
+import stockResearchPreview from '../../../assets/stock-research-preview.png';
 
 // Types
 interface CompositionItem {
@@ -640,9 +641,9 @@ export function InvestingWelcomePanel() {
             key={cardId}
             {...cardProps}
             onClick={() => !isDragging && navigate('/investing/financials')}
-            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-purple-500 overflow-hidden`}
+            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-purple-500 overflow-hidden !p-0`}
           >
-            <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+            <div className="flex items-center gap-2 p-3 pb-2 flex-shrink-0">
               <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-4 h-4 text-white" />
               </div>
@@ -650,56 +651,12 @@ export function InvestingWelcomePanel() {
                 {language === 'fr' ? 'Recherche & Comparaison' : 'Research & Compare Stocks'}
               </h3>
             </div>
-            {/* Mini stock detail preview */}
-            <div className="flex-1 flex flex-col pointer-events-none">
-              {/* Mini header */}
-              <div className="flex items-center gap-2 mb-2 px-2 py-1.5 bg-slate-700/50 rounded-lg">
-                <div className="w-5 h-5 rounded bg-white flex items-center justify-center text-[8px] font-bold text-blue-600">G</div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[10px] font-semibold text-white truncate">Alphabet Inc.</div>
-                  <div className="text-[8px] text-slate-400">GOOG</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[10px] font-bold text-white">$338.53</div>
-                  <div className="text-[8px] text-red-400">-0.04%</div>
-                </div>
-              </div>
-              {/* Mini charts grid */}
-              <div className="grid grid-cols-3 gap-1.5 flex-1">
-                {/* Revenue */}
-                <div className="bg-slate-700/30 rounded p-1.5">
-                  <div className="text-[7px] text-slate-400 mb-0.5">Revenue</div>
-                  <div className="flex items-end gap-0.5 h-6">
-                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '60%' }}></div>
-                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '70%' }}></div>
-                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '75%' }}></div>
-                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '85%' }}></div>
-                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '100%' }}></div>
-                  </div>
-                </div>
-                {/* Net Income */}
-                <div className="bg-slate-700/30 rounded p-1.5">
-                  <div className="text-[7px] text-slate-400 mb-0.5">Net Income</div>
-                  <div className="flex items-end gap-0.5 h-6">
-                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '50%' }}></div>
-                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '65%' }}></div>
-                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '70%' }}></div>
-                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '80%' }}></div>
-                    <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '100%' }}></div>
-                  </div>
-                </div>
-                {/* EBITDA */}
-                <div className="bg-slate-700/30 rounded p-1.5">
-                  <div className="text-[7px] text-slate-400 mb-0.5">EBITDA</div>
-                  <div className="flex items-end gap-0.5 h-6">
-                    <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '55%' }}></div>
-                    <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '60%' }}></div>
-                    <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '75%' }}></div>
-                    <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '85%' }}></div>
-                    <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '100%' }}></div>
-                  </div>
-                </div>
-              </div>
+            <div className="flex-1 overflow-hidden">
+              <img
+                src={stockResearchPreview}
+                alt="Stock research preview"
+                className="w-full h-full object-cover object-top"
+              />
             </div>
           </div>
         );
@@ -785,9 +742,9 @@ export function InvestingWelcomePanel() {
         {!isAuthenticated && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-[10%] mb-8">
             <div
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col overflow-hidden"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl h-[200px] flex flex-col overflow-hidden"
             >
-              <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+              <div className="flex items-center gap-2 p-3 pb-2 flex-shrink-0">
                 <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-4 h-4 text-white" />
                 </div>
@@ -795,56 +752,12 @@ export function InvestingWelcomePanel() {
                   {language === 'fr' ? 'Recherche & Comparaison' : 'Research & Compare Stocks'}
                 </h3>
               </div>
-              {/* Mini stock detail preview */}
-              <div className="flex-1 flex flex-col pointer-events-none">
-                {/* Mini header */}
-                <div className="flex items-center gap-2 mb-2 px-2 py-1.5 bg-slate-700/50 rounded-lg">
-                  <div className="w-5 h-5 rounded bg-white flex items-center justify-center text-[8px] font-bold text-blue-600">G</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-semibold text-white truncate">Alphabet Inc.</div>
-                    <div className="text-[8px] text-slate-400">GOOG</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] font-bold text-white">$338.53</div>
-                    <div className="text-[8px] text-red-400">-0.04%</div>
-                  </div>
-                </div>
-                {/* Mini charts grid */}
-                <div className="grid grid-cols-3 gap-1.5 flex-1">
-                  {/* Revenue */}
-                  <div className="bg-slate-700/30 rounded p-1.5">
-                    <div className="text-[7px] text-slate-400 mb-0.5">Revenue</div>
-                    <div className="flex items-end gap-0.5 h-6">
-                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '60%' }}></div>
-                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '70%' }}></div>
-                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '75%' }}></div>
-                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '85%' }}></div>
-                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '100%' }}></div>
-                    </div>
-                  </div>
-                  {/* Net Income */}
-                  <div className="bg-slate-700/30 rounded p-1.5">
-                    <div className="text-[7px] text-slate-400 mb-0.5">Net Income</div>
-                    <div className="flex items-end gap-0.5 h-6">
-                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '50%' }}></div>
-                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '65%' }}></div>
-                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '70%' }}></div>
-                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '80%' }}></div>
-                      <div className="flex-1 bg-orange-500 rounded-sm" style={{ height: '100%' }}></div>
-                    </div>
-                  </div>
-                  {/* EBITDA */}
-                  <div className="bg-slate-700/30 rounded p-1.5">
-                    <div className="text-[7px] text-slate-400 mb-0.5">EBITDA</div>
-                    <div className="flex items-end gap-0.5 h-6">
-                      <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '55%' }}></div>
-                      <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '60%' }}></div>
-                      <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '75%' }}></div>
-                      <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '85%' }}></div>
-                      <div className="flex-1 bg-purple-500 rounded-sm" style={{ height: '100%' }}></div>
-                    </div>
-                  </div>
-                </div>
+              <div className="flex-1 overflow-hidden">
+                <img
+                  src={stockResearchPreview}
+                  alt="Stock research preview"
+                  className="w-full h-full object-cover object-top"
+                />
               </div>
             </div>
             <div
