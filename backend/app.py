@@ -4174,8 +4174,9 @@ def get_earnings_calendar():
 @app.route('/api/investing/dividends-calendar', methods=['GET'])
 @login_required
 def get_dividends_calendar():
-    """Get upcoming dividend dates for portfolio holdings."""
+    """Get upcoming dividend dates for portfolio holdings using FMP API."""
     import yfinance as yf
+    import requests
     from investing_utils import get_yfinance_ticker
 
     account_ids_str = request.args.get('account_ids', '')
@@ -4192,42 +4193,74 @@ def get_dividends_calendar():
     today = datetime.now().date()
     dividends_data = []
 
+    # Fetch FMP dividend calendar for the next 6 months
+    fmp_api_key = os.environ.get('FMP_API_KEY')
+    fmp_dividends = {}
+
+    if fmp_api_key:
+        try:
+            from_date = today.strftime('%Y-%m-%d')
+            to_date = (today + timedelta(days=180)).strftime('%Y-%m-%d')
+            fmp_url = f"https://financialmodelingprep.com/api/v3/stock_dividend_calendar?from={from_date}&to={to_date}&apikey={fmp_api_key}"
+            fmp_response = requests.get(fmp_url, timeout=10)
+
+            if fmp_response.status_code == 200:
+                fmp_calendar = fmp_response.json()
+                # Index by symbol for quick lookup
+                for event in fmp_calendar:
+                    symbol = event.get('symbol', '')
+                    if symbol and symbol not in fmp_dividends:
+                        fmp_dividends[symbol] = event
+        except Exception as e:
+            app.logger.warning(f"Failed to fetch FMP dividend calendar: {e}")
+
     for ticker in portfolio_tickers:
         try:
             yf_ticker = get_yfinance_ticker(ticker)
             stock = yf.Ticker(yf_ticker)
             info = stock.info
 
-            # Get dividend info
+            # Get basic dividend info from yfinance
             dividend_rate = info.get('dividendRate')  # Annual dividend
             dividend_yield = info.get('dividendYield')  # As decimal
-            ex_dividend_date = info.get('exDividendDate')  # Unix timestamp
+            last_dividend = info.get('lastDividendValue')
 
             # Convert yield to percentage
             if dividend_yield:
                 dividend_yield = dividend_yield * 100
 
-            # Convert ex-dividend date
+            # Check FMP for upcoming dividend (try both ticker formats)
+            fmp_data = fmp_dividends.get(ticker) or fmp_dividends.get(yf_ticker)
+
             ex_date_str = None
             remaining_days = None
-            if ex_dividend_date:
-                ex_date = datetime.fromtimestamp(ex_dividend_date).date()
-                ex_date_str = ex_date.strftime('%Y-%m-%d')
-                remaining_days = (ex_date - today).days
+            dividend_amount = None
+            payment_date = None
+            confirmed = False
 
-            # Get payment frequency from calendar if available
-            frequency = None
-            try:
-                calendar = stock.calendar
-                if calendar is not None and not calendar.empty:
-                    # Check for dividend frequency
-                    if 'Dividend Date' in calendar.columns:
-                        frequency = 'Quarterly'  # Most common, default assumption
-            except Exception:
-                pass
+            if fmp_data:
+                # Use FMP data for upcoming dividend
+                ex_date_str = fmp_data.get('date')
+                payment_date = fmp_data.get('paymentDate')
+                dividend_amount = fmp_data.get('adjDividend') or fmp_data.get('dividend')
+                if ex_date_str:
+                    ex_date = datetime.strptime(ex_date_str, '%Y-%m-%d').date()
+                    remaining_days = (ex_date - today).days
+                    confirmed = True
+            else:
+                # Fall back to yfinance ex-dividend date
+                yf_ex_date = info.get('exDividendDate')
+                if yf_ex_date:
+                    ex_date = datetime.fromtimestamp(yf_ex_date).date()
+                    # Only use if it's in the future
+                    if ex_date >= today:
+                        ex_date_str = ex_date.strftime('%Y-%m-%d')
+                        remaining_days = (ex_date - today).days
+                        confirmed = True
+                dividend_amount = last_dividend
 
             # Estimate frequency from dividend rate vs last dividend
-            last_dividend = info.get('lastDividendValue')
+            frequency = None
             if dividend_rate and last_dividend and last_dividend > 0:
                 ratio = dividend_rate / last_dividend
                 if ratio > 3.5:
@@ -4238,19 +4271,20 @@ def get_dividends_calendar():
                     frequency = 'Annual'
 
             # Include all stocks, with pays_dividends flag
-            pays_dividends = bool(dividend_rate or ex_date_str)
+            pays_dividends = bool(dividend_rate or dividend_amount or ex_date_str)
             quantity = holdings_by_ticker.get(ticker, 0)
-            dividend_per_share = round(last_dividend, 4) if last_dividend else None
-            total_dividend = round(quantity * last_dividend, 2) if last_dividend and quantity else None
+            dividend_per_share = round(dividend_amount, 4) if dividend_amount else None
+            total_dividend = round(quantity * dividend_amount, 2) if dividend_amount and quantity else None
+
             dividends_data.append({
                 'ticker': ticker,
                 'ex_dividend_date': ex_date_str,
-                'payment_date': None,  # Not always available
+                'payment_date': payment_date,
                 'remaining_days': remaining_days,
                 'dividend_amount': dividend_per_share,
                 'dividend_yield': round(dividend_yield, 2) if dividend_yield else None,
                 'frequency': frequency,
-                'confirmed': ex_date_str is not None,
+                'confirmed': confirmed,
                 'pays_dividends': pays_dividends,
                 'quantity': quantity,
                 'total_dividend': total_dividend,
