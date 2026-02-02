@@ -279,7 +279,6 @@ function CompanySection({
   language: string;
   onPlayVideo: (video: VideoWithCompany) => void;
 }) {
-  const navigate = useNavigate();
   const logoUrl = getCompanyLogoUrl(ticker);
   const [isOpen, setIsOpen] = useState(false);
 
