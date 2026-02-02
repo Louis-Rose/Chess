@@ -444,9 +444,6 @@ export function NewsFeedPanel() {
         <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
           {language === 'fr' ? 'Fil d\'actualités' : 'News Feed'}
         </h2>
-        <p className="text-slate-500 dark:text-slate-400 text-lg italic">
-          {language === 'fr' ? 'Vidéos YouTube de votre portefeuille' : 'YouTube videos from your portfolio'}
-        </p>
       </div>
 
       <div className="max-w-6xl mx-auto space-y-6 px-4">
