@@ -18,6 +18,7 @@ Cron example (daily at 6 AM):
 import os
 import sys
 import time
+import random
 import requests
 from datetime import datetime
 
@@ -71,16 +72,32 @@ def upload_video_data(video_id, transcript=None, has_transcript=True, summary=No
     return response.json()
 
 
+class RateLimitError(Exception):
+    """Raised when YouTube rate limits us."""
+    pass
+
+
 def fetch_transcript(video_id):
-    """Fetch transcript for a video from YouTube."""
+    """Fetch transcript for a video from YouTube.
+
+    Returns:
+        str: Transcript text if available
+        None: If video has no transcript (subtitles disabled)
+    Raises:
+        RateLimitError: If YouTube is rate limiting us
+    """
     try:
         ytt_api = YouTubeTranscriptApi()
         transcript_list = ytt_api.fetch(video_id, languages=['en', 'fr', 'en-US', 'en-GB'])
         return ' '.join([snippet.text for snippet in transcript_list])
     except Exception as e:
         error_msg = str(e).lower()
-        if 'disabled' in error_msg or 'no transcript' in error_msg or 'not found' in error_msg:
-            return None  # No transcript available
+        # Video genuinely has no transcript
+        if 'disabled' in error_msg or 'subtitles' in error_msg:
+            return None
+        # Likely rate limited - could not retrieve usually means blocked
+        if 'could not retrieve' in error_msg:
+            raise RateLimitError(f"Rate limited by YouTube: {e}")
         raise
 
 
@@ -130,14 +147,15 @@ def main():
     summary_generated = 0
     no_transcript = 0
     error_count = 0
+    rate_limited = False
 
-    for video in videos:
+    for i, video in enumerate(videos):
         video_id = video['video_id']
         has_transcript = video.get('has_transcript', False)
         has_summary = video.get('has_summary', False)
         title = video['title'][:50] + '...' if len(video['title']) > 50 else video['title']
 
-        log(f"Processing: {title}")
+        log(f"[{i+1}/{len(videos)}] Processing: {title}")
 
         try:
             transcript = None
@@ -171,16 +189,26 @@ def main():
                 upload_video_data(video_id, transcript=transcript, has_transcript=True, summary=summary)
                 log(f"  -> Uploaded to API")
 
-            # Rate limit: wait between YouTube requests
+            # Rate limit: randomized delay between YouTube requests (10-25 seconds)
             if not has_transcript:
-                time.sleep(1)
+                delay = 10 + random.uniform(5, 15)
+                log(f"  -> Waiting {delay:.1f}s before next request...")
+                time.sleep(delay)
+
+        except RateLimitError as e:
+            log(f"  -> RATE LIMITED: {str(e)[:80]}")
+            log(f"  -> Stopping to avoid ban. {len(videos) - i - 1} videos remaining for next run.")
+            rate_limited = True
+            break
 
         except Exception as e:
             log(f"  -> ERROR: {str(e)[:100]}")
             error_count += 1
             continue
 
-    log(f"Done! Transcripts fetched: {transcript_fetched}, Summaries generated: {summary_generated}, No transcript: {no_transcript}, Errors: {error_count}")
+    log(f"Done! Transcripts: {transcript_fetched}, Summaries: {summary_generated}, No transcript: {no_transcript}, Errors: {error_count}")
+    if rate_limited:
+        log("Note: Rate limited by YouTube. Remaining videos will be processed on next run.")
 
 
 if __name__ == '__main__':
