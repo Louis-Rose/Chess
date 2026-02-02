@@ -9,6 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
+import { findStockByTicker } from '../utils/allStocks';
 
 interface AdminUser {
   id: number;
@@ -1455,7 +1456,10 @@ export function AdminPanel() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedCompanies.map((company) => (
+                      {sortedCompanies.map((company) => {
+                        const stock = findStockByTicker(company.ticker);
+                        const companyName = stock?.name || company.ticker;
+                        return (
                         <tr
                           key={company.ticker}
                           className={`border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${selectedCompanyTicker === company.ticker ? 'bg-slate-100 dark:bg-slate-600' : ''}`}
@@ -1469,14 +1473,14 @@ export function AdminPanel() {
                                 className="w-6 h-6 rounded bg-white"
                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                               />
-                              <span className="font-medium text-slate-800 dark:text-slate-100">{company.ticker}</span>
+                              <span className="font-medium text-slate-800 dark:text-slate-100">{companyName} <span className="text-slate-400 font-normal">({company.ticker})</span></span>
                             </div>
                           </td>
                           <td className="py-2 text-center font-medium text-slate-700 dark:text-slate-200">{company.total}</td>
                           <td className="py-2 text-center text-slate-500 dark:text-slate-300">{company.portfolio_count}</td>
                           <td className="py-2 text-center text-slate-500 dark:text-slate-300">{company.watchlist_count}</td>
                         </tr>
-                      ))}
+                      );})}
                     </tbody>
                   </table>
                 </div>
@@ -1623,7 +1627,10 @@ export function AdminPanel() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedStockViews.map((stock) => (
+                    {sortedStockViews.map((stock) => {
+                      const stockInfo = findStockByTicker(stock.stock_ticker);
+                      const companyName = stockInfo?.name || stock.stock_ticker;
+                      return (
                       <tr
                         key={stock.stock_ticker}
                         className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer"
@@ -1637,7 +1644,7 @@ export function AdminPanel() {
                               className="w-6 h-6 rounded bg-white"
                               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
-                            <span className="font-medium text-slate-800 dark:text-slate-100">{stock.stock_ticker}</span>
+                            <span className="font-medium text-slate-800 dark:text-slate-100">{companyName} <span className="text-slate-400 font-normal">({stock.stock_ticker})</span></span>
                           </div>
                         </td>
                         <td className="py-2 text-center text-slate-500 dark:text-slate-300">{stock.unique_users}</td>
@@ -1648,7 +1655,7 @@ export function AdminPanel() {
                             : `${stock.total_time_seconds}s`}
                         </td>
                       </tr>
-                    ))}
+                    );})}
                   </tbody>
                 </table>
               </div>
