@@ -286,8 +286,6 @@ function CompanySection({
   // Filter to recent videos only (last 30 days, max 5)
   const recentVideos = filterRecentVideos(videos);
 
-  if (recentVideos.length === 0) return null;
-
   return (
     <div className="mb-6">
       {/* Company header with toggle */}
@@ -317,11 +315,16 @@ function CompanySection({
             {companyName} ({ticker})
           </span>
         </button>
-        <span className="text-xs text-slate-400">{recentVideos.length} {recentVideos.length === 1 ? 'video' : 'videos'}</span>
+        <span className="text-xs text-slate-400">
+          {recentVideos.length === 0
+            ? (language === 'fr' ? 'Aucune vidéo récente' : 'No recent videos')
+            : `${recentVideos.length} ${recentVideos.length === 1 ? 'video' : 'videos'}`
+          }
+        </span>
       </div>
 
       {/* Scrollable vertical video list - height for ~2-3 videos */}
-      {isOpen && (
+      {isOpen && recentVideos.length > 0 && (
       <div className="space-y-2 max-h-[420px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-500 ml-6">
         {recentVideos.map((video) => (
           <VideoRow
