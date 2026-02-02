@@ -560,7 +560,9 @@ export function InvestingWelcomePanel() {
                       <div className="flex items-center gap-3 text-lg font-semibold">
                         {perf7Value !== undefined && perf7Value !== null && (
                           <span className={perf7Value >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {language === 'fr' ? 'Sem.' : '1W'}: {perf7Value >= 0 ? '+' : ''}{perf7Value.toFixed(1)}%
+                            <span className="hidden min-[1920px]:inline">{language === 'fr' ? 'Semaine' : 'Last week'}:</span>
+                            <span className="min-[1920px]:hidden">{language === 'fr' ? 'Sem.' : '1W'}:</span>
+                            {' '}{perf7Value >= 0 ? '+' : ''}{perf7Value.toFixed(1)}%
                           </span>
                         )}
                         {perf7Value !== undefined && perf7Value !== null && perf30Value !== undefined && perf30Value !== null && (
@@ -568,7 +570,9 @@ export function InvestingWelcomePanel() {
                         )}
                         {perf30Value !== undefined && perf30Value !== null && (
                           <span className={perf30Value >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {language === 'fr' ? 'Mois' : '1M'}: {perf30Value >= 0 ? '+' : ''}{perf30Value.toFixed(1)}%
+                            <span className="hidden min-[1920px]:inline">{language === 'fr' ? 'Mois' : 'Last month'}:</span>
+                            <span className="min-[1920px]:hidden">{language === 'fr' ? 'Mois' : '1M'}:</span>
+                            {' '}{perf30Value >= 0 ? '+' : ''}{perf30Value.toFixed(1)}%
                           </span>
                         )}
                       </div>
@@ -605,13 +609,15 @@ export function InvestingWelcomePanel() {
                   onClick={(e) => { e.stopPropagation(); setMoversPeriod(7); }}
                   className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 7 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                 >
-                  1W
+                  <span className="hidden min-[1920px]:inline">{language === 'fr' ? 'Sem. préc.' : 'Prev. week'}</span>
+                  <span className="min-[1920px]:hidden">1W</span>
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); setMoversPeriod(30); }}
                   className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 30 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                 >
-                  1M
+                  <span className="hidden min-[1920px]:inline">{language === 'fr' ? 'Mois préc.' : 'Prev. month'}</span>
+                  <span className="min-[1920px]:hidden">1M</span>
                 </button>
               </div>
             </div>
@@ -726,15 +732,23 @@ export function InvestingWelcomePanel() {
                       <span className="text-sm font-bold text-white">
                         {earning.next_earnings_date ? (
                           <>
-                            {new Date(earning.next_earnings_date).toLocaleDateString(
-                              language === 'fr' ? 'fr-FR' : 'en-US',
-                              { day: 'numeric', month: 'long', year: 'numeric' }
-                            )}
+                            <span className="hidden min-[1600px]:inline">
+                              {new Date(earning.next_earnings_date).toLocaleDateString(
+                                language === 'fr' ? 'fr-FR' : 'en-US',
+                                { day: 'numeric', month: 'long', year: 'numeric' }
+                              )}
+                            </span>
+                            <span className="min-[1600px]:hidden">
+                              {new Date(earning.next_earnings_date).toLocaleDateString(
+                                language === 'fr' ? 'fr-FR' : 'en-US',
+                                { day: 'numeric', month: 'short', year: 'numeric' }
+                              )}
+                            </span>
                             {earning.remaining_days !== null && (
                               <span className="text-slate-400 font-normal">
                                 {' '}({earning.remaining_days === 0
                                   ? (language === 'fr' ? "aujourd'hui" : 'today')
-                                  : `${earning.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
+                                  : `${earning.remaining_days}${language === 'fr' ? 'j' : 'd'}`})
                               </span>
                             )}
                           </>
@@ -808,6 +822,11 @@ export function InvestingWelcomePanel() {
                             : <>${formatted}</>;
                         })()}
                       </span>
+                      <span className="text-sm text-emerald-500 tabular-nums hidden min-[1920px]:inline">
+                        {paysDividends && dividend.total_dividend !== null && dividend.quantity && dividend.dividend_amount && (
+                          <>({dividend.quantity} × ${dividend.dividend_amount.toFixed(2)})</>
+                        )}
+                      </span>
                       <span className="text-sm text-slate-400 tabular-nums ml-1">
                         {paysDividends ? (
                           dividend.remaining_days !== null && (
@@ -855,13 +874,15 @@ export function InvestingWelcomePanel() {
                   onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(7); }}
                   className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${watchlistMoversPeriod === 7 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                 >
-                  1W
+                  <span className="hidden min-[1920px]:inline">{language === 'fr' ? 'Sem. préc.' : 'Prev. week'}</span>
+                  <span className="min-[1920px]:hidden">1W</span>
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(30); }}
                   className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${watchlistMoversPeriod === 30 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                 >
-                  1M
+                  <span className="hidden min-[1920px]:inline">{language === 'fr' ? 'Mois préc.' : 'Prev. month'}</span>
+                  <span className="min-[1920px]:hidden">1M</span>
                 </button>
               </div>
             </div>
