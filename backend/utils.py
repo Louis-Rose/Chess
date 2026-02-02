@@ -6,7 +6,7 @@ import numpy as np
 import json
 from scipy.optimize import minimize
 from scipy.special import expit  # logistic function
-from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
+from youtube_transcript_api import YouTubeTranscriptApi
 
 # --- Data Fetching Functions ---
 
@@ -1070,8 +1070,9 @@ def score_transcript_for_tips(video_id):
     ]
 
     try:
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en', 'en-US', 'en-GB'])
-        full_text = ' '.join([entry['text'].lower() for entry in transcript_list])
+        ytt_api = YouTubeTranscriptApi()
+        transcript_list = ytt_api.fetch(video_id, languages=['en', 'en-US', 'en-GB'])
+        full_text = ' '.join([snippet.text.lower() for snippet in transcript_list])
 
         # Count keyword occurrences
         word_count = len(full_text.split())
@@ -1085,9 +1086,10 @@ def score_transcript_for_tips(video_id):
 
         return density
 
-    except (TranscriptsDisabled, NoTranscriptFound):
-        return 0  # No transcript available
     except Exception as e:
+        error_msg = str(e).lower()
+        if 'disabled' in error_msg or 'no transcript' in error_msg or 'not found' in error_msg:
+            return 0  # No transcript available
         print(f"Error fetching transcript for {video_id}: {e}")
         return 0
 

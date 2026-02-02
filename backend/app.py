@@ -4667,7 +4667,6 @@ def get_news_feed():
 def get_video_summary(video_id):
     """Get AI-generated summary of a YouTube video transcript."""
     from youtube_transcript_api import YouTubeTranscriptApi
-    from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
     import google.generativeai as genai
 
     # Check cache first
@@ -4680,13 +4679,15 @@ def get_video_summary(video_id):
         if row:
             return jsonify({'summary': row['summary'], 'from_cache': True})
 
-    # Fetch transcript
+    # Fetch transcript (compatible with youtube-transcript-api 0.6.0+)
     try:
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en', 'fr', 'en-US', 'en-GB'])
-        transcript_text = ' '.join([entry['text'] for entry in transcript_list])
-    except (TranscriptsDisabled, NoTranscriptFound):
-        return jsonify({'error': 'No transcript available for this video'}), 404
+        ytt_api = YouTubeTranscriptApi()
+        transcript_list = ytt_api.fetch(video_id, languages=['en', 'fr', 'en-US', 'en-GB'])
+        transcript_text = ' '.join([snippet.text for snippet in transcript_list])
     except Exception as e:
+        error_msg = str(e).lower()
+        if 'disabled' in error_msg or 'no transcript' in error_msg or 'not found' in error_msg:
+            return jsonify({'error': 'No transcript available for this video'}), 404
         return jsonify({'error': f'Failed to fetch transcript: {str(e)}'}), 500
 
     # Truncate if too long (Gemini has token limits)
