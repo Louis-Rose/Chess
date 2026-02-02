@@ -5193,11 +5193,12 @@ def get_page_breakdown():
 @app.route('/api/admin/clear-video-cache', methods=['POST'])
 @admin_required
 def clear_video_cache():
-    """Clear YouTube video cache and company selections (admin only)."""
+    """Clear YouTube video cache, channel fetch log, and company selections (admin only)."""
     with get_db() as conn:
         conn.execute('DELETE FROM youtube_videos_cache')
+        conn.execute('DELETE FROM youtube_channel_fetch_log')
         conn.execute('DELETE FROM company_video_selections')
-    return jsonify({'success': True, 'message': 'Video cache and company selections cleared.'})
+    return jsonify({'success': True, 'message': 'Video cache, fetch log, and company selections cleared.'})
 
 
 @app.route('/api/admin/backfill-demo-portfolios', methods=['POST'])
