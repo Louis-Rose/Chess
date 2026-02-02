@@ -274,7 +274,7 @@ function CompanySection({
 }) {
   const navigate = useNavigate();
   const logoUrl = getCompanyLogoUrl(ticker);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   // Filter to recent videos only (last 30 days, max 5)
   const recentVideos = filterRecentVideos(videos, 30, 5);
