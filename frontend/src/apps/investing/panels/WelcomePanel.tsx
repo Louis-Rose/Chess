@@ -765,9 +765,15 @@ export function InvestingWelcomePanel() {
                           </span>
                         </>
                       ) : (
-                        <span className="text-sm text-slate-400 col-span-3 text-right">
-                          {valueCurrency === 'EUR' ? '0€' : '$0'} ({language === 'fr' ? 'Pas de dividendes' : 'No dividends'})
-                        </span>
+                        <>
+                          <span className="text-sm text-emerald-500 font-bold text-right tabular-nums">
+                            {valueCurrency === 'EUR' ? '00.00€' : '$00.00'}
+                          </span>
+                          <span></span>
+                          <span className="text-sm text-slate-400 text-right ml-1">
+                            ({language === 'fr' ? 'Pas de dividendes' : 'No dividends'})
+                          </span>
+                        </>
                       )}
                     </div>
                   );
