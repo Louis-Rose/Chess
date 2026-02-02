@@ -65,7 +65,7 @@ def refresh_video_selection(ticker):
     try:
         response = requests.get(
             f"{API_BASE_URL}/api/investing/news-feed",
-            params={'ticker': ticker, 'limit': 10},
+            params={'ticker': ticker, 'limit': 3},
             headers={'X-Sync-Key': SYNC_API_KEY},
             timeout=60
         )
