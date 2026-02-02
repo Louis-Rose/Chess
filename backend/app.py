@@ -5005,6 +5005,42 @@ def get_company_stats():
     return jsonify({'companies': companies})
 
 
+@app.route('/api/admin/company-stats/<ticker>', methods=['GET'])
+@admin_required
+def get_company_users(ticker):
+    """Get users who have this ticker in their portfolio or watchlist."""
+    # Hidden accounts
+    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
+    placeholders = ','.join(['?' for _ in hidden_emails])
+
+    with get_db() as conn:
+        # Get users with this ticker in portfolio
+        cursor = conn.execute(f'''
+            SELECT DISTINCT u.id, u.name, u.picture
+            FROM users u
+            JOIN portfolio_transactions pt ON u.id = pt.user_id
+            WHERE pt.stock_ticker = ? AND u.email NOT IN ({placeholders})
+            ORDER BY u.name
+        ''', (ticker, *hidden_emails))
+        portfolio_users = [dict(row) for row in cursor.fetchall()]
+
+        # Get users with this ticker in watchlist
+        cursor = conn.execute(f'''
+            SELECT DISTINCT u.id, u.name, u.picture
+            FROM users u
+            JOIN watchlist w ON u.id = w.user_id
+            WHERE w.stock_ticker = ? AND u.email NOT IN ({placeholders})
+            ORDER BY u.name
+        ''', (ticker, *hidden_emails))
+        watchlist_users = [dict(row) for row in cursor.fetchall()]
+
+    return jsonify({
+        'ticker': ticker,
+        'portfolio_users': portfolio_users,
+        'watchlist_users': watchlist_users
+    })
+
+
 @app.route('/api/admin/stock-views/<ticker>', methods=['GET'])
 @admin_required
 def get_stock_views_detail(ticker):

@@ -229,6 +229,14 @@ export function AdminPanel() {
   const [companySortColumn, setCompanySortColumn] = useState<CompanySortColumn>('total');
   const [companySortDirection, setCompanySortDirection] = useState<SortDirection>('desc');
 
+  // Company users detail
+  const [selectedCompanyTicker, setSelectedCompanyTicker] = useState<string | null>(null);
+  const [companyUsers, setCompanyUsers] = useState<{
+    portfolio_users: { id: number; name: string; picture: string }[];
+    watchlist_users: { id: number; name: string; picture: string }[];
+  } | null>(null);
+  const [isLoadingCompanyUsers, setIsLoadingCompanyUsers] = useState(false);
+
   // Time unit for charts (shared between Time Spent and Users)
   type TimeUnit = 'days' | 'weeks' | 'months';
   const [chartUnit, setChartUnit] = useState<TimeUnit>('days');
@@ -358,6 +366,27 @@ export function AdminPanel() {
     } else {
       setCompanySortColumn(column);
       setCompanySortDirection('desc');
+    }
+  };
+
+  // Handle company row click to show users
+  const handleCompanyRowClick = async (ticker: string) => {
+    if (selectedCompanyTicker === ticker) {
+      // Toggle off if clicking same row
+      setSelectedCompanyTicker(null);
+      setCompanyUsers(null);
+      return;
+    }
+    setSelectedCompanyTicker(ticker);
+    setIsLoadingCompanyUsers(true);
+    try {
+      const response = await axios.get(`/api/admin/company-stats/${ticker}`);
+      setCompanyUsers(response.data);
+    } catch (err) {
+      console.error('Failed to fetch company users:', err);
+      setCompanyUsers(null);
+    } finally {
+      setIsLoadingCompanyUsers(false);
     }
   };
 
@@ -1393,61 +1422,150 @@ export function AdminPanel() {
               </h3>
             </button>
             {isCompaniesExpanded && (
-              <div className="overflow-x-auto max-h-[300px] overflow-y-auto mt-4">
-                <table className="w-full">
-                  <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
-                    <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
-                      <th className="pb-3 pl-2">
-                        <button onClick={() => handleCompanySort('ticker')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white">
-                          {language === 'fr' ? 'Entreprise' : 'Company'}
-                          {companySortColumn === 'ticker' && (companySortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                        </button>
-                      </th>
-                      <th className="pb-3 text-center">
-                        <button onClick={() => handleCompanySort('portfolio_count')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
-                          {language === 'fr' ? 'Portfolios' : 'Portfolios'}
-                          {companySortColumn === 'portfolio_count' && (companySortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                        </button>
-                      </th>
-                      <th className="pb-3 text-center">
-                        <button onClick={() => handleCompanySort('watchlist_count')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
-                          {language === 'fr' ? 'Watchlists' : 'Watchlists'}
-                          {companySortColumn === 'watchlist_count' && (companySortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                        </button>
-                      </th>
-                      <th className="pb-3 text-center">
-                        <button onClick={() => handleCompanySort('total')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
-                          Total
-                          {companySortColumn === 'total' && (companySortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                        </button>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedCompanies.map((company) => (
-                      <tr
-                        key={company.ticker}
-                        className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer"
-                        onClick={() => navigate(`/investing/stock/${company.ticker}`)}
-                      >
-                        <td className="py-2 pl-2">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={getCompanyLogoUrl(company.ticker) || ''}
-                              alt={company.ticker}
-                              className="w-6 h-6 rounded bg-white"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                            />
-                            <span className="font-medium text-slate-800 dark:text-slate-100">{company.ticker}</span>
-                          </div>
-                        </td>
-                        <td className="py-2 text-center text-slate-500 dark:text-slate-300">{company.portfolio_count || '-'}</td>
-                        <td className="py-2 text-center text-slate-500 dark:text-slate-300">{company.watchlist_count || '-'}</td>
-                        <td className="py-2 text-center font-medium text-slate-700 dark:text-slate-200">{company.total}</td>
+              <div className="mt-4">
+                <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
+                  <table className="w-full">
+                    <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
+                      <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
+                        <th className="pb-3 pl-2">
+                          <button onClick={() => handleCompanySort('ticker')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white">
+                            {language === 'fr' ? 'Entreprise' : 'Company'}
+                            {companySortColumn === 'ticker' && (companySortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                          </button>
+                        </th>
+                        <th className="pb-3 text-center">
+                          <button onClick={() => handleCompanySort('total')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                            Total
+                            {companySortColumn === 'total' && (companySortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                          </button>
+                        </th>
+                        <th className="pb-3 text-center">
+                          <button onClick={() => handleCompanySort('portfolio_count')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                            {language === 'fr' ? 'Portfolios' : 'Portfolios'}
+                            {companySortColumn === 'portfolio_count' && (companySortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                          </button>
+                        </th>
+                        <th className="pb-3 text-center">
+                          <button onClick={() => handleCompanySort('watchlist_count')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                            {language === 'fr' ? 'Watchlists' : 'Watchlists'}
+                            {companySortColumn === 'watchlist_count' && (companySortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                          </button>
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {sortedCompanies.map((company) => (
+                        <tr
+                          key={company.ticker}
+                          className={`border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${selectedCompanyTicker === company.ticker ? 'bg-slate-100 dark:bg-slate-600' : ''}`}
+                          onClick={() => handleCompanyRowClick(company.ticker)}
+                        >
+                          <td className="py-2 pl-2">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={getCompanyLogoUrl(company.ticker) || ''}
+                                alt={company.ticker}
+                                className="w-6 h-6 rounded bg-white"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                              />
+                              <span className="font-medium text-slate-800 dark:text-slate-100">{company.ticker}</span>
+                            </div>
+                          </td>
+                          <td className="py-2 text-center font-medium text-slate-700 dark:text-slate-200">{company.total}</td>
+                          <td className="py-2 text-center text-slate-500 dark:text-slate-300">{company.portfolio_count}</td>
+                          <td className="py-2 text-center text-slate-500 dark:text-slate-300">{company.watchlist_count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Selected company users */}
+                {selectedCompanyTicker && (
+                  <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-600 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                        {selectedCompanyTicker}
+                      </h4>
+                      <button
+                        onClick={() => {
+                          setSelectedCompanyTicker(null);
+                          setCompanyUsers(null);
+                        }}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {isLoadingCompanyUsers ? (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+                      </div>
+                    ) : companyUsers ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Portfolio users */}
+                        <div>
+                          <h5 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
+                            {language === 'fr' ? 'Portfolios' : 'Portfolios'} ({companyUsers.portfolio_users.length})
+                          </h5>
+                          {companyUsers.portfolio_users.length > 0 ? (
+                            <div className="space-y-1 max-h-[150px] overflow-y-auto">
+                              {companyUsers.portfolio_users.map((u) => (
+                                <div
+                                  key={u.id}
+                                  className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
+                                  onClick={(e) => { e.stopPropagation(); navigate(`/investing/admin/user/${u.id}`); }}
+                                >
+                                  {u.picture ? (
+                                    <img src={u.picture} alt={u.name} className="w-5 h-5 rounded-full" />
+                                  ) : (
+                                    <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
+                                      {u.name?.charAt(0) || '?'}
+                                    </div>
+                                  )}
+                                  <span className="text-xs text-slate-700 dark:text-slate-200">{u.name}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-400 italic">
+                              {language === 'fr' ? 'Aucun' : 'None'}
+                            </p>
+                          )}
+                        </div>
+                        {/* Watchlist users */}
+                        <div>
+                          <h5 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
+                            {language === 'fr' ? 'Watchlists' : 'Watchlists'} ({companyUsers.watchlist_users.length})
+                          </h5>
+                          {companyUsers.watchlist_users.length > 0 ? (
+                            <div className="space-y-1 max-h-[150px] overflow-y-auto">
+                              {companyUsers.watchlist_users.map((u) => (
+                                <div
+                                  key={u.id}
+                                  className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
+                                  onClick={(e) => { e.stopPropagation(); navigate(`/investing/admin/user/${u.id}`); }}
+                                >
+                                  {u.picture ? (
+                                    <img src={u.picture} alt={u.name} className="w-5 h-5 rounded-full" />
+                                  ) : (
+                                    <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
+                                      {u.name?.charAt(0) || '?'}
+                                    </div>
+                                  )}
+                                  <span className="text-xs text-slate-700 dark:text-slate-200">{u.name}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-400 italic">
+                              {language === 'fr' ? 'Aucun' : 'None'}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
               </div>
             )}
           </div>
