@@ -1345,19 +1345,24 @@ def matches_company(title, ticker, company_name=None):
     """
     Check if a video title matches a company.
     Uses company_name as primary keyword, plus any extra keywords defined for the ticker.
+
+    Short tickers (<=2 chars like MA, V, C) are skipped for direct matching
+    since they cause too many false positives (e.g. "MA" matching "Yung-Yu Ma").
     """
     import re
     title_upper = title.upper()
-
-    # Check ticker itself (as whole word to avoid matching "MC" in "TSMC", "FOMC", etc.)
-    # Use word boundary regex for short tickers (<=3 chars)
     ticker_upper = ticker.upper()
-    if len(ticker_upper) <= 3:
-        if re.search(r'\b' + re.escape(ticker_upper) + r'\b', title_upper):
-            return True
-    else:
-        if ticker_upper in title_upper:
-            return True
+
+    # Skip direct ticker matching for very short tickers (too many false positives)
+    # e.g., MA (Mastercard) matches "Yung-Yu Ma", V (Visa) matches random words
+    if len(ticker_upper) >= 3:
+        # Use word boundary regex for 3-4 char tickers
+        if len(ticker_upper) <= 4:
+            if re.search(r'\b' + re.escape(ticker_upper) + r'\b', title_upper):
+                return True
+        else:
+            if ticker_upper in title_upper:
+                return True
 
     # Check company name (primary keyword) - also use word boundary for short names
     if company_name:
