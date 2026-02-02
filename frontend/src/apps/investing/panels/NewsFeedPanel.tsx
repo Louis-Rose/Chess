@@ -307,7 +307,7 @@ function CompanySection({
           <span className="font-medium text-sm text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
             {companyName}
           </span>
-          <span className="text-xs text-slate-500 dark:text-slate-400">({ticker})</span>
+          <span className="font-medium text-sm text-slate-900 dark:text-slate-100">({ticker})</span>
         </button>
         <span className="text-xs text-slate-400">{recentVideos.length} {recentVideos.length === 1 ? 'video' : 'videos'}</span>
       </div>
