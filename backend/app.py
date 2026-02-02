@@ -5301,6 +5301,40 @@ def delete_user():
     })
 
 
+@app.route('/api/admin/cleanup-orphaned-transactions', methods=['POST'])
+@admin_required
+def cleanup_orphaned_transactions():
+    """Delete portfolio transactions whose investment account no longer exists."""
+    with get_db() as conn:
+        # Find orphaned transactions (account_id not in investment_accounts)
+        cursor = conn.execute('''
+            SELECT pt.id, pt.user_id, pt.account_id, pt.stock_ticker, u.name as user_name
+            FROM portfolio_transactions pt
+            LEFT JOIN investment_accounts ia ON pt.account_id = ia.id
+            LEFT JOIN users u ON pt.user_id = u.id
+            WHERE ia.id IS NULL
+        ''')
+        orphaned = [dict(row) for row in cursor.fetchall()]
+
+        if orphaned:
+            # Delete orphaned transactions
+            cursor = conn.execute('''
+                DELETE FROM portfolio_transactions
+                WHERE account_id NOT IN (SELECT id FROM investment_accounts)
+                   OR account_id IS NULL
+            ''')
+            deleted_count = cursor.rowcount
+        else:
+            deleted_count = 0
+
+    return jsonify({
+        'success': True,
+        'orphaned_found': len(orphaned),
+        'deleted': deleted_count,
+        'details': orphaned[:20]  # Show first 20 for reference
+    })
+
+
 @app.route('/api/reward/eligibility', methods=['GET'])
 @login_required
 def check_reward_eligibility():
