@@ -330,9 +330,9 @@ export function DividendsPanel() {
                                   </span>
                                 </span>
                                 {item.confirmed ? (
-                                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" title={language === 'fr' ? 'Confirmé' : 'Confirmed'} />
                                 ) : (
-                                  <HelpCircle className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                  <HelpCircle className="w-4 h-4 text-slate-400 flex-shrink-0" title={language === 'fr' ? 'Estimé' : 'Estimated'} />
                                 )}
                               </div>
                             ) : (
@@ -395,22 +395,6 @@ export function DividendsPanel() {
               </table>
             </div>
 
-            <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-600 rounded-lg">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 dark:text-slate-300">
-                <span className="inline-flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4 text-green-600" />
-                  {language === 'fr' ? 'Date confirmée' : 'Confirmed date'}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <HelpCircle className="w-4 h-4 text-slate-400" />
-                  {language === 'fr' ? 'Date estimée' : 'Estimated date'}
-                </span>
-                <span className="inline-flex items-center gap-1 opacity-60">
-                  <span className="italic">{language === 'fr' ? 'Grisé' : 'Grayed'}</span>
-                  = {language === 'fr' ? 'Pas de dividende' : 'No dividend'}
-                </span>
-              </div>
-            </div>
           </div>
         ) : (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-12 text-center shadow-sm dark:shadow-none">
