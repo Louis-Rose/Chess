@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Loader2, Youtube, ChevronDown, ChevronUp, ChevronRight, Eye, Briefcase } from 'lucide-react';
+import { Loader2, Youtube, ChevronDown, ChevronUp, ChevronRight, Eye, Briefcase, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { findStockByTicker } from '../utils/allStocks';
@@ -279,6 +279,7 @@ function CompanySection({
   language: string;
   onPlayVideo: (video: VideoWithCompany) => void;
 }) {
+  const navigate = useNavigate();
   const logoUrl = getCompanyLogoUrl(ticker);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -288,9 +289,9 @@ function CompanySection({
   return (
     <div className="mb-4">
       {/* Company header - clickable button style */}
-      <button
+      <div
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-500 hover:border-slate-400 dark:hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-500 hover:border-slate-400 dark:hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
       >
         {isOpen ? (
           <ChevronDown className="w-4 h-4 text-slate-500 flex-shrink-0" />
@@ -313,7 +314,14 @@ function CompanySection({
             : `${recentVideos.length} ${recentVideos.length === 1 ? 'video' : 'videos'}`
           }
         </span>
-      </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); navigate(`/investing/stock/${ticker}`); }}
+          className="ml-2 px-2 py-1 text-xs text-slate-500 hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-slate-200 dark:hover:bg-slate-500 rounded transition-colors flex items-center gap-1"
+        >
+          <ExternalLink className="w-3 h-3" />
+          <span className="hidden sm:inline">{language === 'fr' ? 'Voir' : 'View'}</span>
+        </button>
+      </div>
 
       {/* Scrollable vertical video list - height for ~2-3 videos */}
       {isOpen && recentVideos.length > 0 && (
