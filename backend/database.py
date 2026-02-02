@@ -159,6 +159,21 @@ def init_db():
                 # Clear cache to force refresh with new FMP data
                 conn.execute("DELETE FROM earnings_cache")
                 print("[Database] Added earnings_time column to earnings_cache and cleared cache")
+
+            # Migration: Create video_summaries table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'video_summaries'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE video_summaries (
+                        video_id TEXT PRIMARY KEY,
+                        summary TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                print("[Database] Created video_summaries table")
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')

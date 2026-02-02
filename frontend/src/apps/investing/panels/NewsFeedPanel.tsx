@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Loader2, Youtube, ChevronDown, ChevronUp, Eye, X, Plus, Search, Info, Briefcase } from 'lucide-react';
+import { Loader2, Youtube, ChevronDown, ChevronUp, Eye, Briefcase } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
+import { findStockByTicker } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 
 interface Video {
@@ -50,14 +50,6 @@ interface CompositionData {
 const fetchComposition = async (): Promise<CompositionData> => {
   const response = await axios.get('/api/investing/portfolio/composition');
   return response.data;
-};
-
-const addToWatchlist = async (symbol: string): Promise<void> => {
-  await axios.post('/api/investing/watchlist', { symbol });
-};
-
-const removeFromWatchlist = async (symbol: string): Promise<void> => {
-  await axios.delete(`/api/investing/watchlist/${symbol}`);
 };
 
 const fetchNewsFeed = async (ticker: string, companyName: string): Promise<NewsFeedResponse> => {
@@ -273,17 +265,9 @@ function CompanySection({
 
 export function NewsFeedPanel() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
   const [selectedVideo, setSelectedVideo] = useState<VideoWithCompany | null>(null);
-
-  // Stock search state
-  const [stockSearch, setStockSearch] = useState('');
-  const [stockResults, setStockResults] = useState<Stock[]>([]);
-  const [showStockDropdown, setShowStockDropdown] = useState(false);
-  const [indexFilter] = useState<IndexFilter>({ sp500: true, stoxx600: true });
-  const stockDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch watchlist
   const { data: watchlistData, isLoading: watchlistLoading } = useQuery({
@@ -310,53 +294,6 @@ export function NewsFeedPanel() {
   // Order: portfolio first (including those in both), then watchlist-only
   const orderedPortfolioTickers = [...bothTickers, ...portfolioOnlyTickers];
   const allTrackedCompanies = [...orderedPortfolioTickers, ...watchlistOnlyTickers];
-
-  // Mutations for add/remove
-  const addMutation = useMutation({
-    mutationFn: addToWatchlist,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist-news-feed'] });
-    },
-  });
-
-  const removeMutation = useMutation({
-    mutationFn: removeFromWatchlist,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist'] });
-      queryClient.invalidateQueries({ queryKey: ['watchlist-news-feed'] });
-    },
-  });
-
-  // Stock search effect
-  useEffect(() => {
-    const results = searchAllStocks(stockSearch, indexFilter);
-    setStockResults(results);
-    setShowStockDropdown(results.length > 0 && stockSearch.length > 0);
-  }, [stockSearch, indexFilter]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (stockDropdownRef.current && !stockDropdownRef.current.contains(event.target as Node)) {
-        setShowStockDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSelectStock = (stock: Stock) => {
-    if (!watchlist.includes(stock.ticker)) {
-      addMutation.mutate(stock.ticker);
-    }
-    setStockSearch('');
-    setShowStockDropdown(false);
-  };
-
-  const handleRemoveStock = (ticker: string) => {
-    removeMutation.mutate(ticker);
-  };
 
   // Fetch news for all tracked companies
   const { data: allNewsData, isLoading: newsLoading } = useQuery({
@@ -447,150 +384,6 @@ export function NewsFeedPanel() {
       </div>
 
       <div className="max-w-6xl mx-auto space-y-6 px-4">
-        {/* Tracked Companies Section */}
-        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Eye className="w-5 h-5 text-blue-500" />
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {language === 'fr' ? 'Entreprises suivies' : 'Tracked Companies'}
-            </h3>
-            <span className="text-slate-500 dark:text-slate-400 text-sm">
-              ({allTrackedCompanies.length})
-            </span>
-            <div className="relative group ml-1">
-              <Info className="w-4 h-4 text-slate-400 cursor-help" />
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 w-72 text-left whitespace-pre-line pointer-events-none">
-                {language === 'fr'
-                  ? "Les vidéos proviennent de chaînes financières vérifiées (CNBC, Bloomberg, Yahoo Finance...)"
-                  : "Videos come from verified financial channels (CNBC, Bloomberg, Yahoo Finance...)"}
-              </div>
-            </div>
-          </div>
-
-          {/* Company chips */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {allTrackedCompanies.length === 0 ? (
-              <p className="text-slate-500 dark:text-slate-400 text-sm italic">
-                {language === 'fr'
-                  ? 'Aucune entreprise suivie. Ajoutez-en ci-dessous.'
-                  : 'No companies tracked. Add some below.'}
-              </p>
-            ) : (
-              allTrackedCompanies.map((ticker) => {
-                const stock = findStockByTicker(ticker);
-                const displayName = stock?.name || ticker;
-                const logoUrl = getCompanyLogoUrl(ticker);
-                const isPortfolio = portfolioTickers.includes(ticker);
-                const isWatchlistOnly = watchlist.includes(ticker) && !isPortfolio;
-
-                return (
-                  <div
-                    key={ticker}
-                    className={`flex items-center gap-2 bg-white dark:bg-slate-600 border rounded-full pl-1 pr-2 py-1 group transition-colors ${
-                      isPortfolio
-                        ? 'border-green-300 dark:border-green-600'
-                        : 'border-slate-200 dark:border-slate-500 hover:border-blue-300 dark:hover:border-blue-500'
-                    }`}
-                  >
-                    {isPortfolio && (
-                      <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center flex-shrink-0" title={language === 'fr' ? 'Portefeuille' : 'Portfolio'}>
-                        <Briefcase className="w-3 h-3 text-green-600 dark:text-green-400" />
-                      </div>
-                    )}
-                    <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-500">
-                      {logoUrl ? (
-                        <img src={logoUrl} alt={ticker} className="w-5 h-5 object-contain" />
-                      ) : (
-                        <span className="text-[8px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => navigate(`/investing/stock/${ticker}`)}
-                      className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                      title={displayName}
-                    >
-                      {ticker}
-                    </button>
-                    {isWatchlistOnly && (
-                      <button
-                        onClick={() => handleRemoveStock(ticker)}
-                        disabled={removeMutation.isPending}
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                        title={language === 'fr' ? 'Supprimer' : 'Remove'}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Add company search */}
-          <div className="relative" ref={stockDropdownRef}>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder={language === 'fr' ? 'Ajouter une entreprise...' : 'Add a company...'}
-                  value={stockSearch}
-                  onChange={(e) => setStockSearch(e.target.value)}
-                  onFocus={() => stockSearch && setShowStockDropdown(stockResults.length > 0)}
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-              </div>
-              {addMutation.isPending && (
-                <div className="flex items-center px-3">
-                  <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                </div>
-              )}
-            </div>
-
-            {showStockDropdown && stockResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-500 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
-                {stockResults.map((stock) => {
-                  const isInWatchlist = watchlist.includes(stock.ticker);
-                  const logoUrl = getCompanyLogoUrl(stock.ticker);
-                  return (
-                    <button
-                      key={stock.ticker}
-                      type="button"
-                      onClick={() => handleSelectStock(stock)}
-                      disabled={isInWatchlist}
-                      className={`w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 dark:border-slate-600 last:border-b-0 ${
-                        isInWatchlist
-                          ? 'bg-slate-50 dark:bg-slate-600 text-slate-400 cursor-not-allowed'
-                          : 'hover:bg-blue-50 dark:hover:bg-slate-600'
-                      }`}
-                    >
-                      <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200">
-                        {logoUrl ? (
-                          <img src={logoUrl} alt={stock.ticker} className="w-5 h-5 object-contain" />
-                        ) : (
-                          <span className="text-[8px] font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
-                        )}
-                      </div>
-                      <span className="font-bold text-slate-800 dark:text-slate-100 w-16">{stock.ticker}</span>
-                      <span className="text-slate-600 dark:text-slate-300 text-sm truncate">{stock.name}</span>
-                      {isInWatchlist && (
-                        <span className="text-xs text-slate-400 ml-auto flex items-center gap-1">
-                          <Eye className="w-3 h-3" />
-                          {language === 'fr' ? 'Suivi' : 'Tracked'}
-                        </span>
-                      )}
-                      {!isInWatchlist && (
-                        <Plus className="w-4 h-4 text-blue-500 ml-auto" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Empty state */}
         {allTrackedCompanies.length === 0 ? (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-8 text-center">
