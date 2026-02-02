@@ -1,6 +1,6 @@
 // News Feed panel - aggregated YouTube videos from portfolio and watchlist companies
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
@@ -85,8 +85,8 @@ function formatDate(dateStr: string, language: string): string {
   }
 }
 
-// Video card with summary
-function VideoCard({
+// Video row with thumbnail on left, transcript on right
+function VideoRow({
   video,
   language,
   onPlay
@@ -116,102 +116,108 @@ function VideoCard({
         setTranscript(data.transcript);
       }
     } catch {
-      // Silently fail
       setPending(true);
     } finally {
       setLoading(false);
     }
   };
 
-  // Load transcript on mount
   useEffect(() => {
     loadTranscript();
   }, [video.video_id]);
 
   return (
-    <div className="flex-shrink-0 w-72 bg-white dark:bg-slate-600 rounded-lg overflow-hidden shadow-sm border border-slate-200 dark:border-slate-500">
-      {/* Thumbnail */}
-      <button
-        onClick={onPlay}
-        className="relative w-full h-40 bg-slate-200 dark:bg-slate-700 group"
-      >
-        {video.thumbnail_url ? (
-          <img
-            src={video.thumbnail_url}
-            alt={video.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Youtube className="w-12 h-12 text-slate-400" />
+    <div className="flex gap-4 bg-white dark:bg-slate-600 rounded-lg overflow-hidden shadow-sm border border-slate-200 dark:border-slate-500">
+      {/* Left side: Thumbnail + Title */}
+      <div className="flex-shrink-0 w-64">
+        <button
+          onClick={onPlay}
+          className="relative w-full h-36 bg-slate-200 dark:bg-slate-700 group"
+        >
+          {video.thumbnail_url ? (
+            <img
+              src={video.thumbnail_url}
+              alt={video.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Youtube className="w-10 h-10 text-slate-400" />
+            </div>
+          )}
+          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+            <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
           </div>
-        )}
-        {/* Play overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
-          <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </div>
-        </div>
-      </button>
-
-      {/* Content */}
-      <div className="p-3">
-        <button onClick={onPlay} className="text-left w-full">
-          <h4 className="font-medium text-sm text-slate-800 dark:text-slate-100 line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-            {video.title}
-          </h4>
         </button>
-
-        <div className="flex items-center gap-2 mt-2 text-xs text-slate-500 dark:text-slate-400">
-          <span className="truncate">{video.channel_name}</span>
-          <span>·</span>
-          <span>{formatDate(video.published_at, language)}</span>
+        <div className="p-3">
+          <button onClick={onPlay} className="text-left w-full">
+            <h4 className="font-medium text-sm text-slate-800 dark:text-slate-100 line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+              {video.title}
+            </h4>
+          </button>
+          <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <span className="truncate">{video.channel_name}</span>
+            <span>·</span>
+            <span>{formatDate(video.published_at, language)}</span>
+          </div>
         </div>
+      </div>
 
-        {/* Transcript section */}
-        <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-500">
-          {loading ? (
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              {language === 'fr' ? 'Chargement...' : 'Loading...'}
-            </div>
-          ) : pending ? (
-            <p className="text-xs text-slate-400 italic">
-              {language === 'fr' ? 'Transcription en cours...' : 'Fetching transcript...'}
+      {/* Right side: Transcript */}
+      <div className="flex-1 p-4 border-l border-slate-200 dark:border-slate-500">
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-slate-400">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            {language === 'fr' ? 'Chargement...' : 'Loading...'}
+          </div>
+        ) : pending ? (
+          <p className="text-sm text-slate-400 italic">
+            {language === 'fr' ? 'Transcription en cours...' : 'Fetching transcript...'}
+          </p>
+        ) : noTranscript ? (
+          <p className="text-sm text-slate-400 italic">
+            {language === 'fr' ? 'Pas de transcription disponible' : 'No transcript available'}
+          </p>
+        ) : transcript ? (
+          <div>
+            <p className="text-xs text-green-600 dark:text-green-400 font-medium mb-2">
+              ✓ Transcript ({transcript.length} chars)
             </p>
-          ) : noTranscript ? (
-            <p className="text-xs text-slate-400 italic">
-              {language === 'fr' ? 'Pas de transcription disponible' : 'No transcript available'}
+            <p className={`text-sm text-slate-600 dark:text-slate-300 leading-relaxed ${expanded ? '' : 'line-clamp-4'}`}>
+              {transcript}
             </p>
-          ) : transcript ? (
-            <div>
-              <p className="text-xs text-green-600 dark:text-green-400 font-medium mb-1">
-                ✓ Transcript ({transcript.length} chars)
-              </p>
-              <p className={`text-xs text-slate-600 dark:text-slate-300 ${expanded ? '' : 'line-clamp-3'}`}>
-                {transcript}
-              </p>
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="text-xs text-blue-500 hover:text-blue-600 mt-1 flex items-center gap-0.5"
-              >
-                {expanded
-                  ? (language === 'fr' ? 'Voir moins' : 'See less')
-                  : (language === 'fr' ? 'Voir plus' : 'See more')
-                }
-                {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-              </button>
-            </div>
-          ) : null}
-        </div>
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-sm text-blue-500 hover:text-blue-600 mt-2 flex items-center gap-1"
+            >
+              {expanded
+                ? (language === 'fr' ? 'Voir moins' : 'See less')
+                : (language === 'fr' ? 'Voir plus' : 'See more')
+              }
+              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
 }
 
-// Company section with horizontal scrolling videos
+// Filter videos to last 30 days only
+function filterRecentVideos(videos: VideoWithCompany[], maxAgeDays: number = 30, maxCount: number = 5): VideoWithCompany[] {
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - maxAgeDays * 24 * 60 * 60 * 1000);
+
+  return videos
+    .filter(v => new Date(v.published_at) >= cutoff)
+    .slice(0, maxCount);
+}
+
+// Company section with vertical video list
 function CompanySection({
   ticker,
   companyName,
@@ -229,16 +235,18 @@ function CompanySection({
 }) {
   const navigate = useNavigate();
   const logoUrl = getCompanyLogoUrl(ticker);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
-  if (videos.length === 0) return null;
+  // Filter to recent videos only (last 30 days, max 5)
+  const recentVideos = filterRecentVideos(videos, 30, 5);
+
+  if (recentVideos.length === 0) return null;
 
   return (
-    <div className="mb-6">
+    <div className="mb-8">
       {/* Company header */}
       <button
         onClick={() => navigate(`/investing/stock/${ticker}`)}
-        className="flex items-center gap-3 mb-3 group"
+        className="flex items-center gap-3 mb-4 group"
       >
         <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-500">
           {logoUrl ? (
@@ -260,20 +268,15 @@ function CompanySection({
         </div>
       </button>
 
-      {/* Horizontal scrolling videos */}
-      <div
-        ref={scrollRef}
-        className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
-        style={{ scrollSnapType: 'x mandatory' }}
-      >
-        {videos.slice(0, 10).map((video) => (
-          <div key={video.video_id} style={{ scrollSnapAlign: 'start' }}>
-            <VideoCard
-              video={video}
-              language={language}
-              onPlay={() => onPlayVideo(video)}
-            />
-          </div>
+      {/* Vertical video list */}
+      <div className="space-y-3">
+        {recentVideos.map((video) => (
+          <VideoRow
+            key={video.video_id}
+            video={video}
+            language={language}
+            onPlay={() => onPlayVideo(video)}
+          />
         ))}
       </div>
     </div>
