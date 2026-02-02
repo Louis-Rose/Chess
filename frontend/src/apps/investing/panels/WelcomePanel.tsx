@@ -734,47 +734,39 @@ export function InvestingWelcomePanel() {
                         </div>
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300 w-12">{dividend.ticker}</span>
                       </div>
-                      {paysDividends ? (
-                        <>
-                          <span className="text-sm text-emerald-500 font-bold text-right tabular-nums">
-                            {(() => {
-                              const fxRate = compositionData?.eurusd_rate || 1.0;
-                              const amount = dividend.total_dividend ?? dividend.dividend_amount;
-                              if (amount === null) return null;
-                              const displayAmount = valueCurrency === 'EUR' ? amount / fxRate : amount;
-                              // Pad to align: $05.35 instead of $5.35
-                              const formatted = displayAmount.toFixed(2).padStart(5, '0');
-                              return valueCurrency === 'EUR'
-                                ? <>{formatted}€</>
-                                : <>${formatted}</>;
-                            })()}
-                          </span>
-                          <span className="text-sm text-emerald-500 tabular-nums">
-                            {dividend.total_dividend !== null && dividend.quantity && dividend.dividend_amount && (
-                              <>({dividend.quantity} × ${dividend.dividend_amount.toFixed(2)})</>
-                            )}
-                          </span>
-                          <span className="text-sm text-slate-400 text-right tabular-nums ml-1">
-                            {dividend.remaining_days !== null && (
-                              <>
-                                ({dividend.remaining_days === 0
-                                  ? (language === 'fr' ? "aujourd'hui" : 'today')
-                                  : `${dividend.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
-                              </>
-                            )}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-sm text-emerald-500 font-bold text-right tabular-nums">
-                            {valueCurrency === 'EUR' ? '00.00€' : '$00.00'}
-                          </span>
-                          <span className="invisible text-sm">(000 × $0.00)</span>
-                          <span className="text-sm text-slate-400 text-right ml-1">
-                            ({language === 'fr' ? 'Pas de dividendes' : 'No dividends'})
-                          </span>
-                        </>
-                      )}
+                      <span className="text-sm text-emerald-500 font-bold tabular-nums">
+                        {(() => {
+                          if (!paysDividends) {
+                            return valueCurrency === 'EUR' ? '00.00€' : '$00.00';
+                          }
+                          const fxRate = compositionData?.eurusd_rate || 1.0;
+                          const amount = dividend.total_dividend ?? dividend.dividend_amount;
+                          if (amount === null) return null;
+                          const displayAmount = valueCurrency === 'EUR' ? amount / fxRate : amount;
+                          const formatted = displayAmount.toFixed(2).padStart(5, '0');
+                          return valueCurrency === 'EUR'
+                            ? <>{formatted}€</>
+                            : <>${formatted}</>;
+                        })()}
+                      </span>
+                      <span className="text-sm text-emerald-500 tabular-nums">
+                        {paysDividends && dividend.total_dividend !== null && dividend.quantity && dividend.dividend_amount && (
+                          <>({dividend.quantity} × ${dividend.dividend_amount.toFixed(2)})</>
+                        )}
+                      </span>
+                      <span className="text-sm text-slate-400 tabular-nums ml-1">
+                        {paysDividends ? (
+                          dividend.remaining_days !== null && (
+                            <>
+                              ({dividend.remaining_days === 0
+                                ? (language === 'fr' ? "aujourd'hui" : 'today')
+                                : `${dividend.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
+                            </>
+                          )
+                        ) : (
+                          <>({language === 'fr' ? 'Pas de dividendes' : 'No dividends'})</>
+                        )}
+                      </span>
                     </div>
                   );
                 })}
