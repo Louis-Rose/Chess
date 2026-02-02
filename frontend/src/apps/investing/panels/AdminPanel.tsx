@@ -365,7 +365,8 @@ export function AdminPanel() {
       setCompanySortDirection(companySortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setCompanySortColumn(column);
-      setCompanySortDirection('desc');
+      // Ticker defaults to A-Z (asc), others default to highest first (desc)
+      setCompanySortDirection(column === 'ticker' ? 'asc' : 'desc');
     }
   };
 
