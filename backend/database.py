@@ -148,6 +148,17 @@ def init_db():
             if not conn._cursor.fetchone():
                 conn.execute("ALTER TABLE investment_accounts ADD COLUMN display_order INTEGER DEFAULT 0")
                 print("[Database] Added display_order column to investment_accounts")
+
+            # Migration: Add earnings_time column to earnings_cache if not exists
+            conn.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'earnings_cache' AND column_name = 'earnings_time'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("ALTER TABLE earnings_cache ADD COLUMN earnings_time TEXT")
+                # Clear cache to force refresh with new FMP data
+                conn.execute("DELETE FROM earnings_cache")
+                print("[Database] Added earnings_time column to earnings_cache and cleared cache")
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
@@ -191,6 +202,17 @@ def init_db():
                 columns = [row['name'] for row in cursor.fetchall()]
                 if 'display_order' not in columns:
                     conn.execute('ALTER TABLE investment_accounts ADD COLUMN display_order INTEGER DEFAULT 0')
+
+            # Migration: Add earnings_time column to earnings_cache
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='earnings_cache'")
+            if cursor.fetchone():
+                cursor = conn.execute("PRAGMA table_info(earnings_cache)")
+                columns = [row['name'] for row in cursor.fetchall()]
+                if 'earnings_time' not in columns:
+                    conn.execute('ALTER TABLE earnings_cache ADD COLUMN earnings_time TEXT')
+                    # Clear cache to force refresh with new FMP data
+                    conn.execute('DELETE FROM earnings_cache')
+                    print("[Database] Added earnings_time column to earnings_cache and cleared cache")
 
             # Run full schema
             with open(schema_path, 'r') as f:

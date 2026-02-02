@@ -116,11 +116,12 @@ CREATE TABLE IF NOT EXISTS earnings_watchlist (
     UNIQUE(user_id, stock_ticker)
 );
 
--- Earnings dates cache
+-- Earnings dates cache (refreshed every 48 hours)
 CREATE TABLE IF NOT EXISTS earnings_cache (
     ticker TEXT PRIMARY KEY,
     next_earnings_date TEXT,
     date_confirmed INTEGER DEFAULT 0,
+    earnings_time TEXT,                -- 'bmo' (before market open), 'amc' (after market close), or NULL
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

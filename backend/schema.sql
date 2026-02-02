@@ -117,11 +117,12 @@ CREATE TABLE IF NOT EXISTS earnings_watchlist (
     UNIQUE(user_id, stock_ticker)
 );
 
--- Earnings dates cache (shared across all users, refreshed daily via lazy loading)
+-- Earnings dates cache (shared across all users, refreshed every 48 hours via lazy loading)
 CREATE TABLE IF NOT EXISTS earnings_cache (
     ticker TEXT PRIMARY KEY,
     next_earnings_date TEXT,           -- YYYY-MM-DD or NULL if unknown
     date_confirmed INTEGER DEFAULT 0,  -- 1 if confirmed, 0 if estimated
+    earnings_time TEXT,                -- 'bmo' (before market open), 'amc' (after market close), or NULL
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
