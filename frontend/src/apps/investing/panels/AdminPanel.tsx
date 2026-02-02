@@ -98,7 +98,7 @@ interface SyncRun {
   id: number;
   started_at: string;
   ended_at: string | null;
-  status: 'running' | 'completed' | 'failed';
+  status: 'running' | 'completed' | 'failed' | 'interrupted';
   tickers_count: number;
   videos_total: number;
   videos_processed: number;
@@ -1619,6 +1619,8 @@ export function AdminPanel() {
                       ? 'border-blue-300 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/30'
                       : run.status === 'completed'
                       ? 'border-green-300 bg-green-50 dark:border-green-600 dark:bg-green-900/30'
+                      : run.status === 'interrupted'
+                      ? 'border-yellow-300 bg-yellow-50 dark:border-yellow-600 dark:bg-yellow-900/30'
                       : 'border-red-300 bg-red-50 dark:border-red-600 dark:bg-red-900/30'
                   }`}
                 >
@@ -1627,11 +1629,13 @@ export function AdminPanel() {
                       <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
                     ) : run.status === 'completed' ? (
                       <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : run.status === 'interrupted' ? (
+                      <AlertCircle className="w-4 h-4 text-yellow-500" />
                     ) : (
                       <XCircle className="w-4 h-4 text-red-500" />
                     )}
                     <span className="font-medium text-slate-700 dark:text-slate-200">
-                      {run.status === 'running' ? 'Running' : run.status === 'completed' ? 'Completed' : 'Failed'}
+                      {run.status === 'running' ? 'Running' : run.status === 'completed' ? 'Completed' : run.status === 'interrupted' ? 'Interrupted' : 'Failed'}
                     </span>
                     <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto">
                       {new Date(run.started_at).toLocaleString()}

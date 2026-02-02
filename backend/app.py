@@ -4807,6 +4807,13 @@ def sync_start():
     tickers_count = data.get('tickers_count', 0)
 
     with get_db() as conn:
+        # Mark any existing "running" runs as interrupted
+        conn.execute('''
+            UPDATE video_sync_runs
+            SET status = 'interrupted', ended_at = CURRENT_TIMESTAMP
+            WHERE status = 'running'
+        ''')
+
         if USE_POSTGRES:
             cursor = conn.execute('''
                 INSERT INTO video_sync_runs (tickers_count, status)
