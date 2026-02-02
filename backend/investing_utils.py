@@ -1273,6 +1273,17 @@ def save_videos_to_cache(db_getter, videos):
 def should_refresh_cache(db_getter, channel_id):
     """Check if channel's cache is stale and needs refresh."""
     with db_getter() as conn:
+        # Check if we have any videos from this channel in cache
+        cursor = conn.execute('''
+            SELECT COUNT(*) as count FROM youtube_videos_cache
+            WHERE channel_id = ?
+        ''', (channel_id,))
+        video_count = cursor.fetchone()['count']
+
+        # If cache is empty for this channel, always refresh
+        if video_count == 0:
+            return True
+
         cursor = conn.execute('''
             SELECT last_fetched_at FROM youtube_channel_fetch_log
             WHERE channel_id = ?
