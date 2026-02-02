@@ -107,6 +107,7 @@ interface SyncRun {
   errors: number;
   current_video: string | null;
   current_step: 'downloading' | 'transcribing' | 'summarizing' | 'uploading' | null;
+  videos_list: string | null;  // JSON array of {title, status}
   error_message: string | null;
 }
 
@@ -1673,6 +1674,46 @@ export function AdminPanel() {
                         className="bg-blue-500 h-1.5 rounded-full transition-all"
                         style={{ width: `${(run.videos_processed / run.videos_total) * 100}%` }}
                       />
+                    </div>
+                  )}
+
+                  {/* Videos list */}
+                  {run.videos_list && (
+                    <div className="mt-3 max-h-48 overflow-y-auto">
+                      <div className="space-y-1">
+                        {(() => {
+                          try {
+                            const videos = JSON.parse(run.videos_list) as { title: string }[];
+                            return videos.map((v, idx) => {
+                              const isDone = idx < run.videos_processed;
+                              const isCurrent = idx === run.videos_processed && run.status === 'running';
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`text-xs px-2 py-1 rounded flex items-center gap-2 ${
+                                    isCurrent
+                                      ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+                                      : isDone
+                                      ? 'text-slate-400 dark:text-slate-500'
+                                      : 'text-slate-600 dark:text-slate-400'
+                                  }`}
+                                >
+                                  {isDone ? (
+                                    <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                                  ) : isCurrent ? (
+                                    <Loader2 className="w-3 h-3 text-blue-500 animate-spin flex-shrink-0" />
+                                  ) : (
+                                    <div className="w-3 h-3 rounded-full border border-slate-300 dark:border-slate-500 flex-shrink-0" />
+                                  )}
+                                  <span className={`truncate ${isDone ? 'line-through' : ''}`}>{v.title}</span>
+                                </div>
+                              );
+                            });
+                          } catch {
+                            return null;
+                          }
+                        })()}
+                      </div>
                     </div>
                   )}
 

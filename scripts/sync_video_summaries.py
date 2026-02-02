@@ -19,6 +19,7 @@ Auto-run on Mac login:
 import os
 import sys
 import time
+import json
 import random
 import requests
 from datetime import datetime
@@ -258,8 +259,12 @@ def main():
             end_sync_run(run_id, 'completed', 0, 0, 0)
             return
 
-        # Update run with video count
-        update_sync_run(run_id, videos_total=len(videos))
+        # Update run with video count and list
+        videos_list = [
+            {'title': v['title'][:60], 'status': 'pending'}
+            for v in videos
+        ]
+        update_sync_run(run_id, videos_total=len(videos), videos_list=json.dumps(videos_list))
 
         # Step 4: Process each video
         log(f"\n[Step 4] Processing {len(videos)} videos...")

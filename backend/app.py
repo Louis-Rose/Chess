@@ -4837,7 +4837,7 @@ def sync_update(run_id):
     with get_db() as conn:
         updates = []
         values = []
-        for field in ['videos_total', 'videos_processed', 'current_video', 'current_step']:
+        for field in ['videos_total', 'videos_processed', 'current_video', 'current_step', 'videos_list']:
             if field in data:
                 if USE_POSTGRES:
                     updates.append(f"{field} = %s")

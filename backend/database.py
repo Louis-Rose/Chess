@@ -241,6 +241,14 @@ def init_db():
                 if not conn._cursor.fetchone():
                     conn.execute("ALTER TABLE video_sync_runs ADD COLUMN current_step TEXT")
                     print("[Database] Added current_step column to video_sync_runs")
+                # Migration: Add videos_list column if missing
+                conn.execute("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'video_sync_runs' AND column_name = 'videos_list'
+                """)
+                if not conn._cursor.fetchone():
+                    conn.execute("ALTER TABLE video_sync_runs ADD COLUMN videos_list TEXT")
+                    print("[Database] Added videos_list column to video_sync_runs")
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
