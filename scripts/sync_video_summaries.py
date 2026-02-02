@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Sync video summaries from local machine to production database.
+Sync video summaries from local machine to production via API.
 
 This script runs locally (where YouTube isn't blocked) to:
-1. Fetch videos from production DB that don't have summaries
+1. Fetch videos without summaries from production API
 2. Get transcripts via YouTube Transcript API
 3. Generate summaries with Gemini
-4. Upload summaries to production DB
+4. Upload summaries to production API
 
 Usage:
     python scripts/sync_video_summaries.py
@@ -18,6 +18,7 @@ Cron example (daily at 6 AM):
 import os
 import sys
 import time
+import requests
 from datetime import datetime
 
 # Add parent directory to path for imports
@@ -28,10 +29,13 @@ sys.path.insert(0, os.path.dirname(SCRIPT_DIR))
 from dotenv import load_dotenv
 load_dotenv(os.path.join(SCRIPT_DIR, '.env.sync'))
 
-import psycopg2
-from psycopg2.extras import RealDictCursor
 from youtube_transcript_api import YouTubeTranscriptApi
 import google.generativeai as genai
+
+# Configuration
+API_BASE_URL = os.environ.get('API_BASE_URL', 'https://lumna.co')
+SYNC_API_KEY = os.environ.get('SYNC_API_KEY', 'lumna-sync-2024')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
 
 def log(message):
@@ -39,29 +43,27 @@ def log(message):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}")
 
 
-def get_db_connection():
-    """Get PostgreSQL connection."""
-    return psycopg2.connect(
-        host=os.environ.get('DB_HOST', 'localhost'),
-        port=os.environ.get('DB_PORT', '5432'),
-        dbname=os.environ.get('DB_NAME', 'lumna'),
-        user=os.environ.get('DB_USER', 'lumna'),
-        password=os.environ['DB_PASSWORD'],
-        cursor_factory=RealDictCursor
+def get_videos_without_summaries():
+    """Fetch videos that need summaries from the API."""
+    response = requests.get(
+        f"{API_BASE_URL}/api/investing/video-summaries/pending",
+        headers={'X-Sync-Key': SYNC_API_KEY},
+        timeout=30
     )
+    response.raise_for_status()
+    return response.json().get('videos', [])
 
 
-def get_videos_without_summaries(conn):
-    """Get all videos that don't have summaries yet."""
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT v.video_id, v.title, v.channel_name
-            FROM youtube_videos_cache v
-            LEFT JOIN video_summaries s ON v.video_id = s.video_id
-            WHERE s.video_id IS NULL
-            ORDER BY v.published_at DESC
-        """)
-        return cur.fetchall()
+def upload_summary(video_id, summary):
+    """Upload a summary to the API."""
+    response = requests.post(
+        f"{API_BASE_URL}/api/investing/video-summaries/upload",
+        headers={'X-Sync-Key': SYNC_API_KEY, 'Content-Type': 'application/json'},
+        json={'video_id': video_id, 'summary': summary},
+        timeout=30
+    )
+    response.raise_for_status()
+    return response.json()
 
 
 def fetch_transcript(video_id):
@@ -77,9 +79,9 @@ def fetch_transcript(video_id):
         raise
 
 
-def generate_summary(transcript_text, api_key):
+def generate_summary(transcript_text):
     """Generate summary using Gemini."""
-    genai.configure(api_key=api_key)
+    genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel('gemini-2.0-flash')
 
     # Truncate if too long
@@ -98,41 +100,23 @@ Transcript:
     return response.text.strip()
 
 
-def save_summary(conn, video_id, summary):
-    """Save summary to database."""
-    with conn.cursor() as cur:
-        cur.execute(
-            """INSERT INTO video_summaries (video_id, summary, created_at)
-               VALUES (%s, %s, NOW())
-               ON CONFLICT (video_id) DO UPDATE SET summary = EXCLUDED.summary""",
-            (video_id, summary)
-        )
-    conn.commit()
-
-
 def main():
     log("Starting video summary sync...")
 
-    # Check required environment variables
-    if not os.environ.get('DB_PASSWORD'):
-        log("ERROR: DB_PASSWORD environment variable required")
-        sys.exit(1)
-
-    gemini_key = os.environ.get('GEMINI_API_KEY')
-    if not gemini_key:
+    if not GEMINI_API_KEY:
         log("ERROR: GEMINI_API_KEY environment variable required")
         sys.exit(1)
 
-    conn = get_db_connection()
-    log(f"Connected to database")
-
     # Get videos without summaries
-    videos = get_videos_without_summaries(conn)
-    log(f"Found {len(videos)} videos without summaries")
+    try:
+        videos = get_videos_without_summaries()
+        log(f"Found {len(videos)} videos without summaries")
+    except Exception as e:
+        log(f"ERROR fetching videos: {e}")
+        sys.exit(1)
 
     if not videos:
         log("Nothing to do, exiting")
-        conn.close()
         return
 
     success_count = 0
@@ -155,11 +139,11 @@ def main():
                 continue
 
             # Generate summary
-            summary = generate_summary(transcript, gemini_key)
+            summary = generate_summary(transcript)
 
-            # Save to database
-            save_summary(conn, video_id, summary)
-            log(f"  -> Summary saved ({len(summary)} chars)")
+            # Upload to API
+            upload_summary(video_id, summary)
+            log(f"  -> Summary uploaded ({len(summary)} chars)")
             success_count += 1
 
             # Rate limit: wait between requests
@@ -170,7 +154,6 @@ def main():
             error_count += 1
             continue
 
-    conn.close()
     log(f"Done! Success: {success_count}, Skipped: {skip_count}, Errors: {error_count}")
 
 

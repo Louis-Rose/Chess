@@ -4683,6 +4683,59 @@ def get_video_summary(video_id):
     return jsonify({'pending': True, 'message': 'Summary being generated...'}), 202
 
 
+@app.route('/api/investing/video-summaries/pending', methods=['GET'])
+def get_videos_without_summaries():
+    """Get videos that don't have summaries yet. Used by local sync script."""
+    sync_key = request.headers.get('X-Sync-Key')
+    expected_key = os.environ.get('SYNC_API_KEY', 'lumna-sync-2024')
+    if sync_key != expected_key:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT v.video_id, v.title, v.channel_name
+            FROM youtube_videos_cache v
+            LEFT JOIN video_summaries s ON v.video_id = s.video_id
+            WHERE s.video_id IS NULL
+            ORDER BY v.published_at DESC
+        ''')
+        videos = cursor.fetchall()
+
+    return jsonify({'videos': [dict(v) for v in videos]})
+
+
+@app.route('/api/investing/video-summaries/upload', methods=['POST'])
+def upload_video_summary():
+    """Upload a video summary. Used by local sync script."""
+    sync_key = request.headers.get('X-Sync-Key')
+    expected_key = os.environ.get('SYNC_API_KEY', 'lumna-sync-2024')
+    if sync_key != expected_key:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    video_id = data.get('video_id')
+    summary = data.get('summary')
+
+    if not video_id or not summary:
+        return jsonify({'error': 'video_id and summary required'}), 400
+
+    with get_db() as conn:
+        if USE_POSTGRES:
+            conn.execute(
+                '''INSERT INTO video_summaries (video_id, summary, created_at)
+                   VALUES (?, ?, NOW())
+                   ON CONFLICT (video_id) DO UPDATE SET summary = EXCLUDED.summary''',
+                (video_id, summary)
+            )
+        else:
+            conn.execute(
+                'INSERT OR REPLACE INTO video_summaries (video_id, summary) VALUES (?, ?)',
+                (video_id, summary)
+            )
+
+    return jsonify({'success': True})
+
+
 @app.route('/api/investing/graph-download', methods=['POST'])
 @login_required
 def record_graph_download():
