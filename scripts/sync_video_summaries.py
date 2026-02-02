@@ -261,7 +261,7 @@ def main():
 
         # Update run with video count and list
         videos_list = [
-            {'title': v['title'][:60], 'status': 'pending'}
+            {'title': v['title'], 'status': 'pending'}
             for v in videos
         ]
         update_sync_run(run_id, videos_total=len(videos), videos_list=json.dumps(videos_list))

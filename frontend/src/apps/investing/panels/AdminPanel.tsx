@@ -1642,21 +1642,6 @@ export function AdminPanel() {
                     </span>
                   </div>
 
-                  {run.status === 'running' && run.current_video && (
-                    <div className="text-sm text-slate-600 dark:text-slate-300 mb-2 truncate">
-                      <Play className="w-3 h-3 inline mr-1" />
-                      {run.current_video}
-                      {run.current_step && (
-                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200">
-                          {run.current_step === 'downloading' && '⬇️ Downloading'}
-                          {run.current_step === 'transcribing' && '🎤 Transcribing'}
-                          {run.current_step === 'summarizing' && '✨ Summarizing'}
-                          {run.current_step === 'uploading' && '⬆️ Uploading'}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                     <div className="text-slate-600 dark:text-slate-400">
                       <span className="font-medium">{run.tickers_count}</span> tickers
@@ -1709,7 +1694,15 @@ export function AdminPanel() {
                                   ) : (
                                     <div className="w-3 h-3 rounded-full border border-slate-300 dark:border-slate-500 flex-shrink-0" />
                                   )}
-                                  <span className={`truncate ${isDone ? 'line-through' : ''}`}>{v.title}</span>
+                                  <span className={isDone ? 'line-through' : ''}>{v.title}</span>
+                                  {isCurrent && run.current_step && (
+                                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-100 flex-shrink-0">
+                                      {run.current_step === 'downloading' && '⬇️ Downloading'}
+                                      {run.current_step === 'transcribing' && '🎤 Transcribing'}
+                                      {run.current_step === 'summarizing' && '✨ Summarizing'}
+                                      {run.current_step === 'uploading' && '⬆️ Uploading'}
+                                    </span>
+                                  )}
                                 </div>
                               );
                             });
