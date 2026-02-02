@@ -261,14 +261,12 @@ function CompanySection({
   ticker,
   companyName,
   videos,
-  isPortfolio,
   language,
   onPlayVideo,
 }: {
   ticker: string;
   companyName: string;
   videos: VideoWithCompany[];
-  isPortfolio: boolean;
   language: string;
   onPlayVideo: (video: VideoWithCompany) => void;
 }) {
@@ -483,8 +481,7 @@ export function NewsFeedPanel() {
                     ticker={company.ticker}
                     companyName={company.companyName}
                     videos={company.videos}
-                    isPortfolio={true}
-                    language={language}
+                                        language={language}
                     onPlayVideo={setSelectedVideo}
                   />
                 ))}
@@ -504,8 +501,7 @@ export function NewsFeedPanel() {
                     ticker={company.ticker}
                     companyName={company.companyName}
                     videos={company.videos}
-                    isPortfolio={false}
-                    language={language}
+                                        language={language}
                     onPlayVideo={setSelectedVideo}
                   />
                 ))}
