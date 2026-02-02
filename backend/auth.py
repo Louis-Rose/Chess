@@ -157,9 +157,6 @@ def get_or_create_user(google_user: dict) -> int:
             INSERT INTO user_preferences (user_id) VALUES (?)
         ''', (user_id,))
 
-        # Create demo portfolio for new user
-        create_demo_portfolio(user_id, conn)
-
         return user_id
 
 

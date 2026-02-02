@@ -5181,6 +5181,34 @@ def backfill_demo_portfolios():
     })
 
 
+@app.route('/api/admin/remove-demo-portfolios', methods=['POST'])
+@admin_required
+def remove_demo_portfolios():
+    """Remove demo portfolios from all users (admin only)."""
+    with get_db() as conn:
+        # First, delete all transactions linked to demo portfolio accounts
+        cursor = conn.execute('''
+            DELETE FROM portfolio_transactions
+            WHERE account_id IN (
+                SELECT id FROM investment_accounts WHERE name = 'Demo Portfolio'
+            )
+        ''')
+        transactions_deleted = cursor.rowcount
+
+        # Then delete the demo portfolio accounts
+        cursor = conn.execute('''
+            DELETE FROM investment_accounts WHERE name = 'Demo Portfolio'
+        ''')
+        accounts_deleted = cursor.rowcount
+
+    return jsonify({
+        'success': True,
+        'message': f'Removed {accounts_deleted} demo portfolios ({transactions_deleted} transactions)',
+        'accounts_deleted': accounts_deleted,
+        'transactions_deleted': transactions_deleted
+    })
+
+
 @app.route('/api/reward/eligibility', methods=['GET'])
 @login_required
 def check_reward_eligibility():
