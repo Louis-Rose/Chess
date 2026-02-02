@@ -1309,6 +1309,23 @@ def mark_channel_fetched(db_getter, channel_id):
         ''', (channel_id,))
 
 
+def update_company_video_selection(db_getter, ticker, video_ids):
+    """
+    Update the current video selection for a company.
+    Replaces the previous selection with the new one.
+    """
+    with db_getter() as conn:
+        # Delete old selection for this company
+        conn.execute('DELETE FROM company_video_selections WHERE ticker = ?', (ticker,))
+
+        # Insert new selection
+        for video_id in video_ids:
+            conn.execute('''
+                INSERT INTO company_video_selections (ticker, video_id, selected_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+            ''', (ticker, video_id))
+
+
 def get_news_feed_videos(db_getter, api_key, ticker=None, company_name=None, limit=50, force_refresh=False):
     """
     Get news feed videos, refreshing cache if needed.
@@ -1350,11 +1367,17 @@ def get_news_feed_videos(db_getter, api_key, ticker=None, company_name=None, lim
         filtered = all_videos
 
     # Add YouTube URL and limit results
-    for video in filtered[:limit]:
+    result_videos = filtered[:limit]
+    for video in result_videos:
         video['url'] = f"https://www.youtube.com/watch?v={video['video_id']}"
 
+    # Update company video selection (only the returned videos need transcripts)
+    if ticker and result_videos:
+        video_ids = [v['video_id'] for v in result_videos]
+        update_company_video_selection(db_getter, ticker, video_ids)
+
     return {
-        'videos': filtered[:limit],
+        'videos': result_videos,
         'total': len(filtered),
         'from_cache': len(channels_to_refresh) == 0,
         'refreshed_channels': refreshed_count

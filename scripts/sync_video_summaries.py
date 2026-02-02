@@ -30,7 +30,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(SCRIPT_DIR, '.env.sync'))
 
 from youtube_transcript_api import YouTubeTranscriptApi
-import google.generativeai as genai
+from google import genai
 
 # Configuration
 API_BASE_URL = os.environ.get('API_BASE_URL', 'https://lumna.co')
@@ -86,8 +86,7 @@ def fetch_transcript(video_id):
 
 def generate_summary(transcript_text):
     """Generate summary using Gemini."""
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-2.0-flash')
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
     # Truncate if too long
     max_chars = 30000
@@ -101,7 +100,10 @@ Be factual and neutral. Write in the same language as the transcript.
 Transcript:
 {transcript_text}"""
 
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=prompt
+    )
     return response.text.strip()
 
 

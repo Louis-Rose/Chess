@@ -216,6 +216,15 @@ CREATE TABLE IF NOT EXISTS video_summaries (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Current video selection per company (only these videos need transcripts)
+CREATE TABLE IF NOT EXISTS company_video_selections (
+    ticker TEXT NOT NULL,
+    video_id TEXT NOT NULL,
+    selected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (ticker, video_id)
+);
+CREATE INDEX IF NOT EXISTS idx_company_video_selections_video ON company_video_selections(video_id);
+
 -- Theme preferences tracking (for analytics)
 CREATE TABLE IF NOT EXISTS theme_usage (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

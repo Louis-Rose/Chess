@@ -190,6 +190,23 @@ def init_db():
                     )
                 """)
                 print("[Database] Created video_transcripts table")
+
+            # Migration: Create company_video_selections table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'company_video_selections'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE company_video_selections (
+                        ticker TEXT NOT NULL,
+                        video_id TEXT NOT NULL,
+                        selected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (ticker, video_id)
+                    )
+                """)
+                conn.execute("CREATE INDEX idx_company_video_selections_video ON company_video_selections(video_id)")
+                print("[Database] Created company_video_selections table")
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')

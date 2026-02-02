@@ -4705,6 +4705,9 @@ def get_video_summary(video_id):
 def get_videos_pending_sync():
     """Get videos that need transcript/summary sync. Used by local sync script.
 
+    Only returns videos that are in a company's current selection (company_video_selections table).
+    This ensures we only sync transcripts for videos currently being displayed.
+
     Returns videos that either:
     - Have no transcript yet (and hasn't been marked as unavailable)
     - Have transcript but no summary
@@ -4715,12 +4718,13 @@ def get_videos_pending_sync():
         return jsonify({'error': 'Unauthorized'}), 401
 
     with get_db() as conn:
-        # Get videos needing transcripts (not yet fetched, or not marked as unavailable)
+        # Get videos needing transcripts - ONLY from current company selections
         cursor = conn.execute('''
-            SELECT v.video_id, v.title, v.channel_name,
+            SELECT DISTINCT v.video_id, v.title, v.channel_name,
                    t.transcript IS NOT NULL as has_transcript,
                    s.summary IS NOT NULL as has_summary
-            FROM youtube_videos_cache v
+            FROM company_video_selections sel
+            JOIN youtube_videos_cache v ON sel.video_id = v.video_id
             LEFT JOIN video_transcripts t ON v.video_id = t.video_id
             LEFT JOIN video_summaries s ON v.video_id = s.video_id
             WHERE (t.video_id IS NULL)  -- No transcript record yet
