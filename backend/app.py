@@ -5,6 +5,7 @@ import hashlib
 import secrets
 import re
 import logging
+import threading
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, Response, make_response
 from flask_cors import CORS
@@ -1321,6 +1322,9 @@ def add_transaction():
     except Exception as e:
         print(f"[Transaction Error] {stock_ticker}: {str(e)}")
         return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+    # Refresh videos for this ticker in the background
+    refresh_videos_for_ticker_async(stock_ticker)
 
     return jsonify({
         'success': True,
@@ -3218,6 +3222,9 @@ def add_to_watchlist():
             # Already exists, ignore
             pass
 
+    # Refresh videos for this ticker in the background
+    refresh_videos_for_ticker_async(symbol)
+
     return jsonify({'success': True, 'symbol': symbol})
 
 
@@ -4646,6 +4653,22 @@ def send_earnings_alert_now():
         return jsonify({'success': True, 'message': f'Email sent to {email}'})
     else:
         return jsonify({'error': 'Failed to send email. Check SMTP configuration.'}), 500
+
+
+def refresh_videos_for_ticker_async(ticker: str):
+    """Refresh video selections for a ticker in the background."""
+    def _refresh():
+        try:
+            api_key = os.environ.get('YOUTUBE_API_KEY')
+            if api_key:
+                from investing_utils import get_news_feed_videos
+                get_news_feed_videos(get_db, api_key, ticker=ticker, limit=3)
+                print(f"[Videos] Refreshed videos for {ticker}")
+        except Exception as e:
+            print(f"[Videos] Error refreshing videos for {ticker}: {e}")
+
+    thread = threading.Thread(target=_refresh, daemon=True)
+    thread.start()
 
 
 @app.route('/api/investing/news-feed', methods=['GET'])
