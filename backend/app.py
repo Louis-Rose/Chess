@@ -5222,10 +5222,11 @@ def get_page_breakdown():
 @app.route('/api/admin/clear-video-cache', methods=['POST'])
 @admin_required
 def clear_video_cache():
-    """Clear YouTube video cache to force refresh with descriptions (admin only)."""
+    """Clear YouTube video cache and company selections (admin only)."""
     with get_db() as conn:
         conn.execute('DELETE FROM youtube_videos_cache')
-    return jsonify({'success': True, 'message': 'Video cache cleared. Videos will be re-fetched with descriptions.'})
+        conn.execute('DELETE FROM company_video_selections')
+    return jsonify({'success': True, 'message': 'Video cache and company selections cleared.'})
 
 
 @app.route('/api/admin/backfill-demo-portfolios', methods=['POST'])
