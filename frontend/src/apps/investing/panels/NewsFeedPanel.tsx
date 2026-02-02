@@ -310,11 +310,6 @@ function CompanySection({
             {companyName}
           </span>
           <span className="text-xs text-slate-500 dark:text-slate-400">({ticker})</span>
-          {isPortfolio && (
-            <span title={language === 'fr' ? 'Portefeuille' : 'Portfolio'}>
-              <Briefcase className="w-3 h-3 text-green-600" />
-            </span>
-          )}
         </button>
         <span className="text-xs text-slate-400">{recentVideos.length} {recentVideos.length === 1 ? 'video' : 'videos'}</span>
       </div>
