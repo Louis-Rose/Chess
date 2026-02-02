@@ -330,9 +330,13 @@ export function DividendsPanel() {
                                   </span>
                                 </span>
                                 {item.confirmed ? (
-                                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" title={language === 'fr' ? 'Confirmé' : 'Confirmed'} />
+                                  <span title={language === 'fr' ? 'Confirmé' : 'Confirmed'}>
+                                    <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                  </span>
                                 ) : (
-                                  <HelpCircle className="w-4 h-4 text-slate-400 flex-shrink-0" title={language === 'fr' ? 'Estimé' : 'Estimated'} />
+                                  <span title={language === 'fr' ? 'Estimé' : 'Estimated'}>
+                                    <HelpCircle className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                  </span>
                                 )}
                               </div>
                             ) : (
