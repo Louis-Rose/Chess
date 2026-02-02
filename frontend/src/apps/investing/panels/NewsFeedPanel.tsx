@@ -207,6 +207,47 @@ function VideoRow({
   );
 }
 
+// Collapsible section with toggle
+function CollapsibleSection({
+  title,
+  icon,
+  defaultOpen = true,
+  children
+}: {
+  title: string;
+  icon: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          {icon}
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {title}
+          </h3>
+        </div>
+        {isOpen ? (
+          <ChevronUp className="w-5 h-5 text-slate-500" />
+        ) : (
+          <ChevronDown className="w-5 h-5 text-slate-500" />
+        )}
+      </button>
+      {isOpen && (
+        <div className="px-6 pb-6">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Filter videos to last 30 days only
 function filterRecentVideos(videos: VideoWithCompany[], maxAgeDays: number = 30, maxCount: number = 5): VideoWithCompany[] {
   const now = new Date();
@@ -268,8 +309,8 @@ function CompanySection({
         </div>
       </button>
 
-      {/* Vertical video list */}
-      <div className="space-y-3">
+      {/* Scrollable vertical video list - height for ~2.5 videos */}
+      <div className="space-y-3 max-h-[520px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-500">
         {recentVideos.map((video) => (
           <VideoRow
             key={video.video_id}
@@ -422,15 +463,13 @@ export function NewsFeedPanel() {
           </div>
         ) : (
           <>
-            {/* Portfolio Companies Section */}
+            {/* Portfolio News Section */}
             {portfolioCompanies.length > 0 && (
-              <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <Briefcase className="w-5 h-5 text-green-600" />
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                    {language === 'fr' ? 'Portefeuille' : 'Portfolio'}
-                  </h3>
-                </div>
+              <CollapsibleSection
+                title={language === 'fr' ? 'Actualités Portefeuille' : 'Portfolio News'}
+                icon={<Briefcase className="w-5 h-5 text-green-600" />}
+                defaultOpen={true}
+              >
                 {portfolioCompanies.map((company) => (
                   <CompanySection
                     key={company.ticker}
@@ -442,18 +481,16 @@ export function NewsFeedPanel() {
                     onPlayVideo={setSelectedVideo}
                   />
                 ))}
-              </div>
+              </CollapsibleSection>
             )}
 
-            {/* Watchlist Companies Section */}
+            {/* Watchlist News Section */}
             {watchlistCompanies.length > 0 && (
-              <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <Eye className="w-5 h-5 text-blue-600" />
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                    Watchlist
-                  </h3>
-                </div>
+              <CollapsibleSection
+                title={language === 'fr' ? 'Actualités Watchlist' : 'Watchlist News'}
+                icon={<Eye className="w-5 h-5 text-blue-600" />}
+                defaultOpen={true}
+              >
                 {watchlistCompanies.map((company) => (
                   <CompanySection
                     key={company.ticker}
@@ -465,7 +502,7 @@ export function NewsFeedPanel() {
                     onPlayVideo={setSelectedVideo}
                   />
                 ))}
-              </div>
+              </CollapsibleSection>
             )}
           </>
         )}
