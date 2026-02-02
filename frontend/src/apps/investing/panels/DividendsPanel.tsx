@@ -281,9 +281,6 @@ export function DividendsPanel() {
                     <th className="pb-3 text-right font-semibold">
                       {language === 'fr' ? 'Montant' : 'Amount'}
                     </th>
-                    <th className="pb-3 text-right font-semibold hidden sm:table-cell">
-                      {language === 'fr' ? 'Rendement' : 'Yield'}
-                    </th>
                     <th className="pb-3 text-center font-semibold hidden md:table-cell">
                       {language === 'fr' ? 'Fréq.' : 'Freq.'}
                     </th>
@@ -311,7 +308,7 @@ export function DividendsPanel() {
                             <span className="font-bold text-slate-800 dark:text-slate-100">{item.ticker}</span>
                           </div>
                         </td>
-                        <td className="py-4" colSpan={paysDividends ? 1 : 5}>
+                        <td className="py-4" colSpan={paysDividends ? 1 : 4}>
                           {paysDividends ? (
                             item.ex_dividend_date ? (
                               <div className="flex items-center gap-1.5">
@@ -367,15 +364,6 @@ export function DividendsPanel() {
                               {item.dividend_amount !== null ? (
                                 <span className="text-slate-700 dark:text-slate-200 font-medium">
                                   ${item.dividend_amount.toFixed(2)}
-                                </span>
-                              ) : (
-                                <span className="text-slate-400">-</span>
-                              )}
-                            </td>
-                            <td className="py-4 text-right hidden sm:table-cell">
-                              {item.dividend_yield !== null ? (
-                                <span className="text-green-600 font-medium">
-                                  {item.dividend_yield.toFixed(2)}%
                                 </span>
                               ) : (
                                 <span className="text-slate-400">-</span>
