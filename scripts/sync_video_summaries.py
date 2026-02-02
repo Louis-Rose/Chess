@@ -22,6 +22,7 @@ import time
 import random
 import requests
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Add parent directory to path for imports
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -162,15 +163,23 @@ def main():
         log("No tickers to sync, exiting")
         return
 
-    # Step 2: Refresh video selections for each ticker
-    log(f"\n[Step 2] Refreshing video selections for {len(tickers)} tickers...")
+    # Step 2: Refresh video selections for each ticker (parallel)
+    log(f"\n[Step 2] Refreshing video selections for {len(tickers)} tickers (parallel)...")
     total_videos_refreshed = 0
-    for i, ticker in enumerate(tickers):
-        log(f"  [{i+1}/{len(tickers)}] {ticker}")
-        videos = refresh_video_selection(ticker)
-        total_videos_refreshed += len(videos)
-        # Small delay to avoid hammering the API
-        time.sleep(0.5)
+    completed = 0
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(refresh_video_selection, ticker): ticker for ticker in tickers}
+        for future in as_completed(futures):
+            ticker = futures[future]
+            completed += 1
+            try:
+                videos = future.result()
+                total_videos_refreshed += len(videos)
+                log(f"  [{completed}/{len(tickers)}] {ticker} ({len(videos)} videos)")
+            except Exception as e:
+                log(f"  [{completed}/{len(tickers)}] {ticker} - ERROR: {e}")
+
     log(f"Refreshed {total_videos_refreshed} total video selections")
 
     # Step 3: Get videos pending transcript sync
