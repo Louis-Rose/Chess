@@ -4957,6 +4957,54 @@ def get_stock_views_stats():
     })
 
 
+@app.route('/api/admin/company-stats', methods=['GET'])
+@admin_required
+def get_company_stats():
+    """Get company popularity stats - how many portfolios/watchlists each ticker appears in."""
+    # Hidden accounts
+    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
+    placeholders = ','.join(['?' for _ in hidden_emails])
+
+    with get_db() as conn:
+        # Get portfolio counts by ticker (excluding hidden users)
+        cursor = conn.execute(f'''
+            SELECT pt.stock_ticker as ticker, COUNT(DISTINCT pt.user_id) as portfolio_count
+            FROM portfolio_transactions pt
+            JOIN users u ON pt.user_id = u.id
+            WHERE u.email NOT IN ({placeholders})
+            GROUP BY pt.stock_ticker
+        ''', tuple(hidden_emails))
+        portfolio_counts = {row['ticker']: row['portfolio_count'] for row in cursor.fetchall()}
+
+        # Get watchlist counts by ticker (excluding hidden users)
+        cursor = conn.execute(f'''
+            SELECT w.stock_ticker as ticker, COUNT(DISTINCT w.user_id) as watchlist_count
+            FROM watchlist w
+            JOIN users u ON w.user_id = u.id
+            WHERE u.email NOT IN ({placeholders})
+            GROUP BY w.stock_ticker
+        ''', tuple(hidden_emails))
+        watchlist_counts = {row['ticker']: row['watchlist_count'] for row in cursor.fetchall()}
+
+        # Combine all tickers
+        all_tickers = set(portfolio_counts.keys()) | set(watchlist_counts.keys())
+        companies = []
+        for ticker in all_tickers:
+            p_count = portfolio_counts.get(ticker, 0)
+            w_count = watchlist_counts.get(ticker, 0)
+            companies.append({
+                'ticker': ticker,
+                'portfolio_count': p_count,
+                'watchlist_count': w_count,
+                'total': p_count + w_count
+            })
+
+        # Sort by total (portfolio + watchlist) descending
+        companies.sort(key=lambda x: x['total'], reverse=True)
+
+    return jsonify({'companies': companies})
+
+
 @app.route('/api/admin/stock-views/<ticker>', methods=['GET'])
 @admin_required
 def get_stock_views_detail(ticker):

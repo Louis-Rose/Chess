@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, ChevronUp, ChevronDown, Clock, Search, RefreshCw, ChevronRight, Sun, Moon, Settings, Globe, Smartphone, Monitor, Mail, Download, CheckSquare, Square } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, ChevronUp, ChevronDown, Clock, Search, RefreshCw, ChevronRight, Sun, Moon, Settings, Globe, Smartphone, Monitor, Mail, Download, CheckSquare, Square, Building2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -69,6 +69,15 @@ interface StockViewStats {
   }[];
 }
 
+interface CompanyStats {
+  companies: {
+    ticker: string;
+    portfolio_count: number;
+    watchlist_count: number;
+    total: number;
+  }[];
+}
+
 const fetchTimeSpent = async (): Promise<TimeSpentData[]> => {
   const response = await axios.get('/api/admin/time-spent');
   return response.data.daily_stats;
@@ -76,6 +85,11 @@ const fetchTimeSpent = async (): Promise<TimeSpentData[]> => {
 
 const fetchStockViews = async (): Promise<StockViewStats> => {
   const response = await axios.get('/api/admin/stock-views');
+  return response.data;
+};
+
+const fetchCompanyStats = async (): Promise<CompanyStats> => {
+  const response = await axios.get('/api/admin/company-stats');
   return response.data;
 };
 
@@ -133,6 +147,7 @@ export function AdminPanel() {
     await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-time-spent'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-stock-views'] });
+    await queryClient.invalidateQueries({ queryKey: ['admin-company-stats'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-page-breakdown'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-theme-stats'] });
     await queryClient.invalidateQueries({ queryKey: ['admin-language-stats'] });
@@ -155,6 +170,12 @@ export function AdminPanel() {
   const { data: stockViewsData } = useQuery({
     queryKey: ['admin-stock-views'],
     queryFn: fetchStockViews,
+    enabled: !!user?.is_admin,
+  });
+
+  const { data: companyStatsData } = useQuery({
+    queryKey: ['admin-company-stats'],
+    queryFn: fetchCompanyStats,
     enabled: !!user?.is_admin,
   });
 
@@ -198,9 +219,15 @@ export function AdminPanel() {
   const [isTimeSpentExpanded, setIsTimeSpentExpanded] = useState(true);
   const [isUsersExpanded, setIsUsersExpanded] = useState(true);
   const [isUsersTableExpanded, setIsUsersTableExpanded] = useState(true);
+  const [isCompaniesExpanded, setIsCompaniesExpanded] = useState(true);
   const [isStockSearchesExpanded, setIsStockSearchesExpanded] = useState(true);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(true);
   const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(true);
+
+  // Sort state for Companies table
+  type CompanySortColumn = 'ticker' | 'portfolio_count' | 'watchlist_count' | 'total';
+  const [companySortColumn, setCompanySortColumn] = useState<CompanySortColumn>('total');
+  const [companySortDirection, setCompanySortDirection] = useState<SortDirection>('desc');
 
   // Time unit for charts (shared between Time Spent and Users)
   type TimeUnit = 'days' | 'weeks' | 'months';
@@ -324,6 +351,16 @@ export function AdminPanel() {
     }
   };
 
+  // Handle column header click for Companies table
+  const handleCompanySort = (column: CompanySortColumn) => {
+    if (companySortColumn === column) {
+      setCompanySortDirection(companySortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setCompanySortColumn(column);
+      setCompanySortDirection('desc');
+    }
+  };
+
   // Email export helpers
   const toggleUserSelection = (userId: number, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent row click navigation
@@ -376,6 +413,30 @@ export function AdminPanel() {
 
     navigator.clipboard.writeText(selectedEmails);
   };
+
+  // Sorted companies
+  const sortedCompanies = useMemo(() => {
+    if (!companyStatsData?.companies) return [];
+
+    return [...companyStatsData.companies].sort((a, b) => {
+      let comparison = 0;
+      switch (companySortColumn) {
+        case 'ticker':
+          comparison = a.ticker.localeCompare(b.ticker);
+          break;
+        case 'portfolio_count':
+          comparison = a.portfolio_count - b.portfolio_count;
+          break;
+        case 'watchlist_count':
+          comparison = a.watchlist_count - b.watchlist_count;
+          break;
+        case 'total':
+          comparison = a.total - b.total;
+          break;
+      }
+      return companySortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [companyStatsData?.companies, companySortColumn, companySortDirection]);
 
   // Sorted stock views
   const sortedStockViews = useMemo(() => {
@@ -1312,7 +1373,87 @@ export function AdminPanel() {
           )}
         </div>
 
-        {/* 3. Stock Searches */}
+        {/* 3. Companies */}
+        {companyStatsData && companyStatsData.companies.length > 0 && (
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+            <button
+              onClick={(e) => {
+                setIsCompaniesExpanded(!isCompaniesExpanded);
+                setTimeout(() => e.currentTarget?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 10);
+              }}
+              className="flex items-center gap-3 w-full text-left"
+            >
+              <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isCompaniesExpanded ? 'rotate-90' : ''}`} />
+              <Building2 className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                {language === 'fr' ? 'Entreprises' : 'Companies'}
+                <span className="text-slate-500 dark:text-slate-400 font-normal ml-2">
+                  ({companyStatsData.companies.length})
+                </span>
+              </h3>
+            </button>
+            {isCompaniesExpanded && (
+              <div className="overflow-x-auto max-h-[300px] overflow-y-auto mt-4">
+                <table className="w-full">
+                  <thead className="sticky top-0 bg-slate-50 dark:bg-slate-700">
+                    <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b-2 border-slate-300 dark:border-slate-500">
+                      <th className="pb-3 pl-2">
+                        <button onClick={() => handleCompanySort('ticker')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white">
+                          {language === 'fr' ? 'Entreprise' : 'Company'}
+                          {companySortColumn === 'ticker' && (companySortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                        </button>
+                      </th>
+                      <th className="pb-3 text-center">
+                        <button onClick={() => handleCompanySort('portfolio_count')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                          {language === 'fr' ? 'Portfolios' : 'Portfolios'}
+                          {companySortColumn === 'portfolio_count' && (companySortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                        </button>
+                      </th>
+                      <th className="pb-3 text-center">
+                        <button onClick={() => handleCompanySort('watchlist_count')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                          {language === 'fr' ? 'Watchlists' : 'Watchlists'}
+                          {companySortColumn === 'watchlist_count' && (companySortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                        </button>
+                      </th>
+                      <th className="pb-3 text-center">
+                        <button onClick={() => handleCompanySort('total')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                          Total
+                          {companySortColumn === 'total' && (companySortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                        </button>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedCompanies.map((company) => (
+                      <tr
+                        key={company.ticker}
+                        className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer"
+                        onClick={() => navigate(`/investing/stock/${company.ticker}`)}
+                      >
+                        <td className="py-2 pl-2">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={getCompanyLogoUrl(company.ticker) || ''}
+                              alt={company.ticker}
+                              className="w-6 h-6 rounded bg-white"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                            <span className="font-medium text-slate-800 dark:text-slate-100">{company.ticker}</span>
+                          </div>
+                        </td>
+                        <td className="py-2 text-center text-slate-500 dark:text-slate-300">{company.portfolio_count || '-'}</td>
+                        <td className="py-2 text-center text-slate-500 dark:text-slate-300">{company.watchlist_count || '-'}</td>
+                        <td className="py-2 text-center font-medium text-slate-700 dark:text-slate-200">{company.total}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 4. Stock Searches */}
         {stockViewsData && stockViewsData.by_stock.length > 0 && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <button
@@ -1396,7 +1537,7 @@ export function AdminPanel() {
           </div>
         )}
 
-        {/* 4. Settings (Theme + Language) */}
+        {/* 5. Settings (Theme + Language) */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
           <button
             onClick={(e) => {
