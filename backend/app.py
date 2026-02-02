@@ -4663,6 +4663,69 @@ def get_news_feed():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/investing/video-summary/<video_id>', methods=['GET'])
+def get_video_summary(video_id):
+    """Get AI-generated summary of a YouTube video transcript."""
+    from youtube_transcript_api import YouTubeTranscriptApi
+    from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
+    import google.generativeai as genai
+
+    # Check cache first
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT summary FROM video_summaries WHERE video_id = ?',
+            (video_id,)
+        )
+        row = cursor.fetchone()
+        if row:
+            return jsonify({'summary': row['summary'], 'from_cache': True})
+
+    # Fetch transcript
+    try:
+        transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en', 'fr', 'en-US', 'en-GB'])
+        transcript_text = ' '.join([entry['text'] for entry in transcript_list])
+    except (TranscriptsDisabled, NoTranscriptFound):
+        return jsonify({'error': 'No transcript available for this video'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch transcript: {str(e)}'}), 500
+
+    # Truncate if too long (Gemini has token limits)
+    max_chars = 30000
+    if len(transcript_text) > max_chars:
+        transcript_text = transcript_text[:max_chars] + '...'
+
+    # Generate summary with Gemini
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        return jsonify({'error': 'GEMINI_API_KEY not configured'}), 500
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+
+        prompt = f"""Summarize this YouTube video transcript in 2-3 concise sentences.
+Focus on the main points about the company/stock discussed.
+Be factual and neutral. Write in the same language as the transcript.
+
+Transcript:
+{transcript_text}"""
+
+        response = model.generate_content(prompt)
+        summary = response.text.strip()
+
+        # Cache the summary
+        with get_db() as conn:
+            conn.execute(
+                'INSERT OR REPLACE INTO video_summaries (video_id, summary) VALUES (?, ?)',
+                (video_id, summary)
+            )
+
+        return jsonify({'summary': summary, 'from_cache': False})
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to generate summary: {str(e)}'}), 500
+
+
 @app.route('/api/investing/graph-download', methods=['POST'])
 @login_required
 def record_graph_download():

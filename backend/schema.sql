@@ -201,6 +201,13 @@ CREATE TABLE IF NOT EXISTS youtube_channel_fetch_log (
     last_fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Video transcript summaries cache
+CREATE TABLE IF NOT EXISTS video_summaries (
+    video_id TEXT PRIMARY KEY,
+    summary TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Theme preferences tracking (for analytics)
 CREATE TABLE IF NOT EXISTS theme_usage (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
