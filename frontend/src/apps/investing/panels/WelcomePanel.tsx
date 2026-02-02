@@ -748,7 +748,7 @@ export function InvestingWelcomePanel() {
                               <span className="text-slate-400 font-normal">
                                 {' '}({earning.remaining_days === 0
                                   ? (language === 'fr' ? "aujourd'hui" : 'today')
-                                  : `${earning.remaining_days}${language === 'fr' ? 'j' : 'd'}`})
+                                  : `${earning.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
                               </span>
                             )}
                           </>
