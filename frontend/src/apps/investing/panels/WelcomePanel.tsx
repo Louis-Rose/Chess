@@ -669,7 +669,7 @@ export function InvestingWelcomePanel() {
                           <>
                             {new Date(earning.next_earnings_date).toLocaleDateString(
                               language === 'fr' ? 'fr-FR' : 'en-US',
-                              { day: 'numeric', month: 'short', year: 'numeric' }
+                              { day: 'numeric', month: 'long', year: 'numeric' }
                             )}
                             {earning.remaining_days !== null && (
                               <span className="text-slate-400 font-normal">
