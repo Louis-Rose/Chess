@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Sync video summaries from local machine to production via API.
+Sync video transcripts and summaries from local machine to production via API.
 
 This script runs locally (where YouTube isn't blocked) to:
-1. Fetch videos without summaries from production API
-2. Get transcripts via YouTube Transcript API
+1. Fetch videos needing sync from production API
+2. Get transcripts via YouTube Transcript API (only if not cached)
 3. Generate summaries with Gemini
-4. Upload summaries to production API
+4. Upload transcripts + summaries to production API
 
 Usage:
     python scripts/sync_video_summaries.py
@@ -43,8 +43,8 @@ def log(message):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}")
 
 
-def get_videos_without_summaries():
-    """Fetch videos that need summaries from the API."""
+def get_videos_pending_sync():
+    """Fetch videos that need transcripts/summaries from the API."""
     response = requests.get(
         f"{API_BASE_URL}/api/investing/video-summaries/pending",
         headers={'X-Sync-Key': SYNC_API_KEY},
@@ -54,12 +54,17 @@ def get_videos_without_summaries():
     return response.json().get('videos', [])
 
 
-def upload_summary(video_id, summary):
-    """Upload a summary to the API."""
+def upload_video_data(video_id, transcript=None, has_transcript=True, summary=None):
+    """Upload transcript and/or summary to the API."""
     response = requests.post(
         f"{API_BASE_URL}/api/investing/video-summaries/upload",
         headers={'X-Sync-Key': SYNC_API_KEY, 'Content-Type': 'application/json'},
-        json={'video_id': video_id, 'summary': summary},
+        json={
+            'video_id': video_id,
+            'transcript': transcript,
+            'has_transcript': has_transcript,
+            'summary': summary
+        },
         timeout=30
     )
     response.raise_for_status()
@@ -67,7 +72,7 @@ def upload_summary(video_id, summary):
 
 
 def fetch_transcript(video_id):
-    """Fetch transcript for a video."""
+    """Fetch transcript for a video from YouTube."""
     try:
         ytt_api = YouTubeTranscriptApi()
         transcript_list = ytt_api.fetch(video_id, languages=['en', 'fr', 'en-US', 'en-GB'])
@@ -101,16 +106,16 @@ Transcript:
 
 
 def main():
-    log("Starting video summary sync...")
+    log("Starting video transcript/summary sync...")
 
     if not GEMINI_API_KEY:
         log("ERROR: GEMINI_API_KEY environment variable required")
         sys.exit(1)
 
-    # Get videos without summaries
+    # Get videos pending sync
     try:
-        videos = get_videos_without_summaries()
-        log(f"Found {len(videos)} videos without summaries")
+        videos = get_videos_pending_sync()
+        log(f"Found {len(videos)} videos pending sync")
     except Exception as e:
         log(f"ERROR fetching videos: {e}")
         sys.exit(1)
@@ -119,42 +124,61 @@ def main():
         log("Nothing to do, exiting")
         return
 
-    success_count = 0
-    skip_count = 0
+    transcript_fetched = 0
+    summary_generated = 0
+    no_transcript = 0
     error_count = 0
 
     for video in videos:
         video_id = video['video_id']
+        has_transcript = video.get('has_transcript', False)
+        has_summary = video.get('has_summary', False)
         title = video['title'][:50] + '...' if len(video['title']) > 50 else video['title']
 
         log(f"Processing: {title}")
 
         try:
-            # Fetch transcript
-            transcript = fetch_transcript(video_id)
+            transcript = None
+            summary = None
 
-            if not transcript:
-                log(f"  -> No transcript available, skipping")
-                skip_count += 1
-                continue
+            # Step 1: Get transcript (fetch from YouTube only if not cached)
+            if not has_transcript:
+                log(f"  -> Fetching transcript from YouTube...")
+                transcript = fetch_transcript(video_id)
 
-            # Generate summary
-            summary = generate_summary(transcript)
+                if transcript:
+                    log(f"  -> Transcript fetched ({len(transcript)} chars)")
+                    transcript_fetched += 1
+                else:
+                    log(f"  -> No transcript available, marking as unavailable")
+                    upload_video_data(video_id, transcript=None, has_transcript=False)
+                    no_transcript += 1
+                    continue
+            else:
+                log(f"  -> Transcript already cached")
 
-            # Upload to API
-            upload_summary(video_id, summary)
-            log(f"  -> Summary uploaded ({len(summary)} chars)")
-            success_count += 1
+            # Step 2: Generate summary (if we have transcript but no summary)
+            if transcript and not has_summary:
+                log(f"  -> Generating summary with Gemini...")
+                summary = generate_summary(transcript)
+                log(f"  -> Summary generated ({len(summary)} chars)")
+                summary_generated += 1
 
-            # Rate limit: wait between requests
-            time.sleep(1)
+            # Step 3: Upload to API
+            if transcript or summary:
+                upload_video_data(video_id, transcript=transcript, has_transcript=True, summary=summary)
+                log(f"  -> Uploaded to API")
+
+            # Rate limit: wait between YouTube requests
+            if not has_transcript:
+                time.sleep(1)
 
         except Exception as e:
             log(f"  -> ERROR: {str(e)[:100]}")
             error_count += 1
             continue
 
-    log(f"Done! Success: {success_count}, Skipped: {skip_count}, Errors: {error_count}")
+    log(f"Done! Transcripts fetched: {transcript_fetched}, Summaries generated: {summary_generated}, No transcript: {no_transcript}, Errors: {error_count}")
 
 
 if __name__ == '__main__':

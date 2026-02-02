@@ -201,6 +201,14 @@ CREATE TABLE IF NOT EXISTS youtube_channel_fetch_log (
     last_fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Video transcripts cache
+CREATE TABLE IF NOT EXISTS video_transcripts (
+    video_id TEXT PRIMARY KEY,
+    transcript TEXT,                 -- NULL if no transcript available
+    has_transcript INTEGER DEFAULT 1, -- 0 if video has no transcript (don't retry)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Video transcript summaries cache
 CREATE TABLE IF NOT EXISTS video_summaries (
     video_id TEXT PRIMARY KEY,

@@ -174,6 +174,22 @@ def init_db():
                     )
                 """)
                 print("[Database] Created video_summaries table")
+
+            # Migration: Create video_transcripts table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'video_transcripts'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE video_transcripts (
+                        video_id TEXT PRIMARY KEY,
+                        transcript TEXT,
+                        has_transcript INTEGER DEFAULT 1,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                print("[Database] Created video_transcripts table")
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')

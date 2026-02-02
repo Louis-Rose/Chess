@@ -4684,19 +4684,29 @@ def get_video_summary(video_id):
 
 
 @app.route('/api/investing/video-summaries/pending', methods=['GET'])
-def get_videos_without_summaries():
-    """Get videos that don't have summaries yet. Used by local sync script."""
+def get_videos_pending_sync():
+    """Get videos that need transcript/summary sync. Used by local sync script.
+
+    Returns videos that either:
+    - Have no transcript yet (and hasn't been marked as unavailable)
+    - Have transcript but no summary
+    """
     sync_key = request.headers.get('X-Sync-Key')
     expected_key = os.environ.get('SYNC_API_KEY', 'lumna-sync-2024')
     if sync_key != expected_key:
         return jsonify({'error': 'Unauthorized'}), 401
 
     with get_db() as conn:
+        # Get videos needing transcripts (not yet fetched, or not marked as unavailable)
         cursor = conn.execute('''
-            SELECT v.video_id, v.title, v.channel_name
+            SELECT v.video_id, v.title, v.channel_name,
+                   t.transcript IS NOT NULL as has_transcript,
+                   s.summary IS NOT NULL as has_summary
             FROM youtube_videos_cache v
+            LEFT JOIN video_transcripts t ON v.video_id = t.video_id
             LEFT JOIN video_summaries s ON v.video_id = s.video_id
-            WHERE s.video_id IS NULL
+            WHERE (t.video_id IS NULL)  -- No transcript record yet
+               OR (t.has_transcript = 1 AND t.transcript IS NOT NULL AND s.video_id IS NULL)  -- Has transcript, needs summary
             ORDER BY v.published_at DESC
         ''')
         videos = cursor.fetchall()
@@ -4705,8 +4715,8 @@ def get_videos_without_summaries():
 
 
 @app.route('/api/investing/video-summaries/upload', methods=['POST'])
-def upload_video_summary():
-    """Upload a video summary. Used by local sync script."""
+def upload_video_data():
+    """Upload transcript and/or summary. Used by local sync script."""
     sync_key = request.headers.get('X-Sync-Key')
     expected_key = os.environ.get('SYNC_API_KEY', 'lumna-sync-2024')
     if sync_key != expected_key:
@@ -4714,24 +4724,43 @@ def upload_video_summary():
 
     data = request.get_json()
     video_id = data.get('video_id')
+    transcript = data.get('transcript')  # Can be None if no transcript available
+    has_transcript = data.get('has_transcript', True)  # False if video has no transcript
     summary = data.get('summary')
 
-    if not video_id or not summary:
-        return jsonify({'error': 'video_id and summary required'}), 400
+    if not video_id:
+        return jsonify({'error': 'video_id required'}), 400
 
     with get_db() as conn:
-        if USE_POSTGRES:
-            conn.execute(
-                '''INSERT INTO video_summaries (video_id, summary, created_at)
-                   VALUES (?, ?, NOW())
-                   ON CONFLICT (video_id) DO UPDATE SET summary = EXCLUDED.summary''',
-                (video_id, summary)
-            )
-        else:
-            conn.execute(
-                'INSERT OR REPLACE INTO video_summaries (video_id, summary) VALUES (?, ?)',
-                (video_id, summary)
-            )
+        # Save transcript if provided (or mark as unavailable)
+        if transcript is not None or not has_transcript:
+            if USE_POSTGRES:
+                conn.execute(
+                    '''INSERT INTO video_transcripts (video_id, transcript, has_transcript, created_at)
+                       VALUES (?, ?, ?, NOW())
+                       ON CONFLICT (video_id) DO UPDATE SET transcript = EXCLUDED.transcript, has_transcript = EXCLUDED.has_transcript''',
+                    (video_id, transcript, 1 if has_transcript else 0)
+                )
+            else:
+                conn.execute(
+                    'INSERT OR REPLACE INTO video_transcripts (video_id, transcript, has_transcript) VALUES (?, ?, ?)',
+                    (video_id, transcript, 1 if has_transcript else 0)
+                )
+
+        # Save summary if provided
+        if summary:
+            if USE_POSTGRES:
+                conn.execute(
+                    '''INSERT INTO video_summaries (video_id, summary, created_at)
+                       VALUES (?, ?, NOW())
+                       ON CONFLICT (video_id) DO UPDATE SET summary = EXCLUDED.summary''',
+                    (video_id, summary)
+                )
+            else:
+                conn.execute(
+                    'INSERT OR REPLACE INTO video_summaries (video_id, summary) VALUES (?, ?)',
+                    (video_id, summary)
+                )
 
     return jsonify({'success': True})
 
