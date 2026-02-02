@@ -1,6 +1,6 @@
 // Admin panel - view registered users (admin only)
 
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -1459,118 +1459,108 @@ export function AdminPanel() {
                       {sortedCompanies.map((company) => {
                         const stock = findStockByTicker(company.ticker);
                         const companyName = stock?.name || company.ticker;
+                        const isSelected = selectedCompanyTicker === company.ticker;
                         return (
-                        <tr
-                          key={company.ticker}
-                          className={`border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${selectedCompanyTicker === company.ticker ? 'bg-slate-100 dark:bg-slate-600' : ''}`}
-                          onClick={() => handleCompanyRowClick(company.ticker)}
-                        >
-                          <td className="py-2 pl-2">
-                            <div className="flex items-center gap-3">
-                              <img
-                                src={getCompanyLogoUrl(company.ticker) || ''}
-                                alt={company.ticker}
-                                className="w-6 h-6 rounded bg-white"
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                              />
-                              <span className="font-medium text-slate-800 dark:text-slate-100">{companyName} <span className="text-slate-400 font-normal">({company.ticker})</span></span>
-                            </div>
-                          </td>
-                          <td className="py-2 text-center font-medium text-slate-700 dark:text-slate-200">{company.total}</td>
-                          <td className="py-2 text-center text-slate-500 dark:text-slate-300">{company.portfolio_count}</td>
-                          <td className="py-2 text-center text-slate-500 dark:text-slate-300">{company.watchlist_count}</td>
-                        </tr>
+                        <Fragment key={company.ticker}>
+                          <tr
+                            className={`border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer ${isSelected ? 'bg-slate-100 dark:bg-slate-600' : ''}`}
+                            onClick={() => handleCompanyRowClick(company.ticker)}
+                          >
+                            <td className="py-2 pl-2">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={getCompanyLogoUrl(company.ticker) || ''}
+                                  alt={company.ticker}
+                                  className="w-6 h-6 rounded bg-white"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                                <span className="font-medium text-slate-800 dark:text-slate-100">{companyName} <span className="text-slate-400 font-normal">({company.ticker})</span></span>
+                              </div>
+                            </td>
+                            <td className="py-2 text-center font-medium text-slate-700 dark:text-slate-200">{company.total}</td>
+                            <td className="py-2 text-center text-slate-500 dark:text-slate-300">{company.portfolio_count}</td>
+                            <td className="py-2 text-center text-slate-500 dark:text-slate-300">{company.watchlist_count}</td>
+                          </tr>
+                          {/* Expanded details row */}
+                          {isSelected && (
+                            <tr className="bg-slate-100 dark:bg-slate-600">
+                              <td colSpan={4} className="p-3">
+                                {isLoadingCompanyUsers ? (
+                                  <div className="flex justify-center py-2">
+                                    <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+                                  </div>
+                                ) : companyUsers ? (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {/* Portfolio users */}
+                                    <div>
+                                      <h5 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
+                                        {language === 'fr' ? 'Portfolios' : 'Portfolios'} ({companyUsers.portfolio_users.length})
+                                      </h5>
+                                      {companyUsers.portfolio_users.length > 0 ? (
+                                        <div className="space-y-1 max-h-[150px] overflow-y-auto">
+                                          {companyUsers.portfolio_users.map((u) => (
+                                            <div
+                                              key={u.id}
+                                              className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
+                                              onClick={(e) => { e.stopPropagation(); navigate(`/investing/admin/user/${u.id}`); }}
+                                            >
+                                              {u.picture ? (
+                                                <img src={u.picture} alt={u.name} className="w-5 h-5 rounded-full" />
+                                              ) : (
+                                                <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
+                                                  {u.name?.charAt(0) || '?'}
+                                                </div>
+                                              )}
+                                              <span className="text-xs text-slate-700 dark:text-slate-200">{u.name}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <p className="text-xs text-slate-400 italic">
+                                          {language === 'fr' ? 'Aucun' : 'None'}
+                                        </p>
+                                      )}
+                                    </div>
+                                    {/* Watchlist users */}
+                                    <div>
+                                      <h5 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
+                                        {language === 'fr' ? 'Watchlists' : 'Watchlists'} ({companyUsers.watchlist_users.length})
+                                      </h5>
+                                      {companyUsers.watchlist_users.length > 0 ? (
+                                        <div className="space-y-1 max-h-[150px] overflow-y-auto">
+                                          {companyUsers.watchlist_users.map((u) => (
+                                            <div
+                                              key={u.id}
+                                              className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
+                                              onClick={(e) => { e.stopPropagation(); navigate(`/investing/admin/user/${u.id}`); }}
+                                            >
+                                              {u.picture ? (
+                                                <img src={u.picture} alt={u.name} className="w-5 h-5 rounded-full" />
+                                              ) : (
+                                                <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
+                                                  {u.name?.charAt(0) || '?'}
+                                                </div>
+                                              )}
+                                              <span className="text-xs text-slate-700 dark:text-slate-200">{u.name}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <p className="text-xs text-slate-400 italic">
+                                          {language === 'fr' ? 'Aucun' : 'None'}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : null}
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
                       );})}
                     </tbody>
                   </table>
                 </div>
-                {/* Selected company users */}
-                {selectedCompanyTicker && (
-                  <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-600 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        {selectedCompanyTicker}
-                      </h4>
-                      <button
-                        onClick={() => {
-                          setSelectedCompanyTicker(null);
-                          setCompanyUsers(null);
-                        }}
-                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                    {isLoadingCompanyUsers ? (
-                      <div className="flex justify-center py-4">
-                        <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
-                      </div>
-                    ) : companyUsers ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* Portfolio users */}
-                        <div>
-                          <h5 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
-                            {language === 'fr' ? 'Portfolios' : 'Portfolios'} ({companyUsers.portfolio_users.length})
-                          </h5>
-                          {companyUsers.portfolio_users.length > 0 ? (
-                            <div className="space-y-1 max-h-[150px] overflow-y-auto">
-                              {companyUsers.portfolio_users.map((u) => (
-                                <div
-                                  key={u.id}
-                                  className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
-                                  onClick={(e) => { e.stopPropagation(); navigate(`/investing/admin/user/${u.id}`); }}
-                                >
-                                  {u.picture ? (
-                                    <img src={u.picture} alt={u.name} className="w-5 h-5 rounded-full" />
-                                  ) : (
-                                    <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
-                                      {u.name?.charAt(0) || '?'}
-                                    </div>
-                                  )}
-                                  <span className="text-xs text-slate-700 dark:text-slate-200">{u.name}</span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-slate-400 italic">
-                              {language === 'fr' ? 'Aucun' : 'None'}
-                            </p>
-                          )}
-                        </div>
-                        {/* Watchlist users */}
-                        <div>
-                          <h5 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
-                            {language === 'fr' ? 'Watchlists' : 'Watchlists'} ({companyUsers.watchlist_users.length})
-                          </h5>
-                          {companyUsers.watchlist_users.length > 0 ? (
-                            <div className="space-y-1 max-h-[150px] overflow-y-auto">
-                              {companyUsers.watchlist_users.map((u) => (
-                                <div
-                                  key={u.id}
-                                  className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-200 dark:hover:bg-slate-500 cursor-pointer"
-                                  onClick={(e) => { e.stopPropagation(); navigate(`/investing/admin/user/${u.id}`); }}
-                                >
-                                  {u.picture ? (
-                                    <img src={u.picture} alt={u.name} className="w-5 h-5 rounded-full" />
-                                  ) : (
-                                    <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
-                                      {u.name?.charAt(0) || '?'}
-                                    </div>
-                                  )}
-                                  <span className="text-xs text-slate-700 dark:text-slate-200">{u.name}</span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-slate-400 italic">
-                              {language === 'fr' ? 'Aucun' : 'None'}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
               </div>
             )}
           </div>
