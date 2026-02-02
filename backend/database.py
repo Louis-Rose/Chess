@@ -207,6 +207,30 @@ def init_db():
                 """)
                 conn.execute("CREATE INDEX idx_company_video_selections_video ON company_video_selections(video_id)")
                 print("[Database] Created company_video_selections table")
+
+            # Migration: Create video_sync_runs table
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'video_sync_runs'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE video_sync_runs (
+                        id SERIAL PRIMARY KEY,
+                        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        ended_at TIMESTAMP,
+                        status TEXT DEFAULT 'running',
+                        tickers_count INTEGER DEFAULT 0,
+                        videos_total INTEGER DEFAULT 0,
+                        videos_processed INTEGER DEFAULT 0,
+                        transcripts_fetched INTEGER DEFAULT 0,
+                        summaries_generated INTEGER DEFAULT 0,
+                        errors INTEGER DEFAULT 0,
+                        current_video TEXT,
+                        error_message TEXT
+                    )
+                """)
+                print("[Database] Created video_sync_runs table")
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
