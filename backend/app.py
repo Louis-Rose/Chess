@@ -5067,13 +5067,17 @@ def get_stock_views_detail(ticker):
 @admin_required
 def get_time_spent_stats():
     """Get daily time spent stats for all users (admin only)."""
+    excluded_email = 'rose.louis.mail@gmail.com'
+
     with get_db() as conn:
         cursor = conn.execute('''
             SELECT a.activity_date, SUM(a.minutes) as total_minutes
             FROM user_activity a
+            JOIN users u ON a.user_id = u.id
+            WHERE u.email != ?
             GROUP BY a.activity_date
             ORDER BY a.activity_date ASC
-        ''')
+        ''', (excluded_email,))
         daily_stats = [dict(row) for row in cursor.fetchall()]
 
     return jsonify({'daily_stats': daily_stats})
@@ -5089,6 +5093,8 @@ def get_time_spent_details(period):
     - Week: YYYY-WXX
     - Month: YYYY-MM
     """
+    excluded_email = 'rose.louis.mail@gmail.com'
+
     with get_db() as conn:
         if '-W' in period:
             # Week format: YYYY-WXX
@@ -5100,9 +5106,10 @@ def get_time_spent_details(period):
                     JOIN users u ON a.user_id = u.id
                     WHERE EXTRACT(YEAR FROM a.activity_date::date) = %s
                       AND EXTRACT(WEEK FROM a.activity_date::date) = %s
+                      AND u.email != %s
                     GROUP BY u.id, u.name, u.picture
                     ORDER BY minutes DESC
-                ''', (int(year), int(week)))
+                ''', (int(year), int(week), excluded_email))
             else:
                 cursor = conn.execute('''
                     SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
@@ -5110,9 +5117,10 @@ def get_time_spent_details(period):
                     JOIN users u ON a.user_id = u.id
                     WHERE strftime('%Y', a.activity_date) = ?
                       AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
+                      AND u.email != ?
                     GROUP BY u.id
                     ORDER BY minutes DESC
-                ''', (year, int(week)))
+                ''', (year, int(week), excluded_email))
         elif len(period) == 7:
             # Month format: YYYY-MM
             if USE_POSTGRES:
@@ -5121,18 +5129,20 @@ def get_time_spent_details(period):
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE to_char(a.activity_date::date, 'YYYY-MM') = %s
+                      AND u.email != %s
                     GROUP BY u.id, u.name, u.picture
                     ORDER BY minutes DESC
-                ''', (period,))
+                ''', (period, excluded_email))
             else:
                 cursor = conn.execute('''
                     SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE strftime('%Y-%m', a.activity_date) = ?
+                      AND u.email != ?
                     GROUP BY u.id
                     ORDER BY minutes DESC
-                ''', (period,))
+                ''', (period, excluded_email))
         else:
             # Date format: YYYY-MM-DD
             if USE_POSTGRES:
@@ -5141,16 +5151,18 @@ def get_time_spent_details(period):
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE a.activity_date = %s
+                      AND u.email != %s
                     ORDER BY a.minutes DESC
-                ''', (period,))
+                ''', (period, excluded_email))
             else:
                 cursor = conn.execute('''
                     SELECT u.id, u.name, u.picture, a.minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE a.activity_date = ?
+                      AND u.email != ?
                     ORDER BY a.minutes DESC
-                ''', (period,))
+                ''', (period, excluded_email))
 
         users = [dict(row) for row in cursor.fetchall()]
 
