@@ -2,17 +2,18 @@
 """
 Sync video transcripts and summaries from local machine to production via API.
 
-This script runs locally (where YouTube isn't blocked) to:
-1. Fetch videos needing sync from production API
-2. Get transcripts via YouTube Transcript API (only if not cached)
-3. Generate summaries with Gemini
-4. Upload transcripts + summaries to production API
+This script runs locally to:
+1. Fetch all tickers from all users' portfolios and watchlists
+2. Refresh video selections for each ticker (calls news-feed endpoint)
+3. Get transcripts using local yt-dlp + faster-whisper (no YouTube API limits)
+4. Generate summaries with Gemini
+5. Upload transcripts + summaries to production API
 
 Usage:
     python scripts/sync_video_summaries.py
 
-Cron example (daily at 6 AM):
-    0 6 * * * cd /path/to/app && /path/to/python scripts/sync_video_summaries.py >> /tmp/video_summaries.log 2>&1
+Auto-run on Mac login:
+    Configured via ~/Library/LaunchAgents/co.lumna.video-sync.plist
 """
 
 import os
@@ -30,8 +31,8 @@ sys.path.insert(0, os.path.dirname(SCRIPT_DIR))
 from dotenv import load_dotenv
 load_dotenv(os.path.join(SCRIPT_DIR, '.env.sync'))
 
-from youtube_transcript_api import YouTubeTranscriptApi
 from google import genai
+from transcriber import get_transcript, VideoUnavailableError, DownloadError
 
 # Configuration
 API_BASE_URL = os.environ.get('API_BASE_URL', 'https://lumna.co')
@@ -42,6 +43,38 @@ GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 def log(message):
     """Print timestamped log message."""
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}")
+
+
+def get_tickers_to_sync():
+    """Fetch all tickers that need video sync (from all users' portfolios + watchlists)."""
+    response = requests.get(
+        f"{API_BASE_URL}/api/investing/sync/tickers-to-sync",
+        headers={'X-Sync-Key': SYNC_API_KEY},
+        timeout=30
+    )
+    response.raise_for_status()
+    data = response.json()
+    return data.get('tickers', [])
+
+
+def refresh_video_selection(ticker):
+    """Call news-feed endpoint to refresh video selection for a ticker.
+
+    This populates company_video_selections with the current videos for this ticker.
+    """
+    try:
+        response = requests.get(
+            f"{API_BASE_URL}/api/investing/news-feed",
+            params={'ticker': ticker, 'limit': 10},
+            headers={'X-Sync-Key': SYNC_API_KEY},
+            timeout=60
+        )
+        response.raise_for_status()
+        data = response.json()
+        return data.get('videos', [])
+    except Exception as e:
+        log(f"  -> Warning: Could not refresh videos for {ticker}: {e}")
+        return []
 
 
 def get_videos_pending_sync():
@@ -72,33 +105,16 @@ def upload_video_data(video_id, transcript=None, has_transcript=True, summary=No
     return response.json()
 
 
-class RateLimitError(Exception):
-    """Raised when YouTube rate limits us."""
-    pass
-
-
-def fetch_transcript(video_id):
-    """Fetch transcript for a video from YouTube.
+def fetch_transcript_local(video_id):
+    """Fetch transcript using local yt-dlp + faster-whisper pipeline.
 
     Returns:
-        str: Transcript text if available
-        None: If video has no transcript (subtitles disabled)
+        str: Transcript text if successful
+        None: If video is unavailable (private, deleted, etc.)
     Raises:
-        RateLimitError: If YouTube is rate limiting us
+        DownloadError: If download fails for other reasons
     """
-    try:
-        ytt_api = YouTubeTranscriptApi()
-        transcript_list = ytt_api.fetch(video_id, languages=['en', 'fr', 'en-US', 'en-GB'])
-        return ' '.join([snippet.text for snippet in transcript_list])
-    except Exception as e:
-        error_msg = str(e).lower()
-        # Video genuinely has no transcript
-        if 'disabled' in error_msg or 'subtitles' in error_msg:
-            return None
-        # Likely rate limited - could not retrieve usually means blocked
-        if 'could not retrieve' in error_msg:
-            raise RateLimitError(f"Rate limited by YouTube: {e}")
-        raise
+    return get_transcript(video_id, model_size="base")
 
 
 def generate_summary(transcript_text):
@@ -125,13 +141,40 @@ Transcript:
 
 
 def main():
+    log("=" * 60)
     log("Starting video transcript/summary sync...")
+    log("=" * 60)
 
     if not GEMINI_API_KEY:
         log("ERROR: GEMINI_API_KEY environment variable required")
         sys.exit(1)
 
-    # Get videos pending sync
+    # Step 1: Get all tickers to sync
+    log("\n[Step 1] Fetching tickers from all portfolios and watchlists...")
+    try:
+        tickers = get_tickers_to_sync()
+        log(f"Found {len(tickers)} unique tickers to sync")
+    except Exception as e:
+        log(f"ERROR fetching tickers: {e}")
+        sys.exit(1)
+
+    if not tickers:
+        log("No tickers to sync, exiting")
+        return
+
+    # Step 2: Refresh video selections for each ticker
+    log(f"\n[Step 2] Refreshing video selections for {len(tickers)} tickers...")
+    total_videos_refreshed = 0
+    for i, ticker in enumerate(tickers):
+        log(f"  [{i+1}/{len(tickers)}] {ticker}")
+        videos = refresh_video_selection(ticker)
+        total_videos_refreshed += len(videos)
+        # Small delay to avoid hammering the API
+        time.sleep(0.5)
+    log(f"Refreshed {total_videos_refreshed} total video selections")
+
+    # Step 3: Get videos pending transcript sync
+    log("\n[Step 3] Fetching videos pending transcript sync...")
     try:
         videos = get_videos_pending_sync()
         log(f"Found {len(videos)} videos pending sync")
@@ -140,14 +183,18 @@ def main():
         sys.exit(1)
 
     if not videos:
-        log("Nothing to do, exiting")
+        log("All videos already synced, nothing to do!")
         return
+
+    # Step 4: Process each video
+    log(f"\n[Step 4] Processing {len(videos)} videos...")
+    log("(Using local yt-dlp + Whisper transcription)")
+    log("-" * 40)
 
     transcript_fetched = 0
     summary_generated = 0
     no_transcript = 0
     error_count = 0
-    rate_limited = False
 
     for i, video in enumerate(videos):
         video_id = video['video_id']
@@ -155,60 +202,65 @@ def main():
         has_summary = video.get('has_summary', False)
         title = video['title'][:50] + '...' if len(video['title']) > 50 else video['title']
 
-        log(f"[{i+1}/{len(videos)}] Processing: {title}")
+        log(f"\n[{i+1}/{len(videos)}] {title}")
 
         try:
             transcript = None
             summary = None
 
-            # Step 1: Get transcript (fetch from YouTube only if not cached)
+            # Get transcript (local transcription)
             if not has_transcript:
-                log(f"  -> Fetching transcript from YouTube...")
-                transcript = fetch_transcript(video_id)
+                log(f"  -> Downloading and transcribing locally...")
+                start_time = time.time()
 
-                if transcript:
-                    log(f"  -> Transcript fetched ({len(transcript)} chars)")
-                    transcript_fetched += 1
-                else:
-                    log(f"  -> No transcript available, marking as unavailable")
+                try:
+                    transcript = fetch_transcript_local(video_id)
+                    elapsed = time.time() - start_time
+
+                    if transcript:
+                        log(f"  -> Transcript ready ({len(transcript)} chars) in {elapsed:.1f}s")
+                        transcript_fetched += 1
+                    else:
+                        log(f"  -> Video unavailable, marking as no transcript")
+                        upload_video_data(video_id, transcript=None, has_transcript=False)
+                        no_transcript += 1
+                        continue
+
+                except (VideoUnavailableError, DownloadError) as e:
+                    log(f"  -> Video unavailable: {str(e)[:60]}")
                     upload_video_data(video_id, transcript=None, has_transcript=False)
                     no_transcript += 1
                     continue
+
             else:
                 log(f"  -> Transcript already cached")
 
-            # Step 2: Generate summary (if we have transcript but no summary)
+            # Generate summary
             if transcript and not has_summary:
                 log(f"  -> Generating summary with Gemini...")
                 summary = generate_summary(transcript)
                 log(f"  -> Summary generated ({len(summary)} chars)")
                 summary_generated += 1
 
-            # Step 3: Upload to API
+            # Upload to API
             if transcript or summary:
                 upload_video_data(video_id, transcript=transcript, has_transcript=True, summary=summary)
                 log(f"  -> Uploaded to API")
-
-            # Rate limit: randomized delay between YouTube requests (10-25 seconds)
-            if not has_transcript:
-                delay = 10 + random.uniform(5, 15)
-                log(f"  -> Waiting {delay:.1f}s before next request...")
-                time.sleep(delay)
-
-        except RateLimitError as e:
-            log(f"  -> RATE LIMITED: {str(e)[:80]}")
-            log(f"  -> Stopping to avoid ban. {len(videos) - i - 1} videos remaining for next run.")
-            rate_limited = True
-            break
 
         except Exception as e:
             log(f"  -> ERROR: {str(e)[:100]}")
             error_count += 1
             continue
 
-    log(f"Done! Transcripts: {transcript_fetched}, Summaries: {summary_generated}, No transcript: {no_transcript}, Errors: {error_count}")
-    if rate_limited:
-        log("Note: Rate limited by YouTube. Remaining videos will be processed on next run.")
+    # Summary
+    log("\n" + "=" * 60)
+    log("SYNC COMPLETE")
+    log("=" * 60)
+    log(f"Transcripts fetched: {transcript_fetched}")
+    log(f"Summaries generated: {summary_generated}")
+    log(f"Videos unavailable:  {no_transcript}")
+    log(f"Errors:              {error_count}")
+    log("=" * 60)
 
 
 if __name__ == '__main__':

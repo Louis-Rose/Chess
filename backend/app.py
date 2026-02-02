@@ -4736,6 +4736,42 @@ def get_videos_pending_sync():
     return jsonify({'videos': [dict(v) for v in videos]})
 
 
+@app.route('/api/investing/sync/tickers-to-sync', methods=['GET'])
+def get_tickers_to_sync():
+    """Get all unique tickers from all users' portfolios and watchlists.
+
+    Used by the sync script to know which companies need video updates.
+    This list updates automatically when users add/remove stocks.
+    """
+    sync_key = request.headers.get('X-Sync-Key')
+    expected_key = os.environ.get('SYNC_API_KEY', 'lumna-sync-2024')
+    if sync_key != expected_key:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    with get_db() as conn:
+        # Get tickers from all portfolios
+        cursor = conn.execute('''
+            SELECT DISTINCT stock_ticker FROM portfolio_transactions
+        ''')
+        portfolio_tickers = set(row['stock_ticker'] for row in cursor.fetchall())
+
+        # Get tickers from all watchlists
+        cursor = conn.execute('''
+            SELECT DISTINCT symbol FROM watchlist
+        ''')
+        watchlist_tickers = set(row['symbol'] for row in cursor.fetchall())
+
+        # Combine and sort
+        all_tickers = sorted(portfolio_tickers | watchlist_tickers)
+
+    return jsonify({
+        'tickers': all_tickers,
+        'count': len(all_tickers),
+        'portfolio_count': len(portfolio_tickers),
+        'watchlist_count': len(watchlist_tickers)
+    })
+
+
 @app.route('/api/investing/video-summaries/upload', methods=['POST'])
 def upload_video_data():
     """Upload transcript and/or summary. Used by local sync script."""

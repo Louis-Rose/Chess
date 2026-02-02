@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>co.lumna.video-sync</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/louis/Desktop/Entrepreunariat/app/scripts/run_video_sync.sh</string>
+    </array>
+
+    <!-- Run once when user logs in -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Don't run again until next login -->
+    <key>LaunchOnlyOnce</key>
+    <true/>
+
+    <!-- Wait 30 seconds after login to let system settle -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <!-- Log output for debugging -->
+    <key>StandardOutPath</key>
+    <string>/Users/louis/Library/Logs/lumna-video-sync.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/louis/Library/Logs/lumna-video-sync-error.log</string>
+</dict>
+</plist>
