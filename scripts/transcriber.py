@@ -38,26 +38,40 @@ def get_audio(video_id: str, output_dir: str = None) -> str | None:
         "--audio-quality", "0",  # Best quality
         "--output", output_template,
         "--no-playlist",
-        "--quiet",
-        "--no-warnings",
+        "--progress",
+        "--newline",  # Progress on new lines for cleaner output
         url
     ]
 
     try:
-        result = subprocess.run(
+        # Run with output visible for progress tracking
+        process = subprocess.Popen(
             cmd,
-            capture_output=True,
-            text=True,
-            timeout=120  # 2 minute timeout
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
         )
 
-        if result.returncode != 0:
-            error = result.stderr.lower()
+        # Stream output to terminal
+        output_lines = []
+        try:
+            for line in process.stdout:
+                line = line.strip()
+                if line:
+                    print(f"     {line}")
+                    output_lines.append(line)
+            process.wait(timeout=120)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            raise DownloadError(f"Download timed out for {video_id}")
+
+        if process.returncode != 0:
+            error = " ".join(output_lines).lower()
             if "private video" in error or "video unavailable" in error or "not available" in error:
                 raise VideoUnavailableError(f"Video {video_id} is unavailable")
             if "sign in" in error:
                 raise VideoUnavailableError(f"Video {video_id} requires sign-in")
-            raise DownloadError(f"yt-dlp failed: {result.stderr[:200]}")
+            raise DownloadError(f"yt-dlp failed: {error[:200]}")
 
         # Find the downloaded file
         audio_path = os.path.join(output_dir, f"{video_id}.m4a")
