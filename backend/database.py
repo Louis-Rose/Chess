@@ -227,10 +227,20 @@ def init_db():
                         summaries_generated INTEGER DEFAULT 0,
                         errors INTEGER DEFAULT 0,
                         current_video TEXT,
+                        current_step TEXT,
                         error_message TEXT
                     )
                 """)
                 print("[Database] Created video_sync_runs table")
+            else:
+                # Migration: Add current_step column if missing
+                conn.execute("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'video_sync_runs' AND column_name = 'current_step'
+                """)
+                if not conn._cursor.fetchone():
+                    conn.execute("ALTER TABLE video_sync_runs ADD COLUMN current_step TEXT")
+                    print("[Database] Added current_step column to video_sync_runs")
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')

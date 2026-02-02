@@ -277,7 +277,7 @@ def main():
             log(f"\n[{i+1}/{len(videos)}] {title}")
 
             # Update progress
-            update_sync_run(run_id, videos_processed=i, current_video=title)
+            update_sync_run(run_id, videos_processed=i, current_video=title, current_step='downloading')
 
             try:
                 transcript = None
@@ -286,9 +286,11 @@ def main():
                 # Get transcript (local transcription)
                 if not has_transcript:
                     log(f"  -> Downloading and transcribing locally...")
+                    update_sync_run(run_id, current_step='downloading')
                     start_time = time.time()
 
                     try:
+                        update_sync_run(run_id, current_step='transcribing')
                         transcript = fetch_transcript_local(video_id)
                         elapsed = time.time() - start_time
 
@@ -313,12 +315,14 @@ def main():
                 # Generate summary
                 if transcript and not has_summary:
                     log(f"  -> Generating summary with Gemini...")
+                    update_sync_run(run_id, current_step='summarizing')
                     summary = generate_summary(transcript)
                     log(f"  -> Summary generated ({len(summary)} chars)")
                     summary_generated += 1
 
                 # Upload to API
                 if transcript or summary:
+                    update_sync_run(run_id, current_step='uploading')
                     upload_video_data(video_id, transcript=transcript, has_transcript=True, summary=summary)
                     log(f"  -> Uploaded to API")
 

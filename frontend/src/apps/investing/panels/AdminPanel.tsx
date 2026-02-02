@@ -106,6 +106,7 @@ interface SyncRun {
   summaries_generated: number;
   errors: number;
   current_video: string | null;
+  current_step: 'downloading' | 'transcribing' | 'summarizing' | 'uploading' | null;
   error_message: string | null;
 }
 
@@ -1640,6 +1641,14 @@ export function AdminPanel() {
                     <div className="text-sm text-slate-600 dark:text-slate-300 mb-2 truncate">
                       <Play className="w-3 h-3 inline mr-1" />
                       {run.current_video}
+                      {run.current_step && (
+                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200">
+                          {run.current_step === 'downloading' && '⬇️ Downloading'}
+                          {run.current_step === 'transcribing' && '🎤 Transcribing'}
+                          {run.current_step === 'summarizing' && '✨ Summarizing'}
+                          {run.current_step === 'uploading' && '⬆️ Uploading'}
+                        </span>
+                      )}
                     </div>
                   )}
 
