@@ -667,14 +667,13 @@ export function InvestingWelcomePanel() {
                       <span className="text-sm font-bold text-white">
                         {earning.next_earnings_date ? (
                           <>
-                            {earning.is_estimated && <span className="text-slate-400">~</span>}
                             {new Date(earning.next_earnings_date).toLocaleDateString(
                               language === 'fr' ? 'fr-FR' : 'en-US',
                               { day: 'numeric', month: 'short', year: 'numeric' }
                             )}
                             {earning.remaining_days !== null && (
                               <span className="text-slate-400 font-normal">
-                                {' '}({earning.is_estimated && '~'}{earning.remaining_days === 0
+                                {' '}({earning.remaining_days === 0
                                   ? (language === 'fr' ? "aujourd'hui" : 'today')
                                   : `${earning.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
                               </span>
