@@ -3984,23 +3984,68 @@ def fetch_earnings_from_yfinance(ticker):
             return next_earnings_date.strftime('%Y-%m-%d'), date_confirmed, False
 
         # No future earnings date found - try to estimate from historical data
+        today = datetime.now().date()
+        last_earnings = None
+
+        # Method 1: Try earnings_dates (most accurate)
         try:
             earnings_dates = stock.earnings_dates
             if earnings_dates is not None and len(earnings_dates) > 0:
-                # Get the most recent past earnings date
-                today = datetime.now().date()
                 past_dates = [d.date() if hasattr(d, 'date') else d for d in earnings_dates.index]
                 past_dates = [d for d in past_dates if d <= today]
                 if past_dates:
                     last_earnings = max(past_dates)
-                    # Estimate next earnings as last + 3 months
-                    estimated_date = last_earnings + relativedelta(months=3)
-                    # If estimated date is in the past, add another 3 months
-                    while estimated_date <= today:
-                        estimated_date = estimated_date + relativedelta(months=3)
-                    return estimated_date.strftime('%Y-%m-%d'), False, True
         except Exception:
             pass
+
+        # Method 2: Try quarterly_income_stmt columns (fallback for stocks without earnings_dates)
+        if last_earnings is None:
+            try:
+                quarterly_income = stock.quarterly_income_stmt
+                if quarterly_income is not None and len(quarterly_income.columns) > 0:
+                    # Columns are the report dates
+                    col_dates = []
+                    for col in quarterly_income.columns:
+                        if hasattr(col, 'date'):
+                            col_dates.append(col.date())
+                        elif isinstance(col, str):
+                            try:
+                                col_dates.append(datetime.strptime(col, '%Y-%m-%d').date())
+                            except ValueError:
+                                pass
+                    past_dates = [d for d in col_dates if d <= today]
+                    if past_dates:
+                        last_earnings = max(past_dates)
+            except Exception:
+                pass
+
+        # Method 3: Try quarterly_financials (another fallback)
+        if last_earnings is None:
+            try:
+                quarterly_fin = stock.quarterly_financials
+                if quarterly_fin is not None and len(quarterly_fin.columns) > 0:
+                    col_dates = []
+                    for col in quarterly_fin.columns:
+                        if hasattr(col, 'date'):
+                            col_dates.append(col.date())
+                        elif isinstance(col, str):
+                            try:
+                                col_dates.append(datetime.strptime(col, '%Y-%m-%d').date())
+                            except ValueError:
+                                pass
+                    past_dates = [d for d in col_dates if d <= today]
+                    if past_dates:
+                        last_earnings = max(past_dates)
+            except Exception:
+                pass
+
+        # Estimate next earnings as last + 3 months
+        if last_earnings:
+            estimated_date = last_earnings + relativedelta(months=3)
+            # If estimated date is in the past, add another 3 months
+            while estimated_date <= today:
+                estimated_date = estimated_date + relativedelta(months=3)
+            return estimated_date.strftime('%Y-%m-%d'), False, True
 
         return None, False, False
 

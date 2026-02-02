@@ -20,6 +20,7 @@ interface EarningsData {
   next_earnings_date: string | null;
   remaining_days: number | null;
   date_confirmed: boolean;
+  is_estimated?: boolean;
   source: 'portfolio' | 'watchlist';
   error?: string;
 }
@@ -633,6 +634,7 @@ export function EarningsCalendarPanel() {
                       <td className="py-4">
                         {item.next_earnings_date ? (
                           <span className="text-slate-700 dark:text-slate-200">
+                            {item.is_estimated && <span className="text-slate-400">~</span>}
                             <span className="hidden sm:inline">
                               {new Date(item.next_earnings_date).toLocaleDateString(
                                 language === 'fr' ? 'fr-FR' : 'en-US',
@@ -653,7 +655,7 @@ export function EarningsCalendarPanel() {
                       <td className="py-4 text-center hidden sm:table-cell">
                         {item.remaining_days !== null ? (
                           <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-full text-sm font-medium bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200">
-                            {item.remaining_days}
+                            {item.is_estimated && '~'}{item.remaining_days}
                           </span>
                         ) : (
                           <span className="text-slate-400">-</span>
