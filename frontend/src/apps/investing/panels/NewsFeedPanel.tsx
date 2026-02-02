@@ -316,7 +316,7 @@ function CompanySection({
             </span>
           )}
         </button>
-        <span className="text-xs text-slate-400">({recentVideos.length})</span>
+        <span className="text-xs text-slate-400">{recentVideos.length} {recentVideos.length === 1 ? 'video' : 'videos'}</span>
       </div>
 
       {/* Scrollable vertical video list - height for ~2-3 videos */}
