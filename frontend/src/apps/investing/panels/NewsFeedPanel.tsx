@@ -308,6 +308,12 @@ function CompanySection({
         <span className="font-medium text-sm text-slate-900 dark:text-slate-100">
           {companyName} ({ticker})
         </span>
+        <span className="text-xs text-slate-400">
+          {recentVideos.length === 0
+            ? (language === 'fr' ? 'Aucune vidéo récente' : 'No recent videos')
+            : `${recentVideos.length} ${recentVideos.length === 1 ? 'video' : 'videos'}`
+          }
+        </span>
         <button
           onClick={(e) => { e.stopPropagation(); navigate(`/investing/stock/${ticker}`); }}
           className="ml-auto px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-500 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 rounded-md transition-colors flex items-center gap-1.5"
@@ -315,12 +321,6 @@ function CompanySection({
           <ExternalLink className="w-3 h-3" />
           {language === 'fr' ? 'Page entreprise' : 'Go to company page'}
         </button>
-        <span className="text-xs text-slate-400 ml-4">
-          {recentVideos.length === 0
-            ? (language === 'fr' ? 'Aucune vidéo récente' : 'No recent videos')
-            : `${recentVideos.length} ${recentVideos.length === 1 ? 'video' : 'videos'}`
-          }
-        </span>
       </div>
 
       {/* Scrollable vertical video list - height for ~2-3 videos */}
