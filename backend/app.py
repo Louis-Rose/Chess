@@ -3935,75 +3935,116 @@ def remove_from_earnings_watchlist(symbol):
     return jsonify({'success': True, 'symbol': symbol})
 
 
-def fetch_earnings_from_fmp(ticker):
-    """Fetch earnings date from Financial Modeling Prep API for a single ticker.
-    Returns (date_string, date_confirmed, is_estimated, earnings_time).
-    earnings_time is 'bmo' (before market open), 'amc' (after market close), or None.
+# Global cache for FMP earnings calendar (shared across all tickers)
+_fmp_earnings_calendar_cache = {
+    'data': {},  # ticker -> {date, ...}
+    'fetched_at': None
+}
+
+
+def _refresh_fmp_earnings_calendar():
+    """Fetch the full earnings calendar from FMP and cache it.
+    Returns dict mapping ticker -> earnings entry.
     """
     import requests
+    from datetime import timedelta
+
+    global _fmp_earnings_calendar_cache
 
     fmp_api_key = os.environ.get('FMP_API_KEY')
     if not fmp_api_key:
-        print(f"FMP_API_KEY not set, cannot fetch earnings for {ticker}")
-        return None, False, False, None
+        print("FMP_API_KEY not set")
+        return {}
 
     try:
-        # FMP uses simple tickers without exchange suffix
-        # Remove .PA, .DE, etc. for European stocks (FMP may not have them anyway)
-        simple_ticker = ticker.split('.')[0] if '.' in ticker else ticker
+        today = datetime.now().date()
+        to_date = today + timedelta(days=90)
 
-        # Use the /stable/earnings endpoint which includes upcoming earnings
-        url = f"https://financialmodelingprep.com/stable/earnings?symbol={simple_ticker}&apikey={fmp_api_key}"
-        response = requests.get(url, timeout=10)
+        url = f"https://financialmodelingprep.com/stable/earnings-calendar?from={today}&to={to_date}&apikey={fmp_api_key}"
+        response = requests.get(url, timeout=15)
 
         if response.status_code != 200:
-            print(f"FMP API error for {ticker}: {response.status_code}")
-            return None, False, False, None
+            print(f"FMP earnings calendar API error: {response.status_code}")
+            return _fmp_earnings_calendar_cache['data']
 
         data = response.json()
         if not data or not isinstance(data, list):
-            return None, False, False, None
+            return _fmp_earnings_calendar_cache['data']
 
-        today = datetime.now().date()
-
-        # Find the next future earnings date
-        # Data is usually sorted by date descending, so we need to find the closest future date
-        future_earnings = []
+        # Build lookup by ticker (keep earliest future date per ticker)
+        ticker_map = {}
         for entry in data:
-            earnings_date_str = entry.get('date')
-            if not earnings_date_str:
+            symbol = entry.get('symbol')
+            date_str = entry.get('date')
+            if not symbol or not date_str:
                 continue
 
             try:
-                earnings_date = datetime.strptime(earnings_date_str, '%Y-%m-%d').date()
-                if earnings_date >= today:
-                    future_earnings.append((earnings_date, entry))
+                entry_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                if entry_date >= today:
+                    if symbol not in ticker_map or entry_date < datetime.strptime(ticker_map[symbol]['date'], '%Y-%m-%d').date():
+                        ticker_map[symbol] = entry
             except ValueError:
                 continue
 
-        if not future_earnings:
-            return None, False, False, None
+        _fmp_earnings_calendar_cache['data'] = ticker_map
+        _fmp_earnings_calendar_cache['fetched_at'] = datetime.now()
+        print(f"[FMP] Refreshed earnings calendar: {len(ticker_map)} tickers")
+        return ticker_map
 
-        # Sort by date and get the closest future earnings
-        future_earnings.sort(key=lambda x: x[0])
-        earnings_date, entry = future_earnings[0]
-        earnings_date_str = entry.get('date')
+    except Exception as e:
+        print(f"Error fetching FMP earnings calendar: {e}")
+        return _fmp_earnings_calendar_cache['data']
 
-        # Get earnings time (bmo/amc)
+
+def _get_fmp_earnings_calendar():
+    """Get the cached FMP earnings calendar, refreshing if stale (> 6 hours)."""
+    global _fmp_earnings_calendar_cache
+
+    fetched_at = _fmp_earnings_calendar_cache['fetched_at']
+    if fetched_at is None or (datetime.now() - fetched_at).total_seconds() > 6 * 3600:
+        return _refresh_fmp_earnings_calendar()
+
+    return _fmp_earnings_calendar_cache['data']
+
+
+def fetch_earnings_from_fmp(ticker):
+    """Fetch earnings date from Financial Modeling Prep API for a single ticker.
+    Returns (date_string, date_confirmed, is_estimated, earnings_time).
+    Uses cached calendar data for efficiency.
+    """
+    # FMP uses simple tickers without exchange suffix
+    simple_ticker = ticker.split('.')[0] if '.' in ticker else ticker
+
+    # Get cached calendar
+    calendar = _get_fmp_earnings_calendar()
+
+    entry = calendar.get(simple_ticker)
+    if not entry:
+        return None, False, False, None
+
+    earnings_date_str = entry.get('date')
+    if not earnings_date_str:
+        return None, False, False, None
+
+    try:
+        earnings_date = datetime.strptime(earnings_date_str, '%Y-%m-%d').date()
+        today = datetime.now().date()
+
+        # FMP free tier doesn't include time field (bmo/amc)
         earnings_time = entry.get('time')
         if earnings_time and earnings_time.lower() in ('bmo', 'amc'):
             earnings_time = earnings_time.lower()
         else:
             earnings_time = None
 
-        # FMP doesn't have a "confirmed" field, assume confirmed if within 30 days
+        # Assume confirmed if within 14 days (FMP data is usually accurate close to date)
         days_until = (earnings_date - today).days
-        date_confirmed = days_until <= 30
+        date_confirmed = days_until <= 14
 
         return earnings_date_str, date_confirmed, False, earnings_time
 
-    except Exception as e:
-        print(f"Error fetching earnings from FMP for {ticker}: {e}")
+    except ValueError:
         return None, False, False, None
 
 
