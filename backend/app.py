@@ -5248,6 +5248,42 @@ def remove_demo_portfolios():
     })
 
 
+@app.route('/api/admin/delete-user', methods=['POST'])
+@admin_required
+def delete_user():
+    """Delete a user and all their data by email (admin only)."""
+    data = request.get_json() or {}
+    email = data.get('email')
+
+    if not email:
+        return jsonify({'error': 'Email required'}), 400
+
+    with get_db() as conn:
+        # Get user ID
+        cursor = conn.execute('SELECT id FROM users WHERE email = ?', (email,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'error': f'User {email} not found'}), 404
+
+        user_id = row['id']
+
+        # Delete all related data
+        conn.execute('DELETE FROM user_activity WHERE user_id = ?', (user_id,))
+        conn.execute('DELETE FROM page_activity WHERE user_id = ?', (user_id,))
+        conn.execute('DELETE FROM stock_views WHERE user_id = ?', (user_id,))
+        conn.execute('DELETE FROM portfolio_transactions WHERE user_id = ?', (user_id,))
+        conn.execute('DELETE FROM watchlist WHERE user_id = ?', (user_id,))
+        conn.execute('DELETE FROM investment_accounts WHERE user_id = ?', (user_id,))
+        conn.execute('DELETE FROM user_preferences WHERE user_id = ?', (user_id,))
+        conn.execute('DELETE FROM graph_downloads WHERE user_id = ?', (user_id,))
+        conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+
+    return jsonify({
+        'success': True,
+        'message': f'Deleted user {email} (id={user_id})'
+    })
+
+
 @app.route('/api/reward/eligibility', methods=['GET'])
 @login_required
 def check_reward_eligibility():
