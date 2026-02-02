@@ -246,13 +246,22 @@ function CollapsibleSection({
   );
 }
 
-// Filter videos to last 30 days only
-function filterRecentVideos(videos: VideoWithCompany[], maxAgeDays: number = 30, maxCount: number = 5): VideoWithCompany[] {
+// Filter videos - try 30 days first, extend to 90 days if less than 5 found
+function filterRecentVideos(videos: VideoWithCompany[], maxCount: number = 5): VideoWithCompany[] {
   const now = new Date();
-  const cutoff = new Date(now.getTime() - maxAgeDays * 24 * 60 * 60 * 1000);
+  const cutoff30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const cutoff90 = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
+  // Try 30 days first
+  const recent30 = videos.filter(v => new Date(v.published_at) >= cutoff30);
+
+  if (recent30.length >= maxCount) {
+    return recent30.slice(0, maxCount);
+  }
+
+  // Extend to 90 days if we don't have enough
   return videos
-    .filter(v => new Date(v.published_at) >= cutoff)
+    .filter(v => new Date(v.published_at) >= cutoff90)
     .slice(0, maxCount);
 }
 
@@ -275,7 +284,7 @@ function CompanySection({
   const [isOpen, setIsOpen] = useState(false);
 
   // Filter to recent videos only (last 30 days, max 5)
-  const recentVideos = filterRecentVideos(videos, 30, 5);
+  const recentVideos = filterRecentVideos(videos);
 
   if (recentVideos.length === 0) return null;
 
