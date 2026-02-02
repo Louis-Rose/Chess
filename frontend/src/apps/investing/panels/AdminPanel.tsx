@@ -4,7 +4,7 @@ import { Fragment, useMemo, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, ChevronUp, ChevronDown, Clock, Search, RefreshCw, ChevronRight, Sun, Moon, Settings, Globe, Smartphone, Monitor, Mail, Download, CheckSquare, Square, Building2, Video, CheckCircle, XCircle } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, ChevronUp, ChevronDown, Clock, Search, RefreshCw, ChevronRight, Sun, Moon, Settings, Globe, Smartphone, Monitor, Mail, Download, CheckSquare, Square, Building2, Video, CheckCircle, XCircle, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -1640,6 +1640,24 @@ export function AdminPanel() {
                     <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto">
                       {new Date(run.started_at).toLocaleString()}
                     </span>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (run.status === 'running') {
+                          if (!confirm('Stop this sync run?')) return;
+                        }
+                        try {
+                          await axios.delete(`/api/admin/sync-run/${run.id}`);
+                          refetchSyncStatus();
+                        } catch (err) {
+                          console.error('Failed to delete sync run:', err);
+                        }
+                      }}
+                      className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                      title={run.status === 'running' ? 'Stop sync' : 'Delete'}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">

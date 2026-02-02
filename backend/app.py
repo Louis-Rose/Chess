@@ -4914,6 +4914,45 @@ def get_sync_status():
     return jsonify({'runs': runs})
 
 
+@app.route('/api/admin/sync-run/<int:run_id>', methods=['DELETE'])
+@admin_required
+def delete_sync_run(run_id):
+    """Delete or stop a sync run (admin only)."""
+    with get_db() as conn:
+        # Check if it's running - if so, mark as interrupted instead of deleting
+        if USE_POSTGRES:
+            cursor = conn.execute('SELECT status FROM video_sync_runs WHERE id = %s', (run_id,))
+        else:
+            cursor = conn.execute('SELECT status FROM video_sync_runs WHERE id = ?', (run_id,))
+        row = cursor.fetchone()
+
+        if not row:
+            return jsonify({'error': 'Run not found'}), 404
+
+        if row['status'] == 'running':
+            # Mark as interrupted (the script will check this and stop)
+            if USE_POSTGRES:
+                conn.execute('''
+                    UPDATE video_sync_runs
+                    SET status = 'interrupted', ended_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                ''', (run_id,))
+            else:
+                conn.execute('''
+                    UPDATE video_sync_runs
+                    SET status = 'interrupted', ended_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (run_id,))
+            return jsonify({'success': True, 'action': 'interrupted'})
+        else:
+            # Delete the record
+            if USE_POSTGRES:
+                conn.execute('DELETE FROM video_sync_runs WHERE id = %s', (run_id,))
+            else:
+                conn.execute('DELETE FROM video_sync_runs WHERE id = ?', (run_id,))
+            return jsonify({'success': True, 'action': 'deleted'})
+
+
 @app.route('/api/investing/video-summaries/upload', methods=['POST'])
 def upload_video_data():
     """Upload transcript and/or summary. Used by local sync script."""
