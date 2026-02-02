@@ -310,7 +310,7 @@ function CompanySection({
         </span>
         <button
           onClick={(e) => { e.stopPropagation(); navigate(`/investing/stock/${ticker}`); }}
-          className="ml-auto px-2 py-1 text-xs text-slate-500 hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-slate-200 dark:hover:bg-slate-500 rounded transition-colors flex items-center gap-1"
+          className="ml-auto px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-500 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 rounded-md transition-colors flex items-center gap-1.5"
         >
           <ExternalLink className="w-3 h-3" />
           {language === 'fr' ? 'Page entreprise' : 'Go to company page'}
