@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase, DollarSign } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase, DollarSign, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -184,6 +184,19 @@ export function InvestingWelcomePanel() {
   const [moversPeriod, setMoversPeriod] = useState<7 | 30>(30);
   const [watchlistMoversPeriod, setWatchlistMoversPeriod] = useState<7 | 30>(30);
   const [earningsSource, setEarningsSource] = useState<EarningsSourceFilter>('portfolio');
+  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
+  const accountDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (accountDropdownRef.current && !accountDropdownRef.current.contains(event.target as Node)) {
+        setAccountDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Selected accounts from localStorage (shared with PortfolioPanel)
   const [selectedAccountIds, setSelectedAccountIds] = useState<number[]>(() => {
@@ -222,6 +235,19 @@ export function InvestingWelcomePanel() {
       window.removeEventListener('storage', syncFromStorage);
     };
   }, []);
+
+  // Handle account selection from dropdown
+  const handleAccountSelect = (accountId: number | 'all') => {
+    let newSelection: number[];
+    if (accountId === 'all') {
+      newSelection = accounts.map(a => a.id);
+    } else {
+      newSelection = [accountId];
+    }
+    setSelectedAccountIds(newSelection);
+    localStorage.setItem('selectedAccountIds', JSON.stringify(newSelection));
+    setAccountDropdownOpen(false);
+  };
 
   // Drag & drop state
   const [draggedCardId, setDraggedCardId] = useState<CardId | null>(null);
@@ -461,13 +487,46 @@ export function InvestingWelcomePanel() {
                   <span className="text-xl font-bold text-white block">
                     {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
                   </span>
-                  {selectedAccountIds.length > 0 && accounts.length > 0 && (
-                    <span className="text-xs text-slate-400 truncate block">
-                      {accounts
-                        .filter(a => selectedAccountIds.includes(a.id))
-                        .map(a => a.name)
-                        .join(', ')}
-                    </span>
+                  {accounts.length > 0 && (
+                    <div className="relative" ref={accountDropdownRef}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setAccountDropdownOpen(!accountDropdownOpen); }}
+                        className="text-xs text-slate-400 hover:text-slate-300 flex items-center gap-1 transition-colors"
+                      >
+                        <span className="truncate max-w-[120px]">
+                          {selectedAccountIds.length === 0 || selectedAccountIds.length === accounts.length
+                            ? (language === 'fr' ? 'Tous les comptes' : 'All accounts')
+                            : accounts
+                                .filter(a => selectedAccountIds.includes(a.id))
+                                .map(a => a.name)
+                                .join(', ')}
+                        </span>
+                        <ChevronDown className={`w-3 h-3 transition-transform ${accountDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {accountDropdownOpen && (
+                        <div className="absolute top-full left-0 mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleAccountSelect('all'); }}
+                            className={`w-full text-left px-3 py-1.5 text-xs hover:bg-slate-600 transition-colors ${
+                              selectedAccountIds.length === accounts.length ? 'text-green-400' : 'text-slate-300'
+                            }`}
+                          >
+                            {language === 'fr' ? 'Tous les comptes' : 'All accounts'}
+                          </button>
+                          {accounts.map(account => (
+                            <button
+                              key={account.id}
+                              onClick={(e) => { e.stopPropagation(); handleAccountSelect(account.id); }}
+                              className={`w-full text-left px-3 py-1.5 text-xs hover:bg-slate-600 transition-colors ${
+                                selectedAccountIds.length === 1 && selectedAccountIds[0] === account.id ? 'text-green-400' : 'text-slate-300'
+                              }`}
+                            >
+                              {account.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
