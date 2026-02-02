@@ -11,12 +11,8 @@ This script runs locally (where YouTube isn't blocked) to:
 Usage:
     python scripts/sync_video_summaries.py
 
-Environment variables required:
-    DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD - PostgreSQL connection
-    GEMINI_API_KEY - For AI summarization
-
 Cron example (daily at 6 AM):
-    0 6 * * * cd /path/to/app && /path/to/python scripts/sync_video_summaries.py >> /var/log/video_summaries.log 2>&1
+    0 6 * * * cd /path/to/app && /path/to/python scripts/sync_video_summaries.py >> /tmp/video_summaries.log 2>&1
 """
 
 import os
@@ -25,7 +21,12 @@ import time
 from datetime import datetime
 
 # Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(SCRIPT_DIR))
+
+# Load environment from .env.sync
+from dotenv import load_dotenv
+load_dotenv(os.path.join(SCRIPT_DIR, '.env.sync'))
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
