@@ -4757,9 +4757,9 @@ def get_tickers_to_sync():
 
         # Get tickers from all watchlists
         cursor = conn.execute('''
-            SELECT DISTINCT symbol FROM watchlist
+            SELECT DISTINCT stock_ticker FROM watchlist
         ''')
-        watchlist_tickers = set(row['symbol'] for row in cursor.fetchall())
+        watchlist_tickers = set(row['stock_ticker'] for row in cursor.fetchall())
 
         # Combine and sort
         all_tickers = sorted(portfolio_tickers | watchlist_tickers)
@@ -4770,6 +4770,27 @@ def get_tickers_to_sync():
         'portfolio_count': len(portfolio_tickers),
         'watchlist_count': len(watchlist_tickers)
     })
+
+
+@app.route('/api/investing/sync/clear-video-cache', methods=['POST'])
+def clear_video_cache():
+    """Clear all cached videos, transcripts, summaries, and selections.
+
+    Used to reset the video sync state.
+    """
+    sync_key = request.headers.get('X-Sync-Key')
+    expected_key = os.environ.get('SYNC_API_KEY', 'lumna-sync-2024')
+    if sync_key != expected_key:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    with get_db() as conn:
+        conn.execute('DELETE FROM company_video_selections')
+        conn.execute('DELETE FROM video_transcripts')
+        conn.execute('DELETE FROM video_summaries')
+        conn.execute('DELETE FROM youtube_videos_cache')
+        conn.execute('DELETE FROM youtube_channel_fetch_log')
+
+    return jsonify({'status': 'ok', 'message': 'Video cache cleared'})
 
 
 @app.route('/api/investing/video-summaries/upload', methods=['POST'])
