@@ -4720,7 +4720,7 @@ def get_videos_pending_sync():
     with get_db() as conn:
         # Get videos needing transcripts - ONLY from current company selections
         cursor = conn.execute('''
-            SELECT DISTINCT v.video_id, v.title, v.channel_name,
+            SELECT DISTINCT v.video_id, v.title, v.channel_name, v.published_at,
                    t.transcript IS NOT NULL as has_transcript,
                    s.summary IS NOT NULL as has_summary
             FROM company_video_selections sel
