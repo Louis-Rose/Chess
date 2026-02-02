@@ -766,9 +766,7 @@ export function InvestingWelcomePanel() {
                         </>
                       ) : (
                         <span className="text-sm text-slate-400 col-span-3 text-right">
-                          {language === 'fr'
-                          ? 'Ne verse pas de dividendes'
-                          : 'Does not pay dividends'}
+                          {valueCurrency === 'EUR' ? '0€' : '$0'} ({language === 'fr' ? 'Pas de dividendes' : 'No dividends'})
                         </span>
                       )}
                     </div>
