@@ -3952,8 +3952,8 @@ def fetch_earnings_from_fmp(ticker):
         # Remove .PA, .DE, etc. for European stocks (FMP may not have them anyway)
         simple_ticker = ticker.split('.')[0] if '.' in ticker else ticker
 
-        # Fetch upcoming earnings for this ticker
-        url = f"https://financialmodelingprep.com/api/v3/historical/earning_calendar/{simple_ticker}?limit=10&apikey={fmp_api_key}"
+        # Use the /stable/earnings endpoint which includes upcoming earnings
+        url = f"https://financialmodelingprep.com/stable/earnings?symbol={simple_ticker}&apikey={fmp_api_key}"
         response = requests.get(url, timeout=10)
 
         if response.status_code != 200:
@@ -3967,6 +3967,8 @@ def fetch_earnings_from_fmp(ticker):
         today = datetime.now().date()
 
         # Find the next future earnings date
+        # Data is usually sorted by date descending, so we need to find the closest future date
+        future_earnings = []
         for entry in data:
             earnings_date_str = entry.get('date')
             if not earnings_date_str:
@@ -3975,24 +3977,30 @@ def fetch_earnings_from_fmp(ticker):
             try:
                 earnings_date = datetime.strptime(earnings_date_str, '%Y-%m-%d').date()
                 if earnings_date >= today:
-                    # Found a future earnings date
-                    earnings_time = entry.get('time')  # 'bmo', 'amc', or other
-                    # Normalize earnings_time
-                    if earnings_time and earnings_time.lower() in ('bmo', 'amc'):
-                        earnings_time = earnings_time.lower()
-                    else:
-                        earnings_time = None
-
-                    # FMP doesn't have a "confirmed" field, assume confirmed if within 30 days
-                    days_until = (earnings_date - today).days
-                    date_confirmed = days_until <= 30
-
-                    return earnings_date_str, date_confirmed, False, earnings_time
+                    future_earnings.append((earnings_date, entry))
             except ValueError:
                 continue
 
-        # No future date found in FMP data
-        return None, False, False, None
+        if not future_earnings:
+            return None, False, False, None
+
+        # Sort by date and get the closest future earnings
+        future_earnings.sort(key=lambda x: x[0])
+        earnings_date, entry = future_earnings[0]
+        earnings_date_str = entry.get('date')
+
+        # Get earnings time (bmo/amc)
+        earnings_time = entry.get('time')
+        if earnings_time and earnings_time.lower() in ('bmo', 'amc'):
+            earnings_time = earnings_time.lower()
+        else:
+            earnings_time = None
+
+        # FMP doesn't have a "confirmed" field, assume confirmed if within 30 days
+        days_until = (earnings_date - today).days
+        date_confirmed = days_until <= 30
+
+        return earnings_date_str, date_confirmed, False, earnings_time
 
     except Exception as e:
         print(f"Error fetching earnings from FMP for {ticker}: {e}")

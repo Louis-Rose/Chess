@@ -671,7 +671,6 @@ export function InvestingWelcomePanel() {
                               language === 'fr' ? 'fr-FR' : 'en-US',
                               { day: 'numeric', month: 'short', year: 'numeric' }
                             )}
-                            {!earning.date_confirmed && !earning.is_estimated && ' ~'}
                             {earning.remaining_days !== null && (
                               <span className="text-slate-400 font-normal">
                                 {' '}({earning.remaining_days === 0
@@ -739,9 +738,9 @@ export function InvestingWelcomePanel() {
                         <>
                           <span className="text-sm text-emerald-500 font-bold text-right tabular-nums">
                             {dividend.total_dividend !== null && dividend.quantity && dividend.dividend_amount ? (
-                              <><span className={dividend.confirmed ? 'invisible' : ''}>~</span>${dividend.total_dividend!.toFixed(2)}</>
+                              <>${dividend.total_dividend!.toFixed(2)}</>
                             ) : dividend.dividend_amount !== null ? (
-                              <><span className={dividend.confirmed ? 'invisible' : ''}>~</span>${dividend.dividend_amount.toFixed(2)}</>
+                              <>${dividend.dividend_amount.toFixed(2)}</>
                             ) : null}
                           </span>
                           <span className="text-sm text-emerald-500 tabular-nums">
@@ -752,8 +751,7 @@ export function InvestingWelcomePanel() {
                           <span className="text-sm text-slate-400 text-right tabular-nums ml-1">
                             {dividend.remaining_days !== null && (
                               <>
-                                ({!dividend.confirmed && '~'}
-                                {dividend.remaining_days === 0
+                                ({dividend.remaining_days === 0
                                   ? (language === 'fr' ? "aujourd'hui" : 'today')
                                   : `${dividend.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
                               </>

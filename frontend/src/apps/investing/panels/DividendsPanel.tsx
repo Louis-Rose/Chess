@@ -278,10 +278,6 @@ export function DividendsPanel() {
                     <th className="pb-3 text-center font-semibold hidden sm:table-cell">
                       {language === 'fr' ? 'Jours' : 'Days'}
                     </th>
-                    <th className="pb-3 text-center font-semibold">
-                      <span className="hidden sm:inline">{language === 'fr' ? 'Confirmé' : 'Confirmed'}</span>
-                      <span className="sm:hidden">{language === 'fr' ? 'Conf.' : 'Conf.'}</span>
-                    </th>
                     <th className="pb-3 text-right font-semibold">
                       {language === 'fr' ? 'Montant' : 'Amount'}
                     </th>
@@ -315,23 +311,30 @@ export function DividendsPanel() {
                             <span className="font-bold text-slate-800 dark:text-slate-100">{item.ticker}</span>
                           </div>
                         </td>
-                        <td className="py-4" colSpan={paysDividends ? 1 : 6}>
+                        <td className="py-4" colSpan={paysDividends ? 1 : 5}>
                           {paysDividends ? (
                             item.ex_dividend_date ? (
-                              <span className="text-slate-700 dark:text-slate-200">
-                                <span className="hidden sm:inline">
-                                  {new Date(item.ex_dividend_date).toLocaleDateString(
-                                    language === 'fr' ? 'fr-FR' : 'en-US',
-                                    { day: 'numeric', month: 'long', year: 'numeric' }
-                                  )}
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-slate-700 dark:text-slate-200">
+                                  <span className="hidden sm:inline">
+                                    {new Date(item.ex_dividend_date).toLocaleDateString(
+                                      language === 'fr' ? 'fr-FR' : 'en-US',
+                                      { day: 'numeric', month: 'long', year: 'numeric' }
+                                    )}
+                                  </span>
+                                  <span className="sm:hidden">
+                                    {new Date(item.ex_dividend_date).toLocaleDateString(
+                                      language === 'fr' ? 'fr-FR' : 'en-US',
+                                      { day: 'numeric', month: 'short' }
+                                    )}
+                                  </span>
                                 </span>
-                                <span className="sm:hidden">
-                                  {new Date(item.ex_dividend_date).toLocaleDateString(
-                                    language === 'fr' ? 'fr-FR' : 'en-US',
-                                    { day: 'numeric', month: 'short' }
-                                  )}
-                                </span>
-                              </span>
+                                {item.confirmed ? (
+                                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                ) : (
+                                  <HelpCircle className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                )}
+                              </div>
                             ) : (
                               <span className="text-slate-400 italic">N/A</span>
                             )
@@ -354,13 +357,6 @@ export function DividendsPanel() {
                                 </span>
                               ) : (
                                 <span className="text-slate-400">-</span>
-                              )}
-                            </td>
-                            <td className="py-4 text-center">
-                              {item.confirmed ? (
-                                <CheckCircle2 className="w-5 h-5 text-green-600 mx-auto" />
-                              ) : (
-                                <HelpCircle className="w-5 h-5 text-slate-400 mx-auto" />
                               )}
                             </td>
                             <td className="py-4 text-right">
