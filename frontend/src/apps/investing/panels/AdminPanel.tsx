@@ -24,6 +24,8 @@ interface AdminUser {
   graph_downloads: number;
   sign_in_count: number;
   session_count: number;
+  portfolio_companies: number;
+  watchlist_companies: number;
 }
 
 interface AdminUsersResponse {
@@ -31,7 +33,7 @@ interface AdminUsersResponse {
   total: number;
 }
 
-type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes' | 'account_count' | 'graph_downloads' | 'session_count';
+type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes' | 'account_count' | 'graph_downloads' | 'session_count' | 'portfolio_companies' | 'watchlist_companies';
 type SortDirection = 'asc' | 'desc';
 
 const fetchUsers = async (): Promise<AdminUsersResponse> => {
@@ -431,6 +433,12 @@ export function AdminPanel() {
           break;
         case 'session_count':
           comparison = (a.session_count || 0) - (b.session_count || 0);
+          break;
+        case 'portfolio_companies':
+          comparison = (a.portfolio_companies || 0) - (b.portfolio_companies || 0);
+          break;
+        case 'watchlist_companies':
+          comparison = (a.watchlist_companies || 0) - (b.watchlist_companies || 0);
           break;
       }
       return sortDirection === 'asc' ? comparison : -comparison;
@@ -1183,6 +1191,20 @@ export function AdminPanel() {
                         {sortColumn === 'session_count' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
+                    <th className="pb-2 text-center whitespace-nowrap">
+                      <button onClick={() => handleSort('portfolio_companies')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                        <span className="hidden sm:inline">{language === 'fr' ? 'Portfolio' : 'Portfolio'}</span>
+                        <span className="sm:hidden">P</span>
+                        {sortColumn === 'portfolio_companies' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      </button>
+                    </th>
+                    <th className="pb-2 text-center whitespace-nowrap">
+                      <button onClick={() => handleSort('watchlist_companies')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                        <span className="hidden sm:inline">{language === 'fr' ? 'Watchlist' : 'Watchlist'}</span>
+                        <span className="sm:hidden">W</span>
+                        {sortColumn === 'watchlist_companies' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                      </button>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1269,6 +1291,12 @@ export function AdminPanel() {
                       </td>
                       <td className="py-2 text-center text-slate-500 dark:text-slate-300">
                         {u.session_count > 0 ? u.session_count : '-'}
+                      </td>
+                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">
+                        {u.portfolio_companies > 0 ? u.portfolio_companies : '-'}
+                      </td>
+                      <td className="py-2 text-center text-slate-500 dark:text-slate-300">
+                        {u.watchlist_companies > 0 ? u.watchlist_companies : '-'}
                       </td>
                     </tr>
                   ))}

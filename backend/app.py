@@ -1021,7 +1021,9 @@ def list_users():
                    COALESCE(SUM(a.minutes), 0) as total_minutes,
                    MAX(a.last_ping) as last_active,
                    (SELECT COUNT(*) FROM graph_downloads g WHERE g.user_id = u.id) as graph_downloads,
-                   (SELECT COUNT(*) FROM investment_accounts ia WHERE ia.user_id = u.id) as account_count
+                   (SELECT COUNT(*) FROM investment_accounts ia WHERE ia.user_id = u.id) as account_count,
+                   (SELECT COUNT(DISTINCT stock_ticker) FROM portfolio_transactions pt WHERE pt.user_id = u.id) as portfolio_companies,
+                   (SELECT COUNT(DISTINCT stock_ticker) FROM watchlist w WHERE w.user_id = u.id) as watchlist_companies
             FROM users u
             LEFT JOIN user_activity a ON u.id = a.user_id
             GROUP BY u.id
