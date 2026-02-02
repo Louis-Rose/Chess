@@ -3975,17 +3975,23 @@ def fetch_earnings_from_yfinance(ticker):
                         next_earnings_date = earnings_dates
                         date_confirmed = True
 
-        # Convert to date string
+        # Convert to date and check if it's in the future
+        today = datetime.now().date()
         if next_earnings_date is not None:
             if hasattr(next_earnings_date, 'date'):
                 next_earnings_date = next_earnings_date.date()
             elif isinstance(next_earnings_date, str):
                 next_earnings_date = datetime.strptime(next_earnings_date, '%Y-%m-%d').date()
-            return next_earnings_date.strftime('%Y-%m-%d'), date_confirmed, False
+            # Only return if the date is in the future
+            if next_earnings_date > today:
+                return next_earnings_date.strftime('%Y-%m-%d'), date_confirmed, False
 
         # No future earnings date found - try to estimate from historical data
-        today = datetime.now().date()
         last_earnings = None
+
+        # Method 0: Use the past calendar date if available (most accurate - actual earnings date)
+        if next_earnings_date is not None and next_earnings_date <= today:
+            last_earnings = next_earnings_date
 
         # Method 1: Try earnings_dates (most accurate)
         try:
