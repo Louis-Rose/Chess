@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Loader2, Youtube, ChevronDown, ChevronUp, ChevronRight, Eye, Briefcase, ExternalLink, FileText } from 'lucide-react';
+import { Loader2, Youtube, ChevronDown, ChevronRight, Eye, Briefcase, ExternalLink, FileText } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { findStockByTicker } from '../utils/allStocks';
