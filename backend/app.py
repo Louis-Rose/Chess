@@ -1013,7 +1013,7 @@ def get_settings_crosstab():
 def list_users():
     """List all registered users (admin only)."""
     # Hidden accounts (still functional, just not displayed)
-    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com']
+    hidden_emails = []  # No hidden accounts
 
     with get_db() as conn:
         cursor = conn.execute('''
@@ -4918,37 +4918,30 @@ def get_user_stock_views(user_id):
 @admin_required
 def get_stock_views_stats():
     """Get aggregated stock view statistics (admin only)."""
-    # Hidden accounts
-    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
-    placeholders = ','.join(['?' for _ in hidden_emails])
-
     with get_db() as conn:
-        # Get aggregated stats by stock (all users except hidden)
-        cursor = conn.execute(f'''
+        # Get aggregated stats by stock
+        cursor = conn.execute('''
             SELECT sv.stock_ticker,
                    COUNT(DISTINCT sv.user_id) as unique_users,
                    SUM(sv.view_count) as total_views,
                    SUM(sv.time_spent_seconds) as total_time_seconds
             FROM stock_views sv
-            JOIN users u ON sv.user_id = u.id
-            WHERE u.email NOT IN ({placeholders})
             GROUP BY sv.stock_ticker
             ORDER BY total_views DESC
-        ''', tuple(hidden_emails))
+        ''')
         by_stock = [dict(row) for row in cursor.fetchall()]
 
         # Get stats by user
-        cursor = conn.execute(f'''
+        cursor = conn.execute('''
             SELECT u.id, u.name, u.email,
                    COUNT(DISTINCT sv.stock_ticker) as stocks_viewed,
                    SUM(sv.view_count) as total_views,
                    SUM(sv.time_spent_seconds) as total_time_seconds
             FROM stock_views sv
             JOIN users u ON sv.user_id = u.id
-            WHERE u.email NOT IN ({placeholders})
             GROUP BY u.id
             ORDER BY total_views DESC
-        ''', tuple(hidden_emails))
+        ''')
         by_user = [dict(row) for row in cursor.fetchall()]
 
     return jsonify({
@@ -4961,29 +4954,21 @@ def get_stock_views_stats():
 @admin_required
 def get_company_stats():
     """Get company popularity stats - how many portfolios/watchlists each ticker appears in."""
-    # Hidden accounts
-    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
-    placeholders = ','.join(['?' for _ in hidden_emails])
-
     with get_db() as conn:
-        # Get portfolio counts by ticker (excluding hidden users)
-        cursor = conn.execute(f'''
+        # Get portfolio counts by ticker
+        cursor = conn.execute('''
             SELECT pt.stock_ticker as ticker, COUNT(DISTINCT pt.user_id) as portfolio_count
             FROM portfolio_transactions pt
-            JOIN users u ON pt.user_id = u.id
-            WHERE u.email NOT IN ({placeholders})
             GROUP BY pt.stock_ticker
-        ''', tuple(hidden_emails))
+        ''')
         portfolio_counts = {row['ticker']: row['portfolio_count'] for row in cursor.fetchall()}
 
-        # Get watchlist counts by ticker (excluding hidden users)
-        cursor = conn.execute(f'''
+        # Get watchlist counts by ticker
+        cursor = conn.execute('''
             SELECT w.stock_ticker as ticker, COUNT(DISTINCT w.user_id) as watchlist_count
             FROM watchlist w
-            JOIN users u ON w.user_id = u.id
-            WHERE u.email NOT IN ({placeholders})
             GROUP BY w.stock_ticker
-        ''', tuple(hidden_emails))
+        ''')
         watchlist_counts = {row['ticker']: row['watchlist_count'] for row in cursor.fetchall()}
 
         # Combine all tickers
@@ -5009,29 +4994,25 @@ def get_company_stats():
 @admin_required
 def get_company_users(ticker):
     """Get users who have this ticker in their portfolio or watchlist."""
-    # Hidden accounts
-    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
-    placeholders = ','.join(['?' for _ in hidden_emails])
-
     with get_db() as conn:
         # Get users with this ticker in portfolio
-        cursor = conn.execute(f'''
+        cursor = conn.execute('''
             SELECT DISTINCT u.id, u.name, u.picture
             FROM users u
             JOIN portfolio_transactions pt ON u.id = pt.user_id
-            WHERE pt.stock_ticker = ? AND u.email NOT IN ({placeholders})
+            WHERE pt.stock_ticker = ?
             ORDER BY u.name
-        ''', (ticker, *hidden_emails))
+        ''', (ticker,))
         portfolio_users = [dict(row) for row in cursor.fetchall()]
 
         # Get users with this ticker in watchlist
-        cursor = conn.execute(f'''
+        cursor = conn.execute('''
             SELECT DISTINCT u.id, u.name, u.picture
             FROM users u
             JOIN watchlist w ON u.id = w.user_id
-            WHERE w.stock_ticker = ? AND u.email NOT IN ({placeholders})
+            WHERE w.stock_ticker = ?
             ORDER BY u.name
-        ''', (ticker, *hidden_emails))
+        ''', (ticker,))
         watchlist_users = [dict(row) for row in cursor.fetchall()]
 
     return jsonify({
@@ -5045,13 +5026,9 @@ def get_company_users(ticker):
 @admin_required
 def get_stock_views_detail(ticker):
     """Get detailed view statistics for a specific stock (admin only)."""
-    # Hidden accounts
-    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
-    placeholders = ','.join(['?' for _ in hidden_emails])
-
     with get_db() as conn:
         # Get all views for this stock by user
-        cursor = conn.execute(f'''
+        cursor = conn.execute('''
             SELECT u.id, u.name, u.picture,
                    sv.view_date,
                    sv.view_count,
@@ -5060,21 +5037,18 @@ def get_stock_views_detail(ticker):
             FROM stock_views sv
             JOIN users u ON sv.user_id = u.id
             WHERE sv.stock_ticker = ?
-              AND u.email NOT IN ({placeholders})
             ORDER BY sv.view_date DESC
-        ''', (ticker, *hidden_emails))
+        ''', (ticker,))
         views = [dict(row) for row in cursor.fetchall()]
 
         # Get totals
-        cursor = conn.execute(f'''
+        cursor = conn.execute('''
             SELECT COUNT(DISTINCT sv.user_id) as unique_users,
                    SUM(sv.view_count) as total_views,
                    SUM(sv.time_spent_seconds) as total_time_seconds
             FROM stock_views sv
-            JOIN users u ON sv.user_id = u.id
             WHERE sv.stock_ticker = ?
-              AND u.email NOT IN ({placeholders})
-        ''', (ticker, *hidden_emails))
+        ''', (ticker,))
         totals = dict(cursor.fetchone())
 
     return jsonify({
@@ -5088,18 +5062,13 @@ def get_stock_views_detail(ticker):
 @admin_required
 def get_time_spent_stats():
     """Get daily time spent stats for all users (admin only)."""
-    # Hidden accounts
-    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
-
     with get_db() as conn:
         cursor = conn.execute('''
             SELECT a.activity_date, SUM(a.minutes) as total_minutes
             FROM user_activity a
-            JOIN users u ON a.user_id = u.id
-            WHERE u.email NOT IN (?, ?, ?)
             GROUP BY a.activity_date
             ORDER BY a.activity_date ASC
-        ''', tuple(hidden_emails))
+        ''')
         daily_stats = [dict(row) for row in cursor.fetchall()]
 
     return jsonify({'daily_stats': daily_stats})
@@ -5115,78 +5084,68 @@ def get_time_spent_details(period):
     - Week: YYYY-WXX
     - Month: YYYY-MM
     """
-    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
-    placeholder = '%s' if USE_POSTGRES else '?'
-    placeholders = ','.join([placeholder for _ in hidden_emails])
-
     with get_db() as conn:
         if '-W' in period:
             # Week format: YYYY-WXX
             year, week = period.split('-W')
             if USE_POSTGRES:
-                cursor = conn.execute(f'''
+                cursor = conn.execute('''
                     SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
-                    WHERE u.email NOT IN ({placeholders})
-                      AND EXTRACT(YEAR FROM a.activity_date::date) = %s
+                    WHERE EXTRACT(YEAR FROM a.activity_date::date) = %s
                       AND EXTRACT(WEEK FROM a.activity_date::date) = %s
                     GROUP BY u.id, u.name, u.picture
                     ORDER BY minutes DESC
-                ''', (*hidden_emails, int(year), int(week)))
+                ''', (int(year), int(week)))
             else:
-                cursor = conn.execute(f'''
+                cursor = conn.execute('''
                     SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
-                    WHERE u.email NOT IN ({placeholders})
-                      AND strftime('%Y', a.activity_date) = ?
+                    WHERE strftime('%Y', a.activity_date) = ?
                       AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
                     GROUP BY u.id
                     ORDER BY minutes DESC
-                ''', (*hidden_emails, year, int(week)))
+                ''', (year, int(week)))
         elif len(period) == 7:
             # Month format: YYYY-MM
             if USE_POSTGRES:
-                cursor = conn.execute(f'''
+                cursor = conn.execute('''
                     SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
-                    WHERE u.email NOT IN ({placeholders})
-                      AND to_char(a.activity_date::date, 'YYYY-MM') = %s
+                    WHERE to_char(a.activity_date::date, 'YYYY-MM') = %s
                     GROUP BY u.id, u.name, u.picture
                     ORDER BY minutes DESC
-                ''', (*hidden_emails, period))
+                ''', (period,))
             else:
-                cursor = conn.execute(f'''
+                cursor = conn.execute('''
                     SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
-                    WHERE u.email NOT IN ({placeholders})
-                      AND strftime('%Y-%m', a.activity_date) = ?
+                    WHERE strftime('%Y-%m', a.activity_date) = ?
                     GROUP BY u.id
                     ORDER BY minutes DESC
-                ''', (*hidden_emails, period))
+                ''', (period,))
         else:
             # Date format: YYYY-MM-DD
             if USE_POSTGRES:
-                cursor = conn.execute(f'''
+                cursor = conn.execute('''
                     SELECT u.id, u.name, u.picture, a.minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
-                    WHERE u.email NOT IN ({placeholders})
-                      AND a.activity_date = %s
+                    WHERE a.activity_date = %s
                     ORDER BY a.minutes DESC
-                ''', (*hidden_emails, period))
+                ''', (period,))
             else:
-                cursor = conn.execute(f'''
+                cursor = conn.execute('''
                     SELECT u.id, u.name, u.picture, a.minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
-                    WHERE u.email NOT IN ({placeholders})
-                      AND a.activity_date = ?
+                    WHERE a.activity_date = ?
                     ORDER BY a.minutes DESC
-                ''', (*hidden_emails, period))
+                ''', (period,))
 
         users = [dict(row) for row in cursor.fetchall()]
 
@@ -5197,18 +5156,13 @@ def get_time_spent_details(period):
 @admin_required
 def get_page_breakdown():
     """Get aggregated time spent by page/section (admin only)."""
-    hidden_emails = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com', 'fake.test@example.com']
-    placeholders = ','.join(['?' for _ in hidden_emails])
-
     with get_db() as conn:
-        cursor = conn.execute(f'''
+        cursor = conn.execute('''
             SELECT p.page, SUM(p.minutes) as total_minutes
             FROM page_activity p
-            JOIN users u ON p.user_id = u.id
-            WHERE u.email NOT IN ({placeholders})
             GROUP BY p.page
             ORDER BY total_minutes DESC
-        ''', tuple(hidden_emails))
+        ''')
 
         breakdown = [dict(row) for row in cursor.fetchall()]
         total = sum(item['total_minutes'] for item in breakdown)
