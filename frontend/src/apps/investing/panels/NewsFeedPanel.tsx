@@ -308,19 +308,19 @@ function CompanySection({
         <span className="font-medium text-sm text-slate-900 dark:text-slate-100">
           {companyName} ({ticker})
         </span>
-        <span className="text-xs text-slate-400 ml-auto">
+        <button
+          onClick={(e) => { e.stopPropagation(); navigate(`/investing/stock/${ticker}`); }}
+          className="ml-auto px-2 py-1 text-xs text-slate-500 hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-slate-200 dark:hover:bg-slate-500 rounded transition-colors flex items-center gap-1"
+        >
+          <ExternalLink className="w-3 h-3" />
+          {language === 'fr' ? 'Page entreprise' : 'Go to company page'}
+        </button>
+        <span className="text-xs text-slate-400 ml-4">
           {recentVideos.length === 0
             ? (language === 'fr' ? 'Aucune vidéo récente' : 'No recent videos')
             : `${recentVideos.length} ${recentVideos.length === 1 ? 'video' : 'videos'}`
           }
         </span>
-        <button
-          onClick={(e) => { e.stopPropagation(); navigate(`/investing/stock/${ticker}`); }}
-          className="ml-2 px-2 py-1 text-xs text-slate-500 hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-slate-200 dark:hover:bg-slate-500 rounded transition-colors flex items-center gap-1"
-        >
-          <ExternalLink className="w-3 h-3" />
-          <span className="hidden sm:inline">{language === 'fr' ? 'Voir' : 'View'}</span>
-        </button>
       </div>
 
       {/* Scrollable vertical video list - height for ~2-3 videos */}
