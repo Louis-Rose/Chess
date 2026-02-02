@@ -183,7 +183,7 @@ export function InvestingWelcomePanel() {
   const [valueCurrency, setValueCurrency] = useState<'EUR' | 'USD'>('EUR');
   const [moversPeriod, setMoversPeriod] = useState<7 | 30>(30);
   const [watchlistMoversPeriod, setWatchlistMoversPeriod] = useState<7 | 30>(30);
-  const [earningsSource, setEarningsSource] = useState<EarningsSourceFilter>('both');
+  const [earningsSource, setEarningsSource] = useState<EarningsSourceFilter>('portfolio');
 
   // Selected accounts from localStorage (shared with PortfolioPanel)
   const [selectedAccountIds, setSelectedAccountIds] = useState<number[]>(() => {
@@ -611,19 +611,8 @@ export function InvestingWelcomePanel() {
               <div className="flex rounded border border-slate-300 dark:border-slate-600">
                 <div className="relative group/tooltip">
                   <button
-                    onClick={(e) => { e.stopPropagation(); setEarningsSource('both'); }}
-                    className={`px-2 h-6 text-sm font-medium flex items-center justify-center rounded-l ${earningsSource === 'both' ? 'bg-amber-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                  >
-                    {language === 'fr' ? 'Tout' : 'All'}
-                  </button>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-slate-600 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-75 z-50 w-max max-w-36 text-center pointer-events-none">
-                    {language === 'fr' ? 'Portefeuille et watchlist' : 'Both owned stocks and watchlist stocks'}
-                  </div>
-                </div>
-                <div className="relative group/tooltip">
-                  <button
                     onClick={(e) => { e.stopPropagation(); setEarningsSource('portfolio'); }}
-                    className={`w-8 h-6 flex items-center justify-center ${earningsSource === 'portfolio' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    className={`w-8 h-6 flex items-center justify-center rounded-l ${earningsSource === 'portfolio' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                   >
                     <Briefcase className="w-4 h-4" />
                   </button>
@@ -634,12 +623,23 @@ export function InvestingWelcomePanel() {
                 <div className="relative group/tooltip">
                   <button
                     onClick={(e) => { e.stopPropagation(); setEarningsSource('watchlist'); }}
-                    className={`w-8 h-6 flex items-center justify-center rounded-r ${earningsSource === 'watchlist' ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                    className={`w-8 h-6 flex items-center justify-center ${earningsSource === 'watchlist' ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                   >
                     <Eye className="w-4 h-4" />
                   </button>
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-slate-600 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-75 z-50 w-max max-w-36 text-center pointer-events-none">
                     {language === 'fr' ? 'Watchlist uniquement' : 'Watchlist stocks only'}
+                  </div>
+                </div>
+                <div className="relative group/tooltip">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEarningsSource('both'); }}
+                    className={`px-2 h-6 text-sm font-medium flex items-center justify-center rounded-r ${earningsSource === 'both' ? 'bg-amber-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    {language === 'fr' ? 'Tout' : 'All'}
+                  </button>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-slate-600 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-75 z-50 w-max max-w-36 text-center pointer-events-none">
+                    {language === 'fr' ? 'Portefeuille et watchlist' : 'Both owned stocks and watchlist stocks'}
                   </div>
                 </div>
               </div>

@@ -424,7 +424,7 @@ export function EarningsCalendarPanel() {
                 Watchlist
               </div>
               <div className="px-3 py-1.5 rounded-md text-sm font-medium text-slate-500 dark:text-slate-400">
-                {language === 'fr' ? 'Tout' : 'Both'}
+                {language === 'fr' ? 'Tout' : 'All'}
               </div>
             </div>
 
@@ -540,7 +540,7 @@ export function EarningsCalendarPanel() {
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
               }`}
             >
-              {language === 'fr' ? 'Tout' : 'Both'}
+              {language === 'fr' ? 'Tout' : 'All'}
             </button>
           </div>
 
