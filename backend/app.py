@@ -4773,7 +4773,7 @@ def get_tickers_to_sync():
 
 
 @app.route('/api/investing/sync/clear-video-cache', methods=['POST'])
-def clear_video_cache():
+def sync_clear_video_cache():
     """Clear all cached videos, transcripts, summaries, and selections.
 
     Used to reset the video sync state.
