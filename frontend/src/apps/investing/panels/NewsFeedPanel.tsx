@@ -287,54 +287,47 @@ function CompanySection({
   const recentVideos = filterRecentVideos(videos);
 
   return (
-    <div className="mb-6">
-      {/* Company header with toggle */}
-      <div className="flex items-center gap-2 mb-3">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="p-1 hover:bg-slate-200 dark:hover:bg-slate-500 rounded transition-colors"
-        >
-          {isOpen ? (
-            <ChevronDown className="w-4 h-4 text-slate-500" />
+    <div className="mb-4">
+      {/* Company header - clickable button style */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-500 hover:border-slate-400 dark:hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+      >
+        {isOpen ? (
+          <ChevronDown className="w-4 h-4 text-slate-500 flex-shrink-0" />
+        ) : (
+          <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
+        )}
+        <div className="w-6 h-6 rounded-md bg-white flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-500 flex-shrink-0">
+          {logoUrl ? (
+            <img src={logoUrl} alt={ticker} className="w-5 h-5 object-contain" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-slate-500" />
+            <span className="text-[10px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
           )}
-        </button>
-        <button
-          onClick={() => navigate(`/investing/stock/${ticker}`)}
-          className="flex items-center gap-2 group"
-        >
-          <div className="w-6 h-6 rounded-md bg-white flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-500">
-            {logoUrl ? (
-              <img src={logoUrl} alt={ticker} className="w-5 h-5 object-contain" />
-            ) : (
-              <span className="text-[10px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
-            )}
-          </div>
-          <span className="font-medium text-sm text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-            {companyName} ({ticker})
-          </span>
-        </button>
-        <span className="text-xs text-slate-400">
+        </div>
+        <span className="font-medium text-sm text-slate-900 dark:text-slate-100">
+          {companyName} ({ticker})
+        </span>
+        <span className="text-xs text-slate-400 ml-auto">
           {recentVideos.length === 0
             ? (language === 'fr' ? 'Aucune vidéo récente' : 'No recent videos')
             : `${recentVideos.length} ${recentVideos.length === 1 ? 'video' : 'videos'}`
           }
         </span>
-      </div>
+      </button>
 
       {/* Scrollable vertical video list - height for ~2-3 videos */}
       {isOpen && recentVideos.length > 0 && (
-      <div className="space-y-2 max-h-[420px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-500 ml-6">
-        {recentVideos.map((video) => (
-          <VideoRow
-            key={video.video_id}
-            video={video}
-            language={language}
-            onPlay={() => onPlayVideo(video)}
-          />
-        ))}
-      </div>
+        <div className="space-y-2 max-h-[420px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-500 mt-3 ml-4">
+          {recentVideos.map((video) => (
+            <VideoRow
+              key={video.video_id}
+              video={video}
+              language={language}
+              onPlay={() => onPlayVideo(video)}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
