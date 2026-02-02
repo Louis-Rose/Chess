@@ -169,43 +169,35 @@ function VideoRow({
         </div>
       </div>
 
-      {/* Right side: Summary | Transcript */}
-      <div className="flex-1 py-2 pr-3 border-l border-slate-200 dark:border-slate-500 pl-3">
+      {/* Right side: Summary + Transcript button */}
+      <div className="flex-1 py-2 pr-3 border-l border-slate-200 dark:border-slate-500 pl-3 flex flex-col">
         {loading ? (
-          <div className="flex items-center gap-2 text-xs text-slate-400">
+          <div className="flex items-center gap-2 text-sm text-slate-400">
             <Loader2 className="w-3 h-3 animate-spin" />
             {language === 'fr' ? 'Chargement...' : 'Loading...'}
           </div>
         ) : pending ? (
-          <p className="text-xs text-slate-400 italic">
+          <p className="text-sm text-slate-400 italic">
             {language === 'fr' ? 'Transcription en cours...' : 'Fetching transcript...'}
           </p>
         ) : noTranscript ? (
-          <p className="text-xs text-slate-400 italic">
+          <p className="text-sm text-slate-400 italic">
             {language === 'fr' ? 'Pas de transcription disponible' : 'No transcript available'}
           </p>
         ) : (summary || transcript) ? (
-          <div className="flex gap-3 h-full">
-            {/* Summary */}
+          <>
+            {/* Summary - full width */}
             {summary && (
               <div className="flex-1">
-                <p className="text-[10px] text-purple-600 dark:text-purple-400 font-medium mb-1">
-                  ✨ {language === 'fr' ? 'Résumé' : 'Summary'}
-                </p>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
                   {summary}
                 </p>
               </div>
             )}
 
-            {/* Vertical separator */}
-            {summary && transcript && (
-              <div className="w-px bg-slate-200 dark:bg-slate-500 self-stretch" />
-            )}
-
-            {/* Transcript toggle/content */}
+            {/* Transcript toggle at bottom */}
             {transcript && (
-              <div className={summary ? 'flex-1' : 'flex-1'}>
+              <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-500">
                 {!showTranscript ? (
                   <button
                     onClick={() => setShowTranscript(true)}
@@ -213,7 +205,6 @@ function VideoRow({
                   >
                     <FileText className="w-3 h-3" />
                     {language === 'fr' ? 'Voir la transcription' : 'Show transcript'}
-                    <span className="text-slate-400">({transcript.length} chars)</span>
                   </button>
                 ) : (
                   <div>
@@ -235,7 +226,7 @@ function VideoRow({
                 )}
               </div>
             )}
-          </div>
+          </>
         ) : null}
       </div>
     </div>

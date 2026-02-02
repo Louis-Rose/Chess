@@ -180,7 +180,8 @@ def generate_summary(transcript_text):
     if len(transcript_text) > max_chars:
         transcript_text = transcript_text[:max_chars] + '...'
 
-    prompt = f"""Summarize this YouTube video transcript in 2-3 concise sentences.
+    prompt = f"""Summarize this YouTube video transcript in 3-5 sentences.
+Each sentence should be on its own line.
 Focus on the main points about the company/stock discussed.
 Be factual and neutral. Write in the same language as the transcript.
 
