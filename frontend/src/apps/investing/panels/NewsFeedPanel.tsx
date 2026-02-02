@@ -59,7 +59,7 @@ const fetchNewsFeed = async (ticker: string, companyName: string): Promise<NewsF
   return response.data;
 };
 
-const fetchVideoSummary = async (videoId: string): Promise<{ summary?: string; pending?: boolean }> => {
+const fetchVideoSummary = async (videoId: string): Promise<{ summary?: string; transcript?: string; has_transcript?: boolean; pending?: boolean }> => {
   const response = await axios.get(`/api/investing/video-summary/${videoId}`);
   return response.data;
 };
@@ -95,33 +95,37 @@ function VideoCard({
   language: string;
   onPlay: () => void;
 }) {
-  const [summary, setSummary] = useState<string | null>(null);
-  const [summaryLoading, setSummaryLoading] = useState(false);
-  const [summaryPending, setSummaryPending] = useState(false);
+  const [transcript, setTranscript] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [noTranscript, setNoTranscript] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  const loadSummary = async () => {
-    if (summary || summaryLoading) return;
-    setSummaryLoading(true);
-    setSummaryPending(false);
+  const loadTranscript = async () => {
+    if (transcript || loading) return;
+    setLoading(true);
+    setPending(false);
+    setNoTranscript(false);
     try {
       const data = await fetchVideoSummary(video.video_id);
       if (data.pending) {
-        setSummaryPending(true);
-      } else if (data.summary) {
-        setSummary(data.summary);
+        setPending(true);
+      } else if (data.has_transcript === false) {
+        setNoTranscript(true);
+      } else if (data.transcript) {
+        setTranscript(data.transcript);
       }
     } catch {
-      // Silently fail - summary is optional
-      setSummaryPending(true);
+      // Silently fail
+      setPending(true);
     } finally {
-      setSummaryLoading(false);
+      setLoading(false);
     }
   };
 
-  // Load summary on mount
+  // Load transcript on mount
   useEffect(() => {
-    loadSummary();
+    loadTranscript();
   }, [video.video_id]);
 
   return (
@@ -166,21 +170,28 @@ function VideoCard({
           <span>{formatDate(video.published_at, language)}</span>
         </div>
 
-        {/* Summary section */}
+        {/* Transcript section */}
         <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-500">
-          {summaryLoading ? (
+          {loading ? (
             <div className="flex items-center gap-2 text-xs text-slate-400">
               <Loader2 className="w-3 h-3 animate-spin" />
               {language === 'fr' ? 'Chargement...' : 'Loading...'}
             </div>
-          ) : summaryPending ? (
+          ) : pending ? (
             <p className="text-xs text-slate-400 italic">
-              {language === 'fr' ? 'Résumé bientôt disponible' : 'Summary coming soon'}
+              {language === 'fr' ? 'Transcription en cours...' : 'Fetching transcript...'}
             </p>
-          ) : summary ? (
+          ) : noTranscript ? (
+            <p className="text-xs text-slate-400 italic">
+              {language === 'fr' ? 'Pas de transcription disponible' : 'No transcript available'}
+            </p>
+          ) : transcript ? (
             <div>
-              <p className={`text-xs text-slate-600 dark:text-slate-300 ${expanded ? '' : 'line-clamp-2'}`}>
-                {summary}
+              <p className="text-xs text-green-600 dark:text-green-400 font-medium mb-1">
+                ✓ Transcript ({transcript.length} chars)
+              </p>
+              <p className={`text-xs text-slate-600 dark:text-slate-300 ${expanded ? '' : 'line-clamp-3'}`}>
+                {transcript}
               </p>
               <button
                 onClick={() => setExpanded(!expanded)}
