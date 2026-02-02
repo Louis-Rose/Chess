@@ -590,7 +590,7 @@ def fetch_current_stock_prices_batch(tickers):
             yf_ticker = tickers_to_fetch[0]
             original_ticker = ticker_mapping[yf_ticker]
             if not data.empty and 'Close' in data.columns:
-                price = round(float(data['Close'].iloc[-1]), 2)
+                price = round(float(data['Close'].iloc[-1].item()), 2)
                 prices[original_ticker] = price
                 _save_cached_price(original_ticker, today, price)
         else:
