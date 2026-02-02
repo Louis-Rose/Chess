@@ -734,7 +734,7 @@ export function InvestingWelcomePanel() {
                         </div>
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300 w-12">{dividend.ticker}</span>
                       </div>
-                      <span className="text-sm text-emerald-500 font-bold tabular-nums">
+                      <span className="text-sm text-emerald-500 font-bold tabular-nums justify-self-end">
                         {(() => {
                           if (!paysDividends) {
                             return valueCurrency === 'EUR' ? '00.00€' : '$00.00';
