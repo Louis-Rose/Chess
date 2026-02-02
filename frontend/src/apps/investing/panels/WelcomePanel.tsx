@@ -742,9 +742,11 @@ export function InvestingWelcomePanel() {
                               const amount = dividend.total_dividend ?? dividend.dividend_amount;
                               if (amount === null) return null;
                               const displayAmount = valueCurrency === 'EUR' ? amount / fxRate : amount;
+                              // Pad to align: $05.35 instead of $5.35
+                              const formatted = displayAmount.toFixed(2).padStart(5, '0');
                               return valueCurrency === 'EUR'
-                                ? <>{displayAmount.toFixed(2)}€</>
-                                : <>${displayAmount.toFixed(2)}</>;
+                                ? <>{formatted}€</>
+                                : <>${formatted}</>;
                             })()}
                           </span>
                           <span className="text-sm text-emerald-500 tabular-nums">
