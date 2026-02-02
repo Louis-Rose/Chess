@@ -737,11 +737,15 @@ export function InvestingWelcomePanel() {
                       {paysDividends ? (
                         <>
                           <span className="text-sm text-emerald-500 font-bold text-right tabular-nums">
-                            {dividend.total_dividend !== null && dividend.quantity && dividend.dividend_amount ? (
-                              <>${dividend.total_dividend!.toFixed(2)}</>
-                            ) : dividend.dividend_amount !== null ? (
-                              <>${dividend.dividend_amount.toFixed(2)}</>
-                            ) : null}
+                            {(() => {
+                              const fxRate = compositionData?.eurusd_rate || 1.0;
+                              const amount = dividend.total_dividend ?? dividend.dividend_amount;
+                              if (amount === null) return null;
+                              const displayAmount = valueCurrency === 'EUR' ? amount / fxRate : amount;
+                              return valueCurrency === 'EUR'
+                                ? <>{displayAmount.toFixed(2)}€</>
+                                : <>${displayAmount.toFixed(2)}</>;
+                            })()}
                           </span>
                           <span className="text-sm text-emerald-500 tabular-nums">
                             {dividend.total_dividend !== null && dividend.quantity && dividend.dividend_amount && (

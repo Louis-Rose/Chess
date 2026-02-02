@@ -20,7 +20,6 @@ interface EarningsData {
   next_earnings_date: string | null;
   remaining_days: number | null;
   date_confirmed: boolean;
-  earnings_time: 'bmo' | 'amc' | null;  // before market open / after market close
   source: 'portfolio' | 'watchlist';
   error?: string;
 }
@@ -633,37 +632,20 @@ export function EarningsCalendarPanel() {
                       </td>
                       <td className="py-4">
                         {item.next_earnings_date ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-700 dark:text-slate-200">
-                              <span className="hidden sm:inline">
-                                {new Date(item.next_earnings_date).toLocaleDateString(
-                                  language === 'fr' ? 'fr-FR' : 'en-US',
-                                  { day: 'numeric', month: 'long', year: 'numeric' }
-                                )}
-                              </span>
-                              <span className="sm:hidden">
-                                {new Date(item.next_earnings_date).toLocaleDateString(
-                                  language === 'fr' ? 'fr-FR' : 'en-US',
-                                  { day: 'numeric', month: 'short' }
-                                )}
-                              </span>
+                          <span className="text-slate-700 dark:text-slate-200">
+                            <span className="hidden sm:inline">
+                              {new Date(item.next_earnings_date).toLocaleDateString(
+                                language === 'fr' ? 'fr-FR' : 'en-US',
+                                { day: 'numeric', month: 'long', year: 'numeric' }
+                              )}
                             </span>
-                            {item.earnings_time && (
-                              <span
-                                className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                                  item.earnings_time === 'bmo'
-                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                                    : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400'
-                                }`}
-                                title={item.earnings_time === 'bmo'
-                                  ? (language === 'fr' ? 'Avant ouverture' : 'Before Market Open')
-                                  : (language === 'fr' ? 'Après clôture' : 'After Market Close')
-                                }
-                              >
-                                {item.earnings_time.toUpperCase()}
-                              </span>
-                            )}
-                          </div>
+                            <span className="sm:hidden">
+                              {new Date(item.next_earnings_date).toLocaleDateString(
+                                language === 'fr' ? 'fr-FR' : 'en-US',
+                                { day: 'numeric', month: 'short' }
+                              )}
+                            </span>
+                          </span>
                         ) : (
                           <span className="text-slate-400 italic">N/A</span>
                         )}
@@ -737,14 +719,6 @@ export function EarningsCalendarPanel() {
                 <span className="inline-flex items-center gap-1">
                   <Eye className="w-4 h-4 text-blue-600" />
                   Watchlist
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">BMO</span>
-                  {language === 'fr' ? 'Avant ouverture' : 'Before Market Open'}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">AMC</span>
-                  {language === 'fr' ? 'Après clôture' : 'After Market Close'}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <CheckCircle2 className="w-4 h-4 text-green-600" />

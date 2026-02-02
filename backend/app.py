@@ -3935,117 +3935,78 @@ def remove_from_earnings_watchlist(symbol):
     return jsonify({'success': True, 'symbol': symbol})
 
 
-# Global cache for FMP earnings calendar (shared across all tickers)
-_fmp_earnings_calendar_cache = {
-    'data': {},  # ticker -> {date, ...}
-    'fetched_at': None
-}
-
-
-def _refresh_fmp_earnings_calendar():
-    """Fetch the full earnings calendar from FMP and cache it.
-    Returns dict mapping ticker -> earnings entry.
+def fetch_earnings_from_yfinance(ticker):
+    """Fetch earnings date from yfinance for a single ticker.
+    Returns (date_string, date_confirmed, is_estimated).
+    If no future date found, estimates based on last earnings + 3 months.
     """
-    import requests
-    from datetime import timedelta
-
-    global _fmp_earnings_calendar_cache
-
-    fmp_api_key = os.environ.get('FMP_API_KEY')
-    if not fmp_api_key:
-        print("FMP_API_KEY not set")
-        return {}
+    import yfinance as yf
+    from investing_utils import get_yfinance_ticker
+    from dateutil.relativedelta import relativedelta
 
     try:
-        today = datetime.now().date()
-        to_date = today + timedelta(days=90)
+        # Convert to yfinance ticker (add exchange suffix for European stocks)
+        yf_ticker = get_yfinance_ticker(ticker)
+        stock = yf.Ticker(yf_ticker)
+        calendar = stock.calendar
 
-        url = f"https://financialmodelingprep.com/stable/earnings-calendar?from={today}&to={to_date}&apikey={fmp_api_key}"
-        response = requests.get(url, timeout=15)
+        next_earnings_date = None
+        date_confirmed = False
 
-        if response.status_code != 200:
-            print(f"FMP earnings calendar API error: {response.status_code}")
-            return _fmp_earnings_calendar_cache['data']
+        if calendar is not None:
+            # Handle different yfinance return formats
+            if hasattr(calendar, 'to_dict'):
+                # DataFrame format
+                cal_dict = calendar.to_dict()
+                if 'Earnings Date' in cal_dict:
+                    dates = cal_dict['Earnings Date']
+                    if dates:
+                        first_key = list(dates.keys())[0]
+                        next_earnings_date = dates[first_key]
+                        date_confirmed = len(dates) == 1
+            elif isinstance(calendar, dict):
+                # Dict format (newer yfinance)
+                if 'Earnings Date' in calendar:
+                    earnings_dates = calendar['Earnings Date']
+                    if isinstance(earnings_dates, list) and len(earnings_dates) > 0:
+                        next_earnings_date = earnings_dates[0]
+                        date_confirmed = len(earnings_dates) == 1
+                    elif earnings_dates:
+                        next_earnings_date = earnings_dates
+                        date_confirmed = True
 
-        data = response.json()
-        if not data or not isinstance(data, list):
-            return _fmp_earnings_calendar_cache['data']
+        # Convert to date string
+        if next_earnings_date is not None:
+            if hasattr(next_earnings_date, 'date'):
+                next_earnings_date = next_earnings_date.date()
+            elif isinstance(next_earnings_date, str):
+                next_earnings_date = datetime.strptime(next_earnings_date, '%Y-%m-%d').date()
+            return next_earnings_date.strftime('%Y-%m-%d'), date_confirmed, False
 
-        # Build lookup by ticker (keep earliest future date per ticker)
-        ticker_map = {}
-        for entry in data:
-            symbol = entry.get('symbol')
-            date_str = entry.get('date')
-            if not symbol or not date_str:
-                continue
+        # No future earnings date found - try to estimate from historical data
+        try:
+            earnings_dates = stock.earnings_dates
+            if earnings_dates is not None and len(earnings_dates) > 0:
+                # Get the most recent past earnings date
+                today = datetime.now().date()
+                past_dates = [d.date() if hasattr(d, 'date') else d for d in earnings_dates.index]
+                past_dates = [d for d in past_dates if d <= today]
+                if past_dates:
+                    last_earnings = max(past_dates)
+                    # Estimate next earnings as last + 3 months
+                    estimated_date = last_earnings + relativedelta(months=3)
+                    # If estimated date is in the past, add another 3 months
+                    while estimated_date <= today:
+                        estimated_date = estimated_date + relativedelta(months=3)
+                    return estimated_date.strftime('%Y-%m-%d'), False, True
+        except Exception:
+            pass
 
-            try:
-                entry_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-                if entry_date >= today:
-                    if symbol not in ticker_map or entry_date < datetime.strptime(ticker_map[symbol]['date'], '%Y-%m-%d').date():
-                        ticker_map[symbol] = entry
-            except ValueError:
-                continue
-
-        _fmp_earnings_calendar_cache['data'] = ticker_map
-        _fmp_earnings_calendar_cache['fetched_at'] = datetime.now()
-        print(f"[FMP] Refreshed earnings calendar: {len(ticker_map)} tickers")
-        return ticker_map
+        return None, False, False
 
     except Exception as e:
-        print(f"Error fetching FMP earnings calendar: {e}")
-        return _fmp_earnings_calendar_cache['data']
-
-
-def _get_fmp_earnings_calendar():
-    """Get the cached FMP earnings calendar, refreshing if stale (> 6 hours)."""
-    global _fmp_earnings_calendar_cache
-
-    fetched_at = _fmp_earnings_calendar_cache['fetched_at']
-    if fetched_at is None or (datetime.now() - fetched_at).total_seconds() > 6 * 3600:
-        return _refresh_fmp_earnings_calendar()
-
-    return _fmp_earnings_calendar_cache['data']
-
-
-def fetch_earnings_from_fmp(ticker):
-    """Fetch earnings date from Financial Modeling Prep API for a single ticker.
-    Returns (date_string, date_confirmed, is_estimated, earnings_time).
-    Uses cached calendar data for efficiency.
-    """
-    # FMP uses simple tickers without exchange suffix
-    simple_ticker = ticker.split('.')[0] if '.' in ticker else ticker
-
-    # Get cached calendar
-    calendar = _get_fmp_earnings_calendar()
-
-    entry = calendar.get(simple_ticker)
-    if not entry:
-        return None, False, False, None
-
-    earnings_date_str = entry.get('date')
-    if not earnings_date_str:
-        return None, False, False, None
-
-    try:
-        earnings_date = datetime.strptime(earnings_date_str, '%Y-%m-%d').date()
-        today = datetime.now().date()
-
-        # FMP free tier doesn't include time field (bmo/amc)
-        earnings_time = entry.get('time')
-        if earnings_time and earnings_time.lower() in ('bmo', 'amc'):
-            earnings_time = earnings_time.lower()
-        else:
-            earnings_time = None
-
-        # Assume confirmed if within 14 days (FMP data is usually accurate close to date)
-        days_until = (earnings_date - today).days
-        date_confirmed = days_until <= 14
-
-        return earnings_date_str, date_confirmed, False, earnings_time
-
-    except ValueError:
-        return None, False, False, None
+        print(f"Error fetching earnings for {ticker}: {e}")
+        return None, False, False
 
 
 def get_cached_earnings(ticker):
@@ -4099,8 +4060,7 @@ def save_earnings_cache(ticker, next_earnings_date, date_confirmed, earnings_tim
 @login_required
 def get_earnings_calendar():
     """Get upcoming earnings dates for portfolio holdings and watchlist.
-    Uses FMP API with database cache (48 hour TTL).
-    Includes earnings_time: 'bmo' (before market open), 'amc' (after market close), or null.
+    Uses yfinance with database cache (48 hour TTL).
     Optionally filters portfolio by account_id.
     """
     include_portfolio = request.args.get('include_portfolio', 'true').lower() == 'true'
@@ -4136,21 +4096,19 @@ def get_earnings_calendar():
 
     for ticker in tickers:
         # Try to get from cache first
-        cached_date, cached_confirmed, cached_time, is_fresh = get_cached_earnings(ticker)
+        cached_date, cached_confirmed, _, is_fresh = get_cached_earnings(ticker)
 
         is_estimated = False
-        earnings_time = None
         if is_fresh:
             # Use cached data
             next_earnings_date = cached_date
             date_confirmed = cached_confirmed
-            earnings_time = cached_time
         else:
-            # Fetch fresh data from FMP
-            next_earnings_date, date_confirmed, is_estimated, earnings_time = fetch_earnings_from_fmp(ticker)
+            # Fetch fresh data from yfinance
+            next_earnings_date, date_confirmed, is_estimated = fetch_earnings_from_yfinance(ticker)
             # Save to cache (even if None, to avoid repeated fetches) - don't cache estimated dates
             if not is_estimated:
-                save_earnings_cache(ticker, next_earnings_date, date_confirmed, earnings_time)
+                save_earnings_cache(ticker, next_earnings_date, date_confirmed)
 
         if next_earnings_date:
             earnings_date = datetime.strptime(next_earnings_date, '%Y-%m-%d').date()
@@ -4159,9 +4117,9 @@ def get_earnings_calendar():
             # Handle past earnings dates
             if remaining_days < 0:
                 # Cached date is stale, try to refresh
-                next_earnings_date, date_confirmed, is_estimated, earnings_time = fetch_earnings_from_fmp(ticker)
+                next_earnings_date, date_confirmed, is_estimated = fetch_earnings_from_yfinance(ticker)
                 if not is_estimated:
-                    save_earnings_cache(ticker, next_earnings_date, date_confirmed, earnings_time)
+                    save_earnings_cache(ticker, next_earnings_date, date_confirmed)
                 if next_earnings_date:
                     earnings_date = datetime.strptime(next_earnings_date, '%Y-%m-%d').date()
                     remaining_days = (earnings_date - today).days
@@ -4173,7 +4131,6 @@ def get_earnings_calendar():
                             'remaining_days': None,
                             'date_confirmed': False,
                             'is_estimated': False,
-                            'earnings_time': None,
                             'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
                         })
                         continue
@@ -4185,7 +4142,6 @@ def get_earnings_calendar():
                         'remaining_days': None,
                         'date_confirmed': False,
                         'is_estimated': False,
-                        'earnings_time': None,
                         'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
                     })
                     continue
@@ -4196,7 +4152,6 @@ def get_earnings_calendar():
                 'remaining_days': remaining_days,
                 'date_confirmed': date_confirmed,
                 'is_estimated': is_estimated,
-                'earnings_time': earnings_time,
                 'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
             })
         else:
@@ -4206,7 +4161,6 @@ def get_earnings_calendar():
                 'remaining_days': None,
                 'date_confirmed': False,
                 'is_estimated': False,
-                'earnings_time': None,
                 'source': 'portfolio' if ticker in portfolio_tickers else 'watchlist'
             })
 
