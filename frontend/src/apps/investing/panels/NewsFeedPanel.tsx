@@ -59,7 +59,7 @@ const fetchNewsFeed = async (ticker: string, companyName: string): Promise<NewsF
   return response.data;
 };
 
-const fetchVideoSummary = async (videoId: string): Promise<{ summary: string }> => {
+const fetchVideoSummary = async (videoId: string): Promise<{ summary?: string; pending?: boolean }> => {
   const response = await axios.get(`/api/investing/video-summary/${videoId}`);
   return response.data;
 };
@@ -97,19 +97,23 @@ function VideoCard({
 }) {
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryPending, setSummaryPending] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
   const loadSummary = async () => {
     if (summary || summaryLoading) return;
     setSummaryLoading(true);
-    setSummaryError(null);
+    setSummaryPending(false);
     try {
       const data = await fetchVideoSummary(video.video_id);
-      setSummary(data.summary);
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setSummaryError(error.response?.data?.error || 'Failed to load summary');
+      if (data.pending) {
+        setSummaryPending(true);
+      } else if (data.summary) {
+        setSummary(data.summary);
+      }
+    } catch {
+      // Silently fail - summary is optional
+      setSummaryPending(true);
     } finally {
       setSummaryLoading(false);
     }
@@ -167,10 +171,12 @@ function VideoCard({
           {summaryLoading ? (
             <div className="flex items-center gap-2 text-xs text-slate-400">
               <Loader2 className="w-3 h-3 animate-spin" />
-              {language === 'fr' ? 'Chargement du résumé...' : 'Loading summary...'}
+              {language === 'fr' ? 'Chargement...' : 'Loading...'}
             </div>
-          ) : summaryError ? (
-            <p className="text-xs text-slate-400 italic">{summaryError}</p>
+          ) : summaryPending ? (
+            <p className="text-xs text-slate-400 italic">
+              {language === 'fr' ? 'Résumé bientôt disponible' : 'Summary coming soon'}
+            </p>
           ) : summary ? (
             <div>
               <p className={`text-xs text-slate-600 dark:text-slate-300 ${expanded ? '' : 'line-clamp-2'}`}>
