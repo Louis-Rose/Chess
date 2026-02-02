@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Loader2, Youtube, ChevronDown, ChevronUp, ChevronRight, Eye, Briefcase, ExternalLink } from 'lucide-react';
+import { Loader2, Youtube, ChevronDown, ChevronUp, ChevronRight, Eye, Briefcase, ExternalLink, FileText } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { findStockByTicker } from '../utils/allStocks';
@@ -85,7 +85,7 @@ function formatDate(dateStr: string, language: string): string {
   }
 }
 
-// Video row with thumbnail on left, transcript on right
+// Video row with thumbnail on left, summary/transcript on right
 function VideoRow({
   video,
   language,
@@ -96,12 +96,13 @@ function VideoRow({
   onPlay: () => void;
 }) {
   const [transcript, setTranscript] = useState<string | null>(null);
+  const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(false);
   const [noTranscript, setNoTranscript] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
 
-  const loadTranscript = async () => {
+  const loadData = async () => {
     if (transcript || loading) return;
     setLoading(true);
     setPending(false);
@@ -112,8 +113,9 @@ function VideoRow({
         setPending(true);
       } else if (data.has_transcript === false) {
         setNoTranscript(true);
-      } else if (data.transcript) {
-        setTranscript(data.transcript);
+      } else {
+        if (data.transcript) setTranscript(data.transcript);
+        if (data.summary) setSummary(data.summary);
       }
     } catch {
       setPending(true);
@@ -123,7 +125,7 @@ function VideoRow({
   };
 
   useEffect(() => {
-    loadTranscript();
+    loadData();
   }, [video.video_id]);
 
   return (
@@ -167,7 +169,7 @@ function VideoRow({
         </div>
       </div>
 
-      {/* Right side: Transcript */}
+      {/* Right side: Summary | Transcript */}
       <div className="flex-1 py-2 pr-3 border-l border-slate-200 dark:border-slate-500 pl-3">
         {loading ? (
           <div className="flex items-center gap-2 text-xs text-slate-400">
@@ -182,24 +184,57 @@ function VideoRow({
           <p className="text-xs text-slate-400 italic">
             {language === 'fr' ? 'Pas de transcription disponible' : 'No transcript available'}
           </p>
-        ) : transcript ? (
-          <div>
-            <p className="text-[10px] text-green-600 dark:text-green-400 font-medium mb-1">
-              ✓ Transcript ({transcript.length} chars)
-            </p>
-            <p className={`text-xs text-slate-600 dark:text-slate-300 leading-relaxed ${expanded ? '' : 'line-clamp-5'}`}>
-              {transcript}
-            </p>
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="text-xs text-blue-500 hover:text-blue-600 mt-1 flex items-center gap-1"
-            >
-              {expanded
-                ? (language === 'fr' ? 'Voir moins' : 'See less')
-                : (language === 'fr' ? 'Voir plus' : 'See more')
-              }
-              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
+        ) : (summary || transcript) ? (
+          <div className="flex gap-3 h-full">
+            {/* Summary */}
+            {summary && (
+              <div className="flex-1">
+                <p className="text-[10px] text-purple-600 dark:text-purple-400 font-medium mb-1">
+                  ✨ {language === 'fr' ? 'Résumé' : 'Summary'}
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {summary}
+                </p>
+              </div>
+            )}
+
+            {/* Vertical separator */}
+            {summary && transcript && (
+              <div className="w-px bg-slate-200 dark:bg-slate-500 self-stretch" />
+            )}
+
+            {/* Transcript toggle/content */}
+            {transcript && (
+              <div className={summary ? 'flex-1' : 'flex-1'}>
+                {!showTranscript ? (
+                  <button
+                    onClick={() => setShowTranscript(true)}
+                    className="text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1"
+                  >
+                    <FileText className="w-3 h-3" />
+                    {language === 'fr' ? 'Voir la transcription' : 'Show transcript'}
+                    <span className="text-slate-400">({transcript.length} chars)</span>
+                  </button>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">
+                        ✓ {language === 'fr' ? 'Transcription' : 'Transcript'}
+                      </p>
+                      <button
+                        onClick={() => setShowTranscript(false)}
+                        className="text-[10px] text-blue-500 hover:text-blue-600"
+                      >
+                        {language === 'fr' ? 'Masquer' : 'Hide'}
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-h-32 overflow-y-auto">
+                      {transcript}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : null}
       </div>
