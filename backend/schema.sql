@@ -225,6 +225,22 @@ CREATE TABLE IF NOT EXISTS company_video_selections (
 );
 CREATE INDEX IF NOT EXISTS idx_company_video_selections_video ON company_video_selections(video_id);
 
+-- Video sync run tracking
+CREATE TABLE IF NOT EXISTS video_sync_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ended_at TIMESTAMP,
+    status TEXT DEFAULT 'running',  -- 'running', 'completed', 'failed'
+    tickers_count INTEGER DEFAULT 0,
+    videos_total INTEGER DEFAULT 0,
+    videos_processed INTEGER DEFAULT 0,
+    transcripts_fetched INTEGER DEFAULT 0,
+    summaries_generated INTEGER DEFAULT 0,
+    errors INTEGER DEFAULT 0,
+    current_video TEXT,  -- Currently processing video title
+    error_message TEXT
+);
+
 -- Theme preferences tracking (for analytics)
 CREATE TABLE IF NOT EXISTS theme_usage (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -106,6 +106,58 @@ def upload_video_data(video_id, transcript=None, has_transcript=True, summary=No
     return response.json()
 
 
+def start_sync_run(tickers_count):
+    """Start a new sync run and return its ID."""
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/api/investing/sync/start",
+            headers={'X-Sync-Key': SYNC_API_KEY, 'Content-Type': 'application/json'},
+            json={'tickers_count': tickers_count},
+            timeout=10
+        )
+        response.raise_for_status()
+        return response.json().get('run_id')
+    except Exception as e:
+        log(f"Warning: Could not start sync tracking: {e}")
+        return None
+
+
+def update_sync_run(run_id, **kwargs):
+    """Update sync run progress."""
+    if not run_id:
+        return
+    try:
+        requests.post(
+            f"{API_BASE_URL}/api/investing/sync/update/{run_id}",
+            headers={'X-Sync-Key': SYNC_API_KEY, 'Content-Type': 'application/json'},
+            json=kwargs,
+            timeout=10
+        )
+    except Exception:
+        pass  # Don't fail sync if tracking fails
+
+
+def end_sync_run(run_id, status, transcripts_fetched, summaries_generated, errors, error_message=None):
+    """Mark sync run as complete."""
+    if not run_id:
+        return
+    try:
+        requests.post(
+            f"{API_BASE_URL}/api/investing/sync/end/{run_id}",
+            headers={'X-Sync-Key': SYNC_API_KEY, 'Content-Type': 'application/json'},
+            json={
+                'status': status,
+                'transcripts_fetched': transcripts_fetched,
+                'summaries_generated': summaries_generated,
+                'errors': errors,
+                'error_message': error_message
+            },
+            timeout=10
+        )
+    except Exception:
+        pass
+
+
 def fetch_transcript_local(video_id):
     """Fetch transcript using local yt-dlp + faster-whisper pipeline.
 
@@ -146,130 +198,152 @@ def main():
     log("Starting video transcript/summary sync...")
     log("=" * 60)
 
-    if not GEMINI_API_KEY:
-        log("ERROR: GEMINI_API_KEY environment variable required")
-        sys.exit(1)
-
-    # Step 1: Get all tickers to sync
-    log("\n[Step 1] Fetching tickers from all portfolios and watchlists...")
-    try:
-        tickers = get_tickers_to_sync()
-        log(f"Found {len(tickers)} unique tickers to sync")
-    except Exception as e:
-        log(f"ERROR fetching tickers: {e}")
-        sys.exit(1)
-
-    if not tickers:
-        log("No tickers to sync, exiting")
-        return
-
-    # Step 2: Refresh video selections for each ticker (parallel)
-    log(f"\n[Step 2] Refreshing video selections for {len(tickers)} tickers (parallel)...")
-    total_videos_refreshed = 0
-    completed = 0
-
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {executor.submit(refresh_video_selection, ticker): ticker for ticker in tickers}
-        for future in as_completed(futures):
-            ticker = futures[future]
-            completed += 1
-            try:
-                videos = future.result()
-                total_videos_refreshed += len(videos)
-                log(f"  [{completed}/{len(tickers)}] {ticker} ({len(videos)} videos)")
-            except Exception as e:
-                log(f"  [{completed}/{len(tickers)}] {ticker} - ERROR: {e}")
-
-    log(f"Refreshed {total_videos_refreshed} total video selections")
-
-    # Step 3: Get videos pending transcript sync
-    log("\n[Step 3] Fetching videos pending transcript sync...")
-    try:
-        videos = get_videos_pending_sync()
-        log(f"Found {len(videos)} videos pending sync")
-    except Exception as e:
-        log(f"ERROR fetching videos: {e}")
-        sys.exit(1)
-
-    if not videos:
-        log("All videos already synced, nothing to do!")
-        return
-
-    # Step 4: Process each video
-    log(f"\n[Step 4] Processing {len(videos)} videos...")
-    log("(Using local yt-dlp + Whisper transcription)")
-    log("-" * 40)
-
+    run_id = None
     transcript_fetched = 0
     summary_generated = 0
-    no_transcript = 0
     error_count = 0
 
-    for i, video in enumerate(videos):
-        video_id = video['video_id']
-        has_transcript = video.get('has_transcript', False)
-        has_summary = video.get('has_summary', False)
-        title = video['title'][:50] + '...' if len(video['title']) > 50 else video['title']
+    try:
+        if not GEMINI_API_KEY:
+            log("ERROR: GEMINI_API_KEY environment variable required")
+            sys.exit(1)
 
-        log(f"\n[{i+1}/{len(videos)}] {title}")
-
+        # Step 1: Get all tickers to sync
+        log("\n[Step 1] Fetching tickers from all portfolios and watchlists...")
         try:
-            transcript = None
-            summary = None
+            tickers = get_tickers_to_sync()
+            log(f"Found {len(tickers)} unique tickers to sync")
+        except Exception as e:
+            log(f"ERROR fetching tickers: {e}")
+            sys.exit(1)
 
-            # Get transcript (local transcription)
-            if not has_transcript:
-                log(f"  -> Downloading and transcribing locally...")
-                start_time = time.time()
+        if not tickers:
+            log("No tickers to sync, exiting")
+            return
 
+        # Start tracking sync run
+        run_id = start_sync_run(len(tickers))
+
+        # Step 2: Refresh video selections for each ticker (parallel)
+        log(f"\n[Step 2] Refreshing video selections for {len(tickers)} tickers (parallel)...")
+        total_videos_refreshed = 0
+        completed = 0
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {executor.submit(refresh_video_selection, ticker): ticker for ticker in tickers}
+            for future in as_completed(futures):
+                ticker = futures[future]
+                completed += 1
                 try:
-                    transcript = fetch_transcript_local(video_id)
-                    elapsed = time.time() - start_time
+                    videos = future.result()
+                    total_videos_refreshed += len(videos)
+                    log(f"  [{completed}/{len(tickers)}] {ticker} ({len(videos)} videos)")
+                except Exception as e:
+                    log(f"  [{completed}/{len(tickers)}] {ticker} - ERROR: {e}")
 
-                    if transcript:
-                        log(f"  -> Transcript ready ({len(transcript)} chars) in {elapsed:.1f}s")
-                        transcript_fetched += 1
-                    else:
-                        log(f"  -> Video unavailable, marking as no transcript")
+        log(f"Refreshed {total_videos_refreshed} total video selections")
+
+        # Step 3: Get videos pending transcript sync
+        log("\n[Step 3] Fetching videos pending transcript sync...")
+        try:
+            videos = get_videos_pending_sync()
+            log(f"Found {len(videos)} videos pending sync")
+        except Exception as e:
+            log(f"ERROR fetching videos: {e}")
+            end_sync_run(run_id, 'failed', 0, 0, 1, str(e))
+            sys.exit(1)
+
+        if not videos:
+            log("All videos already synced, nothing to do!")
+            end_sync_run(run_id, 'completed', 0, 0, 0)
+            return
+
+        # Update run with video count
+        update_sync_run(run_id, videos_total=len(videos))
+
+        # Step 4: Process each video
+        log(f"\n[Step 4] Processing {len(videos)} videos...")
+        log("(Using local yt-dlp + Whisper transcription)")
+        log("-" * 40)
+
+        no_transcript = 0
+
+        for i, video in enumerate(videos):
+            video_id = video['video_id']
+            has_transcript = video.get('has_transcript', False)
+            has_summary = video.get('has_summary', False)
+            title = video['title'][:50] + '...' if len(video['title']) > 50 else video['title']
+
+            log(f"\n[{i+1}/{len(videos)}] {title}")
+
+            # Update progress
+            update_sync_run(run_id, videos_processed=i, current_video=title)
+
+            try:
+                transcript = None
+                summary = None
+
+                # Get transcript (local transcription)
+                if not has_transcript:
+                    log(f"  -> Downloading and transcribing locally...")
+                    start_time = time.time()
+
+                    try:
+                        transcript = fetch_transcript_local(video_id)
+                        elapsed = time.time() - start_time
+
+                        if transcript:
+                            log(f"  -> Transcript ready ({len(transcript)} chars) in {elapsed:.1f}s")
+                            transcript_fetched += 1
+                        else:
+                            log(f"  -> Video unavailable, marking as no transcript")
+                            upload_video_data(video_id, transcript=None, has_transcript=False)
+                            no_transcript += 1
+                            continue
+
+                    except (VideoUnavailableError, DownloadError) as e:
+                        log(f"  -> Video unavailable: {str(e)[:60]}")
                         upload_video_data(video_id, transcript=None, has_transcript=False)
                         no_transcript += 1
                         continue
 
-                except (VideoUnavailableError, DownloadError) as e:
-                    log(f"  -> Video unavailable: {str(e)[:60]}")
-                    upload_video_data(video_id, transcript=None, has_transcript=False)
-                    no_transcript += 1
-                    continue
+                else:
+                    log(f"  -> Transcript already cached")
 
-            else:
-                log(f"  -> Transcript already cached")
+                # Generate summary
+                if transcript and not has_summary:
+                    log(f"  -> Generating summary with Gemini...")
+                    summary = generate_summary(transcript)
+                    log(f"  -> Summary generated ({len(summary)} chars)")
+                    summary_generated += 1
 
-            # Generate summary
-            if transcript and not has_summary:
-                log(f"  -> Generating summary with Gemini...")
-                summary = generate_summary(transcript)
-                log(f"  -> Summary generated ({len(summary)} chars)")
-                summary_generated += 1
+                # Upload to API
+                if transcript or summary:
+                    upload_video_data(video_id, transcript=transcript, has_transcript=True, summary=summary)
+                    log(f"  -> Uploaded to API")
 
-            # Upload to API
-            if transcript or summary:
-                upload_video_data(video_id, transcript=transcript, has_transcript=True, summary=summary)
-                log(f"  -> Uploaded to API")
+            except Exception as e:
+                log(f"  -> ERROR: {str(e)[:100]}")
+                error_count += 1
+                continue
 
-        except Exception as e:
-            log(f"  -> ERROR: {str(e)[:100]}")
-            error_count += 1
-            continue
+        # Mark sync as complete
+        end_sync_run(run_id, 'completed', transcript_fetched, summary_generated, error_count)
 
-    # Summary
-    log("\n" + "=" * 60)
-    log("SYNC COMPLETE")
-    log("=" * 60)
-    log(f"Transcripts fetched: {transcript_fetched}")
-    log(f"Summaries generated: {summary_generated}")
-    log(f"Videos unavailable:  {no_transcript}")
-    log(f"Errors:              {error_count}")
-    log("=" * 60)
+        # Summary
+        log("\n" + "=" * 60)
+        log("SYNC COMPLETE")
+        log("=" * 60)
+        log(f"Transcripts fetched: {transcript_fetched}")
+        log(f"Summaries generated: {summary_generated}")
+        log(f"Videos unavailable:  {no_transcript}")
+        log(f"Errors:              {error_count}")
+        log("=" * 60)
+
+    except Exception as e:
+        log(f"FATAL ERROR: {e}")
+        end_sync_run(run_id, 'failed', transcript_fetched, summary_generated, error_count, str(e))
+        raise
 
 
 if __name__ == '__main__':

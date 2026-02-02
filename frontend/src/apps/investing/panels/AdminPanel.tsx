@@ -4,7 +4,7 @@ import { Fragment, useMemo, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Users, Loader2, AlertCircle, ChevronUp, ChevronDown, Clock, Search, RefreshCw, ChevronRight, Sun, Moon, Settings, Globe, Smartphone, Monitor, Mail, Download, CheckSquare, Square, Building2 } from 'lucide-react';
+import { Shield, Users, Loader2, AlertCircle, ChevronUp, ChevronDown, Clock, Search, RefreshCw, ChevronRight, Sun, Moon, Settings, Globe, Smartphone, Monitor, Mail, Download, CheckSquare, Square, Building2, Video, Play, CheckCircle, XCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -91,6 +91,26 @@ const fetchStockViews = async (): Promise<StockViewStats> => {
 
 const fetchCompanyStats = async (): Promise<CompanyStats> => {
   const response = await axios.get('/api/admin/company-stats');
+  return response.data;
+};
+
+interface SyncRun {
+  id: number;
+  started_at: string;
+  ended_at: string | null;
+  status: 'running' | 'completed' | 'failed';
+  tickers_count: number;
+  videos_total: number;
+  videos_processed: number;
+  transcripts_fetched: number;
+  summaries_generated: number;
+  errors: number;
+  current_video: string | null;
+  error_message: string | null;
+}
+
+const fetchSyncStatus = async (): Promise<{ runs: SyncRun[] }> => {
+  const response = await axios.get('/api/admin/sync-status');
   return response.data;
 };
 
@@ -202,6 +222,13 @@ export function AdminPanel() {
     queryKey: ['admin-page-breakdown'],
     queryFn: fetchPageBreakdown,
     enabled: !!user?.is_admin,
+  });
+
+  const { data: syncStatusData, refetch: refetchSyncStatus } = useQuery({
+    queryKey: ['admin-sync-status'],
+    queryFn: fetchSyncStatus,
+    enabled: !!user?.is_admin,
+    refetchInterval: 5000,  // Refresh every 5 seconds to show progress
   });
 
   // Sort state for Users table (default: most time spent first)
@@ -1566,7 +1593,92 @@ export function AdminPanel() {
           </div>
         )}
 
-        {/* 4. Stock Searches */}
+        {/* 4. Video Sync Status */}
+        {syncStatusData && syncStatusData.runs.length > 0 && (
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
+            <div className="flex items-center gap-3 mb-4">
+              <Video className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                {language === 'fr' ? 'Sync Vidéos' : 'Video Sync'}
+              </h3>
+              <button
+                onClick={() => refetchSyncStatus()}
+                className="ml-auto p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {syncStatusData.runs.map((run) => (
+                <div
+                  key={run.id}
+                  className={`p-3 rounded-lg border ${
+                    run.status === 'running'
+                      ? 'border-blue-300 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/30'
+                      : run.status === 'completed'
+                      ? 'border-green-300 bg-green-50 dark:border-green-600 dark:bg-green-900/30'
+                      : 'border-red-300 bg-red-50 dark:border-red-600 dark:bg-red-900/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {run.status === 'running' ? (
+                      <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                    ) : run.status === 'completed' ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-500" />
+                    )}
+                    <span className="font-medium text-slate-700 dark:text-slate-200">
+                      {run.status === 'running' ? 'Running' : run.status === 'completed' ? 'Completed' : 'Failed'}
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto">
+                      {new Date(run.started_at).toLocaleString()}
+                    </span>
+                  </div>
+
+                  {run.status === 'running' && run.current_video && (
+                    <div className="text-sm text-slate-600 dark:text-slate-300 mb-2 truncate">
+                      <Play className="w-3 h-3 inline mr-1" />
+                      {run.current_video}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div className="text-slate-600 dark:text-slate-400">
+                      <span className="font-medium">{run.tickers_count}</span> tickers
+                    </div>
+                    <div className="text-slate-600 dark:text-slate-400">
+                      <span className="font-medium">{run.videos_processed}/{run.videos_total}</span> videos
+                    </div>
+                    <div className="text-slate-600 dark:text-slate-400">
+                      <span className="font-medium">{run.transcripts_fetched}</span> transcripts
+                    </div>
+                    <div className="text-slate-600 dark:text-slate-400">
+                      <span className="font-medium">{run.summaries_generated}</span> summaries
+                    </div>
+                  </div>
+
+                  {run.status === 'running' && run.videos_total > 0 && (
+                    <div className="mt-2 w-full bg-slate-200 dark:bg-slate-600 rounded-full h-1.5">
+                      <div
+                        className="bg-blue-500 h-1.5 rounded-full transition-all"
+                        style={{ width: `${(run.videos_processed / run.videos_total) * 100}%` }}
+                      />
+                    </div>
+                  )}
+
+                  {run.error_message && (
+                    <div className="mt-2 text-xs text-red-600 dark:text-red-400">
+                      {run.error_message}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 5. Stock Searches */}
         {stockViewsData && stockViewsData.by_stock.length > 0 && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <button

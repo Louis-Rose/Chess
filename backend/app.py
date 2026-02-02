@@ -4795,6 +4795,118 @@ def sync_clear_video_cache():
     return jsonify({'status': 'ok', 'message': 'Video cache cleared'})
 
 
+@app.route('/api/investing/sync/start', methods=['POST'])
+def sync_start():
+    """Start a new sync run and return its ID."""
+    sync_key = request.headers.get('X-Sync-Key')
+    expected_key = os.environ.get('SYNC_API_KEY', 'lumna-sync-2024')
+    if sync_key != expected_key:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json() or {}
+    tickers_count = data.get('tickers_count', 0)
+
+    with get_db() as conn:
+        if USE_POSTGRES:
+            cursor = conn.execute('''
+                INSERT INTO video_sync_runs (tickers_count, status)
+                VALUES (%s, 'running')
+                RETURNING id
+            ''', (tickers_count,))
+        else:
+            cursor = conn.execute('''
+                INSERT INTO video_sync_runs (tickers_count, status)
+                VALUES (?, 'running')
+            ''', (tickers_count,))
+            cursor = conn.execute('SELECT last_insert_rowid() as id')
+        run_id = cursor.fetchone()['id']
+
+    return jsonify({'run_id': run_id})
+
+
+@app.route('/api/investing/sync/update/<int:run_id>', methods=['POST'])
+def sync_update(run_id):
+    """Update sync run progress."""
+    sync_key = request.headers.get('X-Sync-Key')
+    expected_key = os.environ.get('SYNC_API_KEY', 'lumna-sync-2024')
+    if sync_key != expected_key:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json() or {}
+
+    with get_db() as conn:
+        updates = []
+        values = []
+        for field in ['videos_total', 'videos_processed', 'current_video']:
+            if field in data:
+                if USE_POSTGRES:
+                    updates.append(f"{field} = %s")
+                else:
+                    updates.append(f"{field} = ?")
+                values.append(data[field])
+
+        if updates:
+            values.append(run_id)
+            placeholder = '%s' if USE_POSTGRES else '?'
+            conn.execute(
+                f"UPDATE video_sync_runs SET {', '.join(updates)} WHERE id = {placeholder}",
+                values
+            )
+
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/api/investing/sync/end/<int:run_id>', methods=['POST'])
+def sync_end(run_id):
+    """Mark sync run as complete."""
+    sync_key = request.headers.get('X-Sync-Key')
+    expected_key = os.environ.get('SYNC_API_KEY', 'lumna-sync-2024')
+    if sync_key != expected_key:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json() or {}
+
+    with get_db() as conn:
+        if USE_POSTGRES:
+            conn.execute('''
+                UPDATE video_sync_runs
+                SET status = %s, ended_at = CURRENT_TIMESTAMP,
+                    transcripts_fetched = %s, summaries_generated = %s,
+                    errors = %s, error_message = %s, current_video = NULL
+                WHERE id = %s
+            ''', (data.get('status', 'completed'), data.get('transcripts_fetched', 0),
+                  data.get('summaries_generated', 0), data.get('errors', 0),
+                  data.get('error_message'), run_id))
+        else:
+            conn.execute('''
+                UPDATE video_sync_runs
+                SET status = ?, ended_at = CURRENT_TIMESTAMP,
+                    transcripts_fetched = ?, summaries_generated = ?,
+                    errors = ?, error_message = ?, current_video = NULL
+                WHERE id = ?
+            ''', (data.get('status', 'completed'), data.get('transcripts_fetched', 0),
+                  data.get('summaries_generated', 0), data.get('errors', 0),
+                  data.get('error_message'), run_id))
+
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/api/admin/sync-status', methods=['GET'])
+@admin_required
+def get_sync_status():
+    """Get current and recent sync run status (admin only)."""
+    with get_db() as conn:
+        # Get current/most recent run
+        cursor = conn.execute('''
+            SELECT * FROM video_sync_runs
+            ORDER BY started_at DESC
+            LIMIT 5
+        ''')
+        runs = [dict(row) for row in cursor.fetchall()]
+
+    return jsonify({'runs': runs})
+
+
 @app.route('/api/investing/video-summaries/upload', methods=['POST'])
 def upload_video_data():
     """Upload transcript and/or summary. Used by local sync script."""
