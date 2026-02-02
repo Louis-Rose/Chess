@@ -127,12 +127,12 @@ function VideoRow({
   }, [video.video_id]);
 
   return (
-    <div className="flex gap-4 bg-white dark:bg-slate-600 rounded-lg overflow-hidden shadow-sm border border-slate-200 dark:border-slate-500">
-      {/* Left side: Thumbnail + Title */}
-      <div className="flex-shrink-0 w-64">
+    <div className="flex gap-3 bg-white dark:bg-slate-600 rounded-lg overflow-hidden shadow-sm border border-slate-200 dark:border-slate-500">
+      {/* Left side: Thumbnail + Title (narrower) */}
+      <div className="flex-shrink-0 w-44">
         <button
           onClick={onPlay}
-          className="relative w-full h-36 bg-slate-200 dark:bg-slate-700 group"
+          className="relative w-full h-24 bg-slate-200 dark:bg-slate-700 group"
         >
           {video.thumbnail_url ? (
             <img
@@ -142,57 +142,57 @@ function VideoRow({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <Youtube className="w-10 h-10 text-slate-400" />
+              <Youtube className="w-8 h-8 text-slate-400" />
             </div>
           )}
           <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
-            <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+            <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg className="w-3 h-3 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </div>
           </div>
         </button>
-        <div className="p-3">
+        <div className="p-2">
           <button onClick={onPlay} className="text-left w-full">
-            <h4 className="font-medium text-sm text-slate-800 dark:text-slate-100 line-clamp-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+            <h4 className="font-medium text-xs text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
               {video.title}
             </h4>
           </button>
-          <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
-            <span className="truncate">{video.channel_name}</span>
+          <div className="flex items-center gap-1 mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <span className="truncate text-[10px]">{video.channel_name}</span>
             <span>·</span>
-            <span>{formatDate(video.published_at, language)}</span>
+            <span className="text-[10px]">{formatDate(video.published_at, language)}</span>
           </div>
         </div>
       </div>
 
       {/* Right side: Transcript */}
-      <div className="flex-1 p-4 border-l border-slate-200 dark:border-slate-500">
+      <div className="flex-1 py-2 pr-3 border-l border-slate-200 dark:border-slate-500 pl-3">
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-400">
-            <Loader2 className="w-4 h-4 animate-spin" />
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <Loader2 className="w-3 h-3 animate-spin" />
             {language === 'fr' ? 'Chargement...' : 'Loading...'}
           </div>
         ) : pending ? (
-          <p className="text-sm text-slate-400 italic">
+          <p className="text-xs text-slate-400 italic">
             {language === 'fr' ? 'Transcription en cours...' : 'Fetching transcript...'}
           </p>
         ) : noTranscript ? (
-          <p className="text-sm text-slate-400 italic">
+          <p className="text-xs text-slate-400 italic">
             {language === 'fr' ? 'Pas de transcription disponible' : 'No transcript available'}
           </p>
         ) : transcript ? (
           <div>
-            <p className="text-xs text-green-600 dark:text-green-400 font-medium mb-2">
+            <p className="text-[10px] text-green-600 dark:text-green-400 font-medium mb-1">
               ✓ Transcript ({transcript.length} chars)
             </p>
-            <p className={`text-sm text-slate-600 dark:text-slate-300 leading-relaxed ${expanded ? '' : 'line-clamp-4'}`}>
+            <p className={`text-xs text-slate-600 dark:text-slate-300 leading-relaxed ${expanded ? '' : 'line-clamp-5'}`}>
               {transcript}
             </p>
             <button
               onClick={() => setExpanded(!expanded)}
-              className="text-sm text-blue-500 hover:text-blue-600 mt-2 flex items-center gap-1"
+              className="text-xs text-blue-500 hover:text-blue-600 mt-1 flex items-center gap-1"
             >
               {expanded
                 ? (language === 'fr' ? 'Voir moins' : 'See less')
@@ -309,8 +309,8 @@ function CompanySection({
         </div>
       </button>
 
-      {/* Scrollable vertical video list - height for ~2.5 videos */}
-      <div className="space-y-3 max-h-[520px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-500">
+      {/* Scrollable vertical video list - height for ~2-3 videos */}
+      <div className="space-y-2 max-h-[420px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-500">
         {recentVideos.map((video) => (
           <VideoRow
             key={video.video_id}
