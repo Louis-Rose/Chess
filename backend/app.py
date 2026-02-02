@@ -4918,20 +4918,24 @@ def get_user_stock_views(user_id):
 @admin_required
 def get_stock_views_stats():
     """Get aggregated stock view statistics (admin only)."""
+    excluded_email = 'rose.louis.mail@gmail.com'
+
     with get_db() as conn:
-        # Get aggregated stats by stock
+        # Get aggregated stats by stock (exclude admin)
         cursor = conn.execute('''
             SELECT sv.stock_ticker,
                    COUNT(DISTINCT sv.user_id) as unique_users,
                    SUM(sv.view_count) as total_views,
                    SUM(sv.time_spent_seconds) as total_time_seconds
             FROM stock_views sv
+            JOIN users u ON sv.user_id = u.id
+            WHERE u.email != ?
             GROUP BY sv.stock_ticker
             ORDER BY total_views DESC
-        ''')
+        ''', (excluded_email,))
         by_stock = [dict(row) for row in cursor.fetchall()]
 
-        # Get stats by user
+        # Get stats by user (exclude admin)
         cursor = conn.execute('''
             SELECT u.id, u.name, u.email,
                    COUNT(DISTINCT sv.stock_ticker) as stocks_viewed,
@@ -4939,9 +4943,10 @@ def get_stock_views_stats():
                    SUM(sv.time_spent_seconds) as total_time_seconds
             FROM stock_views sv
             JOIN users u ON sv.user_id = u.id
+            WHERE u.email != ?
             GROUP BY u.id
             ORDER BY total_views DESC
-        ''')
+        ''', (excluded_email,))
         by_user = [dict(row) for row in cursor.fetchall()]
 
     return jsonify({
