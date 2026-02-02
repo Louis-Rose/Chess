@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Loader2, Youtube, ChevronDown, ChevronUp, Eye, Briefcase } from 'lucide-react';
+import { Loader2, Youtube, ChevronDown, ChevronUp, ChevronRight, Eye, Briefcase } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { findStockByTicker } from '../utils/allStocks';
@@ -207,7 +207,7 @@ function VideoRow({
   );
 }
 
-// Collapsible section with toggle
+// Collapsible section with toggle on left
 function CollapsibleSection({
   title,
   icon,
@@ -225,19 +225,17 @@ function CollapsibleSection({
     <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+        className="w-full flex items-center gap-2 p-4 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
       >
-        <div className="flex items-center gap-2">
-          {icon}
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            {title}
-          </h3>
-        </div>
         {isOpen ? (
-          <ChevronUp className="w-5 h-5 text-slate-500" />
-        ) : (
           <ChevronDown className="w-5 h-5 text-slate-500" />
+        ) : (
+          <ChevronRight className="w-5 h-5 text-slate-500" />
         )}
+        {icon}
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          {title}
+        </h3>
       </button>
       {isOpen && (
         <div className="px-6 pb-6">
@@ -276,6 +274,7 @@ function CompanySection({
 }) {
   const navigate = useNavigate();
   const logoUrl = getCompanyLogoUrl(ticker);
+  const [isOpen, setIsOpen] = useState(true);
 
   // Filter to recent videos only (last 30 days, max 5)
   const recentVideos = filterRecentVideos(videos, 30, 5);
@@ -283,34 +282,46 @@ function CompanySection({
   if (recentVideos.length === 0) return null;
 
   return (
-    <div className="mb-8">
-      {/* Company header */}
-      <button
-        onClick={() => navigate(`/investing/stock/${ticker}`)}
-        className="flex items-center gap-3 mb-4 group"
-      >
-        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-500">
-          {logoUrl ? (
-            <img src={logoUrl} alt={ticker} className="w-6 h-6 object-contain" />
+    <div className="mb-6">
+      {/* Company header with toggle */}
+      <div className="flex items-center gap-2 mb-3">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="p-1 hover:bg-slate-200 dark:hover:bg-slate-500 rounded transition-colors"
+        >
+          {isOpen ? (
+            <ChevronDown className="w-4 h-4 text-slate-500" />
           ) : (
-            <span className="text-xs font-bold text-slate-500">{ticker.slice(0, 2)}</span>
+            <ChevronRight className="w-4 h-4 text-slate-500" />
           )}
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+        </button>
+        <button
+          onClick={() => navigate(`/investing/stock/${ticker}`)}
+          className="flex items-center gap-2 group"
+        >
+          <div className="w-6 h-6 rounded-md bg-white flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-500">
+            {logoUrl ? (
+              <img src={logoUrl} alt={ticker} className="w-5 h-5 object-contain" />
+            ) : (
+              <span className="text-[10px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
+            )}
+          </div>
+          <span className="font-medium text-sm text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
             {companyName}
           </span>
-          <span className="text-sm text-slate-500 dark:text-slate-400">({ticker})</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">({ticker})</span>
           {isPortfolio && (
             <span title={language === 'fr' ? 'Portefeuille' : 'Portfolio'}>
-              <Briefcase className="w-4 h-4 text-green-600" />
+              <Briefcase className="w-3 h-3 text-green-600" />
             </span>
           )}
-        </div>
-      </button>
+        </button>
+        <span className="text-xs text-slate-400">({recentVideos.length})</span>
+      </div>
 
       {/* Scrollable vertical video list - height for ~2-3 videos */}
-      <div className="space-y-2 max-h-[420px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-500">
+      {isOpen && (
+      <div className="space-y-2 max-h-[420px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-500 ml-6">
         {recentVideos.map((video) => (
           <VideoRow
             key={video.video_id}
@@ -320,6 +331,7 @@ function CompanySection({
           />
         ))}
       </div>
+      )}
     </div>
   );
 }
