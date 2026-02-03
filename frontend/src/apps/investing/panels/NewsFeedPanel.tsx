@@ -208,7 +208,7 @@ function VideoRow({
                         <li key={idx} className="flex gap-2 items-start">
                           <button
                             onClick={() => onPlay(totalSeconds)}
-                            className="text-blue-500 hover:text-blue-600 font-mono text-xs shrink-0 mt-[3px]"
+                            className="text-blue-500 hover:text-blue-600 font-mono text-xs shrink-0 mt-1"
                           >
                             [{timestamp}]
                           </button>
