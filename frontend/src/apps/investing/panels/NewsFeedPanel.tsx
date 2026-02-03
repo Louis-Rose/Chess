@@ -57,7 +57,7 @@ const fetchComposition = async (): Promise<CompositionData> => {
 
 const fetchNewsFeed = async (ticker: string, companyName: string): Promise<NewsFeedResponse> => {
   const response = await axios.get('/api/investing/news-feed', {
-    params: { ticker, company_name: companyName, limit: 10 }
+    params: { ticker, company_name: companyName, limit: 15 }
   });
   return response.data;
 };
