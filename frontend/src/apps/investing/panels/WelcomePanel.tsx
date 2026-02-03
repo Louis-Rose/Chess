@@ -1027,7 +1027,7 @@ export function InvestingWelcomePanel() {
         {/* Blurred dashboard preview for non-authenticated users */}
         {!isAuthenticated && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-[10%] mb-8 select-none">
-            {/* 1. Portfolio Value Card */}
+            {/* 1. Portfolio Value Card - Blurred */}
             <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
@@ -1037,7 +1037,7 @@ export function InvestingWelcomePanel() {
                   {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
                 </span>
               </div>
-              <div className="flex-1 flex flex-col justify-center">
+              <div className="flex-1 flex flex-col justify-center blur-sm pointer-events-none">
                 <p className="text-4xl font-bold text-green-500">21 458 €</p>
                 <p className="text-sm text-green-400 mt-1">+12.4% {language === 'fr' ? 'cette année' : 'this year'}</p>
               </div>
