@@ -5082,6 +5082,9 @@ def get_videos_pending_sync():
     Only returns videos that are in a company's current selection (company_video_selections table).
     This ensures we only sync transcripts for videos currently being displayed.
 
+    Optional query param:
+    - ticker: Filter to only videos for a specific ticker (e.g., GOOGL)
+
     Returns videos that either:
     - Have no transcript yet (and hasn't been marked as unavailable)
     - Have transcript but no summary
@@ -5091,20 +5094,38 @@ def get_videos_pending_sync():
     if sync_key != expected_key:
         return jsonify({'error': 'Unauthorized'}), 401
 
+    ticker_filter = request.args.get('ticker')
+
     with get_db() as conn:
-        # Get videos needing transcripts - ONLY from current company selections
-        cursor = conn.execute('''
-            SELECT DISTINCT v.video_id, v.title, v.channel_name, v.published_at,
-                   t.transcript IS NOT NULL as has_transcript,
-                   s.summary IS NOT NULL as has_summary
-            FROM company_video_selections sel
-            JOIN youtube_videos_cache v ON sel.video_id = v.video_id
-            LEFT JOIN video_transcripts t ON v.video_id = t.video_id
-            LEFT JOIN video_summaries s ON v.video_id = s.video_id
-            WHERE (t.video_id IS NULL)  -- No transcript record yet
-               OR (t.has_transcript = 1 AND t.transcript IS NOT NULL AND s.video_id IS NULL)  -- Has transcript, needs summary
-            ORDER BY v.published_at DESC
-        ''')
+        if ticker_filter:
+            # Filter by ticker
+            cursor = conn.execute('''
+                SELECT DISTINCT v.video_id, v.title, v.channel_name, v.published_at,
+                       t.transcript IS NOT NULL as has_transcript,
+                       s.summary IS NOT NULL as has_summary
+                FROM company_video_selections sel
+                JOIN youtube_videos_cache v ON sel.video_id = v.video_id
+                LEFT JOIN video_transcripts t ON v.video_id = t.video_id
+                LEFT JOIN video_summaries s ON v.video_id = s.video_id
+                WHERE sel.ticker = ?
+                  AND ((t.video_id IS NULL)
+                       OR (t.has_transcript = 1 AND t.transcript IS NOT NULL AND s.video_id IS NULL))
+                ORDER BY v.published_at DESC
+            ''', (ticker_filter,))
+        else:
+            # Get all pending videos
+            cursor = conn.execute('''
+                SELECT DISTINCT v.video_id, v.title, v.channel_name, v.published_at,
+                       t.transcript IS NOT NULL as has_transcript,
+                       s.summary IS NOT NULL as has_summary
+                FROM company_video_selections sel
+                JOIN youtube_videos_cache v ON sel.video_id = v.video_id
+                LEFT JOIN video_transcripts t ON v.video_id = t.video_id
+                LEFT JOIN video_summaries s ON v.video_id = s.video_id
+                WHERE (t.video_id IS NULL)
+                   OR (t.has_transcript = 1 AND t.transcript IS NOT NULL AND s.video_id IS NULL)
+                ORDER BY v.published_at DESC
+            ''')
         videos = cursor.fetchall()
 
     return jsonify({'videos': [dict(v) for v in videos]})

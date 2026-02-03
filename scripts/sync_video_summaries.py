@@ -82,10 +82,14 @@ def refresh_video_selection(ticker):
         return []
 
 
-def get_videos_pending_sync():
+def get_videos_pending_sync(ticker=None):
     """Fetch videos that need transcripts/summaries from the API."""
+    params = {}
+    if ticker:
+        params['ticker'] = ticker
     response = requests.get(
         f"{API_BASE_URL}/api/investing/video-summaries/pending",
+        params=params,
         headers={'X-Sync-Key': SYNC_API_KEY},
         timeout=30
     )
@@ -293,7 +297,9 @@ def main():
         log("\n[Step 3] Fetching videos pending transcript sync...")
         update_sync_run(run_id, current_step='fetching')
         try:
-            videos = get_videos_pending_sync()
+            # TEMPORARY: Only fetch pending videos for the tickers we're syncing
+            ticker_filter = tickers[0] if len(tickers) == 1 else None
+            videos = get_videos_pending_sync(ticker=ticker_filter)
             log(f"Found {len(videos)} videos pending sync")
         except Exception as e:
             log(f"ERROR fetching videos: {e}")
