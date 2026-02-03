@@ -136,10 +136,10 @@ function VideoRow({
   return (
     <div className="flex gap-3 bg-white dark:bg-slate-600 rounded-lg overflow-hidden shadow-sm border border-slate-200 dark:border-slate-500">
       {/* Left side: Thumbnail + Title */}
-      <div className="flex-shrink-0 w-64">
+      <div className="flex-shrink-0 w-80">
         <button
           onClick={onPlay}
-          className="relative w-full h-36 bg-slate-200 dark:bg-slate-700 group"
+          className="relative w-full h-[120px] bg-slate-200 dark:bg-slate-700 group"
         >
           {video.thumbnail_url ? (
             <img
@@ -162,7 +162,7 @@ function VideoRow({
         </button>
         <div className="p-2.5">
           <button onClick={onPlay} className="text-left w-full">
-            <h4 className="font-medium text-sm text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2">
+            <h4 className="font-medium text-sm text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
               {video.title}
             </h4>
           </button>
