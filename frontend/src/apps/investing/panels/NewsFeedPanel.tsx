@@ -301,14 +301,12 @@ function CompanySection({
   videos,
   language,
   onPlayVideo,
-  dragHandleProps,
 }: {
   ticker: string;
   companyName: string;
   videos: VideoWithCompany[];
   language: string;
   onPlayVideo: (video: VideoWithCompany) => void;
-  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }) {
   const navigate = useNavigate();
   const logoUrl = getCompanyLogoUrl(ticker);
@@ -321,44 +319,35 @@ function CompanySection({
     <div className="mb-4">
       {/* Company header - clickable button style */}
       <div
-        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-500 hover:border-slate-400 dark:hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-500 hover:border-slate-400 dark:hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
       >
-        {/* Drag handle */}
-        <div
-          {...dragHandleProps}
-          className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 touch-none"
-        >
-          <GripVertical className="w-4 h-4" />
-        </div>
-        <div
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-3 flex-1 cursor-pointer"
-        >
-          {isOpen ? (
-            <ChevronDown className="w-4 h-4 text-slate-500 flex-shrink-0" />
+        {/* Drag indicator */}
+        <GripVertical className="w-4 h-4 text-slate-400 flex-shrink-0" />
+        {isOpen ? (
+          <ChevronDown className="w-4 h-4 text-slate-500 flex-shrink-0" />
+        ) : (
+          <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
+        )}
+        <div className="w-6 h-6 rounded-md bg-white flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-500 flex-shrink-0">
+          {logoUrl ? (
+            <img src={logoUrl} alt={ticker} className="w-5 h-5 object-contain" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
+            <span className="text-[10px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
           )}
-          <div className="w-6 h-6 rounded-md bg-white flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-500 flex-shrink-0">
-            {logoUrl ? (
-              <img src={logoUrl} alt={ticker} className="w-5 h-5 object-contain" />
-            ) : (
-              <span className="text-[10px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
-            )}
-          </div>
-          <span className="font-medium text-sm text-slate-900 dark:text-slate-100">
-            {companyName} ({ticker})
-          </span>
-          <span className="text-xs text-slate-400">
-            {recentVideos.length === 0
-              ? (language === 'fr' ? 'Aucune vidéo récente' : 'No recent videos')
-              : `${recentVideos.length} ${recentVideos.length === 1 ? 'video' : 'videos'}`
-            }
-          </span>
         </div>
+        <span className="font-medium text-sm text-slate-900 dark:text-slate-100">
+          {companyName} ({ticker})
+        </span>
+        <span className="text-xs text-slate-400">
+          {recentVideos.length === 0
+            ? (language === 'fr' ? 'Aucune vidéo récente' : 'No recent videos')
+            : `${recentVideos.length} ${recentVideos.length === 1 ? 'video' : 'videos'}`
+          }
+        </span>
         <button
           onClick={(e) => { e.stopPropagation(); navigate(`/investing/stock/${ticker}`); }}
-          className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-500 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 rounded-md transition-colors flex items-center gap-1.5"
+          className="ml-auto px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-500 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 rounded-md transition-colors flex items-center gap-1.5"
         >
           <ExternalLink className="w-3 h-3" />
           {language === 'fr' ? 'Page entreprise' : 'Go to company page'}
@@ -414,14 +403,13 @@ function SortableCompanySection({
   };
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <CompanySection
         ticker={ticker}
         companyName={companyName}
         videos={videos}
         language={language}
         onPlayVideo={onPlayVideo}
-        dragHandleProps={{ ...attributes, ...listeners }}
       />
     </div>
   );
