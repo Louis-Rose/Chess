@@ -1596,7 +1596,7 @@ export function AdminPanel() {
         )}
 
         {/* 4. Video Sync Status */}
-        {syncStatusData && syncStatusData.runs.length > 0 && (
+        {syncStatusData && (
           <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 shadow-sm dark:shadow-none">
             <div className="flex items-center gap-3 mb-4">
               <Video className="w-5 h-5 text-slate-600 dark:text-slate-300" />
@@ -1611,7 +1611,11 @@ export function AdminPanel() {
               </button>
             </div>
             <div className="space-y-3">
-              {syncStatusData.runs.map((run) => (
+              {syncStatusData.runs.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {language === 'fr' ? 'Aucune synchronisation en cours ou récente.' : 'No ongoing or recent sync runs.'}
+                </p>
+              ) : syncStatusData.runs.map((run) => (
                 <div
                   key={run.id}
                   className={`p-3 rounded-lg border ${
