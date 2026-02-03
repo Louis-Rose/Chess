@@ -210,6 +210,8 @@ export function InvestingWelcomePanel() {
   const [moversSortAsc, setMoversSortAsc] = useState(false);
   const [watchlistMoversPeriod, setWatchlistMoversPeriod] = useState<1 | 7 | 30>(30);
   const [watchlistMoversSortAsc, setWatchlistMoversSortAsc] = useState(false);
+  const [portfolioHeaderHovered, setPortfolioHeaderHovered] = useState(false);
+  const [watchlistHeaderHovered, setWatchlistHeaderHovered] = useState(false);
   const [earningsSource, setEarningsSource] = useState<EarningsSourceFilter>('portfolio');
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
@@ -630,12 +632,14 @@ export function InvestingWelcomePanel() {
           <div
             key={cardId}
             {...cardProps}
-            className={`${cardBaseClass} ${dragOverClass} overflow-hidden`}
+            className={`${cardBaseClass} ${dragOverClass} overflow-hidden transition-colors ${portfolioHeaderHovered ? 'border-orange-500' : ''}`}
           >
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <div
                 className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={(e) => { e.stopPropagation(); navigate('/investing/portfolio'); }}
+                onMouseEnter={() => setPortfolioHeaderHovered(true)}
+                onMouseLeave={() => setPortfolioHeaderHovered(false)}
               >
                 <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
                   <Flame className="w-4 h-4 text-white" />
@@ -914,12 +918,14 @@ export function InvestingWelcomePanel() {
           <div
             key={cardId}
             {...cardProps}
-            className={`${cardBaseClass} ${dragOverClass} overflow-hidden`}
+            className={`${cardBaseClass} ${dragOverClass} overflow-hidden transition-colors ${watchlistHeaderHovered ? 'border-blue-500' : ''}`}
           >
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <div
                 className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={(e) => { e.stopPropagation(); navigate('/investing/watchlist'); }}
+                onMouseEnter={() => setWatchlistHeaderHovered(true)}
+                onMouseLeave={() => setWatchlistHeaderHovered(false)}
               >
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <Eye className="w-4 h-4 text-white" />
