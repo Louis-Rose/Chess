@@ -1,14 +1,17 @@
 // News Feed panel - aggregated YouTube videos from portfolio and watchlist companies
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Loader2, Youtube, ChevronDown, ChevronRight, Eye, Briefcase, ExternalLink, FileText } from 'lucide-react';
+import { Loader2, Youtube, ChevronDown, ChevronRight, Eye, Briefcase, ExternalLink, FileText, GripVertical } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { findStockByTicker } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Video {
   video_id: string;
@@ -298,12 +301,14 @@ function CompanySection({
   videos,
   language,
   onPlayVideo,
+  dragHandleProps,
 }: {
   ticker: string;
   companyName: string;
   videos: VideoWithCompany[];
   language: string;
   onPlayVideo: (video: VideoWithCompany) => void;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }) {
   const navigate = useNavigate();
   const logoUrl = getCompanyLogoUrl(ticker);
@@ -316,33 +321,44 @@ function CompanySection({
     <div className="mb-4">
       {/* Company header - clickable button style */}
       <div
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-500 hover:border-slate-400 dark:hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
+        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-500 hover:border-slate-400 dark:hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
       >
-        {isOpen ? (
-          <ChevronDown className="w-4 h-4 text-slate-500 flex-shrink-0" />
-        ) : (
-          <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
-        )}
-        <div className="w-6 h-6 rounded-md bg-white flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-500 flex-shrink-0">
-          {logoUrl ? (
-            <img src={logoUrl} alt={ticker} className="w-5 h-5 object-contain" />
-          ) : (
-            <span className="text-[10px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
-          )}
+        {/* Drag handle */}
+        <div
+          {...dragHandleProps}
+          className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 touch-none"
+        >
+          <GripVertical className="w-4 h-4" />
         </div>
-        <span className="font-medium text-sm text-slate-900 dark:text-slate-100">
-          {companyName} ({ticker})
-        </span>
-        <span className="text-xs text-slate-400">
-          {recentVideos.length === 0
-            ? (language === 'fr' ? 'Aucune vidéo récente' : 'No recent videos')
-            : `${recentVideos.length} ${recentVideos.length === 1 ? 'video' : 'videos'}`
-          }
-        </span>
+        <div
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-3 flex-1 cursor-pointer"
+        >
+          {isOpen ? (
+            <ChevronDown className="w-4 h-4 text-slate-500 flex-shrink-0" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
+          )}
+          <div className="w-6 h-6 rounded-md bg-white flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-500 flex-shrink-0">
+            {logoUrl ? (
+              <img src={logoUrl} alt={ticker} className="w-5 h-5 object-contain" />
+            ) : (
+              <span className="text-[10px] font-bold text-slate-500">{ticker.slice(0, 2)}</span>
+            )}
+          </div>
+          <span className="font-medium text-sm text-slate-900 dark:text-slate-100">
+            {companyName} ({ticker})
+          </span>
+          <span className="text-xs text-slate-400">
+            {recentVideos.length === 0
+              ? (language === 'fr' ? 'Aucune vidéo récente' : 'No recent videos')
+              : `${recentVideos.length} ${recentVideos.length === 1 ? 'video' : 'videos'}`
+            }
+          </span>
+        </div>
         <button
           onClick={(e) => { e.stopPropagation(); navigate(`/investing/stock/${ticker}`); }}
-          className="ml-auto px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-500 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 rounded-md transition-colors flex items-center gap-1.5"
+          className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-500 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 rounded-md transition-colors flex items-center gap-1.5"
         >
           <ExternalLink className="w-3 h-3" />
           {language === 'fr' ? 'Page entreprise' : 'Go to company page'}
@@ -366,11 +382,92 @@ function CompanySection({
   );
 }
 
+// Sortable wrapper for CompanySection
+function SortableCompanySection({
+  id,
+  ticker,
+  companyName,
+  videos,
+  language,
+  onPlayVideo,
+}: {
+  id: string;
+  ticker: string;
+  companyName: string;
+  videos: VideoWithCompany[];
+  language: string;
+  onPlayVideo: (video: VideoWithCompany) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <CompanySection
+        ticker={ticker}
+        companyName={companyName}
+        videos={videos}
+        language={language}
+        onPlayVideo={onPlayVideo}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
+    </div>
+  );
+}
+
+// Helper to load order from localStorage
+function loadOrder(key: string): string[] {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+// Helper to save order to localStorage
+function saveOrder(key: string, order: string[]) {
+  localStorage.setItem(key, JSON.stringify(order));
+}
+
+// Apply custom order to companies array
+function applyOrder<T extends { ticker: string }>(companies: T[], customOrder: string[]): T[] {
+  if (customOrder.length === 0) return companies;
+
+  const orderMap = new Map(customOrder.map((ticker, idx) => [ticker, idx]));
+  const ordered = [...companies].sort((a, b) => {
+    const aIdx = orderMap.get(a.ticker) ?? Infinity;
+    const bIdx = orderMap.get(b.ticker) ?? Infinity;
+    return aIdx - bIdx;
+  });
+  return ordered;
+}
+
 export function NewsFeedPanel() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
   const [selectedVideo, setSelectedVideo] = useState<VideoWithCompany | null>(null);
+  const [portfolioOrder, setPortfolioOrder] = useState<string[]>(() => loadOrder('newsfeed-portfolio-order'));
+  const [watchlistOrder, setWatchlistOrder] = useState<string[]>(() => loadOrder('newsfeed-watchlist-order'));
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   // Fetch watchlist
   const { data: watchlistData, isLoading: watchlistLoading } = useQuery({
@@ -434,9 +531,42 @@ export function NewsFeedPanel() {
     staleTime: 1000 * 60 * 15,
   });
 
-  // Separate into portfolio and watchlist sections
-  const portfolioCompanies = (allNewsData || []).filter(c => c.isPortfolio);
-  const watchlistCompanies = (allNewsData || []).filter(c => !c.isPortfolio && c.isWatchlist);
+  // Separate into portfolio and watchlist sections, apply custom order
+  const portfolioCompaniesRaw = (allNewsData || []).filter(c => c.isPortfolio);
+  const watchlistCompaniesRaw = (allNewsData || []).filter(c => !c.isPortfolio && c.isWatchlist);
+
+  const portfolioCompanies = useMemo(
+    () => applyOrder(portfolioCompaniesRaw, portfolioOrder),
+    [portfolioCompaniesRaw, portfolioOrder]
+  );
+  const watchlistCompanies = useMemo(
+    () => applyOrder(watchlistCompaniesRaw, watchlistOrder),
+    [watchlistCompaniesRaw, watchlistOrder]
+  );
+
+  // Handle drag end for portfolio section
+  const handlePortfolioDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = portfolioCompanies.findIndex(c => c.ticker === active.id);
+      const newIndex = portfolioCompanies.findIndex(c => c.ticker === over.id);
+      const newOrder = arrayMove(portfolioCompanies, oldIndex, newIndex).map(c => c.ticker);
+      setPortfolioOrder(newOrder);
+      saveOrder('newsfeed-portfolio-order', newOrder);
+    }
+  };
+
+  // Handle drag end for watchlist section
+  const handleWatchlistDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = watchlistCompanies.findIndex(c => c.ticker === active.id);
+      const newIndex = watchlistCompanies.findIndex(c => c.ticker === over.id);
+      const newOrder = arrayMove(watchlistCompanies, oldIndex, newIndex).map(c => c.ticker);
+      setWatchlistOrder(newOrder);
+      saveOrder('newsfeed-watchlist-order', newOrder);
+    }
+  };
 
   // Loading state
   if (authLoading || (isAuthenticated && (watchlistLoading || compositionLoading))) {
@@ -509,16 +639,28 @@ export function NewsFeedPanel() {
                 icon={<Briefcase className="w-5 h-5 text-green-600" />}
                 defaultOpen={true}
               >
-                {portfolioCompanies.map((company) => (
-                  <CompanySection
-                    key={company.ticker}
-                    ticker={company.ticker}
-                    companyName={company.companyName}
-                    videos={company.videos}
-                                        language={language}
-                    onPlayVideo={setSelectedVideo}
-                  />
-                ))}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handlePortfolioDragEnd}
+                >
+                  <SortableContext
+                    items={portfolioCompanies.map(c => c.ticker)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {portfolioCompanies.map((company) => (
+                      <SortableCompanySection
+                        key={company.ticker}
+                        id={company.ticker}
+                        ticker={company.ticker}
+                        companyName={company.companyName}
+                        videos={company.videos}
+                        language={language}
+                        onPlayVideo={setSelectedVideo}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               </CollapsibleSection>
             )}
 
@@ -529,16 +671,28 @@ export function NewsFeedPanel() {
                 icon={<Eye className="w-5 h-5 text-blue-600" />}
                 defaultOpen={true}
               >
-                {watchlistCompanies.map((company) => (
-                  <CompanySection
-                    key={company.ticker}
-                    ticker={company.ticker}
-                    companyName={company.companyName}
-                    videos={company.videos}
-                                        language={language}
-                    onPlayVideo={setSelectedVideo}
-                  />
-                ))}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleWatchlistDragEnd}
+                >
+                  <SortableContext
+                    items={watchlistCompanies.map(c => c.ticker)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {watchlistCompanies.map((company) => (
+                      <SortableCompanySection
+                        key={company.ticker}
+                        id={company.ticker}
+                        ticker={company.ticker}
+                        companyName={company.companyName}
+                        videos={company.videos}
+                        language={language}
+                        onPlayVideo={setSelectedVideo}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               </CollapsibleSection>
             )}
           </>
