@@ -360,9 +360,12 @@ def main():
             ticker = video.get('ticker')
             has_transcript = video.get('has_transcript', False)
             has_summary = video.get('has_summary', False)
-            title = video['title'][:40] + '...' if len(video['title']) > 40 else video['title']
+            title = video['title'][:50] + '...' if len(video['title']) > 50 else video['title']
 
-            log(f"\n[{i+1}/{len(videos)}] {title} ({ticker})")
+            log(f"\n{'='*60}")
+            log(f"VIDEO {i+1}/{len(videos)} - {ticker}")
+            log(f"{'='*60}")
+            log(f"{title}")
 
             # Update progress
             update_sync_run(run_id, videos_processed=i, current_video=f"{title} ({ticker})", current_step='downloading')

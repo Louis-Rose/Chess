@@ -52,14 +52,25 @@ def get_audio(video_id: str, output_dir: str = None) -> str | None:
             text=True
         )
 
-        # Stream output to terminal
+        # Stream output to terminal (filter verbose download progress)
         output_lines = []
+        last_download_line = None
         try:
             for line in process.stdout:
                 line = line.strip()
                 if line:
-                    print(f"     {line}")
                     output_lines.append(line)
+                    # Filter download progress lines - only show first and last
+                    if '[download]' in line and '% of' in line:
+                        last_download_line = line
+                        # Only print 0.0% or 100%
+                        if '0.0%' in line or '100%' in line or '100.0%' in line:
+                            print(f"     {line}")
+                    else:
+                        # Print completion line if we had progress
+                        if last_download_line and '100%' not in last_download_line:
+                            pass  # Skip, we'll see it in the next 100% line
+                        print(f"     {line}")
             process.wait(timeout=120)
         except subprocess.TimeoutExpired:
             process.kill()
