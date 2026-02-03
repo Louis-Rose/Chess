@@ -145,7 +145,7 @@ function VideoRow({
             <img
               src={video.thumbnail_url}
               alt={video.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
