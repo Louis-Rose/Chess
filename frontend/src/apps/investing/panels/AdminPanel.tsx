@@ -1714,11 +1714,19 @@ export function AdminPanel() {
                       <div className="space-y-1">
                         {(() => {
                           try {
-                            const videos = JSON.parse(run.videos_list) as { title: string; published_at?: string }[];
+                            const videos = JSON.parse(run.videos_list) as { title: string; published_at?: string; duration?: number }[];
                             return videos.map((v, idx) => {
                               const isDone = idx < run.videos_processed;
                               const isCurrent = idx === run.videos_processed && run.status === 'running';
                               const publishedDate = v.published_at ? new Date(v.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null;
+                              const formatDuration = (seconds: number) => {
+                                const h = Math.floor(seconds / 3600);
+                                const m = Math.floor((seconds % 3600) / 60);
+                                const s = seconds % 60;
+                                return h > 0
+                                  ? `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+                                  : `${m}:${s.toString().padStart(2, '0')}`;
+                              };
                               return (
                                 <div
                                   key={idx}
@@ -1738,6 +1746,9 @@ export function AdminPanel() {
                                     <div className="w-3 h-3 rounded-full border border-slate-300 dark:border-slate-500 flex-shrink-0" />
                                   )}
                                   <span className={isDone ? 'line-through' : ''}>{v.title}</span>
+                                  {v.duration && (
+                                    <span className="text-slate-400 dark:text-slate-500 flex-shrink-0">({formatDuration(v.duration)})</span>
+                                  )}
                                   {publishedDate && (
                                     <span className="text-slate-400 dark:text-slate-500 flex-shrink-0">({publishedDate})</span>
                                   )}
