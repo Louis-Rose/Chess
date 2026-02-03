@@ -455,18 +455,21 @@ export function NewsFeedPanel() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  // Fetch watchlist
+  // Fetch watchlist (staleTime: Infinity - invalidated manually when user modifies)
   const { data: watchlistData, isLoading: watchlistLoading } = useQuery({
     queryKey: ['watchlist'],
     queryFn: fetchWatchlist,
     enabled: isAuthenticated,
+    staleTime: Infinity,
   });
 
-  // Fetch portfolio composition
+  // Fetch portfolio composition (staleTime: Infinity - invalidated manually when user modifies)
+  // Using ['composition', 'news'] so it gets invalidated by queryClient.invalidateQueries(['composition'])
   const { data: compositionData, isLoading: compositionLoading } = useQuery({
-    queryKey: ['composition-for-news'],
+    queryKey: ['composition', 'news'],
     queryFn: fetchComposition,
     enabled: isAuthenticated,
+    staleTime: Infinity,
   });
 
   const watchlist = watchlistData?.symbols ?? [];
