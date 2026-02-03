@@ -239,18 +239,17 @@ function VideoRow({
                   </button>
                 ) : (
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">
-                        ✓ {language === 'fr' ? 'Transcription' : 'Transcript'}
-                      </p>
-                      <button
-                        onClick={() => setShowTranscript(false)}
-                        className="text-[10px] text-blue-500 hover:text-blue-600"
-                      >
-                        {language === 'fr' ? 'Masquer' : 'Hide'}
-                      </button>
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-h-32 overflow-y-auto">
+                    <button
+                      onClick={() => setShowTranscript(false)}
+                      className="text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1 mb-1"
+                    >
+                      <FileText className="w-3 h-3" />
+                      {language === 'fr' ? 'Masquer la transcription' : 'Hide transcript'}
+                    </button>
+                    <p
+                      className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-h-32 overflow-y-auto select-text cursor-text"
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
                       {transcript}
                     </p>
                   </div>
