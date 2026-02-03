@@ -177,6 +177,15 @@ def init_db():
                 """)
                 print("[Database] Created dividends_cache table")
 
+            # Migration: Add duration column to youtube_videos_cache if not exists
+            conn.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'youtube_videos_cache' AND column_name = 'duration'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("ALTER TABLE youtube_videos_cache ADD COLUMN duration INTEGER")
+                print("[Database] Added duration column to youtube_videos_cache")
+
             # Migration: Create video_summaries table if not exists
             conn.execute("""
                 SELECT table_name FROM information_schema.tables

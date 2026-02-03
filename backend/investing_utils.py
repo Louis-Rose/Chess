@@ -1291,11 +1291,54 @@ from youtube_config import YOUTUBE_CHANNELS, get_uploads_playlist_id, matches_co
 YOUTUBE_CACHE_TTL_HOURS = 6
 
 
+def parse_youtube_duration(duration_str):
+    """Parse ISO 8601 duration (PT1H2M3S) to seconds."""
+    import re
+    if not duration_str:
+        return None
+    match = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration_str)
+    if not match:
+        return None
+    hours = int(match.group(1) or 0)
+    minutes = int(match.group(2) or 0)
+    seconds = int(match.group(3) or 0)
+    return hours * 3600 + minutes * 60 + seconds
+
+
+def fetch_video_durations(video_ids, api_key):
+    """Fetch durations for multiple videos using YouTube Videos API."""
+    if not video_ids:
+        return {}
+
+    durations = {}
+    # Process in batches of 50 (API limit)
+    for i in range(0, len(video_ids), 50):
+        batch = video_ids[i:i+50]
+        url = "https://www.googleapis.com/youtube/v3/videos"
+        params = {
+            'part': 'contentDetails',
+            'id': ','.join(batch),
+            'key': api_key
+        }
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            for item in data.get('items', []):
+                vid = item['id']
+                duration_str = item.get('contentDetails', {}).get('duration')
+                durations[vid] = parse_youtube_duration(duration_str)
+        except Exception as e:
+            print(f"Error fetching video durations: {e}")
+
+    return durations
+
+
 def fetch_channel_videos(channel_id, api_key, max_results=150):
     """
     Fetch recent videos from a YouTube channel using playlistItems API.
     Supports pagination to get more than 50 results.
-    Returns list of video metadata.
+    Returns list of video metadata including duration.
     """
     uploads_playlist_id = get_uploads_playlist_id(channel_id)
     url = "https://www.googleapis.com/youtube/v3/playlistItems"
@@ -1336,6 +1379,12 @@ def fetch_channel_videos(channel_id, api_key, max_results=150):
         next_page_token = data.get('nextPageToken')
         if not next_page_token:
             break  # No more pages
+
+    # Fetch durations for all videos
+    video_ids = [v['video_id'] for v in videos]
+    durations = fetch_video_durations(video_ids, api_key)
+    for v in videos:
+        v['duration'] = durations.get(v['video_id'])
 
     return videos
 
@@ -1387,12 +1436,13 @@ def save_videos_to_cache(db_getter, videos):
         for video in videos:
             conn.execute('''
                 INSERT INTO youtube_videos_cache
-                    (video_id, channel_id, channel_name, title, description, thumbnail_url, published_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    (video_id, channel_id, channel_name, title, description, thumbnail_url, published_at, duration, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(video_id) DO UPDATE SET
                     title = excluded.title,
                     description = excluded.description,
                     thumbnail_url = excluded.thumbnail_url,
+                    duration = excluded.duration,
                     updated_at = CURRENT_TIMESTAMP
             ''', (
                 video['video_id'],
@@ -1401,7 +1451,8 @@ def save_videos_to_cache(db_getter, videos):
                 video['title'],
                 video.get('description', ''),
                 video['thumbnail_url'],
-                video['published_at']
+                video['published_at'],
+                video.get('duration')
             ))
 
 

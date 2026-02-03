@@ -198,6 +198,7 @@ CREATE TABLE IF NOT EXISTS youtube_videos_cache (
     title TEXT NOT NULL,
     thumbnail_url TEXT,
     published_at TEXT NOT NULL,
+    duration INTEGER,                      -- Duration in seconds
     view_count INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
