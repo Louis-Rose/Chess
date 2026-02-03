@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node ../scripts/sync-demo-card-order.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
