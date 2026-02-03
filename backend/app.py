@@ -4839,14 +4839,14 @@ def sync_start():
 
         if USE_POSTGRES:
             cursor = conn.execute('''
-                INSERT INTO video_sync_runs (tickers_count, status)
-                VALUES (%s, 'running')
+                INSERT INTO video_sync_runs (tickers_count, status, updated_at)
+                VALUES (%s, 'running', CURRENT_TIMESTAMP)
                 RETURNING id
             ''', (tickers_count,))
         else:
             cursor = conn.execute('''
-                INSERT INTO video_sync_runs (tickers_count, status)
-                VALUES (?, 'running')
+                INSERT INTO video_sync_runs (tickers_count, status, updated_at)
+                VALUES (?, 'running', CURRENT_TIMESTAMP)
             ''', (tickers_count,))
             cursor = conn.execute('SELECT last_insert_rowid() as id')
         run_id = cursor.fetchone()['id']
@@ -4874,6 +4874,12 @@ def sync_update(run_id):
                 else:
                     updates.append(f"{field} = ?")
                 values.append(data[field])
+
+        # Always update updated_at for heartbeat tracking
+        if USE_POSTGRES:
+            updates.append("updated_at = CURRENT_TIMESTAMP")
+        else:
+            updates.append("updated_at = CURRENT_TIMESTAMP")
 
         if updates:
             values.append(run_id)
@@ -4926,7 +4932,25 @@ def sync_end(run_id):
 def get_sync_status():
     """Get current and recent sync run status (admin only)."""
     with get_db() as conn:
-        # Get current/most recent run
+        # Mark stale runs (running but no heartbeat in 2+ minutes)
+        if USE_POSTGRES:
+            conn.execute('''
+                UPDATE video_sync_runs
+                SET status = 'stale', ended_at = CURRENT_TIMESTAMP,
+                    error_message = 'No heartbeat received (sync script likely crashed)'
+                WHERE status = 'running'
+                AND updated_at < CURRENT_TIMESTAMP - INTERVAL '2 minutes'
+            ''')
+        else:
+            conn.execute('''
+                UPDATE video_sync_runs
+                SET status = 'stale', ended_at = CURRENT_TIMESTAMP,
+                    error_message = 'No heartbeat received (sync script likely crashed)'
+                WHERE status = 'running'
+                AND updated_at < datetime('now', '-2 minutes')
+            ''')
+
+        # Get current/most recent runs
         cursor = conn.execute('''
             SELECT * FROM video_sync_runs
             ORDER BY started_at DESC

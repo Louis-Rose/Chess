@@ -22,6 +22,7 @@ import time
 import json
 import random
 import requests
+import threading
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -139,24 +140,61 @@ def update_sync_run(run_id, **kwargs):
 
 
 def end_sync_run(run_id, status, transcripts_fetched, summaries_generated, errors, error_message=None):
-    """Mark sync run as complete."""
+    """Mark sync run as complete. Retries up to 3 times if the request fails."""
     if not run_id:
         return
-    try:
-        requests.post(
-            f"{API_BASE_URL}/api/investing/sync/end/{run_id}",
-            headers={'X-Sync-Key': SYNC_API_KEY, 'Content-Type': 'application/json'},
-            json={
-                'status': status,
-                'transcripts_fetched': transcripts_fetched,
-                'summaries_generated': summaries_generated,
-                'errors': errors,
-                'error_message': error_message
-            },
-            timeout=10
-        )
-    except Exception:
-        pass
+    for attempt in range(3):
+        try:
+            requests.post(
+                f"{API_BASE_URL}/api/investing/sync/end/{run_id}",
+                headers={'X-Sync-Key': SYNC_API_KEY, 'Content-Type': 'application/json'},
+                json={
+                    'status': status,
+                    'transcripts_fetched': transcripts_fetched,
+                    'summaries_generated': summaries_generated,
+                    'errors': errors,
+                    'error_message': error_message
+                },
+                timeout=10
+            )
+            return  # Success
+        except Exception as e:
+            if attempt < 2:
+                log(f"Failed to update sync status (attempt {attempt + 1}/3), retrying in 5s...")
+                time.sleep(5)
+            else:
+                log(f"Failed to update sync status after 3 attempts: {e}")
+
+
+class Heartbeat:
+    """Background thread that sends heartbeats to the server every 30 seconds."""
+
+    def __init__(self, run_id):
+        self.run_id = run_id
+        self._stop_event = threading.Event()
+        self._thread = None
+
+    def start(self):
+        """Start the heartbeat thread."""
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        """Stop the heartbeat thread."""
+        self._stop_event.set()
+        if self._thread:
+            self._thread.join(timeout=2)
+
+    def _run(self):
+        """Send heartbeats every 30 seconds until stopped."""
+        while not self._stop_event.is_set():
+            # Wait 30 seconds, but check for stop every second
+            for _ in range(30):
+                if self._stop_event.is_set():
+                    return
+                time.sleep(1)
+            # Send heartbeat
+            update_sync_run(self.run_id)
 
 
 def fetch_transcript_local(video_id):
@@ -201,6 +239,7 @@ def main():
     log("=" * 60)
 
     run_id = None
+    heartbeat = None
     transcript_fetched = 0
     summary_generated = 0
     error_count = 0
@@ -225,6 +264,9 @@ def main():
 
         # Start tracking sync run
         run_id = start_sync_run(len(tickers))
+        heartbeat = Heartbeat(run_id)
+        heartbeat.start()
+        update_sync_run(run_id, current_step='refreshing')
 
         # Step 2: Refresh video selections for each ticker (parallel)
         log(f"\n[Step 2] Refreshing video selections for {len(tickers)} tickers (parallel)...")
@@ -247,6 +289,7 @@ def main():
 
         # Step 3: Get videos pending transcript sync
         log("\n[Step 3] Fetching videos pending transcript sync...")
+        update_sync_run(run_id, current_step='fetching')
         try:
             videos = get_videos_pending_sync()
             log(f"Found {len(videos)} videos pending sync")
@@ -260,7 +303,6 @@ def main():
             end_sync_run(run_id, 'completed', 0, 0, 0)
             return
 
-        # Update run with video count and list
         videos_list = [
             {'title': v['title'], 'status': 'pending'}
             for v in videos
@@ -359,6 +401,10 @@ def main():
         log(f"FATAL ERROR: {e}")
         end_sync_run(run_id, 'failed', transcript_fetched, summary_generated, error_count, str(e))
         raise
+
+    finally:
+        if heartbeat:
+            heartbeat.stop()
 
 
 if __name__ == '__main__':

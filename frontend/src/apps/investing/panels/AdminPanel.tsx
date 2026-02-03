@@ -98,7 +98,7 @@ interface SyncRun {
   id: number;
   started_at: string;
   ended_at: string | null;
-  status: 'running' | 'completed' | 'failed' | 'interrupted';
+  status: 'running' | 'completed' | 'failed' | 'interrupted' | 'stale';
   tickers_count: number;
   videos_total: number;
   videos_processed: number;
@@ -106,9 +106,10 @@ interface SyncRun {
   summaries_generated: number;
   errors: number;
   current_video: string | null;
-  current_step: 'downloading' | 'transcribing' | 'summarizing' | 'uploading' | null;
+  current_step: 'refreshing' | 'fetching' | 'downloading' | 'transcribing' | 'summarizing' | 'uploading' | null;
   videos_list: string | null;  // JSON array of {title, status}
   error_message: string | null;
+  updated_at: string | null;
 }
 
 const fetchSyncStatus = async (): Promise<{ runs: SyncRun[] }> => {
@@ -1625,6 +1626,8 @@ export function AdminPanel() {
                       ? 'border-green-300 bg-green-50 dark:border-green-600 dark:bg-green-900/30'
                       : run.status === 'interrupted'
                       ? 'border-yellow-300 bg-yellow-50 dark:border-yellow-600 dark:bg-yellow-900/30'
+                      : run.status === 'stale'
+                      ? 'border-orange-300 bg-orange-50 dark:border-orange-600 dark:bg-orange-900/30'
                       : 'border-red-300 bg-red-50 dark:border-red-600 dark:bg-red-900/30'
                   }`}
                 >
@@ -1635,15 +1638,32 @@ export function AdminPanel() {
                       <CheckCircle className="w-4 h-4 text-green-500" />
                     ) : run.status === 'interrupted' ? (
                       <AlertCircle className="w-4 h-4 text-yellow-500" />
+                    ) : run.status === 'stale' ? (
+                      <AlertCircle className="w-4 h-4 text-orange-500" />
                     ) : (
                       <XCircle className="w-4 h-4 text-red-500" />
                     )}
                     <span className="font-medium text-slate-700 dark:text-slate-200">
-                      {run.status === 'running' ? 'Running' : run.status === 'completed' ? 'Completed' : run.status === 'interrupted' ? 'Interrupted' : 'Failed'}
+                      {run.status === 'running' ? 'Running' : run.status === 'completed' ? 'Completed' : run.status === 'interrupted' ? 'Interrupted' : run.status === 'stale' ? 'Stale' : 'Failed'}
                     </span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto">
-                      {new Date(run.started_at).toLocaleString()}
-                    </span>
+                    {run.status === 'running' && run.current_step && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200">
+                        {run.current_step === 'refreshing' && 'Step 2: Refreshing videos'}
+                        {run.current_step === 'fetching' && 'Step 3: Fetching pending'}
+                        {run.current_step === 'downloading' && 'Step 4: Downloading'}
+                        {run.current_step === 'transcribing' && 'Step 4: Transcribing'}
+                        {run.current_step === 'summarizing' && 'Step 4: Summarizing'}
+                        {run.current_step === 'uploading' && 'Step 4: Uploading'}
+                      </span>
+                    )}
+                    <div className="text-xs text-slate-500 dark:text-slate-400 ml-auto text-right">
+                      <div>{new Date(run.started_at).toLocaleString()}</div>
+                      {run.status === 'running' && run.updated_at && (
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500">
+                          Last ping: {new Date(run.updated_at).toLocaleTimeString()}
+                        </div>
+                      )}
+                    </div>
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
