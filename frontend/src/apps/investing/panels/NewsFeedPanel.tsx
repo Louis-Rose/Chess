@@ -135,11 +135,11 @@ function VideoRow({
 
   return (
     <div className="flex gap-3 bg-white dark:bg-slate-600 rounded-lg overflow-hidden shadow-sm border border-slate-200 dark:border-slate-500">
-      {/* Left side: Thumbnail + Title (narrower) */}
-      <div className="flex-shrink-0 w-44">
+      {/* Left side: Thumbnail + Title */}
+      <div className="flex-shrink-0 w-64">
         <button
           onClick={onPlay}
-          className="relative w-full h-24 bg-slate-200 dark:bg-slate-700 group"
+          className="relative w-full h-36 bg-slate-200 dark:bg-slate-700 group"
         >
           {video.thumbnail_url ? (
             <img
@@ -153,23 +153,23 @@ function VideoRow({
             </div>
           )}
           <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
-            <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <svg className="w-3 h-3 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </div>
           </div>
         </button>
-        <div className="p-2">
+        <div className="p-2.5">
           <button onClick={onPlay} className="text-left w-full">
-            <h4 className="font-medium text-xs text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+            <h4 className="font-medium text-sm text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2">
               {video.title}
             </h4>
           </button>
-          <div className="flex items-center gap-1 mt-1 text-xs text-slate-500 dark:text-slate-400">
-            <span className="truncate text-[10px]">{video.channel_name}</span>
-            <span>·</span>
-            <span className="text-[10px]">{formatDate(video.published_at, language)}</span>
+          <div className="flex items-center gap-1.5 mt-2 text-xs">
+            <span className="text-slate-600 dark:text-slate-300 font-medium">{video.channel_name}</span>
+            <span className="text-slate-400">·</span>
+            <span className="text-slate-500 dark:text-slate-400">{formatDate(video.published_at, language)}</span>
           </div>
         </div>
       </div>
