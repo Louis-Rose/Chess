@@ -685,7 +685,7 @@ export function InvestingWelcomePanel() {
                   return (
                     <div
                       key={stock.ticker}
-                      className="flex items-center justify-between px-2 py-1 -mx-2 rounded cursor-pointer hover:bg-slate-700/50 transition-colors"
+                      className="flex items-center justify-between px-2 -mx-2 rounded cursor-pointer hover:bg-slate-700/50 transition-colors"
                       onClick={(e) => { e.stopPropagation(); navigate(`/investing/financials?ticker=${stock.ticker}`); }}
                     >
                       <div className="flex items-center gap-1.5">
@@ -969,7 +969,7 @@ export function InvestingWelcomePanel() {
                   return (
                     <div
                       key={stock.ticker}
-                      className="flex items-center justify-between px-2 py-1 -mx-2 rounded cursor-pointer hover:bg-slate-700/50 transition-colors"
+                      className="flex items-center justify-between px-2 -mx-2 rounded cursor-pointer hover:bg-slate-700/50 transition-colors"
                       onClick={(e) => { e.stopPropagation(); navigate(`/investing/financials?ticker=${stock.ticker}`); }}
                     >
                       <div className="flex items-center gap-1.5">
