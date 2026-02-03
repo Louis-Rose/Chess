@@ -632,7 +632,7 @@ export function InvestingWelcomePanel() {
           <div
             key={cardId}
             {...cardProps}
-            className={`${cardBaseClass} ${dragOverClass} overflow-hidden transition-colors ${portfolioHeaderHovered ? 'border-orange-500' : ''}`}
+            className={`${cardBaseClass} ${dragOverClass} overflow-hidden transition-colors ${portfolioHeaderHovered ? '!border-orange-500' : ''}`}
           >
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <div
@@ -809,7 +809,7 @@ export function InvestingWelcomePanel() {
                               <span className="text-slate-400 font-normal">
                                 {' '}({earning.remaining_days === 0
                                   ? (language === 'fr' ? "aujourd'hui" : 'today')
-                                  : `${earning.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
+                                  : `${earning.remaining_days} ${language === 'fr' ? (earning.remaining_days === 1 ? 'jour' : 'jours') : (earning.remaining_days === 1 ? 'day' : 'days')}`})
                               </span>
                             )}
                           </>
@@ -894,7 +894,7 @@ export function InvestingWelcomePanel() {
                             <>
                               ({dividend.remaining_days === 0
                                 ? (language === 'fr' ? "aujourd'hui" : 'today')
-                                : `${dividend.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
+                                : `${dividend.remaining_days} ${language === 'fr' ? (dividend.remaining_days === 1 ? 'jour' : 'jours') : (dividend.remaining_days === 1 ? 'day' : 'days')}`})
                             </>
                           )
                         ) : (
@@ -918,7 +918,7 @@ export function InvestingWelcomePanel() {
           <div
             key={cardId}
             {...cardProps}
-            className={`${cardBaseClass} ${dragOverClass} overflow-hidden transition-colors ${watchlistHeaderHovered ? 'border-blue-500' : ''}`}
+            className={`${cardBaseClass} ${dragOverClass} overflow-hidden transition-colors ${watchlistHeaderHovered ? '!border-blue-500' : ''}`}
           >
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <div
@@ -1262,7 +1262,7 @@ export function InvestingWelcomePanel() {
                                       <span className="text-slate-400 font-normal">
                                         {' '}({earning.remaining_days === 0
                                           ? (language === 'fr' ? "aujourd'hui" : 'today')
-                                          : `${earning.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
+                                          : `${earning.remaining_days} ${language === 'fr' ? (earning.remaining_days === 1 ? 'jour' : 'jours') : (earning.remaining_days === 1 ? 'day' : 'days')}`})
                                       </span>
                                     )}
                                   </>
@@ -1325,7 +1325,7 @@ export function InvestingWelcomePanel() {
                                     <>
                                       ({dividend.remaining_days === 0
                                         ? (language === 'fr' ? "aujourd'hui" : 'today')
-                                        : `${dividend.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
+                                        : `${dividend.remaining_days} ${language === 'fr' ? (dividend.remaining_days === 1 ? 'jour' : 'jours') : (dividend.remaining_days === 1 ? 'day' : 'days')}`})
                                     </>
                                   )
                                 ) : (
