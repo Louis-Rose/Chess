@@ -62,9 +62,9 @@ const fetchNewsFeed = async (ticker: string, companyName: string): Promise<NewsF
   return response.data;
 };
 
-const fetchVideoSummary = async (videoId: string, ticker: string): Promise<{ summary?: string; transcript?: string; has_transcript?: boolean; pending?: boolean }> => {
+const fetchVideoSummary = async (videoId: string, ticker: string, language: string): Promise<{ summary?: string; transcript?: string; has_transcript?: boolean; pending?: boolean }> => {
   const response = await axios.get(`/api/investing/video-summary/${videoId}`, {
-    params: { ticker }
+    params: { ticker, language }
   });
   return response.data;
 };
@@ -108,12 +108,12 @@ function VideoRow({
   const [showTranscript, setShowTranscript] = useState(false);
 
   const loadData = async () => {
-    if (transcript || loading) return;
+    if (loading) return;
     setLoading(true);
     setPending(false);
     setNoTranscript(false);
     try {
-      const data = await fetchVideoSummary(video.video_id, video.ticker);
+      const data = await fetchVideoSummary(video.video_id, video.ticker, language);
       if (data.pending) {
         setPending(true);
       } else if (data.has_transcript === false) {
@@ -130,8 +130,11 @@ function VideoRow({
   };
 
   useEffect(() => {
+    // Reset state when language changes to fetch new summary
+    setTranscript(null);
+    setSummary(null);
     loadData();
-  }, [video.video_id, video.ticker]);
+  }, [video.video_id, video.ticker, language]);
 
   return (
     <div className="flex gap-3 bg-white dark:bg-slate-600 rounded-lg overflow-hidden shadow-sm border border-slate-200 dark:border-slate-500">

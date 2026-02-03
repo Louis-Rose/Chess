@@ -5043,11 +5043,15 @@ def get_video_summary(video_id):
 
     Query params:
     - ticker: Required for getting company-specific summary
+    - language: 'en' or 'fr' (default 'en')
 
     Transcripts/summaries are synced by a local cron job (sync_video_summaries.py)
     since YouTube blocks transcript requests from cloud IPs.
     """
     ticker = request.args.get('ticker')
+    language = request.args.get('language', 'en')
+    if language not in ('en', 'fr'):
+        language = 'en'
 
     with get_db() as conn:
         # Get transcript (one per video)
@@ -5061,7 +5065,7 @@ def get_video_summary(video_id):
         summary_row = None
         if ticker:
             cursor = conn.execute(
-                'SELECT summary FROM video_summaries WHERE video_id = ? AND ticker = ?',
+                'SELECT summary_en, summary_fr FROM video_summaries WHERE video_id = ? AND ticker = ?',
                 (video_id, ticker)
             )
             summary_row = cursor.fetchone()
@@ -5073,7 +5077,9 @@ def get_video_summary(video_id):
             result['has_transcript'] = bool(transcript_row['has_transcript'])
 
         if summary_row:
-            result['summary'] = summary_row['summary']
+            # Return summary in requested language, fall back to English
+            summary_col = f'summary_{language}'
+            result['summary'] = summary_row.get(summary_col) or summary_row.get('summary_en')
 
         if result:
             return jsonify(result)
@@ -5105,17 +5111,19 @@ def get_videos_pending_sync():
     with get_db() as conn:
         if ticker_filter:
             # Filter by ticker - return (video_id, ticker) pairs needing sync
+            # A video needs sync if: no transcript OR (has transcript but missing EN or FR summary)
             cursor = conn.execute('''
                 SELECT v.video_id, sel.ticker, v.title, v.channel_name, v.published_at, v.duration,
                        t.transcript IS NOT NULL as has_transcript,
-                       s.summary IS NOT NULL as has_summary
+                       (s.summary_en IS NOT NULL AND s.summary_fr IS NOT NULL) as has_summary
                 FROM company_video_selections sel
                 JOIN youtube_videos_cache v ON sel.video_id = v.video_id
                 LEFT JOIN video_transcripts t ON v.video_id = t.video_id
                 LEFT JOIN video_summaries s ON v.video_id = s.video_id AND sel.ticker = s.ticker
                 WHERE sel.ticker = ?
                   AND ((t.video_id IS NULL)
-                       OR (t.has_transcript = 1 AND t.transcript IS NOT NULL AND s.video_id IS NULL))
+                       OR (t.has_transcript = 1 AND t.transcript IS NOT NULL
+                           AND (s.video_id IS NULL OR s.summary_en IS NULL OR s.summary_fr IS NULL)))
                 ORDER BY v.published_at DESC
             ''', (ticker_filter,))
         else:
@@ -5123,13 +5131,14 @@ def get_videos_pending_sync():
             cursor = conn.execute('''
                 SELECT v.video_id, sel.ticker, v.title, v.channel_name, v.published_at, v.duration,
                        t.transcript IS NOT NULL as has_transcript,
-                       s.summary IS NOT NULL as has_summary
+                       (s.summary_en IS NOT NULL AND s.summary_fr IS NOT NULL) as has_summary
                 FROM company_video_selections sel
                 JOIN youtube_videos_cache v ON sel.video_id = v.video_id
                 LEFT JOIN video_transcripts t ON v.video_id = t.video_id
                 LEFT JOIN video_summaries s ON v.video_id = s.video_id AND sel.ticker = s.ticker
                 WHERE (t.video_id IS NULL)
-                   OR (t.has_transcript = 1 AND t.transcript IS NOT NULL AND s.video_id IS NULL)
+                   OR (t.has_transcript = 1 AND t.transcript IS NOT NULL
+                       AND (s.video_id IS NULL OR s.summary_en IS NULL OR s.summary_fr IS NULL))
                 ORDER BY v.published_at DESC
             ''')
         videos = cursor.fetchall()
@@ -5393,12 +5402,13 @@ def upload_video_data():
     ticker = data.get('ticker')  # Required for summaries
     transcript = data.get('transcript')  # Can be None if no transcript available
     has_transcript = data.get('has_transcript', True)  # False if video has no transcript
-    summary = data.get('summary')
+    summary_en = data.get('summary_en')
+    summary_fr = data.get('summary_fr')
 
     if not video_id:
         return jsonify({'error': 'video_id required'}), 400
 
-    if summary and not ticker:
+    if (summary_en or summary_fr) and not ticker:
         return jsonify({'error': 'ticker required when uploading summary'}), 400
 
     with get_db() as conn:
@@ -5417,20 +5427,38 @@ def upload_video_data():
                     (video_id, transcript, 1 if has_transcript else 0)
                 )
 
-        # Save summary if provided - one per (video_id, ticker) pair
-        if summary:
+        # Save summaries if provided - one per (video_id, ticker) pair
+        if summary_en or summary_fr:
             if USE_POSTGRES:
                 conn.execute(
-                    '''INSERT INTO video_summaries (video_id, ticker, summary, created_at)
-                       VALUES (?, ?, ?, NOW())
-                       ON CONFLICT (video_id, ticker) DO UPDATE SET summary = EXCLUDED.summary''',
-                    (video_id, ticker, summary)
+                    '''INSERT INTO video_summaries (video_id, ticker, summary_en, summary_fr, created_at)
+                       VALUES (?, ?, ?, ?, NOW())
+                       ON CONFLICT (video_id, ticker) DO UPDATE SET
+                           summary_en = COALESCE(EXCLUDED.summary_en, video_summaries.summary_en),
+                           summary_fr = COALESCE(EXCLUDED.summary_fr, video_summaries.summary_fr)''',
+                    (video_id, ticker, summary_en, summary_fr)
                 )
             else:
-                conn.execute(
-                    'INSERT OR REPLACE INTO video_summaries (video_id, ticker, summary) VALUES (?, ?, ?)',
-                    (video_id, ticker, summary)
+                # For SQLite, first check if row exists
+                cursor = conn.execute(
+                    'SELECT summary_en, summary_fr FROM video_summaries WHERE video_id = ? AND ticker = ?',
+                    (video_id, ticker)
                 )
+                existing = cursor.fetchone()
+                if existing:
+                    # Update, keeping existing values if new ones are None
+                    conn.execute(
+                        '''UPDATE video_summaries SET
+                           summary_en = COALESCE(?, summary_en),
+                           summary_fr = COALESCE(?, summary_fr)
+                           WHERE video_id = ? AND ticker = ?''',
+                        (summary_en, summary_fr, video_id, ticker)
+                    )
+                else:
+                    conn.execute(
+                        'INSERT INTO video_summaries (video_id, ticker, summary_en, summary_fr) VALUES (?, ?, ?, ?)',
+                        (video_id, ticker, summary_en, summary_fr)
+                    )
 
     return jsonify({'success': True})
 

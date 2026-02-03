@@ -97,10 +97,10 @@ def get_videos_pending_sync(ticker=None):
     return response.json().get('videos', [])
 
 
-def upload_video_data(video_id, transcript=None, has_transcript=True, summary=None, ticker=None):
+def upload_video_data(video_id, transcript=None, has_transcript=True, summary_en=None, summary_fr=None, ticker=None):
     """Upload transcript and/or summary to the API.
 
-    Summaries are stored per (video_id, ticker) pair.
+    Summaries are stored per (video_id, ticker) pair in both EN and FR.
     Transcripts are stored once per video_id.
     """
     response = requests.post(
@@ -111,7 +111,8 @@ def upload_video_data(video_id, transcript=None, has_transcript=True, summary=No
             'ticker': ticker,
             'transcript': transcript,
             'has_transcript': has_transcript,
-            'summary': summary
+            'summary_en': summary_en,
+            'summary_fr': summary_fr
         },
         timeout=30
     )
@@ -230,11 +231,16 @@ def get_company_name(ticker):
     return keywords[0] if keywords else ticker
 
 
-def generate_summary(transcript_text, ticker):
+def generate_summary(transcript_text, ticker, language='en'):
     """Generate company-specific summary using Gemini.
 
     The summary focuses on the specific company, filtering out
     information about other companies mentioned in the video.
+
+    Args:
+        transcript_text: The video transcript
+        ticker: Stock ticker symbol
+        language: 'en' for English or 'fr' for French
     """
     client = genai.Client(api_key=GEMINI_API_KEY)
     company_name = get_company_name(ticker)
@@ -244,14 +250,21 @@ def generate_summary(transcript_text, ticker):
     if len(transcript_text) > max_chars:
         transcript_text = transcript_text[:max_chars] + '...'
 
+    if language == 'fr':
+        no_info_response = f"Aucune information sur {company_name} dans cette vidéo."
+        lang_instruction = "Write in French."
+    else:
+        no_info_response = f"No information about {company_name} in this video."
+        lang_instruction = "Write in English."
+
     prompt = f"""Summarize this YouTube video transcript in 1-3 bullet points, focusing ONLY on information about {company_name} ({ticker}).
 
 IMPORTANT RULES:
 - This video may discuss multiple companies. Only include information relevant to {company_name}.
-- If the video doesn't mention {company_name} at all, respond with exactly: "No information about {company_name} in this video."
+- If the video doesn't mention {company_name} at all, respond with exactly: "{no_info_response}"
 - Each bullet point MUST start with a timestamp in [MM:SS] format indicating when this topic is discussed.
 - Maximum 3 bullet points. Be concise.
-- Be factual and neutral. Write in the same language as the transcript.
+- Be factual and neutral. {lang_instruction}
 
 FORMAT EXAMPLE:
 [02:15] Key point about the company here
@@ -433,16 +446,23 @@ def main():
                             log(f"  -> Failed to fetch transcript: {e}")
 
                     if transcript:
-                        log(f"  -> Generating {ticker}-specific summary with Gemini...")
+                        log(f"  -> Generating {ticker}-specific summaries (EN + FR) with Gemini...")
                         update_sync_run(run_id, current_step='summarizing')
-                        summary = generate_summary(transcript, ticker)
-                        log(f"  -> Summary generated ({len(summary)} chars)")
+
+                        # Generate English summary
+                        summary_en = generate_summary(transcript, ticker, language='en')
+                        log(f"  -> EN summary generated ({len(summary_en)} chars)")
+
+                        # Generate French summary
+                        summary_fr = generate_summary(transcript, ticker, language='fr')
+                        log(f"  -> FR summary generated ({len(summary_fr)} chars)")
+
                         summary_generated += 1
 
-                        # Upload summary with ticker
+                        # Upload both summaries with ticker
                         update_sync_run(run_id, current_step='uploading')
-                        upload_video_data(video_id, summary=summary, ticker=ticker)
-                        log(f"  -> Uploaded {ticker} summary to API")
+                        upload_video_data(video_id, summary_en=summary_en, summary_fr=summary_fr, ticker=ticker)
+                        log(f"  -> Uploaded {ticker} summaries (EN + FR) to API")
 
                 # Mark this video as processed (i+1 because i is 0-indexed)
                 update_sync_run(run_id, videos_processed=i+1)

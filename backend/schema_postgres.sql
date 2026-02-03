@@ -223,7 +223,8 @@ CREATE TABLE IF NOT EXISTS video_transcripts (
 CREATE TABLE IF NOT EXISTS video_summaries (
     video_id TEXT NOT NULL,
     ticker TEXT NOT NULL,
-    summary TEXT NOT NULL,
+    summary_en TEXT,
+    summary_fr TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (video_id, ticker)
 );
