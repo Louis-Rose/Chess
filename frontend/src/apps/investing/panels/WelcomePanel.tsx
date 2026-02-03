@@ -168,6 +168,7 @@ const fetchCardOrder = async (): Promise<GridSlot[] | null> => {
 interface DemoDashboardData {
   card_order: GridSlot[] | null;
   composition: CompositionData | null;
+  performance_1: number | null;
   performance_7: number | null;
   performance_30: number | null;
   portfolio_movers: TopMover[];
@@ -351,6 +352,13 @@ export function InvestingWelcomePanel() {
     staleTime: 1000 * 60 * 30,
   });
 
+  const { data: perf1Data, isLoading: perf1Loading } = useQuery({
+    queryKey: ['performance-period', 1, selectedAccountIds],
+    queryFn: () => fetchPerformance(1, selectedAccountIds),
+    enabled: isAuthenticated && selectedAccountIds.length > 0 && (compositionData?.holdings?.length ?? 0) > 0,
+    staleTime: 1000 * 60 * 15,
+  });
+
   const { data: perf7Data, isLoading: perf7Loading } = useQuery({
     queryKey: ['performance-period', 7, selectedAccountIds],
     queryFn: () => fetchPerformance(7, selectedAccountIds),
@@ -463,9 +471,10 @@ export function InvestingWelcomePanel() {
   const portfolioValue = valueCurrency === 'EUR'
     ? compositionData?.total_value_eur
     : compositionData?.total_value_usd;
+  const perf1Value = perf1Data?.performance;
   const perf7Value = perf7Data?.performance;
   const perf30Value = perf30Data?.performance;
-  const perfLoading = perf7Loading || perf30Loading;
+  const perfLoading = perf1Loading || perf7Loading || perf30Loading;
   const topMovers = topMoversData?.movers ?? [];
   const watchlistMovers = watchlistMoversData?.movers ?? [];
   const upcomingEarnings = getUpcomingEarnings();
@@ -588,13 +597,19 @@ export function InvestingWelcomePanel() {
                   <div className="h-7 flex items-center justify-center">
                     {perfLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                    ) : (perf7Value !== undefined && perf7Value !== null) || (perf30Value !== undefined && perf30Value !== null) ? (
+                    ) : (perf1Value !== undefined && perf1Value !== null) || (perf7Value !== undefined && perf7Value !== null) || (perf30Value !== undefined && perf30Value !== null) ? (
                       <div className="flex items-center gap-3 text-lg font-semibold">
+                        {perf1Value !== undefined && perf1Value !== null && (
+                          <span className={perf1Value >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            1D: {perf1Value >= 0 ? '+' : ''}{perf1Value.toFixed(1)}%
+                          </span>
+                        )}
+                        {perf1Value !== undefined && perf1Value !== null && perf7Value !== undefined && perf7Value !== null && (
+                          <span className="text-slate-500">|</span>
+                        )}
                         {perf7Value !== undefined && perf7Value !== null && (
                           <span className={perf7Value >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            <span className="hidden min-[1920px]:inline">{language === 'fr' ? 'Semaine' : 'Last week'}:</span>
-                            <span className="min-[1920px]:hidden">{language === 'fr' ? 'Sem.' : '1W'}:</span>
-                            {' '}{perf7Value >= 0 ? '+' : ''}{perf7Value.toFixed(1)}%
+                            1W: {perf7Value >= 0 ? '+' : ''}{perf7Value.toFixed(1)}%
                           </span>
                         )}
                         {perf7Value !== undefined && perf7Value !== null && perf30Value !== undefined && perf30Value !== null && (
@@ -602,9 +617,7 @@ export function InvestingWelcomePanel() {
                         )}
                         {perf30Value !== undefined && perf30Value !== null && (
                           <span className={perf30Value >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            <span className="hidden min-[1920px]:inline">{language === 'fr' ? 'Mois' : 'Last month'}:</span>
-                            <span className="min-[1920px]:hidden">{language === 'fr' ? 'Mois' : '1M'}:</span>
-                            {' '}{perf30Value >= 0 ? '+' : ''}{perf30Value.toFixed(1)}%
+                            1M: {perf30Value >= 0 ? '+' : ''}{perf30Value.toFixed(1)}%
                           </span>
                         )}
                       </div>
@@ -1103,8 +1116,9 @@ export function InvestingWelcomePanel() {
               ];
 
               // Use real data if loaded, otherwise show placeholders
-              const demoPerf7 = demoDashboard?.performance_7 ?? 2.4;
-              const demoPerf30 = demoDashboard?.performance_30 ?? 5.8;
+              const demoPerf1 = demoDashboard?.performance_1 ?? -0.3;
+              const demoPerf7 = demoDashboard?.performance_7 ?? -1.6;
+              const demoPerf30 = demoDashboard?.performance_30 ?? 1.7;
               const demoPortfolioMovers = demoDashboard?.portfolio_movers ?? placeholderMovers;
               const demoWatchlistMovers = demoDashboard?.watchlist_movers ?? placeholderMovers;
               const demoEarnings = demoDashboard?.earnings ?? placeholderEarnings;
@@ -1127,17 +1141,23 @@ export function InvestingWelcomePanel() {
                         <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
                           {formatCurrency(73458, 'EUR')}
                         </p>
-                        {(demoPerf7 != null || demoPerf30 != null) && (
+                        {(demoPerf1 != null || demoPerf7 != null || demoPerf30 != null) && (
                           <div className="flex items-center gap-3 text-lg font-semibold">
+                            {demoPerf1 != null && (
+                              <span className={demoPerf1 >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                1D: {demoPerf1 >= 0 ? '+' : ''}{demoPerf1.toFixed(1)}%
+                              </span>
+                            )}
+                            {demoPerf1 != null && demoPerf7 != null && <span className="text-slate-500">|</span>}
                             {demoPerf7 != null && (
                               <span className={demoPerf7 >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                {language === 'fr' ? 'Sem.' : '1W'}: {demoPerf7 >= 0 ? '+' : ''}{demoPerf7.toFixed(1)}%
+                                1W: {demoPerf7 >= 0 ? '+' : ''}{demoPerf7.toFixed(1)}%
                               </span>
                             )}
                             {demoPerf7 != null && demoPerf30 != null && <span className="text-slate-500">|</span>}
                             {demoPerf30 != null && (
                               <span className={demoPerf30 >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                {language === 'fr' ? 'Mois' : '1M'}: {demoPerf30 >= 0 ? '+' : ''}{demoPerf30.toFixed(1)}%
+                                1M: {demoPerf30 >= 0 ? '+' : ''}{demoPerf30.toFixed(1)}%
                               </span>
                             )}
                           </div>

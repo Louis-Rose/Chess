@@ -640,7 +640,8 @@ def get_demo_dashboard():
         except Exception:
             pass
 
-    # Get performance data (7 days and 30 days)
+    # Get performance data (1, 7, and 30 days)
+    perf_1 = None
     perf_7 = None
     perf_30 = None
     if holdings:
@@ -648,7 +649,7 @@ def get_demo_dashboard():
         all_tickers = [h['stock_ticker'] for h in holdings]
         prices = fetch_current_stock_prices_batch(all_tickers)
 
-        for days in [7, 30]:
+        for days in [1, 7, 30]:
             past_date = (today - timedelta(days=days)).strftime('%Y-%m-%d')
             current_value = 0
             past_value = 0
@@ -671,7 +672,9 @@ def get_demo_dashboard():
 
             if past_value > 0:
                 perf_pct = ((current_value - past_value) / past_value) * 100
-                if days == 7:
+                if days == 1:
+                    perf_1 = round(perf_pct, 2)
+                elif days == 7:
                     perf_7 = round(perf_pct, 2)
                 else:
                     perf_30 = round(perf_pct, 2)
@@ -825,6 +828,7 @@ def get_demo_dashboard():
     return jsonify({
         'card_order': card_order,
         'composition': composition,
+        'performance_1': perf_1,
         'performance_7': perf_7,
         'performance_30': perf_30,
         'portfolio_movers': portfolio_movers,
@@ -3239,11 +3243,11 @@ def get_portfolio_composition():
 @app.route('/api/investing/portfolio/performance-period', methods=['GET'])
 @login_required
 def get_portfolio_performance_period():
-    """Get portfolio performance over a period (lightweight). Supports days=7 or days=30."""
+    """Get portfolio performance over a period (lightweight). Supports days=1, 7, or 30."""
     from investing_utils import fetch_stock_price, get_fx_rate_to_eur, get_stock_currency, fetch_current_stock_prices_batch
 
     days = request.args.get('days', 30, type=int)
-    if days not in [7, 30]:
+    if days not in [1, 7, 30]:
         days = 30
 
     account_ids_str = request.args.get('account_ids')
