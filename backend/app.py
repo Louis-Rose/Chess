@@ -3309,7 +3309,7 @@ def get_portfolio_performance_period():
 @login_required
 def get_portfolio_top_movers():
     """Get top movers in portfolio based on price change over period."""
-    from investing_utils import fetch_current_stock_prices_batch, fetch_historical_prices_batch
+    from investing_utils import fetch_current_stock_prices_batch, fetch_historical_prices_batch, fetch_todays_open_prices_batch
 
     days = request.args.get('days', 30, type=int)
     if days not in [1, 7, 30]:
@@ -3327,36 +3327,34 @@ def get_portfolio_top_movers():
     if not holdings:
         return jsonify({'movers': [], 'days': days})
 
-    today = datetime.now()
-    past_date = (today - timedelta(days=days)).strftime('%Y-%m-%d')
-    yesterday = (today - timedelta(days=1)).strftime('%Y-%m-%d')
-
     all_tickers = [h['stock_ticker'] for h in holdings]
 
-    # Batch fetch current, period, and 1-day historical prices
+    # Batch fetch current prices
     current_prices = fetch_current_stock_prices_batch(all_tickers)
-    past_prices = fetch_historical_prices_batch(all_tickers, past_date)
-    yesterday_prices = fetch_historical_prices_batch(all_tickers, yesterday)
+
+    # For 1D: compare to today's market open price
+    # For 7D/30D: compare to historical closing price
+    if days == 1:
+        past_prices = fetch_todays_open_prices_batch(all_tickers)
+    else:
+        today = datetime.now()
+        past_date = (today - timedelta(days=days)).strftime('%Y-%m-%d')
+        past_prices = fetch_historical_prices_batch(all_tickers, past_date)
 
     movers = []
     for h in holdings:
         ticker = h['stock_ticker']
         current_price = current_prices.get(ticker, 0) or 0
         past_price = past_prices.get(ticker, 0) or 0
-        yesterday_price = yesterday_prices.get(ticker, 0) or 0
 
         if current_price <= 0 or past_price <= 0:
             continue
 
         change_pct = ((current_price - past_price) / past_price) * 100
-        change_1d = None
-        if yesterday_price > 0:
-            change_1d = round(((current_price - yesterday_price) / yesterday_price) * 100, 1)
 
         movers.append({
             'ticker': ticker,
             'change_pct': round(change_pct, 1),
-            'change_1d': change_1d,
             'current_price': round(current_price, 2),
             'past_price': round(past_price, 2)
         })
@@ -3374,7 +3372,7 @@ def get_portfolio_top_movers():
 @login_required
 def get_watchlist_top_movers():
     """Get top movers in watchlist based on price change over period."""
-    from investing_utils import fetch_current_stock_prices_batch, fetch_historical_prices_batch
+    from investing_utils import fetch_current_stock_prices_batch, fetch_historical_prices_batch, fetch_todays_open_prices_batch
 
     days = request.args.get('days', 30, type=int)
     if days not in [1, 7, 30]:
@@ -3391,33 +3389,31 @@ def get_watchlist_top_movers():
     if not watchlist_tickers:
         return jsonify({'movers': [], 'days': days})
 
-    today = datetime.now()
-    past_date = (today - timedelta(days=days)).strftime('%Y-%m-%d')
-    yesterday = (today - timedelta(days=1)).strftime('%Y-%m-%d')
-
-    # Batch fetch current, period, and 1-day historical prices
+    # Batch fetch current prices
     current_prices = fetch_current_stock_prices_batch(watchlist_tickers)
-    past_prices = fetch_historical_prices_batch(watchlist_tickers, past_date)
-    yesterday_prices = fetch_historical_prices_batch(watchlist_tickers, yesterday)
+
+    # For 1D: compare to today's market open price
+    # For 7D/30D: compare to historical closing price
+    if days == 1:
+        past_prices = fetch_todays_open_prices_batch(watchlist_tickers)
+    else:
+        today = datetime.now()
+        past_date = (today - timedelta(days=days)).strftime('%Y-%m-%d')
+        past_prices = fetch_historical_prices_batch(watchlist_tickers, past_date)
 
     movers = []
     for ticker in watchlist_tickers:
         current_price = current_prices.get(ticker, 0) or 0
         past_price = past_prices.get(ticker, 0) or 0
-        yesterday_price = yesterday_prices.get(ticker, 0) or 0
 
         if current_price <= 0 or past_price <= 0:
             continue
 
         change_pct = ((current_price - past_price) / past_price) * 100
-        change_1d = None
-        if yesterday_price > 0:
-            change_1d = round(((current_price - yesterday_price) / yesterday_price) * 100, 1)
 
         movers.append({
             'ticker': ticker,
             'change_pct': round(change_pct, 1),
-            'change_1d': change_1d,
             'current_price': round(current_price, 2),
             'past_price': round(past_price, 2)
         })

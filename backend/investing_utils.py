@@ -646,6 +646,61 @@ def fetch_current_stock_prices_batch(tickers):
     return prices
 
 
+def fetch_todays_open_prices_batch(tickers):
+    """
+    Fetch today's market open prices for multiple tickers in a single API call.
+    Returns: dict mapping ticker -> open_price (using original ticker names as keys)
+    """
+    if not tickers:
+        return {}
+
+    prices = {}
+    tickers_to_fetch = []
+    ticker_mapping = {}  # yf_ticker -> original_ticker
+
+    for ticker in tickers:
+        yf_ticker = get_yfinance_ticker(ticker)
+        tickers_to_fetch.append(yf_ticker)
+        ticker_mapping[yf_ticker] = ticker
+
+    if not tickers_to_fetch:
+        return prices
+
+    try:
+        # Batch download - single API call for all tickers
+        data = yf.download(
+            tickers_to_fetch,
+            period='1d',
+            progress=False,
+            threads=True,
+            auto_adjust=True
+        )
+
+        if len(tickers_to_fetch) == 1:
+            # Single ticker returns different structure
+            yf_ticker = tickers_to_fetch[0]
+            original_ticker = ticker_mapping[yf_ticker]
+            if not data.empty and 'Open' in data.columns:
+                price = round(float(data['Open'].iloc[-1].item()), 2)
+                prices[original_ticker] = price
+        else:
+            # Multiple tickers - columns are MultiIndex
+            for yf_ticker in tickers_to_fetch:
+                original_ticker = ticker_mapping[yf_ticker]
+                try:
+                    if yf_ticker in data['Open'].columns:
+                        open_val = data['Open'][yf_ticker].iloc[-1]
+                        if not pd.isna(open_val):
+                            price = round(float(open_val), 2)
+                            prices[original_ticker] = price
+                except (KeyError, IndexError):
+                    pass
+    except Exception as e:
+        print(f"Error in batch open price fetch: {e}")
+
+    return prices
+
+
 def fetch_historical_prices_batch(tickers, date_str):
     """
     Fetch historical prices for multiple tickers for a specific date in batch.
