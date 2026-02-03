@@ -383,9 +383,11 @@ def main():
             has_transcript = video.get('has_transcript', False)
             has_summary = video.get('has_summary', False)
             title = video['title'][:50] + '...' if len(video['title']) > 50 else video['title']
+            duration = video.get('duration', 0)
+            duration_str = f"{duration // 60}:{duration % 60:02d}" if duration else "?"
 
             log(f"\n{'='*60}")
-            log(f"VIDEO {i+1}/{len(videos)} - {ticker}")
+            log(f"VIDEO {i+1}/{len(videos)} - {ticker} ({duration_str})")
             log(f"{'='*60}")
             log(f"{title}")
 
