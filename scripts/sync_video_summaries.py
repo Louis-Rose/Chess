@@ -350,6 +350,11 @@ def main():
         log(f"Errors:              {error_count}")
         log("=" * 60)
 
+    except KeyboardInterrupt:
+        log("\n\nInterrupted by user")
+        end_sync_run(run_id, 'interrupted', transcript_fetched, summary_generated, error_count, 'Interrupted by user')
+        sys.exit(0)
+
     except Exception as e:
         log(f"FATAL ERROR: {e}")
         end_sync_run(run_id, 'failed', transcript_fetched, summary_generated, error_count, str(e))
