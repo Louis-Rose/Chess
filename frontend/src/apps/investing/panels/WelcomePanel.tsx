@@ -1061,7 +1061,6 @@ export function InvestingWelcomePanel() {
               const blurClass = "blur-[1.5px]";
 
               // Get demo data
-              const demoValue = demoDashboard?.composition?.total_value_eur;
               const demoPerf7 = demoDashboard?.performance_7;
               const demoPerf30 = demoDashboard?.performance_30;
               const demoPortfolioMovers = demoDashboard?.portfolio_movers ?? [];
@@ -1084,7 +1083,7 @@ export function InvestingWelcomePanel() {
                       </div>
                       <div className={`flex-1 flex flex-col items-center justify-center gap-3 ${blurClass}`}>
                         <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                          {demoValue ? formatCurrency(demoValue, 'EUR') : '---'}
+                          {formatCurrency(73458, 'EUR')}
                         </p>
                         {(demoPerf7 != null || demoPerf30 != null) && (
                           <div className="flex items-center gap-3 text-lg font-semibold">
