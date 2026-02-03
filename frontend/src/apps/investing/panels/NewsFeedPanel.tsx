@@ -328,12 +328,14 @@ function CompanySection({
   videos,
   language,
   onPlayVideo,
+  dragHandleProps,
 }: {
   ticker: string;
   companyName: string;
   videos: VideoWithCompany[];
   language: string;
   onPlayVideo: (video: VideoWithCompany) => void;
+  dragHandleProps?: Record<string, unknown>;
 }) {
   const navigate = useNavigate();
   const logoUrl = getCompanyLogoUrl(ticker);
@@ -344,10 +346,11 @@ function CompanySection({
 
   return (
     <div className="mb-4">
-      {/* Company header - clickable button style */}
+      {/* Company header - clickable button style (drag handle) */}
       <div
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-500 hover:border-slate-400 dark:hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
+        {...dragHandleProps}
       >
         {isOpen ? (
           <ChevronDown className="w-4 h-4 text-slate-500 flex-shrink-0" />
@@ -428,13 +431,14 @@ function SortableCompanySection({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} {...attributes}>
       <CompanySection
         ticker={ticker}
         companyName={companyName}
         videos={videos}
         language={language}
         onPlayVideo={onPlayVideo}
+        dragHandleProps={listeners}
       />
     </div>
   );
