@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase, DollarSign, ChevronDown } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase, DollarSign, ChevronDown, PieChart, Search } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -1024,42 +1024,148 @@ export function InvestingWelcomePanel() {
           </div>
         )}
 
-        {/* Feature cards for non-authenticated users */}
+        {/* Blurred dashboard preview for non-authenticated users */}
         {!isAuthenticated && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 md:px-[10%] mb-8">
-            <div
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl h-[200px] flex flex-col overflow-hidden"
-            >
-              <div className="flex items-center gap-2 p-3 pb-2 flex-shrink-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-[10%] mb-8 select-none">
+            {/* Portfolio Value Card */}
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                  <Wallet className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xl font-bold text-white">
+                  {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
+                </span>
+              </div>
+              <div className="flex-1 flex flex-col justify-center">
+                <p className="text-4xl font-bold text-green-500">21 458 €</p>
+                <p className="text-sm text-green-400 mt-1">+12.4% {language === 'fr' ? 'cette année' : 'this year'}</p>
+              </div>
+            </div>
+
+            {/* Composition Card - Blurred */}
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <PieChart className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xl font-bold text-white">
+                  {language === 'fr' ? 'Composition' : 'Holdings'}
+                </span>
+              </div>
+              <div className="flex-1 blur-sm pointer-events-none">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">AAPL</span>
+                    <span className="text-sm text-slate-400">24.5%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">MSFT</span>
+                    <span className="text-sm text-slate-400">18.2%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">GOOGL</span>
+                    <span className="text-sm text-slate-400">15.8%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">NVDA</span>
+                    <span className="text-sm text-slate-400">12.1%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Performance Chart Card - Blurred */}
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
+              <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-4 h-4 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Recherche & Comparaison' : 'Research & Compare Stocks'}
-                </h3>
+                <span className="text-xl font-bold text-white">
+                  {language === 'fr' ? 'Performance' : 'Performance'}
+                </span>
+              </div>
+              <div className="flex-1 blur-sm pointer-events-none flex items-center justify-center">
+                <svg viewBox="0 0 200 80" className="w-full h-full">
+                  <path
+                    d="M 0 60 Q 30 55 50 45 T 100 35 T 150 25 T 200 15"
+                    fill="none"
+                    stroke="#22c55e"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            {/* Watchlist Card - Blurred */}
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-yellow-600 rounded-lg flex items-center justify-center">
+                  <Eye className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xl font-bold text-white">
+                  {language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}
+                </span>
+              </div>
+              <div className="flex-1 blur-sm pointer-events-none">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">TSLA</span>
+                    <span className="text-sm text-green-400">+2.4%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">META</span>
+                    <span className="text-sm text-red-400">-1.2%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">AMZN</span>
+                    <span className="text-sm text-green-400">+0.8%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* News Feed Card - Blurred */}
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                  <Newspaper className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xl font-bold text-white">
+                  {language === 'fr' ? 'Fil d\'actualités' : 'News Feed'}
+                </span>
+              </div>
+              <div className="flex-1 blur-sm pointer-events-none">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-12 h-8 bg-slate-600 rounded" />
+                    <span className="text-xs text-slate-400 truncate">NVIDIA earnings beat expectations...</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-12 h-8 bg-slate-600 rounded" />
+                    <span className="text-xs text-slate-400 truncate">Apple announces new product line...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Stock Research Card */}
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl h-[200px] flex flex-col overflow-hidden">
+              <div className="flex items-center gap-2 p-5 pb-2">
+                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                  <Search className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xl font-bold text-white">
+                  {language === 'fr' ? 'Recherche' : 'Stock Research'}
+                </span>
               </div>
               <div className="flex-1 overflow-hidden flex items-start justify-center">
                 <img
                   src={stockResearchPreview}
                   alt="Stock research preview"
-                  className="w-[70%] -mt-1"
+                  className="w-[80%] blur-sm"
                 />
               </div>
-            </div>
-            <div
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col"
-            >
-              <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-                <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-                  <Newspaper className="w-4 h-4 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Fil d\'actualités' : 'News Feed'}
-                </h3>
-              </div>
-              <p className="text-slate-400 text-sm flex-1">
-                {language === 'fr' ? 'Vidéos YouTube de chaînes financières vérifiées.' : 'YouTube videos from verified financial channels.'}
-              </p>
             </div>
           </div>
         )}
