@@ -277,6 +277,8 @@ def translate_summary(summary_en, company_name):
 
 If the text says "No information about {company_name} in this video.", translate it to "Aucune information sur {company_name} dans cette vidéo."
 
+IMPORTANT: Output ONLY the translated text. Do not add any preamble like "Here's the translation:" or any other text before or after.
+
 Text to translate:
 {summary_en}"""
 
