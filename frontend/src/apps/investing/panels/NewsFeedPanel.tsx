@@ -161,12 +161,12 @@ function VideoRow({
           </div>
         </button>
         <div className="p-2.5">
-          <button onClick={onPlay} className="text-left w-full">
+          <button onClick={onPlay} className="text-center w-full">
             <h4 className="font-medium text-sm text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
               {video.title}
             </h4>
           </button>
-          <div className="flex items-center gap-1.5 mt-2 text-xs">
+          <div className="flex items-center justify-center gap-1.5 mt-2 text-xs">
             <span className="text-slate-600 dark:text-slate-300 font-medium">{video.channel_name}</span>
             <span className="text-slate-400">·</span>
             <span className="text-slate-500 dark:text-slate-400">{formatDate(video.published_at, language)}</span>
