@@ -1060,14 +1060,30 @@ export function InvestingWelcomePanel() {
               const cardBaseClass = "bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col";
               const blurClass = "blur-[1.5px]";
 
-              // Get demo data
-              const demoPerf7 = demoDashboard?.performance_7;
-              const demoPerf30 = demoDashboard?.performance_30;
-              const demoPortfolioMovers = demoDashboard?.portfolio_movers ?? [];
-              const demoWatchlistMovers = demoDashboard?.watchlist_movers ?? [];
-              const demoEarnings = demoDashboard?.earnings ?? [];
-              const demoDividends = demoDashboard?.dividends ?? [];
-              const demoFxRate = demoDashboard?.composition?.eurusd_rate ?? 1.0;
+              // Placeholder data shown immediately while real data loads
+              const placeholderMovers = [
+                { ticker: 'NVDA', change_pct: 4.2, current_price: 0, past_price: 0 },
+                { ticker: 'MSFT', change_pct: 2.1, current_price: 0, past_price: 0 },
+                { ticker: 'GOOGL', change_pct: -1.3, current_price: 0, past_price: 0 },
+              ];
+              const placeholderEarnings = [
+                { ticker: 'GOOGL', next_earnings_date: '2026-02-04', remaining_days: 1, date_confirmed: true, source: 'portfolio' as const },
+                { ticker: 'AMZN', next_earnings_date: '2026-02-06', remaining_days: 3, date_confirmed: true, source: 'portfolio' as const },
+                { ticker: 'MSFT', next_earnings_date: '2026-02-25', remaining_days: 22, date_confirmed: false, source: 'portfolio' as const },
+              ];
+              const placeholderDividends = [
+                { ticker: 'MSFT', ex_dividend_date: '2026-02-19', remaining_days: 16, dividend_amount: 0.83, pays_dividends: true, quantity: 50, total_dividend: 41.5 },
+                { ticker: 'GOOGL', ex_dividend_date: '2026-03-10', remaining_days: 35, dividend_amount: 0.20, pays_dividends: true, quantity: 30, total_dividend: 6.0 },
+              ];
+
+              // Use real data if loaded, otherwise show placeholders
+              const demoPerf7 = demoDashboard?.performance_7 ?? 2.4;
+              const demoPerf30 = demoDashboard?.performance_30 ?? 5.8;
+              const demoPortfolioMovers = demoDashboard?.portfolio_movers ?? placeholderMovers;
+              const demoWatchlistMovers = demoDashboard?.watchlist_movers ?? placeholderMovers;
+              const demoEarnings = demoDashboard?.earnings ?? placeholderEarnings;
+              const demoDividends = demoDashboard?.dividends ?? placeholderDividends;
+              const demoFxRate = demoDashboard?.composition?.eurusd_rate ?? 1.08;
 
               switch (cardId) {
                 case 'portfolio':
