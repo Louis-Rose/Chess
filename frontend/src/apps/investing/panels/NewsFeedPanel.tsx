@@ -62,7 +62,14 @@ const fetchNewsFeed = async (ticker: string, companyName: string): Promise<NewsF
   return response.data;
 };
 
-const fetchVideoSummary = async (videoId: string, ticker: string, language: string): Promise<{ summary?: string; transcript?: string; has_transcript?: boolean; pending?: boolean }> => {
+const fetchVideoSummary = async (videoId: string, ticker: string, language: string): Promise<{
+  summary?: string;
+  transcript?: string;
+  has_transcript?: boolean;
+  pending?: boolean;
+  sync_running?: boolean;
+  sync_step?: string;
+}> => {
   const response = await axios.get(`/api/investing/video-summary/${videoId}`, {
     params: { ticker, language }
   });
@@ -104,6 +111,8 @@ function VideoRow({
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(false);
+  const [syncRunning, setSyncRunning] = useState(false);
+  const [syncStep, setSyncStep] = useState<string | null>(null);
   const [noTranscript, setNoTranscript] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
 
@@ -111,11 +120,15 @@ function VideoRow({
     if (loading) return;
     setLoading(true);
     setPending(false);
+    setSyncRunning(false);
+    setSyncStep(null);
     setNoTranscript(false);
     try {
       const data = await fetchVideoSummary(video.video_id, video.ticker, language);
       if (data.pending) {
         setPending(true);
+        setSyncRunning(data.sync_running || false);
+        setSyncStep(data.sync_step || null);
       } else if (data.has_transcript === false) {
         setNoTranscript(true);
       } else {
@@ -186,7 +199,15 @@ function VideoRow({
           </div>
         ) : pending ? (
           <p className="text-sm text-slate-400 italic">
-            {language === 'fr' ? 'Transcription en cours...' : 'Fetching transcript...'}
+            {syncRunning ? (
+              // Sync is actively running
+              syncStep === 'summarizing' || syncStep === 'uploading'
+                ? (language === 'fr' ? 'Résumé en cours...' : 'Generating summary...')
+                : (language === 'fr' ? 'Transcription en cours...' : 'Transcribing...')
+            ) : (
+              // No sync running
+              language === 'fr' ? 'En attente de traitement' : 'Awaiting processing'
+            )}
           </p>
         ) : noTranscript ? (
           <p className="text-sm text-slate-400 italic">

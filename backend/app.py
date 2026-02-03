@@ -5084,8 +5084,29 @@ def get_video_summary(video_id):
         if result:
             return jsonify(result)
 
-    # No data yet - will be synced by next cron run
-    return jsonify({'pending': True, 'message': 'Transcript being fetched...'}), 202
+    # No data yet - check if sync is running
+    with get_db() as conn:
+        if USE_POSTGRES:
+            cursor = conn.execute('''
+                SELECT current_step FROM video_sync_runs
+                WHERE status = 'running'
+                AND updated_at > CURRENT_TIMESTAMP - INTERVAL '2 minutes'
+                ORDER BY started_at DESC LIMIT 1
+            ''')
+        else:
+            cursor = conn.execute('''
+                SELECT current_step FROM video_sync_runs
+                WHERE status = 'running'
+                AND updated_at > datetime('now', '-2 minutes')
+                ORDER BY started_at DESC LIMIT 1
+            ''')
+        running = cursor.fetchone()
+
+    if running:
+        step = running.get('current_step', 'downloading')
+        return jsonify({'pending': True, 'sync_running': True, 'sync_step': step}), 202
+
+    return jsonify({'pending': True, 'sync_running': False}), 202
 
 
 @app.route('/api/investing/video-summaries/pending', methods=['GET'])
