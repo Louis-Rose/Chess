@@ -231,16 +231,11 @@ def get_company_name(ticker):
     return keywords[0] if keywords else ticker
 
 
-def generate_summary(transcript_text, ticker, language='en'):
-    """Generate company-specific summary using Gemini.
+def generate_summary(transcript_text, ticker):
+    """Generate company-specific summary in English using Gemini.
 
     The summary focuses on the specific company, filtering out
     information about other companies mentioned in the video.
-
-    Args:
-        transcript_text: The video transcript
-        ticker: Stock ticker symbol
-        language: 'en' for English or 'fr' for French
     """
     client = genai.Client(api_key=GEMINI_API_KEY)
     company_name = get_company_name(ticker)
@@ -250,21 +245,14 @@ def generate_summary(transcript_text, ticker, language='en'):
     if len(transcript_text) > max_chars:
         transcript_text = transcript_text[:max_chars] + '...'
 
-    if language == 'fr':
-        no_info_response = f"Aucune information sur {company_name} dans cette vidéo."
-        lang_instruction = "Write in French."
-    else:
-        no_info_response = f"No information about {company_name} in this video."
-        lang_instruction = "Write in English."
-
     prompt = f"""Summarize this YouTube video transcript in 1-3 bullet points, focusing ONLY on information about {company_name} ({ticker}).
 
 IMPORTANT RULES:
 - This video may discuss multiple companies. Only include information relevant to {company_name}.
-- If the video doesn't mention {company_name} at all, respond with exactly: "{no_info_response}"
+- If the video doesn't mention {company_name} at all, respond with exactly: "No information about {company_name} in this video."
 - Each bullet point MUST start with a timestamp in [MM:SS] format indicating when this topic is discussed.
 - Maximum 3 bullet points. Be concise.
-- Be factual and neutral. {lang_instruction}
+- Be factual and neutral. Write in English.
 
 FORMAT EXAMPLE:
 [02:15] Key point about the company here
@@ -272,6 +260,24 @@ FORMAT EXAMPLE:
 
 Transcript:
 {transcript_text}"""
+
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=prompt
+    )
+    return response.text.strip()
+
+
+def translate_summary(summary_en, company_name):
+    """Translate English summary to French, preserving timestamps."""
+    client = genai.Client(api_key=GEMINI_API_KEY)
+
+    prompt = f"""Translate this summary to French. Keep the exact same timestamps [MM:SS] - do not change them.
+
+If the text says "No information about {company_name} in this video.", translate it to "Aucune information sur {company_name} dans cette vidéo."
+
+Text to translate:
+{summary_en}"""
 
     response = client.models.generate_content(
         model='gemini-2.0-flash',
@@ -446,16 +452,17 @@ def main():
                             log(f"  -> Failed to fetch transcript: {e}")
 
                     if transcript:
-                        log(f"  -> Generating {ticker}-specific summaries (EN + FR) with Gemini...")
+                        log(f"  -> Generating {ticker}-specific summary with Gemini...")
                         update_sync_run(run_id, current_step='summarizing')
 
                         # Generate English summary
-                        summary_en = generate_summary(transcript, ticker, language='en')
+                        summary_en = generate_summary(transcript, ticker)
                         log(f"  -> EN summary generated ({len(summary_en)} chars)")
 
-                        # Generate French summary
-                        summary_fr = generate_summary(transcript, ticker, language='fr')
-                        log(f"  -> FR summary generated ({len(summary_fr)} chars)")
+                        # Translate to French (preserves timestamps)
+                        company_name = get_company_name(ticker)
+                        summary_fr = translate_summary(summary_en, company_name)
+                        log(f"  -> FR translation generated ({len(summary_fr)} chars)")
 
                         summary_generated += 1
 
