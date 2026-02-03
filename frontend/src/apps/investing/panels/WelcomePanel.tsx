@@ -602,15 +602,15 @@ export function InvestingWelcomePanel() {
                     ) : (perf1Value !== undefined && perf1Value !== null) || (perf7Value !== undefined && perf7Value !== null) || (perf30Value !== undefined && perf30Value !== null) ? (
                       <div className="w-full grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center text-lg font-semibold">
                         <div className={`text-center ${perf1Value !== undefined && perf1Value !== null ? (perf1Value >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
-                          1D:<br />{perf1Value !== undefined && perf1Value !== null ? `${perf1Value >= 0 ? '+' : ''}${perf1Value.toFixed(1)}%` : ''}
+                          1D<br />{perf1Value !== undefined && perf1Value !== null ? `${perf1Value >= 0 ? '+' : ''}${perf1Value.toFixed(1)}%` : ''}
                         </div>
                         <span className="text-slate-500 px-2">|</span>
                         <div className={`text-center ${perf7Value !== undefined && perf7Value !== null ? (perf7Value >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
-                          1W:<br />{perf7Value !== undefined && perf7Value !== null ? `${perf7Value >= 0 ? '+' : ''}${perf7Value.toFixed(1)}%` : ''}
+                          1W<br />{perf7Value !== undefined && perf7Value !== null ? `${perf7Value >= 0 ? '+' : ''}${perf7Value.toFixed(1)}%` : ''}
                         </div>
                         <span className="text-slate-500 px-2">|</span>
                         <div className={`text-center ${perf30Value !== undefined && perf30Value !== null ? (perf30Value >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
-                          1M:<br />{perf30Value !== undefined && perf30Value !== null ? `${perf30Value >= 0 ? '+' : ''}${perf30Value.toFixed(1)}%` : ''}
+                          1M<br />{perf30Value !== undefined && perf30Value !== null ? `${perf30Value >= 0 ? '+' : ''}${perf30Value.toFixed(1)}%` : ''}
                         </div>
                       </div>
                     ) : null}
@@ -633,15 +633,25 @@ export function InvestingWelcomePanel() {
             className={`${cardBaseClass} ${dragOverClass} overflow-hidden`}
           >
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+              <div
+                className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={(e) => { e.stopPropagation(); navigate('/investing/portfolio'); }}
+              >
+                <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
                   <Flame className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Mouvements Portefeuille' : 'Portfolio Moves'}
+                  {language === 'fr' ? 'Portefeuille' : 'Portfolio'}
                 </span>
               </div>
               <div className="flex items-center gap-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMoversSortAsc(!moversSortAsc); }}
+                  className="p-1 rounded hover:bg-slate-700 transition-colors"
+                  title={moversSortAsc ? 'Sort descending' : 'Sort ascending'}
+                >
+                  {moversSortAsc ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                </button>
                 <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
                   <button
                     onClick={(e) => { e.stopPropagation(); setMoversPeriod(1); }}
@@ -662,13 +672,6 @@ export function InvestingWelcomePanel() {
                     1M
                   </button>
                 </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setMoversSortAsc(!moversSortAsc); }}
-                  className="p-1 rounded hover:bg-slate-700 transition-colors"
-                  title={moversSortAsc ? 'Sort descending' : 'Sort ascending'}
-                >
-                  {moversSortAsc ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                </button>
               </div>
             </div>
             {compositionLoading || topMoversLoading ? (
@@ -680,7 +683,11 @@ export function InvestingWelcomePanel() {
                 {[...topMovers].sort((a, b) => moversSortAsc ? a.change_pct - b.change_pct : b.change_pct - a.change_pct).map((stock) => {
                   const logoUrl = getCompanyLogoUrl(stock.ticker);
                   return (
-                    <div key={stock.ticker} className="flex items-center justify-between">
+                    <div
+                      key={stock.ticker}
+                      className="flex items-center justify-between px-2 py-1 -mx-2 rounded cursor-pointer hover:bg-slate-700/50 transition-colors"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/investing/financials?ticker=${stock.ticker}`); }}
+                    >
                       <div className="flex items-center gap-1.5">
                         <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                           {logoUrl ? (
@@ -907,19 +914,28 @@ export function InvestingWelcomePanel() {
           <div
             key={cardId}
             {...cardProps}
-            onClick={() => !isDragging && navigate('/investing/watchlist')}
-            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-blue-500 overflow-hidden`}
+            className={`${cardBaseClass} ${dragOverClass} overflow-hidden`}
           >
             <div className="flex items-center justify-between mb-3 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div
+                className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={(e) => { e.stopPropagation(); navigate('/investing/watchlist'); }}
+              >
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <Eye className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Mouvements Watchlist' : 'Watchlist Moves'}
+                  {language === 'fr' ? 'Watchlist' : 'Watchlist'}
                 </span>
               </div>
               <div className="flex items-center gap-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setWatchlistMoversSortAsc(!watchlistMoversSortAsc); }}
+                  className="p-1 rounded hover:bg-slate-700 transition-colors"
+                  title={watchlistMoversSortAsc ? 'Sort descending' : 'Sort ascending'}
+                >
+                  {watchlistMoversSortAsc ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                </button>
                 <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
                   <button
                     onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(1); }}
@@ -940,13 +956,6 @@ export function InvestingWelcomePanel() {
                     1M
                   </button>
                 </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setWatchlistMoversSortAsc(!watchlistMoversSortAsc); }}
-                  className="p-1 rounded hover:bg-slate-700 transition-colors"
-                  title={watchlistMoversSortAsc ? 'Sort descending' : 'Sort ascending'}
-                >
-                  {watchlistMoversSortAsc ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                </button>
               </div>
             </div>
             {watchlistMoversLoading ? (
@@ -958,7 +967,11 @@ export function InvestingWelcomePanel() {
                 {[...watchlistMovers].sort((a, b) => watchlistMoversSortAsc ? a.change_pct - b.change_pct : b.change_pct - a.change_pct).map((stock) => {
                   const logoUrl = getCompanyLogoUrl(stock.ticker);
                   return (
-                    <div key={stock.ticker} className="flex items-center justify-between">
+                    <div
+                      key={stock.ticker}
+                      className="flex items-center justify-between px-2 py-1 -mx-2 rounded cursor-pointer hover:bg-slate-700/50 transition-colors"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/investing/financials?ticker=${stock.ticker}`); }}
+                    >
                       <div className="flex items-center gap-1.5">
                         <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                           {logoUrl ? (
@@ -1148,15 +1161,15 @@ export function InvestingWelcomePanel() {
                         {(demoPerf1 != null || demoPerf7 != null || demoPerf30 != null) && (
                           <div className="w-full grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center text-lg font-semibold">
                             <div className={`text-center ${demoPerf1 != null ? (demoPerf1 >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
-                              1D:<br />{demoPerf1 != null ? `${demoPerf1 >= 0 ? '+' : ''}${demoPerf1.toFixed(1)}%` : ''}
+                              1D<br />{demoPerf1 != null ? `${demoPerf1 >= 0 ? '+' : ''}${demoPerf1.toFixed(1)}%` : ''}
                             </div>
                             <span className="text-slate-500 px-2">|</span>
                             <div className={`text-center ${demoPerf7 != null ? (demoPerf7 >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
-                              1W:<br />{demoPerf7 != null ? `${demoPerf7 >= 0 ? '+' : ''}${demoPerf7.toFixed(1)}%` : ''}
+                              1W<br />{demoPerf7 != null ? `${demoPerf7 >= 0 ? '+' : ''}${demoPerf7.toFixed(1)}%` : ''}
                             </div>
                             <span className="text-slate-500 px-2">|</span>
                             <div className={`text-center ${demoPerf30 != null ? (demoPerf30 >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
-                              1M:<br />{demoPerf30 != null ? `${demoPerf30 >= 0 ? '+' : ''}${demoPerf30.toFixed(1)}%` : ''}
+                              1M<br />{demoPerf30 != null ? `${demoPerf30 >= 0 ? '+' : ''}${demoPerf30.toFixed(1)}%` : ''}
                             </div>
                           </div>
                         )}
@@ -1171,7 +1184,7 @@ export function InvestingWelcomePanel() {
                           <Flame className="w-4 h-4 text-white" />
                         </div>
                         <span className="text-xl font-bold text-white">
-                          {language === 'fr' ? 'Mouvements Portefeuille' : 'Portfolio Moves'}
+                          {language === 'fr' ? 'Portefeuille' : 'Portfolio'}
                         </span>
                       </div>
                       <div className={`space-y-2 flex-1 overflow-y-auto scrollbar-hide ${blurClass}`}>
@@ -1327,7 +1340,7 @@ export function InvestingWelcomePanel() {
                           <Eye className="w-4 h-4 text-white" />
                         </div>
                         <span className="text-xl font-bold text-white">
-                          {language === 'fr' ? 'Mouvements Watchlist' : 'Watchlist Moves'}
+                          {language === 'fr' ? 'Watchlist' : 'Watchlist'}
                         </span>
                       </div>
                       <div className={`space-y-2 flex-1 overflow-y-auto scrollbar-hide ${blurClass}`}>
