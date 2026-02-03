@@ -496,16 +496,11 @@ export function NewsFeedPanel() {
   const allTrackedCompaniesRaw = [...orderedPortfolioTickers, ...watchlistOnlyTickers];
 
   // Deduplicate tickers that represent the same company (e.g., GOOGL/GOOG)
-  const tickerAliases: Record<string, string> = { 'GOOG': 'GOOGL' };
-  const allTrackedCompanies = allTrackedCompaniesRaw.filter((ticker, idx, arr) => {
-    const canonical = tickerAliases[ticker] || ticker;
-    // If this ticker has a canonical form, check if canonical is already in the list
-    if (tickerAliases[ticker]) {
-      return !arr.slice(0, idx).includes(canonical);
-    }
-    // If this is a canonical ticker, check if we haven't seen an alias before
-    const aliases = Object.entries(tickerAliases).filter(([, v]) => v === ticker).map(([k]) => k);
-    return !arr.slice(0, idx).some(t => aliases.includes(t));
+  // Always prefer GOOGL over GOOG if both are present
+  const hasGOOGL = allTrackedCompaniesRaw.includes('GOOGL');
+  const allTrackedCompanies = allTrackedCompaniesRaw.filter(ticker => {
+    if (ticker === 'GOOG' && hasGOOGL) return false;
+    return true;
   });
 
   // Fetch news for all tracked companies
@@ -514,10 +509,13 @@ export function NewsFeedPanel() {
     queryFn: async () => {
       if (allTrackedCompanies.length === 0) return [];
 
+      // Company name overrides for tickers with multiple share classes
+      const nameOverrides: Record<string, string> = { 'GOOGL': 'Alphabet', 'GOOG': 'Alphabet' };
+
       const results = await Promise.all(
         allTrackedCompanies.map(async (ticker) => {
           const stock = findStockByTicker(ticker);
-          const companyName = stock?.name || ticker;
+          const companyName = nameOverrides[ticker] || stock?.name || ticker;
           try {
             const response = await fetchNewsFeed(ticker, companyName);
             return {
