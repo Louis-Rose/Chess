@@ -206,8 +206,8 @@ export function InvestingWelcomePanel() {
 
   // Summary card states
   const [valueCurrency, setValueCurrency] = useState<'EUR' | 'USD'>('EUR');
-  const [moversPeriod, setMoversPeriod] = useState<7 | 30>(30);
-  const [watchlistMoversPeriod, setWatchlistMoversPeriod] = useState<7 | 30>(30);
+  const [moversPeriod, setMoversPeriod] = useState<1 | 7 | 30>(30);
+  const [watchlistMoversPeriod, setWatchlistMoversPeriod] = useState<1 | 7 | 30>(30);
   const [earningsSource, setEarningsSource] = useState<EarningsSourceFilter>('portfolio');
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
@@ -651,18 +651,22 @@ export function InvestingWelcomePanel() {
               </div>
               <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
                 <button
+                  onClick={(e) => { e.stopPropagation(); setMoversPeriod(1); }}
+                  className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 1 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                >
+                  1D
+                </button>
+                <button
                   onClick={(e) => { e.stopPropagation(); setMoversPeriod(7); }}
                   className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 7 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                 >
-                  <span className="hidden min-[1920px]:inline">{language === 'fr' ? 'Sem. préc.' : 'Prev. week'}</span>
-                  <span className="min-[1920px]:hidden">1W</span>
+                  1W
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); setMoversPeriod(30); }}
                   className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 30 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                 >
-                  <span className="hidden min-[1920px]:inline">{language === 'fr' ? 'Mois préc.' : 'Prev. month'}</span>
-                  <span className="min-[1920px]:hidden">1M</span>
+                  1M
                 </button>
               </div>
             </div>
@@ -686,16 +690,9 @@ export function InvestingWelcomePanel() {
                         </div>
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {stock.change_1d !== null && (
-                          <span className={`text-xs ${stock.change_1d >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            1D: {stock.change_1d >= 0 ? '+' : ''}{stock.change_1d.toFixed(1)}%
-                          </span>
-                        )}
-                        <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
-                        </span>
-                      </div>
+                      <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
+                      </span>
                     </div>
                   );
                 })}
@@ -923,18 +920,22 @@ export function InvestingWelcomePanel() {
               </div>
               <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
                 <button
+                  onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(1); }}
+                  className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${watchlistMoversPeriod === 1 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                >
+                  1D
+                </button>
+                <button
                   onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(7); }}
                   className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${watchlistMoversPeriod === 7 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                 >
-                  <span className="hidden min-[1920px]:inline">{language === 'fr' ? 'Sem. préc.' : 'Prev. week'}</span>
-                  <span className="min-[1920px]:hidden">1W</span>
+                  1W
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(30); }}
                   className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${watchlistMoversPeriod === 30 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
                 >
-                  <span className="hidden min-[1920px]:inline">{language === 'fr' ? 'Mois préc.' : 'Prev. month'}</span>
-                  <span className="min-[1920px]:hidden">1M</span>
+                  1M
                 </button>
               </div>
             </div>
@@ -958,16 +959,9 @@ export function InvestingWelcomePanel() {
                         </div>
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {stock.change_1d !== null && (
-                          <span className={`text-xs ${stock.change_1d >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            1D: {stock.change_1d >= 0 ? '+' : ''}{stock.change_1d.toFixed(1)}%
-                          </span>
-                        )}
-                        <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
-                        </span>
-                      </div>
+                      <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
+                      </span>
                     </div>
                   );
                 })}
@@ -1191,16 +1185,9 @@ export function InvestingWelcomePanel() {
                                 </div>
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
                               </div>
-                              <div className="flex items-center gap-2">
-                                {stock.change_1d !== null && stock.change_1d !== undefined && (
-                                  <span className={`text-xs ${stock.change_1d >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    1D: {stock.change_1d >= 0 ? '+' : ''}{stock.change_1d.toFixed(1)}%
-                                  </span>
-                                )}
-                                <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                  {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
-                                </span>
-                              </div>
+                              <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
+                              </span>
                             </div>
                           );
                         })}
@@ -1354,16 +1341,9 @@ export function InvestingWelcomePanel() {
                                 </div>
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
                               </div>
-                              <div className="flex items-center gap-2">
-                                {stock.change_1d !== null && stock.change_1d !== undefined && (
-                                  <span className={`text-xs ${stock.change_1d >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    1D: {stock.change_1d >= 0 ? '+' : ''}{stock.change_1d.toFixed(1)}%
-                                  </span>
-                                )}
-                                <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                  {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
-                                </span>
-                              </div>
+                              <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
+                              </span>
                             </div>
                           );
                         })}

@@ -3312,7 +3312,7 @@ def get_portfolio_top_movers():
     from investing_utils import fetch_current_stock_prices_batch, fetch_historical_prices_batch
 
     days = request.args.get('days', 30, type=int)
-    if days not in [7, 30]:
+    if days not in [1, 7, 30]:
         days = 30
 
     account_ids_str = request.args.get('account_ids')
@@ -3377,7 +3377,7 @@ def get_watchlist_top_movers():
     from investing_utils import fetch_current_stock_prices_batch, fetch_historical_prices_batch
 
     days = request.args.get('days', 30, type=int)
-    if days not in [7, 30]:
+    if days not in [1, 7, 30]:
         days = 30
 
     # Get watchlist tickers
