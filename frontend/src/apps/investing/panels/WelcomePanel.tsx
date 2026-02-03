@@ -1194,6 +1194,12 @@ export function InvestingWelcomePanel() {
                               <span className="text-sm font-bold text-white">
                                 {earning.next_earnings_date ? (
                                   <>
+                                    <span className="hidden min-[1600px]:inline">
+                                      {new Date(earning.next_earnings_date).toLocaleDateString(
+                                        language === 'fr' ? 'fr-FR' : 'en-US',
+                                        { day: 'numeric', month: 'long', year: 'numeric' }
+                                      )}
+                                    </span>
                                     <span className="min-[1600px]:hidden">
                                       {new Date(earning.next_earnings_date).toLocaleDateString(
                                         language === 'fr' ? 'fr-FR' : 'en-US',
