@@ -1040,7 +1040,12 @@ export function InvestingWelcomePanel() {
         {/* Blurred dashboard preview for non-authenticated users */}
         {!isAuthenticated && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-[10%] mb-8 select-none">
-            {(demoCardOrder || DEFAULT_GRID).filter(slot => slot !== null).map((cardId) => {
+            {(demoCardOrder || DEFAULT_GRID).map((cardId, slotIndex) => {
+              // Empty slot - render invisible placeholder to preserve grid layout
+              if (cardId === null) {
+                return <div key={`empty-${slotIndex}`} className="h-[200px]" />;
+              }
+
               const cardBaseClass = "bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col";
               const blurClass = "blur-[1.5px] pointer-events-none";
 
