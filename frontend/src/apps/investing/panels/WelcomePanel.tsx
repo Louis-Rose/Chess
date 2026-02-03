@@ -594,32 +594,22 @@ export function InvestingWelcomePanel() {
                   <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
                     {formatCurrency(portfolioValue, valueCurrency)}
                   </p>
-                  <div className="h-7 w-full flex items-center justify-center">
+                  <div className="w-full flex items-center justify-center">
                     {perfLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
                     ) : (perf1Value !== undefined && perf1Value !== null) || (perf7Value !== undefined && perf7Value !== null) || (perf30Value !== undefined && perf30Value !== null) ? (
-                      <div className="flex items-center justify-center gap-3 text-lg font-semibold">
-                        {perf1Value !== undefined && perf1Value !== null && (
-                          <span className={perf1Value >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            1D: {perf1Value >= 0 ? '+' : ''}{perf1Value.toFixed(1)}%
-                          </span>
-                        )}
-                        {perf1Value !== undefined && perf1Value !== null && perf7Value !== undefined && perf7Value !== null && (
-                          <span className="text-slate-500">|</span>
-                        )}
-                        {perf7Value !== undefined && perf7Value !== null && (
-                          <span className={perf7Value >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            1W: {perf7Value >= 0 ? '+' : ''}{perf7Value.toFixed(1)}%
-                          </span>
-                        )}
-                        {perf7Value !== undefined && perf7Value !== null && perf30Value !== undefined && perf30Value !== null && (
-                          <span className="text-slate-500">|</span>
-                        )}
-                        {perf30Value !== undefined && perf30Value !== null && (
-                          <span className={perf30Value >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            1M: {perf30Value >= 0 ? '+' : ''}{perf30Value.toFixed(1)}%
-                          </span>
-                        )}
+                      <div className="w-full grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center text-lg font-semibold">
+                        <div className={`text-center ${perf1Value !== undefined && perf1Value !== null ? (perf1Value >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
+                          1D:<br />{perf1Value !== undefined && perf1Value !== null ? `${perf1Value >= 0 ? '+' : ''}${perf1Value.toFixed(1)}%` : ''}
+                        </div>
+                        <span className="text-slate-500 px-2">|</span>
+                        <div className={`text-center ${perf7Value !== undefined && perf7Value !== null ? (perf7Value >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
+                          1W:<br />{perf7Value !== undefined && perf7Value !== null ? `${perf7Value >= 0 ? '+' : ''}${perf7Value.toFixed(1)}%` : ''}
+                        </div>
+                        <span className="text-slate-500 px-2">|</span>
+                        <div className={`text-center ${perf30Value !== undefined && perf30Value !== null ? (perf30Value >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
+                          1M:<br />{perf30Value !== undefined && perf30Value !== null ? `${perf30Value >= 0 ? '+' : ''}${perf30Value.toFixed(1)}%` : ''}
+                        </div>
                       </div>
                     ) : null}
                   </div>
@@ -1136,24 +1126,18 @@ export function InvestingWelcomePanel() {
                           {formatCurrency(73458, 'EUR')}
                         </p>
                         {(demoPerf1 != null || demoPerf7 != null || demoPerf30 != null) && (
-                          <div className="w-full flex items-center justify-center gap-3 text-lg font-semibold">
-                            {demoPerf1 != null && (
-                              <span className={demoPerf1 >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                1D: {demoPerf1 >= 0 ? '+' : ''}{demoPerf1.toFixed(1)}%
-                              </span>
-                            )}
-                            {demoPerf1 != null && demoPerf7 != null && <span className="text-slate-500">|</span>}
-                            {demoPerf7 != null && (
-                              <span className={demoPerf7 >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                1W: {demoPerf7 >= 0 ? '+' : ''}{demoPerf7.toFixed(1)}%
-                              </span>
-                            )}
-                            {demoPerf7 != null && demoPerf30 != null && <span className="text-slate-500">|</span>}
-                            {demoPerf30 != null && (
-                              <span className={demoPerf30 >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                1M: {demoPerf30 >= 0 ? '+' : ''}{demoPerf30.toFixed(1)}%
-                              </span>
-                            )}
+                          <div className="w-full grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center text-lg font-semibold">
+                            <div className={`text-center ${demoPerf1 != null ? (demoPerf1 >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
+                              1D:<br />{demoPerf1 != null ? `${demoPerf1 >= 0 ? '+' : ''}${demoPerf1.toFixed(1)}%` : ''}
+                            </div>
+                            <span className="text-slate-500 px-2">|</span>
+                            <div className={`text-center ${demoPerf7 != null ? (demoPerf7 >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
+                              1W:<br />{demoPerf7 != null ? `${demoPerf7 >= 0 ? '+' : ''}${demoPerf7.toFixed(1)}%` : ''}
+                            </div>
+                            <span className="text-slate-500 px-2">|</span>
+                            <div className={`text-center ${demoPerf30 != null ? (demoPerf30 >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
+                              1M:<br />{demoPerf30 != null ? `${demoPerf30 >= 0 ? '+' : ''}${demoPerf30.toFixed(1)}%` : ''}
+                            </div>
                           </div>
                         )}
                       </div>
