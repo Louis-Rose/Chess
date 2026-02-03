@@ -194,7 +194,7 @@ function VideoRow({
             {/* Summary - full width with clickable timestamps */}
             {summary && (
               <div className="flex-1">
-                <ul className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed space-y-1">
+                <ul className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed space-y-3">
                   {summary.split('\n').filter(line => line.trim()).map((line, idx) => {
                     // Parse timestamp like [02:15] or [1:02:15]
                     const match = line.match(/^\[(\d{1,2}):(\d{2})(?::(\d{2}))?\]\s*(.*)$/);
@@ -205,7 +205,7 @@ function VideoRow({
                       const totalSeconds = hours * 3600 + minutes * 60 + seconds;
                       const timestamp = match[3] ? `${match[1]}:${match[2]}:${match[3]}` : `${match[1]}:${match[2]}`;
                       return (
-                        <li key={idx} className="flex gap-2">
+                        <li key={idx} className="flex gap-2 items-start">
                           <button
                             onClick={() => onPlay(totalSeconds)}
                             className="text-blue-500 hover:text-blue-600 font-mono text-xs shrink-0"
