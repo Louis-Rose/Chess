@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase, DollarSign, ChevronDown, PieChart, Search } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase, DollarSign, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -1027,7 +1027,7 @@ export function InvestingWelcomePanel() {
         {/* Blurred dashboard preview for non-authenticated users */}
         {!isAuthenticated && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-[10%] mb-8 select-none">
-            {/* Portfolio Value Card */}
+            {/* 1. Portfolio Value Card */}
             <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
@@ -1043,61 +1043,91 @@ export function InvestingWelcomePanel() {
               </div>
             </div>
 
-            {/* Composition Card - Blurred */}
+            {/* 2. Top Movers Card - Blurred */}
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+                  <Flame className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xl font-bold text-white">
+                  {language === 'fr' ? 'Top Movers' : 'Top Movers'}
+                </span>
+              </div>
+              <div className="flex-1 blur-sm pointer-events-none">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">NVDA</span>
+                    <span className="text-sm text-green-400">+5.2%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">TSLA</span>
+                    <span className="text-sm text-green-400">+3.8%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">META</span>
+                    <span className="text-sm text-red-400">-2.1%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Earnings Calendar Card - Blurred */}
             <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <PieChart className="w-4 h-4 text-white" />
+                  <Calendar className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Composition' : 'Holdings'}
+                  {language === 'fr' ? 'Résultats' : 'Earnings'}
                 </span>
               </div>
               <div className="flex-1 blur-sm pointer-events-none">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-300">AAPL</span>
-                    <span className="text-sm text-slate-400">24.5%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">MSFT</span>
-                    <span className="text-sm text-slate-400">18.2%</span>
+                    <span className="text-xs text-slate-400">Feb 6</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-300">GOOGL</span>
-                    <span className="text-sm text-slate-400">15.8%</span>
+                    <span className="text-xs text-slate-400">Feb 8</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">NVDA</span>
-                    <span className="text-sm text-slate-400">12.1%</span>
+                    <span className="text-sm text-slate-300">AMZN</span>
+                    <span className="text-xs text-slate-400">Feb 12</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Performance Chart Card - Blurred */}
+            {/* 4. Dividends Calendar Card - Blurred */}
             <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-white" />
+                <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+                  <DollarSign className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Performance' : 'Performance'}
+                  {language === 'fr' ? 'Dividendes' : 'Dividends'}
                 </span>
               </div>
-              <div className="flex-1 blur-sm pointer-events-none flex items-center justify-center">
-                <svg viewBox="0 0 200 80" className="w-full h-full">
-                  <path
-                    d="M 0 60 Q 30 55 50 45 T 100 35 T 150 25 T 200 15"
-                    fill="none"
-                    stroke="#22c55e"
-                    strokeWidth="2"
-                  />
-                </svg>
+              <div className="flex-1 blur-sm pointer-events-none">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">MSFT</span>
+                    <span className="text-xs text-slate-400">$0.75</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">JNJ</span>
+                    <span className="text-xs text-slate-400">$1.24</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">PG</span>
+                    <span className="text-xs text-slate-400">$1.01</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Watchlist Card - Blurred */}
+            {/* 5. Watchlist Card - Blurred */}
             <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 bg-yellow-600 rounded-lg flex items-center justify-center">
@@ -1125,7 +1155,26 @@ export function InvestingWelcomePanel() {
               </div>
             </div>
 
-            {/* News Feed Card - Blurred */}
+            {/* 6. Stock Research Card - Blurred */}
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl h-[200px] flex flex-col overflow-hidden">
+              <div className="flex items-center gap-2 p-5 pb-2">
+                <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xl font-bold text-white">
+                  {language === 'fr' ? 'Recherche' : 'Stock Research'}
+                </span>
+              </div>
+              <div className="flex-1 overflow-hidden flex items-start justify-center blur-sm pointer-events-none">
+                <img
+                  src={stockResearchPreview}
+                  alt="Stock research preview"
+                  className="w-[80%]"
+                />
+              </div>
+            </div>
+
+            {/* 7. News Feed Card - Blurred */}
             <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
@@ -1146,25 +1195,6 @@ export function InvestingWelcomePanel() {
                     <span className="text-xs text-slate-400 truncate">Apple announces new product line...</span>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Stock Research Card */}
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl h-[200px] flex flex-col overflow-hidden">
-              <div className="flex items-center gap-2 p-5 pb-2">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                  <Search className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Recherche' : 'Stock Research'}
-                </span>
-              </div>
-              <div className="flex-1 overflow-hidden flex items-start justify-center">
-                <img
-                  src={stockResearchPreview}
-                  alt="Stock research preview"
-                  className="w-[80%] blur-sm"
-                />
               </div>
             </div>
           </div>
