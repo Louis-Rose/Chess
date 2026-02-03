@@ -237,8 +237,11 @@ export function WatchlistPanel() {
                 value={stockSearch}
                 onChange={(e) => setStockSearch(e.target.value)}
                 onFocus={() => stockSearch && setShowStockDropdown(stockResults.length > 0)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-10 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              {addMutation.isPending && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500 animate-spin" />
+              )}
             </div>
             {showStockDropdown && stockResults.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
@@ -274,8 +277,7 @@ export function WatchlistPanel() {
                       </div>
                       <span className="font-bold text-slate-800 w-16">{stock.ticker}</span>
                       <span className="text-slate-600 text-sm truncate">{stock.name}</span>
-                      {isAdding && <Loader2 className="w-4 h-4 text-blue-500 animate-spin ml-auto" />}
-                      {isInWatchlist && !isAdding && <span className="text-xs text-slate-400 ml-auto">{language === 'fr' ? 'Ajouté' : 'Added'}</span>}
+                      {(isInWatchlist || isAdding) && <span className="text-xs text-slate-400 ml-auto">{language === 'fr' ? 'Ajouté' : 'Added'}</span>}
                     </button>
                   );
                 })}
@@ -304,7 +306,7 @@ export function WatchlistPanel() {
             </div>
           ) : (
             <div className="space-y-2">
-              {watchlist.map((ticker) => {
+              {[...watchlist].sort((a, b) => a.localeCompare(b)).map((ticker) => {
                 const stock = findStockByTicker(ticker);
                 const displayName = stock?.name || ticker;
                 const logoUrl = getCompanyLogoUrl(ticker);
