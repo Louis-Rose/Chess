@@ -138,7 +138,7 @@ function VideoRow({
       {/* Left side: Thumbnail + Title */}
       <div className="flex-shrink-0 w-80">
         <button
-          onClick={onPlay}
+          onClick={() => onPlay()}
           className="relative w-full h-[120px] bg-slate-200 dark:bg-slate-700 group"
         >
           {video.thumbnail_url ? (
@@ -161,7 +161,7 @@ function VideoRow({
           </div>
         </button>
         <div className="p-2.5">
-          <button onClick={onPlay} className="text-center w-full">
+          <button onClick={() => onPlay()} className="text-center w-full">
             <h4 className="font-medium text-sm text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
               {video.title}
             </h4>
