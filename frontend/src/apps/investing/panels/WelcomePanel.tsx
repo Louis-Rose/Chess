@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase, DollarSign, ChevronDown } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
@@ -207,7 +207,9 @@ export function InvestingWelcomePanel() {
   // Summary card states
   const [valueCurrency, setValueCurrency] = useState<'EUR' | 'USD'>('EUR');
   const [moversPeriod, setMoversPeriod] = useState<1 | 7 | 30>(30);
+  const [moversSortAsc, setMoversSortAsc] = useState(false);
   const [watchlistMoversPeriod, setWatchlistMoversPeriod] = useState<1 | 7 | 30>(30);
+  const [watchlistMoversSortAsc, setWatchlistMoversSortAsc] = useState(false);
   const [earningsSource, setEarningsSource] = useState<EarningsSourceFilter>('portfolio');
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
@@ -639,24 +641,33 @@ export function InvestingWelcomePanel() {
                   {language === 'fr' ? 'Mouvements Portefeuille' : 'Portfolio Moves'}
                 </span>
               </div>
-              <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+              <div className="flex items-center gap-1">
+                <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMoversPeriod(1); }}
+                    className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 1 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    1D
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMoversPeriod(7); }}
+                    className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 7 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    1W
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMoversPeriod(30); }}
+                    className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 30 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    1M
+                  </button>
+                </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setMoversPeriod(1); }}
-                  className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 1 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  onClick={(e) => { e.stopPropagation(); setMoversSortAsc(!moversSortAsc); }}
+                  className="p-1 rounded hover:bg-slate-700 transition-colors"
+                  title={moversSortAsc ? 'Sort descending' : 'Sort ascending'}
                 >
-                  1D
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setMoversPeriod(7); }}
-                  className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 7 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                >
-                  1W
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setMoversPeriod(30); }}
-                  className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${moversPeriod === 30 ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                >
-                  1M
+                  {moversSortAsc ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                 </button>
               </div>
             </div>
@@ -666,7 +677,7 @@ export function InvestingWelcomePanel() {
               </div>
             ) : topMovers.length > 0 ? (
               <div className="space-y-2 flex-1 overflow-y-auto scrollbar-hide">
-                {topMovers.map((stock) => {
+                {[...topMovers].sort((a, b) => moversSortAsc ? a.change_pct - b.change_pct : b.change_pct - a.change_pct).map((stock) => {
                   const logoUrl = getCompanyLogoUrl(stock.ticker);
                   return (
                     <div key={stock.ticker} className="flex items-center justify-between">
@@ -908,24 +919,33 @@ export function InvestingWelcomePanel() {
                   {language === 'fr' ? 'Mouvements Watchlist' : 'Watchlist Moves'}
                 </span>
               </div>
-              <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+              <div className="flex items-center gap-1">
+                <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(1); }}
+                    className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${watchlistMoversPeriod === 1 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    1D
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(7); }}
+                    className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${watchlistMoversPeriod === 7 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    1W
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(30); }}
+                    className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${watchlistMoversPeriod === 30 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  >
+                    1M
+                  </button>
+                </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(1); }}
-                  className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${watchlistMoversPeriod === 1 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                  onClick={(e) => { e.stopPropagation(); setWatchlistMoversSortAsc(!watchlistMoversSortAsc); }}
+                  className="p-1 rounded hover:bg-slate-700 transition-colors"
+                  title={watchlistMoversSortAsc ? 'Sort descending' : 'Sort ascending'}
                 >
-                  1D
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(7); }}
-                  className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${watchlistMoversPeriod === 7 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                >
-                  1W
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setWatchlistMoversPeriod(30); }}
-                  className={`px-2 h-6 text-xs font-medium flex items-center justify-center ${watchlistMoversPeriod === 30 ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                >
-                  1M
+                  {watchlistMoversSortAsc ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                 </button>
               </div>
             </div>
@@ -935,7 +955,7 @@ export function InvestingWelcomePanel() {
               </div>
             ) : watchlistMovers.length > 0 ? (
               <div className="space-y-2 flex-1 overflow-y-auto scrollbar-hide">
-                {watchlistMovers.map((stock) => {
+                {[...watchlistMovers].sort((a, b) => watchlistMoversSortAsc ? a.change_pct - b.change_pct : b.change_pct - a.change_pct).map((stock) => {
                   const logoUrl = getCompanyLogoUrl(stock.ticker);
                   return (
                     <div key={stock.ticker} className="flex items-center justify-between">
