@@ -5041,23 +5041,30 @@ def get_news_feed():
 def get_video_summary(video_id):
     """Get transcript and/or summary of a YouTube video.
 
+    Query params:
+    - ticker: Required for getting company-specific summary
+
     Transcripts/summaries are synced by a local cron job (sync_video_summaries.py)
     since YouTube blocks transcript requests from cloud IPs.
     """
+    ticker = request.args.get('ticker')
+
     with get_db() as conn:
-        # Get transcript
+        # Get transcript (one per video)
         cursor = conn.execute(
             'SELECT transcript, has_transcript FROM video_transcripts WHERE video_id = ?',
             (video_id,)
         )
         transcript_row = cursor.fetchone()
 
-        # Get summary
-        cursor = conn.execute(
-            'SELECT summary FROM video_summaries WHERE video_id = ?',
-            (video_id,)
-        )
-        summary_row = cursor.fetchone()
+        # Get summary (per video+ticker pair)
+        summary_row = None
+        if ticker:
+            cursor = conn.execute(
+                'SELECT summary FROM video_summaries WHERE video_id = ? AND ticker = ?',
+                (video_id, ticker)
+            )
+            summary_row = cursor.fetchone()
 
         result = {}
 
@@ -5082,12 +5089,11 @@ def get_videos_pending_sync():
     Only returns videos that are in a company's current selection (company_video_selections table).
     This ensures we only sync transcripts for videos currently being displayed.
 
-    Optional query param:
-    - ticker: Filter to only videos for a specific ticker (e.g., GOOGL)
-
-    Returns videos that either:
+    Returns (video_id, ticker) pairs that either:
     - Have no transcript yet (and hasn't been marked as unavailable)
-    - Have transcript but no summary
+    - Have transcript but no summary for that specific ticker
+
+    Each video can appear multiple times if it's selected for multiple tickers.
     """
     sync_key = request.headers.get('X-Sync-Key')
     expected_key = os.environ.get('SYNC_API_KEY', 'lumna-sync-2024')
@@ -5098,30 +5104,30 @@ def get_videos_pending_sync():
 
     with get_db() as conn:
         if ticker_filter:
-            # Filter by ticker
+            # Filter by ticker - return (video_id, ticker) pairs needing sync
             cursor = conn.execute('''
-                SELECT DISTINCT v.video_id, v.title, v.channel_name, v.published_at,
+                SELECT v.video_id, sel.ticker, v.title, v.channel_name, v.published_at, v.duration,
                        t.transcript IS NOT NULL as has_transcript,
                        s.summary IS NOT NULL as has_summary
                 FROM company_video_selections sel
                 JOIN youtube_videos_cache v ON sel.video_id = v.video_id
                 LEFT JOIN video_transcripts t ON v.video_id = t.video_id
-                LEFT JOIN video_summaries s ON v.video_id = s.video_id
+                LEFT JOIN video_summaries s ON v.video_id = s.video_id AND sel.ticker = s.ticker
                 WHERE sel.ticker = ?
                   AND ((t.video_id IS NULL)
                        OR (t.has_transcript = 1 AND t.transcript IS NOT NULL AND s.video_id IS NULL))
                 ORDER BY v.published_at DESC
             ''', (ticker_filter,))
         else:
-            # Get all pending videos
+            # Get all pending (video_id, ticker) pairs
             cursor = conn.execute('''
-                SELECT DISTINCT v.video_id, v.title, v.channel_name, v.published_at,
+                SELECT v.video_id, sel.ticker, v.title, v.channel_name, v.published_at, v.duration,
                        t.transcript IS NOT NULL as has_transcript,
                        s.summary IS NOT NULL as has_summary
                 FROM company_video_selections sel
                 JOIN youtube_videos_cache v ON sel.video_id = v.video_id
                 LEFT JOIN video_transcripts t ON v.video_id = t.video_id
-                LEFT JOIN video_summaries s ON v.video_id = s.video_id
+                LEFT JOIN video_summaries s ON v.video_id = s.video_id AND sel.ticker = s.ticker
                 WHERE (t.video_id IS NULL)
                    OR (t.has_transcript = 1 AND t.transcript IS NOT NULL AND s.video_id IS NULL)
                 ORDER BY v.published_at DESC
@@ -5372,7 +5378,11 @@ def delete_sync_run(run_id):
 
 @app.route('/api/investing/video-summaries/upload', methods=['POST'])
 def upload_video_data():
-    """Upload transcript and/or summary. Used by local sync script."""
+    """Upload transcript and/or summary. Used by local sync script.
+
+    Summaries are stored per (video_id, ticker) pair since the same video
+    can have different summaries focused on different companies.
+    """
     sync_key = request.headers.get('X-Sync-Key')
     expected_key = os.environ.get('SYNC_API_KEY', 'lumna-sync-2024')
     if sync_key != expected_key:
@@ -5380,6 +5390,7 @@ def upload_video_data():
 
     data = request.get_json()
     video_id = data.get('video_id')
+    ticker = data.get('ticker')  # Required for summaries
     transcript = data.get('transcript')  # Can be None if no transcript available
     has_transcript = data.get('has_transcript', True)  # False if video has no transcript
     summary = data.get('summary')
@@ -5387,8 +5398,11 @@ def upload_video_data():
     if not video_id:
         return jsonify({'error': 'video_id required'}), 400
 
+    if summary and not ticker:
+        return jsonify({'error': 'ticker required when uploading summary'}), 400
+
     with get_db() as conn:
-        # Save transcript if provided (or mark as unavailable)
+        # Save transcript if provided (or mark as unavailable) - one per video
         if transcript is not None or not has_transcript:
             if USE_POSTGRES:
                 conn.execute(
@@ -5403,19 +5417,19 @@ def upload_video_data():
                     (video_id, transcript, 1 if has_transcript else 0)
                 )
 
-        # Save summary if provided
+        # Save summary if provided - one per (video_id, ticker) pair
         if summary:
             if USE_POSTGRES:
                 conn.execute(
-                    '''INSERT INTO video_summaries (video_id, summary, created_at)
-                       VALUES (?, ?, NOW())
-                       ON CONFLICT (video_id) DO UPDATE SET summary = EXCLUDED.summary''',
-                    (video_id, summary)
+                    '''INSERT INTO video_summaries (video_id, ticker, summary, created_at)
+                       VALUES (?, ?, ?, NOW())
+                       ON CONFLICT (video_id, ticker) DO UPDATE SET summary = EXCLUDED.summary''',
+                    (video_id, ticker, summary)
                 )
             else:
                 conn.execute(
-                    'INSERT OR REPLACE INTO video_summaries (video_id, summary) VALUES (?, ?)',
-                    (video_id, summary)
+                    'INSERT OR REPLACE INTO video_summaries (video_id, ticker, summary) VALUES (?, ?, ?)',
+                    (video_id, ticker, summary)
                 )
 
     return jsonify({'success': True})

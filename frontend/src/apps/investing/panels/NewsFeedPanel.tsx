@@ -62,8 +62,10 @@ const fetchNewsFeed = async (ticker: string, companyName: string): Promise<NewsF
   return response.data;
 };
 
-const fetchVideoSummary = async (videoId: string): Promise<{ summary?: string; transcript?: string; has_transcript?: boolean; pending?: boolean }> => {
-  const response = await axios.get(`/api/investing/video-summary/${videoId}`);
+const fetchVideoSummary = async (videoId: string, ticker: string): Promise<{ summary?: string; transcript?: string; has_transcript?: boolean; pending?: boolean }> => {
+  const response = await axios.get(`/api/investing/video-summary/${videoId}`, {
+    params: { ticker }
+  });
   return response.data;
 };
 
@@ -111,7 +113,7 @@ function VideoRow({
     setPending(false);
     setNoTranscript(false);
     try {
-      const data = await fetchVideoSummary(video.video_id);
+      const data = await fetchVideoSummary(video.video_id, video.ticker);
       if (data.pending) {
         setPending(true);
       } else if (data.has_transcript === false) {
@@ -129,7 +131,7 @@ function VideoRow({
 
   useEffect(() => {
     loadData();
-  }, [video.video_id]);
+  }, [video.video_id, video.ticker]);
 
   return (
     <div className="flex gap-3 bg-white dark:bg-slate-600 rounded-lg overflow-hidden shadow-sm border border-slate-200 dark:border-slate-500">

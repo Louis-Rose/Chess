@@ -194,12 +194,33 @@ def init_db():
             if not conn._cursor.fetchone():
                 conn.execute("""
                     CREATE TABLE video_summaries (
-                        video_id TEXT PRIMARY KEY,
+                        video_id TEXT NOT NULL,
+                        ticker TEXT NOT NULL,
                         summary TEXT NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (video_id, ticker)
                     )
                 """)
                 print("[Database] Created video_summaries table")
+
+            # Migration: Add ticker column to video_summaries if not exists (migrate to per-company summaries)
+            conn.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'video_summaries' AND column_name = 'ticker'
+            """)
+            if not conn._cursor.fetchone():
+                # Recreate table with new schema (old summaries are invalidated - they need to be regenerated per ticker)
+                conn.execute("DROP TABLE video_summaries")
+                conn.execute("""
+                    CREATE TABLE video_summaries (
+                        video_id TEXT NOT NULL,
+                        ticker TEXT NOT NULL,
+                        summary TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (video_id, ticker)
+                    )
+                """)
+                print("[Database] Migrated video_summaries to per-ticker schema")
 
             # Migration: Create video_transcripts table if not exists
             conn.execute("""

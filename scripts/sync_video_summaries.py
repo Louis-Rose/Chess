@@ -97,13 +97,18 @@ def get_videos_pending_sync(ticker=None):
     return response.json().get('videos', [])
 
 
-def upload_video_data(video_id, transcript=None, has_transcript=True, summary=None):
-    """Upload transcript and/or summary to the API."""
+def upload_video_data(video_id, transcript=None, has_transcript=True, summary=None, ticker=None):
+    """Upload transcript and/or summary to the API.
+
+    Summaries are stored per (video_id, ticker) pair.
+    Transcripts are stored once per video_id.
+    """
     response = requests.post(
         f"{API_BASE_URL}/api/investing/video-summaries/upload",
         headers={'X-Sync-Key': SYNC_API_KEY, 'Content-Type': 'application/json'},
         json={
             'video_id': video_id,
+            'ticker': ticker,
             'transcript': transcript,
             'has_transcript': has_transcript,
             'summary': summary
@@ -215,18 +220,36 @@ def fetch_transcript_local(video_id):
     return get_transcript(video_id, model_size="base")
 
 
-def generate_summary(transcript_text):
-    """Generate summary using Gemini."""
+def get_company_name(ticker):
+    """Get the primary company name for a ticker from EXTRA_KEYWORDS."""
+    # Import here to avoid circular imports
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
+    from youtube_config import EXTRA_KEYWORDS
+    keywords = EXTRA_KEYWORDS.get(ticker, [])
+    return keywords[0] if keywords else ticker
+
+
+def generate_summary(transcript_text, ticker):
+    """Generate company-specific summary using Gemini.
+
+    The summary focuses on the specific company, filtering out
+    information about other companies mentioned in the video.
+    """
     client = genai.Client(api_key=GEMINI_API_KEY)
+    company_name = get_company_name(ticker)
 
     # Truncate if too long
     max_chars = 30000
     if len(transcript_text) > max_chars:
         transcript_text = transcript_text[:max_chars] + '...'
 
-    prompt = f"""Summarize this YouTube video transcript in 3-5 sentences.
+    prompt = f"""Summarize this YouTube video transcript in 3-5 sentences, focusing ONLY on information about {company_name} ({ticker}).
+
+IMPORTANT: This video may discuss multiple companies. Only include information relevant to {company_name}.
+If the video doesn't mention {company_name} at all, respond with "No information about {company_name} in this video."
+
 Each sentence should be on its own line.
-Focus on the main points about the company/stock discussed.
 Be factual and neutral. Write in the same language as the transcript.
 
 Transcript:
@@ -311,36 +334,47 @@ def main():
             end_sync_run(run_id, 'completed', 0, 0, 0)
             return
 
+        # Videos now include ticker - each (video_id, ticker) pair is a separate item
         videos_list = [
-            {'title': v['title'], 'status': 'pending', 'published_at': v.get('published_at'), 'duration': v.get('duration')}
+            {'title': v['title'], 'ticker': v.get('ticker'), 'status': 'pending', 'published_at': v.get('published_at'), 'duration': v.get('duration')}
             for v in videos
         ]
         update_sync_run(run_id, videos_total=len(videos), videos_list=json.dumps(videos_list))
 
-        # Step 4: Process each video
-        log(f"\n[Step 4] Processing {len(videos)} videos...")
+        # Step 4: Process each (video, ticker) pair
+        log(f"\n[Step 4] Processing {len(videos)} video-ticker pairs...")
         log("(Using local yt-dlp + Whisper transcription)")
         log("-" * 40)
 
         no_transcript = 0
+        # Cache transcripts locally to avoid re-downloading for same video with different tickers
+        transcript_cache = {}
 
         for i, video in enumerate(videos):
             video_id = video['video_id']
+            ticker = video.get('ticker')
             has_transcript = video.get('has_transcript', False)
             has_summary = video.get('has_summary', False)
-            title = video['title'][:50] + '...' if len(video['title']) > 50 else video['title']
+            title = video['title'][:40] + '...' if len(video['title']) > 40 else video['title']
 
-            log(f"\n[{i+1}/{len(videos)}] {title}")
+            log(f"\n[{i+1}/{len(videos)}] {title} ({ticker})")
 
             # Update progress
-            update_sync_run(run_id, videos_processed=i, current_video=title, current_step='downloading')
+            update_sync_run(run_id, videos_processed=i, current_video=f"{title} ({ticker})", current_step='downloading')
 
             try:
                 transcript = None
                 summary = None
 
-                # Get transcript (local transcription)
-                if not has_transcript:
+                # Get transcript (local transcription) - check cache first
+                if video_id in transcript_cache:
+                    transcript = transcript_cache[video_id]
+                    if transcript:
+                        log(f"  -> Transcript from cache ({len(transcript)} chars)")
+                    else:
+                        log(f"  -> Video marked as unavailable (cached)")
+                        continue
+                elif not has_transcript:
                     log(f"  -> Downloading and transcribing locally...")
                     update_sync_run(run_id, current_step='downloading')
                     start_time = time.time()
@@ -349,10 +383,13 @@ def main():
                         update_sync_run(run_id, current_step='transcribing')
                         transcript = fetch_transcript_local(video_id)
                         elapsed = time.time() - start_time
+                        transcript_cache[video_id] = transcript
 
                         if transcript:
                             log(f"  -> Transcript ready ({len(transcript)} chars) in {elapsed:.1f}s")
                             transcript_fetched += 1
+                            # Upload transcript immediately (shared across tickers)
+                            upload_video_data(video_id, transcript=transcript, has_transcript=True)
                         else:
                             log(f"  -> Video unavailable, marking as no transcript")
                             upload_video_data(video_id, transcript=None, has_transcript=False)
@@ -362,25 +399,42 @@ def main():
                     except (VideoUnavailableError, DownloadError) as e:
                         log(f"  -> Video unavailable: {str(e)[:60]}")
                         upload_video_data(video_id, transcript=None, has_transcript=False)
+                        transcript_cache[video_id] = None
                         no_transcript += 1
                         continue
 
                 else:
-                    log(f"  -> Transcript already cached")
+                    log(f"  -> Transcript already in API")
 
-                # Generate summary
-                if transcript and not has_summary:
-                    log(f"  -> Generating summary with Gemini...")
-                    update_sync_run(run_id, current_step='summarizing')
-                    summary = generate_summary(transcript)
-                    log(f"  -> Summary generated ({len(summary)} chars)")
-                    summary_generated += 1
+                # Generate company-specific summary
+                if (transcript or has_transcript) and not has_summary and ticker:
+                    # Need to fetch transcript from API if we don't have it locally
+                    if not transcript and has_transcript:
+                        # Transcript exists in API but we need it for summary generation
+                        # This happens when video had transcript but needed summary for new ticker
+                        log(f"  -> Fetching transcript from API for summary...")
+                        try:
+                            resp = requests.get(
+                                f"{API_BASE_URL}/api/investing/video-summary/{video_id}",
+                                timeout=30
+                            )
+                            if resp.ok:
+                                transcript = resp.json().get('transcript')
+                                transcript_cache[video_id] = transcript
+                        except Exception as e:
+                            log(f"  -> Failed to fetch transcript: {e}")
 
-                # Upload to API
-                if transcript or summary:
-                    update_sync_run(run_id, current_step='uploading')
-                    upload_video_data(video_id, transcript=transcript, has_transcript=True, summary=summary)
-                    log(f"  -> Uploaded to API")
+                    if transcript:
+                        log(f"  -> Generating {ticker}-specific summary with Gemini...")
+                        update_sync_run(run_id, current_step='summarizing')
+                        summary = generate_summary(transcript, ticker)
+                        log(f"  -> Summary generated ({len(summary)} chars)")
+                        summary_generated += 1
+
+                        # Upload summary with ticker
+                        update_sync_run(run_id, current_step='uploading')
+                        upload_video_data(video_id, summary=summary, ticker=ticker)
+                        log(f"  -> Uploaded {ticker} summary to API")
 
             except Exception as e:
                 log(f"  -> ERROR: {str(e)[:100]}")

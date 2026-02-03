@@ -219,11 +219,13 @@ CREATE TABLE IF NOT EXISTS video_transcripts (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Video transcript summaries cache
+-- Video transcript summaries cache (per ticker - same video can have different summaries for different companies)
 CREATE TABLE IF NOT EXISTS video_summaries (
-    video_id TEXT PRIMARY KEY,
+    video_id TEXT NOT NULL,
+    ticker TEXT NOT NULL,
     summary TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (video_id, ticker)
 );
 
 -- Current video selection per company (only these videos need transcripts)
