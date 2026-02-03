@@ -594,11 +594,11 @@ export function InvestingWelcomePanel() {
                   <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
                     {formatCurrency(portfolioValue, valueCurrency)}
                   </p>
-                  <div className="h-7 flex items-center justify-center">
+                  <div className="h-7 w-full flex items-center justify-center">
                     {perfLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
                     ) : (perf1Value !== undefined && perf1Value !== null) || (perf7Value !== undefined && perf7Value !== null) || (perf30Value !== undefined && perf30Value !== null) ? (
-                      <div className="flex items-center gap-3 text-lg font-semibold">
+                      <div className="flex items-center justify-center gap-3 text-lg font-semibold">
                         {perf1Value !== undefined && perf1Value !== null && (
                           <span className={perf1Value >= 0 ? 'text-green-600' : 'text-red-600'}>
                             1D: {perf1Value >= 0 ? '+' : ''}{perf1Value.toFixed(1)}%
@@ -1136,7 +1136,7 @@ export function InvestingWelcomePanel() {
                           {formatCurrency(73458, 'EUR')}
                         </p>
                         {(demoPerf1 != null || demoPerf7 != null || demoPerf30 != null) && (
-                          <div className="flex items-center gap-3 text-lg font-semibold">
+                          <div className="w-full flex items-center justify-center gap-3 text-lg font-semibold">
                             {demoPerf1 != null && (
                               <span className={demoPerf1 >= 0 ? 'text-green-600' : 'text-red-600'}>
                                 1D: {demoPerf1 >= 0 ? '+' : ''}{demoPerf1.toFixed(1)}%
