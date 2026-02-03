@@ -204,7 +204,6 @@ function VideoRow({
                       const seconds = match[3] ? parseInt(match[3]) : parseInt(match[2]);
                       const totalSeconds = hours * 3600 + minutes * 60 + seconds;
                       const timestamp = match[3] ? `${match[1]}:${match[2]}:${match[3]}` : `${match[1]}:${match[2]}`;
-                      const text = match[4] || match[3] && match[4];
                       const ytUrl = `https://www.youtube.com/watch?v=${video.video_id}&t=${totalSeconds}`;
                       return (
                         <li key={idx} className="flex gap-2">
