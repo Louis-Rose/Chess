@@ -213,6 +213,30 @@ def _get_cached_price(ticker, date_str):
     except:
         return None
 
+
+def _get_cached_prices_batch(tickers, date_str):
+    """Get cached prices for multiple tickers in one query. Returns dict of ticker -> price."""
+    if not _db_getter or not tickers:
+        return {}
+    try:
+        with _db_getter() as conn:
+            if USE_POSTGRES:
+                placeholders = ','.join(['%s'] * len(tickers))
+                cursor = conn.execute(
+                    f'SELECT ticker, close_price FROM historical_prices WHERE ticker IN ({placeholders}) AND date = %s',
+                    (*tickers, date_str)
+                )
+            else:
+                placeholders = ','.join(['?'] * len(tickers))
+                cursor = conn.execute(
+                    f'SELECT ticker, close_price FROM historical_prices WHERE ticker IN ({placeholders}) AND date = ?',
+                    (*tickers, date_str)
+                )
+            return {row['ticker']: row['close_price'] for row in cursor.fetchall()}
+    except Exception as e:
+        print(f"Error getting cached prices batch: {e}")
+        return {}
+
 def _get_cached_current_price(ticker):
     """Get cached current price if fresh (within TTL)"""
     if not _db_getter:
@@ -618,6 +642,117 @@ def fetch_current_stock_prices_batch(tickers):
                     prices[ticker] = price
             except Exception:
                 prices[ticker] = 0
+
+    return prices
+
+
+def fetch_historical_prices_batch(tickers, date_str):
+    """
+    Fetch historical prices for multiple tickers for a specific date in batch.
+    Returns: dict mapping ticker -> price (using original ticker names as keys)
+    """
+    if not tickers:
+        return {}
+
+    prices = {}
+    tickers_to_fetch = []
+    ticker_mapping = {}  # yf_ticker -> original_ticker
+
+    # Check cache in one batch query
+    cached_prices = _get_cached_prices_batch(tickers, date_str)
+    for ticker in tickers:
+        if ticker in cached_prices:
+            prices[ticker] = cached_prices[ticker]
+        else:
+            yf_ticker = get_yfinance_ticker(ticker)
+            tickers_to_fetch.append(yf_ticker)
+            ticker_mapping[yf_ticker] = ticker
+
+    if not tickers_to_fetch:
+        return prices
+
+    # Parse date for query range
+    target_date = datetime.strptime(date_str, "%Y-%m-%d")
+    start_date = (target_date - timedelta(days=7)).strftime('%Y-%m-%d')
+    end_date = (target_date + timedelta(days=1)).strftime('%Y-%m-%d')
+
+    try:
+        # Batch download - single API call for all tickers
+        data = yf.download(
+            tickers_to_fetch,
+            start=start_date,
+            end=end_date,
+            progress=False,
+            threads=True,
+            auto_adjust=True
+        )
+
+        if len(tickers_to_fetch) == 1:
+            # Single ticker returns different structure
+            yf_ticker = tickers_to_fetch[0]
+            original_ticker = ticker_mapping[yf_ticker]
+            if not data.empty:
+                # Try to get exact date
+                matching = [d for d in data.index if d.strftime('%Y-%m-%d') == date_str]
+                if matching:
+                    row = data.loc[matching[0]]
+                    avg_price = (row['Open'] + row['High'] + row['Low'] + row['Close']) / 4
+                    price = round(float(avg_price), 2)
+                elif len(data) > 0:
+                    row = data.iloc[-1]
+                    avg_price = (row['Open'] + row['High'] + row['Low'] + row['Close']) / 4
+                    price = round(float(avg_price), 2)
+                else:
+                    price = None
+
+                if price:
+                    prices[original_ticker] = price
+                    _save_cached_price(original_ticker, date_str, price)
+        else:
+            # Multiple tickers - columns are MultiIndex
+            for yf_ticker in tickers_to_fetch:
+                original_ticker = ticker_mapping[yf_ticker]
+                try:
+                    # Get data for this ticker
+                    matching = [d for d in data.index if d.strftime('%Y-%m-%d') == date_str]
+                    if matching:
+                        idx = matching[0]
+                        o = data['Open'][yf_ticker].loc[idx]
+                        h = data['High'][yf_ticker].loc[idx]
+                        l = data['Low'][yf_ticker].loc[idx]
+                        c = data['Close'][yf_ticker].loc[idx]
+                        if not pd.isna(c):
+                            avg_price = (o + h + l + c) / 4
+                            price = round(float(avg_price), 2)
+                            prices[original_ticker] = price
+                            _save_cached_price(original_ticker, date_str, price)
+                    elif yf_ticker in data['Close'].columns:
+                        # Fallback to last available date
+                        close_vals = data['Close'][yf_ticker].dropna()
+                        if len(close_vals) > 0:
+                            last_idx = close_vals.index[-1]
+                            o = data['Open'][yf_ticker].loc[last_idx]
+                            h = data['High'][yf_ticker].loc[last_idx]
+                            l = data['Low'][yf_ticker].loc[last_idx]
+                            c = close_vals.iloc[-1]
+                            avg_price = (o + h + l + c) / 4
+                            price = round(float(avg_price), 2)
+                            prices[original_ticker] = price
+                            _save_cached_price(original_ticker, date_str, price)
+                except (KeyError, IndexError) as e:
+                    pass
+    except Exception as e:
+        print(f"Error in batch historical price fetch: {e}")
+
+    # Fallback: fetch remaining tickers individually
+    for ticker in tickers:
+        if ticker not in prices:
+            try:
+                price = fetch_stock_price(ticker, date_str)
+                if price:
+                    prices[ticker] = price
+            except Exception:
+                pass
 
     return prices
 

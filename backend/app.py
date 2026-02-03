@@ -587,7 +587,7 @@ def get_demo_dashboard():
     Returns all the data needed to render the dashboard cards with real demo user data.
     """
     import json
-    from investing_utils import fetch_stock_price, fetch_current_stock_prices_batch, get_fx_rate_to_eur, get_stock_currency
+    from investing_utils import fetch_current_stock_prices_batch, fetch_historical_prices_batch, get_fx_rate_to_eur, get_stock_currency
 
     demo_email = 'rose.louis.mail@gmail.com'
 
@@ -682,19 +682,19 @@ def get_demo_dashboard():
         today = datetime.now()
         past_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
         all_tickers = [h['stock_ticker'] for h in holdings]
-        prices = fetch_current_stock_prices_batch(all_tickers)
+
+        # Batch fetch both current and historical prices
+        current_prices = fetch_current_stock_prices_batch(all_tickers)
+        past_prices = fetch_historical_prices_batch(all_tickers, past_date)
 
         for h in holdings:
             ticker = h['stock_ticker']
-            current_price = prices.get(ticker, 0) or 0
-            if current_price <= 0:
+            current_price = current_prices.get(ticker, 0) or 0
+            past_price = past_prices.get(ticker, 0) or 0
+
+            if current_price <= 0 or past_price <= 0:
                 continue
-            try:
-                past_price = fetch_stock_price(ticker, past_date)
-                if past_price is None or past_price <= 0:
-                    continue
-            except Exception:
-                continue
+
             change_pct = ((current_price - past_price) / past_price) * 100
             portfolio_movers.append({
                 'ticker': ticker,
@@ -710,18 +710,18 @@ def get_demo_dashboard():
     if watchlist_tickers:
         today = datetime.now()
         past_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
-        prices = fetch_current_stock_prices_batch(watchlist_tickers)
+
+        # Batch fetch both current and historical prices
+        current_prices = fetch_current_stock_prices_batch(watchlist_tickers)
+        past_prices = fetch_historical_prices_batch(watchlist_tickers, past_date)
 
         for ticker in watchlist_tickers:
-            current_price = prices.get(ticker, 0) or 0
-            if current_price <= 0:
+            current_price = current_prices.get(ticker, 0) or 0
+            past_price = past_prices.get(ticker, 0) or 0
+
+            if current_price <= 0 or past_price <= 0:
                 continue
-            try:
-                past_price = fetch_stock_price(ticker, past_date)
-                if past_price is None or past_price <= 0:
-                    continue
-            except Exception:
-                continue
+
             change_pct = ((current_price - past_price) / past_price) * 100
             watchlist_movers.append({
                 'ticker': ticker,
@@ -3289,7 +3289,7 @@ def get_portfolio_performance_period():
 @login_required
 def get_portfolio_top_movers():
     """Get top movers in portfolio based on price change over period."""
-    from investing_utils import fetch_stock_price, get_fx_rate_to_eur, get_stock_currency, fetch_current_stock_prices_batch
+    from investing_utils import fetch_current_stock_prices_batch, fetch_historical_prices_batch
 
     days = request.args.get('days', 30, type=int)
     if days not in [7, 30]:
@@ -3311,20 +3311,18 @@ def get_portfolio_top_movers():
     past_date = (today - timedelta(days=days)).strftime('%Y-%m-%d')
 
     all_tickers = [h['stock_ticker'] for h in holdings]
-    prices = fetch_current_stock_prices_batch(all_tickers)
+
+    # Batch fetch both current and historical prices
+    current_prices = fetch_current_stock_prices_batch(all_tickers)
+    past_prices = fetch_historical_prices_batch(all_tickers, past_date)
 
     movers = []
     for h in holdings:
         ticker = h['stock_ticker']
-        current_price = prices.get(ticker, 0) or 0
-        if current_price <= 0:
-            continue
+        current_price = current_prices.get(ticker, 0) or 0
+        past_price = past_prices.get(ticker, 0) or 0
 
-        try:
-            past_price = fetch_stock_price(ticker, past_date)
-            if past_price is None or past_price <= 0:
-                continue
-        except:
+        if current_price <= 0 or past_price <= 0:
             continue
 
         change_pct = ((current_price - past_price) / past_price) * 100
@@ -3348,7 +3346,7 @@ def get_portfolio_top_movers():
 @login_required
 def get_watchlist_top_movers():
     """Get top movers in watchlist based on price change over period."""
-    from investing_utils import fetch_stock_price, fetch_current_stock_prices_batch
+    from investing_utils import fetch_current_stock_prices_batch, fetch_historical_prices_batch
 
     days = request.args.get('days', 30, type=int)
     if days not in [7, 30]:
@@ -3368,19 +3366,16 @@ def get_watchlist_top_movers():
     today = datetime.now()
     past_date = (today - timedelta(days=days)).strftime('%Y-%m-%d')
 
-    prices = fetch_current_stock_prices_batch(watchlist_tickers)
+    # Batch fetch both current and historical prices
+    current_prices = fetch_current_stock_prices_batch(watchlist_tickers)
+    past_prices = fetch_historical_prices_batch(watchlist_tickers, past_date)
 
     movers = []
     for ticker in watchlist_tickers:
-        current_price = prices.get(ticker, 0) or 0
-        if current_price <= 0:
-            continue
+        current_price = current_prices.get(ticker, 0) or 0
+        past_price = past_prices.get(ticker, 0) or 0
 
-        try:
-            past_price = fetch_stock_price(ticker, past_date)
-            if past_price is None or past_price <= 0:
-                continue
-        except:
+        if current_price <= 0 or past_price <= 0:
             continue
 
         change_pct = ((current_price - past_price) / past_price) * 100
