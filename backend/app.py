@@ -581,6 +581,198 @@ def get_demo_card_order():
     return jsonify({'order': None})
 
 
+@app.route('/api/demo-dashboard', methods=['GET'])
+def get_demo_dashboard():
+    """Get complete dashboard data for demo user (public endpoint for unauthenticated preview).
+    Returns all the data needed to render the dashboard cards with real demo user data.
+    """
+    import json
+    from investing_utils import fetch_stock_price, fetch_current_stock_prices_batch, get_fx_rate_to_eur, get_stock_currency
+
+    demo_email = 'rose.louis.mail@gmail.com'
+
+    with get_db() as conn:
+        # Find demo user's ID
+        if USE_POSTGRES:
+            cursor = conn.execute('SELECT id FROM users WHERE email = %s', (demo_email,))
+        else:
+            cursor = conn.execute('SELECT id FROM users WHERE email = ?', (demo_email,))
+        user_row = cursor.fetchone()
+
+        if not user_row:
+            return jsonify({'error': 'Demo user not found'}), 404
+
+        demo_user_id = user_row['id']
+
+        # Get card order
+        if USE_POSTGRES:
+            cursor = conn.execute('SELECT dashboard_card_order FROM user_preferences WHERE user_id = %s', (demo_user_id,))
+        else:
+            cursor = conn.execute('SELECT dashboard_card_order FROM user_preferences WHERE user_id = ?', (demo_user_id,))
+        pref_row = cursor.fetchone()
+        card_order = None
+        if pref_row and pref_row['dashboard_card_order']:
+            try:
+                card_order = json.loads(pref_row['dashboard_card_order'])
+            except json.JSONDecodeError:
+                pass
+
+        # Get all account IDs for demo user
+        if USE_POSTGRES:
+            cursor = conn.execute('SELECT id FROM investment_accounts WHERE user_id = %s', (demo_user_id,))
+        else:
+            cursor = conn.execute('SELECT id FROM investment_accounts WHERE user_id = ?', (demo_user_id,))
+        account_ids = [row['id'] for row in cursor.fetchall()]
+
+        # Get watchlist tickers
+        if USE_POSTGRES:
+            cursor = conn.execute('SELECT stock_ticker FROM watchlist WHERE user_id = %s', (demo_user_id,))
+        else:
+            cursor = conn.execute('SELECT stock_ticker FROM watchlist WHERE user_id = ?', (demo_user_id,))
+        watchlist_tickers = [row['stock_ticker'] for row in cursor.fetchall()]
+
+    # Get portfolio composition
+    holdings = compute_holdings_from_transactions(demo_user_id, account_ids if account_ids else None)
+    composition = None
+    if holdings:
+        try:
+            composition = compute_portfolio_composition(holdings)
+        except Exception:
+            pass
+
+    # Get performance data (7 days and 30 days)
+    perf_7 = None
+    perf_30 = None
+    if holdings:
+        today = datetime.now()
+        all_tickers = [h['stock_ticker'] for h in holdings]
+        prices = fetch_current_stock_prices_batch(all_tickers)
+
+        for days in [7, 30]:
+            past_date = (today - timedelta(days=days)).strftime('%Y-%m-%d')
+            current_value = 0
+            past_value = 0
+
+            for h in holdings:
+                ticker = h['stock_ticker']
+                qty = h['quantity']
+                current_price = prices.get(ticker, 0) or 0
+                try:
+                    past_price = fetch_stock_price(ticker, past_date)
+                    if past_price is None:
+                        past_price = current_price
+                except Exception:
+                    past_price = current_price
+
+                currency = get_stock_currency(ticker)
+                fx_rate = get_fx_rate_to_eur(currency)
+                current_value += (current_price or 0) * qty * fx_rate
+                past_value += (past_price or 0) * qty * fx_rate
+
+            if past_value > 0:
+                perf_pct = ((current_value - past_value) / past_value) * 100
+                if days == 7:
+                    perf_7 = round(perf_pct, 2)
+                else:
+                    perf_30 = round(perf_pct, 2)
+
+    # Get portfolio top movers (30 days)
+    portfolio_movers = []
+    if holdings:
+        today = datetime.now()
+        past_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+        all_tickers = [h['stock_ticker'] for h in holdings]
+        prices = fetch_current_stock_prices_batch(all_tickers)
+
+        for h in holdings:
+            ticker = h['stock_ticker']
+            current_price = prices.get(ticker, 0) or 0
+            if current_price <= 0:
+                continue
+            try:
+                past_price = fetch_stock_price(ticker, past_date)
+                if past_price is None or past_price <= 0:
+                    continue
+            except Exception:
+                continue
+            change_pct = ((current_price - past_price) / past_price) * 100
+            portfolio_movers.append({
+                'ticker': ticker,
+                'change_pct': round(change_pct, 1),
+                'current_price': round(current_price, 2),
+                'past_price': round(past_price, 2)
+            })
+        portfolio_movers.sort(key=lambda x: x['change_pct'], reverse=True)
+        portfolio_movers = portfolio_movers[:5]
+
+    # Get watchlist top movers (30 days)
+    watchlist_movers = []
+    if watchlist_tickers:
+        today = datetime.now()
+        past_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+        prices = fetch_current_stock_prices_batch(watchlist_tickers)
+
+        for ticker in watchlist_tickers:
+            current_price = prices.get(ticker, 0) or 0
+            if current_price <= 0:
+                continue
+            try:
+                past_price = fetch_stock_price(ticker, past_date)
+                if past_price is None or past_price <= 0:
+                    continue
+            except Exception:
+                continue
+            change_pct = ((current_price - past_price) / past_price) * 100
+            watchlist_movers.append({
+                'ticker': ticker,
+                'change_pct': round(change_pct, 1),
+                'current_price': round(current_price, 2),
+                'past_price': round(past_price, 2)
+            })
+        watchlist_movers.sort(key=lambda x: x['change_pct'], reverse=True)
+        watchlist_movers = watchlist_movers[:5]
+
+    # Get earnings data (portfolio only)
+    earnings_data = []
+    if holdings:
+        today_date = datetime.now().date()
+        portfolio_tickers = {h['stock_ticker'] for h in holdings if h['quantity'] > 0}
+
+        for ticker in portfolio_tickers:
+            cached_date, cached_confirmed, _, is_fresh = get_cached_earnings(ticker)
+            if is_fresh and cached_date:
+                try:
+                    earnings_date = datetime.strptime(cached_date, '%Y-%m-%d').date()
+                    remaining_days = (earnings_date - today_date).days
+                    if remaining_days >= 0:
+                        earnings_data.append({
+                            'ticker': ticker,
+                            'next_earnings_date': cached_date,
+                            'remaining_days': remaining_days,
+                            'date_confirmed': cached_confirmed,
+                            'source': 'portfolio'
+                        })
+                except Exception:
+                    pass
+        earnings_data.sort(key=lambda x: (x['remaining_days'] is None, x['remaining_days'] or 9999))
+        earnings_data = earnings_data[:15]
+
+    # Note: Dividend data requires slow API calls (no caching available)
+    # For the demo preview (which is blurred anyway), we skip dividend fetching
+    dividends_data = []
+
+    return jsonify({
+        'card_order': card_order,
+        'composition': composition,
+        'performance_7': perf_7,
+        'performance_30': perf_30,
+        'portfolio_movers': portfolio_movers,
+        'watchlist_movers': watchlist_movers,
+        'earnings': earnings_data,
+        'dividends': dividends_data
+    })
+
+
 @app.route('/api/preferences/financial-card-order', methods=['GET'])
 @login_required
 def get_financial_card_order():

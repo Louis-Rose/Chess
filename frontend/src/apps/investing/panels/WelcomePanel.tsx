@@ -157,9 +157,20 @@ const fetchCardOrder = async (): Promise<GridSlot[] | null> => {
   return response.data.order;
 };
 
-const fetchDemoCardOrder = async (): Promise<GridSlot[] | null> => {
-  const response = await axios.get('/api/preferences/demo-card-order');
-  return response.data.order;
+interface DemoDashboardData {
+  card_order: GridSlot[] | null;
+  composition: CompositionData | null;
+  performance_7: number | null;
+  performance_30: number | null;
+  portfolio_movers: TopMover[];
+  watchlist_movers: TopMover[];
+  earnings: EarningsItem[];
+  dividends: DividendItem[];
+}
+
+const fetchDemoDashboard = async (): Promise<DemoDashboardData> => {
+  const response = await axios.get('/api/demo-dashboard');
+  return response.data;
 };
 
 const saveCardOrder = async (order: GridSlot[]): Promise<void> => {
@@ -267,10 +278,10 @@ export function InvestingWelcomePanel() {
     staleTime: Infinity,
   });
 
-  // Fetch demo card order for unauthenticated preview
-  const { data: demoCardOrder } = useQuery({
-    queryKey: ['demo-card-order'],
-    queryFn: fetchDemoCardOrder,
+  // Fetch demo dashboard data for unauthenticated preview
+  const { data: demoDashboard } = useQuery({
+    queryKey: ['demo-dashboard'],
+    queryFn: fetchDemoDashboard,
     enabled: !isAuthenticated && !authLoading,
     staleTime: Infinity,
   });
@@ -1039,15 +1050,25 @@ export function InvestingWelcomePanel() {
 
         {/* Blurred dashboard preview for non-authenticated users */}
         {!isAuthenticated && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-[10%] mb-8 select-none">
-            {(demoCardOrder || DEFAULT_GRID).map((cardId, slotIndex) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-[10%] mb-8 select-none pointer-events-none">
+            {(demoDashboard?.card_order || DEFAULT_GRID).map((cardId, slotIndex) => {
               // Empty slot - render invisible placeholder to preserve grid layout
               if (cardId === null) {
                 return <div key={`empty-${slotIndex}`} className="h-[200px]" />;
               }
 
               const cardBaseClass = "bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col";
-              const blurClass = "blur-[1.5px] pointer-events-none";
+              const blurClass = "blur-[1.5px]";
+
+              // Get demo data
+              const demoValue = demoDashboard?.composition?.total_value_eur;
+              const demoPerf7 = demoDashboard?.performance_7;
+              const demoPerf30 = demoDashboard?.performance_30;
+              const demoPortfolioMovers = demoDashboard?.portfolio_movers ?? [];
+              const demoWatchlistMovers = demoDashboard?.watchlist_movers ?? [];
+              const demoEarnings = demoDashboard?.earnings ?? [];
+              const demoDividends = demoDashboard?.dividends ?? [];
+              const demoFxRate = demoDashboard?.composition?.eurusd_rate ?? 1.0;
 
               switch (cardId) {
                 case 'portfolio':
@@ -1061,113 +1082,243 @@ export function InvestingWelcomePanel() {
                           {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
                         </span>
                       </div>
-                      <div className={`flex-1 flex flex-col justify-center ${blurClass}`}>
-                        <p className="text-4xl font-bold text-green-500">21 458 €</p>
-                        <p className="text-sm text-green-400 mt-1">+12.4% {language === 'fr' ? 'cette année' : 'this year'}</p>
+                      <div className={`flex-1 flex flex-col items-center justify-center gap-3 ${blurClass}`}>
+                        <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+                          {demoValue ? formatCurrency(demoValue, 'EUR') : '---'}
+                        </p>
+                        {(demoPerf7 != null || demoPerf30 != null) && (
+                          <div className="flex items-center gap-3 text-lg font-semibold">
+                            {demoPerf7 != null && (
+                              <span className={demoPerf7 >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                {language === 'fr' ? 'Sem.' : '1W'}: {demoPerf7 >= 0 ? '+' : ''}{demoPerf7.toFixed(1)}%
+                              </span>
+                            )}
+                            {demoPerf7 != null && demoPerf30 != null && <span className="text-slate-500">|</span>}
+                            {demoPerf30 != null && (
+                              <span className={demoPerf30 >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                {language === 'fr' ? 'Mois' : '1M'}: {demoPerf30 >= 0 ? '+' : ''}{demoPerf30.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
                 case 'top-movers':
                   return (
-                    <div key={cardId} className={cardBaseClass}>
-                      <div className="flex items-center gap-2 mb-3">
+                    <div key={cardId} className={`${cardBaseClass} overflow-hidden`}>
+                      <div className="flex items-center gap-2 mb-3 flex-shrink-0">
                         <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
                           <Flame className="w-4 h-4 text-white" />
                         </div>
-                        <span className="text-xl font-bold text-white">Top Movers</span>
+                        <span className="text-xl font-bold text-white">
+                          {language === 'fr' ? 'Mouvements Portefeuille' : 'Portfolio Moves'}
+                        </span>
                       </div>
-                      <div className={`flex-1 ${blurClass}`}>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">NVDA</span><span className="text-sm text-green-400">+5.2%</span></div>
-                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">TSLA</span><span className="text-sm text-green-400">+3.8%</span></div>
-                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">META</span><span className="text-sm text-red-400">-2.1%</span></div>
-                        </div>
+                      <div className={`space-y-2 flex-1 overflow-y-auto scrollbar-hide ${blurClass}`}>
+                        {demoPortfolioMovers.map((stock) => {
+                          const logoUrl = getCompanyLogoUrl(stock.ticker);
+                          return (
+                            <div key={stock.ticker} className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                                  {logoUrl ? (
+                                    <img src={logoUrl} alt={stock.ticker} className="w-4 h-4 object-contain" />
+                                  ) : (
+                                    <span className="text-[8px] font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
+                                  )}
+                                </div>
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
+                              </div>
+                              <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
                 case 'earnings':
                   return (
                     <div key={cardId} className={cardBaseClass}>
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+                        <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
                           <Calendar className="w-4 h-4 text-white" />
                         </div>
-                        <span className="text-xl font-bold text-white">{language === 'fr' ? 'Résultats' : 'Earnings'}</span>
+                        <span className="text-xl font-bold text-white">
+                          {language === 'fr' ? 'Résultats à venir' : 'Upcoming Earnings'}
+                        </span>
                       </div>
-                      <div className={`flex-1 ${blurClass}`}>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">AAPL</span><span className="text-xs text-slate-400">Feb 6</span></div>
-                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">GOOGL</span><span className="text-xs text-slate-400">Feb 8</span></div>
-                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">AMZN</span><span className="text-xs text-slate-400">Feb 12</span></div>
-                        </div>
+                      <div className={`space-y-2 flex-1 overflow-y-auto scrollbar-hide pr-1 ${blurClass}`}>
+                        {demoEarnings.map((earning) => {
+                          const logoUrl = getCompanyLogoUrl(earning.ticker);
+                          return (
+                            <div key={earning.ticker} className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                                  {logoUrl ? (
+                                    <img src={logoUrl} alt={earning.ticker} className="w-4 h-4 object-contain" />
+                                  ) : (
+                                    <span className="text-[8px] font-bold text-slate-500">{earning.ticker.slice(0, 2)}</span>
+                                  )}
+                                </div>
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{earning.ticker}</span>
+                              </div>
+                              <span className="text-sm font-bold text-white">
+                                {earning.next_earnings_date ? (
+                                  <>
+                                    <span className="min-[1600px]:hidden">
+                                      {new Date(earning.next_earnings_date).toLocaleDateString(
+                                        language === 'fr' ? 'fr-FR' : 'en-US',
+                                        { day: 'numeric', month: 'short', year: 'numeric' }
+                                      )}
+                                    </span>
+                                    {earning.remaining_days !== null && (
+                                      <span className="text-slate-400 font-normal">
+                                        {' '}({earning.remaining_days === 0
+                                          ? (language === 'fr' ? "aujourd'hui" : 'today')
+                                          : `${earning.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-slate-500 font-normal italic">
+                                    {language === 'fr' ? 'Non annoncé' : 'Not announced'}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
                 case 'dividends':
                   return (
                     <div key={cardId} className={cardBaseClass}>
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-3 flex-shrink-0">
                         <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
                           <DollarSign className="w-4 h-4 text-white" />
                         </div>
-                        <span className="text-xl font-bold text-white">{language === 'fr' ? 'Dividendes' : 'Dividends'}</span>
+                        <span className="text-xl font-bold text-white">
+                          {language === 'fr' ? 'Dividendes' : 'Dividends'}
+                        </span>
                       </div>
-                      <div className={`flex-1 ${blurClass}`}>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">MSFT</span><span className="text-xs text-slate-400">$0.75</span></div>
-                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">JNJ</span><span className="text-xs text-slate-400">$1.24</span></div>
-                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">PG</span><span className="text-xs text-slate-400">$1.01</span></div>
-                        </div>
+                      <div className={`space-y-2 flex-1 overflow-y-auto scrollbar-hide pr-1 ${blurClass}`}>
+                        {demoDividends.map((dividend) => {
+                          const logoUrl = getCompanyLogoUrl(dividend.ticker);
+                          const paysDividends = dividend.pays_dividends !== false;
+                          return (
+                            <div key={dividend.ticker} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-x-1">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                                  {logoUrl ? (
+                                    <img src={logoUrl} alt={dividend.ticker} className="w-4 h-4 object-contain" />
+                                  ) : (
+                                    <span className="text-[8px] font-bold text-slate-500">{dividend.ticker.slice(0, 2)}</span>
+                                  )}
+                                </div>
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 w-12">{dividend.ticker}</span>
+                              </div>
+                              <span className="text-sm text-emerald-500 font-bold tabular-nums justify-self-end">
+                                {(() => {
+                                  if (!paysDividends) return '00.00€';
+                                  const amount = dividend.total_dividend ?? dividend.dividend_amount;
+                                  if (amount === null) return null;
+                                  const displayAmount = amount / demoFxRate;
+                                  return `${displayAmount.toFixed(2).padStart(5, '0')}€`;
+                                })()}
+                              </span>
+                              <span className="text-sm text-emerald-500 tabular-nums hidden min-[1920px]:inline">
+                                {paysDividends && dividend.total_dividend !== null && dividend.quantity && dividend.dividend_amount && (
+                                  <>({dividend.quantity} × ${dividend.dividend_amount.toFixed(2)})</>
+                                )}
+                              </span>
+                              <span className="text-sm text-slate-400 tabular-nums ml-1">
+                                {paysDividends ? (
+                                  dividend.remaining_days !== null && (
+                                    <>
+                                      ({dividend.remaining_days === 0
+                                        ? (language === 'fr' ? "aujourd'hui" : 'today')
+                                        : `${dividend.remaining_days} ${language === 'fr' ? 'jours' : 'days'}`})
+                                    </>
+                                  )
+                                ) : (
+                                  <>({language === 'fr' ? 'Pas de dividendes' : 'No dividends'})</>
+                                )}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
                 case 'watchlist':
                   return (
-                    <div key={cardId} className={cardBaseClass}>
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 bg-yellow-600 rounded-lg flex items-center justify-center">
+                    <div key={cardId} className={`${cardBaseClass} overflow-hidden`}>
+                      <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                           <Eye className="w-4 h-4 text-white" />
                         </div>
-                        <span className="text-xl font-bold text-white">{language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}</span>
+                        <span className="text-xl font-bold text-white">
+                          {language === 'fr' ? 'Mouvements Watchlist' : 'Watchlist Moves'}
+                        </span>
                       </div>
-                      <div className={`flex-1 ${blurClass}`}>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">TSLA</span><span className="text-sm text-green-400">+2.4%</span></div>
-                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">META</span><span className="text-sm text-red-400">-1.2%</span></div>
-                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">AMZN</span><span className="text-sm text-green-400">+0.8%</span></div>
-                        </div>
+                      <div className={`space-y-2 flex-1 overflow-y-auto scrollbar-hide ${blurClass}`}>
+                        {demoWatchlistMovers.map((stock) => {
+                          const logoUrl = getCompanyLogoUrl(stock.ticker);
+                          return (
+                            <div key={stock.ticker} className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-5 h-5 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                                  {logoUrl ? (
+                                    <img src={logoUrl} alt={stock.ticker} className="w-4 h-4 object-contain" />
+                                  ) : (
+                                    <span className="text-[8px] font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
+                                  )}
+                                </div>
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
+                              </div>
+                              <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
                 case 'stock-research':
                   return (
                     <div key={cardId} className={`${cardBaseClass} !p-0 overflow-hidden`}>
-                      <div className="flex items-center gap-2 p-5 pb-2">
+                      <div className="flex items-center gap-2 p-3 pb-2 flex-shrink-0">
                         <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                           <TrendingUp className="w-4 h-4 text-white" />
                         </div>
-                        <span className="text-xl font-bold text-white">{language === 'fr' ? 'Recherche' : 'Stock Research'}</span>
+                        <h3 className="text-xl font-bold text-white">
+                          {language === 'fr' ? 'Recherche & Comparaison' : 'Research & Compare Stocks'}
+                        </h3>
                       </div>
                       <div className={`flex-1 overflow-hidden flex items-start justify-center ${blurClass}`}>
-                        <img src={stockResearchPreview} alt="Stock research preview" className="w-[80%]" />
+                        <img src={stockResearchPreview} alt="Stock research preview" className="w-[70%] -mt-1" />
                       </div>
                     </div>
                   );
                 case 'news-feed':
                   return (
                     <div key={cardId} className={cardBaseClass}>
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-3 flex-shrink-0">
                         <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
                           <Newspaper className="w-4 h-4 text-white" />
                         </div>
-                        <span className="text-xl font-bold text-white">{language === 'fr' ? 'Fil d\'actualités' : 'News Feed'}</span>
+                        <h3 className="text-xl font-bold text-white">
+                          {language === 'fr' ? 'Fil d\'actualités' : 'News Feed'}
+                        </h3>
                       </div>
-                      <div className={`flex-1 ${blurClass}`}>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2"><div className="w-12 h-8 bg-slate-600 rounded" /><span className="text-xs text-slate-400 truncate">NVIDIA earnings beat expectations...</span></div>
-                          <div className="flex items-center gap-2"><div className="w-12 h-8 bg-slate-600 rounded" /><span className="text-xs text-slate-400 truncate">Apple announces new product line...</span></div>
-                        </div>
-                      </div>
+                      <p className={`text-slate-400 text-sm flex-1 ${blurClass}`}>
+                        {language === 'fr' ? 'Vidéos YouTube de chaînes financières vérifiées.' : 'YouTube videos from verified financial channels.'}
+                      </p>
                     </div>
                   );
                 default:
