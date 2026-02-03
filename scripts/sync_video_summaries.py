@@ -250,13 +250,14 @@ def generate_summary(transcript_text, ticker):
 IMPORTANT RULES:
 - This video may discuss multiple companies. Only include information relevant to {company_name}.
 - If the video doesn't mention {company_name} at all, respond with exactly: "No information about {company_name} in this video."
-- Each bullet point MUST start with a timestamp in [MM:SS] format indicating when this topic is discussed.
+- The transcript contains timestamp markers like [00:30], [01:45], etc. Use the EXACT timestamps from the transcript where each topic is discussed.
+- Each bullet point MUST start with a timestamp in [MM:SS] format from the transcript.
 - Maximum 3 bullet points. Be concise.
 - Be factual and neutral. Write in English.
 
 FORMAT EXAMPLE:
-[02:15] Key point about the company here
-[08:42] Another important point mentioned
+[02:10] Key point about the company here
+[08:40] Another important point mentioned
 
 Transcript:
 {transcript_text}"""

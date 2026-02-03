@@ -101,6 +101,17 @@ def get_audio(video_id: str, output_dir: str = None) -> str | None:
         raise DownloadError(f"Download timed out for {video_id}")
 
 
+def format_timestamp(seconds: float) -> str:
+    """Format seconds as [MM:SS] or [HH:MM:SS] for longer videos."""
+    total_seconds = int(seconds)
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    secs = total_seconds % 60
+    if hours > 0:
+        return f"[{hours}:{minutes:02d}:{secs:02d}]"
+    return f"[{minutes:02d}:{secs:02d}]"
+
+
 def transcribe_audio(file_path: str, model_size: str = "base") -> str:
     """
     Transcribe audio file using faster-whisper.
@@ -110,7 +121,7 @@ def transcribe_audio(file_path: str, model_size: str = "base") -> str:
         model_size: Whisper model size (tiny, base, small, medium, large)
 
     Returns:
-        Transcription text
+        Transcription text with timestamps every ~10 seconds
     """
     from faster_whisper import WhisperModel
     import sys
@@ -127,12 +138,20 @@ def transcribe_audio(file_path: str, model_size: str = "base") -> str:
         vad_filter=True,  # Filter out silence
     )
 
-    # Combine all segments with progress
+    # Combine segments with timestamps every ~10 seconds
     duration = info.duration
     texts = []
     last_progress = -1
+    last_timestamp = -10  # Force first timestamp
+
     for segment in segments:
+        # Add timestamp marker every ~10 seconds
+        if segment.start >= last_timestamp + 10:
+            texts.append(f"\n{format_timestamp(segment.start)}")
+            last_timestamp = segment.start
+
         texts.append(segment.text.strip())
+
         # Show progress every 10%
         if duration > 0:
             progress = int((segment.end / duration) * 100)
@@ -140,7 +159,7 @@ def transcribe_audio(file_path: str, model_size: str = "base") -> str:
                 print(f"     [Whisper] {progress}% transcribed ({int(segment.end)}s / {int(duration)}s)")
                 last_progress = progress
 
-    transcript = " ".join(texts)
+    transcript = " ".join(texts).strip()
     if info.language:
         print(f"     [Whisper] Done - detected language: {info.language}")
 
