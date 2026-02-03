@@ -126,6 +126,15 @@ CREATE TABLE IF NOT EXISTS earnings_cache (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Dividend dates cache (shared across all users, refreshed every 7 days via lazy loading)
+CREATE TABLE IF NOT EXISTS dividends_cache (
+    ticker TEXT PRIMARY KEY,
+    ex_dividend_date TEXT,             -- YYYY-MM-DD or NULL if unknown
+    dividend_amount REAL,              -- Per-share dividend amount in USD
+    pays_dividends INTEGER DEFAULT 1,  -- 0 if stock doesn't pay dividends
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- User activity tracking (for time spent analytics)
 CREATE TABLE IF NOT EXISTS user_activity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

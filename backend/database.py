@@ -160,6 +160,23 @@ def init_db():
                 conn.execute("DELETE FROM earnings_cache")
                 print("[Database] Added earnings_time column to earnings_cache and cleared cache")
 
+            # Migration: Create dividends_cache table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'dividends_cache'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE dividends_cache (
+                        ticker TEXT PRIMARY KEY,
+                        ex_dividend_date TEXT,
+                        dividend_amount REAL,
+                        pays_dividends INTEGER DEFAULT 1,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                print("[Database] Created dividends_cache table")
+
             # Migration: Create video_summaries table if not exists
             conn.execute("""
                 SELECT table_name FROM information_schema.tables

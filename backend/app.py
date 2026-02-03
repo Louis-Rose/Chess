@@ -757,9 +757,54 @@ def get_demo_dashboard():
         earnings_data.sort(key=lambda x: (x['remaining_days'] is None, x['remaining_days'] or 9999))
         earnings_data = earnings_data[:15]
 
-    # Note: Dividend data requires slow API calls (no caching available)
-    # For the demo preview (which is blurred anyway), we skip dividend fetching
+    # Get dividends data from cache (7 day TTL)
     dividends_data = []
+    if holdings:
+        today_date = datetime.now().date()
+
+        for h in holdings:
+            ticker = h['stock_ticker']
+            qty = h['quantity']
+            if qty <= 0:
+                continue
+
+            # Try to get cached dividend data
+            ex_date_str, div_amount, pays_dividends, is_fresh = get_cached_dividend(ticker)
+            if is_fresh:
+                if not pays_dividends:
+                    dividends_data.append({
+                        'ticker': ticker,
+                        'ex_dividend_date': None,
+                        'remaining_days': None,
+                        'dividend_amount': None,
+                        'pays_dividends': False,
+                        'quantity': qty,
+                        'total_dividend': None
+                    })
+                elif ex_date_str:
+                    try:
+                        ex_date = datetime.strptime(ex_date_str, '%Y-%m-%d').date()
+                        remaining_days = (ex_date - today_date).days
+                        if remaining_days >= 0:
+                            dividends_data.append({
+                                'ticker': ticker,
+                                'ex_dividend_date': ex_date_str,
+                                'remaining_days': remaining_days,
+                                'dividend_amount': div_amount,
+                                'pays_dividends': True,
+                                'quantity': qty,
+                                'total_dividend': round(div_amount * qty, 2) if div_amount else None
+                            })
+                    except Exception:
+                        pass
+
+        # Sort: dividend payers first, then by remaining days
+        dividends_data.sort(key=lambda x: (
+            x.get('pays_dividends') == False,
+            x['remaining_days'] is None,
+            x['remaining_days'] or 9999
+        ))
+        dividends_data = dividends_data[:10]
 
     return jsonify({
         'card_order': card_order,
@@ -4346,6 +4391,49 @@ def save_earnings_cache(ticker, next_earnings_date, date_confirmed, earnings_tim
         )
 
 
+def get_cached_dividend(ticker):
+    """Get cached dividend data if fresh.
+    Data is cached for 7 days (168 hours) since dividends change infrequently.
+    Returns (ex_date, amount, pays_dividends, is_fresh) or (None, None, None, False).
+    """
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT ex_dividend_date, dividend_amount, pays_dividends, updated_at
+               FROM dividends_cache WHERE ticker = ?''',
+            (ticker,)
+        )
+        row = cursor.fetchone()
+
+        if not row:
+            return None, None, None, False  # Not in cache
+
+        updated_at = row['updated_at']
+        if isinstance(updated_at, str):
+            updated_at = datetime.fromisoformat(updated_at)
+        age_hours = (datetime.now() - updated_at.replace(tzinfo=None)).total_seconds() / 3600
+
+        # 7 days TTL for dividend data
+        if age_hours < 168:
+            return row['ex_dividend_date'], row['dividend_amount'], bool(row['pays_dividends']), True
+
+        return None, None, None, False  # Cache is stale
+
+
+def save_dividend_cache(ticker, ex_dividend_date, dividend_amount, pays_dividends=True):
+    """Save dividend data to cache."""
+    with get_db() as conn:
+        conn.execute(
+            '''INSERT INTO dividends_cache (ticker, ex_dividend_date, dividend_amount, pays_dividends, updated_at)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(ticker) DO UPDATE SET
+                   ex_dividend_date = excluded.ex_dividend_date,
+                   dividend_amount = excluded.dividend_amount,
+                   pays_dividends = excluded.pays_dividends,
+                   updated_at = excluded.updated_at''',
+            (ticker, ex_dividend_date, dividend_amount, 1 if pays_dividends else 0, datetime.now().isoformat())
+        )
+
+
 @app.route('/api/investing/earnings-calendar', methods=['GET'])
 @login_required
 def get_earnings_calendar():
@@ -4466,7 +4554,7 @@ def get_earnings_calendar():
 @app.route('/api/investing/dividends-calendar', methods=['GET'])
 @login_required
 def get_dividends_calendar():
-    """Get upcoming dividend dates for portfolio holdings using FMP API."""
+    """Get upcoming dividend dates for portfolio holdings using FMP API with caching."""
     import yfinance as yf
     import requests
     from investing_utils import get_yfinance_ticker
@@ -4485,52 +4573,90 @@ def get_dividends_calendar():
     today = datetime.now().date()
     dividends_data = []
 
-    # Fetch FMP dividend calendar for the next 6 months
-    fmp_api_key = os.environ.get('FMP_API_KEY')
+    # Check which tickers need fresh data (not in cache or stale)
+    tickers_needing_fetch = []
+    cached_data = {}
+    for ticker in portfolio_tickers:
+        ex_date, amount, pays_div, is_fresh = get_cached_dividend(ticker)
+        if is_fresh:
+            cached_data[ticker] = (ex_date, amount, pays_div)
+        else:
+            tickers_needing_fetch.append(ticker)
+
+    # Only fetch FMP calendar if we have tickers that need fresh data
     fmp_dividends = {}
+    if tickers_needing_fetch:
+        fmp_api_key = os.environ.get('FMP_API_KEY')
+        if fmp_api_key:
+            try:
+                from_date = today.strftime('%Y-%m-%d')
+                to_date = (today + timedelta(days=180)).strftime('%Y-%m-%d')
+                fmp_url = f"https://financialmodelingprep.com/api/v3/stock_dividend_calendar?from={from_date}&to={to_date}&apikey={fmp_api_key}"
+                fmp_response = requests.get(fmp_url, timeout=10)
 
-    if fmp_api_key:
-        try:
-            from_date = today.strftime('%Y-%m-%d')
-            to_date = (today + timedelta(days=180)).strftime('%Y-%m-%d')
-            fmp_url = f"https://financialmodelingprep.com/api/v3/stock_dividend_calendar?from={from_date}&to={to_date}&apikey={fmp_api_key}"
-            fmp_response = requests.get(fmp_url, timeout=10)
-
-            if fmp_response.status_code == 200:
-                fmp_calendar = fmp_response.json()
-                # Index by symbol for quick lookup
-                for event in fmp_calendar:
-                    symbol = event.get('symbol', '')
-                    if symbol and symbol not in fmp_dividends:
-                        fmp_dividends[symbol] = event
-        except Exception as e:
-            app.logger.warning(f"Failed to fetch FMP dividend calendar: {e}")
+                if fmp_response.status_code == 200:
+                    fmp_calendar = fmp_response.json()
+                    for event in fmp_calendar:
+                        symbol = event.get('symbol', '')
+                        if symbol and symbol not in fmp_dividends:
+                            fmp_dividends[symbol] = event
+            except Exception as e:
+                app.logger.warning(f"Failed to fetch FMP dividend calendar: {e}")
 
     for ticker in portfolio_tickers:
+        quantity = holdings_by_ticker.get(ticker, 0)
+
+        # Use cached data if available
+        if ticker in cached_data:
+            ex_date_str, dividend_amount, pays_dividends = cached_data[ticker]
+            remaining_days = None
+            if ex_date_str:
+                try:
+                    ex_date = datetime.strptime(ex_date_str, '%Y-%m-%d').date()
+                    remaining_days = (ex_date - today).days
+                except Exception:
+                    pass
+
+            dividend_per_share = round(dividend_amount, 4) if dividend_amount else None
+            total_dividend = round(quantity * dividend_amount, 2) if dividend_amount and quantity else None
+
+            dividends_data.append({
+                'ticker': ticker,
+                'ex_dividend_date': ex_date_str,
+                'payment_date': None,
+                'remaining_days': remaining_days,
+                'dividend_amount': dividend_per_share,
+                'dividend_yield': None,
+                'frequency': None,
+                'confirmed': True,
+                'pays_dividends': pays_dividends,
+                'quantity': quantity,
+                'total_dividend': total_dividend,
+                'amount_source': 'cache',
+            })
+            continue
+
+        # Fetch fresh data for this ticker
         try:
             yf_ticker = get_yfinance_ticker(ticker)
             stock = yf.Ticker(yf_ticker)
             info = stock.info
 
-            # Get basic dividend info from yfinance
-            dividend_rate = info.get('dividendRate')  # Annual dividend
-            dividend_yield = info.get('dividendYield')  # As decimal (0.02 = 2%)
+            dividend_rate = info.get('dividendRate')
+            dividend_yield = info.get('dividendYield')
             last_dividend = info.get('lastDividendValue')
 
-            # Convert yield to percentage (only if it's in decimal form)
-            if dividend_yield:
-                # If yield > 1, it's likely already a percentage; if < 1, it's decimal
-                if dividend_yield < 1:
-                    dividend_yield = dividend_yield * 100
+            if dividend_yield and dividend_yield < 1:
+                dividend_yield = dividend_yield * 100
 
             ex_date_str = None
             remaining_days = None
             dividend_amount = None
             payment_date = None
             confirmed = False
-            amount_source = None  # 'yfinance' (official), 'fmp', or 'estimate'
+            amount_source = None
+            frequency = None
 
-            # Estimate frequency (needed for date estimation fallback)
             freq_days = None
             if dividend_rate and last_dividend and last_dividend > 0:
                 ratio = dividend_rate / last_dividend
@@ -4544,19 +4670,16 @@ def get_dividends_calendar():
                     frequency = 'Annual'
                     freq_days = 365
 
-            # Priority 1: Yahoo Finance ex-dividend date (official source)
             yf_ex_date = info.get('exDividendDate')
             if yf_ex_date:
                 yf_date = datetime.fromtimestamp(yf_ex_date).date()
                 if yf_date >= today:
-                    # Future date from Yahoo Finance - this is official
                     ex_date_str = yf_date.strftime('%Y-%m-%d')
                     remaining_days = (yf_date - today).days
                     confirmed = True
                     dividend_amount = last_dividend
                     amount_source = 'yfinance'
 
-            # Priority 2: FMP calendar (fallback, marked with ~)
             if not ex_date_str:
                 fmp_data = fmp_dividends.get(ticker) or fmp_dividends.get(yf_ticker)
                 if fmp_data:
@@ -4569,7 +4692,6 @@ def get_dividends_calendar():
                         confirmed = True
                         amount_source = 'fmp'
 
-            # Priority 3: Estimate from last ex-dividend date + frequency
             if not ex_date_str and yf_ex_date and freq_days:
                 last_ex_date = datetime.fromtimestamp(yf_ex_date).date()
                 estimated_date = last_ex_date
@@ -4581,7 +4703,6 @@ def get_dividends_calendar():
                 dividend_amount = last_dividend
                 amount_source = 'estimate'
 
-            # Estimate frequency from dividend rate vs last dividend (if not already done)
             if frequency is None and dividend_rate and last_dividend and last_dividend > 0:
                 ratio = dividend_rate / last_dividend
                 if ratio > 3.5:
@@ -4591,11 +4712,12 @@ def get_dividends_calendar():
                 else:
                     frequency = 'Annual'
 
-            # Include all stocks, with pays_dividends flag
             pays_dividends = bool(dividend_rate or dividend_amount or ex_date_str)
-            quantity = holdings_by_ticker.get(ticker, 0)
             dividend_per_share = round(dividend_amount, 4) if dividend_amount else None
             total_dividend = round(quantity * dividend_amount, 2) if dividend_amount and quantity else None
+
+            # Save to cache
+            save_dividend_cache(ticker, ex_date_str, dividend_amount, pays_dividends)
 
             dividends_data.append({
                 'ticker': ticker,
@@ -4609,10 +4731,12 @@ def get_dividends_calendar():
                 'pays_dividends': pays_dividends,
                 'quantity': quantity,
                 'total_dividend': total_dividend,
-                'amount_source': amount_source,  # 'fmp' = confirmed, 'estimate' = based on last dividend
+                'amount_source': amount_source,
             })
         except Exception as e:
             app.logger.warning(f"Failed to fetch dividend data for {ticker}: {e}")
+            # Save to cache as non-payer to avoid repeated failures
+            save_dividend_cache(ticker, None, None, False)
             continue
 
     # Sort: dividend payers with future dates first, then past dates, then non-payers
@@ -4620,13 +4744,13 @@ def get_dividends_calendar():
         days = x['remaining_days']
         pays = x.get('pays_dividends', True)
         if not pays:
-            return (3, x['ticker'])  # Non-dividend payers last, alphabetically
+            return (3, x['ticker'])
         elif days is None:
-            return (1, 9999)  # Nulls after future dates
+            return (1, 9999)
         elif days < 0:
-            return (2, -days)  # Past dates last
+            return (2, -days)
         else:
-            return (0, days)  # Future dates first
+            return (0, days)
 
     dividends_data.sort(key=sort_key)
 
