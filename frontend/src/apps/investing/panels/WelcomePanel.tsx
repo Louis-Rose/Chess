@@ -104,6 +104,13 @@ const GRID_SIZE = 9;
 type GridSlot = CardId | null;
 const DEFAULT_GRID: GridSlot[] = [...ALL_CARD_IDS, null, null];
 
+// Demo user's card order (used as placeholder while loading)
+const DEMO_CARD_ORDER: GridSlot[] = [
+  null, 'portfolio', 'earnings',
+  'watchlist', 'top-movers', 'dividends',
+  'news-feed', 'stock-research', null
+];
+
 // API fetchers
 const fetchComposition = async (accountIds: number[]): Promise<CompositionData> => {
   const params = accountIds.length > 0 ? `?account_ids=${accountIds.join(',')}` : '';
@@ -1051,7 +1058,7 @@ export function InvestingWelcomePanel() {
         {/* Blurred dashboard preview for non-authenticated users */}
         {!isAuthenticated && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-[10%] mb-8 select-none pointer-events-none">
-            {(demoDashboard?.card_order || DEFAULT_GRID).map((cardId, slotIndex) => {
+            {(demoDashboard?.card_order || DEMO_CARD_ORDER).map((cardId, slotIndex) => {
               // Empty slot - render invisible placeholder to preserve grid layout
               if (cardId === null) {
                 return <div key={`empty-${slotIndex}`} className="h-[200px]" />;
