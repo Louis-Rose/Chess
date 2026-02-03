@@ -72,6 +72,7 @@ interface PerformanceData {
 interface TopMover {
   ticker: string;
   change_pct: number;
+  change_1d: number | null;
   current_price: number;
   past_price: number;
 }
@@ -672,9 +673,16 @@ export function InvestingWelcomePanel() {
                         </div>
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
                       </div>
-                      <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {stock.change_1d !== null && (
+                          <span className={`text-xs ${stock.change_1d >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            1D: {stock.change_1d >= 0 ? '+' : ''}{stock.change_1d.toFixed(1)}%
+                          </span>
+                        )}
+                        <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
@@ -937,9 +945,16 @@ export function InvestingWelcomePanel() {
                         </div>
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
                       </div>
-                      <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {stock.change_1d !== null && (
+                          <span className={`text-xs ${stock.change_1d >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            1D: {stock.change_1d >= 0 ? '+' : ''}{stock.change_1d.toFixed(1)}%
+                          </span>
+                        )}
+                        <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
@@ -1050,14 +1065,14 @@ export function InvestingWelcomePanel() {
 
         {/* Unified Card Grid - only for authenticated users, wait for card order to load */}
         {isAuthenticated && cardOrderFetched && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-[10%] mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-[5%] mb-8">
             {gridSlots.map((_, index) => renderSlot(index))}
           </div>
         )}
 
         {/* Blurred dashboard preview for non-authenticated users */}
         {!isAuthenticated && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-[10%] mb-8 select-none pointer-events-none">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-[5%] mb-8 select-none pointer-events-none">
             {(demoDashboard?.card_order || DEMO_CARD_ORDER).map((cardId, slotIndex) => {
               // Empty slot - render invisible placeholder to preserve grid layout
               if (cardId === null) {
@@ -1069,10 +1084,10 @@ export function InvestingWelcomePanel() {
 
               // Placeholder data shown immediately while real data loads (matches demo user's actual data count)
               const placeholderMovers = [
-                { ticker: 'NVDA', change_pct: 4.2, current_price: 0, past_price: 0 },
-                { ticker: 'MSFT', change_pct: 2.1, current_price: 0, past_price: 0 },
-                { ticker: 'GOOGL', change_pct: 1.5, current_price: 0, past_price: 0 },
-                { ticker: 'META', change_pct: -1.3, current_price: 0, past_price: 0 },
+                { ticker: 'NVDA', change_pct: 4.2, change_1d: 1.2, current_price: 0, past_price: 0 },
+                { ticker: 'MSFT', change_pct: 2.1, change_1d: 0.5, current_price: 0, past_price: 0 },
+                { ticker: 'GOOGL', change_pct: 1.5, change_1d: -0.3, current_price: 0, past_price: 0 },
+                { ticker: 'META', change_pct: -1.3, change_1d: -0.8, current_price: 0, past_price: 0 },
               ];
               const placeholderEarnings = [
                 { ticker: 'GOOGL', next_earnings_date: '2026-02-04', remaining_days: 1, date_confirmed: true, source: 'portfolio' as const },
@@ -1156,9 +1171,16 @@ export function InvestingWelcomePanel() {
                                 </div>
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
                               </div>
-                              <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
-                              </span>
+                              <div className="flex items-center gap-2">
+                                {stock.change_1d !== null && stock.change_1d !== undefined && (
+                                  <span className={`text-xs ${stock.change_1d >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    1D: {stock.change_1d >= 0 ? '+' : ''}{stock.change_1d.toFixed(1)}%
+                                  </span>
+                                )}
+                                <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
+                                </span>
+                              </div>
                             </div>
                           );
                         })}
@@ -1312,9 +1334,16 @@ export function InvestingWelcomePanel() {
                                 </div>
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stock.ticker}</span>
                               </div>
-                              <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
-                              </span>
+                              <div className="flex items-center gap-2">
+                                {stock.change_1d !== null && stock.change_1d !== undefined && (
+                                  <span className={`text-xs ${stock.change_1d >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    1D: {stock.change_1d >= 0 ? '+' : ''}{stock.change_1d.toFixed(1)}%
+                                  </span>
+                                )}
+                                <span className={`text-sm font-bold ${stock.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(1)}%
+                                </span>
+                              </div>
                             </div>
                           );
                         })}
