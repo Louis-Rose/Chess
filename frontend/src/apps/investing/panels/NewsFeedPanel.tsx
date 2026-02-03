@@ -98,7 +98,7 @@ function VideoRow({
 }: {
   video: VideoWithCompany;
   language: string;
-  onPlay: () => void;
+  onPlay: (startTime?: number) => void;
 }) {
   const [transcript, setTranscript] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
@@ -204,17 +204,14 @@ function VideoRow({
                       const seconds = match[3] ? parseInt(match[3]) : parseInt(match[2]);
                       const totalSeconds = hours * 3600 + minutes * 60 + seconds;
                       const timestamp = match[3] ? `${match[1]}:${match[2]}:${match[3]}` : `${match[1]}:${match[2]}`;
-                      const ytUrl = `https://www.youtube.com/watch?v=${video.video_id}&t=${totalSeconds}`;
                       return (
                         <li key={idx} className="flex gap-2">
-                          <a
-                            href={ytUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => onPlay(totalSeconds)}
                             className="text-blue-500 hover:text-blue-600 font-mono text-xs shrink-0"
                           >
                             [{timestamp}]
-                          </a>
+                          </button>
                           <span>{match[4]}</span>
                         </li>
                       );
@@ -334,7 +331,7 @@ function CompanySection({
   companyName: string;
   videos: VideoWithCompany[];
   language: string;
-  onPlayVideo: (video: VideoWithCompany) => void;
+  onPlayVideo: (video: VideoWithCompany, startTime?: number) => void;
   dragHandleProps?: Record<string, unknown>;
 }) {
   const navigate = useNavigate();
@@ -390,7 +387,7 @@ function CompanySection({
               key={video.video_id}
               video={video}
               language={language}
-              onPlay={() => onPlayVideo(video)}
+              onPlay={(startTime) => onPlayVideo(video, startTime)}
             />
           ))}
         </div>
@@ -413,7 +410,7 @@ function SortableCompanySection({
   companyName: string;
   videos: VideoWithCompany[];
   language: string;
-  onPlayVideo: (video: VideoWithCompany) => void;
+  onPlayVideo: (video: VideoWithCompany, startTime?: number) => void;
 }) {
   const {
     attributes,
@@ -476,7 +473,7 @@ export function NewsFeedPanel() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
-  const [selectedVideo, setSelectedVideo] = useState<VideoWithCompany | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<{ video: VideoWithCompany; startTime?: number } | null>(null);
   const [portfolioOrder, setPortfolioOrder] = useState<string[]>(() => loadOrder('newsfeed-portfolio-order'));
   const [watchlistOrder, setWatchlistOrder] = useState<string[]>(() => loadOrder('newsfeed-watchlist-order'));
 
@@ -687,7 +684,7 @@ export function NewsFeedPanel() {
                         companyName={company.companyName}
                         videos={company.videos}
                         language={language}
-                        onPlayVideo={setSelectedVideo}
+                        onPlayVideo={(video, startTime) => setSelectedVideo({ video, startTime })}
                       />
                     ))}
                   </SortableContext>
@@ -719,7 +716,7 @@ export function NewsFeedPanel() {
                         companyName={company.companyName}
                         videos={company.videos}
                         language={language}
-                        onPlayVideo={setSelectedVideo}
+                        onPlayVideo={(video, startTime) => setSelectedVideo({ video, startTime })}
                       />
                     ))}
                   </SortableContext>
@@ -752,9 +749,10 @@ export function NewsFeedPanel() {
 
             <div className="relative pt-[56.25%]">
               <iframe
+                key={`${selectedVideo.video.video_id}-${selectedVideo.startTime ?? 0}`}
                 className="absolute inset-0 w-full h-full"
-                src={`https://www.youtube.com/embed/${selectedVideo.video_id}?autoplay=1`}
-                title={selectedVideo.title}
+                src={`https://www.youtube.com/embed/${selectedVideo.video.video_id}?autoplay=1${selectedVideo.startTime ? `&start=${selectedVideo.startTime}` : ''}`}
+                title={selectedVideo.video.title}
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -762,20 +760,20 @@ export function NewsFeedPanel() {
             </div>
 
             <div className="p-4">
-              <h3 className="text-lg font-semibold text-white mb-2">{selectedVideo.title}</h3>
+              <h3 className="text-lg font-semibold text-white mb-2">{selectedVideo.video.title}</h3>
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-sm text-slate-300">{selectedVideo.channel_name}</span>
+                <span className="text-sm text-slate-300">{selectedVideo.video.channel_name}</span>
                 <span className="text-slate-500">·</span>
-                <span className="text-sm text-slate-400">{formatDate(selectedVideo.published_at, language)}</span>
+                <span className="text-sm text-slate-400">{formatDate(selectedVideo.video.published_at, language)}</span>
                 <span className="text-slate-500">·</span>
                 <button
-                  onClick={() => navigate(`/investing/stock/${selectedVideo.ticker}`)}
+                  onClick={() => navigate(`/investing/stock/${selectedVideo.video.ticker}`)}
                   className="text-sm text-green-400 hover:text-green-300"
                 >
-                  {selectedVideo.companyName} ({selectedVideo.ticker})
+                  {selectedVideo.video.companyName} ({selectedVideo.video.ticker})
                 </button>
                 <a
-                  href={selectedVideo.url}
+                  href={selectedVideo.video.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="ml-auto text-sm text-red-400 hover:text-red-300 flex items-center gap-1"
