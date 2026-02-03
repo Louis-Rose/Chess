@@ -277,8 +277,8 @@ function CollapsibleSection({
   );
 }
 
-// Filter videos - try 30 days first, extend to 90 days if less than 5 found
-function filterRecentVideos(videos: VideoWithCompany[], maxCount: number = 5): VideoWithCompany[] {
+// Filter videos - try 30 days first, extend to 90 days if less than 15 found
+function filterRecentVideos(videos: VideoWithCompany[], maxCount: number = 15): VideoWithCompany[] {
   const now = new Date();
   const cutoff30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const cutoff90 = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
