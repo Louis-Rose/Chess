@@ -493,7 +493,20 @@ export function NewsFeedPanel() {
 
   // Order: portfolio first (including those in both), then watchlist-only
   const orderedPortfolioTickers = [...bothTickers, ...portfolioOnlyTickers];
-  const allTrackedCompanies = [...orderedPortfolioTickers, ...watchlistOnlyTickers];
+  const allTrackedCompaniesRaw = [...orderedPortfolioTickers, ...watchlistOnlyTickers];
+
+  // Deduplicate tickers that represent the same company (e.g., GOOGL/GOOG)
+  const tickerAliases: Record<string, string> = { 'GOOG': 'GOOGL' };
+  const allTrackedCompanies = allTrackedCompaniesRaw.filter((ticker, idx, arr) => {
+    const canonical = tickerAliases[ticker] || ticker;
+    // If this ticker has a canonical form, check if canonical is already in the list
+    if (tickerAliases[ticker]) {
+      return !arr.slice(0, idx).includes(canonical);
+    }
+    // If this is a canonical ticker, check if we haven't seen an alias before
+    const aliases = Object.entries(tickerAliases).filter(([, v]) => v === ticker).map(([k]) => k);
+    return !arr.slice(0, idx).some(t => aliases.includes(t));
+  });
 
   // Fetch news for all tracked companies
   const { data: allNewsData, isLoading: newsLoading } = useQuery({
