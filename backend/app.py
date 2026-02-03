@@ -543,6 +543,44 @@ def update_dashboard_card_order():
     return jsonify({'success': True, 'order': order})
 
 
+@app.route('/api/preferences/demo-card-order', methods=['GET'])
+def get_demo_card_order():
+    """Get card order for demo user (public endpoint for unauthenticated preview)."""
+    demo_email = 'rose.louis.mail@gmail.com'
+
+    with get_db() as conn:
+        # Find demo user's ID
+        if USE_POSTGRES:
+            cursor = conn.execute('SELECT id FROM users WHERE email = %s', (demo_email,))
+        else:
+            cursor = conn.execute('SELECT id FROM users WHERE email = ?', (demo_email,))
+        user_row = cursor.fetchone()
+
+        if not user_row:
+            return jsonify({'order': None})
+
+        # Get their card order
+        if USE_POSTGRES:
+            cursor = conn.execute('''
+                SELECT dashboard_card_order
+                FROM user_preferences WHERE user_id = %s
+            ''', (user_row['id'],))
+        else:
+            cursor = conn.execute('''
+                SELECT dashboard_card_order
+                FROM user_preferences WHERE user_id = ?
+            ''', (user_row['id'],))
+        row = cursor.fetchone()
+
+    if row and row['dashboard_card_order']:
+        import json
+        try:
+            return jsonify({'order': json.loads(row['dashboard_card_order'])})
+        except json.JSONDecodeError:
+            return jsonify({'order': None})
+    return jsonify({'order': None})
+
+
 @app.route('/api/preferences/financial-card-order', methods=['GET'])
 @login_required
 def get_financial_card_order():

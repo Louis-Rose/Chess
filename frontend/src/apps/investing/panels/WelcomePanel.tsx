@@ -157,6 +157,11 @@ const fetchCardOrder = async (): Promise<GridSlot[] | null> => {
   return response.data.order;
 };
 
+const fetchDemoCardOrder = async (): Promise<GridSlot[] | null> => {
+  const response = await axios.get('/api/preferences/demo-card-order');
+  return response.data.order;
+};
+
 const saveCardOrder = async (order: GridSlot[]): Promise<void> => {
   await axios.put('/api/preferences/dashboard-card-order', { order });
 };
@@ -259,6 +264,14 @@ export function InvestingWelcomePanel() {
     queryKey: ['dashboard-card-order'],
     queryFn: fetchCardOrder,
     enabled: isAuthenticated,
+    staleTime: Infinity,
+  });
+
+  // Fetch demo card order for unauthenticated preview
+  const { data: demoCardOrder } = useQuery({
+    queryKey: ['demo-card-order'],
+    queryFn: fetchDemoCardOrder,
+    enabled: !isAuthenticated && !authLoading,
     staleTime: Infinity,
   });
 
@@ -1027,176 +1040,135 @@ export function InvestingWelcomePanel() {
         {/* Blurred dashboard preview for non-authenticated users */}
         {!isAuthenticated && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-[10%] mb-8 select-none">
-            {/* 1. Portfolio Value Card - Blurred */}
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                  <Wallet className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
-                </span>
-              </div>
-              <div className="flex-1 flex flex-col justify-center blur-sm pointer-events-none">
-                <p className="text-4xl font-bold text-green-500">21 458 €</p>
-                <p className="text-sm text-green-400 mt-1">+12.4% {language === 'fr' ? 'cette année' : 'this year'}</p>
-              </div>
-            </div>
+            {(demoCardOrder || DEFAULT_GRID).filter(slot => slot !== null).map((cardId) => {
+              const cardBaseClass = "bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col";
+              const blurClass = "blur-[1.5px] pointer-events-none";
 
-            {/* 2. Top Movers Card - Blurred */}
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
-                  <Flame className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Top Movers' : 'Top Movers'}
-                </span>
-              </div>
-              <div className="flex-1 blur-sm pointer-events-none">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">NVDA</span>
-                    <span className="text-sm text-green-400">+5.2%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">TSLA</span>
-                    <span className="text-sm text-green-400">+3.8%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">META</span>
-                    <span className="text-sm text-red-400">-2.1%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Earnings Calendar Card - Blurred */}
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Résultats' : 'Earnings'}
-                </span>
-              </div>
-              <div className="flex-1 blur-sm pointer-events-none">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">AAPL</span>
-                    <span className="text-xs text-slate-400">Feb 6</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">GOOGL</span>
-                    <span className="text-xs text-slate-400">Feb 8</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">AMZN</span>
-                    <span className="text-xs text-slate-400">Feb 12</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 4. Dividends Calendar Card - Blurred */}
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Dividendes' : 'Dividends'}
-                </span>
-              </div>
-              <div className="flex-1 blur-sm pointer-events-none">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">MSFT</span>
-                    <span className="text-xs text-slate-400">$0.75</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">JNJ</span>
-                    <span className="text-xs text-slate-400">$1.24</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">PG</span>
-                    <span className="text-xs text-slate-400">$1.01</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 5. Watchlist Card - Blurred */}
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-yellow-600 rounded-lg flex items-center justify-center">
-                  <Eye className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}
-                </span>
-              </div>
-              <div className="flex-1 blur-sm pointer-events-none">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">TSLA</span>
-                    <span className="text-sm text-green-400">+2.4%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">META</span>
-                    <span className="text-sm text-red-400">-1.2%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">AMZN</span>
-                    <span className="text-sm text-green-400">+0.8%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 6. Stock Research Card - Blurred */}
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl h-[200px] flex flex-col overflow-hidden">
-              <div className="flex items-center gap-2 p-5 pb-2">
-                <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Recherche' : 'Stock Research'}
-                </span>
-              </div>
-              <div className="flex-1 overflow-hidden flex items-start justify-center blur-sm pointer-events-none">
-                <img
-                  src={stockResearchPreview}
-                  alt="Stock research preview"
-                  className="w-[80%]"
-                />
-              </div>
-            </div>
-
-            {/* 7. News Feed Card - Blurred */}
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col relative overflow-hidden">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-                  <Newspaper className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Fil d\'actualités' : 'News Feed'}
-                </span>
-              </div>
-              <div className="flex-1 blur-sm pointer-events-none">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-12 h-8 bg-slate-600 rounded" />
-                    <span className="text-xs text-slate-400 truncate">NVIDIA earnings beat expectations...</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-12 h-8 bg-slate-600 rounded" />
-                    <span className="text-xs text-slate-400 truncate">Apple announces new product line...</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              switch (cardId) {
+                case 'portfolio':
+                  return (
+                    <div key={cardId} className={cardBaseClass}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                          <Wallet className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-xl font-bold text-white">
+                          {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
+                        </span>
+                      </div>
+                      <div className={`flex-1 flex flex-col justify-center ${blurClass}`}>
+                        <p className="text-4xl font-bold text-green-500">21 458 €</p>
+                        <p className="text-sm text-green-400 mt-1">+12.4% {language === 'fr' ? 'cette année' : 'this year'}</p>
+                      </div>
+                    </div>
+                  );
+                case 'top-movers':
+                  return (
+                    <div key={cardId} className={cardBaseClass}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+                          <Flame className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-xl font-bold text-white">Top Movers</span>
+                      </div>
+                      <div className={`flex-1 ${blurClass}`}>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">NVDA</span><span className="text-sm text-green-400">+5.2%</span></div>
+                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">TSLA</span><span className="text-sm text-green-400">+3.8%</span></div>
+                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">META</span><span className="text-sm text-red-400">-2.1%</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                case 'earnings':
+                  return (
+                    <div key={cardId} className={cardBaseClass}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                          <Calendar className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-xl font-bold text-white">{language === 'fr' ? 'Résultats' : 'Earnings'}</span>
+                      </div>
+                      <div className={`flex-1 ${blurClass}`}>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">AAPL</span><span className="text-xs text-slate-400">Feb 6</span></div>
+                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">GOOGL</span><span className="text-xs text-slate-400">Feb 8</span></div>
+                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">AMZN</span><span className="text-xs text-slate-400">Feb 12</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                case 'dividends':
+                  return (
+                    <div key={cardId} className={cardBaseClass}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+                          <DollarSign className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-xl font-bold text-white">{language === 'fr' ? 'Dividendes' : 'Dividends'}</span>
+                      </div>
+                      <div className={`flex-1 ${blurClass}`}>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">MSFT</span><span className="text-xs text-slate-400">$0.75</span></div>
+                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">JNJ</span><span className="text-xs text-slate-400">$1.24</span></div>
+                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">PG</span><span className="text-xs text-slate-400">$1.01</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                case 'watchlist':
+                  return (
+                    <div key={cardId} className={cardBaseClass}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 bg-yellow-600 rounded-lg flex items-center justify-center">
+                          <Eye className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-xl font-bold text-white">{language === 'fr' ? 'Ma Watchlist' : 'My Watchlist'}</span>
+                      </div>
+                      <div className={`flex-1 ${blurClass}`}>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">TSLA</span><span className="text-sm text-green-400">+2.4%</span></div>
+                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">META</span><span className="text-sm text-red-400">-1.2%</span></div>
+                          <div className="flex items-center justify-between"><span className="text-sm text-slate-300">AMZN</span><span className="text-sm text-green-400">+0.8%</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                case 'stock-research':
+                  return (
+                    <div key={cardId} className={`${cardBaseClass} !p-0 overflow-hidden`}>
+                      <div className="flex items-center gap-2 p-5 pb-2">
+                        <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                          <TrendingUp className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-xl font-bold text-white">{language === 'fr' ? 'Recherche' : 'Stock Research'}</span>
+                      </div>
+                      <div className={`flex-1 overflow-hidden flex items-start justify-center ${blurClass}`}>
+                        <img src={stockResearchPreview} alt="Stock research preview" className="w-[80%]" />
+                      </div>
+                    </div>
+                  );
+                case 'news-feed':
+                  return (
+                    <div key={cardId} className={cardBaseClass}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                          <Newspaper className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-xl font-bold text-white">{language === 'fr' ? 'Fil d\'actualités' : 'News Feed'}</span>
+                      </div>
+                      <div className={`flex-1 ${blurClass}`}>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2"><div className="w-12 h-8 bg-slate-600 rounded" /><span className="text-xs text-slate-400 truncate">NVIDIA earnings beat expectations...</span></div>
+                          <div className="flex items-center gap-2"><div className="w-12 h-8 bg-slate-600 rounded" /><span className="text-xs text-slate-400 truncate">Apple announces new product line...</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                default:
+                  return null;
+              }
+            })}
           </div>
         )}
 
