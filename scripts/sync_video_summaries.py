@@ -50,14 +50,16 @@ def log(message):
 
 def get_tickers_to_sync():
     """Fetch all tickers that need video sync (from all users' portfolios + watchlists)."""
-    response = requests.get(
-        f"{API_BASE_URL}/api/investing/sync/tickers-to-sync",
-        headers={'X-Sync-Key': SYNC_API_KEY},
-        timeout=30
-    )
-    response.raise_for_status()
-    data = response.json()
-    return data.get('tickers', [])
+    # TEMPORARY: Only fetch Alphabet videos for testing
+    return ['GOOGL']
+    # response = requests.get(
+    #     f"{API_BASE_URL}/api/investing/sync/tickers-to-sync",
+    #     headers={'X-Sync-Key': SYNC_API_KEY},
+    #     timeout=30
+    # )
+    # response.raise_for_status()
+    # data = response.json()
+    # return data.get('tickers', [])
 
 
 def refresh_video_selection(ticker):
@@ -68,7 +70,7 @@ def refresh_video_selection(ticker):
     try:
         response = requests.get(
             f"{API_BASE_URL}/api/investing/news-feed",
-            params={'ticker': ticker, 'limit': 3},
+            params={'ticker': ticker, 'limit': 15},  # TEMPORARY: 15 for testing
             headers={'X-Sync-Key': SYNC_API_KEY},
             timeout=60
         )

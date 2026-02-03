@@ -52,8 +52,8 @@ EXTRA_KEYWORDS = {
     # ==================== US TECH ====================
     'AAPL': ['Apple', 'iPhone', 'iPad', 'Mac', 'Tim Cook'],
     'MSFT': ['Microsoft', 'Azure', 'Windows', 'Satya Nadella', 'Xbox', 'Copilot'],
-    'GOOGL': ['Google', 'Alphabet', 'YouTube', 'Android', 'Sundar Pichai', 'Gemini'],
-    'GOOG': ['Google', 'Alphabet', 'YouTube', 'Android', 'Sundar Pichai', 'Gemini'],
+    'GOOGL': ['Google', 'Alphabet', 'YouTube', 'Android', 'Sundar Pichai', 'Gemini', 'Waymo'],
+    'GOOG': ['Google', 'Alphabet', 'YouTube', 'Android', 'Sundar Pichai', 'Gemini', 'Waymo'],
     'AMZN': ['Amazon', 'AWS', 'Jeff Bezos', 'Andy Jassy', 'Prime'],
     'META': ['Meta', 'Facebook', 'Instagram', 'WhatsApp', 'Zuckerberg'],
     'NVDA': ['Nvidia', 'Jensen Huang', 'GPU', 'CUDA'],
