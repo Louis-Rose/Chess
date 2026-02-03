@@ -510,7 +510,7 @@ export function EarningsCalendarPanel() {
           <PWAInstallPrompt className="max-w-md w-full mt-2" />
 
           {/* Source filter tabs */}
-          <div className="flex justify-center gap-1 mt-4 bg-slate-100 dark:bg-slate-600 rounded-lg p-1">
+          <div className="flex justify-center items-center mt-4 bg-slate-100 dark:bg-slate-600 rounded-lg p-1">
             <button
               onClick={() => setSourceFilter('portfolio')}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${
@@ -522,6 +522,7 @@ export function EarningsCalendarPanel() {
               <Briefcase className="w-3.5 h-3.5" />
               {language === 'fr' ? 'Portefeuille' : 'Portfolio'}
             </button>
+            <div className="w-px h-5 bg-slate-300 dark:bg-slate-500 mx-1" />
             <button
               onClick={() => setSourceFilter('watchlist')}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${
@@ -533,6 +534,7 @@ export function EarningsCalendarPanel() {
               <Eye className="w-3.5 h-3.5" />
               Watchlist
             </button>
+            <div className="w-px h-5 bg-slate-300 dark:bg-slate-500 mx-1" />
             <button
               onClick={() => setSourceFilter('both')}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
