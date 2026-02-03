@@ -113,10 +113,13 @@ def transcribe_audio(file_path: str, model_size: str = "base") -> str:
         Transcription text
     """
     from faster_whisper import WhisperModel
+    import sys
 
+    print(f"     [Whisper] Loading {model_size} model...")
     # Use int8 quantization for speed on CPU
     model = WhisperModel(model_size, device="cpu", compute_type="int8")
 
+    print(f"     [Whisper] Transcribing audio...")
     segments, info = model.transcribe(
         file_path,
         beam_size=5,
@@ -124,8 +127,22 @@ def transcribe_audio(file_path: str, model_size: str = "base") -> str:
         vad_filter=True,  # Filter out silence
     )
 
-    # Combine all segments
-    transcript = " ".join(segment.text.strip() for segment in segments)
+    # Combine all segments with progress
+    duration = info.duration
+    texts = []
+    last_progress = -1
+    for segment in segments:
+        texts.append(segment.text.strip())
+        # Show progress every 10%
+        if duration > 0:
+            progress = int((segment.end / duration) * 100)
+            if progress >= last_progress + 10:
+                print(f"     [Whisper] {progress}% transcribed ({int(segment.end)}s / {int(duration)}s)")
+                last_progress = progress
+
+    transcript = " ".join(texts)
+    if info.language:
+        print(f"     [Whisper] Done - detected language: {info.language}")
 
     return transcript
 
