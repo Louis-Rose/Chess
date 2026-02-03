@@ -191,12 +191,39 @@ function VideoRow({
           </p>
         ) : (summary || transcript) ? (
           <>
-            {/* Summary - full width */}
+            {/* Summary - full width with clickable timestamps */}
             {summary && (
               <div className="flex-1">
-                <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
-                  {summary}
-                </p>
+                <ul className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed space-y-1">
+                  {summary.split('\n').filter(line => line.trim()).map((line, idx) => {
+                    // Parse timestamp like [02:15] or [1:02:15]
+                    const match = line.match(/^\[(\d{1,2}):(\d{2})(?::(\d{2}))?\]\s*(.*)$/);
+                    if (match) {
+                      const hours = match[3] ? parseInt(match[1]) : 0;
+                      const minutes = match[3] ? parseInt(match[2]) : parseInt(match[1]);
+                      const seconds = match[3] ? parseInt(match[3]) : parseInt(match[2]);
+                      const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+                      const timestamp = match[3] ? `${match[1]}:${match[2]}:${match[3]}` : `${match[1]}:${match[2]}`;
+                      const text = match[4] || match[3] && match[4];
+                      const ytUrl = `https://www.youtube.com/watch?v=${video.video_id}&t=${totalSeconds}`;
+                      return (
+                        <li key={idx} className="flex gap-2">
+                          <a
+                            href={ytUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:text-blue-600 font-mono text-xs shrink-0"
+                          >
+                            [{timestamp}]
+                          </a>
+                          <span>{match[4]}</span>
+                        </li>
+                      );
+                    }
+                    // No timestamp - render as plain text
+                    return <li key={idx}>{line}</li>;
+                  })}
+                </ul>
               </div>
             )}
 

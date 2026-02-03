@@ -244,13 +244,18 @@ def generate_summary(transcript_text, ticker):
     if len(transcript_text) > max_chars:
         transcript_text = transcript_text[:max_chars] + '...'
 
-    prompt = f"""Summarize this YouTube video transcript in 3-5 sentences, focusing ONLY on information about {company_name} ({ticker}).
+    prompt = f"""Summarize this YouTube video transcript in 1-3 bullet points, focusing ONLY on information about {company_name} ({ticker}).
 
-IMPORTANT: This video may discuss multiple companies. Only include information relevant to {company_name}.
-If the video doesn't mention {company_name} at all, respond with "No information about {company_name} in this video."
+IMPORTANT RULES:
+- This video may discuss multiple companies. Only include information relevant to {company_name}.
+- If the video doesn't mention {company_name} at all, respond with exactly: "No information about {company_name} in this video."
+- Each bullet point MUST start with a timestamp in [MM:SS] format indicating when this topic is discussed.
+- Maximum 3 bullet points. Be concise.
+- Be factual and neutral. Write in the same language as the transcript.
 
-Each sentence should be on its own line.
-Be factual and neutral. Write in the same language as the transcript.
+FORMAT EXAMPLE:
+[02:15] Key point about the company here
+[08:42] Another important point mentioned
 
 Transcript:
 {transcript_text}"""
