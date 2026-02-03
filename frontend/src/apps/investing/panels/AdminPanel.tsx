@@ -1714,10 +1714,11 @@ export function AdminPanel() {
                       <div className="space-y-1">
                         {(() => {
                           try {
-                            const videos = JSON.parse(run.videos_list) as { title: string }[];
+                            const videos = JSON.parse(run.videos_list) as { title: string; published_at?: string }[];
                             return videos.map((v, idx) => {
                               const isDone = idx < run.videos_processed;
                               const isCurrent = idx === run.videos_processed && run.status === 'running';
+                              const publishedDate = v.published_at ? new Date(v.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null;
                               return (
                                 <div
                                   key={idx}
@@ -1737,6 +1738,9 @@ export function AdminPanel() {
                                     <div className="w-3 h-3 rounded-full border border-slate-300 dark:border-slate-500 flex-shrink-0" />
                                   )}
                                   <span className={isDone ? 'line-through' : ''}>{v.title}</span>
+                                  {publishedDate && (
+                                    <span className="text-slate-400 dark:text-slate-500 flex-shrink-0">({publishedDate})</span>
+                                  )}
                                   {isCurrent && run.current_step && (
                                     <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-100 flex-shrink-0">
                                       {run.current_step === 'downloading' && '⬇️ Downloading'}

@@ -312,7 +312,7 @@ def main():
             return
 
         videos_list = [
-            {'title': v['title'], 'status': 'pending'}
+            {'title': v['title'], 'status': 'pending', 'published_at': v.get('published_at')}
             for v in videos
         ]
         update_sync_run(run_id, videos_total=len(videos), videos_list=json.dumps(videos_list))
