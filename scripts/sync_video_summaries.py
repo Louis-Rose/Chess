@@ -336,7 +336,7 @@ def main():
 
         # Videos now include ticker - each (video_id, ticker) pair is a separate item
         videos_list = [
-            {'title': v['title'], 'ticker': v.get('ticker'), 'status': 'pending', 'published_at': v.get('published_at'), 'duration': v.get('duration')}
+            {'title': v['title'], 'channel_name': v.get('channel_name'), 'ticker': v.get('ticker'), 'status': 'pending', 'published_at': v.get('published_at'), 'duration': v.get('duration')}
             for v in videos
         ]
         update_sync_run(run_id, videos_total=len(videos), videos_list=json.dumps(videos_list))
@@ -435,6 +435,9 @@ def main():
                         update_sync_run(run_id, current_step='uploading')
                         upload_video_data(video_id, summary=summary, ticker=ticker)
                         log(f"  -> Uploaded {ticker} summary to API")
+
+                # Mark this video as processed (i+1 because i is 0-indexed)
+                update_sync_run(run_id, videos_processed=i+1)
 
             except Exception as e:
                 log(f"  -> ERROR: {str(e)[:100]}")
