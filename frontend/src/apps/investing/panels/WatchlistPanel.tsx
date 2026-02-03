@@ -244,14 +244,15 @@ export function WatchlistPanel() {
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
                 {stockResults.map((stock) => {
                   const isInWatchlist = watchlist.includes(stock.ticker);
+                  const isAdding = addMutation.isPending && addMutation.variables === stock.ticker;
                   const logoUrl = getCompanyLogoUrl(stock.ticker);
                   return (
                     <button
                       key={stock.ticker}
                       type="button"
                       onClick={() => handleSelectStock(stock)}
-                      disabled={isInWatchlist}
-                      className={`w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 ${isInWatchlist ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'hover:bg-blue-50'}`}
+                      disabled={isInWatchlist || isAdding}
+                      className={`w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 last:border-b-0 ${isInWatchlist || isAdding ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'hover:bg-blue-50'}`}
                     >
                       <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
                         {logoUrl && (
@@ -273,7 +274,8 @@ export function WatchlistPanel() {
                       </div>
                       <span className="font-bold text-slate-800 w-16">{stock.ticker}</span>
                       <span className="text-slate-600 text-sm truncate">{stock.name}</span>
-                      {isInWatchlist && <span className="text-xs text-slate-400 ml-auto">{language === 'fr' ? 'Ajouté' : 'Added'}</span>}
+                      {isAdding && <Loader2 className="w-4 h-4 text-blue-500 animate-spin ml-auto" />}
+                      {isInWatchlist && !isAdding && <span className="text-xs text-slate-400 ml-auto">{language === 'fr' ? 'Ajouté' : 'Added'}</span>}
                     </button>
                   );
                 })}
