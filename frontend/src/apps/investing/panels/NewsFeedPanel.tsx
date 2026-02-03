@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Loader2, Youtube, ChevronDown, ChevronRight, Eye, Briefcase, ExternalLink, FileText, GripVertical } from 'lucide-react';
+import { Loader2, Youtube, ChevronDown, ChevronRight, Eye, Briefcase, ExternalLink, FileText } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { findStockByTicker } from '../utils/allStocks';
@@ -322,8 +322,6 @@ function CompanySection({
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-500 hover:border-slate-400 dark:hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
       >
-        {/* Drag indicator */}
-        <GripVertical className="w-4 h-4 text-slate-400 flex-shrink-0" />
         {isOpen ? (
           <ChevronDown className="w-4 h-4 text-slate-500 flex-shrink-0" />
         ) : (
