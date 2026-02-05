@@ -6832,6 +6832,122 @@ def get_model_portfolio():
     })
 
 
+@app.route('/api/demo/model-portfolio/performance', methods=['GET'])
+def get_model_portfolio_performance():
+    """Get model portfolio performance since 01/01/2023 vs S&P 500.
+    Assumes 100% capital allocation at start with current portfolio weights.
+    """
+    import yfinance as yf
+    import pandas as pd
+    from investing_utils import get_yfinance_ticker
+
+    # Get model portfolio composition
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT stock_ticker, allocation_pct
+            FROM alphawise_model_portfolio
+            ORDER BY allocation_pct DESC
+        ''')
+        stocks = [{'ticker': row['stock_ticker'], 'weight': row['allocation_pct'] / 100.0} for row in cursor.fetchall()]
+
+    if not stocks:
+        return jsonify({'data': [], 'message': 'No stocks in model portfolio'})
+
+    # Date range: 01/01/2023 to today
+    start_date = '2023-01-01'
+    end_date = datetime.now().strftime('%Y-%m-%d')
+
+    # Get S&P 500 benchmark (SPY)
+    benchmark_ticker = 'SPY'
+
+    try:
+        # Fetch all stock data
+        all_tickers = [get_yfinance_ticker(s['ticker']) for s in stocks] + [benchmark_ticker]
+        data = yf.download(all_tickers, start=start_date, end=end_date, progress=False, auto_adjust=True)
+
+        if data.empty:
+            return jsonify({'data': [], 'message': 'No price data available'})
+
+        # Get closing prices
+        if len(all_tickers) == 1:
+            close_prices = data[['Close']].copy()
+            close_prices.columns = [all_tickers[0]]
+        else:
+            close_prices = data['Close'].copy()
+
+        # Calculate portfolio performance
+        # Normalize to 100 at start
+        first_valid_idx = close_prices.first_valid_index()
+        if first_valid_idx is None:
+            return jsonify({'data': [], 'message': 'No valid price data'})
+
+        # Get first valid prices for normalization
+        first_prices = close_prices.loc[first_valid_idx]
+
+        # Calculate daily portfolio value (weighted sum of normalized prices)
+        portfolio_values = []
+        benchmark_values = []
+        dates = []
+
+        for date_idx, row in close_prices.iterrows():
+            date_str = date_idx.strftime('%Y-%m-%d')
+
+            # Calculate weighted portfolio value
+            portfolio_value = 0
+            valid_weight = 0
+            for stock in stocks:
+                yf_ticker = get_yfinance_ticker(stock['ticker'])
+                if yf_ticker in row and pd.notna(row[yf_ticker]) and yf_ticker in first_prices and pd.notna(first_prices[yf_ticker]):
+                    normalized = (row[yf_ticker] / first_prices[yf_ticker]) * 100
+                    portfolio_value += normalized * stock['weight']
+                    valid_weight += stock['weight']
+
+            # Normalize by valid weight to handle missing data
+            if valid_weight > 0:
+                portfolio_value = portfolio_value / valid_weight
+
+            # Benchmark value
+            benchmark_value = None
+            if benchmark_ticker in row and pd.notna(row[benchmark_ticker]) and benchmark_ticker in first_prices and pd.notna(first_prices[benchmark_ticker]):
+                benchmark_value = (row[benchmark_ticker] / first_prices[benchmark_ticker]) * 100
+
+            if portfolio_value > 0:
+                dates.append(date_str)
+                portfolio_values.append(round(portfolio_value, 2))
+                benchmark_values.append(round(benchmark_value, 2) if benchmark_value else None)
+
+        # Build response data
+        result_data = []
+        for i in range(len(dates)):
+            result_data.append({
+                'date': dates[i],
+                'portfolio': portfolio_values[i],
+                'benchmark': benchmark_values[i],
+            })
+
+        # Calculate summary stats
+        if len(portfolio_values) > 0:
+            portfolio_return = portfolio_values[-1] - 100
+            benchmark_return = (benchmark_values[-1] - 100) if benchmark_values[-1] else None
+        else:
+            portfolio_return = 0
+            benchmark_return = None
+
+        return jsonify({
+            'data': result_data,
+            'summary': {
+                'portfolio_return': round(portfolio_return, 2),
+                'benchmark_return': round(benchmark_return, 2) if benchmark_return else None,
+                'start_date': start_date,
+                'end_date': end_date,
+            }
+        })
+
+    except Exception as e:
+        print(f"Error fetching model portfolio performance: {e}")
+        return jsonify({'data': [], 'error': str(e)}), 500
+
+
 @app.route('/api/demo/admin/model-portfolio', methods=['GET'])
 @admin_required
 def get_model_portfolio_admin():

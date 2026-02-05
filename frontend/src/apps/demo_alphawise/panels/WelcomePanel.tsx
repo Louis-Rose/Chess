@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Loader2, PartyPopper, X, Flame, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { Loader2, PartyPopper, X, Flame, ChevronDown, ChevronUp, TrendingUp, BarChart3 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -59,6 +59,22 @@ interface ModelPortfolioData {
   eurusd_rate: number;
 }
 
+interface PerformanceDataPoint {
+  date: string;
+  portfolio: number;
+  benchmark: number | null;
+}
+
+interface ModelPerformanceData {
+  data: PerformanceDataPoint[];
+  summary: {
+    portfolio_return: number;
+    benchmark_return: number | null;
+    start_date: string;
+    end_date: string;
+  };
+}
+
 // Card IDs - only top-movers for demo (no portfolio card)
 const ALL_CARD_IDS = ['top-movers'] as const;
 type CardId = typeof ALL_CARD_IDS[number];
@@ -71,6 +87,11 @@ const DEFAULT_GRID: GridSlot[] = ['top-movers', null];
 // API fetchers - use /api/demo for demo app (separate database)
 const fetchModelPortfolio = async (): Promise<ModelPortfolioData> => {
   const response = await axios.get('/api/demo/model-portfolio');
+  return response.data;
+};
+
+const fetchModelPerformance = async (): Promise<ModelPerformanceData> => {
+  const response = await axios.get('/api/demo/model-portfolio/performance');
   return response.data;
 };
 
@@ -158,6 +179,13 @@ export function WelcomePanel() {
     queryKey: ['model-portfolio'],
     queryFn: fetchModelPortfolio,
     staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Fetch model portfolio performance (public, no auth needed)
+  const { data: performanceData, isLoading: performanceLoading } = useQuery({
+    queryKey: ['model-portfolio-performance'],
+    queryFn: fetchModelPerformance,
+    staleTime: 1000 * 60 * 15, // 15 minutes
   });
 
   // Fetch card order
@@ -412,6 +440,118 @@ export function WelcomePanel() {
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
           {language === 'fr' ? 'Bienvenue' : 'Welcome'}{isAuthenticated && user?.name ? `, ${user.name}` : ''} !
         </h1>
+      </div>
+
+      {/* Portfolio Performance Section */}
+      <div className="mt-8 px-4 md:px-8 max-w-5xl mx-auto w-full">
+        <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {language === 'fr' ? 'Performance du Portefeuille' : 'Portfolio Performance'}
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {language === 'fr'
+                  ? 'Depuis le 01/01/2023 - Allocation 100% - vs S&P 500'
+                  : 'Since 01/01/2023 - 100% allocation - vs S&P 500'}
+              </p>
+            </div>
+          </div>
+
+          {performanceLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+            </div>
+          ) : performanceData && performanceData.data.length > 0 ? (
+            <>
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-slate-100 dark:bg-slate-700 rounded-lg p-4 text-center">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
+                    {language === 'fr' ? 'Performance Portefeuille' : 'Portfolio Return'}
+                  </p>
+                  <p className={`text-2xl font-bold ${performanceData.summary.portfolio_return >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {performanceData.summary.portfolio_return >= 0 ? '+' : ''}{performanceData.summary.portfolio_return}%
+                  </p>
+                </div>
+                <div className="bg-slate-100 dark:bg-slate-700 rounded-lg p-4 text-center">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
+                    S&P 500
+                  </p>
+                  <p className={`text-2xl font-bold ${(performanceData.summary.benchmark_return ?? 0) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                    {(performanceData.summary.benchmark_return ?? 0) >= 0 ? '+' : ''}{performanceData.summary.benchmark_return ?? 0}%
+                  </p>
+                </div>
+              </div>
+
+              {/* Performance Chart */}
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={performanceData.data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e2e8f0'} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }}
+                      tickFormatter={(value) => {
+                        const date = new Date(value);
+                        return `${date.getMonth() + 1}/${date.getFullYear().toString().slice(2)}`;
+                      }}
+                      interval="preserveStartEnd"
+                      minTickGap={50}
+                    />
+                    <YAxis
+                      tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }}
+                      tickFormatter={(value) => `${value}`}
+                      domain={['dataMin - 5', 'dataMax + 5']}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                        borderRadius: '8px',
+                        border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+                        padding: '12px',
+                      }}
+                      labelFormatter={(label) => {
+                        const date = new Date(label);
+                        return date.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                      }}
+                      formatter={(value, name) => [
+                        `${typeof value === 'number' ? value.toFixed(1) : value}`,
+                        name === 'portfolio' ? (language === 'fr' ? 'Portefeuille' : 'Portfolio') : 'S&P 500'
+                      ]}
+                    />
+                    <Legend
+                      formatter={(value) => value === 'portfolio' ? (language === 'fr' ? 'Portefeuille' : 'Portfolio') : 'S&P 500'}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="portfolio"
+                      stroke="#16a34a"
+                      strokeWidth={2}
+                      dot={false}
+                      name="portfolio"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="benchmark"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      dot={false}
+                      name="benchmark"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          ) : (
+            <p className="text-slate-500 text-center py-8">
+              {language === 'fr' ? 'Aucune donnée de performance' : 'No performance data available'}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* AlphaWise Model Portfolio Section */}
