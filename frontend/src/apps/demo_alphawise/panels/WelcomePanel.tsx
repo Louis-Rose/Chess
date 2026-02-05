@@ -426,7 +426,9 @@ export function WelcomePanel() {
                 {language === 'fr' ? 'Portefeuille Modèle' : 'Model Portfolio'}
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {language === 'fr' ? '20 actions US & EU - allocation équilibrée' : '20 US & EU stocks - balanced allocation'}
+                {language === 'fr'
+                  ? `${modelHoldings.length} actions US & EU - allocation équilibrée`
+                  : `${modelHoldings.length} US & EU stocks - balanced allocation`}
               </p>
             </div>
           </div>
