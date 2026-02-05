@@ -440,16 +440,16 @@ export function WelcomePanel() {
           ) : modelHoldings.length > 0 ? (
             <div className="flex flex-col lg:flex-row items-center gap-6">
               {/* Pie Chart */}
-              <div className="w-full lg:w-1/2 h-[320px]">
+              <div className="w-full lg:w-1/2 h-[380px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart margin={{ top: 30, right: 60, bottom: 30, left: 60 }}>
+                  <PieChart margin={{ top: 40, right: 80, bottom: 40, left: 80 }}>
                     <Pie
                       data={modelHoldings as unknown as Record<string, unknown>[]}
                       dataKey="weight"
                       nameKey="ticker"
                       cx="50%"
                       cy="50%"
-                      outerRadius="45%"
+                      outerRadius="60%"
                       label={({ name, value, x, y, textAnchor, fill }) => {
                         // For small slices (<5%), show "OTHERS X%" only on the middle one
                         if (value < 5) {
