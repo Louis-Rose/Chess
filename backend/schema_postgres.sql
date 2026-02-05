@@ -78,6 +78,33 @@ CREATE TABLE IF NOT EXISTS portfolio_transactions (
     FOREIGN KEY (account_id) REFERENCES investment_accounts(id) ON DELETE SET NULL
 );
 
+-- Demo AlphaWise investment accounts table (separate from main LUMNA accounts)
+CREATE TABLE IF NOT EXISTS demo_investment_accounts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    account_type TEXT NOT NULL,
+    bank TEXT NOT NULL,
+    display_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Demo AlphaWise portfolio transactions table (separate from main LUMNA transactions)
+CREATE TABLE IF NOT EXISTS demo_portfolio_transactions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    account_id INTEGER,
+    stock_ticker TEXT NOT NULL,
+    transaction_type TEXT NOT NULL,
+    quantity REAL NOT NULL,
+    transaction_date TEXT NOT NULL,
+    price_per_share REAL NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (account_id) REFERENCES demo_investment_accounts(id) ON DELETE SET NULL
+);
+
 -- Historical stock prices cache
 CREATE TABLE IF NOT EXISTS historical_prices (
     ticker TEXT NOT NULL,
@@ -308,6 +335,10 @@ CREATE INDEX IF NOT EXISTS idx_historical_fx_rates_date ON historical_fx_rates(d
 CREATE INDEX IF NOT EXISTS idx_watchlist_user_id ON watchlist(user_id);
 CREATE INDEX IF NOT EXISTS idx_investment_accounts_user_id ON investment_accounts(user_id);
 CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_account_id ON portfolio_transactions(account_id);
+CREATE INDEX IF NOT EXISTS idx_demo_investment_accounts_user_id ON demo_investment_accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_demo_portfolio_transactions_user_id ON demo_portfolio_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_demo_portfolio_transactions_ticker ON demo_portfolio_transactions(stock_ticker);
+CREATE INDEX IF NOT EXISTS idx_demo_portfolio_transactions_account_id ON demo_portfolio_transactions(account_id);
 CREATE INDEX IF NOT EXISTS idx_earnings_watchlist_user_id ON earnings_watchlist(user_id);
 CREATE INDEX IF NOT EXISTS idx_earnings_cache_updated ON earnings_cache(updated_at);
 CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON user_activity(user_id);

@@ -107,9 +107,8 @@ const DEFAULT_GRID: GridSlot[] = [...ALL_CARD_IDS, null, null];
 
 // Demo user's card order (used as placeholder while loading)
 const DEMO_CARD_ORDER: GridSlot[] = [
-  null, 'portfolio', 'earnings',
-  'watchlist', 'top-movers', 'dividends',
-  'news-feed', 'stock-research', null
+  'portfolio', null, 'top-movers',
+  null
 ];
 
 // API fetchers

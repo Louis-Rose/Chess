@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Dark blue A shape -->
+  <path d="M50 8 L20 92 L35 92 L42 70 L58 70 L65 92 L80 92 L50 8 Z M46 55 L50 40 L54 55 Z" fill="#1e293b"/>
+  <!-- Gold swoosh -->
+  <path d="M25 75 Q50 55 85 35 Q70 50 55 60 Q40 70 25 82 L25 75 Z" fill="#d4a14a" stroke="#c9963f" stroke-width="1"/>
+  <path d="M78 82 Q85 70 88 55 Q90 75 85 90 Q80 88 78 82 Z" fill="#d4a14a"/>
+</svg>

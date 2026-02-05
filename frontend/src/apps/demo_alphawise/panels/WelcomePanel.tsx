@@ -65,29 +65,29 @@ const GRID_SIZE = 4;
 type GridSlot = CardId | null;
 const DEFAULT_GRID: GridSlot[] = ['portfolio', 'top-movers', null, null];
 
-// API fetchers
+// API fetchers - use /api/demo for demo app (separate database)
 const fetchComposition = async (accountIds: number[]): Promise<CompositionData> => {
   const params = accountIds.length > 0 ? `?account_ids=${accountIds.join(',')}` : '';
-  const response = await axios.get(`/api/investing/portfolio/composition${params}`);
+  const response = await axios.get(`/api/demo/portfolio/composition${params}`);
   return response.data;
 };
 
 const fetchPerformance = async (days: number, accountIds: number[]): Promise<PerformanceData> => {
   const params = new URLSearchParams({ days: String(days) });
   if (accountIds.length > 0) params.append('account_ids', accountIds.join(','));
-  const response = await axios.get(`/api/investing/portfolio/performance-period?${params}`);
+  const response = await axios.get(`/api/demo/portfolio/performance-period?${params}`);
   return response.data;
 };
 
 const fetchTopMovers = async (days: number, accountIds: number[]): Promise<TopMoversData> => {
   const params = new URLSearchParams({ days: String(days) });
   if (accountIds.length > 0) params.append('account_ids', accountIds.join(','));
-  const response = await axios.get(`/api/investing/portfolio/top-movers?${params}`);
+  const response = await axios.get(`/api/demo/portfolio/top-movers?${params}`);
   return response.data;
 };
 
 const fetchAccounts = async (): Promise<{ accounts: Account[] }> => {
-  const response = await axios.get('/api/investing/accounts');
+  const response = await axios.get('/api/demo/accounts');
   return response.data;
 };
 

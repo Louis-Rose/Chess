@@ -130,38 +130,69 @@ const generateDemoPerformanceData = (): PerformanceData => {
   };
 };
 
-// Fetch functions
-const fetchTransactions = async (): Promise<{ transactions: Transaction[] }> => {
-  const response = await axios.get('/api/investing/transactions');
-  return response.data;
-};
-
-const fetchHoldings = async (): Promise<{ holdings: ComputedHolding[] }> => {
-  const response = await axios.get('/api/investing/holdings');
-  return response.data;
-};
-
-const fetchComposition = async (accountIds: number[]): Promise<CompositionData> => {
-  const params = accountIds.length > 0 ? `?account_ids=${accountIds.join(',')}` : '';
-  const response = await axios.get(`/api/investing/portfolio/composition${params}`);
-  return response.data;
-};
-
-const fetchPerformance = async (benchmark: string, currency: string, accountIds: number[]): Promise<PerformanceData> => {
-  const params = new URLSearchParams({ benchmark, currency });
-  if (accountIds.length > 0) params.append('account_ids', accountIds.join(','));
-  const response = await axios.get(`/api/investing/portfolio/performance?${params}`);
-  return response.data;
-};
-
-const addTransaction = async (transaction: NewTransaction): Promise<Transaction> => {
-  const response = await axios.post('/api/investing/transactions', transaction);
-  return response.data;
-};
-
-const deleteTransaction = async (id: number): Promise<void> => {
-  await axios.delete(`/api/investing/transactions/${id}`);
-};
+// Fetch functions - accept base path for demo app support
+const createFetchFunctions = (basePath: string) => ({
+  fetchTransactions: async (): Promise<{ transactions: Transaction[] }> => {
+    const response = await axios.get(`${basePath}/transactions`);
+    return response.data;
+  },
+  fetchHoldings: async (): Promise<{ holdings: ComputedHolding[] }> => {
+    const response = await axios.get(`${basePath}/holdings`);
+    return response.data;
+  },
+  fetchComposition: async (accountIds: number[]): Promise<CompositionData> => {
+    const params = accountIds.length > 0 ? `?account_ids=${accountIds.join(',')}` : '';
+    const response = await axios.get(`${basePath}/portfolio/composition${params}`);
+    return response.data;
+  },
+  fetchPerformance: async (benchmark: string, currency: string, accountIds: number[]): Promise<PerformanceData> => {
+    const params = new URLSearchParams({ benchmark, currency });
+    if (accountIds.length > 0) params.append('account_ids', accountIds.join(','));
+    const response = await axios.get(`${basePath}/portfolio/performance?${params}`);
+    return response.data;
+  },
+  addTransaction: async (transaction: NewTransaction): Promise<Transaction> => {
+    const response = await axios.post(`${basePath}/transactions`, transaction);
+    return response.data;
+  },
+  deleteTransaction: async (id: number): Promise<void> => {
+    await axios.delete(`${basePath}/transactions/${id}`);
+  },
+  updateTransaction: async ({ id, data }: { id: number; data: EditTransactionData }): Promise<Transaction> => {
+    const response = await axios.put(`${basePath}/transactions/${id}`, data);
+    return response.data;
+  },
+  fetchAccounts: async (): Promise<{ accounts: Account[] }> => {
+    const response = await axios.get(`${basePath}/accounts`);
+    return response.data;
+  },
+  fetchBanks: async (): Promise<{ banks: Record<string, BankInfo> }> => {
+    const response = await axios.get(`${basePath}/banks`);
+    return response.data;
+  },
+  fetchAccountTypes: async (): Promise<{ account_types: Record<string, AccountTypeInfo> }> => {
+    const response = await axios.get(`${basePath}/account-types`);
+    return response.data;
+  },
+  createAccount: async (data: { name: string; account_type: string; bank: string }): Promise<Account> => {
+    const response = await axios.post(`${basePath}/accounts`, data);
+    return response.data;
+  },
+  deleteAccount: async (id: number): Promise<void> => {
+    await axios.delete(`${basePath}/accounts/${id}`);
+  },
+  duplicateAccount: async (id: number): Promise<Account> => {
+    const response = await axios.post(`${basePath}/accounts/${id}/duplicate`);
+    return response.data;
+  },
+  renameAccount: async ({ id, name }: { id: number; name: string }): Promise<Account> => {
+    const response = await axios.put(`${basePath}/accounts/${id}/rename`, { name });
+    return response.data;
+  },
+  reorderAccounts: async (accountIds: number[]): Promise<void> => {
+    await axios.put(`${basePath}/accounts/reorder`, { account_ids: accountIds });
+  },
+});
 
 interface EditTransactionData {
   stock_ticker: string;
@@ -170,50 +201,13 @@ interface EditTransactionData {
   transaction_date: string;
 }
 
-const updateTransaction = async ({ id, data }: { id: number; data: EditTransactionData }): Promise<Transaction> => {
-  const response = await axios.put(`/api/investing/transactions/${id}`, data);
-  return response.data;
-};
+interface PortfolioPanelProps {
+  apiBasePath?: string;  // Defaults to '/api/investing', use '/api/demo' for demo app
+}
 
-const fetchAccounts = async (): Promise<{ accounts: Account[] }> => {
-  const response = await axios.get('/api/investing/accounts');
-  return response.data;
-};
-
-const fetchBanks = async (): Promise<{ banks: Record<string, BankInfo> }> => {
-  const response = await axios.get('/api/investing/banks');
-  return response.data;
-};
-
-const fetchAccountTypes = async (): Promise<{ account_types: Record<string, AccountTypeInfo> }> => {
-  const response = await axios.get('/api/investing/account-types');
-  return response.data;
-};
-
-const createAccount = async (data: { name: string; account_type: string; bank: string }): Promise<Account> => {
-  const response = await axios.post('/api/investing/accounts', data);
-  return response.data;
-};
-
-const deleteAccount = async (id: number): Promise<void> => {
-  await axios.delete(`/api/investing/accounts/${id}`);
-};
-
-const duplicateAccount = async (id: number): Promise<Account> => {
-  const response = await axios.post(`/api/investing/accounts/${id}/duplicate`);
-  return response.data;
-};
-
-const renameAccount = async ({ id, name }: { id: number; name: string }): Promise<Account> => {
-  const response = await axios.put(`/api/investing/accounts/${id}/rename`, { name });
-  return response.data;
-};
-
-const reorderAccounts = async (accountIds: number[]): Promise<void> => {
-  await axios.put('/api/investing/accounts/reorder', { account_ids: accountIds });
-};
-
-export function PortfolioPanel() {
+export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPanelProps) {
+  // Create API fetch functions with the configured base path
+  const api = createFetchFunctions(apiBasePath);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language, t } = useLanguage();
   const queryClient = useQueryClient();
@@ -295,31 +289,31 @@ export function PortfolioPanel() {
 
   // Queries
   const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: fetchTransactions,
+    queryKey: ['transactions', apiBasePath],
+    queryFn: api.fetchTransactions,
     enabled: isAuthenticated,
   });
 
   useQuery({
-    queryKey: ['holdings'],
-    queryFn: fetchHoldings,
+    queryKey: ['holdings', apiBasePath],
+    queryFn: api.fetchHoldings,
     enabled: isAuthenticated,
   });
 
   const { data: accountsData, isLoading: accountsLoading } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: fetchAccounts,
+    queryKey: ['accounts', apiBasePath],
+    queryFn: api.fetchAccounts,
     enabled: isAuthenticated,
   });
 
   const { data: banksData } = useQuery({
-    queryKey: ['banks'],
-    queryFn: fetchBanks,
+    queryKey: ['banks', apiBasePath],
+    queryFn: api.fetchBanks,
   });
 
   const { data: accountTypesData } = useQuery({
-    queryKey: ['accountTypes'],
-    queryFn: fetchAccountTypes,
+    queryKey: ['accountTypes', apiBasePath],
+    queryFn: api.fetchAccountTypes,
   });
 
   const accounts = accountsData?.accounts ?? [];
@@ -327,16 +321,16 @@ export function PortfolioPanel() {
   const accountTypes = accountTypesData?.account_types ?? {};
 
   const { data: compositionData, isLoading: compositionLoading } = useQuery({
-    queryKey: ['composition', selectedAccountIds],
-    queryFn: () => fetchComposition(selectedAccountIds),
+    queryKey: ['composition', selectedAccountIds, apiBasePath],
+    queryFn: () => api.fetchComposition(selectedAccountIds),
     enabled: isAuthenticated && selectedAccountIds.length > 0,
   });
 
   const accountHasHoldings = (compositionData?.holdings?.length ?? 0) > 0;
 
   const { data: performanceData, isLoading: performanceLoading } = useQuery({
-    queryKey: ['performance', benchmark, currency, selectedAccountIds],
-    queryFn: () => fetchPerformance(benchmark, currency, selectedAccountIds),
+    queryKey: ['performance', benchmark, currency, selectedAccountIds, apiBasePath],
+    queryFn: () => api.fetchPerformance(benchmark, currency, selectedAccountIds),
     enabled: isAuthenticated && selectedAccountIds.length > 0 && accountHasHoldings,
   });
 
@@ -363,24 +357,24 @@ export function PortfolioPanel() {
 
   // Mutations
   const addMutation = useMutation({
-    mutationFn: addTransaction,
+    mutationFn: api.addTransaction,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['holdings'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', apiBasePath] });
+      queryClient.invalidateQueries({ queryKey: ['holdings', apiBasePath] });
       queryClient.invalidateQueries({ queryKey: ['composition'] });
       queryClient.invalidateQueries({ queryKey: ['performance'] });
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteTransaction,
+    mutationFn: api.deleteTransaction,
     onMutate: async (deletedId) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['transactions'] });
+      await queryClient.cancelQueries({ queryKey: ['transactions', apiBasePath] });
       // Snapshot previous value
-      const previousTransactions = queryClient.getQueryData(['transactions']);
+      const previousTransactions = queryClient.getQueryData(['transactions', apiBasePath]);
       // Optimistically remove the transaction
-      queryClient.setQueryData(['transactions'], (old: { transactions: Transaction[] } | undefined) => {
+      queryClient.setQueryData(['transactions', apiBasePath], (old: { transactions: Transaction[] } | undefined) => {
         if (!old) return old;
         return { transactions: old.transactions.filter(t => t.id !== deletedId) };
       });
@@ -389,69 +383,69 @@ export function PortfolioPanel() {
     onError: (error, _deletedId, context) => {
       // Rollback on error
       if (context?.previousTransactions) {
-        queryClient.setQueryData(['transactions'], context.previousTransactions);
+        queryClient.setQueryData(['transactions', apiBasePath], context.previousTransactions);
       }
       console.error('Failed to delete transaction:', error);
     },
     onSettled: () => {
       // Refetch to ensure sync with server
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['holdings'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', apiBasePath] });
+      queryClient.invalidateQueries({ queryKey: ['holdings', apiBasePath] });
       queryClient.invalidateQueries({ queryKey: ['composition'] });
       queryClient.invalidateQueries({ queryKey: ['performance'] });
     },
   });
 
   const editMutation = useMutation({
-    mutationFn: updateTransaction,
+    mutationFn: api.updateTransaction,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['holdings'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', apiBasePath] });
+      queryClient.invalidateQueries({ queryKey: ['holdings', apiBasePath] });
       queryClient.invalidateQueries({ queryKey: ['composition'] });
       queryClient.invalidateQueries({ queryKey: ['performance'] });
     },
   });
 
   const createAccountMutation = useMutation({
-    mutationFn: createAccount,
+    mutationFn: api.createAccount,
     onSuccess: (newAccount) => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts', apiBasePath] });
       setSelectedAccountIds([newAccount.id]);
     },
   });
 
   const deleteAccountMutation = useMutation({
-    mutationFn: deleteAccount,
+    mutationFn: api.deleteAccount,
     onSuccess: (_data, deletedId) => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts', apiBasePath] });
       // Remove deleted account from selection
       setSelectedAccountIds(prev => prev.filter(id => id !== deletedId));
     },
   });
 
   const duplicateAccountMutation = useMutation({
-    mutationFn: duplicateAccount,
+    mutationFn: api.duplicateAccount,
     onSuccess: (newAccount) => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts', apiBasePath] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', apiBasePath] });
       setSelectedAccountIds([newAccount.id]);
     },
   });
 
   const renameAccountMutation = useMutation({
-    mutationFn: renameAccount,
+    mutationFn: api.renameAccount,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts', apiBasePath] });
     },
   });
 
   const reorderAccountsMutation = useMutation({
-    mutationFn: reorderAccounts,
+    mutationFn: api.reorderAccounts,
     onMutate: async (newOrder) => {
       // Optimistically update the accounts order
-      await queryClient.cancelQueries({ queryKey: ['accounts'] });
-      const previousAccounts = queryClient.getQueryData(['accounts']);
-      queryClient.setQueryData(['accounts'], (old: { accounts: Account[] } | undefined) => {
+      await queryClient.cancelQueries({ queryKey: ['accounts', apiBasePath] });
+      const previousAccounts = queryClient.getQueryData(['accounts', apiBasePath]);
+      queryClient.setQueryData(['accounts', apiBasePath], (old: { accounts: Account[] } | undefined) => {
         if (!old) return old;
         const reordered = newOrder.map(id => old.accounts.find(a => a.id === id)).filter(Boolean) as Account[];
         return { accounts: reordered };
@@ -461,12 +455,12 @@ export function PortfolioPanel() {
     onError: (_err, _newOrder, context) => {
       // Rollback on error
       if (context?.previousAccounts) {
-        queryClient.setQueryData(['accounts'], context.previousAccounts);
+        queryClient.setQueryData(['accounts', apiBasePath], context.previousAccounts);
       }
     },
     onSettled: () => {
       // Refetch to ensure sync with server
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts', apiBasePath] });
     },
   });
 

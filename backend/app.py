@@ -6111,5 +6111,618 @@ def submit_feedback():
         return jsonify({'error': 'Failed to send feedback. Please try again later.'}), 500
 
 
+# =============================================================================
+# DEMO ALPHAWISE API ROUTES
+# These routes use separate demo_* tables for the demo app
+# =============================================================================
+
+@app.route('/api/demo/accounts', methods=['GET'])
+@login_required
+def get_demo_accounts():
+    """Get user's demo investment accounts."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT id, name, account_type, bank, display_order, created_at
+               FROM demo_investment_accounts WHERE user_id = ?
+               ORDER BY display_order ASC, created_at ASC''',
+            (request.user_id,)
+        )
+        rows = cursor.fetchall()
+
+    accounts = [{
+        'id': row['id'],
+        'name': row['name'],
+        'account_type': row['account_type'],
+        'bank': row['bank'],
+        'bank_info': BANKS.get(row['bank'], {}),
+        'type_info': ACCOUNT_TYPES.get(row['account_type'], {}),
+    } for row in rows]
+    return jsonify({'accounts': accounts})
+
+
+@app.route('/api/demo/accounts', methods=['POST'])
+@login_required
+def create_demo_account():
+    """Create a new demo investment account."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    name = data.get('name', '').strip()
+    account_type = data.get('account_type', '').upper().strip()
+    bank = data.get('bank', '').upper().strip()
+
+    if not name:
+        return jsonify({'error': 'Account name required'}), 400
+    if account_type not in ACCOUNT_TYPES:
+        return jsonify({'error': f'Invalid account type. Valid: {list(ACCOUNT_TYPES.keys())}'}), 400
+    if bank not in BANKS:
+        return jsonify({'error': f'Invalid bank. Valid: {list(BANKS.keys())}'}), 400
+
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT COALESCE(MAX(display_order), -1) + 1 as next_order FROM demo_investment_accounts WHERE user_id = ?',
+            (request.user_id,)
+        )
+        next_order = cursor.fetchone()['next_order']
+
+        cursor = conn.execute('''
+            INSERT INTO demo_investment_accounts (user_id, name, account_type, bank, display_order)
+            VALUES (?, ?, ?, ?, ?)
+            RETURNING id
+        ''', (request.user_id, name, account_type, bank, next_order))
+        account_id = cursor.fetchone()['id']
+
+    return jsonify({
+        'success': True,
+        'id': account_id,
+        'name': name,
+        'account_type': account_type,
+        'bank': bank,
+        'bank_info': BANKS[bank],
+        'type_info': ACCOUNT_TYPES[account_type],
+    })
+
+
+@app.route('/api/demo/accounts/<int:account_id>', methods=['DELETE'])
+@login_required
+def delete_demo_account(account_id):
+    """Delete a demo investment account."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT id FROM demo_investment_accounts WHERE user_id = ? AND id = ?',
+            (request.user_id, account_id)
+        )
+        if not cursor.fetchone():
+            return jsonify({'error': 'Account not found'}), 404
+
+        conn.execute('DELETE FROM demo_investment_accounts WHERE id = ? AND user_id = ?',
+                    (account_id, request.user_id))
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/demo/accounts/<int:account_id>/rename', methods=['PUT'])
+@login_required
+def rename_demo_account(account_id):
+    """Rename a demo investment account."""
+    data = request.get_json()
+    new_name = data.get('name', '').strip() if data else ''
+
+    if not new_name:
+        return jsonify({'error': 'New name required'}), 400
+
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT id FROM demo_investment_accounts WHERE id = ? AND user_id = ?',
+            (account_id, request.user_id)
+        )
+        if not cursor.fetchone():
+            return jsonify({'error': 'Account not found'}), 404
+
+        conn.execute('UPDATE demo_investment_accounts SET name = ? WHERE id = ? AND user_id = ?',
+                    (new_name, account_id, request.user_id))
+
+    return jsonify({'success': True, 'name': new_name})
+
+
+@app.route('/api/demo/accounts/reorder', methods=['PUT'])
+@login_required
+def reorder_demo_accounts():
+    """Reorder demo investment accounts."""
+    data = request.get_json()
+    if not data or 'order' not in data:
+        return jsonify({'error': 'Order array required'}), 400
+
+    order = data['order']  # List of account IDs in desired order
+
+    with get_db() as conn:
+        for idx, account_id in enumerate(order):
+            conn.execute(
+                'UPDATE demo_investment_accounts SET display_order = ? WHERE id = ? AND user_id = ?',
+                (idx, account_id, request.user_id)
+            )
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/demo/transactions', methods=['GET'])
+@login_required
+def get_demo_transactions():
+    """Get user's demo transaction history."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT pt.id, pt.stock_ticker, pt.transaction_type, pt.quantity,
+                      pt.transaction_date, pt.price_per_share, pt.account_id,
+                      ia.name as account_name, ia.account_type, ia.bank
+               FROM demo_portfolio_transactions pt
+               LEFT JOIN demo_investment_accounts ia ON pt.account_id = ia.id
+               WHERE pt.user_id = ?
+               ORDER BY pt.transaction_date DESC, pt.id DESC''',
+            (request.user_id,)
+        )
+        rows = cursor.fetchall()
+
+    transactions = [{
+        'id': row['id'],
+        'stock_ticker': row['stock_ticker'],
+        'transaction_type': row['transaction_type'],
+        'quantity': row['quantity'],
+        'transaction_date': row['transaction_date'],
+        'price_per_share': row['price_per_share'],
+        'price_currency': 'EUR',  # Default to EUR for demo
+        'account_id': row['account_id'],
+        'account_name': row['account_name'],
+        'account_type': row['account_type'],
+        'bank': row['bank'],
+    } for row in rows]
+    return jsonify({'transactions': transactions})
+
+
+@app.route('/api/demo/transactions', methods=['POST'])
+@login_required
+def add_demo_transaction():
+    """Add a new demo transaction."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    stock_ticker = data.get('stock_ticker', '').upper().strip()
+    transaction_type = data.get('transaction_type', '').upper().strip()
+    quantity = data.get('quantity')
+    transaction_date = data.get('transaction_date')
+    account_id = data.get('account_id')
+    provided_price = data.get('price_per_share')
+
+    if not stock_ticker:
+        return jsonify({'error': 'Stock ticker required'}), 400
+    if transaction_type not in ['BUY', 'SELL']:
+        return jsonify({'error': 'Transaction type must be BUY or SELL'}), 400
+    if quantity is None or not isinstance(quantity, (int, float)) or quantity <= 0:
+        return jsonify({'error': 'Valid quantity required (must be > 0)'}), 400
+    if not transaction_date:
+        return jsonify({'error': 'Transaction date required (YYYY-MM-DD)'}), 400
+
+    quantity = round(float(quantity), 2)
+
+    # Validate account_id if provided
+    if account_id is not None:
+        with get_db() as conn:
+            cursor = conn.execute(
+                'SELECT id FROM demo_investment_accounts WHERE id = ? AND user_id = ?',
+                (account_id, request.user_id)
+            )
+            if not cursor.fetchone():
+                return jsonify({'error': 'Invalid account_id'}), 400
+
+    try:
+        datetime.strptime(transaction_date, "%Y-%m-%d")
+    except ValueError:
+        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+
+    transaction_date = get_previous_weekday(transaction_date)
+
+    # Use provided price or fetch from Yahoo
+    if provided_price is not None:
+        price_per_share = float(provided_price)
+    else:
+        try:
+            price_per_share = fetch_stock_price(stock_ticker, transaction_date, use_cache=False)
+            if price_per_share is not None:
+                price_per_share = float(price_per_share)
+        except Exception as e:
+            return jsonify({'error': f'Could not fetch price for {stock_ticker} on {transaction_date}: {str(e)}'}), 400
+
+    try:
+        with get_db() as conn:
+            cursor = conn.execute('''
+                INSERT INTO demo_portfolio_transactions (user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                RETURNING id
+            ''', (request.user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share))
+            transaction_id = cursor.fetchone()['id']
+    except Exception as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+    return jsonify({
+        'success': True,
+        'id': transaction_id,
+        'duplicate': False,
+        'account_id': account_id,
+        'stock_ticker': stock_ticker,
+        'transaction_type': transaction_type,
+        'quantity': quantity,
+        'transaction_date': transaction_date,
+        'price_per_share': price_per_share,
+        'price_currency': 'EUR'
+    })
+
+
+@app.route('/api/demo/transactions/<int:transaction_id>', methods=['DELETE'])
+@login_required
+def delete_demo_transaction(transaction_id):
+    """Delete a demo transaction."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT id FROM demo_portfolio_transactions WHERE id = ? AND user_id = ?',
+            (transaction_id, request.user_id)
+        )
+        if not cursor.fetchone():
+            return jsonify({'error': 'Transaction not found'}), 404
+
+        conn.execute('DELETE FROM demo_portfolio_transactions WHERE id = ? AND user_id = ?',
+                    (transaction_id, request.user_id))
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/demo/holdings', methods=['GET'])
+@login_required
+def get_demo_holdings():
+    """Get computed current holdings from demo transactions."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+               FROM demo_portfolio_transactions WHERE user_id = ?
+               ORDER BY transaction_date ASC, id ASC''',
+            (request.user_id,)
+        )
+        rows = cursor.fetchall()
+
+    holdings_map = {}
+
+    for row in rows:
+        ticker = row['stock_ticker']
+        qty = row['quantity']
+        price = row['price_per_share']
+        date = row['transaction_date']
+        tx_type = row['transaction_type']
+
+        if ticker not in holdings_map:
+            holdings_map[ticker] = {'quantity': 0, 'lots': []}
+
+        if tx_type == 'BUY':
+            holdings_map[ticker]['quantity'] += qty
+            holdings_map[ticker]['lots'].append({'qty': qty, 'price': price, 'date': date})
+        elif tx_type == 'SELL':
+            holdings_map[ticker]['quantity'] -= qty
+            remaining_sell = qty
+            while remaining_sell > 0 and holdings_map[ticker]['lots']:
+                lot = holdings_map[ticker]['lots'][0]
+                if lot['qty'] <= remaining_sell:
+                    remaining_sell -= lot['qty']
+                    holdings_map[ticker]['lots'].pop(0)
+                else:
+                    lot['qty'] -= remaining_sell
+                    remaining_sell = 0
+
+    holdings = []
+    for ticker, data in holdings_map.items():
+        if data['quantity'] > 0:
+            total_cost = sum(lot['qty'] * lot['price'] for lot in data['lots'])
+            total_qty = sum(lot['qty'] for lot in data['lots'])
+            avg_cost = total_cost / total_qty if total_qty > 0 else 0
+
+            holdings.append({
+                'stock_ticker': ticker,
+                'quantity': data['quantity'],
+                'cost_basis': round(avg_cost, 2)
+            })
+
+    return jsonify({'holdings': holdings})
+
+
+def compute_demo_holdings_from_transactions(user_id, account_ids=None):
+    """Helper to compute demo holdings using FIFO."""
+    from investing_utils import fetch_eurusd_rate
+
+    with get_db() as conn:
+        if account_ids and len(account_ids) > 0:
+            placeholders = ','.join('?' for _ in account_ids)
+            cursor = conn.execute(
+                f'''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+                   FROM demo_portfolio_transactions WHERE user_id = ? AND account_id IN ({placeholders})
+                   ORDER BY transaction_date ASC, id ASC''',
+                (user_id, *account_ids)
+            )
+        else:
+            cursor = conn.execute(
+                '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+                   FROM demo_portfolio_transactions WHERE user_id = ? AND account_id IS NOT NULL
+                   ORDER BY transaction_date ASC, id ASC''',
+                (user_id,)
+            )
+        rows = cursor.fetchall()
+
+    holdings_map = {}
+
+    for row in rows:
+        ticker = row['stock_ticker']
+        qty = row['quantity']
+        price = row['price_per_share']
+        date = row['transaction_date']
+        tx_type = row['transaction_type']
+
+        if ticker not in holdings_map:
+            holdings_map[ticker] = {'quantity': 0, 'lots': []}
+
+        if tx_type == 'BUY':
+            holdings_map[ticker]['quantity'] += qty
+            # For demo, assume EUR prices
+            eur_price = price
+            holdings_map[ticker]['lots'].append({'qty': qty, 'eur_price': eur_price, 'date': date})
+        elif tx_type == 'SELL':
+            holdings_map[ticker]['quantity'] -= qty
+            remaining_sell = qty
+            while remaining_sell > 0 and holdings_map[ticker]['lots']:
+                lot = holdings_map[ticker]['lots'][0]
+                if lot['qty'] <= remaining_sell:
+                    remaining_sell -= lot['qty']
+                    holdings_map[ticker]['lots'].pop(0)
+                else:
+                    lot['qty'] -= remaining_sell
+                    remaining_sell = 0
+
+    holdings = []
+    for ticker, data in holdings_map.items():
+        if data['quantity'] > 0:
+            total_eur_cost = sum(lot['qty'] * lot['eur_price'] for lot in data['lots'])
+            total_qty = sum(lot['qty'] for lot in data['lots'])
+            avg_eur_cost = total_eur_cost / total_qty if total_qty > 0 else 0
+
+            holdings.append({
+                'stock_ticker': ticker,
+                'quantity': data['quantity'],
+                'cost_basis_eur': round(avg_eur_cost, 2),
+            })
+
+    return holdings
+
+
+@app.route('/api/demo/portfolio/composition', methods=['GET'])
+@login_required
+def get_demo_portfolio_composition():
+    """Get demo portfolio composition with current values."""
+    from investing_utils import get_stock_price_and_change, fetch_eurusd_rate
+
+    account_ids_param = request.args.get('account_ids', '')
+    account_ids = [int(x) for x in account_ids_param.split(',') if x.strip().isdigit()] if account_ids_param else None
+
+    holdings = compute_demo_holdings_from_transactions(request.user_id, account_ids)
+
+    if not holdings:
+        return jsonify({'composition': [], 'total_value_eur': 0, 'total_cost_eur': 0})
+
+    eurusd_rate = fetch_eurusd_rate()
+    composition = []
+    total_value_eur = 0
+    total_cost_eur = 0
+
+    for h in holdings:
+        ticker = h['stock_ticker']
+        qty = h['quantity']
+        cost_basis_eur = h['cost_basis_eur']
+
+        price_data = get_stock_price_and_change(ticker)
+        current_price = price_data.get('price', 0)
+        change_1d = price_data.get('change_1d', 0)
+        currency = price_data.get('currency', 'USD')
+
+        if currency == 'USD':
+            current_price_eur = current_price / eurusd_rate if eurusd_rate else current_price
+        else:
+            current_price_eur = current_price
+
+        current_value_eur = qty * current_price_eur
+        total_cost = qty * cost_basis_eur
+        gain_loss_eur = current_value_eur - total_cost
+        gain_loss_pct = (gain_loss_eur / total_cost * 100) if total_cost > 0 else 0
+
+        composition.append({
+            'ticker': ticker,
+            'quantity': qty,
+            'current_price_eur': round(current_price_eur, 2),
+            'current_value_eur': round(current_value_eur, 2),
+            'cost_basis_eur': round(cost_basis_eur, 2),
+            'total_cost_eur': round(total_cost, 2),
+            'gain_loss_eur': round(gain_loss_eur, 2),
+            'gain_loss_pct': round(gain_loss_pct, 2),
+            'change_1d': round(change_1d, 2) if change_1d else 0,
+        })
+
+        total_value_eur += current_value_eur
+        total_cost_eur += total_cost
+
+    composition.sort(key=lambda x: x['current_value_eur'], reverse=True)
+
+    return jsonify({
+        'composition': composition,
+        'total_value_eur': round(total_value_eur, 2),
+        'total_cost_eur': round(total_cost_eur, 2),
+        'total_gain_loss_eur': round(total_value_eur - total_cost_eur, 2),
+        'total_gain_loss_pct': round((total_value_eur - total_cost_eur) / total_cost_eur * 100, 2) if total_cost_eur > 0 else 0,
+    })
+
+
+@app.route('/api/demo/portfolio/performance-period', methods=['GET'])
+@login_required
+def get_demo_portfolio_performance_period():
+    """Get demo portfolio historical performance for a time period."""
+    from investing_utils import fetch_eurusd_rate, get_historical_price
+
+    period = request.args.get('period', '1M')
+    account_ids_param = request.args.get('account_ids', '')
+    account_ids = [int(x) for x in account_ids_param.split(',') if x.strip().isdigit()] if account_ids_param else None
+
+    # Calculate date range
+    today = datetime.now().date()
+    if period == '1W':
+        start_date = today - timedelta(days=7)
+    elif period == '1M':
+        start_date = today - timedelta(days=30)
+    elif period == '3M':
+        start_date = today - timedelta(days=90)
+    elif period == '6M':
+        start_date = today - timedelta(days=180)
+    elif period == '1Y':
+        start_date = today - timedelta(days=365)
+    elif period == 'YTD':
+        start_date = datetime(today.year, 1, 1).date()
+    elif period == 'ALL':
+        start_date = today - timedelta(days=365*5)
+    else:
+        start_date = today - timedelta(days=30)
+
+    # Get all transactions for the user within accounts
+    with get_db() as conn:
+        if account_ids and len(account_ids) > 0:
+            placeholders = ','.join('?' for _ in account_ids)
+            cursor = conn.execute(
+                f'''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+                   FROM demo_portfolio_transactions WHERE user_id = ? AND account_id IN ({placeholders})
+                   ORDER BY transaction_date ASC, id ASC''',
+                (request.user_id, *account_ids)
+            )
+        else:
+            cursor = conn.execute(
+                '''SELECT stock_ticker, transaction_type, quantity, transaction_date, price_per_share
+                   FROM demo_portfolio_transactions WHERE user_id = ? AND account_id IS NOT NULL
+                   ORDER BY transaction_date ASC, id ASC''',
+                (request.user_id,)
+            )
+        transactions = cursor.fetchall()
+
+    if not transactions:
+        return jsonify({'data': [], 'period': period})
+
+    # Build holdings timeline
+    eurusd_rate = fetch_eurusd_rate()
+    date_range = []
+    current_date = start_date
+    while current_date <= today:
+        if current_date.weekday() < 5:  # Weekdays only
+            date_range.append(current_date.isoformat())
+        current_date += timedelta(days=1)
+
+    performance_data = []
+    for date_str in date_range:
+        # Calculate holdings at this date
+        holdings_at_date = {}
+        total_invested = 0
+
+        for tx in transactions:
+            if tx['transaction_date'] <= date_str:
+                ticker = tx['stock_ticker']
+                if ticker not in holdings_at_date:
+                    holdings_at_date[ticker] = {'quantity': 0, 'cost': 0}
+
+                if tx['transaction_type'] == 'BUY':
+                    holdings_at_date[ticker]['quantity'] += tx['quantity']
+                    holdings_at_date[ticker]['cost'] += tx['quantity'] * tx['price_per_share']
+                elif tx['transaction_type'] == 'SELL':
+                    holdings_at_date[ticker]['quantity'] -= tx['quantity']
+
+        # Calculate total value at this date
+        total_value = 0
+        for ticker, data in holdings_at_date.items():
+            if data['quantity'] > 0:
+                total_invested += data['cost']
+                price = get_historical_price(ticker, date_str)
+                if price:
+                    # Assume EUR for simplicity in demo
+                    total_value += data['quantity'] * price
+
+        if total_value > 0:
+            performance_data.append({
+                'date': date_str,
+                'value': round(total_value, 2),
+                'invested': round(total_invested, 2),
+            })
+
+    return jsonify({'data': performance_data, 'period': period})
+
+
+@app.route('/api/demo/portfolio/top-movers', methods=['GET'])
+@login_required
+def get_demo_top_movers():
+    """Get top gainers and losers from demo portfolio."""
+    from investing_utils import get_stock_price_and_change, fetch_eurusd_rate
+
+    account_ids_param = request.args.get('account_ids', '')
+    account_ids = [int(x) for x in account_ids_param.split(',') if x.strip().isdigit()] if account_ids_param else None
+
+    holdings = compute_demo_holdings_from_transactions(request.user_id, account_ids)
+
+    if not holdings:
+        return jsonify({'gainers': [], 'losers': []})
+
+    eurusd_rate = fetch_eurusd_rate()
+    movers = []
+
+    for h in holdings:
+        ticker = h['stock_ticker']
+        qty = h['quantity']
+
+        price_data = get_stock_price_and_change(ticker)
+        current_price = price_data.get('price', 0)
+        change_1d = price_data.get('change_1d', 0)
+        currency = price_data.get('currency', 'USD')
+
+        if currency == 'USD':
+            current_price_eur = current_price / eurusd_rate if eurusd_rate else current_price
+        else:
+            current_price_eur = current_price
+
+        current_value_eur = qty * current_price_eur
+        day_change_eur = current_value_eur * (change_1d / 100) if change_1d else 0
+
+        movers.append({
+            'ticker': ticker,
+            'change_pct': round(change_1d, 2) if change_1d else 0,
+            'change_eur': round(day_change_eur, 2),
+            'value_eur': round(current_value_eur, 2),
+        })
+
+    movers.sort(key=lambda x: x['change_pct'], reverse=True)
+
+    gainers = [m for m in movers if m['change_pct'] > 0][:5]
+    losers = [m for m in movers if m['change_pct'] < 0][-5:][::-1]
+
+    return jsonify({'gainers': gainers, 'losers': losers})
+
+
+# Banks and account types endpoints (reuse from investing)
+@app.route('/api/demo/banks', methods=['GET'])
+def get_demo_banks():
+    """Get available banks."""
+    return jsonify({'banks': BANKS})
+
+
+@app.route('/api/demo/account-types', methods=['GET'])
+def get_demo_account_types():
+    """Get available account types."""
+    return jsonify({'account_types': ACCOUNT_TYPES})
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
