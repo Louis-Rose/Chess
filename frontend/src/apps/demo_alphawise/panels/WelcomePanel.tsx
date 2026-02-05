@@ -451,7 +451,7 @@ export function WelcomePanel() {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                {language === 'fr' ? 'Performance du Portefeuille' : 'Portfolio Performance'}
+                {language === 'fr' ? 'Performance du Portefeuille AlphaWise' : 'AlphaWise Portfolio Performance'}
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 {language === 'fr'
