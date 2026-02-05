@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Loader2, PartyPopper, X, Flame, ChevronDown, ChevronUp, TrendingUp, BarChart3 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -455,8 +455,8 @@ export function WelcomePanel() {
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 {language === 'fr'
-                  ? 'Depuis le 01/01/2023 - Allocation 100% - vs S&P 500'
-                  : 'Since 01/01/2023 - 100% allocation - vs S&P 500'}
+                  ? 'Depuis le 01/01/2023 - Allocation 100%'
+                  : 'Since 01/01/2023 - 100% allocation'}
               </p>
             </div>
           </div>
@@ -468,21 +468,13 @@ export function WelcomePanel() {
           ) : performanceData && performanceData.data.length > 0 ? (
             <>
               {/* Summary Stats */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-slate-100 dark:bg-slate-700 rounded-lg p-4 text-center">
+              <div className="flex justify-center mb-6">
+                <div className="bg-slate-100 dark:bg-slate-700 rounded-lg p-4 text-center min-w-[200px]">
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
-                    {language === 'fr' ? 'Performance Portefeuille' : 'Portfolio Return'}
+                    {language === 'fr' ? 'Performance Totale' : 'Total Return'}
                   </p>
                   <p className={`text-2xl font-bold ${performanceData.summary.portfolio_return >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {performanceData.summary.portfolio_return >= 0 ? '+' : ''}{performanceData.summary.portfolio_return}%
-                  </p>
-                </div>
-                <div className="bg-slate-100 dark:bg-slate-700 rounded-lg p-4 text-center">
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
-                    S&P 500
-                  </p>
-                  <p className={`text-2xl font-bold ${(performanceData.summary.benchmark_return ?? 0) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                    {(performanceData.summary.benchmark_return ?? 0) >= 0 ? '+' : ''}{performanceData.summary.benchmark_return ?? 0}%
                   </p>
                 </div>
               </div>
@@ -504,8 +496,8 @@ export function WelcomePanel() {
                     />
                     <YAxis
                       tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }}
-                      tickFormatter={(value) => `${value}`}
-                      domain={['dataMin - 5', 'dataMax + 5']}
+                      tickFormatter={(value) => Math.round(value).toString()}
+                      domain={[(dataMin: number) => Math.floor(dataMin / 10) * 10, (dataMax: number) => Math.ceil(dataMax / 10) * 10]}
                     />
                     <Tooltip
                       contentStyle={{
@@ -518,13 +510,10 @@ export function WelcomePanel() {
                         const date = new Date(label);
                         return date.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
                       }}
-                      formatter={(value, name) => [
+                      formatter={(value) => [
                         `${typeof value === 'number' ? value.toFixed(1) : value}`,
-                        name === 'portfolio' ? (language === 'fr' ? 'Portefeuille AlphaWise' : 'AlphaWise Portfolio') : 'S&P 500'
+                        language === 'fr' ? 'Portefeuille AlphaWise' : 'AlphaWise Portfolio'
                       ]}
-                    />
-                    <Legend
-                      formatter={(value) => value === 'portfolio' ? (language === 'fr' ? 'Portefeuille AlphaWise' : 'AlphaWise Portfolio') : 'S&P 500'}
                     />
                     <Line
                       type="monotone"
@@ -533,14 +522,6 @@ export function WelcomePanel() {
                       strokeWidth={2}
                       dot={false}
                       name="portfolio"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="benchmark"
-                      stroke="#3b82f6"
-                      strokeWidth={2}
-                      dot={false}
-                      name="benchmark"
                     />
                   </LineChart>
                 </ResponsiveContainer>
