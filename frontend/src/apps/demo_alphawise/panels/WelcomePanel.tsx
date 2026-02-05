@@ -497,10 +497,10 @@ export function WelcomePanel() {
                       tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }}
                       tickFormatter={(value) => {
                         const date = new Date(value);
-                        return `${date.getMonth() + 1}/${date.getFullYear().toString().slice(2)}`;
+                        return date.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: 'numeric' });
                       }}
                       interval="preserveStartEnd"
-                      minTickGap={50}
+                      minTickGap={80}
                     />
                     <YAxis
                       tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }}
@@ -516,15 +516,15 @@ export function WelcomePanel() {
                       }}
                       labelFormatter={(label) => {
                         const date = new Date(label);
-                        return date.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                        return date.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
                       }}
                       formatter={(value, name) => [
                         `${typeof value === 'number' ? value.toFixed(1) : value}`,
-                        name === 'portfolio' ? (language === 'fr' ? 'Portefeuille' : 'Portfolio') : 'S&P 500'
+                        name === 'portfolio' ? (language === 'fr' ? 'Portefeuille AlphaWise' : 'AlphaWise Portfolio') : 'S&P 500'
                       ]}
                     />
                     <Legend
-                      formatter={(value) => value === 'portfolio' ? (language === 'fr' ? 'Portefeuille' : 'Portfolio') : 'S&P 500'}
+                      formatter={(value) => value === 'portfolio' ? (language === 'fr' ? 'Portefeuille AlphaWise' : 'AlphaWise Portfolio') : 'S&P 500'}
                     />
                     <Line
                       type="monotone"

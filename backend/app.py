@@ -6862,18 +6862,33 @@ def get_model_portfolio_performance():
 
     try:
         # Fetch all stock data
-        all_tickers = [get_yfinance_ticker(s['ticker']) for s in stocks] + [benchmark_ticker]
+        portfolio_tickers = [get_yfinance_ticker(s['ticker']) for s in stocks]
+        all_tickers = portfolio_tickers + [benchmark_ticker]
+
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_tickers = []
+        for t in all_tickers:
+            if t not in seen:
+                seen.add(t)
+                unique_tickers.append(t)
+        all_tickers = unique_tickers
+
+        logger.info(f"Fetching data for tickers: {all_tickers}")
         data = yf.download(all_tickers, start=start_date, end=end_date, progress=False, auto_adjust=True)
 
         if data.empty:
             return jsonify({'data': [], 'message': 'No price data available'})
 
-        # Get closing prices
+        # Get closing prices - handle both single and multi-ticker formats
         if len(all_tickers) == 1:
             close_prices = data[['Close']].copy()
             close_prices.columns = [all_tickers[0]]
         else:
+            # Multi-ticker: data has MultiIndex columns like ('Close', 'AAPL')
             close_prices = data['Close'].copy()
+
+        logger.info(f"Close prices columns: {list(close_prices.columns)}")
 
         # Calculate portfolio performance
         # Normalize to 100 at start
@@ -6883,6 +6898,8 @@ def get_model_portfolio_performance():
 
         # Get first valid prices for normalization
         first_prices = close_prices.loc[first_valid_idx]
+        logger.info(f"First valid date: {first_valid_idx}")
+        logger.info(f"First prices: {first_prices.to_dict()}")
 
         # Calculate daily portfolio value (weighted sum of normalized prices)
         portfolio_values = []
@@ -6897,7 +6914,7 @@ def get_model_portfolio_performance():
             valid_weight = 0
             for stock in stocks:
                 yf_ticker = get_yfinance_ticker(stock['ticker'])
-                if yf_ticker in row and pd.notna(row[yf_ticker]) and yf_ticker in first_prices and pd.notna(first_prices[yf_ticker]):
+                if yf_ticker in row.index and pd.notna(row[yf_ticker]) and yf_ticker in first_prices.index and pd.notna(first_prices[yf_ticker]):
                     normalized = (row[yf_ticker] / first_prices[yf_ticker]) * 100
                     portfolio_value += normalized * stock['weight']
                     valid_weight += stock['weight']
@@ -6906,9 +6923,9 @@ def get_model_portfolio_performance():
             if valid_weight > 0:
                 portfolio_value = portfolio_value / valid_weight
 
-            # Benchmark value
+            # Benchmark value - check using row.index for proper Series lookup
             benchmark_value = None
-            if benchmark_ticker in row and pd.notna(row[benchmark_ticker]) and benchmark_ticker in first_prices and pd.notna(first_prices[benchmark_ticker]):
+            if benchmark_ticker in row.index and pd.notna(row[benchmark_ticker]) and benchmark_ticker in first_prices.index and pd.notna(first_prices[benchmark_ticker]):
                 benchmark_value = (row[benchmark_ticker] / first_prices[benchmark_ticker]) * 100
 
             if portfolio_value > 0:
