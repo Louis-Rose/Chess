@@ -6503,7 +6503,7 @@ def compute_demo_holdings_from_transactions(user_id, account_ids=None):
 @login_required
 def get_demo_portfolio_composition():
     """Get demo portfolio composition with current values."""
-    from investing_utils import get_stock_price_and_change, fetch_eurusd_rate
+    from investing_utils import get_stock_price_and_change, get_current_eurusd_rate
 
     account_ids_param = request.args.get('account_ids', '')
     account_ids = [int(x) for x in account_ids_param.split(',') if x.strip().isdigit()] if account_ids_param else None
@@ -6513,7 +6513,7 @@ def get_demo_portfolio_composition():
     if not holdings:
         return jsonify({'composition': [], 'total_value_eur': 0, 'total_cost_eur': 0})
 
-    eurusd_rate = fetch_eurusd_rate()
+    eurusd_rate = get_current_eurusd_rate()
     composition = []
     total_value_eur = 0
     total_cost_eur = 0
@@ -6616,7 +6616,7 @@ def get_demo_portfolio_performance_period():
         return jsonify({'data': [], 'period': period})
 
     # Build holdings timeline
-    eurusd_rate = fetch_eurusd_rate()
+    eurusd_rate = get_current_eurusd_rate()
     date_range = []
     current_date = start_date
     while current_date <= today:
@@ -6666,7 +6666,7 @@ def get_demo_portfolio_performance_period():
 @login_required
 def get_demo_top_movers():
     """Get top gainers and losers from demo portfolio."""
-    from investing_utils import get_stock_price_and_change, fetch_eurusd_rate
+    from investing_utils import get_stock_price_and_change, get_current_eurusd_rate
 
     account_ids_param = request.args.get('account_ids', '')
     account_ids = [int(x) for x in account_ids_param.split(',') if x.strip().isdigit()] if account_ids_param else None
@@ -6676,7 +6676,7 @@ def get_demo_top_movers():
     if not holdings:
         return jsonify({'gainers': [], 'losers': []})
 
-    eurusd_rate = fetch_eurusd_rate()
+    eurusd_rate = get_current_eurusd_rate()
     movers = []
 
     for h in holdings:
@@ -6782,7 +6782,7 @@ init_alphawise_model_portfolio()
 @app.route('/api/demo/model-portfolio', methods=['GET'])
 def get_model_portfolio():
     """Get the AlphaWise model portfolio composition with current prices."""
-    from investing_utils import get_stock_price_and_change, fetch_eurusd_rate
+    from investing_utils import get_stock_price_and_change, get_current_eurusd_rate
 
     with get_db() as conn:
         cursor = conn.execute('''
@@ -6796,7 +6796,7 @@ def get_model_portfolio():
         return jsonify({'holdings': [], 'total_allocation': 0})
 
     # Fetch current prices for all stocks
-    eurusd_rate = fetch_eurusd_rate()
+    eurusd_rate = get_current_eurusd_rate()
     holdings = []
 
     # Color palette for pie chart (same as PortfolioComposition)
