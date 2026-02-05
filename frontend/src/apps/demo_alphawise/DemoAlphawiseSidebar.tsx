@@ -38,6 +38,7 @@ export function DemoAlphawiseSidebar() {
       >
         <div className="flex items-center gap-2">
           <LumnaLogo className="w-12 h-12 flex-shrink-0" />
+          <span className="text-2xl font-bold text-slate-400">×</span>
           <img src="/alphawise-logo.png" alt="AlphaWise" className="w-12 h-12 flex-shrink-0 object-contain" />
         </div>
         <div className="flex items-center gap-1.5 text-base font-bold text-white">
