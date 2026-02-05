@@ -1,7 +1,7 @@
 // Demo AlphaWise Welcome panel - simplified dashboard with portfolio and top-movers
 
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { Loader2, PartyPopper, X, Wallet, Flame, ChevronDown, ChevronUp } from 'lucide-react';
@@ -582,7 +582,7 @@ export function WelcomePanel() {
     <>
       <div className="text-center space-y-6">
         <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100">
-          {language === 'fr' ? 'Tableau de Bord' : 'Your Investment Dashboard'}
+          {language === 'fr' ? 'Portefeuille AlphaWise' : 'AlphaWise Portfolio'}
         </h1>
       </div>
 
@@ -695,15 +695,6 @@ export function WelcomePanel() {
           </div>
         )}
 
-        {/* Legal notices */}
-        <div className="text-center mt-auto pb-2">
-          <Link
-            to="/cgu"
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-sm transition-colors"
-          >
-            {language === 'fr' ? 'Mentions légales' : 'Legal notices'}
-          </Link>
-        </div>
       </div>
     </>
   );

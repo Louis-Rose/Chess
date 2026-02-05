@@ -4,7 +4,7 @@ import { NavLink } from 'react-router-dom';
 import { Home, Briefcase } from 'lucide-react';
 
 const navItems = [
-  { path: '/demo-alphawise', icon: Home, label: 'Home', end: true },
+  { path: '/demo-alphawise', icon: Home, label: 'AlphaWise', end: true },
   { path: '/demo-alphawise/portfolio', icon: Briefcase, label: 'Portfolio' },
 ];
 
