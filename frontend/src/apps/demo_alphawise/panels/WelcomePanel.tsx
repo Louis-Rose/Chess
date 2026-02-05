@@ -515,8 +515,8 @@ export function WelcomePanel() {
                     <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b border-slate-300 dark:border-slate-500">
                       <th className="pb-2">{language === 'fr' ? 'Action' : 'Stock'}</th>
                       <th className="pb-2 text-right">{language === 'fr' ? 'Allocation' : 'Allocation'}</th>
-                      <th className="pb-2 text-right">{language === 'fr' ? 'Prix' : 'Price'}</th>
-                      <th className="pb-2 text-right">1D</th>
+                      <th className="pb-2 text-right">{language === 'fr' ? 'Prix unitaire' : 'Share price'}</th>
+                      <th className="pb-2 text-right">{language === 'fr' ? '1 Jour' : '1 Day'}</th>
                     </tr>
                   </thead>
                   <tbody>
