@@ -7,6 +7,7 @@ import { CGUPage } from './pages/CGUPage';
 import { MobileUpload } from './pages/MobileUpload';
 import { ChessApp } from './apps/chess/ChessApp';
 import { InvestingApp } from './apps/investing/InvestingApp';
+import { DemoAlphawiseApp } from './apps/demo_alphawise/DemoAlphawiseApp';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
       <Route path="/upload/:token" element={<MobileUpload />} />
       <Route path="/chess/*" element={<ChessApp />} />
       <Route path="/investing/*" element={<InvestingApp />} />
+      <Route path="/demo-alphawise/*" element={<DemoAlphawiseApp />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
