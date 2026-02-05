@@ -449,7 +449,7 @@ export function WelcomePanel() {
                       nameKey="ticker"
                       cx="50%"
                       cy="50%"
-                      outerRadius="55%"
+                      outerRadius="45%"
                       label={({ name, value, x, y, textAnchor, fill }) => {
                         // For small slices (<5%), show "OTHERS X%" only on the middle one
                         if (value < 5) {
