@@ -5,7 +5,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { Loader2, Plus, Trash2, RefreshCw, AlertCircle, Check, Settings, Search } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { useAuth } from '../../../contexts/AuthContext';
 import { getCompanyLogoUrl } from '../../investing/utils/companyLogos';
 import { searchAllStocks, type Stock, type IndexFilter } from '../../investing/utils/allStocks';
 
@@ -49,7 +48,6 @@ const resetPortfolio = async () => {
 
 export function AdminPanel() {
   const { language } = useLanguage();
-  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const [newTicker, setNewTicker] = useState('');
@@ -189,21 +187,6 @@ export function AdminPanel() {
     setEditingId(stock.id);
     setEditAllocation(stock.allocation_pct.toString());
   };
-
-  // Check if user is admin
-  if (!user?.is_admin) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-          {language === 'fr' ? 'Accès refusé' : 'Access Denied'}
-        </h2>
-        <p className="text-slate-500">
-          {language === 'fr' ? 'Cette page est réservée aux administrateurs.' : 'This page is for administrators only.'}
-        </p>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (

@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { DemoAlphawiseLayout } from './DemoAlphawiseLayout';
 import { WelcomePanel } from './panels/WelcomePanel';
-import { PortfolioPanel } from './panels/PortfolioPanel';
 import { AdminPanel } from './panels/AdminPanel';
 
 export function DemoAlphawiseApp() {
@@ -18,7 +17,6 @@ export function DemoAlphawiseApp() {
     <Routes>
       <Route element={<DemoAlphawiseLayout />}>
         <Route index element={<WelcomePanel />} />
-        <Route path="portfolio" element={<PortfolioPanel />} />
         <Route path="admin" element={<AdminPanel />} />
       </Route>
     </Routes>

@@ -1,11 +1,11 @@
 // Mobile bottom navigation for Demo AlphaWise app
 
 import { NavLink } from 'react-router-dom';
-import { Home, Briefcase } from 'lucide-react';
+import { Home, Settings } from 'lucide-react';
 
 const navItems = [
   { path: '/demo-alphawise', icon: Home, label: 'AlphaWise', end: true },
-  { path: '/demo-alphawise/portfolio', icon: Briefcase, label: 'Portfolio' },
+  { path: '/demo-alphawise/admin', icon: Settings, label: 'Admin' },
 ];
 
 export function DemoAlphawiseBottomNav() {
