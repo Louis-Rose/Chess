@@ -6724,5 +6724,257 @@ def get_demo_account_types():
     return jsonify({'account_types': ACCOUNT_TYPES})
 
 
+# =============================================================================
+# ALPHAWISE MODEL PORTFOLIO API ROUTES
+# =============================================================================
+
+# Default stocks for the model portfolio (20 large US/EU stocks at 5% each)
+ALPHAWISE_DEFAULT_STOCKS = [
+    # US Large Caps (10 stocks)
+    ('AAPL', 5.0),   # Apple
+    ('MSFT', 5.0),   # Microsoft
+    ('GOOGL', 5.0),  # Alphabet
+    ('AMZN', 5.0),   # Amazon
+    ('NVDA', 5.0),   # NVIDIA
+    ('META', 5.0),   # Meta
+    ('TSLA', 5.0),   # Tesla
+    ('JPM', 5.0),    # JPMorgan
+    ('V', 5.0),      # Visa
+    ('JNJ', 5.0),    # Johnson & Johnson
+    # EU Large Caps (10 stocks)
+    ('ASML', 5.0),   # ASML
+    ('NVO', 5.0),    # Novo Nordisk
+    ('SAP', 5.0),    # SAP
+    ('MC.PA', 5.0),  # LVMH
+    ('OR.PA', 5.0),  # L'Oreal
+    ('SIE.DE', 5.0), # Siemens
+    ('AZN', 5.0),    # AstraZeneca
+    ('SHEL', 5.0),   # Shell
+    ('TTE', 5.0),    # TotalEnergies
+    ('SAN', 5.0),    # Santander
+]
+
+
+def init_alphawise_model_portfolio():
+    """Initialize the model portfolio with default stocks if empty."""
+    with get_db() as conn:
+        # Check if table exists and has data
+        try:
+            cursor = conn.execute('SELECT COUNT(*) FROM alphawise_model_portfolio')
+            count = cursor.fetchone()[0]
+            if count == 0:
+                # Insert default stocks
+                for ticker, allocation in ALPHAWISE_DEFAULT_STOCKS:
+                    conn.execute(
+                        'INSERT INTO alphawise_model_portfolio (stock_ticker, allocation_pct) VALUES (?, ?)',
+                        (ticker, allocation)
+                    )
+                logger.info(f"Initialized AlphaWise model portfolio with {len(ALPHAWISE_DEFAULT_STOCKS)} stocks")
+        except Exception as e:
+            # Table might not exist yet
+            logger.warning(f"Could not initialize model portfolio: {e}")
+
+
+# Initialize model portfolio on startup
+init_alphawise_model_portfolio()
+
+
+@app.route('/api/demo/model-portfolio', methods=['GET'])
+def get_model_portfolio():
+    """Get the AlphaWise model portfolio composition with current prices."""
+    from investing_utils import get_stock_price_and_change, fetch_eurusd_rate
+
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT stock_ticker, allocation_pct
+            FROM alphawise_model_portfolio
+            ORDER BY allocation_pct DESC, stock_ticker ASC
+        ''')
+        stocks = [{'ticker': row['stock_ticker'], 'allocation_pct': row['allocation_pct']} for row in cursor.fetchall()]
+
+    if not stocks:
+        return jsonify({'holdings': [], 'total_allocation': 0})
+
+    # Fetch current prices for all stocks
+    eurusd_rate = fetch_eurusd_rate()
+    holdings = []
+
+    # Color palette for pie chart (same as PortfolioComposition)
+    colors = [
+        '#22c55e', '#3b82f6', '#f97316', '#a855f7', '#ec4899',
+        '#14b8a6', '#eab308', '#ef4444', '#6366f1', '#84cc16',
+        '#06b6d4', '#f43f5e', '#8b5cf6', '#10b981', '#f59e0b',
+        '#6b7280', '#d946ef', '#0ea5e9', '#78716c', '#fb923c'
+    ]
+
+    for i, stock in enumerate(stocks):
+        ticker = stock['ticker']
+        allocation = stock['allocation_pct']
+
+        price_data = get_stock_price_and_change(ticker)
+        current_price = price_data.get('price', 0) if price_data else 0
+        change_1d = price_data.get('change_1d') if price_data else None
+
+        holdings.append({
+            'ticker': ticker,
+            'weight': round(allocation, 1),
+            'current_price': round(current_price, 2),
+            'change_1d': round(change_1d, 2) if change_1d is not None else None,
+            'color': colors[i % len(colors)],
+        })
+
+    total_allocation = sum(h['weight'] for h in holdings)
+
+    return jsonify({
+        'holdings': holdings,
+        'total_allocation': round(total_allocation, 1),
+        'eurusd_rate': eurusd_rate,
+    })
+
+
+@app.route('/api/demo/admin/model-portfolio', methods=['GET'])
+@admin_required
+def get_model_portfolio_admin():
+    """Get the model portfolio for admin editing."""
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT id, stock_ticker, allocation_pct, created_at, updated_at
+            FROM alphawise_model_portfolio
+            ORDER BY allocation_pct DESC, stock_ticker ASC
+        ''')
+        stocks = [{
+            'id': row['id'],
+            'ticker': row['stock_ticker'],
+            'allocation_pct': row['allocation_pct'],
+            'created_at': row['created_at'],
+            'updated_at': row['updated_at'],
+        } for row in cursor.fetchall()]
+
+    total_allocation = sum(s['allocation_pct'] for s in stocks)
+
+    return jsonify({
+        'stocks': stocks,
+        'total_allocation': round(total_allocation, 1),
+    })
+
+
+@app.route('/api/demo/admin/model-portfolio', methods=['POST'])
+@admin_required
+def add_model_portfolio_stock():
+    """Add a stock to the model portfolio."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    ticker = data.get('ticker', '').upper().strip()
+    allocation = data.get('allocation_pct', 5.0)
+
+    if not ticker:
+        return jsonify({'error': 'Ticker is required'}), 400
+
+    try:
+        allocation = float(allocation)
+        if allocation <= 0 or allocation > 100:
+            return jsonify({'error': 'Allocation must be between 0 and 100'}), 400
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid allocation'}), 400
+
+    with get_db() as conn:
+        # Check if ticker already exists
+        cursor = conn.execute(
+            'SELECT id FROM alphawise_model_portfolio WHERE stock_ticker = ?',
+            (ticker,)
+        )
+        if cursor.fetchone():
+            return jsonify({'error': 'Ticker already in portfolio'}), 400
+
+        cursor = conn.execute(
+            'INSERT INTO alphawise_model_portfolio (stock_ticker, allocation_pct) VALUES (?, ?)',
+            (ticker, allocation)
+        )
+        new_id = cursor.lastrowid
+
+    return jsonify({
+        'success': True,
+        'id': new_id,
+        'ticker': ticker,
+        'allocation_pct': allocation,
+    })
+
+
+@app.route('/api/demo/admin/model-portfolio/<int:stock_id>', methods=['PUT'])
+@admin_required
+def update_model_portfolio_stock(stock_id):
+    """Update a stock's allocation in the model portfolio."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    allocation = data.get('allocation_pct')
+
+    try:
+        allocation = float(allocation)
+        if allocation <= 0 or allocation > 100:
+            return jsonify({'error': 'Allocation must be between 0 and 100'}), 400
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid allocation'}), 400
+
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT id FROM alphawise_model_portfolio WHERE id = ?',
+            (stock_id,)
+        )
+        if not cursor.fetchone():
+            return jsonify({'error': 'Stock not found'}), 404
+
+        if USE_POSTGRES:
+            conn.execute(
+                'UPDATE alphawise_model_portfolio SET allocation_pct = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                (allocation, stock_id)
+            )
+        else:
+            conn.execute(
+                'UPDATE alphawise_model_portfolio SET allocation_pct = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                (allocation, stock_id)
+            )
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/demo/admin/model-portfolio/<int:stock_id>', methods=['DELETE'])
+@admin_required
+def delete_model_portfolio_stock(stock_id):
+    """Remove a stock from the model portfolio."""
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT id FROM alphawise_model_portfolio WHERE id = ?',
+            (stock_id,)
+        )
+        if not cursor.fetchone():
+            return jsonify({'error': 'Stock not found'}), 404
+
+        conn.execute('DELETE FROM alphawise_model_portfolio WHERE id = ?', (stock_id,))
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/demo/admin/model-portfolio/reset', methods=['POST'])
+@admin_required
+def reset_model_portfolio():
+    """Reset the model portfolio to default stocks."""
+    with get_db() as conn:
+        conn.execute('DELETE FROM alphawise_model_portfolio')
+        for ticker, allocation in ALPHAWISE_DEFAULT_STOCKS:
+            conn.execute(
+                'INSERT INTO alphawise_model_portfolio (stock_ticker, allocation_pct) VALUES (?, ?)',
+                (ticker, allocation)
+            )
+
+    return jsonify({
+        'success': True,
+        'message': f'Reset to {len(ALPHAWISE_DEFAULT_STOCKS)} default stocks'
+    })
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

@@ -124,6 +124,16 @@ CREATE TABLE IF NOT EXISTS demo_portfolio_transactions (
     FOREIGN KEY (account_id) REFERENCES demo_investment_accounts(id) ON DELETE SET NULL
 );
 
+-- AlphaWise model portfolio (global, admin-managed)
+-- This represents the recommended portfolio shown to all users
+CREATE TABLE IF NOT EXISTS alphawise_model_portfolio (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    stock_ticker TEXT UNIQUE NOT NULL,
+    allocation_pct REAL NOT NULL,  -- Target allocation percentage (e.g., 5.0 for 5%)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Watchlist table (investing app)
 CREATE TABLE IF NOT EXISTS watchlist (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

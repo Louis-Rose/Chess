@@ -1,7 +1,7 @@
 // Demo AlphaWise sidebar - simplified version with only Dashboard and Portfolio
 
 import { NavLink, Link } from 'react-router-dom';
-import { Loader2, Home, Wallet } from 'lucide-react';
+import { Loader2, Home, Wallet, Settings } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { UserMenu } from '../../components/UserMenu';
@@ -25,8 +25,9 @@ const navItems = [
 ];
 
 export function DemoAlphawiseSidebar() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { language } = useLanguage();
+  const isAdmin = user?.is_admin;
 
   return (
     <div className="dark w-64 bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0">
@@ -76,6 +77,22 @@ export function DemoAlphawiseSidebar() {
             <span>{language === 'fr' ? item.labelFr : item.labelEn}</span>
           </NavLink>
         ))}
+        {/* Admin link - only for admins */}
+        {isAdmin && (
+          <NavLink
+            to="/demo-alphawise/admin"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors ${
+                isActive
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-300 hover:bg-slate-800'
+              }`
+            }
+          >
+            <Settings className="w-5 h-5 flex-shrink-0" />
+            <span>{language === 'fr' ? 'Admin' : 'Admin'}</span>
+          </NavLink>
+        )}
       </div>
 
       {/* Theme & Language - at bottom */}

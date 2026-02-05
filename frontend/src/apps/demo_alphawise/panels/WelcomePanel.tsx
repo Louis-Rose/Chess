@@ -1,12 +1,14 @@
-// Demo AlphaWise Welcome panel - simplified dashboard with portfolio and top-movers
+// Demo AlphaWise Welcome panel - with model portfolio pie chart and user portfolio cards
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Loader2, PartyPopper, X, Wallet, Flame, ChevronDown, ChevronUp } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { Loader2, PartyPopper, X, Wallet, Flame, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { getCompanyLogoUrl } from '../../investing/utils/companyLogos';
 
 // Types
@@ -56,6 +58,20 @@ interface Account {
   name: string;
 }
 
+interface ModelPortfolioHolding {
+  ticker: string;
+  weight: number;
+  current_price: number;
+  change_1d: number | null;
+  color: string;
+}
+
+interface ModelPortfolioData {
+  holdings: ModelPortfolioHolding[];
+  total_allocation: number;
+  eurusd_rate: number;
+}
+
 // Card IDs - only portfolio and top-movers for demo
 const ALL_CARD_IDS = ['portfolio', 'top-movers'] as const;
 type CardId = typeof ALL_CARD_IDS[number];
@@ -66,6 +82,11 @@ type GridSlot = CardId | null;
 const DEFAULT_GRID: GridSlot[] = ['portfolio', 'top-movers', null, null];
 
 // API fetchers - use /api/demo for demo app (separate database)
+const fetchModelPortfolio = async (): Promise<ModelPortfolioData> => {
+  const response = await axios.get('/api/demo/model-portfolio');
+  return response.data;
+};
+
 const fetchComposition = async (accountIds: number[]): Promise<CompositionData> => {
   const params = accountIds.length > 0 ? `?account_ids=${accountIds.join(',')}` : '';
   const response = await axios.get(`/api/demo/portfolio/composition${params}`);
@@ -114,6 +135,8 @@ export function WelcomePanel() {
   const queryClient = useQueryClient();
   const { isAuthenticated, isLoading: authLoading, user, isNewUser, clearNewUserFlag } = useAuth();
   const { language } = useLanguage();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
 
   // Grid slots state
   const [gridSlots, setGridSlots] = useState<GridSlot[]>([...DEFAULT_GRID]);
@@ -190,6 +213,13 @@ export function WelcomePanel() {
   const [draggedCardId, setDraggedCardId] = useState<CardId | null>(null);
   const [dragOverSlotIndex, setDragOverSlotIndex] = useState<number | null>(null);
   const dragNodeRef = useRef<HTMLDivElement | null>(null);
+
+  // Fetch model portfolio (public, no auth needed)
+  const { data: modelPortfolioData, isLoading: modelPortfolioLoading } = useQuery({
+    queryKey: ['model-portfolio'],
+    queryFn: fetchModelPortfolio,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 
   // Fetch card order
   const { data: savedCardOrder, isFetched: cardOrderFetched } = useQuery({
@@ -340,6 +370,13 @@ export function WelcomePanel() {
   const perfLoading = perf1Loading || perf7Loading || perf30Loading;
   const topMovers = topMoversData?.movers ?? [];
   const hasHoldings = (compositionData?.holdings?.length ?? 0) > 0;
+  const modelHoldings = modelPortfolioData?.holdings ?? [];
+
+  // Pre-calculate "Others" for small slices in model portfolio
+  const smallSlices = modelHoldings.filter(h => h.weight < 5);
+  const othersTotal = smallSlices.reduce((sum, h) => sum + h.weight, 0);
+  const middleSmallSliceIndex = Math.floor(smallSlices.length / 2);
+  const middleSmallSliceTicker = smallSlices.length > 0 ? smallSlices[middleSmallSliceIndex].ticker : null;
 
   // Render a grid slot (card or empty)
   const renderSlot = (slotIndex: number) => {
@@ -584,6 +621,149 @@ export function WelcomePanel() {
         <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100">
           {language === 'fr' ? 'Portefeuille AlphaWise' : 'AlphaWise Portfolio'}
         </h1>
+      </div>
+
+      {/* AlphaWise Model Portfolio Section */}
+      <div className="mt-8 px-4 md:px-8 max-w-5xl mx-auto w-full">
+        <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {language === 'fr' ? 'Portefeuille Modèle' : 'Model Portfolio'}
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {language === 'fr' ? '20 actions US & EU - allocation équilibrée' : '20 US & EU stocks - balanced allocation'}
+              </p>
+            </div>
+          </div>
+
+          {modelPortfolioLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            </div>
+          ) : modelHoldings.length > 0 ? (
+            <div className="flex flex-col lg:flex-row items-center gap-6">
+              {/* Pie Chart */}
+              <div className="w-full lg:w-1/2 h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart margin={{ top: 30, right: 60, bottom: 30, left: 60 }}>
+                    <Pie
+                      data={modelHoldings as unknown as Record<string, unknown>[]}
+                      dataKey="weight"
+                      nameKey="ticker"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius="55%"
+                      label={({ name, value, x, y, textAnchor, fill }) => {
+                        // For small slices (<5%), show "OTHERS X%" only on the middle one
+                        if (value < 5) {
+                          if (name === middleSmallSliceTicker && othersTotal > 0) {
+                            return (
+                              <text
+                                x={x}
+                                y={y}
+                                textAnchor={textAnchor}
+                                dominantBaseline="central"
+                                fontSize={13}
+                                fontWeight="bold"
+                                fill={isDark ? '#94a3b8' : '#64748b'}
+                              >
+                                {language === 'fr' ? 'AUTRES' : 'OTHERS'} {othersTotal.toFixed(0)}%
+                              </text>
+                            );
+                          }
+                          return null;
+                        }
+                        return (
+                          <text
+                            x={x}
+                            y={y}
+                            textAnchor={textAnchor}
+                            dominantBaseline="central"
+                            fontSize={13}
+                            fontWeight="bold"
+                            fill={fill}
+                          >
+                            {name} {value}%
+                          </text>
+                        );
+                      }}
+                      labelLine={({ percent, name }) => {
+                        if (percent >= 0.05) return <path />;
+                        if (name === middleSmallSliceTicker && othersTotal > 0) return <path />;
+                        return <path style={{ display: 'none' }} />;
+                      }}
+                    >
+                      {modelHoldings.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '8px 12px' }}
+                      itemStyle={{ color: '#f1f5f9' }}
+                      formatter={(value, _name, props) => {
+                        const payload = props.payload as ModelPortfolioHolding;
+                        const change = payload.change_1d;
+                        const changeStr = change !== null ? ` (${change >= 0 ? '+' : ''}${change.toFixed(1)}%)` : '';
+                        return [`${value}%${changeStr}`, payload.ticker];
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Holdings Table */}
+              <div className="w-full lg:w-1/2 overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b border-slate-300 dark:border-slate-500">
+                      <th className="pb-2">{language === 'fr' ? 'Action' : 'Stock'}</th>
+                      <th className="pb-2 text-right">{language === 'fr' ? 'Allocation' : 'Allocation'}</th>
+                      <th className="pb-2 text-right">{language === 'fr' ? 'Prix' : 'Price'}</th>
+                      <th className="pb-2 text-right">1D</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modelHoldings.map((h) => {
+                      const logoUrl = getCompanyLogoUrl(h.ticker);
+                      return (
+                        <tr
+                          key={h.ticker}
+                          className="border-b border-slate-200 dark:border-slate-600"
+                        >
+                          <td className="py-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                                {logoUrl ? (
+                                  <img src={logoUrl} alt={h.ticker} className="w-5 h-5 object-contain" />
+                                ) : (
+                                  <span className="text-[8px] font-bold text-slate-500">{h.ticker.slice(0, 2)}</span>
+                                )}
+                              </div>
+                              <span className="font-bold" style={{ color: h.color }}>{h.ticker}</span>
+                            </div>
+                          </td>
+                          <td className="py-2 text-right text-slate-700 dark:text-slate-300 font-medium">{h.weight}%</td>
+                          <td className="py-2 text-right text-slate-600 dark:text-slate-300">${h.current_price.toFixed(2)}</td>
+                          <td className={`py-2 text-right font-medium ${h.change_1d !== null ? (h.change_1d >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'}`}>
+                            {h.change_1d !== null ? `${h.change_1d >= 0 ? '+' : ''}${h.change_1d.toFixed(1)}%` : '-'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <p className="text-slate-500 text-center py-8">
+              {language === 'fr' ? 'Aucune donnée de portefeuille modèle' : 'No model portfolio data'}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* New user welcome banner */}

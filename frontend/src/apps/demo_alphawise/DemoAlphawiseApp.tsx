@@ -5,6 +5,7 @@ import { Routes, Route } from 'react-router-dom';
 import { DemoAlphawiseLayout } from './DemoAlphawiseLayout';
 import { WelcomePanel } from './panels/WelcomePanel';
 import { PortfolioPanel } from './panels/PortfolioPanel';
+import { AdminPanel } from './panels/AdminPanel';
 
 export function DemoAlphawiseApp() {
   useEffect(() => {
@@ -18,6 +19,7 @@ export function DemoAlphawiseApp() {
       <Route element={<DemoAlphawiseLayout />}>
         <Route index element={<WelcomePanel />} />
         <Route path="portfolio" element={<PortfolioPanel />} />
+        <Route path="admin" element={<AdminPanel />} />
       </Route>
     </Routes>
   );
