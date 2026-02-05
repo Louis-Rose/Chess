@@ -617,9 +617,10 @@ export function WelcomePanel() {
 
   return (
     <>
-      <div className="text-center space-y-6">
-        <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100">
-          {language === 'fr' ? 'Portefeuille AlphaWise' : 'AlphaWise Portfolio'}
+      {/* Welcome Header */}
+      <div className="text-center mb-6">
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          {language === 'fr' ? 'Bienvenue' : 'Welcome'}{isAuthenticated && user?.name ? `, ${user.name}` : ''} !
         </h1>
       </div>
 
@@ -793,13 +794,7 @@ export function WelcomePanel() {
         </div>
       )}
 
-      <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700 mt-8 flex flex-col min-h-[calc(100vh-200px)]">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            {language === 'fr' ? 'Bienvenue' : 'Welcome'}{isAuthenticated && user?.name ? `, ${user.name}` : ''} !
-          </h2>
-        </div>
-
+      <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700 mt-8 flex flex-col">
         {/* Card Grid - only for authenticated users */}
         {isAuthenticated && cardOrderFetched && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 md:px-[10%] mb-8 max-w-4xl mx-auto w-full">

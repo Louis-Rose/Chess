@@ -31,20 +31,13 @@ export function DemoAlphawiseSidebar() {
 
   return (
     <div className="dark w-64 bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0">
-      {/* LUMNA × AlphaWise Logo with labels */}
+      {/* AlphaWise Logo - large, white, bold */}
       <Link
         to="/demo-alphawise"
-        className="flex items-center justify-center gap-3 px-2 pb-4 mb-2 border-b border-slate-700 hover:opacity-80 transition-opacity flex-shrink-0"
+        className="flex flex-col items-center gap-2 px-2 pb-4 mb-2 border-b border-slate-700 hover:opacity-80 transition-opacity flex-shrink-0"
       >
-        <div className="flex flex-col items-center">
-          <LumnaLogo className="w-10 h-10 flex-shrink-0" />
-          <span className="text-xs text-slate-400 mt-1">Lumna</span>
-        </div>
-        <span className="text-slate-500 text-xl font-light">×</span>
-        <div className="flex flex-col items-center">
-          <img src="/alphawise-logo.png" alt="AlphaWise" className="w-10 h-10 flex-shrink-0 object-contain" />
-          <span className="text-xs text-slate-400 mt-1">AlphaWise</span>
-        </div>
+        <img src="/alphawise-logo.png" alt="AlphaWise" className="w-16 h-16 flex-shrink-0 object-contain" />
+        <span className="text-xl font-bold text-white">AlphaWise</span>
       </Link>
 
       {/* User Menu */}
