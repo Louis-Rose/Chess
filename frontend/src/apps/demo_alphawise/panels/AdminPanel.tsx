@@ -1,12 +1,13 @@
 // Admin panel for managing the AlphaWise model portfolio
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Loader2, Plus, Trash2, RefreshCw, AlertCircle, Check, Settings } from 'lucide-react';
+import { Loader2, Plus, Trash2, RefreshCw, AlertCircle, Check, Settings, Search } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getCompanyLogoUrl } from '../../investing/utils/companyLogos';
+import { searchAllStocks, type Stock, type IndexFilter } from '../../investing/utils/allStocks';
 
 interface ModelStock {
   id: number;
@@ -58,6 +59,40 @@ export function AdminPanel() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Stock search state
+  const [stockSearch, setStockSearch] = useState('');
+  const [stockResults, setStockResults] = useState<Stock[]>([]);
+  const [showStockDropdown, setShowStockDropdown] = useState(false);
+  const [indexFilter] = useState<IndexFilter>({
+    sp500: true, stoxx600: true, swiss: true,
+    canada: true, australia: true, hongkong: true, japan: true, singapore: true
+  });
+  const stockDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Stock search effect
+  useEffect(() => {
+    const results = searchAllStocks(stockSearch, indexFilter);
+    setStockResults(results);
+    setShowStockDropdown(results.length > 0 && stockSearch.length > 0);
+  }, [stockSearch, indexFilter]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (stockDropdownRef.current && !stockDropdownRef.current.contains(event.target as Node)) {
+        setShowStockDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectStock = (stock: Stock) => {
+    setNewTicker(stock.ticker);
+    setStockSearch(stock.ticker);
+    setShowStockDropdown(false);
+  };
+
   // Fetch model portfolio
   const { data, isLoading, isError } = useQuery({
     queryKey: ['model-portfolio-admin'],
@@ -72,6 +107,7 @@ export function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ['model-portfolio-admin'] });
       queryClient.invalidateQueries({ queryKey: ['model-portfolio'] });
       setNewTicker('');
+      setStockSearch('');
       setNewAllocation('5');
       setSuccess(language === 'fr' ? 'Action ajoutée' : 'Stock added');
       setTimeout(() => setSuccess(null), 3000);
@@ -247,17 +283,50 @@ export function AdminPanel() {
           {language === 'fr' ? 'Ajouter une action' : 'Add Stock'}
         </h2>
         <form onSubmit={handleAddStock} className="flex flex-wrap gap-3 items-end">
-          <div className="flex-1 min-w-[150px]">
+          {/* Stock search dropdown */}
+          <div className="flex-1 min-w-[200px]">
             <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">
               {language === 'fr' ? 'Ticker' : 'Ticker'}
             </label>
-            <input
-              type="text"
-              value={newTicker}
-              onChange={(e) => setNewTicker(e.target.value.toUpperCase())}
-              placeholder="AAPL"
-              className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100"
-            />
+            <div className="relative" ref={stockDropdownRef}>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder={language === 'fr' ? 'Rechercher une action...' : 'Search stocks...'}
+                value={stockSearch}
+                onChange={(e) => {
+                  setStockSearch(e.target.value);
+                  setNewTicker(e.target.value.toUpperCase());
+                }}
+                onFocus={() => stockSearch && setShowStockDropdown(stockResults.length > 0)}
+                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {showStockDropdown && stockResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
+                  {stockResults.slice(0, 10).map((stock) => {
+                    const logoUrl = getCompanyLogoUrl(stock.ticker);
+                    return (
+                      <button
+                        key={stock.ticker}
+                        type="button"
+                        onClick={() => handleSelectStock(stock)}
+                        className="w-full px-4 py-2 text-left flex items-center gap-3 border-b border-slate-100 dark:border-slate-600 last:border-b-0 hover:bg-blue-50 dark:hover:bg-slate-600"
+                      >
+                        <div className="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {logoUrl ? (
+                            <img src={logoUrl} alt={stock.ticker} className="w-6 h-6 object-contain" />
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-500">{stock.ticker.slice(0, 2)}</span>
+                          )}
+                        </div>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 w-16">{stock.ticker}</span>
+                        <span className="text-slate-600 dark:text-slate-400 text-sm truncate flex-1">{stock.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
           <div className="w-32">
             <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">
