@@ -572,6 +572,44 @@ def fetch_current_stock_price(stock_ticker):
     return price
 
 
+def get_stock_price_and_change(ticker):
+    """
+    Get current stock price, 1-day percentage change, and currency.
+    Returns: dict with 'price', 'change_1d', and 'currency' keys.
+    """
+    try:
+        yf_ticker = get_yfinance_ticker(ticker)
+        stock = yf.Ticker(yf_ticker)
+        info = stock.info
+
+        # Get current price
+        current_price = info.get('regularMarketPrice') or info.get('currentPrice')
+
+        # Get today's open price for 1-day change calculation
+        open_price = info.get('regularMarketOpen') or info.get('open')
+
+        # Calculate 1-day change (from open to current)
+        change_1d = None
+        if current_price and open_price and open_price > 0:
+            change_1d = ((current_price - open_price) / open_price) * 100
+
+        # Get currency
+        currency = info.get('currency', get_stock_currency(ticker))
+
+        return {
+            'price': round(float(current_price), 2) if current_price else 0,
+            'change_1d': round(float(change_1d), 2) if change_1d is not None else None,
+            'currency': currency
+        }
+    except Exception as e:
+        print(f"Error fetching price data for {ticker}: {e}")
+        return {
+            'price': 0,
+            'change_1d': None,
+            'currency': get_stock_currency(ticker)
+        }
+
+
 def fetch_current_stock_prices_batch(tickers):
     """
     Fetch current prices for multiple tickers in a single API call.

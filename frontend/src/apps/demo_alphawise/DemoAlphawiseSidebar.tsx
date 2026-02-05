@@ -9,6 +9,16 @@ import { LoginButton } from '../../components/LoginButton';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { LanguageToggle } from '../../components/LanguageToggle';
 
+// LUMNA logo (green chart icon)
+const LumnaLogo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 128 128" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="8" width="112" height="112" rx="20" fill="#16a34a"/>
+    <rect x="32" y="64" width="16" height="40" rx="2" fill="white"/>
+    <rect x="56" y="48" width="16" height="56" rx="2" fill="white"/>
+    <rect x="80" y="32" width="16" height="72" rx="2" fill="white"/>
+  </svg>
+);
+
 const navItems = [
   { path: '/demo-alphawise', icon: Home, labelEn: 'AlphaWise portfolio', labelFr: 'Portefeuille AlphaWise', end: true },
   { path: '/demo-alphawise/portfolio', icon: Wallet, labelEn: 'My Portfolio', labelFr: 'Mon Portefeuille' },
@@ -21,13 +31,21 @@ export function DemoAlphawiseSidebar() {
 
   return (
     <div className="dark w-64 bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0">
-      {/* AlphaWise Logo - large, white, bold */}
+      {/* Lumna × AlphaWise Logos */}
       <Link
         to="/demo-alphawise"
         className="flex flex-col items-center gap-2 px-2 pb-4 mb-2 border-b border-slate-700 hover:opacity-80 transition-opacity flex-shrink-0"
       >
-        <img src="/alphawise-logo.png" alt="AlphaWise" className="w-16 h-16 flex-shrink-0 object-contain" />
-        <span className="text-xl font-bold text-white">AlphaWise</span>
+        <div className="flex items-center gap-2">
+          <LumnaLogo className="w-12 h-12 flex-shrink-0" />
+          <span className="text-2xl font-bold text-slate-400">×</span>
+          <img src="/alphawise-logo.png" alt="AlphaWise" className="w-12 h-12 flex-shrink-0 object-contain" />
+        </div>
+        <div className="flex items-center gap-1 text-lg font-bold">
+          <span className="text-green-500">Lumna</span>
+          <span className="text-slate-400">×</span>
+          <span className="text-white">AlphaWise</span>
+        </div>
       </Link>
 
       {/* User Menu */}

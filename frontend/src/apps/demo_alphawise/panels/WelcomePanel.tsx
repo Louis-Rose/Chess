@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Loader2, PartyPopper, X, Wallet, Flame, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
+import { Loader2, PartyPopper, X, Flame, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -32,14 +32,6 @@ interface CompositionData {
   eurusd_rate: number;
 }
 
-interface PerformanceData {
-  performance: number | null;
-  performance_1m?: number | null;
-  days: number;
-  current_value: number;
-  past_value: number;
-}
-
 interface TopMover {
   ticker: string;
   change_pct: number;
@@ -51,11 +43,6 @@ interface TopMover {
 interface TopMoversData {
   movers: TopMover[];
   days: number;
-}
-
-interface Account {
-  id: number;
-  name: string;
 }
 
 interface ModelPortfolioHolding {
@@ -72,14 +59,14 @@ interface ModelPortfolioData {
   eurusd_rate: number;
 }
 
-// Card IDs - only portfolio and top-movers for demo
-const ALL_CARD_IDS = ['portfolio', 'top-movers'] as const;
+// Card IDs - only top-movers for demo (no portfolio card)
+const ALL_CARD_IDS = ['top-movers'] as const;
 type CardId = typeof ALL_CARD_IDS[number];
 
-// Grid has 4 slots (2x2), some can be empty (null)
-const GRID_SIZE = 4;
+// Grid has 2 slots (1x2), some can be empty (null)
+const GRID_SIZE = 2;
 type GridSlot = CardId | null;
-const DEFAULT_GRID: GridSlot[] = ['portfolio', 'top-movers', null, null];
+const DEFAULT_GRID: GridSlot[] = ['top-movers', null];
 
 // API fetchers - use /api/demo for demo app (separate database)
 const fetchModelPortfolio = async (): Promise<ModelPortfolioData> => {
@@ -93,22 +80,10 @@ const fetchComposition = async (accountIds: number[]): Promise<CompositionData> 
   return response.data;
 };
 
-const fetchPerformance = async (days: number, accountIds: number[]): Promise<PerformanceData> => {
-  const params = new URLSearchParams({ days: String(days) });
-  if (accountIds.length > 0) params.append('account_ids', accountIds.join(','));
-  const response = await axios.get(`/api/demo/portfolio/performance-period?${params}`);
-  return response.data;
-};
-
 const fetchTopMovers = async (days: number, accountIds: number[]): Promise<TopMoversData> => {
   const params = new URLSearchParams({ days: String(days) });
   if (accountIds.length > 0) params.append('account_ids', accountIds.join(','));
   const response = await axios.get(`/api/demo/portfolio/top-movers?${params}`);
-  return response.data;
-};
-
-const fetchAccounts = async (): Promise<{ accounts: Account[] }> => {
-  const response = await axios.get('/api/demo/accounts');
   return response.data;
 };
 
@@ -119,15 +94,6 @@ const fetchCardOrder = async (): Promise<GridSlot[] | null> => {
 
 const saveCardOrder = async (order: GridSlot[]): Promise<void> => {
   await axios.put('/api/preferences/dashboard-card-order', { order });
-};
-
-// Helper to format currency - always show complete numbers
-const formatCurrency = (value: number, currency: 'EUR' | 'USD'): string => {
-  const rounded = Math.round(value);
-  if (currency === 'EUR') {
-    return `${rounded.toLocaleString('fr-FR')}€`;
-  }
-  return `$${rounded.toLocaleString('en-US')}`;
 };
 
 export function WelcomePanel() {
@@ -142,23 +108,9 @@ export function WelcomePanel() {
   const [gridSlots, setGridSlots] = useState<GridSlot[]>([...DEFAULT_GRID]);
 
   // Summary card states
-  const [valueCurrency, setValueCurrency] = useState<'EUR' | 'USD'>('EUR');
   const [moversPeriod, setMoversPeriod] = useState<1 | 7 | 30>(30);
   const [moversSortAsc, setMoversSortAsc] = useState(false);
   const [portfolioHeaderHovered, setPortfolioHeaderHovered] = useState(false);
-  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
-  const accountDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (accountDropdownRef.current && !accountDropdownRef.current.contains(event.target as Node)) {
-        setAccountDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Selected accounts from localStorage (shared with PortfolioPanel)
   const [selectedAccountIds, setSelectedAccountIds] = useState<number[]>(() => {
@@ -195,19 +147,6 @@ export function WelcomePanel() {
       window.removeEventListener('storage', syncFromStorage);
     };
   }, []);
-
-  // Handle account selection from dropdown
-  const handleAccountSelect = (accountId: number | 'all') => {
-    let newSelection: number[];
-    if (accountId === 'all') {
-      newSelection = accounts.map(a => a.id);
-    } else {
-      newSelection = [accountId];
-    }
-    setSelectedAccountIds(newSelection);
-    localStorage.setItem('selectedAccountIds', JSON.stringify(newSelection));
-    setAccountDropdownOpen(false);
-  };
 
   // Drag & drop state
   const [draggedCardId, setDraggedCardId] = useState<CardId | null>(null);
@@ -262,40 +201,12 @@ export function WelcomePanel() {
     }
   }, [savedCardOrder]);
 
-  // Fetch portfolio data
-  const { data: accountsData } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: fetchAccounts,
-    enabled: isAuthenticated,
-  });
-  const accounts = accountsData?.accounts ?? [];
-
-  const { data: compositionData, isLoading: compositionLoading } = useQuery({
+  // Fetch portfolio data for top movers
+  const { data: compositionData } = useQuery({
     queryKey: ['composition-summary', selectedAccountIds],
     queryFn: () => fetchComposition(selectedAccountIds),
     enabled: isAuthenticated && selectedAccountIds.length > 0,
     staleTime: 1000 * 60 * 5,
-  });
-
-  const { data: perf1Data, isLoading: perf1Loading } = useQuery({
-    queryKey: ['performance-period', 1, selectedAccountIds],
-    queryFn: () => fetchPerformance(1, selectedAccountIds),
-    enabled: isAuthenticated && selectedAccountIds.length > 0 && (compositionData?.holdings?.length ?? 0) > 0,
-    staleTime: 1000 * 60 * 15,
-  });
-
-  const { data: perf7Data, isLoading: perf7Loading } = useQuery({
-    queryKey: ['performance-period', 7, selectedAccountIds],
-    queryFn: () => fetchPerformance(7, selectedAccountIds),
-    enabled: isAuthenticated && selectedAccountIds.length > 0 && (compositionData?.holdings?.length ?? 0) > 0,
-    staleTime: 1000 * 60 * 15,
-  });
-
-  const { data: perf30Data, isLoading: perf30Loading } = useQuery({
-    queryKey: ['performance-period', 30, selectedAccountIds],
-    queryFn: () => fetchPerformance(30, selectedAccountIds),
-    enabled: isAuthenticated && selectedAccountIds.length > 0 && (compositionData?.holdings?.length ?? 0) > 0,
-    staleTime: 1000 * 60 * 15,
   });
 
   const { data: topMoversData, isLoading: topMoversLoading } = useQuery({
@@ -361,15 +272,7 @@ export function WelcomePanel() {
     );
   }
 
-  const portfolioValue = valueCurrency === 'EUR'
-    ? compositionData?.total_value_eur
-    : compositionData?.total_value_usd;
-  const perf1Value = perf1Data?.performance;
-  const perf7Value = perf7Data?.performance;
-  const perf30Value = perf30Data?.performance;
-  const perfLoading = perf1Loading || perf7Loading || perf30Loading;
   const topMovers = topMoversData?.movers ?? [];
-  const hasHoldings = (compositionData?.holdings?.length ?? 0) > 0;
   const modelHoldings = modelPortfolioData?.holdings ?? [];
 
   // Pre-calculate "Others" for small slices in model portfolio
@@ -396,7 +299,6 @@ export function WelcomePanel() {
       );
     }
 
-    const isDragging = draggedCardId === cardId;
     const cardBaseClass = "bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col transition-colors group";
 
     const cardProps = {
@@ -408,118 +310,6 @@ export function WelcomePanel() {
     };
 
     switch (cardId) {
-      case 'portfolio':
-        return (
-          <div
-            key={cardId}
-            {...cardProps}
-            onClick={() => !isDragging && navigate('/demo-alphawise/portfolio')}
-            className={`${cardBaseClass} ${dragOverClass} cursor-pointer hover:border-green-500`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Wallet className="w-4 h-4 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-xl font-bold text-white block">
-                    {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
-                  </span>
-                  {accounts.length > 0 && (
-                    <div className="relative" ref={accountDropdownRef}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setAccountDropdownOpen(!accountDropdownOpen); }}
-                        className="text-xs text-slate-400 hover:text-slate-300 flex items-center gap-1 transition-colors"
-                      >
-                        <span className="truncate max-w-[120px]">
-                          {selectedAccountIds.length === 0 || selectedAccountIds.length === accounts.length
-                            ? (language === 'fr' ? 'Tous les comptes' : 'All accounts')
-                            : accounts
-                                .filter(a => selectedAccountIds.includes(a.id))
-                                .map(a => a.name)
-                                .join(', ')}
-                        </span>
-                        <ChevronDown className={`w-3 h-3 transition-transform ${accountDropdownOpen ? 'rotate-180' : ''}`} />
-                      </button>
-                      {accountDropdownOpen && (
-                        <div className="absolute top-full left-0 mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg py-1 min-w-[140px] z-50">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleAccountSelect('all'); }}
-                            className={`w-full text-left px-3 py-1.5 text-xs hover:bg-slate-600 transition-colors ${
-                              selectedAccountIds.length === accounts.length ? 'text-green-400' : 'text-slate-300'
-                            }`}
-                          >
-                            {language === 'fr' ? 'Tous les comptes' : 'All accounts'}
-                          </button>
-                          {accounts.map(account => (
-                            <button
-                              key={account.id}
-                              onClick={(e) => { e.stopPropagation(); handleAccountSelect(account.id); }}
-                              className={`w-full text-left px-3 py-1.5 text-xs hover:bg-slate-600 transition-colors ${
-                                selectedAccountIds.length === 1 && selectedAccountIds[0] === account.id ? 'text-green-400' : 'text-slate-300'
-                              }`}
-                            >
-                              {account.name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex rounded overflow-hidden border border-slate-300 dark:border-slate-600">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setValueCurrency('EUR'); }}
-                  className={`w-8 h-6 text-base font-medium flex items-center justify-center ${valueCurrency === 'EUR' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                >
-                  €
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setValueCurrency('USD'); }}
-                  className={`w-8 h-6 text-base font-medium flex items-center justify-center ${valueCurrency === 'USD' ? 'bg-green-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                >
-                  $
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 flex flex-col items-center justify-center gap-3">
-              {compositionLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-              ) : hasHoldings && portfolioValue !== undefined ? (
-                <>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                    {formatCurrency(portfolioValue, valueCurrency)}
-                  </p>
-                  <div className="w-full flex items-center justify-center">
-                    {perfLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                    ) : (perf1Value !== undefined && perf1Value !== null) || (perf7Value !== undefined && perf7Value !== null) || (perf30Value !== undefined && perf30Value !== null) ? (
-                      <div className="w-full grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center text-lg font-semibold">
-                        <div className={`text-center ${perf1Value !== undefined && perf1Value !== null ? (perf1Value >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
-                          1D<br />{perf1Value !== undefined && perf1Value !== null ? `${perf1Value >= 0 ? '+' : ''}${perf1Value.toFixed(1)}%` : ''}
-                        </div>
-                        <span className="text-slate-500 px-2">|</span>
-                        <div className={`text-center ${perf7Value !== undefined && perf7Value !== null ? (perf7Value >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
-                          1W<br />{perf7Value !== undefined && perf7Value !== null ? `${perf7Value >= 0 ? '+' : ''}${perf7Value.toFixed(1)}%` : ''}
-                        </div>
-                        <span className="text-slate-500 px-2">|</span>
-                        <div className={`text-center ${perf30Value !== undefined && perf30Value !== null ? (perf30Value >= 0 ? 'text-green-600' : 'text-red-600') : 'invisible'}`}>
-                          1M<br />{perf30Value !== undefined && perf30Value !== null ? `${perf30Value >= 0 ? '+' : ''}${perf30Value.toFixed(1)}%` : ''}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-slate-400 italic">
-                  {language === 'fr' ? 'Aucune position' : 'No holdings'}
-                </p>
-              )}
-            </div>
-          </div>
-        );
-
       case 'top-movers':
         return (
           <div
@@ -571,7 +361,7 @@ export function WelcomePanel() {
                 </div>
               </div>
             </div>
-            {compositionLoading || topMoversLoading ? (
+            {topMoversLoading ? (
               <div className="flex-1 flex items-center justify-center">
                 <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
               </div>
@@ -797,38 +587,14 @@ export function WelcomePanel() {
       <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700 mt-8 flex flex-col">
         {/* Card Grid - only for authenticated users */}
         {isAuthenticated && cardOrderFetched && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 md:px-[10%] mb-8 max-w-4xl mx-auto w-full">
-            {gridSlots.slice(0, 2).map((_, index) => renderSlot(index))}
+          <div className="grid grid-cols-1 gap-4 px-4 md:px-[10%] mb-8 max-w-md mx-auto w-full">
+            {gridSlots.slice(0, 1).map((_, index) => renderSlot(index))}
           </div>
         )}
 
         {/* Blurred preview for unauthenticated users */}
         {!isAuthenticated && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 md:px-[10%] mb-8 max-w-4xl mx-auto w-full select-none pointer-events-none">
-            {/* Portfolio Card Preview */}
-            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                  <Wallet className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">
-                  {language === 'fr' ? 'Mon Portefeuille' : 'My Portfolio'}
-                </span>
-              </div>
-              <div className="flex-1 flex flex-col items-center justify-center gap-3 blur-[1.5px]">
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                  73 458€
-                </p>
-                <div className="w-full grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center text-lg font-semibold">
-                  <div className="text-center text-red-600">1D<br />-0.3%</div>
-                  <span className="text-slate-500 px-2">|</span>
-                  <div className="text-center text-red-600">1W<br />-1.6%</div>
-                  <span className="text-slate-500 px-2">|</span>
-                  <div className="text-center text-green-600">1M<br />+1.7%</div>
-                </div>
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 gap-4 px-4 md:px-[10%] mb-8 max-w-md mx-auto w-full select-none pointer-events-none">
             {/* Top Movers Card Preview */}
             <div className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-5 h-[200px] flex flex-col overflow-hidden">
               <div className="flex items-center gap-2 mb-3 flex-shrink-0">
