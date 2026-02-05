@@ -315,6 +315,70 @@ def init_db():
                 # Rename summary to summary_en for clarity
                 conn.execute("ALTER TABLE video_summaries RENAME COLUMN summary TO summary_en")
                 print("[Database] Added summary_fr column to video_summaries")
+
+            # Migration: Create demo_investment_accounts table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'demo_investment_accounts'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE demo_investment_accounts (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        account_type TEXT NOT NULL,
+                        bank TEXT NOT NULL,
+                        display_order INTEGER DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                    )
+                """)
+                conn.execute("CREATE INDEX idx_demo_investment_accounts_user_id ON demo_investment_accounts(user_id)")
+                print("[Database] Created demo_investment_accounts table")
+
+            # Migration: Create demo_portfolio_transactions table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'demo_portfolio_transactions'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE demo_portfolio_transactions (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL,
+                        account_id INTEGER,
+                        stock_ticker TEXT NOT NULL,
+                        transaction_type TEXT NOT NULL,
+                        quantity REAL NOT NULL,
+                        transaction_date TEXT NOT NULL,
+                        price_per_share REAL NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                        FOREIGN KEY (account_id) REFERENCES demo_investment_accounts(id) ON DELETE SET NULL
+                    )
+                """)
+                conn.execute("CREATE INDEX idx_demo_portfolio_transactions_user_id ON demo_portfolio_transactions(user_id)")
+                conn.execute("CREATE INDEX idx_demo_portfolio_transactions_ticker ON demo_portfolio_transactions(stock_ticker)")
+                conn.execute("CREATE INDEX idx_demo_portfolio_transactions_account_id ON demo_portfolio_transactions(account_id)")
+                print("[Database] Created demo_portfolio_transactions table")
+
+            # Migration: Create alphawise_model_portfolio table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'alphawise_model_portfolio'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE alphawise_model_portfolio (
+                        id SERIAL PRIMARY KEY,
+                        stock_ticker TEXT UNIQUE NOT NULL,
+                        allocation_pct REAL NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                print("[Database] Created alphawise_model_portfolio table")
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
