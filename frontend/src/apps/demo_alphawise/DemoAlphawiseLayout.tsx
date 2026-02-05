@@ -29,7 +29,6 @@ export function DemoAlphawiseLayout() {
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
         <Link to="/demo-alphawise" className="flex items-center gap-1.5">
           <LumnaLogo className="w-8 h-8 flex-shrink-0" />
-          <span className="text-lg font-bold text-slate-400">×</span>
           <img src="/alphawise-logo.png" alt="AlphaWise" className="w-8 h-8 flex-shrink-0 object-contain" />
         </Link>
         <div className="flex items-center gap-1">
