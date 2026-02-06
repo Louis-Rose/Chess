@@ -612,7 +612,9 @@ def get_stock_price_and_change(ticker):
 
 def fetch_current_stock_prices_batch(tickers):
     """
-    Fetch current prices for multiple tickers in a single API call.
+    Fetch current (real-time) prices for multiple tickers using regularMarketPrice.
+    Uses threaded individual lookups via yf.Ticker.info for accurate live prices,
+    with yf.download as fallback.
     Returns: dict mapping ticker -> price (using original ticker names as keys)
     """
     if not tickers:
@@ -635,43 +637,53 @@ def fetch_current_stock_prices_batch(tickers):
     if not tickers_to_fetch:
         return prices
 
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    # Use yf.Tickers to get regularMarketPrice (live/current price) for all tickers
     try:
-        # Batch download - single API call for all tickers
-        data = yf.download(
-            tickers_to_fetch,
-            period='1d',
-            progress=False,
-            threads=True,
-            auto_adjust=True
-        )
-
-        today = datetime.now().strftime("%Y-%m-%d")
-
-        if len(tickers_to_fetch) == 1:
-            # Single ticker returns different structure
-            yf_ticker = tickers_to_fetch[0]
+        tickers_obj = yf.Tickers(' '.join(tickers_to_fetch))
+        for yf_ticker in tickers_to_fetch:
             original_ticker = ticker_mapping[yf_ticker]
-            if not data.empty and 'Close' in data.columns:
-                price = round(float(data['Close'].iloc[-1].item()), 2)
-                prices[original_ticker] = price
-                _save_cached_price(original_ticker, today, price)
-        else:
-            # Multiple tickers - columns are MultiIndex
-            for yf_ticker in tickers_to_fetch:
-                original_ticker = ticker_mapping[yf_ticker]
-                try:
-                    if yf_ticker in data['Close'].columns:
-                        close_val = data['Close'][yf_ticker].iloc[-1]
-                        if not pd.isna(close_val):
-                            price = round(float(close_val), 2)
-                            prices[original_ticker] = price
-                            _save_cached_price(original_ticker, today, price)
-                except (KeyError, IndexError):
-                    pass
+            try:
+                info = tickers_obj.tickers[yf_ticker].info
+                price = info.get('regularMarketPrice') or info.get('currentPrice') or info.get('previousClose')
+                if price is not None:
+                    price = round(float(price), 2)
+                    prices[original_ticker] = price
+                    _save_cached_price(original_ticker, today, price)
+            except Exception:
+                pass
     except Exception as e:
-        print(f"Error in batch price fetch: {e}")
+        print(f"Error in batch Tickers fetch: {e}")
 
-    # Fallback: fetch remaining tickers individually
+    # Fallback for any tickers that failed: use yf.download
+    missing = [yf_t for yf_t in tickers_to_fetch if ticker_mapping[yf_t] not in prices]
+    if missing:
+        try:
+            data = yf.download(missing, period='1d', progress=False, threads=True, auto_adjust=True)
+            if len(missing) == 1:
+                yf_ticker = missing[0]
+                original_ticker = ticker_mapping[yf_ticker]
+                if not data.empty and 'Close' in data.columns:
+                    price = round(float(data['Close'].iloc[-1].item()), 2)
+                    prices[original_ticker] = price
+                    _save_cached_price(original_ticker, today, price)
+            else:
+                for yf_ticker in missing:
+                    original_ticker = ticker_mapping[yf_ticker]
+                    try:
+                        if yf_ticker in data['Close'].columns:
+                            close_val = data['Close'][yf_ticker].iloc[-1]
+                            if not pd.isna(close_val):
+                                price = round(float(close_val), 2)
+                                prices[original_ticker] = price
+                                _save_cached_price(original_ticker, today, price)
+                    except (KeyError, IndexError):
+                        pass
+        except Exception as e:
+            print(f"Error in batch download fallback: {e}")
+
+    # Final fallback: fetch remaining tickers individually
     for ticker in tickers:
         if ticker not in prices:
             try:
