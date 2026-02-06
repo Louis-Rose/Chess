@@ -208,7 +208,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           )}
         </p>
         <p style={{ color: '#94a3b8', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', borderBottom: '1px solid #475569', paddingBottom: '4px', marginBottom: '4px' }}>
-          {t('performance.invested')} : {currency === 'EUR' ? `${formatEur(Math.round(costBasis))}€` : `$${formatEur(Math.round(costBasis))}`}
+          {t('performance.invested')} : {privateMode ? `${Math.round((costBasis / PRIVATE_COST_BASIS) * 100)}%` : (currency === 'EUR' ? `${formatEur(Math.round(costBasis))}€` : `$${formatEur(Math.round(costBasis))}`)}
         </p>
         <div
           style={{ position: 'relative' }}
@@ -241,7 +241,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
             return (
               <>
                 <p style={{ color: greenColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold', cursor: 'pointer' }}>
-                  {t('performance.portfolio')} : {currency === 'EUR' ? `${formatEur(Math.round(portfolioValue))}€` : `$${formatEur(Math.round(portfolioValue))}`}
+                  {t('performance.portfolio')} : {privateMode ? `${Math.round((portfolioValue / PRIVATE_COST_BASIS) * 100)}%` : (currency === 'EUR' ? `${formatEur(Math.round(portfolioValue))}€` : `$${formatEur(Math.round(portfolioValue))}`)}
                   <span style={{ color: '#94a3b8', fontSize: '9px', marginLeft: '4px' }}>{showBreakdown ? '▲' : '▼'}</span>
                 </p>
                 {showBreakdown && data.stocks && (
@@ -254,10 +254,11 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                 .sort((a, b) => b[1].value_eur - a[1].value_eur)
                 .map(([ticker, stockData]) => {
                   const pricePerShare = stockData.quantity > 0 ? (stockData.value_eur / stockData.quantity).toFixed(2) : '0';
+                  const stockPct = PRIVATE_COST_BASIS > 0 ? Math.round((stockData.value_eur / PRIVATE_COST_BASIS) * 100) : 0;
                   return (
                     <p key={ticker} style={{ color: '#94a3b8', fontSize: '10px', padding: '1px 0', display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-                      <span style={{ color: '#e2e8f0' }}>{stockData.quantity} x {ticker} ({currency === 'EUR' ? `${pricePerShare}€` : `$${pricePerShare}`})</span>
-                      <span>{currency === 'EUR' ? `${formatEur(Math.round(stockData.value_eur))}€` : `$${formatEur(Math.round(stockData.value_eur))}`}</span>
+                      <span style={{ color: '#e2e8f0' }}>{privateMode ? ticker : `${stockData.quantity} x ${ticker} (${currency === 'EUR' ? `${pricePerShare}€` : `$${pricePerShare}`})`}</span>
+                      <span>{privateMode ? `${stockPct}%` : (currency === 'EUR' ? `${formatEur(Math.round(stockData.value_eur))}€` : `$${formatEur(Math.round(stockData.value_eur))}`)}</span>
                     </p>
                   );
                 })
@@ -269,7 +270,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           })()}
         </div>
         <p style={{ color: blueColor, fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
-          {benchmarkTicker} : {currency === 'EUR' ? `${formatEur(Math.round(benchmarkValue))}€` : `$${formatEur(Math.round(benchmarkValue))}`}
+          {benchmarkTicker} : {privateMode ? `${Math.round((benchmarkValue / PRIVATE_COST_BASIS) * 100)}%` : (currency === 'EUR' ? `${formatEur(Math.round(benchmarkValue))}€` : `$${formatEur(Math.round(benchmarkValue))}`)}
         </p>
         <p style={{ color: displayPerf >= 0 ? greenColor : '#f87171', fontSize: '11px', padding: '1px 0', fontWeight: 'bold', marginTop: '4px', borderTop: '1px solid #475569', paddingTop: '4px' }}>
           {perfLabel} : {displayPerf >= 0 ? '+' : ''}{displayPerf}%
@@ -284,8 +285,8 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
           <div style={{ borderTop: '1px solid #475569', marginTop: '4px', paddingTop: '4px' }}>
             {sortedTransactions.map((tx, idx) => {
               const pricePerShare = tx.amount_eur && tx.quantity ? (tx.amount_eur / tx.quantity).toFixed(2) : null;
-              const pricePerShareStr = pricePerShare ? `, ${currency === 'EUR' ? `${pricePerShare}€` : `$${pricePerShare}`}/${language === 'fr' ? 'action' : 'share'}` : '';
-              const amountStr = tx.amount_eur ? ` (${currency === 'EUR' ? `${formatEur(Math.round(tx.amount_eur))}€` : `$${formatEur(Math.round(tx.amount_eur))}`}${pricePerShareStr})` : '';
+              const pricePerShareStr = !privateMode && pricePerShare ? `, ${currency === 'EUR' ? `${pricePerShare}€` : `$${pricePerShare}`}/${language === 'fr' ? 'action' : 'share'}` : '';
+              const amountStr = !privateMode && tx.amount_eur ? ` (${currency === 'EUR' ? `${formatEur(Math.round(tx.amount_eur))}€` : `$${formatEur(Math.round(tx.amount_eur))}`}${pricePerShareStr})` : '';
               const txDateStr = new Date(tx.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
               return (
                 <p key={idx} style={{ color: tx.type === 'BUY' ? '#22c55e' : '#f97316', fontSize: '11px', padding: '1px 0', fontWeight: 'bold' }}>
@@ -931,7 +932,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
 
         // Calculate Y-axis domain and ticks based on yAxisRange
         const yAxisCalc = (() => {
-          const increment = privateMode ? 50 : 10000;
+          const increment = privateMode ? 500 : 10000;
           // Get values only from visible lines
           const values: number[] = [];
           chartData.forEach(d => {
@@ -1059,7 +1060,7 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                     </svg>
-                    {language === 'fr' ? `Mode privé (base: ${currency === 'EUR' ? `${PRIVATE_COST_BASIS}€` : `$${PRIVATE_COST_BASIS}`})` : `Private mode (base: ${currency === 'EUR' ? `${PRIVATE_COST_BASIS}€` : `$${PRIVATE_COST_BASIS}`})`}
+                    {language === 'fr' ? 'Mode privé (base: 100%)' : 'Private mode (base: 100%)'}
                   </span>
                 </div>
               )}
@@ -1096,20 +1097,32 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
                     <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold">{showAnnualized ? 'CAGR' : (language === 'fr' ? 'Gains du Portefeuille' : 'Portfolio Gains')}</p>
                     <span className={`font-bold text-base md:text-xl ${(showAnnualized ? filteredSummary.cagr_eur : filteredSummary.portfolio_return_eur) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{currency === 'EUR' ? `${formatEur(filteredSummary.portfolio_gains_eur)}€` : `$${formatEur(filteredSummary.portfolio_gains_eur)}`} ({showAnnualized
-                        ? `${filteredSummary.cagr_eur >= 0 ? '+' : ''}${filteredSummary.cagr_eur}%`
-                        : `${filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}${filteredSummary.portfolio_return_eur}%`
-                      })
+                      {privateMode ? (
+                        showAnnualized
+                          ? `${filteredSummary.cagr_eur >= 0 ? '+' : ''}${filteredSummary.cagr_eur}%`
+                          : `${filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}${filteredSummary.portfolio_return_eur}%`
+                      ) : (
+                        <>{filteredSummary.portfolio_gains_eur >= 0 ? '+' : ''}{currency === 'EUR' ? `${formatEur(filteredSummary.portfolio_gains_eur)}€` : `$${formatEur(filteredSummary.portfolio_gains_eur)}`} ({showAnnualized
+                          ? `${filteredSummary.cagr_eur >= 0 ? '+' : ''}${filteredSummary.cagr_eur}%`
+                          : `${filteredSummary.portfolio_return_eur >= 0 ? '+' : ''}${filteredSummary.portfolio_return_eur}%`
+                        })</>
+                      )}
                     </span>
                   </div>
                   {/* Benchmark */}
                   <div className="bg-slate-200 dark:bg-slate-600 rounded-lg p-2 md:p-4 text-center flex flex-col justify-center">
                     <p className="text-slate-600 dark:text-slate-200 text-sm md:text-base font-semibold">Benchmark ({benchmark === 'NASDAQ' ? 'Nasdaq' : 'S&P 500'})</p>
                     <span className={`font-bold text-base md:text-xl ${(showAnnualized ? filteredSummary.cagr_benchmark_eur : filteredSummary.benchmark_return_eur) >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
-                      {filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{currency === 'EUR' ? `${formatEur(filteredSummary.benchmark_gains_eur)}€` : `$${formatEur(filteredSummary.benchmark_gains_eur)}`} ({showAnnualized
-                        ? `${filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}${filteredSummary.cagr_benchmark_eur}%`
-                        : `${filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}${filteredSummary.benchmark_return_eur}%`
-                      })
+                      {privateMode ? (
+                        showAnnualized
+                          ? `${filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}${filteredSummary.cagr_benchmark_eur}%`
+                          : `${filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}${filteredSummary.benchmark_return_eur}%`
+                      ) : (
+                        <>{filteredSummary.benchmark_gains_eur >= 0 ? '+' : ''}{currency === 'EUR' ? `${formatEur(filteredSummary.benchmark_gains_eur)}€` : `$${formatEur(filteredSummary.benchmark_gains_eur)}`} ({showAnnualized
+                          ? `${filteredSummary.cagr_benchmark_eur >= 0 ? '+' : ''}${filteredSummary.cagr_benchmark_eur}%`
+                          : `${filteredSummary.benchmark_return_eur >= 0 ? '+' : ''}${filteredSummary.benchmark_return_eur}%`
+                        })</>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -1328,11 +1341,11 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                       tick={{ fontSize: 15, fill: colors.tickFill, fontWeight: 600 }}
                       stroke={colors.axisStroke}
                       tickFormatter={(val) => {
-                        const sym = currency === 'EUR' ? '€' : '$';
-                        // For private mode with small values, don't use k format
                         if (privateMode) {
-                          return currency === 'EUR' ? `${formatEur(val)}${sym}` : `${sym}${formatEur(val)}`;
+                          const pct = Math.round((val / PRIVATE_COST_BASIS) * 100);
+                          return `${pct}%`;
                         }
+                        const sym = currency === 'EUR' ? '€' : '$';
                         return currency === 'EUR' ? `${formatEur(val / 1000)}k${sym}` : `${sym}${formatEur(val / 1000)}k`;
                       }}
                       domain={yAxisDomain}
