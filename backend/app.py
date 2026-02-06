@@ -3073,7 +3073,8 @@ def compute_holdings_from_transactions(user_id, account_ids=None):
                 'quantity': data['quantity'],
                 'cost_basis': round(avg_cost, 2),
                 'total_cost': round(total_cost_usd, 2),
-                'total_cost_eur': round(total_cost_eur, 2)
+                'total_cost_eur': round(total_cost_eur, 2),
+                'first_buy_date': data['lots'][0]['date'] if data['lots'] else None
             })
 
     return holdings

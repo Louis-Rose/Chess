@@ -13,7 +13,7 @@ import { AccountSelector } from './portfolio/AccountSelector';
 import { TransactionForm } from './portfolio/TransactionForm';
 import { PortfolioComposition, type PortfolioCompositionHandle } from './portfolio/PortfolioComposition';
 import { PerformanceChart, type PerformanceChartHandle } from './portfolio/PerformanceChart';
-import { formatEur } from './portfolio/utils';
+import { formatEur, PRIVATE_COST_BASIS } from './portfolio/utils';
 import { calculateSimpleReturn, calculateCAGR, calculateMWR, calculateTWRDetailed, type CashFlow, type ValuationPoint, type TWRSubPeriod } from '../utils/performanceUtils';
 
 // Types
@@ -995,7 +995,6 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
               filteredCostBasis = 0;
             }
 
-            const PRIVATE_COST_BASIS = 10000;
             const eurusdRate = compositionData.eurusd_rate || 1;
             const actualCostBasis = currency === 'EUR' ? filteredCostBasis : filteredCostBasis * eurusdRate;
             const scaleFactor = privateMode && actualCostBasis > 0 ? PRIVATE_COST_BASIS / actualCostBasis : 1;

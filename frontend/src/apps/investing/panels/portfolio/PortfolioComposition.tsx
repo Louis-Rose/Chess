@@ -10,8 +10,29 @@ import type { CompositionData, CompositionItem } from './types';
 import { formatEur, addLumnaBranding, getScaleFactor } from './utils';
 
 // Sorting types
-type SortColumn = 'ticker' | 'quantity' | 'price' | 'value' | 'gain';
+type SortColumn = 'ticker' | 'quantity' | 'price' | 'value' | 'gain' | 'held';
 type SortDirection = 'asc' | 'desc';
+
+const formatHoldingPeriod = (firstBuyDate: string | undefined): string => {
+  if (!firstBuyDate) return '—';
+  const start = new Date(firstBuyDate);
+  const now = new Date();
+  let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  if (now.getDate() < start.getDate()) months--;
+  if (months < 0) months = 0;
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  if (years === 0) return `${remainingMonths}m`;
+  if (remainingMonths === 0) return `${years}y`;
+  return `${years}y ${remainingMonths}m`;
+};
+
+const getHoldingMonths = (firstBuyDate: string | undefined): number => {
+  if (!firstBuyDate) return 0;
+  const start = new Date(firstBuyDate);
+  const now = new Date();
+  return (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+};
 
 export interface PortfolioCompositionHandle {
   download: () => Promise<void>;
@@ -277,6 +298,9 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                     case 'gain':
                       comparison = a.gain_pct - b.gain_pct;
                       break;
+                    case 'held':
+                      comparison = getHoldingMonths(a.first_buy_date) - getHoldingMonths(b.first_buy_date);
+                      break;
                   }
                   return sortDirection === 'asc' ? comparison : -comparison;
                 });
@@ -315,6 +339,12 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                             <SortIndicator column="gain" />
                           </button>
                         </th>
+                        <th className="pb-2 text-right">
+                          <button onClick={() => handleSort('held')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors ml-auto">
+                            {t('holdings.held')}
+                            <SortIndicator column="held" />
+                          </button>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -324,8 +354,9 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                         // Convert to USD if needed
                         const valueInCurrency = currency === 'EUR' ? valueEur : valueEur * compositionData.eurusd_rate;
                         const displayValue = Math.round(valueInCurrency * scaleFactor);
-                        // Don't scale quantity - show actual shares owned (privateMode only hides monetary values)
-                        const displayQuantity = h.quantity;
+                        // Scale quantity in private mode to match the theoretical 10K portfolio
+                        const scaledQuantity = h.quantity * scaleFactor;
+                        const displayQuantity = privateMode ? (scaledQuantity < 1 ? scaledQuantity.toFixed(2) : Math.round(scaledQuantity)) : h.quantity;
                         // Show price in selected currency
                         const priceToShow = currency === 'EUR' ? h.current_price : (h.current_price_native ?? h.current_price);
                         const priceSymbol = currency === 'EUR' ? '€' : getCurrencySymbol(h.native_currency || 'USD');
@@ -347,6 +378,9 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                             </td>
                             <td className={`py-2 text-right font-medium ${h.gain_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct}%
+                            </td>
+                            <td className="py-2 text-right text-slate-500 dark:text-slate-400 text-sm">
+                              {formatHoldingPeriod(h.first_buy_date)}
                             </td>
                           </tr>
                         );

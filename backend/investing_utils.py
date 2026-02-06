@@ -979,6 +979,7 @@ def compute_portfolio_composition(holdings, target_currency='EUR'):
             'gain': round(gain_eur, 2),  # In EUR
             'gain_eur': round(gain_eur, 2),
             'gain_pct': gain_pct,
+            'first_buy_date': holding.get('first_buy_date'),
             'color': get_stock_color(ticker)
         })
         total_value += current_value_eur

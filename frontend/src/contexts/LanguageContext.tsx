@@ -64,6 +64,7 @@ const translations: Record<Language, Record<string, string>> = {
     'holdings.value': 'Value (EUR)',
     'holdings.weight': 'Weight',
     'holdings.gain': 'Gain',
+    'holdings.held': 'Held',
 
     // Performance
     'performance.title': 'Portfolio Performance',
@@ -160,6 +161,7 @@ const translations: Record<Language, Record<string, string>> = {
     'holdings.value': 'Valeur (EUR)',
     'holdings.weight': 'Poids',
     'holdings.gain': 'Gain',
+    'holdings.held': 'Détenu',
 
     // Performance
     'performance.title': 'Performance du Portefeuille',

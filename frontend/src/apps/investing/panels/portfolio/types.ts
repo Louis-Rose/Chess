@@ -69,6 +69,7 @@ export interface CompositionItem {
   gain: number;  // In EUR
   gain_eur: number;
   gain_pct: number;
+  first_buy_date?: string;
   weight: number;
   color: string;
 }
