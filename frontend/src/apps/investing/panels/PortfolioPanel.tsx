@@ -242,7 +242,7 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
   // Panel state: collapsed and order
   const [isHoldingsExpanded, setIsHoldingsExpanded] = useState(true);
   const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(true);
-  const [isStockPerf3mExpanded, setIsStockPerf3mExpanded] = useState(false);
+  const [isStockPerf3mExpanded, setIsStockPerf3mExpanded] = useState(true);
 
   // Advanced metrics section collapsed state - persisted in localStorage
   const [isAdvancedMetricsExpanded, setIsAdvancedMetricsExpanded] = useState(() => {
@@ -1584,12 +1584,12 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                     <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
                   </div>
                 ) : stockPerf3mData?.stocks && stockPerf3mData.stocks.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
+                  <div className="mx-[15%]">
+                    <table className="w-full border-collapse">
                       <thead>
-                        <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b border-slate-300 dark:border-slate-500">
-                          <th className="pb-2">{language === 'fr' ? 'Action' : 'Stock'}</th>
-                          <th className="pb-2 text-right">
+                        <tr className="text-slate-600 dark:text-slate-300 text-sm border-b border-slate-300 dark:border-slate-500">
+                          <th className="pb-2 text-center border-r border-slate-300 dark:border-slate-500">{language === 'fr' ? 'Action' : 'Stock'}</th>
+                          <th className="pb-2 text-center">
                             {language === 'fr' ? 'Performance 3 mois' : '3-Month Stock Performance'}
                           </th>
                         </tr>
@@ -1603,11 +1603,11 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                               key={s.ticker}
                               className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                             >
-                              <td className="py-2">
+                              <td className="py-2 text-center border-r border-slate-300 dark:border-slate-500">
                                 <span className="font-bold text-slate-800 dark:text-slate-100">{name}</span>
-                                <span className="text-slate-500 dark:text-slate-400 ml-2 text-sm">{s.ticker}</span>
+                                <span className="text-slate-500 dark:text-slate-400 ml-2 text-sm">({s.ticker})</span>
                               </td>
-                              <td className={`py-2 text-right font-medium ${s.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              <td className={`py-2 text-center font-medium ${s.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {s.change_pct >= 0 ? '+' : ''}{s.change_pct.toFixed(1)}%
                               </td>
                             </tr>
