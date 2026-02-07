@@ -1585,11 +1585,11 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                   </div>
                 ) : stockPerf3mData?.stocks && stockPerf3mData.stocks.length > 0 ? (
                   <div className="mx-[15%]">
-                    <table className="w-full border-collapse">
+                    <table className="w-full border border-slate-300 dark:border-slate-500">
                       <thead>
-                        <tr className="text-slate-600 dark:text-slate-300 text-sm border-b border-slate-300 dark:border-slate-500">
-                          <th className="pb-2 text-center border-r border-slate-300 dark:border-slate-500">{language === 'fr' ? 'Action' : 'Stock'}</th>
-                          <th className="pb-2 text-center">
+                        <tr className="text-slate-600 dark:text-slate-300 border-b border-slate-300 dark:border-slate-500">
+                          <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500">{language === 'fr' ? 'Action' : 'Stock'}</th>
+                          <th className="py-2 text-center text-base font-semibold">
                             {language === 'fr' ? 'Performance 3 mois' : '3-Month Stock Performance'}
                           </th>
                         </tr>
@@ -1597,17 +1597,17 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                       <tbody>
                         {stockPerf3mData.stocks.map((s) => {
                           const stockInfo = STOCKS_DB[s.ticker];
-                          const name = stockInfo?.name || s.ticker;
+                          const name = (stockInfo?.name || s.ticker).replace(/\s+Class\s+[A-Z]\b/gi, '');
                           return (
                             <tr
                               key={s.ticker}
-                              className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                              className="border-b border-slate-300 dark:border-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                             >
                               <td className="py-2 text-center border-r border-slate-300 dark:border-slate-500">
                                 <span className="font-bold text-slate-800 dark:text-slate-100">{name}</span>
                                 <span className="text-slate-500 dark:text-slate-400 ml-2 text-sm">({s.ticker})</span>
                               </td>
-                              <td className={`py-2 text-center font-medium ${s.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              <td className={`py-2 text-center font-bold ${s.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {s.change_pct >= 0 ? '+' : ''}{s.change_pct.toFixed(1)}%
                               </td>
                             </tr>
