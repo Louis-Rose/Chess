@@ -57,7 +57,7 @@ export function QuarterlyResults({ portfolioTickers }: QuarterlyResultsProps) {
         pixelRatio: 2,
         skipFonts: true,
       });
-      const branded = await addLumnaBranding(dataUrl, resolvedTheme === 'dark');
+      const branded = await addLumnaBranding(dataUrl);
       const link = document.createElement('a');
       link.download = `quarterly-results-${selectedTicker}.png`;
       link.href = branded;
