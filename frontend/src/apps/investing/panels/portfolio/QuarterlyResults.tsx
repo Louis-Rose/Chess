@@ -183,13 +183,14 @@ export const QuarterlyResults = forwardRef<QuarterlyResultsHandle, QuarterlyResu
 
             {/* Conference call insights - separate bordered box */}
             {report.insights && report.insights.length > 0 && (
-              <div ref={insightsRef} className="mx-[10%] mt-6">
-                {isDownloading && (
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
-                    {language === 'fr' ? 'Points clés' : 'Conference call insights'} — {report.companyName} ({report.quarter})
-                  </h3>
-                )}
-                <div className="border-2 border-slate-400 dark:border-slate-300 rounded-lg p-4">
+              <div ref={insightsRef} className="mt-6">
+                <div className="mx-[10%]">
+                  {isDownloading && (
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
+                      {language === 'fr' ? 'Points clés' : 'Conference call insights'} — {report.companyName} ({report.quarter})
+                    </h3>
+                  )}
+                  <div className="border-2 border-slate-400 dark:border-slate-300 rounded-lg p-4">
                   <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
                     {language === 'fr' ? 'Points clés de la conférence téléphonique' : 'Conference call insights'}
                   </h4>
@@ -205,19 +206,20 @@ export const QuarterlyResults = forwardRef<QuarterlyResultsHandle, QuarterlyResu
                       </ul>
                     </div>
                   ))}
-                </div>
-                {!isDownloading && (
-                  <div className="flex items-center justify-end gap-2 mt-3 mr-2">
-                    <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
-                      <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
-                        <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
-                        <rect x="56" y="48" width="16" height="56" rx="2" fill="white" />
-                        <rect x="84" y="32" width="16" height="72" rx="2" fill="white" />
-                      </svg>
-                    </div>
-                    <span className="text-lg font-bold text-slate-300">LUMNA</span>
                   </div>
-                )}
+                  {!isDownloading && (
+                    <div className="flex items-center justify-end gap-2 mt-3 mr-2">
+                      <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
+                        <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
+                          <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
+                          <rect x="56" y="48" width="16" height="56" rx="2" fill="white" />
+                          <rect x="84" y="32" width="16" height="72" rx="2" fill="white" />
+                        </svg>
+                      </div>
+                      <span className="text-lg font-bold text-slate-300">LUMNA</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </>
