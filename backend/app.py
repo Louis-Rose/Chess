@@ -3344,6 +3344,65 @@ def get_portfolio_top_movers():
     })
 
 
+@app.route('/api/investing/portfolio/stock-performance-3m', methods=['GET'])
+@login_required
+def get_stock_performance_3m():
+    """Get 3-month stock price performance for all holdings in selected accounts."""
+    from investing_utils import fetch_current_stock_prices_batch, fetch_historical_prices_batch
+
+    account_ids_str = request.args.get('account_ids')
+    if account_ids_str:
+        account_ids = [int(x) for x in account_ids_str.split(',') if x.strip()]
+    else:
+        account_id = request.args.get('account_id', type=int)
+        account_ids = [account_id] if account_id else None
+
+    holdings = compute_holdings_from_transactions(request.user_id, account_ids)
+
+    if not holdings:
+        return jsonify({'stocks': []})
+
+    all_tickers = [h['stock_ticker'] for h in holdings]
+
+    # 3 months ago from today (same day, 3 months back)
+    import calendar
+    today = datetime.now()
+    year = today.year
+    month = today.month - 3
+    if month <= 0:
+        month += 12
+        year -= 1
+    day = min(today.day, calendar.monthrange(year, month)[1])
+    past_date_str = f'{year:04d}-{month:02d}-{day:02d}'
+
+    current_prices = fetch_current_stock_prices_batch(all_tickers)
+    past_prices = fetch_historical_prices_batch(all_tickers, past_date_str)
+
+    stocks = []
+    for h in holdings:
+        ticker = h['stock_ticker']
+        current_price = current_prices.get(ticker, 0) or 0
+        past_price = past_prices.get(ticker, 0) or 0
+
+        if current_price <= 0 or past_price <= 0:
+            continue
+
+        change_pct = ((current_price - past_price) / past_price) * 100
+
+        stocks.append({
+            'ticker': ticker,
+            'change_pct': round(change_pct, 1),
+        })
+
+    # Sort by change (best to worst)
+    stocks.sort(key=lambda x: x['change_pct'], reverse=True)
+
+    return jsonify({
+        'stocks': stocks,
+        'start_date': past_date_str,
+    })
+
+
 @app.route('/api/investing/watchlist/top-movers', methods=['GET'])
 @login_required
 def get_watchlist_top_movers():

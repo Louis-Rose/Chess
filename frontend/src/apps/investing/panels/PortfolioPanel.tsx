@@ -15,6 +15,7 @@ import { PortfolioComposition, type PortfolioCompositionHandle } from './portfol
 import { PerformanceChart, type PerformanceChartHandle } from './portfolio/PerformanceChart';
 import { formatEur, PRIVATE_COST_BASIS } from './portfolio/utils';
 import { calculateSimpleReturn, calculateCAGR, calculateMWR, calculateTWRDetailed, type CashFlow, type ValuationPoint, type TWRSubPeriod } from '../utils/performanceUtils';
+import { STOCKS_DB } from '../../../data/stocksDb';
 
 // Types
 import type {
@@ -241,6 +242,7 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
   // Panel state: collapsed and order
   const [isHoldingsExpanded, setIsHoldingsExpanded] = useState(true);
   const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(true);
+  const [isStockPerf3mExpanded, setIsStockPerf3mExpanded] = useState(false);
 
   // Advanced metrics section collapsed state - persisted in localStorage
   const [isAdvancedMetricsExpanded, setIsAdvancedMetricsExpanded] = useState(() => {
@@ -331,6 +333,17 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
   const { data: performanceData, isLoading: performanceLoading } = useQuery({
     queryKey: ['performance', benchmark, currency, selectedAccountIds, apiBasePath],
     queryFn: () => api.fetchPerformance(benchmark, currency, selectedAccountIds),
+    enabled: isAuthenticated && selectedAccountIds.length > 0 && accountHasHoldings,
+  });
+
+  const { data: stockPerf3mData, isLoading: stockPerf3mLoading } = useQuery({
+    queryKey: ['stockPerf3m', selectedAccountIds, apiBasePath],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedAccountIds.length > 0) params.set('account_ids', selectedAccountIds.join(','));
+      const res = await axios.get(`${apiBasePath}/portfolio/stock-performance-3m?${params}`);
+      return res.data as { stocks: { ticker: string; change_pct: number }[]; start_date: string };
+    },
     enabled: isAuthenticated && selectedAccountIds.length > 0 && accountHasHoldings,
   });
 
@@ -1549,6 +1562,69 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
             );
           }
         })}
+
+        {/* 3-Month Stock Performance */}
+        {selectedAccountIds.length > 0 && accountHasHoldings && (
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none">
+            <div className="flex items-center p-4">
+              <button
+                onClick={() => setIsStockPerf3mExpanded(!isStockPerf3mExpanded)}
+                className="flex items-center gap-3 text-left flex-1"
+              >
+                <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isStockPerf3mExpanded ? 'rotate-90' : ''}`} />
+                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                  {language === 'fr' ? 'Performance 3 mois' : '3-Month Stock Performance'}
+                </h3>
+              </button>
+            </div>
+            {isStockPerf3mExpanded && (
+              <div className="px-4 pb-4">
+                {stockPerf3mLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+                  </div>
+                ) : stockPerf3mData?.stocks && stockPerf3mData.stocks.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left text-slate-600 dark:text-slate-300 text-sm border-b border-slate-300 dark:border-slate-500">
+                          <th className="pb-2">{language === 'fr' ? 'Action' : 'Stock'}</th>
+                          <th className="pb-2 text-right">
+                            {language === 'fr' ? 'Performance 3 mois' : '3-Month Stock Performance'}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stockPerf3mData.stocks.map((s) => {
+                          const stockInfo = STOCKS_DB[s.ticker];
+                          const name = stockInfo?.name || s.ticker;
+                          return (
+                            <tr
+                              key={s.ticker}
+                              className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                            >
+                              <td className="py-2">
+                                <span className="font-bold text-slate-800 dark:text-slate-100">{name}</span>
+                                <span className="text-slate-500 dark:text-slate-400 ml-2 text-sm">{s.ticker}</span>
+                              </td>
+                              <td className={`py-2 text-right font-medium ${s.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {s.change_pct >= 0 ? '+' : ''}{s.change_pct.toFixed(1)}%
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-center py-4">
+                    {language === 'fr' ? 'Aucune donnée disponible' : 'No data available'}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
