@@ -16,6 +16,7 @@ import { TransactionForm } from './portfolio/TransactionForm';
 import { PortfolioComposition, type PortfolioCompositionHandle } from './portfolio/PortfolioComposition';
 import { PerformanceChart, type PerformanceChartHandle } from './portfolio/PerformanceChart';
 import { QuarterlyResults } from './portfolio/QuarterlyResults';
+import type { QuarterlyResultsHandle } from './portfolio/QuarterlyResults';
 import { formatEur, PRIVATE_COST_BASIS, addLumnaBranding } from './portfolio/utils';
 import { calculateSimpleReturn, calculateCAGR, calculateMWR, calculateTWRDetailed, type CashFlow, type ValuationPoint, type TWRSubPeriod } from '../utils/performanceUtils';
 import { STOCKS_DB } from '../../../data/stocksDb';
@@ -247,6 +248,8 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
   const [isHoldingsExpanded, setIsHoldingsExpanded] = useState(true);
   const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(true);
   const [isQuarterlyExpanded, setIsQuarterlyExpanded] = useState(true);
+  const quarterlyRef = useRef<QuarterlyResultsHandle>(null);
+  const [isQuarterlyDownloading, setIsQuarterlyDownloading] = useState(false);
   const [isStockPerf3mExpanded, setIsStockPerf3mExpanded] = useState(true);
   const stockPerf3mRef = useRef<HTMLDivElement>(null);
   const [isStockPerf3mDownloading, setIsStockPerf3mDownloading] = useState(false);
@@ -1583,10 +1586,27 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                   {language === 'fr' ? 'Résultats trimestriels' : 'Quarterly Results'}
                 </h3>
               </button>
+              <button
+                onClick={async () => {
+                  setIsQuarterlyDownloading(true);
+                  try {
+                    await quarterlyRef.current?.download();
+                  } finally {
+                    setIsQuarterlyDownloading(false);
+                  }
+                }}
+                disabled={isQuarterlyDownloading}
+                className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors text-sm"
+                title={language === 'fr' ? 'Télécharger' : 'Download'}
+              >
+                {isQuarterlyDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
+              </button>
             </div>
             {isQuarterlyExpanded && (
               <div className="px-4 pb-4">
                 <QuarterlyResults
+                  ref={quarterlyRef}
                   portfolioTickers={compositionData.holdings.map(h => h.ticker)}
                 />
               </div>
