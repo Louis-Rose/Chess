@@ -1630,11 +1630,11 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                       <table className="w-full border border-slate-300 dark:border-slate-500">
                         <thead>
                           <tr className="text-slate-600 dark:text-slate-300 border-b border-slate-300 dark:border-slate-500">
-                            <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500">{language === 'fr' ? 'Action' : 'Stock'}</th>
-                            <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500">
-                              {language === 'fr' ? 'Performance 3 mois' : '3-Month Stock Performance'}
+                            <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500 w-[45%]">{language === 'fr' ? 'Action' : 'Stock'}</th>
+                            <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500 w-[22%]">
+                              {language === 'fr' ? 'Perf. 3 mois' : '3M Perf.'}
                             </th>
-                            <th className="py-2 text-center text-base font-semibold">
+                            <th className="py-2 text-center text-base font-semibold w-[33%]">
                               {language === 'fr' ? 'Ratio P/E' : 'PE Ratio'}
                             </th>
                           </tr>
@@ -1657,7 +1657,7 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                                 </td>
                                 <td className="py-2 text-center text-slate-700 dark:text-slate-200">
                                   {s.pe_past != null && s.pe_current != null
-                                    ? <>{s.pe_past} <span className="text-slate-400">→</span> {s.pe_current}</>
+                                    ? <>{s.pe_past.toFixed(1)} <span className="text-slate-400">→</span> {s.pe_current.toFixed(1)}</>
                                     : '—'}
                                 </td>
                               </tr>

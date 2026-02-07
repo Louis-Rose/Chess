@@ -3426,9 +3426,9 @@ def get_stock_performance_3m():
         # PE ratio: current from yfinance, past from quarterly EPS
         pe_info = pe_data.get(ticker, {})
         trailing_pe = pe_info.get('trailing_pe')
-        current_pe = round(trailing_pe) if trailing_pe else None
+        current_pe = round(trailing_pe, 1) if trailing_pe else None
         past_eps = pe_info.get('past_eps')
-        past_pe = round(past_price / past_eps) if past_eps and past_eps > 0 else None
+        past_pe = round(past_price / past_eps, 1) if past_eps and past_eps > 0 else None
 
         stocks.append({
             'ticker': ticker,
