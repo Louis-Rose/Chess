@@ -347,7 +347,7 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
       const params = new URLSearchParams();
       if (selectedAccountIds.length > 0) params.set('account_ids', selectedAccountIds.join(','));
       const res = await axios.get(`${apiBasePath}/portfolio/stock-performance-3m?${params}`);
-      return res.data as { stocks: { ticker: string; change_pct: number }[]; start_date: string };
+      return res.data as { stocks: { ticker: string; change_pct: number; pe_current: number | null; pe_past: number | null }[]; start_date: string };
     },
     enabled: isAuthenticated && selectedAccountIds.length > 0 && accountHasHoldings,
   });
@@ -1625,13 +1625,16 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                         {language === 'fr' ? 'Performance 3 mois' : '3-Month Stock Performance'}
                       </h3>
                     )}
-                    <div className="mx-[15%]">
+                    <div className="mx-[10%]">
                       <table className="w-full border border-slate-300 dark:border-slate-500">
                         <thead>
                           <tr className="text-slate-600 dark:text-slate-300 border-b border-slate-300 dark:border-slate-500">
                             <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500">{language === 'fr' ? 'Action' : 'Stock'}</th>
-                            <th className="py-2 text-center text-base font-semibold">
+                            <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500">
                               {language === 'fr' ? 'Performance 3 mois' : '3-Month Stock Performance'}
+                            </th>
+                            <th className="py-2 text-center text-base font-semibold">
+                              {language === 'fr' ? 'Ratio P/E' : 'PE Ratio'}
                             </th>
                           </tr>
                         </thead>
@@ -1648,8 +1651,13 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                                   <span className="font-bold text-slate-800 dark:text-slate-100">{name}</span>
                                   <span className="text-slate-500 dark:text-slate-400 ml-2 text-sm">({s.ticker})</span>
                                 </td>
-                                <td className={`py-2 text-center font-bold ${s.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                <td className={`py-2 text-center font-bold border-r border-slate-300 dark:border-slate-500 ${s.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                   {s.change_pct >= 0 ? '+' : ''}{s.change_pct.toFixed(1)}%
+                                </td>
+                                <td className="py-2 text-center text-slate-700 dark:text-slate-200">
+                                  {s.pe_past != null && s.pe_current != null
+                                    ? <>{s.pe_past} <span className="text-slate-400">→</span> {s.pe_current}</>
+                                    : '—'}
                                 </td>
                               </tr>
                             );
