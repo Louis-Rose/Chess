@@ -124,31 +124,33 @@ export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
     ],
     insights: [
       {
-        title: 'Usage Metrics',
+        title: 'User Growth',
         bullets: [
-          'Family Daily Active People: 3.58B (+7% YoY).',
-          'Ad impressions up 18% YoY, average ad price up 6% YoY.',
+          'Meta\'s daily active users reached 3.58 billion (+7% YoY), with Facebook and WhatsApp each exceeding 2 billion daily actives.',
         ]
       },
       {
-        title: 'Platform Scale & AI Glasses',
+        title: 'Ad Performance',
         bullets: [
-          'More than 2 billion daily actives each on Facebook and WhatsApp, and just shy of that on Instagram.',
-          'Sales of Ray-Ban Meta glasses more than tripled last year — among the fastest growing consumer electronics in history. Most Reality Labs investment now directed toward glasses and wearables.',
+          'Ad impressions rose 18% and average ad prices increased 6%. AI infrastructure upgrades (doubling GPUs for the GEM model) led to a 3.5% lift in Facebook ad clicks.',
         ]
       },
       {
-        title: 'AI-Driven Ad Performance & Monetization',
+        title: 'Hardware Momentum',
         bullets: [
-          'Doubled GPUs used to train the GEM model for ads ranking. New sequence learning architecture drove a 3.5% lift in ad clicks on Facebook and 1%+ conversion gains on Instagram in Q4.',
-          'WhatsApp paid messaging crossed a $2B annual run-rate in Q4. Family of Apps other revenue up 54% ($801M), driven by WhatsApp and Meta Verified subscriptions.',
+          'Ray-Ban Meta glasses sales tripled last year; consequently, most Reality Labs investment is now focused on wearables and glasses.',
         ]
       },
       {
-        title: '2026 CapEx & Regulatory Outlook',
+        title: 'Revenue Streams',
         bullets: [
-          '2026 CapEx guidance: $115–135B (including principal payments on finance leases).',
-          'Aligned with EU Commission on Less Personalized Ads changes, rolling out this quarter. Monitoring legal headwinds in EU and US — youth-related scrutiny with multiple trials scheduled for 2025.',
+          'WhatsApp paid messaging reached a $2B annual run-rate. Other revenue jumped 54% to $801M, driven by WhatsApp and Meta Verified.',
+        ]
+      },
+      {
+        title: '2026 Outlook',
+        bullets: [
+          'Capital expenditures are projected between $115–$135B. The company is navigating EU regulatory changes regarding ad personalization and upcoming legal trials concerning youth safety.',
         ]
       },
     ]
