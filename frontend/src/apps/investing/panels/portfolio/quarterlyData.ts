@@ -85,6 +85,60 @@ export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
       },
     ]
   },
+  MSFT: {
+    ticker: 'MSFT',
+    companyName: 'Microsoft',
+    quarter: 'Q2 FY2026',
+    tableSections: [
+      {
+        title: 'Revenue',
+        rows: [
+          { metric: 'Total Revenue', value: '$81.3B', growth: '+17%' },
+          { metric: 'Intelligent Cloud', value: '$32.9B', growth: '+29%', indent: 1 },
+          { metric: 'Azure', growth: '+39%', indent: 2 },
+          { metric: 'Commercial RPOs (excl. OpenAI)', growth: '+28%' },
+        ]
+      },
+      {
+        title: 'Income',
+        rows: [
+          { metric: 'Operating Income', value: '$38.3B', growth: '+21%' },
+          { metric: 'Other Income (OpenAI recapitalization)', value: '$10B' },
+          { metric: 'Net Income (non-GAAP)', value: '$30.9B', growth: '+23%', highlight: true },
+        ]
+      },
+      {
+        title: 'Cash-Flow',
+        rows: [
+          { metric: 'Operating cash-flow', value: '$35.8B', growth: '+60%' },
+          { metric: 'Purchases of property & equipment (CapEx)', value: '($37.5B)', growth: '+66%', indent: 1, subtracted: true },
+          { metric: 'Free cash flow', value: '$5.9B', growth: '-9%', highlight: true },
+        ]
+      },
+    ],
+    insights: [
+      {
+        title: 'OpenAI Stake & Valuation',
+        bullets: [
+          'OpenAI\'s recapitalization reset its valuation to $500B. Microsoft\'s stake dropped from 32.5% to 27%, but is now valued at ~$135B on the books. The OpenAI Foundation (non-profit) holds 26%; employees and private investors hold the remaining 47%.',
+        ]
+      },
+      {
+        title: 'Financial Impact',
+        bullets: [
+          'Microsoft recorded a one-time GAAP gain of $10.1B ($7.6B after-tax) from revaluing its stake at the new $500B mark. This "paper gain" drove quarterly GAAP net income to $38.5B, though analysts largely ignored this spike to focus on operations.',
+          'Under the equity method, Microsoft no longer subtracts OpenAI\'s operating losses from its own earnings. It now only records gains or losses based on changes in OpenAI\'s net asset value (balance sheet) rather than its share of operating results (income statement).',
+        ]
+      },
+      {
+        title: 'Concentration Risk',
+        bullets: [
+          '45% of Microsoft\'s $625B commercial backlog is tied directly to OpenAI\'s commitment to use Azure. OpenAI committed to buying $250B in Azure services over the next several years.',
+          'Microsoft lost its "right of first refusal," meaning OpenAI can now use other clouds (like Oracle) for non-API projects.',
+        ]
+      },
+    ]
+  },
   META: {
     ticker: 'META',
     companyName: 'Meta Platforms',
