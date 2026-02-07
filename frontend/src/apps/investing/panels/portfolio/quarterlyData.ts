@@ -83,5 +83,74 @@ export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
         ]
       },
     ]
+  },
+  META: {
+    ticker: 'META',
+    companyName: 'Meta Platforms',
+    quarter: 'Q4 2025',
+    tableSections: [
+      {
+        title: 'Cash & Debt',
+        rows: [
+          { metric: 'Cash (Total cash, cash equivalents & marketable securities)', value: '$81.6B' },
+          { metric: 'Debt (Long-term debt)', value: '$58.7B' },
+          { metric: 'Net cash position', value: '+$22.9B', highlight: true },
+        ]
+      },
+      {
+        title: 'Revenue',
+        rows: [
+          { metric: 'Total Revenue', value: '$59.9B', growth: '+24%' },
+          { metric: 'Cost & expenses', value: '$35.1B', growth: '+40%', indent: 1 },
+          { metric: 'R&D', value: '$17.1B', growth: '+40%', indent: 2 },
+        ]
+      },
+      {
+        title: 'Usage Metrics',
+        rows: [
+          { metric: 'Family Daily Active People', value: '3.58B', growth: '+7%' },
+          { metric: 'Ad Impressions', growth: '+18%', indent: 1 },
+          { metric: 'Ad price', growth: '+6%', indent: 1 },
+        ]
+      },
+      {
+        title: 'Income',
+        rows: [
+          { metric: 'Operating Income', value: '$24.7B', growth: '+6%' },
+          { metric: 'Net Income', value: '$22.8B', growth: '+9%', highlight: true },
+        ]
+      },
+      {
+        title: 'Cash-Flow',
+        rows: [
+          { metric: 'Operating cash-flow', value: '$36.2B', growth: '+29%' },
+          { metric: 'Purchases of property & equipment (CapEx)', value: '$21.4B', growth: '+17%', indent: 1 },
+          { metric: 'Free cash flow', value: '$14.1B', highlight: true },
+        ]
+      },
+    ],
+    insights: [
+      {
+        title: 'Platform Scale & AI Glasses',
+        bullets: [
+          'More than 2 billion daily actives each on Facebook and WhatsApp, and just shy of that on Instagram.',
+          'Sales of Ray-Ban Meta glasses more than tripled last year — among the fastest growing consumer electronics in history. Most Reality Labs investment now directed toward glasses and wearables.',
+        ]
+      },
+      {
+        title: 'AI-Driven Ad Performance & Monetization',
+        bullets: [
+          'Doubled GPUs used to train the GEM model for ads ranking. New sequence learning architecture drove a 3.5% lift in ad clicks on Facebook and 1%+ conversion gains on Instagram in Q4.',
+          'WhatsApp paid messaging crossed a $2B annual run-rate in Q4. Family of Apps other revenue up 54% ($801M), driven by WhatsApp and Meta Verified subscriptions.',
+        ]
+      },
+      {
+        title: '2026 CapEx & Regulatory Outlook',
+        bullets: [
+          '2026 CapEx guidance: $115–135B (including principal payments on finance leases).',
+          'Aligned with EU Commission on Less Personalized Ads changes, rolling out this quarter. Monitoring legal headwinds in EU and US — youth-related scrutiny with multiple trials scheduled for 2025.',
+        ]
+      },
+    ]
   }
 };
