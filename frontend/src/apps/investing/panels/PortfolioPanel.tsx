@@ -1615,8 +1615,9 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
             {isStockPerf3mExpanded && (
               <div className="px-4 pb-4">
                 {stockPerf3mLoading ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Loader2 className="w-8 h-8 text-green-500 animate-spin mb-2" />
+                    <p className="text-slate-400 text-sm">{language === 'fr' ? 'Chargement...' : 'Loading...'}</p>
                   </div>
                 ) : stockPerf3mData?.stocks && stockPerf3mData.stocks.length > 0 ? (
                   <div ref={stockPerf3mRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
