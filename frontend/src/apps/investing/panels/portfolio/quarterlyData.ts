@@ -2,20 +2,13 @@ export interface TableRow {
   metric: string;
   value?: string;
   growth?: string;
-  indent?: boolean;
+  indent?: number;  // 0 = top-level, 1 = sub, 2 = sub-sub
   highlight?: boolean;
 }
 
 export interface TableSection {
   title: string;
   rows: TableRow[];
-}
-
-export interface FCFRow {
-  label: string;
-  values: string[];
-  bold?: boolean;
-  highlight?: boolean;
 }
 
 export interface InsightTopic {
@@ -28,12 +21,6 @@ export interface QuarterlyReport {
   companyName: string;
   quarter: string;
   tableSections: TableSection[];
-  fcfTable?: {
-    title: string;
-    headers: string[];
-    rows: FCFRow[];
-    footnote?: string;
-  };
   insights?: InsightTopic[];
 }
 
@@ -55,17 +42,17 @@ export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
         title: 'Revenue',
         rows: [
           { metric: 'Total Revenue', value: '$113.8B', growth: '+18%' },
-          { metric: 'Google Services', value: '$95.9B', growth: '+14%', indent: true },
-          { metric: 'Google Search & Other', growth: '+17%', indent: true },
-          { metric: 'Google Cloud', value: '$17.7B', growth: '+48%', indent: true },
+          { metric: 'Google Services', value: '$95.9B', growth: '+14%', indent: 1 },
+          { metric: 'Google Search & Other', growth: '+17%', indent: 2 },
+          { metric: 'Google Cloud', value: '$17.7B', growth: '+48%', indent: 1 },
         ]
       },
       {
         title: 'Income',
         rows: [
           { metric: 'Operating Income', value: '$35.9B', growth: '+16%' },
-          { metric: 'Google Services', value: '$40.1B', growth: '+22%', indent: true },
-          { metric: 'Google Cloud', value: '$5.3B', growth: '+153%', indent: true },
+          { metric: 'Google Services', value: '$40.1B', growth: '+22%', indent: 1 },
+          { metric: 'Google Cloud', value: '$5.3B', growth: '+153%', indent: 1 },
           { metric: 'Other Income', value: '$3.1B', growth: '+150%' },
           { metric: 'Net Income', value: '$34.5B', growth: '+30%', highlight: true },
         ]
@@ -74,30 +61,11 @@ export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
         title: 'Cash-Flow',
         rows: [
           { metric: 'Operating cash-flow', value: '$52.4B', growth: '+34%' },
+          { metric: 'Purchases of property & equipment (CapEx)', value: '$27.9B', indent: 1 },
+          { metric: 'Free cash flow', value: '$24.6B', highlight: true },
         ]
       },
     ],
-    fcfTable: {
-      title: 'Quarter Ended',
-      headers: ['Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025'],
-      rows: [
-        {
-          label: 'Net cash provided by operating activities',
-          values: ['$ 36,150', '$ 27,747', '$ 48,414', '$ 52,402'],
-          highlight: true
-        },
-        {
-          label: 'Less: purchases of property and equipment',
-          values: ['(17,197)', '(22,446)', '(23,953)', '(27,851)']
-        },
-        {
-          label: 'Free cash flow',
-          values: ['$ 18,953', '$ 5,301', '$ 24,461', '$ 24,551'],
-          bold: true
-        }
-      ],
-      footnote: 'Free cash flow: We define free cash flow as net cash provided by operating activities less capital expenditures.'
-    },
     insights: [
       {
         title: 'Apple & Gemini Collaboration',
