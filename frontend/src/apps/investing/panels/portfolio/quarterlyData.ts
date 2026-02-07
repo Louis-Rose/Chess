@@ -4,6 +4,7 @@ export interface TableRow {
   growth?: string;
   indent?: number;  // 0 = top-level, 1 = sub, 2 = sub-sub
   highlight?: boolean;
+  subtracted?: boolean;  // value shown in parentheses, no numbering prefix
 }
 
 export interface TableSection {
@@ -34,7 +35,7 @@ export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
         title: 'Cash & Debt',
         rows: [
           { metric: 'Cash (Total cash, cash equivalents & marketable securities)', value: '$126.8B' },
-          { metric: 'Debt (Long-term debt + Operating lease liabilities)', value: '$59.3B' },
+          { metric: 'Debt (Long-term debt + Operating lease liabilities)', value: '($59.3B)', subtracted: true },
           { metric: 'Net cash position', value: '+$67.5B', highlight: true },
         ]
       },
@@ -61,7 +62,7 @@ export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
         title: 'Cash-Flow',
         rows: [
           { metric: 'Operating cash-flow', value: '$52.4B', growth: '+34%' },
-          { metric: 'Purchases of property & equipment (CapEx)', value: '$27.9B', indent: 1 },
+          { metric: 'Purchases of property & equipment (CapEx)', value: '($27.9B)', indent: 1, subtracted: true },
           { metric: 'Free cash flow', value: '$24.6B', highlight: true },
         ]
       },
@@ -93,7 +94,7 @@ export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
         title: 'Cash & Debt',
         rows: [
           { metric: 'Cash (Total cash, cash equivalents & marketable securities)', value: '$81.6B' },
-          { metric: 'Debt (Long-term debt)', value: '$58.7B' },
+          { metric: 'Debt (Long-term debt)', value: '($58.7B)', subtracted: true },
           { metric: 'Net cash position', value: '+$22.9B', highlight: true },
         ]
       },
@@ -101,21 +102,13 @@ export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
         title: 'Revenue',
         rows: [
           { metric: 'Total Revenue', value: '$59.9B', growth: '+24%' },
-          { metric: 'Cost & expenses', value: '$35.1B', growth: '+40%', indent: 1 },
-          { metric: 'R&D', value: '$17.1B', growth: '+40%', indent: 2 },
-        ]
-      },
-      {
-        title: 'Usage Metrics',
-        rows: [
-          { metric: 'Family Daily Active People', value: '3.58B', growth: '+7%' },
-          { metric: 'Ad Impressions', growth: '+18%', indent: 1 },
-          { metric: 'Ad price', growth: '+6%', indent: 1 },
         ]
       },
       {
         title: 'Income',
         rows: [
+          { metric: 'Cost & expenses', value: '($35.1B)', growth: '+40%', indent: 1, subtracted: true },
+          { metric: 'R&D', value: '($17.1B)', growth: '+40%', indent: 2, subtracted: true },
           { metric: 'Operating Income', value: '$24.7B', growth: '+6%' },
           { metric: 'Net Income', value: '$22.8B', growth: '+9%', highlight: true },
         ]
@@ -124,12 +117,19 @@ export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
         title: 'Cash-Flow',
         rows: [
           { metric: 'Operating cash-flow', value: '$36.2B', growth: '+29%' },
-          { metric: 'Purchases of property & equipment (CapEx)', value: '$21.4B', growth: '+17%', indent: 1 },
+          { metric: 'Purchases of property & equipment (CapEx)', value: '($21.4B)', growth: '+17%', indent: 1, subtracted: true },
           { metric: 'Free cash flow', value: '$14.1B', highlight: true },
         ]
       },
     ],
     insights: [
+      {
+        title: 'Usage Metrics',
+        bullets: [
+          'Family Daily Active People: 3.58B (+7% YoY).',
+          'Ad impressions up 18% YoY, average ad price up 6% YoY.',
+        ]
+      },
       {
         title: 'Platform Scale & AI Glasses',
         bullets: [

@@ -19,12 +19,12 @@ const INDENT_PL = ['pl-3', 'pl-9', 'pl-[3.75rem]'];
 function computePrefix(rows: TableRow[], index: number): string {
   const row = rows[index];
   const level = row.indent ?? 0;
-  if (level === 0) return '';
+  if (level === 0 || row.subtracted) return '';
 
   if (level === 1) {
     let count = 0;
     for (let i = 0; i <= index; i++) {
-      if ((rows[i].indent ?? 0) === 1) count++;
+      if ((rows[i].indent ?? 0) === 1 && !rows[i].subtracted) count++;
     }
     return `${count}. `;
   }
@@ -33,7 +33,7 @@ function computePrefix(rows: TableRow[], index: number): string {
     let count = 0;
     for (let i = index; i >= 0; i--) {
       const lvl = rows[i].indent ?? 0;
-      if (lvl === 2) count++;
+      if (lvl === 2 && !rows[i].subtracted) count++;
       if (lvl === 1) break;
     }
     return `${String.fromCharCode(96 + count)}. `;
