@@ -117,7 +117,7 @@ export const QuarterlyResults = forwardRef<QuarterlyResultsHandle, QuarterlyResu
         {report ? (
           <>
             {/* Table section */}
-            <div ref={tableRef}>
+            <div ref={tableRef} className="pb-4">
               {isDownloading && (
                 <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
                   {language === 'fr' ? 'Résultats trimestriels' : 'Quarterly Results'} — {report.companyName} ({report.quarter})
@@ -183,7 +183,7 @@ export const QuarterlyResults = forwardRef<QuarterlyResultsHandle, QuarterlyResu
 
             {/* Conference call insights - separate bordered box */}
             {report.insights && report.insights.length > 0 && (
-              <div ref={insightsRef} className="mt-6">
+              <div ref={insightsRef} className="mt-6 pb-4">
                 <div className="mx-[10%]">
                   {isDownloading && (
                     <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
