@@ -33,8 +33,8 @@ export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
       {
         title: 'Cash & Debt',
         rows: [
-          { metric: 'Total cash, cash equivalents & marketable securities', value: '$126.8B' },
-          { metric: 'Long-term debt + Operating lease liabilities', value: '$59.3B' },
+          { metric: 'Cash (Total cash, cash equivalents & marketable securities)', value: '$126.8B' },
+          { metric: 'Debt (Long-term debt + Operating lease liabilities)', value: '$59.3B' },
           { metric: 'Net cash position', value: '+$67.5B', highlight: true },
         ]
       },
