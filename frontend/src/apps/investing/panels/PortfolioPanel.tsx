@@ -1658,11 +1658,11 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                                 <td className="py-2 text-center font-bold text-slate-700 dark:text-slate-200">
                                   {s.pe_past != null && s.pe_current != null
                                     ? (() => {
-                                        const diff = s.pe_current - s.pe_past;
+                                        const pctChange = ((s.pe_current - s.pe_past) / s.pe_past) * 100;
                                         return <>
                                           {s.pe_past.toFixed(1)} <span className="text-slate-400 font-normal">→</span> {s.pe_current.toFixed(1)}{' '}
-                                          <span className={diff >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                            ({diff >= 0 ? '+' : ''}{diff.toFixed(1)})
+                                          <span className={pctChange >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                            ({pctChange >= 0 ? '+' : ''}{pctChange.toFixed(1)}%)
                                           </span>
                                         </>;
                                       })()
@@ -1671,6 +1671,34 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                               </tr>
                             );
                           })}
+                          {(() => {
+                            const stocks = stockPerf3mData.stocks;
+                            const avgPerf = stocks.reduce((sum, s) => sum + s.change_pct, 0) / stocks.length;
+                            const peStocks = stocks.filter(s => s.pe_past != null && s.pe_current != null);
+                            const avgPePast = peStocks.length > 0 ? peStocks.reduce((sum, s) => sum + s.pe_past!, 0) / peStocks.length : null;
+                            const avgPeCurrent = peStocks.length > 0 ? peStocks.reduce((sum, s) => sum + s.pe_current!, 0) / peStocks.length : null;
+                            const avgPePctChange = avgPePast != null && avgPeCurrent != null && avgPePast !== 0 ? ((avgPeCurrent - avgPePast) / avgPePast) * 100 : null;
+                            return (
+                              <tr className="border-t-2 border-slate-400 dark:border-slate-300 bg-slate-100 dark:bg-slate-700">
+                                <td className="py-2 text-center border-r border-slate-300 dark:border-slate-500">
+                                  <span className="font-bold text-slate-800 dark:text-slate-100">{language === 'fr' ? 'Moyenne' : 'Average'}</span>
+                                </td>
+                                <td className={`py-2 text-center font-bold border-r border-slate-300 dark:border-slate-500 ${avgPerf >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {avgPerf >= 0 ? '+' : ''}{avgPerf.toFixed(1)}%
+                                </td>
+                                <td className="py-2 text-center font-bold text-slate-700 dark:text-slate-200">
+                                  {avgPePast != null && avgPeCurrent != null && avgPePctChange != null
+                                    ? <>
+                                        {avgPePast.toFixed(1)} <span className="text-slate-400 font-normal">→</span> {avgPeCurrent.toFixed(1)}{' '}
+                                        <span className={avgPePctChange >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                          ({avgPePctChange >= 0 ? '+' : ''}{avgPePctChange.toFixed(1)}%)
+                                        </span>
+                                      </>
+                                    : '—'}
+                                </td>
+                              </tr>
+                            );
+                          })()}
                         </tbody>
                       </table>
                     </div>
