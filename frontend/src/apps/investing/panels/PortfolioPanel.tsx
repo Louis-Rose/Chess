@@ -15,6 +15,7 @@ import { AccountSelector } from './portfolio/AccountSelector';
 import { TransactionForm } from './portfolio/TransactionForm';
 import { PortfolioComposition, type PortfolioCompositionHandle } from './portfolio/PortfolioComposition';
 import { PerformanceChart, type PerformanceChartHandle } from './portfolio/PerformanceChart';
+import { QuarterlyResults } from './portfolio/QuarterlyResults';
 import { formatEur, PRIVATE_COST_BASIS, addLumnaBranding } from './portfolio/utils';
 import { calculateSimpleReturn, calculateCAGR, calculateMWR, calculateTWRDetailed, type CashFlow, type ValuationPoint, type TWRSubPeriod } from '../utils/performanceUtils';
 import { STOCKS_DB } from '../../../data/stocksDb';
@@ -245,6 +246,7 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
   // Panel state: collapsed and order
   const [isHoldingsExpanded, setIsHoldingsExpanded] = useState(true);
   const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(true);
+  const [isQuarterlyExpanded, setIsQuarterlyExpanded] = useState(true);
   const [isStockPerf3mExpanded, setIsStockPerf3mExpanded] = useState(true);
   const stockPerf3mRef = useRef<HTMLDivElement>(null);
   const [isStockPerf3mDownloading, setIsStockPerf3mDownloading] = useState(false);
@@ -1567,6 +1569,30 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
             );
           }
         })}
+
+        {/* Quarterly Results */}
+        {selectedAccountIds.length > 0 && accountHasHoldings && compositionData && (
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none">
+            <div className="flex items-center p-4">
+              <button
+                onClick={() => setIsQuarterlyExpanded(!isQuarterlyExpanded)}
+                className="flex items-center gap-3 text-left flex-1"
+              >
+                <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isQuarterlyExpanded ? 'rotate-90' : ''}`} />
+                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                  {language === 'fr' ? 'Résultats trimestriels' : 'Quarterly Results'}
+                </h3>
+              </button>
+            </div>
+            {isQuarterlyExpanded && (
+              <div className="px-4 pb-4">
+                <QuarterlyResults
+                  portfolioTickers={compositionData.holdings.map(h => h.ticker)}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 3-Month Stock Performance */}
         {selectedAccountIds.length > 0 && accountHasHoldings && (
