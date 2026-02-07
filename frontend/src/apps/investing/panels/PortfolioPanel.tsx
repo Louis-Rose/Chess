@@ -4,8 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { Briefcase, Loader2, Eye, EyeOff, ChevronRight, ChevronDown, ArrowUpDown, Download, Building2, Wallet, Minus, Plus, Trash2, MousePointerClick, Info, AlertCircle } from 'lucide-react';
+import { toPng } from 'html-to-image';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 
 // Sub-components
@@ -13,7 +15,7 @@ import { AccountSelector } from './portfolio/AccountSelector';
 import { TransactionForm } from './portfolio/TransactionForm';
 import { PortfolioComposition, type PortfolioCompositionHandle } from './portfolio/PortfolioComposition';
 import { PerformanceChart, type PerformanceChartHandle } from './portfolio/PerformanceChart';
-import { formatEur, PRIVATE_COST_BASIS } from './portfolio/utils';
+import { formatEur, PRIVATE_COST_BASIS, addLumnaBranding } from './portfolio/utils';
 import { calculateSimpleReturn, calculateCAGR, calculateMWR, calculateTWRDetailed, type CashFlow, type ValuationPoint, type TWRSubPeriod } from '../utils/performanceUtils';
 import { STOCKS_DB } from '../../../data/stocksDb';
 
@@ -211,6 +213,7 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
   const api = createFetchFunctions(apiBasePath);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language, t } = useLanguage();
+  const { resolvedTheme } = useTheme();
   const queryClient = useQueryClient();
 
   // Global state
@@ -243,6 +246,8 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
   const [isHoldingsExpanded, setIsHoldingsExpanded] = useState(true);
   const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(true);
   const [isStockPerf3mExpanded, setIsStockPerf3mExpanded] = useState(true);
+  const stockPerf3mRef = useRef<HTMLDivElement>(null);
+  const [isStockPerf3mDownloading, setIsStockPerf3mDownloading] = useState(false);
 
   // Advanced metrics section collapsed state - persisted in localStorage
   const [isAdvancedMetricsExpanded, setIsAdvancedMetricsExpanded] = useState(() => {
@@ -1576,6 +1581,36 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                   {language === 'fr' ? 'Performance 3 mois' : '3-Month Stock Performance'}
                 </h3>
               </button>
+              <button
+                onClick={async () => {
+                  if (!stockPerf3mRef.current) return;
+                  setIsStockPerf3mDownloading(true);
+                  await new Promise(r => setTimeout(r, 100));
+                  try {
+                    const dataUrl = await toPng(stockPerf3mRef.current, {
+                      backgroundColor: resolvedTheme === 'dark' ? '#334155' : '#f1f5f9',
+                      pixelRatio: 2,
+                      skipFonts: true,
+                    });
+                    const branded = await addLumnaBranding(dataUrl);
+                    const link = document.createElement('a');
+                    link.href = branded;
+                    link.download = `stock-performance-3m-${new Date().toISOString().split('T')[0]}.png`;
+                    link.click();
+                    axios.post('/api/investing/graph-download', { graph_type: 'stock-performance-3m' }).catch(() => {});
+                  } catch {
+                    alert(language === 'fr' ? 'Erreur lors du téléchargement' : 'Download failed');
+                  } finally {
+                    setIsStockPerf3mDownloading(false);
+                  }
+                }}
+                disabled={isStockPerf3mDownloading || stockPerf3mLoading}
+                className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors text-sm"
+                title={language === 'fr' ? 'Télécharger' : 'Download'}
+              >
+                {isStockPerf3mDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
+              </button>
             </div>
             {isStockPerf3mExpanded && (
               <div className="px-4 pb-4">
@@ -1584,37 +1619,56 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                     <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
                   </div>
                 ) : stockPerf3mData?.stocks && stockPerf3mData.stocks.length > 0 ? (
-                  <div className="mx-[15%]">
-                    <table className="w-full border border-slate-300 dark:border-slate-500">
-                      <thead>
-                        <tr className="text-slate-600 dark:text-slate-300 border-b border-slate-300 dark:border-slate-500">
-                          <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500">{language === 'fr' ? 'Action' : 'Stock'}</th>
-                          <th className="py-2 text-center text-base font-semibold">
-                            {language === 'fr' ? 'Performance 3 mois' : '3-Month Stock Performance'}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {stockPerf3mData.stocks.map((s) => {
-                          const stockInfo = STOCKS_DB[s.ticker];
-                          const name = (stockInfo?.name || s.ticker).replace(/\s+Class\s+[A-Z]\b/gi, '');
-                          return (
-                            <tr
-                              key={s.ticker}
-                              className="border-b border-slate-300 dark:border-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-                            >
-                              <td className="py-2 text-center border-r border-slate-300 dark:border-slate-500">
-                                <span className="font-bold text-slate-800 dark:text-slate-100">{name}</span>
-                                <span className="text-slate-500 dark:text-slate-400 ml-2 text-sm">({s.ticker})</span>
-                              </td>
-                              <td className={`py-2 text-center font-bold ${s.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {s.change_pct >= 0 ? '+' : ''}{s.change_pct.toFixed(1)}%
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                  <div ref={stockPerf3mRef} className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4">
+                    {isStockPerf3mDownloading && (
+                      <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
+                        {language === 'fr' ? 'Performance 3 mois' : '3-Month Stock Performance'}
+                      </h3>
+                    )}
+                    <div className="mx-[15%]">
+                      <table className="w-full border border-slate-300 dark:border-slate-500">
+                        <thead>
+                          <tr className="text-slate-600 dark:text-slate-300 border-b border-slate-300 dark:border-slate-500">
+                            <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500">{language === 'fr' ? 'Action' : 'Stock'}</th>
+                            <th className="py-2 text-center text-base font-semibold">
+                              {language === 'fr' ? 'Performance 3 mois' : '3-Month Stock Performance'}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stockPerf3mData.stocks.map((s) => {
+                            const stockInfo = STOCKS_DB[s.ticker];
+                            const name = (stockInfo?.name || s.ticker).replace(/\s+Class\s+[A-Z]\b/gi, '');
+                            return (
+                              <tr
+                                key={s.ticker}
+                                className="border-b border-slate-300 dark:border-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                              >
+                                <td className="py-2 text-center border-r border-slate-300 dark:border-slate-500">
+                                  <span className="font-bold text-slate-800 dark:text-slate-100">{name}</span>
+                                  <span className="text-slate-500 dark:text-slate-400 ml-2 text-sm">({s.ticker})</span>
+                                </td>
+                                <td className={`py-2 text-center font-bold ${s.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {s.change_pct >= 0 ? '+' : ''}{s.change_pct.toFixed(1)}%
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {!isStockPerf3mDownloading && (
+                      <div className="flex items-center justify-end gap-2 mt-3 mr-2">
+                        <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-end">
+                          <svg viewBox="0 0 128 128" className="w-6 h-6 mr-0.5">
+                            <rect x="28" y="64" width="16" height="40" rx="2" fill="white" />
+                            <rect x="56" y="48" width="16" height="56" rx="2" fill="white" />
+                            <rect x="84" y="32" width="16" height="72" rx="2" fill="white" />
+                          </svg>
+                        </div>
+                        <span className="text-lg font-bold text-slate-300">LUMNA</span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-slate-500 text-center py-4">
