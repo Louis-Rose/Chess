@@ -1630,8 +1630,8 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                       <table className="w-full border-2 border-slate-400 dark:border-slate-300">
                         <thead>
                           <tr className="text-slate-600 dark:text-slate-300 border-b-2 border-slate-400 dark:border-slate-300">
-                            <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500 w-[40%]">{language === 'fr' ? 'Action' : 'Stock'}</th>
-                            <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500 w-[30%]">
+                            <th className="py-2 text-center text-base font-semibold border-r-2 border-slate-400 dark:border-slate-300 w-[40%]">{language === 'fr' ? 'Action' : 'Stock'}</th>
+                            <th className="py-2 text-center text-base font-semibold border-r-2 border-slate-400 dark:border-slate-300 w-[30%]">
                               {language === 'fr' ? 'Perf. 3 mois' : '3-Month Performance'}
                             </th>
                             <th className="py-2 text-center text-base font-semibold w-[30%]">
@@ -1648,11 +1648,11 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                                 key={s.ticker}
                                 className="border-b border-slate-300 dark:border-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                               >
-                                <td className="py-2 text-center border-r border-slate-300 dark:border-slate-500">
+                                <td className="py-2 text-center border-r-2 border-slate-400 dark:border-slate-300">
                                   <span className="font-bold text-slate-800 dark:text-slate-100">{name}</span>
                                   <span className="text-slate-500 dark:text-slate-400 ml-2 text-sm">({s.ticker})</span>
                                 </td>
-                                <td className={`py-2 text-center font-bold border-r border-slate-300 dark:border-slate-500 ${s.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                <td className={`py-2 text-center font-bold border-r-2 border-slate-400 dark:border-slate-300 ${s.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                   {s.change_pct >= 0 ? '+' : ''}{s.change_pct.toFixed(1)}%
                                 </td>
                                 <td className="py-2 text-center font-bold text-slate-700 dark:text-slate-200">
@@ -1680,10 +1680,10 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                             const avgPePctChange = avgPePast != null && avgPeCurrent != null && avgPePast !== 0 ? ((avgPeCurrent - avgPePast) / avgPePast) * 100 : null;
                             return (
                               <tr className="border-t-2 border-slate-400 dark:border-slate-300 bg-slate-100 dark:bg-slate-700">
-                                <td className="py-2 text-center border-r border-slate-300 dark:border-slate-500">
+                                <td className="py-2 text-center border-r-2 border-slate-400 dark:border-slate-300">
                                   <span className="font-bold text-slate-800 dark:text-slate-100">{language === 'fr' ? 'Moyenne' : 'Average'}</span>
                                 </td>
-                                <td className={`py-2 text-center font-bold border-r border-slate-300 dark:border-slate-500 ${avgPerf >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                <td className={`py-2 text-center font-bold border-r-2 border-slate-400 dark:border-slate-300 ${avgPerf >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                   {avgPerf >= 0 ? '+' : ''}{avgPerf.toFixed(1)}%
                                 </td>
                                 <td className="py-2 text-center font-bold text-slate-700 dark:text-slate-200">
