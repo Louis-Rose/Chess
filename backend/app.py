@@ -1593,21 +1593,6 @@ def add_transaction():
 
     try:
         with get_db() as conn:
-            # Check for duplicate transaction
-            cursor = conn.execute('''
-                SELECT id FROM portfolio_transactions
-                WHERE user_id = ? AND stock_ticker = ? AND transaction_type = ?
-                AND quantity = ? AND transaction_date = ? AND (account_id = ? OR (account_id IS NULL AND ? IS NULL))
-            ''', (request.user_id, stock_ticker, transaction_type, quantity, transaction_date, account_id, account_id))
-            existing = cursor.fetchone()
-            if existing:
-                return jsonify({
-                    'success': True,
-                    'id': existing['id'],
-                    'duplicate': True,
-                    'message': 'Transaction already exists'
-                }), 200
-
             cursor = conn.execute('''
                 INSERT INTO portfolio_transactions (user_id, account_id, stock_ticker, transaction_type, quantity, transaction_date, price_per_share, price_currency)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -1624,7 +1609,6 @@ def add_transaction():
     return jsonify({
         'success': True,
         'id': transaction_id,
-        'duplicate': False,
         'account_id': account_id,
         'stock_ticker': stock_ticker,
         'transaction_type': transaction_type,
@@ -2037,16 +2021,7 @@ def _parse_revolut_pdf_bytes(pdf_bytes):
                 except Exception as e:
                     errors.append(f"Text parse error: {str(e)}")
 
-    # Deduplicate transactions (same ticker, date, type, qty)
-    seen = set()
-    unique_transactions = []
-    for tx in transactions:
-        key = (tx['stock_ticker'], tx['transaction_date'], tx['transaction_type'], tx['quantity'])
-        if key not in seen:
-            seen.add(key)
-            unique_transactions.append(tx)
-
-    return unique_transactions, errors
+    return transactions, errors
 
 
 def _cleanup_expired_tokens():
