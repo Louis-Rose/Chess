@@ -117,7 +117,7 @@ export const QuarterlyResults = forwardRef<QuarterlyResultsHandle, QuarterlyResu
         {report ? (
           <>
             {/* Table section */}
-            <div ref={tableRef} className="pb-4">
+            <div ref={tableRef} className="pb-6">
               {isDownloading && (
                 <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
                   {language === 'fr' ? 'Résultats trimestriels' : 'Quarterly Results'} — {report.companyName} ({report.quarter})
