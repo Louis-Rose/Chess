@@ -3348,7 +3348,7 @@ def get_portfolio_top_movers():
 @login_required
 def get_stock_performance_3m():
     """Get 3-month stock price performance for all holdings in selected accounts."""
-    from investing_utils import fetch_current_stock_prices_batch, fetch_historical_prices_batch
+    from investing_utils import fetch_current_stock_prices_batch, fetch_historical_prices_batch, get_yfinance_ticker
 
     account_ids_str = request.args.get('account_ids')
     if account_ids_str:
@@ -3378,6 +3378,40 @@ def get_stock_performance_3m():
     current_prices = fetch_current_stock_prices_batch(all_tickers)
     past_prices = fetch_historical_prices_batch(all_tickers, past_date_str)
 
+    # Fetch trailing PE from yfinance (current) and quarterly EPS (for past PE)
+    import yfinance as yf
+    past_date_dt = datetime.strptime(past_date_str, '%Y-%m-%d')
+    yf_tickers = {t: get_yfinance_ticker(t) for t in all_tickers}
+    pe_data = {}
+    try:
+        tickers_obj = yf.Tickers(' '.join(yf_tickers.values()))
+        for ticker, yf_ticker in yf_tickers.items():
+            try:
+                stock_obj = tickers_obj.tickers[yf_ticker]
+                trailing_pe = stock_obj.info.get('trailingPE')
+
+                # Compute past trailing EPS from quarterly income statement
+                past_eps = None
+                qis = stock_obj.quarterly_income_stmt
+                if qis is not None and not qis.empty:
+                    eps_row = None
+                    for label in ['Diluted EPS', 'Basic EPS']:
+                        if label in qis.index:
+                            eps_row = qis.loc[label]
+                            break
+                    if eps_row is not None:
+                        quarters = [(d.to_pydatetime(), float(v)) for d, v in eps_row.items() if not (v is None or (hasattr(v, '__float__') and str(v) == 'nan'))]
+                        quarters.sort(key=lambda x: x[0])
+                        eligible = [eps for qdate, eps in quarters if qdate <= past_date_dt]
+                        if len(eligible) >= 4:
+                            past_eps = sum(eligible[-4:])
+
+                pe_data[ticker] = {'trailing_pe': trailing_pe, 'past_eps': past_eps}
+            except Exception:
+                pe_data[ticker] = {}
+    except Exception:
+        pass
+
     stocks = []
     for h in holdings:
         ticker = h['stock_ticker']
@@ -3389,9 +3423,18 @@ def get_stock_performance_3m():
 
         change_pct = ((current_price - past_price) / past_price) * 100
 
+        # PE ratio: current from yfinance, past from quarterly EPS
+        pe_info = pe_data.get(ticker, {})
+        trailing_pe = pe_info.get('trailing_pe')
+        current_pe = round(trailing_pe) if trailing_pe else None
+        past_eps = pe_info.get('past_eps')
+        past_pe = round(past_price / past_eps) if past_eps and past_eps > 0 else None
+
         stocks.append({
             'ticker': ticker,
             'change_pct': round(change_pct, 1),
+            'pe_current': current_pe,
+            'pe_past': past_pe,
         })
 
     # Sort by change (best to worst)
