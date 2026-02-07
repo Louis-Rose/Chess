@@ -1630,11 +1630,11 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                       <table className="w-full border border-slate-300 dark:border-slate-500">
                         <thead>
                           <tr className="text-slate-600 dark:text-slate-300 border-b border-slate-300 dark:border-slate-500">
-                            <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500 w-[45%]">{language === 'fr' ? 'Action' : 'Stock'}</th>
-                            <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500 w-[22%]">
+                            <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500 w-[40%]">{language === 'fr' ? 'Action' : 'Stock'}</th>
+                            <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500 w-[30%]">
                               {language === 'fr' ? 'Perf. 3 mois' : '3-Month Performance'}
                             </th>
-                            <th className="py-2 text-center text-base font-semibold w-[33%]">
+                            <th className="py-2 text-center text-base font-semibold w-[30%]">
                               {language === 'fr' ? 'Ratio P/E' : 'PE Ratio'}
                             </th>
                           </tr>
@@ -1655,12 +1655,12 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                                 <td className={`py-2 text-center font-bold border-r border-slate-300 dark:border-slate-500 ${s.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                   {s.change_pct >= 0 ? '+' : ''}{s.change_pct.toFixed(1)}%
                                 </td>
-                                <td className="py-2 text-center text-slate-700 dark:text-slate-200">
+                                <td className="py-2 text-center font-bold text-slate-700 dark:text-slate-200">
                                   {s.pe_past != null && s.pe_current != null
                                     ? (() => {
                                         const diff = s.pe_current - s.pe_past;
                                         return <>
-                                          {s.pe_past.toFixed(1)} <span className="text-slate-400">→</span> {s.pe_current.toFixed(1)}{' '}
+                                          {s.pe_past.toFixed(1)} <span className="text-slate-400 font-normal">→</span> {s.pe_current.toFixed(1)}{' '}
                                           <span className={diff >= 0 ? 'text-green-600' : 'text-red-600'}>
                                             ({diff >= 0 ? '+' : ''}{diff.toFixed(1)})
                                           </span>
