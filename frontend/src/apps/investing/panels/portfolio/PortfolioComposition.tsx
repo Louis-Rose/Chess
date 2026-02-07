@@ -315,12 +315,14 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                             <SortIndicator column="ticker" />
                           </button>
                         </th>
-                        <th className="pb-2 text-right">
-                          <button onClick={() => handleSort('quantity')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors ml-auto">
-                            {t('holdings.shares')}
-                            <SortIndicator column="quantity" />
-                          </button>
-                        </th>
+                        {!privateMode && (
+                          <th className="pb-2 text-right">
+                            <button onClick={() => handleSort('quantity')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors ml-auto">
+                              {t('holdings.shares')}
+                              <SortIndicator column="quantity" />
+                            </button>
+                          </th>
+                        )}
                         <th className="pb-2 text-right">
                           <button onClick={() => handleSort('price')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors ml-auto">
                             {t('holdings.price')}
@@ -329,7 +331,7 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                         </th>
                         <th className="pb-2 text-right">
                           <button onClick={() => handleSort('value')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors ml-auto">
-                            {t('holdings.value')}
+                            {privateMode ? t('holdings.weight') : t('holdings.value')}
                             <SortIndicator column="value" />
                           </button>
                         </th>
@@ -367,14 +369,18 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                             className="border-b border-slate-200 dark:border-slate-600 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                           >
                             <td className="py-2 font-bold" style={{ color: h.color }}>{h.ticker}</td>
-                            <td className="py-2 text-right text-slate-600 dark:text-slate-300">{displayQuantity}</td>
+                            {!privateMode && (
+                              <td className="py-2 text-right text-slate-600 dark:text-slate-300">{displayQuantity}</td>
+                            )}
                             <td className="py-2 text-right text-slate-600 dark:text-slate-300">
                               {currency === 'EUR' ? `${priceToShow.toFixed(2)}€` : `${priceSymbol}${priceToShow.toFixed(2)}`}
                             </td>
                             <td className="py-2 text-right text-slate-800 dark:text-slate-100 font-medium">
-                              {currency === 'EUR'
-                                ? `${formatEur(displayValue)}€`
-                                : `$${displayValue.toLocaleString('en-US')}`}
+                              {privateMode
+                                ? `${h.weight.toFixed(1)}%`
+                                : currency === 'EUR'
+                                  ? `${formatEur(displayValue)}€`
+                                  : `$${displayValue.toLocaleString('en-US')}`}
                             </td>
                             <td className={`py-2 text-right font-medium ${h.gain_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {h.gain_pct >= 0 ? '+' : ''}{h.gain_pct}%
