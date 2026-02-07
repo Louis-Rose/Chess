@@ -1,35 +1,9 @@
 import { useState } from 'react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { QUARTERLY_DATA } from './quarterlyData';
-import type { LineItem } from './quarterlyData';
 
 interface QuarterlyResultsProps {
   portfolioTickers: string[];
-}
-
-function BulletItem({ item, depth = 0 }: { item: LineItem; depth?: number }) {
-  const listStyle = depth === 0 ? 'list-[circle]' : 'list-[square]';
-
-  return (
-    <li className={`${depth === 0 ? 'mb-1.5' : 'mb-0.5'}`}>
-      <span className={`text-slate-800 dark:text-slate-100 ${item.highlight ? 'font-bold' : ''}`}>
-        {item.label}
-        {item.value && <span className="font-semibold">: {item.value}</span>}
-        {item.change && (
-          <span className="text-slate-400">
-            {item.value ? ` (${item.change})` : `: ${item.change}`}
-          </span>
-        )}
-      </span>
-      {item.children && item.children.length > 0 && (
-        <ul className={`${listStyle} ml-6 mt-0.5`}>
-          {item.children.map((child, i) => (
-            <BulletItem key={i} item={child} depth={depth + 1} />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
 }
 
 export function QuarterlyResults({ portfolioTickers }: QuarterlyResultsProps) {
@@ -68,23 +42,62 @@ export function QuarterlyResults({ portfolioTickers }: QuarterlyResultsProps) {
 
       {report ? (
         <div className="mx-[10%]">
-          {/* Company header */}
-          <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
-            {report.companyName} ({report.ticker})
-          </h4>
-
-          {/* Sections */}
-          {report.sections.map((section, sIdx) => (
-            <ul key={sIdx} className="list-disc ml-6 mb-4 text-slate-700 dark:text-slate-200">
-              {section.map((item, iIdx) => (
-                <BulletItem key={iIdx} item={item} />
+          {/* Main metrics table */}
+          <table className="w-full border-2 border-slate-400 dark:border-slate-300 text-sm">
+            <thead>
+              <tr className="border-b-2 border-slate-400 dark:border-slate-300">
+                <th className="py-2 px-3 text-left text-base font-semibold text-slate-600 dark:text-slate-300 border-r-2 border-slate-400 dark:border-slate-300 w-[50%]">
+                  {language === 'fr' ? 'Métrique' : 'Metric'}
+                </th>
+                <th className="py-2 px-3 text-center text-base font-semibold text-slate-600 dark:text-slate-300 border-r-2 border-slate-400 dark:border-slate-300 w-[25%]">
+                  {language === 'fr' ? 'Valeur' : 'Value'}
+                </th>
+                <th className="py-2 px-3 text-center text-base font-semibold text-slate-600 dark:text-slate-300 w-[25%]">
+                  {language === 'fr' ? 'Croissance' : 'Growth'}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.tableSections.map((section, sIdx) => (
+                <>{/* Section header */}
+                  <tr key={`section-${sIdx}`} className="bg-slate-200 dark:bg-slate-600 border-b border-slate-300 dark:border-slate-500">
+                    <td colSpan={3} className="py-2 px-3 font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-wide">
+                      {section.title}
+                    </td>
+                  </tr>
+                  {/* Section rows */}
+                  {section.rows.map((row, rIdx) => (
+                    <tr
+                      key={`row-${sIdx}-${rIdx}`}
+                      className={`border-b border-slate-300 dark:border-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors ${
+                        row.highlight ? 'bg-slate-100 dark:bg-slate-700' : ''
+                      }`}
+                    >
+                      <td className={`py-2 border-r-2 border-slate-400 dark:border-slate-300 text-slate-800 dark:text-slate-100 ${
+                        row.indent ? 'pl-8 pr-3' : 'px-3'
+                      } ${row.highlight ? 'font-bold' : ''}`}>
+                        {row.metric}
+                      </td>
+                      <td className="py-2 px-3 text-center font-semibold text-slate-700 dark:text-slate-200 border-r-2 border-slate-400 dark:border-slate-300">
+                        {row.value || '—'}
+                      </td>
+                      <td className={`py-2 px-3 text-center font-bold ${
+                        row.growth
+                          ? row.growth.startsWith('+') ? 'text-green-600' : 'text-red-600'
+                          : 'text-slate-400'
+                      }`}>
+                        {row.growth || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </>
               ))}
-            </ul>
-          ))}
+            </tbody>
+          </table>
 
           {/* FCF Table */}
           {report.fcfTable && (
-            <div className="mt-6 mb-2">
+            <div className="mt-6">
               <table className="w-full border-2 border-slate-400 dark:border-slate-300 text-sm">
                 <thead>
                   <tr className="border-b border-slate-300 dark:border-slate-500">
@@ -141,6 +154,27 @@ export function QuarterlyResults({ portfolioTickers }: QuarterlyResultsProps) {
                   {report.fcfTable.footnote}
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Conference call insights */}
+          {report.insights && report.insights.length > 0 && (
+            <div className="mt-8">
+              <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
+                {language === 'fr' ? 'Points clés de la conférence téléphonique' : 'Conference call insights'}
+              </h4>
+              {report.insights.map((topic, tIdx) => (
+                <div key={tIdx} className="mb-4">
+                  <h5 className="font-bold text-slate-700 dark:text-slate-200 mb-2">{topic.title}</h5>
+                  <ul className="list-disc ml-6 space-y-1.5">
+                    {topic.bullets.map((bullet, bIdx) => (
+                      <li key={bIdx} className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {bullet}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           )}
         </div>

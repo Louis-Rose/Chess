@@ -1,9 +1,14 @@
-export interface LineItem {
-  label: string;
+export interface TableRow {
+  metric: string;
   value?: string;
-  change?: string;
+  growth?: string;
+  indent?: boolean;
   highlight?: boolean;
-  children?: LineItem[];
+}
+
+export interface TableSection {
+  title: string;
+  rows: TableRow[];
 }
 
 export interface FCFRow {
@@ -13,17 +18,23 @@ export interface FCFRow {
   highlight?: boolean;
 }
 
+export interface InsightTopic {
+  title: string;
+  bullets: string[];
+}
+
 export interface QuarterlyReport {
   ticker: string;
   companyName: string;
   quarter: string;
-  sections: LineItem[][];
+  tableSections: TableSection[];
   fcfTable?: {
     title: string;
     headers: string[];
     rows: FCFRow[];
     footnote?: string;
   };
+  insights?: InsightTopic[];
 }
 
 export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
@@ -31,44 +42,40 @@ export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
     ticker: 'GOOGL',
     companyName: 'Alphabet',
     quarter: 'Q4 2025',
-    sections: [
-      [
-        {
-          label: 'Revenue',
-          value: '$113.8 billions',
-          change: '+18%',
-          children: [
-            {
-              label: 'Google Services',
-              value: '$95.9 billions',
-              change: '+14%',
-              children: [
-                { label: 'Google Search & Other', change: '+17%' }
-              ]
-            },
-            { label: 'Google Cloud', value: '$17.7 billions', change: '+48%' }
-          ]
-        },
-        {
-          label: 'Operating Income',
-          value: '$35.9 billions',
-          change: '+16%',
-          children: [
-            { label: 'Google Services', value: '$40.1 billions', change: '+22%' },
-            { label: 'Google Cloud', value: '$5.3 billions', change: '+153%' }
-          ]
-        },
-        { label: 'Other Income', value: '$3.1 billions', change: '+150%' },
-        { label: 'Net Income', value: '$34.5 billions', change: '+30%' }
-      ],
-      [
-        { label: 'Total cash, cash equivalents, and marketable securities', value: '$126.8 billions' },
-        { label: 'Long-term debt + Operating lease liabilities', value: '$59.3 billions' },
-        { label: 'Net cash position', value: '+$67.5 billions', highlight: true }
-      ],
-      [
-        { label: 'Operating cash-flow', value: '$52.4 billions', change: '+34%' }
-      ]
+    tableSections: [
+      {
+        title: 'Cash & Debt',
+        rows: [
+          { metric: 'Total cash, cash equivalents & marketable securities', value: '$126.8B' },
+          { metric: 'Long-term debt + Operating lease liabilities', value: '$59.3B' },
+          { metric: 'Net cash position', value: '+$67.5B', highlight: true },
+        ]
+      },
+      {
+        title: 'Revenue',
+        rows: [
+          { metric: 'Total Revenue', value: '$113.8B', growth: '+18%' },
+          { metric: 'Google Services', value: '$95.9B', growth: '+14%', indent: true },
+          { metric: 'Google Search & Other', growth: '+17%', indent: true },
+          { metric: 'Google Cloud', value: '$17.7B', growth: '+48%', indent: true },
+        ]
+      },
+      {
+        title: 'Income',
+        rows: [
+          { metric: 'Operating Income', value: '$35.9B', growth: '+16%' },
+          { metric: 'Google Services', value: '$40.1B', growth: '+22%', indent: true },
+          { metric: 'Google Cloud', value: '$5.3B', growth: '+153%', indent: true },
+          { metric: 'Other Income', value: '$3.1B', growth: '+150%' },
+          { metric: 'Net Income', value: '$34.5B', growth: '+30%', highlight: true },
+        ]
+      },
+      {
+        title: 'Cash-Flow',
+        rows: [
+          { metric: 'Operating cash-flow', value: '$52.4B', growth: '+34%' },
+        ]
+      },
     ],
     fcfTable: {
       title: 'Quarter Ended',
@@ -90,6 +97,23 @@ export const QUARTERLY_DATA: Record<string, QuarterlyReport> = {
         }
       ],
       footnote: 'Free cash flow: We define free cash flow as net cash provided by operating activities less capital expenditures.'
-    }
+    },
+    insights: [
+      {
+        title: 'Apple & Gemini Collaboration',
+        bullets: [
+          'Google Gemini will serve as the foundation for next-gen Apple Foundation Models, replacing Siri\'s 150B-parameter model with a custom Gemini 1.2T-parameter architecture. Expected to boost Siri\'s complex instruction success rate from 58% to 92%.',
+          'Multi-year deal reportedly involves Apple paying Google ~$1B annually. Public rollout scheduled with iOS 26.4 in Spring 2026, targeting 500M AI-capable smartphones by year-end.',
+        ]
+      },
+      {
+        title: 'Waymo Growth & Valuation',
+        bullets: [
+          'Closed a $16B investment round in Feb 2026 (led by Alphabet ~$13B), valuing Waymo at $126B post-money — nearly tripling its $45B valuation from Oct 2024.',
+          'Now provides 400K+ rides/week (up from 150K in late 2024). Fleet surpassed 20M fully autonomous trips by Dec 2025.',
+          'Scaling from 10 to 20+ cities by end of 2026, including London and Tokyo, with fleet expansion to 5,000+ active vehicles.',
+        ]
+      },
+    ]
   }
 };
