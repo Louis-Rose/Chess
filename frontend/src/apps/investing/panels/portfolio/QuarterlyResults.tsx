@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
-import { QUARTERLY_DATA, LineItem } from './quarterlyData';
+import { QUARTERLY_DATA } from './quarterlyData';
+import type { LineItem } from './quarterlyData';
 
 interface QuarterlyResultsProps {
   portfolioTickers: string[];
