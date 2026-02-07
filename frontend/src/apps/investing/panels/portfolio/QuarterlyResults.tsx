@@ -183,7 +183,7 @@ export const QuarterlyResults = forwardRef<QuarterlyResultsHandle, QuarterlyResu
 
             {/* Conference call insights - separate bordered box */}
             {report.insights && report.insights.length > 0 && (
-              <div ref={insightsRef} className="mt-6 pb-4">
+              <div ref={insightsRef} className="mt-6 pb-14">
                 <div className="mx-[10%]">
                   {isDownloading && (
                     <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
