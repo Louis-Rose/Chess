@@ -1627,9 +1627,9 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                       </h3>
                     )}
                     <div className="mx-[10%]">
-                      <table className="w-full border border-slate-300 dark:border-slate-500">
+                      <table className="w-full border-2 border-slate-400 dark:border-slate-300">
                         <thead>
-                          <tr className="text-slate-600 dark:text-slate-300 border-b border-slate-300 dark:border-slate-500">
+                          <tr className="text-slate-600 dark:text-slate-300 border-b-2 border-slate-400 dark:border-slate-300">
                             <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500 w-[40%]">{language === 'fr' ? 'Action' : 'Stock'}</th>
                             <th className="py-2 text-center text-base font-semibold border-r border-slate-300 dark:border-slate-500 w-[30%]">
                               {language === 'fr' ? 'Perf. 3 mois' : '3-Month Performance'}
