@@ -179,68 +179,30 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-4">{t('holdings.title')}</h3>
           )}
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 overflow-visible">
-            {/* Pie Chart */}
+            {/* Donut Chart */}
             {(() => {
-              // Pre-calculate "Others" total for small slices
-              const smallSlices = compositionData.holdings.filter(h => h.weight < 5);
-              const othersTotal = smallSlices.reduce((sum, h) => sum + h.weight, 0);
-              // Find the middle small slice to position "Others" label
-              const middleSmallSliceIndex = Math.floor(smallSlices.length / 2);
-              const middleSmallSliceTicker = smallSlices.length > 0 ? smallSlices[middleSmallSliceIndex].ticker : null;
+              const scaleFactor = getScaleFactor(compositionData.total_cost_basis_eur, privateMode);
+              const totalEur = compositionData.total_value_eur * scaleFactor;
+              const totalInCurrency = currency === 'EUR' ? totalEur : totalEur * compositionData.eurusd_rate;
+              const formattedTotal = currency === 'EUR'
+                ? `${formatEur(Math.round(totalInCurrency))}€`
+                : `$${Math.round(totalInCurrency).toLocaleString('en-US')}`;
 
               return (
-                <div className="w-full md:w-1/2 h-[280px] md:h-[380px] overflow-visible">
+                <div className="w-full md:w-1/2 h-[280px] md:h-[380px] relative">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart margin={{ top: 40, right: 80, bottom: 40, left: 80 }}>
+                    <PieChart>
                       <Pie
                         data={compositionData.holdings as unknown as Record<string, unknown>[]}
                         dataKey="weight"
                         nameKey="ticker"
                         cx="50%"
                         cy="50%"
-                        outerRadius="50%"
-                        label={({ name, value, x, y, textAnchor, fill }) => {
-                          // For small slices (<5%), show "OTHERS X%" only on the middle one
-                          if (value < 5) {
-                            if (name === middleSmallSliceTicker && othersTotal > 0) {
-                              return (
-                                <text
-                                  x={x}
-                                  y={y}
-                                  textAnchor={textAnchor}
-                                  dominantBaseline="central"
-                                  fontSize={15}
-                                  fontWeight="bold"
-                                  fill={isDark ? '#94a3b8' : '#64748b'}
-                                >
-                                  {language === 'fr' ? 'AUTRES' : 'OTHERS'} {othersTotal.toFixed(1)}%
-                                </text>
-                              );
-                            }
-                            return null;
-                          }
-                          return (
-                            <text
-                              x={x}
-                              y={y}
-                              textAnchor={textAnchor}
-                              dominantBaseline="central"
-                              fontSize={15}
-                              fontWeight="bold"
-                              fill={fill}
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => navigate(`/investing/stock/${name}`)}
-                            >
-                              {name} {value}%
-                            </text>
-                          );
-                        }}
-                        labelLine={({ percent, name }) => {
-                          // Show label line for large slices, and for middle small slice (Others)
-                          if (percent >= 0.05) return <path />;
-                          if (name === middleSmallSliceTicker && othersTotal > 0) return <path />;
-                          return <path style={{ display: 'none' }} />;
-                        }}
+                        innerRadius="62%"
+                        outerRadius="85%"
+                        paddingAngle={2}
+                        cornerRadius={6}
+                        stroke="none"
                         isAnimationActive={!isDownloading}
                         onClick={(data) => {
                           if (data?.ticker) {
@@ -260,8 +222,8 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                           const payload = props.payload as CompositionItem;
                           const valueEur = payload.current_value;
                           const valueInCurrency = currency === 'EUR' ? valueEur : valueEur * compositionData.eurusd_rate;
-                          const scaleFactor = getScaleFactor(compositionData.total_cost_basis_eur, privateMode);
-                          const displayValue = Math.round(valueInCurrency * scaleFactor);
+                          const sf = getScaleFactor(compositionData.total_cost_basis_eur, privateMode);
+                          const displayValue = Math.round(valueInCurrency * sf);
                           const formattedValue = currency === 'EUR'
                             ? `${formatEur(displayValue)}€`
                             : `$${displayValue.toLocaleString('en-US')}`;
@@ -270,6 +232,15 @@ export const PortfolioComposition = forwardRef<PortfolioCompositionHandle, Portf
                       />
                     </PieChart>
                   </ResponsiveContainer>
+                  {/* Center total */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-center">
+                      <div className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100">
+                        {formattedTotal}
+                      </div>
+                      <div className="text-sm text-slate-500 dark:text-slate-400">Total</div>
+                    </div>
+                  </div>
                 </div>
               );
             })()}
