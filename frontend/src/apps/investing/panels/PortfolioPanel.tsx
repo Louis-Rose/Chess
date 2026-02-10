@@ -1338,56 +1338,58 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                       {/* Row 1: Simple Return & CAGR */}
                       <div className="grid grid-cols-2 gap-4">
                         {/* Simple Return */}
-                        <div className="text-center relative group border-r border-slate-300 dark:border-slate-600 pr-4">
+                        <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
                           <div className="flex items-center justify-center gap-1.5 mb-1">
                             <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
                               {t('performance.simpleReturn')}
                             </p>
-                            <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                            <span className="relative group">
+                              <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-10 w-80 text-left whitespace-pre-line after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3">
+                                {(() => {
+                                  const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
+                                  const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested Capital';
+                                  const gainsLabel = language === 'fr' ? 'Plus-value' : 'Gains';
+                                  const gains = filteredTotalValue - filteredCostBasis;
+                                  return `${t('performance.simpleReturnTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${gainsLabel} = ${formatEur(filteredTotalValue)}€ − ${formatEur(filteredCostBasis)}€ = ${gains >= 0 ? '+' : ''}${formatEur(gains)}€\n\nSR = ${gainsLabel} / ${investedLabel}\n= ${gains >= 0 ? '+' : ''}${formatEur(gains)}€ / ${formatEur(filteredCostBasis)}€\n= ${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`;
+                                })()}
+                              </div>
+                            </span>
                           </div>
                           <p className={`text-sm md:text-xl font-bold ${simpleReturnPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {simpleReturnResult.success
                               ? `${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`
                               : '—'}
                           </p>
-                          {/* Tooltip */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-10 w-80 text-left whitespace-pre-line after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3">
-                            {(() => {
-                              const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
-                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested Capital';
-                              const gainsLabel = language === 'fr' ? 'Plus-value' : 'Gains';
-                              const gains = filteredTotalValue - filteredCostBasis;
-                              return `${t('performance.simpleReturnTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${gainsLabel} = ${formatEur(filteredTotalValue)}€ − ${formatEur(filteredCostBasis)}€ = ${gains >= 0 ? '+' : ''}${formatEur(gains)}€\n\nSR = ${gainsLabel} / ${investedLabel}\n= ${gains >= 0 ? '+' : ''}${formatEur(gains)}€ / ${formatEur(filteredCostBasis)}€\n= ${simpleReturnPct >= 0 ? '+' : ''}${simpleReturnPct}%`;
-                            })()}
-                          </div>
                         </div>
 
                         {/* CAGR */}
-                        <div className="text-center relative group">
+                        <div className="text-center">
                           <div className="flex items-center justify-center gap-1.5 mb-1">
                             <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
                               {t('performance.cagr')}
                             </p>
-                            <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                            <span className="relative group">
+                              <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-10 w-80 text-left whitespace-pre-line after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3">
+                                {(() => {
+                                  const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
+                                  const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested Capital';
+                                  const periodLabel = language === 'fr' ? 'Période' : 'Period';
+                                  const yearsLabel = language === 'fr' ? 'ans' : 'years';
+                                  const ratio = filteredCostBasis > 0 ? (filteredTotalValue / filteredCostBasis).toFixed(3) : '0';
+                                  const exponent = (1/periodYears).toFixed(3);
+                                  const resultValue = filteredCostBasis > 0 ? Math.pow(filteredTotalValue / filteredCostBasis, 1/periodYears).toFixed(3) : '0';
+                                  return `${t('performance.cagrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\nCAGR = (${currentValueLabel} / ${investedLabel})^(1/${periodLabel}) − 1\n= (${formatEur(filteredTotalValue)}€ / ${formatEur(filteredCostBasis)}€)^(1/${periodYears.toFixed(2)}) − 1\n= ${ratio}^${exponent} − 1\n= ${resultValue} − 1\n= ${cagrPct >= 0 ? '+' : ''}${cagrPct}% ${t('performance.perYear')}`;
+                                })()}
+                              </div>
+                            </span>
                           </div>
                           <p className={`text-sm md:text-xl font-bold ${cagrPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {cagrSuccess
                               ? `${cagrPct >= 0 ? '+' : ''}${cagrPct}% ${t('performance.perYear')}`
                               : '—'}
                           </p>
-                          {/* Tooltip */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-10 w-80 text-left whitespace-pre-line after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3">
-                            {(() => {
-                              const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
-                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested Capital';
-                              const periodLabel = language === 'fr' ? 'Période' : 'Period';
-                              const yearsLabel = language === 'fr' ? 'ans' : 'years';
-                              const ratio = filteredCostBasis > 0 ? (filteredTotalValue / filteredCostBasis).toFixed(3) : '0';
-                              const exponent = (1/periodYears).toFixed(3);
-                              const resultValue = filteredCostBasis > 0 ? Math.pow(filteredTotalValue / filteredCostBasis, 1/periodYears).toFixed(3) : '0';
-                              return `${t('performance.cagrTooltip')}\n\n━━━ ${language === 'fr' ? 'Votre portefeuille' : 'Your portfolio'} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\nCAGR = (${currentValueLabel} / ${investedLabel})^(1/${periodLabel}) − 1\n= (${formatEur(filteredTotalValue)}€ / ${formatEur(filteredCostBasis)}€)^(1/${periodYears.toFixed(2)}) − 1\n= ${ratio}^${exponent} − 1\n= ${resultValue} − 1\n= ${cagrPct >= 0 ? '+' : ''}${cagrPct}% ${t('performance.perYear')}`;
-                            })()}
-                          </div>
                         </div>
                       </div>
 
@@ -1423,92 +1425,88 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
                       {/* Row 2: TWR, MWR/IRR */}
                       <div className="grid grid-cols-2 gap-4">
                         {/* TWR */}
-                        <div className="text-center relative group border-r border-slate-300 dark:border-slate-600 pr-4">
+                        <div className="text-center border-r border-slate-300 dark:border-slate-600 pr-4">
                           <div className="flex items-center justify-center gap-1.5 mb-1">
                             <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
                               {t('performance.twr')}
                             </p>
-                            <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                            <span className="relative group">
+                              <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-10 w-[420px] text-left whitespace-pre-line after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3">
+                                {(() => {
+                                  const header = t('performance.twrTooltip');
+                                  const filteredLabel = isFilteringStocks
+                                    ? (language === 'fr' ? `${selectedStocks.size} action(s)` : `${selectedStocks.size} stock(s)`)
+                                    : (language === 'fr' ? 'Portefeuille complet' : 'Full portfolio');
+                                  const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
+                                  const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested Capital';
+                                  const periodLabel = language === 'fr' ? 'Période' : 'Period';
+                                  const yearsLabel = language === 'fr' ? 'ans' : 'years';
+
+                                  if (!twrSuccess || twrSubPeriods.length === 0) {
+                                    return `${header}\n\n━━━ ${filteredLabel} ━━━\n${language === 'fr' ? 'Données insuffisantes' : 'Insufficient data'}`;
+                                  }
+
+                                  const varsSection = `${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}`;
+
+                                  const periodDetails = twrSubPeriods.map(sp => {
+                                    const startStr = sp.startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                    const endStr = sp.endDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                    const sign = sp.returnPct >= 0 ? '+' : '';
+                                    return `${startStr} (${formatEur(sp.startValue)}€) → ${endStr} (${formatEur(sp.endValue)}€): ${sign}${sp.returnPct}%`;
+                                  }).join('\n');
+
+                                  const chainParts = twrSubPeriods.map(sp => (1 + sp.return).toFixed(3));
+                                  const chainFormula = chainParts.join(' × ') + ' − 1';
+                                  const totalProduct = 1 + twrPct / 100;
+                                  const resultLine = `= ${totalProduct.toFixed(4)} − 1 = ${twrPct >= 0 ? '+' : ''}${twrPct}%`;
+
+                                  const annualizedLine = showAnnualizedMetrics && periodYears >= 1
+                                    ? `\n${language === 'fr' ? 'Annualisé' : 'Annualized'}: (1 + ${twrPct / 100})^(1/${periodYears.toFixed(2)}) − 1\n= ${annualizedTwrPct >= 0 ? '+' : ''}${annualizedTwrPct}%/${language === 'fr' ? 'an' : 'y'}`
+                                    : '';
+
+                                  return `${header}\n\n━━━ ${filteredLabel} ━━━\n${varsSection}\n\n(${twrSubPeriods.length} ${language === 'fr' ? 'périodes' : 'periods'})\n${periodDetails}\n\n${chainFormula}\n${resultLine}${annualizedLine}`;
+                                })()}
+                              </div>
+                            </span>
                           </div>
                           <p className={`text-sm md:text-xl font-bold ${(showAnnualizedMetrics ? annualizedTwrPct : twrPct) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {twrSuccess
                               ? `${(showAnnualizedMetrics ? annualizedTwrPct : twrPct) >= 0 ? '+' : ''}${showAnnualizedMetrics ? annualizedTwrPct : twrPct}%${showAnnualizedMetrics ? ` ${t('performance.perYear')}` : ''}`
                               : '—'}
                           </p>
-                          {/* Tooltip */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-10 w-[420px] text-left whitespace-pre-line after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3">
-                            {(() => {
-                              const header = t('performance.twrTooltip');
-                              const filteredLabel = isFilteringStocks
-                                ? (language === 'fr' ? `${selectedStocks.size} action(s)` : `${selectedStocks.size} stock(s)`)
-                                : (language === 'fr' ? 'Portefeuille complet' : 'Full portfolio');
-                              const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
-                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested Capital';
-                              const periodLabel = language === 'fr' ? 'Période' : 'Period';
-                              const yearsLabel = language === 'fr' ? 'ans' : 'years';
-
-                              if (!twrSuccess || twrSubPeriods.length === 0) {
-                                return `${header}\n\n━━━ ${filteredLabel} ━━━\n${language === 'fr' ? 'Données insuffisantes' : 'Insufficient data'}`;
-                              }
-
-                              // Intermediary variables
-                              const varsSection = `${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}`;
-
-                              // Build sub-period details (all periods) with start/end values for debugging
-                              const periodDetails = twrSubPeriods.map(sp => {
-                                const startStr = sp.startDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                                const endStr = sp.endDate.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                                const sign = sp.returnPct >= 0 ? '+' : '';
-                                return `${startStr} (${formatEur(sp.startValue)}€) → ${endStr} (${formatEur(sp.endValue)}€): ${sign}${sp.returnPct}%`;
-                              }).join('\n');
-
-                              // Format chain-linking formula with decimal multipliers: 1.084 × 1.242 × ...
-                              const chainParts = twrSubPeriods.map(sp => (1 + sp.return).toFixed(3));
-                              const chainFormula = chainParts.join(' × ') + ' − 1';
-
-                              // Calculate product for display
-                              const totalProduct = 1 + twrPct / 100;
-
-                              const resultLine = `= ${totalProduct.toFixed(4)} − 1 = ${twrPct >= 0 ? '+' : ''}${twrPct}%`;
-
-                              const annualizedLine = showAnnualizedMetrics && periodYears >= 1
-                                ? `\n${language === 'fr' ? 'Annualisé' : 'Annualized'}: (1 + ${twrPct / 100})^(1/${periodYears.toFixed(2)}) − 1\n= ${annualizedTwrPct >= 0 ? '+' : ''}${annualizedTwrPct}%/${language === 'fr' ? 'an' : 'y'}`
-                                : '';
-
-                              return `${header}\n\n━━━ ${filteredLabel} ━━━\n${varsSection}\n\n(${twrSubPeriods.length} ${language === 'fr' ? 'périodes' : 'periods'})\n${periodDetails}\n\n${chainFormula}\n${resultLine}${annualizedLine}`;
-                            })()}
-                          </div>
                         </div>
 
                         {/* MWR (shows as IRR when annualized) */}
-                        <div className="text-center relative group">
+                        <div className="text-center">
                           <div className="flex items-center justify-center gap-1.5 mb-1">
                             <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">
                               {showAnnualizedMetrics ? t('performance.irr') : t('performance.mwr')}
                             </p>
-                            <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                            <span className="relative group">
+                              <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-10 w-80 text-left whitespace-pre-line after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3">
+                                {(() => {
+                                  const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
+                                  const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested Capital';
+                                  const periodLabel = language === 'fr' ? 'Période' : 'Period';
+                                  const yearsLabel = language === 'fr' ? 'ans' : 'years';
+                                  const portfolioLabel = language === 'fr' ? 'Votre portefeuille' : 'Your portfolio';
+
+                                  if (showAnnualizedMetrics) {
+                                    return `${t('performance.irrTooltip')}\n\n━━━ ${portfolioLabel} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}% ${t('performance.perYear')}`;
+                                  } else {
+                                    return `${t('performance.mwrTooltip')}\n\n━━━ ${portfolioLabel} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%/${language === 'fr' ? 'an' : 'y'}\n\nMWR = (1 + IRR)^${periodLabel.toLowerCase()} − 1\n= (1 + ${annualizedMwrPct}%)^${periodYears.toFixed(2)} − 1\n= (${(1 + annualizedMwrPct / 100).toFixed(3)})^${periodYears.toFixed(2)} − 1\n= ${cumulativeMwrPct >= 0 ? '+' : ''}${cumulativeMwrPct}%`;
+                                  }
+                                })()}
+                              </div>
+                            </span>
                           </div>
                           <p className={`text-sm md:text-xl font-bold ${(showAnnualizedMetrics ? annualizedMwrPct : cumulativeMwrPct) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {mwrSuccess
                               ? `${(showAnnualizedMetrics ? annualizedMwrPct : cumulativeMwrPct) >= 0 ? '+' : ''}${showAnnualizedMetrics ? annualizedMwrPct : cumulativeMwrPct}%${showAnnualizedMetrics ? ` ${t('performance.perYear')}` : ''}`
                               : '—'}
                           </p>
-                          {/* Tooltip */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-10 w-80 text-left whitespace-pre-line after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3">
-                            {(() => {
-                              const currentValueLabel = language === 'fr' ? 'Valeur actuelle' : 'Current Value';
-                              const investedLabel = language === 'fr' ? 'Capital investi' : 'Invested Capital';
-                              const periodLabel = language === 'fr' ? 'Période' : 'Period';
-                              const yearsLabel = language === 'fr' ? 'ans' : 'years';
-                              const portfolioLabel = language === 'fr' ? 'Votre portefeuille' : 'Your portfolio';
-
-                              if (showAnnualizedMetrics) {
-                                return `${t('performance.irrTooltip')}\n\n━━━ ${portfolioLabel} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\n\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}% ${t('performance.perYear')}`;
-                              } else {
-                                return `${t('performance.mwrTooltip')}\n\n━━━ ${portfolioLabel} ━━━\n${currentValueLabel} = ${formatEur(filteredTotalValue)}€\n${investedLabel} = ${formatEur(filteredCostBasis)}€\n${periodLabel} = ${periodYears.toFixed(2)} ${yearsLabel}\nIRR = ${annualizedMwrPct >= 0 ? '+' : ''}${annualizedMwrPct}%/${language === 'fr' ? 'an' : 'y'}\n\nMWR = (1 + IRR)^${periodLabel.toLowerCase()} − 1\n= (1 + ${annualizedMwrPct}%)^${periodYears.toFixed(2)} − 1\n= (${(1 + annualizedMwrPct / 100).toFixed(3)})^${periodYears.toFixed(2)} − 1\n= ${cumulativeMwrPct >= 0 ? '+' : ''}${cumulativeMwrPct}%`;
-                              }
-                            })()}
-                          </div>
                         </div>
                       </div>
                     </div>
