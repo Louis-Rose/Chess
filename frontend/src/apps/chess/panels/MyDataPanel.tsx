@@ -77,22 +77,9 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
 }
 
 function DailyVolumeSection({ data }: { data: ApiResponse }) {
-  const { t, language } = useLanguage();
-  const [aiCache, setAiCache] = useState<Record<string, string>>({});
-  const [aiLoading, setAiLoading] = useState(false);
+  const { t } = useLanguage();
 
   const rawDvs = data.daily_volume_stats;
-  const aiSummary = aiCache[language] || null;
-
-  useEffect(() => {
-    if (!rawDvs || rawDvs.length === 0) return;
-    if (aiCache[language]) return;
-    setAiLoading(true);
-    axios.post('/api/chess/analyze-daily-volume', { stats: rawDvs, language })
-      .then(res => setAiCache(prev => ({ ...prev, [language]: res.data.summary })))
-      .catch(() => {})
-      .finally(() => setAiLoading(false));
-  }, [rawDvs, language, aiCache]);
 
   return (
     <CollapsibleSection title={t('chess.dailyVolumeTitle')} defaultExpanded>
@@ -104,6 +91,11 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
         if (dvs.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
         const fs = fullscreen ? 18 : 14;
+
+        // Compute win rate per entry and split into best/worst
+        const withRate = dvs.map(d => ({ ...d, winRate: d.win_pct + d.draw_pct / 2 }));
+        const best = withRate.filter(d => d.winRate > 50).sort((a, b) => b.winRate - a.winRate).slice(0, 5);
+        const worst = withRate.filter(d => d.winRate < 50).sort((a, b) => a.winRate - b.winRate).slice(0, 5);
 
         return (
           <div className="space-y-4">
@@ -121,7 +113,7 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
                     <XAxis
                       dataKey="games_per_day"
                       tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
-                      label={{ value: 'Games per day', position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: fs, fontWeight: 700 }}
+                      label={{ value: t('chess.gamesPerDay'), position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: fs, fontWeight: 700 }}
                     />
                     <YAxis
                       tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
@@ -138,9 +130,9 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
                         const winRate = (d.win_pct + d.draw_pct / 2).toFixed(1);
                         return (
                           <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
-                            <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{label} game{Number(label) !== 1 ? 's' : ''} / day</p>
-                            <p style={{ color: '#f1f5f9' }}>Win rate: {winRate}%</p>
-                            <p style={{ color: '#94a3b8', fontSize: 12 }}>{d.days} day{d.days !== 1 ? 's' : ''} of data</p>
+                            <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{label} {t('chess.gamesPerDay').toLowerCase()}</p>
+                            <p style={{ color: '#f1f5f9' }}>{t('chess.winRate')}: {winRate}%</p>
+                            <p style={{ color: '#94a3b8', fontSize: 12 }}>{d.days} {t('chess.daysOfData')}</p>
                           </div>
                         );
                       }}
@@ -153,32 +145,49 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
               </div>
             </div>
 
-            {/* AI Summary */}
-            <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
-              {aiLoading ? (
-                <p className="text-slate-400 text-sm text-center animate-pulse">{t('chess.analyzing')}</p>
-              ) : aiSummary ? (
-                <div className="text-slate-300 text-sm space-y-3">
-                  {aiSummary.split('\n').filter(Boolean).map((line, i) => {
-                    // Split "Best Results: A, B, C" into label + individual results
-                    const colonIdx = line.indexOf(':');
-                    if (colonIdx === -1) return <p key={i}>{line}</p>;
-                    const label = line.slice(0, colonIdx + 1).trim();
-                    const items = line.slice(colonIdx + 1).split(',').map(s => s.trim()).filter(Boolean);
-                    return (
-                      <div key={i}>
-                        <p className="font-semibold text-slate-200">{label}</p>
-                        {items.map((item, j) => (
-                          <p key={j} className="ml-4 text-slate-300">{item}</p>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-slate-500 text-sm text-center">{t('chess.aiUnavailable')}</p>
-              )}
-            </div>
+            {/* Best / Worst results table */}
+            <table className="w-full border-collapse border border-slate-600">
+              <thead>
+                <tr className="border border-slate-600 bg-slate-800">
+                  <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.gamesPerDay')}</th>
+                  <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {best.length > 0 && (
+                  <>
+                    <tr className="border border-slate-600">
+                      <td colSpan={2} className="text-center text-white text-xs font-semibold py-2 px-4 bg-slate-800 border border-slate-600">{t('chess.bestResults')}</td>
+                    </tr>
+                    {best.map(d => (
+                      <tr key={`best-${d.games_per_day}`} className="border border-slate-600">
+                        <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{d.games_per_day}</td>
+                        <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
+                          <span className="text-green-400">{d.winRate.toFixed(1)}%</span>
+                          <span className="text-slate-500 font-normal ml-2 text-xs">({d.days} {t('chess.daysOfData')})</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </>
+                )}
+                {worst.length > 0 && (
+                  <>
+                    <tr className="border border-slate-600">
+                      <td colSpan={2} className="text-center text-white text-xs font-semibold py-2 px-4 bg-slate-800 border border-slate-600">{t('chess.worstResults')}</td>
+                    </tr>
+                    {worst.map(d => (
+                      <tr key={`worst-${d.games_per_day}`} className="border border-slate-600">
+                        <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{d.games_per_day}</td>
+                        <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
+                          <span className="text-red-400">{d.winRate.toFixed(1)}%</span>
+                          <span className="text-slate-500 font-normal ml-2 text-xs">({d.days} {t('chess.daysOfData')})</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </>
+                )}
+              </tbody>
+            </table>
           </div>
         );
       }}
