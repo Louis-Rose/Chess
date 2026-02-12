@@ -297,7 +297,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
         if not daily_volume_stats and tcd.get('cached_daily_volume_stats'):
             daily_volume_stats = tcd['cached_daily_volume_stats']
 
-        # Streak stats: win rate after consecutive wins/losses
+        # Streak stats: win rate after EXACTLY N consecutive wins/losses
         all_games_chrono = []
         for date_key, games in tcd['games_by_day'].items():
             for ts, result in games:
@@ -305,16 +305,23 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
         all_games_chrono.sort(key=lambda x: x[0])
 
         streak_buckets = {}
-        for streak_len in [1, 2, 3]:
+        for streak_len in [1, 2, 3, 4, 5]:
             for streak_type in ['win', 'loss']:
                 streak_buckets[(streak_len, streak_type)] = {'wins': 0, 'draws': 0, 'total': 0}
 
         for i in range(1, len(all_games_chrono)):
-            for streak_len in [1, 2, 3]:
+            for streak_len in [1, 2, 3, 4, 5]:
                 if i < streak_len:
                     continue
                 for streak_type in ['win', 'loss']:
-                    if all(all_games_chrono[i - j - 1][1] == streak_type for j in range(streak_len)):
+                    # Check that the previous streak_len games are all the same type
+                    is_streak = all(all_games_chrono[i - j - 1][1] == streak_type for j in range(streak_len))
+                    if not is_streak:
+                        continue
+                    # Check EXACT: the game before the streak must NOT be the same type (or not exist)
+                    before_idx = i - streak_len - 1
+                    is_exact = before_idx < 0 or all_games_chrono[before_idx][1] != streak_type
+                    if is_exact:
                         b = streak_buckets[(streak_len, streak_type)]
                         b['total'] += 1
                         if all_games_chrono[i][1] == 'win':
@@ -323,7 +330,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                             b['draws'] += 1
 
         streak_stats = []
-        for streak_len in [1, 2, 3]:
+        for streak_len in [1, 2, 3, 4, 5]:
             for streak_type in ['win', 'loss']:
                 b = streak_buckets[(streak_len, streak_type)]
                 win_rate = round(((b['wins'] + 0.5 * b['draws']) / b['total']) * 100, 1) if b['total'] > 0 else 0

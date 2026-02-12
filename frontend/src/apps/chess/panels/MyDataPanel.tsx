@@ -204,18 +204,37 @@ function StreakSection({ data }: { data: ApiResponse }) {
       .finally(() => setAiLoading(false));
   }, [stats, language, aiCache]);
 
+  const winKeys: Record<number, string> = { 1: 'chess.after1Win', 2: 'chess.after2Wins', 3: 'chess.after3Wins', 4: 'chess.after4Wins', 5: 'chess.after5Wins' };
+  const lossKeys: Record<number, string> = { 1: 'chess.after1Loss', 2: 'chess.after2Losses', 3: 'chess.after3Losses', 4: 'chess.after4Losses', 5: 'chess.after5Losses' };
+
   const formatLabel = (type: string, len: number) => {
-    if (type === 'win') return t(len === 1 ? 'chess.after1Win' : len === 2 ? 'chess.after2Wins' : 'chess.after3Wins');
-    return t(len === 1 ? 'chess.after1Loss' : len === 2 ? 'chess.after2Losses' : 'chess.after3Losses');
+    return t((type === 'win' ? winKeys : lossKeys)[len] || `After ${len}`);
   };
+
+  const renderRow = (s: { streak_type: string; streak_length: number; win_rate: number; sample_size: number }) => (
+    <tr key={`${s.streak_type}-${s.streak_length}`} className="border border-slate-600">
+      <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{formatLabel(s.streak_type, s.streak_length)}</td>
+      <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
+        {s.sample_size > 0 ? (
+          <>
+            <span className={s.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}>{s.win_rate}%</span>
+            <span className="text-slate-500 font-normal ml-2 text-xs">({s.sample_size} {t('chess.games')})</span>
+          </>
+        ) : (
+          <span className="text-slate-500 text-xs">{t('chess.insufficientData')}</span>
+        )}
+      </td>
+    </tr>
+  );
 
   return (
     <CollapsibleSection title={t('chess.streakTitle')} defaultExpanded>
       {() => {
         if (!stats || stats.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
-        const wins = stats.filter(s => s.streak_type === 'win').sort((a, b) => a.streak_length - b.streak_length);
-        const losses = stats.filter(s => s.streak_type === 'loss').sort((a, b) => a.streak_length - b.streak_length);
+        // Sort descending by streak length (5, 4, 3, 2, 1)
+        const wins = stats.filter(s => s.streak_type === 'win').sort((a, b) => b.streak_length - a.streak_length);
+        const losses = stats.filter(s => s.streak_type === 'loss').sort((a, b) => b.streak_length - a.streak_length);
 
         return (
           <div className="space-y-4">
@@ -227,27 +246,11 @@ function StreakSection({ data }: { data: ApiResponse }) {
                 </tr>
               </thead>
               <tbody>
-                {wins.map((s) => (
-                  <tr key={`${s.streak_type}-${s.streak_length}`} className="border border-slate-600">
-                    <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{formatLabel(s.streak_type, s.streak_length)}</td>
-                    <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
-                      <span className={s.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}>{s.win_rate}%</span>
-                      <span className="text-slate-500 font-normal ml-2 text-xs">({s.sample_size} {t('chess.games')})</span>
-                    </td>
-                  </tr>
-                ))}
+                {wins.map(renderRow)}
                 <tr className="border border-slate-600">
                   <td colSpan={2} className="py-1 bg-slate-800 border border-slate-600" />
                 </tr>
-                {losses.map((s) => (
-                  <tr key={`${s.streak_type}-${s.streak_length}`} className="border border-slate-600">
-                    <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{formatLabel(s.streak_type, s.streak_length)}</td>
-                    <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
-                      <span className={s.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}>{s.win_rate}%</span>
-                      <span className="text-slate-500 font-normal ml-2 text-xs">({s.sample_size} {t('chess.games')})</span>
-                    </td>
-                  </tr>
-                ))}
+                {losses.map(renderRow)}
               </tbody>
             </table>
 

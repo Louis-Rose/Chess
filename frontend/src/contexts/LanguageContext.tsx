@@ -120,6 +120,11 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.after1Loss': 'After 1 loss',
     'chess.after2Losses': 'After 2 losses',
     'chess.after3Losses': 'After 3 losses',
+    'chess.after4Wins': 'After 4 wins',
+    'chess.after5Wins': 'After 5 wins',
+    'chess.after4Losses': 'After 4 losses',
+    'chess.after5Losses': 'After 5 losses',
+    'chess.insufficientData': 'Insufficient data',
     'chess.analyzing': 'Analyzing your data...',
     'chess.aiUnavailable': 'AI analysis unavailable.',
 
@@ -238,6 +243,11 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.after1Loss': 'Après 1 défaite',
     'chess.after2Losses': 'Après 2 défaites',
     'chess.after3Losses': 'Après 3 défaites',
+    'chess.after4Wins': 'Après 4 victoires',
+    'chess.after5Wins': 'Après 5 victoires',
+    'chess.after4Losses': 'Après 4 défaites',
+    'chess.after5Losses': 'Après 5 défaites',
+    'chess.insufficientData': 'Données insuffisantes',
     'chess.analyzing': 'Analyse en cours...',
     'chess.aiUnavailable': 'Analyse IA indisponible.',
 

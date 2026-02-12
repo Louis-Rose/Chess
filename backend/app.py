@@ -95,10 +95,10 @@ Note: entries with 5 or fewer days of data are not statistically reliable and sh
 
 {lang_instruction}
 Give exactly 2 lines, addressing the player as "{"tu/vous" if lang == "fr" else "you"}":
-1. List the top 5 games-per-day values with the highest win rate (only from entries with more than 5 days of data), sorted from best to worst. Format: "{best_label}: X {gpd} (Y.Z%), X {gpd} (Y.Z%), ..."
-2. List the bottom 5 games-per-day values with the lowest win rate (only from entries with more than 5 days of data), sorted from worst to best. Format: "{worst_label}: X {gpd} (Y.Z%), X {gpd} (Y.Z%), ..."
+1. List up to 5 games-per-day values with the highest win rate, ONLY those ABOVE 50% (and only from entries with more than 5 days of data), sorted from best to worst. Format: "{best_label}: X {gpd} (Y.Z%), X {gpd} (Y.Z%), ..."
+2. List up to 5 games-per-day values with the lowest win rate, ONLY those BELOW 50% (and only from entries with more than 5 days of data), sorted from worst to best. Format: "{worst_label}: X {gpd} (Y.Z%), X {gpd} (Y.Z%), ..."
 
-If fewer than 5 entries qualify, list as many as available.
+If no entries qualify for a line, omit that line entirely.
 Do NOT use markdown formatting — just plain text, one line each."""
 
         response = model.generate_content(prompt)
