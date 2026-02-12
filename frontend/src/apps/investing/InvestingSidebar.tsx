@@ -111,7 +111,7 @@ export function InvestingSidebar() {
             <Link
               to="/chess"
               onClick={() => setShowAppSwitcher(false)}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors"
+              className="flex items-center justify-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors"
             >
               <span className="text-2xl">♞</span>
               <p className="text-slate-200 font-medium">Chess</p>
