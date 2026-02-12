@@ -145,12 +145,15 @@ export function MyDataPanel() {
           {chartData.length > 0 ? (
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 60 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
                   <XAxis
                     dataKey="label"
                     tick={{ fontSize: 12, fill: '#f1f5f9' }}
-                    interval={Math.floor(chartData.length / 6)}
+                    angle={-45}
+                    textAnchor="end"
+                    interval={Math.floor(chartData.length / 10)}
+                    height={70}
                   />
                   <YAxis
                     yAxisId="elo"
