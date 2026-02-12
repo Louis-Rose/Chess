@@ -164,7 +164,7 @@ export function MyDataPanel() {
                     labelStyle={{ color: '#f1f5f9' }}
                     itemStyle={{ color: '#f1f5f9' }}
                     labelFormatter={(_label, payload) => payload?.[0]?.payload?.tooltipLabel ?? _label}
-                    formatter={(value: number, name: string) => [value ?? 0, name === 'elo' ? 'ELO' : 'Games']}
+                    formatter={(value, name) => [value ?? 0, name === 'elo' ? 'ELO' : 'Games']}
                   />
                   <Bar
                     yAxisId="games"
