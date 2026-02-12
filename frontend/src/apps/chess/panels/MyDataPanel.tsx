@@ -216,9 +216,11 @@ function StreakSection({ data }: { data: ApiResponse }) {
         // Truncate each after the last row with N >= 30
         const allWins = stats.filter(s => s.streak_type === 'win').sort((a, b) => b.streak_length - a.streak_length);
         const allLosses = stats.filter(s => s.streak_type === 'loss').sort((a, b) => a.streak_length - b.streak_length);
-        const lastSigWin = allWins.reduce((last, s, i) => s.sample_size >= 30 ? i : last, -1);
+        // Wins descending: trim leading insufficient rows (from top)
+        const firstSigWin = allWins.findIndex(s => s.sample_size >= 30);
+        const wins = firstSigWin >= 0 ? allWins.slice(firstSigWin) : [];
+        // Losses ascending: trim trailing insufficient rows (from bottom)
         const lastSigLoss = allLosses.reduce((last, s, i) => s.sample_size >= 30 ? i : last, -1);
-        const wins = lastSigWin >= 0 ? allWins.slice(0, lastSigWin + 1) : [];
         const losses = lastSigLoss >= 0 ? allLosses.slice(0, lastSigLoss + 1) : [];
 
         // Compute recommendation from significant data (N >= 30)
