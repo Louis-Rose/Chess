@@ -9,10 +9,10 @@ import { useChessData } from './contexts/ChessDataContext';
 
 const navItems = [
   { path: '/chess', icon: Home, label: 'Welcome', end: true },
-  { path: '/chess/pros-tips', icon: Trophy, label: 'How to Improve (from Pros)' },
+  { path: '/chess/pros-tips', icon: Trophy, label: 'How to Improve' },
   { path: '/chess/my-data', icon: BarChart3, label: 'My Data' },
   { path: '/chess/win-prediction', icon: TrendingUp, label: 'Win Prediction' },
-  { path: '/chess/weaknesses', icon: Target, label: 'Identify My Weaknesses' },
+  { path: '/chess/weaknesses', icon: Target, label: 'Identify Weaknesses' },
   { path: '/chess/openings', icon: BookOpen, label: 'Openings' },
 ];
 
