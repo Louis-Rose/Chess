@@ -96,20 +96,21 @@ export function MyDataPanel() {
     mergedMap.set(d, { ...mergedMap.get(d), date: d, games_played: item.games_played });
   }
 
-  // Sort by date; only show label on first day of each new month
-  let prevMonth = '';
+  // Sort by date; precompute month labels for axis ticks
   const chartData = Array.from(mergedMap.values())
     .sort((a, b) => a.date.localeCompare(b.date))
-    .map(item => {
-      const monthLabel = formatAxisLabel(item.date);
-      const showLabel = monthLabel !== prevMonth;
-      prevMonth = monthLabel;
-      return {
-        ...item,
-        label: showLabel ? monthLabel : '',
-        tooltipLabel: formatTooltipLabel(item.date),
-      };
-    });
+    .map(item => ({
+      ...item,
+      tooltipLabel: formatTooltipLabel(item.date),
+    }));
+
+  // Build set of indices where the month changes (for axis tick labels)
+  const monthBoundaries = new Set<number>();
+  let prevMonth = '';
+  chartData.forEach((item, i) => {
+    const ml = formatAxisLabel(item.date);
+    if (ml !== prevMonth) { monthBoundaries.add(i); prevMonth = ml; }
+  });
 
   // Compute explicit ELO Y-axis ticks (multiples of 100)
   const eloValues = chartData.map(d => d.elo).filter((v): v is number => v != null);
@@ -154,10 +155,17 @@ export function MyDataPanel() {
                 <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 60 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
                   <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 12, fill: '#f1f5f9' }}
-                    angle={-45}
-                    textAnchor="end"
+                    dataKey="date"
+                    tick={(props: { x: number; y: number; index: number; payload: { value: string } }) => {
+                      if (!monthBoundaries.has(props.index)) return <g />;
+                      return (
+                        <g transform={`translate(${props.x},${props.y})`}>
+                          <text x={0} y={0} dy={12} textAnchor="end" fill="#f1f5f9" fontSize={12} transform="rotate(-45)">
+                            {formatAxisLabel(props.payload.value)}
+                          </text>
+                        </g>
+                      );
+                    }}
                     interval={0}
                     height={70}
                   />
