@@ -5,7 +5,7 @@ import { BarChart3, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 import {
-  ComposedChart, Line, Bar,
+  ComposedChart, BarChart, Line, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
@@ -61,7 +61,7 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
       <>
         {/* placeholder to keep layout stable */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none p-4 opacity-0 pointer-events-none" aria-hidden />
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-8 bg-black/50" onClick={closeFullscreen}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-8 bg-black/50 backdrop-blur-sm" onClick={closeFullscreen}>
           <div className="w-[90vw] h-[80vh]" onClick={e => e.stopPropagation()}>
             {card}
           </div>
@@ -267,6 +267,95 @@ export function MyDataPanel() {
           ) : (
             <p className="text-slate-500 text-center py-8">No data available.</p>
           )}</CollapsibleSection>
+
+        {/* Games per day analysis */}
+        <CollapsibleSection title="How many games should you play per day?" defaultExpanded={false}>
+          {(fullscreen) => {
+            const dvs = data.daily_volume_stats;
+            if (!dvs || dvs.length === 0) return <p className="text-slate-500 text-center py-8">No data available.</p>;
+
+            // Max days value for second chart Y-axis
+            const maxDays = Math.max(...dvs.map(d => d.days));
+            const daysTicks: number[] = [];
+            const daysStep = maxDays > 20 ? Math.ceil(maxDays / 10 / 5) * 5 : maxDays > 10 ? 5 : 1;
+            for (let v = 0; v <= maxDays; v += daysStep) daysTicks.push(v);
+            if (daysTicks[daysTicks.length - 1] < maxDays) daysTicks.push(daysTicks[daysTicks.length - 1] + daysStep);
+
+            const tooltipStyle = {
+              contentStyle: { backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155' },
+              labelStyle: { color: '#f1f5f9', fontWeight: 700 },
+              itemStyle: { color: '#f1f5f9' },
+            };
+            const fs = fullscreen ? 18 : 14;
+
+            return (
+              <div className="space-y-8">
+                {/* Chart 1: Win/Draw/Loss rate stacked to 100% */}
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Win / Draw / Loss Rate</h4>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={dvs} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                        <XAxis
+                          dataKey="games_per_day"
+                          tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
+                          label={{ value: 'Games per day', position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: fs, fontWeight: 700 }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: fs, fill: '#94a3b8', fontWeight: 700 }}
+                          domain={[0, 100]}
+                          ticks={[0, 25, 50, 75, 100]}
+                          tickFormatter={(v) => `${v}%`}
+                        />
+                        <Tooltip
+                          {...tooltipStyle}
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          formatter={(value: any, name: any) => {
+                            const label = name === 'win_pct' ? 'Wins' : name === 'draw_pct' ? 'Draws' : 'Losses';
+                            return [`${value ?? 0}%`, label];
+                          }}
+                          labelFormatter={(label) => `${label} game${Number(label) !== 1 ? 's' : ''} / day`}
+                        />
+                        <Bar dataKey="win_pct" stackId="a" fill="#16a34a" name="win_pct" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="draw_pct" stackId="a" fill="#64748b" name="draw_pct" />
+                        <Bar dataKey="loss_pct" stackId="a" fill="#dc2626" name="loss_pct" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Chart 2: Number of days with N games */}
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Number of Days</h4>
+                  <div className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={dvs} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                        <XAxis
+                          dataKey="games_per_day"
+                          tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
+                          label={{ value: 'Games per day', position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: fs, fontWeight: 700 }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: fs, fill: '#94a3b8', fontWeight: 700 }}
+                          ticks={daysTicks}
+                          allowDecimals={false}
+                        />
+                        <Tooltip
+                          {...tooltipStyle}
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          formatter={(value: any) => [`${value ?? 0} day${value !== 1 ? 's' : ''}`, 'Days']}
+                          labelFormatter={(label) => `${label} game${Number(label) !== 1 ? 's' : ''} / day`}
+                        />
+                        <Bar dataKey="days" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            );
+          }}</CollapsibleSection>
       </div>
     </div>
   );
