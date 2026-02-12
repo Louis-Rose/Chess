@@ -137,16 +137,17 @@ def get_chess_stats_stream():
                     yield f"data: {json_module.dumps({'type': 'complete', 'data': cached_stats})}\n\n"
                     return
 
-            # Need to fetch - prepare cached stats map for incremental update
+            # Need to fetch - only use incremental update if ALL cached time classes are fresh
+            # Stale cache means full re-fetch to avoid missing games from partially-cached months
             cached_stats_map = None
             last_archive = None
-            if all_cached:
-                # Use any existing cache for incremental update
+            all_fresh = all_cached and all(is_fresh for (_, _, is_fresh) in all_cached.values())
+            if all_fresh:
                 cached_stats_map = {}
                 for tc, (stats, archive, _) in all_cached.items():
                     cached_stats_map[tc] = stats
                     if archive:
-                        last_archive = archive  # They should all be the same
+                        last_archive = archive
 
             # Fetch stats for ALL time classes
             all_time_classes_data = None
