@@ -5,6 +5,8 @@ import { NavLink, Link } from 'react-router-dom';
 import { Loader2, ChevronDown, Home, BarChart3, TrendingUp, BookOpen } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../../components/UserMenu';
+import { ThemeToggle } from '../../components/ThemeToggle';
+import { LanguageToggle } from '../../components/LanguageToggle';
 import { useChessData } from './contexts/ChessDataContext';
 
 const navItems = [
@@ -150,6 +152,14 @@ export function ChessSidebar() {
             {item.label}
           </NavLink>
         ))}
+      </div>
+
+      {/* Theme & Language - at bottom */}
+      <div className="mt-auto flex-shrink-0 px-2 pt-2 pb-2">
+        <div className="flex items-center justify-center gap-2">
+          <ThemeToggle />
+          <LanguageToggle />
+        </div>
       </div>
     </div>
   );
