@@ -150,6 +150,10 @@ def get_chess_stats_stream():
                 # Old format detected, force full re-fetch
                 all_cached = {}
 
+            # Force re-fetch if cache is missing daily_volume_stats
+            if all_cached and any('daily_volume_stats' not in s for (s, _, _) in all_cached.values()):
+                all_cached = {}
+
             # Check if requested time class has fresh cache
             if time_class in all_cached:
                 cached_stats, _, is_fresh = all_cached[time_class]
