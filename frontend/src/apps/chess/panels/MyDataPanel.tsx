@@ -203,7 +203,7 @@ export function MyDataPanel() {
           {(fullscreen) => chartData.length > 0 ? (
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 10, right: fullscreen ? 20 : 10, left: fullscreen ? 10 : 0, bottom: fullscreen ? 80 : 60 }}>
+                <ComposedChart data={chartData} margin={{ top: 10, right: fullscreen ? 30 : 20, left: fullscreen ? 20 : 10, bottom: fullscreen ? 80 : 60 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#475569" horizontalCoordinatesGenerator={({ yAxis }) => {
                     if (!yAxis?.ticks) return [];
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
