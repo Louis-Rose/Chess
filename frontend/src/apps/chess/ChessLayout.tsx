@@ -8,9 +8,11 @@ import { FeedbackWidget } from '../../components/FeedbackWidget';
 export function ChessLayout() {
   return (
     <ChessDataProvider>
-      <div className="min-h-screen bg-slate-800 font-sans text-slate-800 flex">
-        <ChessSidebar />
-        <main className="flex-1 p-8 overflow-auto">
+      <div className="min-h-screen bg-slate-800 font-sans text-slate-100 flex">
+        <div>
+          <ChessSidebar />
+        </div>
+        <main className="flex-1 p-8">
           <Outlet />
         </main>
 
