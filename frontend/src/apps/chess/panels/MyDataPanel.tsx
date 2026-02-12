@@ -78,19 +78,21 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
 
 function DailyVolumeSection({ data }: { data: ApiResponse }) {
   const { t, language } = useLanguage();
-  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiCache, setAiCache] = useState<Record<string, string>>({});
   const [aiLoading, setAiLoading] = useState(false);
 
   const rawDvs = data.daily_volume_stats;
+  const aiSummary = aiCache[language] || null;
 
   useEffect(() => {
     if (!rawDvs || rawDvs.length === 0) return;
+    if (aiCache[language]) return;
     setAiLoading(true);
     axios.post('/api/chess/analyze-daily-volume', { stats: rawDvs, language })
-      .then(res => setAiSummary(res.data.summary))
-      .catch(() => setAiSummary(null))
+      .then(res => setAiCache(prev => ({ ...prev, [language]: res.data.summary })))
+      .catch(() => {})
       .finally(() => setAiLoading(false));
-  }, [rawDvs, language]);
+  }, [rawDvs, language, aiCache]);
 
   return (
     <CollapsibleSection title={t('chess.dailyVolumeTitle')} defaultExpanded>
@@ -186,19 +188,21 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
 
 function StreakSection({ data }: { data: ApiResponse }) {
   const { t, language } = useLanguage();
-  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiCache, setAiCache] = useState<Record<string, string>>({});
   const [aiLoading, setAiLoading] = useState(false);
 
   const stats = data.streak_stats;
+  const aiSummary = aiCache[language] || null;
 
   useEffect(() => {
     if (!stats || stats.length === 0) return;
+    if (aiCache[language]) return;
     setAiLoading(true);
     axios.post('/api/chess/analyze-streak', { stats, language })
-      .then(res => setAiSummary(res.data.summary))
-      .catch(() => setAiSummary(null))
+      .then(res => setAiCache(prev => ({ ...prev, [language]: res.data.summary })))
+      .catch(() => {})
       .finally(() => setAiLoading(false));
-  }, [stats, language]);
+  }, [stats, language, aiCache]);
 
   const formatLabel = (type: string, len: number) => {
     if (type === 'win') return t(len === 1 ? 'chess.after1Win' : len === 2 ? 'chess.after2Wins' : 'chess.after3Wins');
