@@ -133,7 +133,7 @@ export function ChessSidebar() {
       </div>
 
       {/* Navigation */}
-      <div className="flex flex-col gap-1 px-2 py-4">
+      <div className="flex flex-col gap-1 px-2 py-4 border-b border-slate-700">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
