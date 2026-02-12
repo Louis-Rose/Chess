@@ -106,13 +106,13 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
               </div>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dvs} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                  <BarChart data={sorted} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
                     <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} />
                     <XAxis
                       dataKey="games_per_day"
                       tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
-                      label={{ value: t('chess.gamesPerDay'), position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: fs, fontWeight: 700 }}
+                      label={{ value: t('chess.gamesPerDay'), position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: fs, fontWeight: 700 }}
                     />
                     <YAxis
                       tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
