@@ -5,7 +5,7 @@ import { BarChart3, ChevronRight } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 import {
-  LineChart, Line, BarChart, Bar,
+  ComposedChart, Line, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
@@ -78,24 +78,31 @@ export function MyDataPanel() {
     return `${month} ${day}${suffix}, ${date.getFullYear()}`;
   };
 
-  // Prepare ELO history data
-  const eloData = data.elo_history?.map(item => ({
-    ...item,
-    label: formatAxisLabel(item.year, item.week),
-    tooltipLabel: formatTooltipLabel(item.year, item.week),
-  })) || [];
+  // Merge ELO history and games played into a single dataset keyed by year+week
+  const mergedMap = new Map<string, { year: number; week: number; elo?: number; games_played?: number }>();
 
-  // Prepare games played data
-  const gamesData = data.history?.map(item => ({
-    ...item,
-    label: formatAxisLabel(item.year, item.week),
-    tooltipLabel: formatTooltipLabel(item.year, item.week),
-  })) || [];
+  for (const item of data.elo_history || []) {
+    const key = `${item.year}-${item.week}`;
+    mergedMap.set(key, { ...mergedMap.get(key), year: item.year, week: item.week, elo: item.elo });
+  }
+  for (const item of data.history || []) {
+    const key = `${item.year}-${item.week}`;
+    mergedMap.set(key, { ...mergedMap.get(key), year: item.year, week: item.week, games_played: item.games_played });
+  }
+
+  // Sort by date and add labels
+  const chartData = Array.from(mergedMap.values())
+    .sort((a, b) => a.year !== b.year ? a.year - b.year : a.week - b.week)
+    .map(item => ({
+      ...item,
+      label: formatAxisLabel(item.year, item.week),
+      tooltipLabel: formatTooltipLabel(item.year, item.week),
+    }));
 
   // Compute explicit ELO Y-axis ticks (multiples of 100)
-  const eloValues = eloData.map(d => d.elo).filter(Boolean);
-  const eloMin = Math.floor(Math.min(...eloValues) / 100) * 100;
-  const eloMax = Math.ceil(Math.max(...eloValues) / 100) * 100;
+  const eloValues = chartData.map(d => d.elo).filter((v): v is number => v != null);
+  const eloMin = eloValues.length > 0 ? Math.floor(Math.min(...eloValues) / 100) * 100 : 0;
+  const eloMax = eloValues.length > 0 ? Math.ceil(Math.max(...eloValues) / 100) * 100 : 100;
   const eloTicks: number[] = [];
   for (let v = eloMin; v <= eloMax; v += 100) eloTicks.push(v);
 
@@ -121,28 +128,35 @@ export function MyDataPanel() {
           </div>
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
             <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">
-              {eloData.length > 0 ? eloData[eloData.length - 1].elo?.toLocaleString() : '—'}
+              {eloValues.length > 0 ? eloValues[eloValues.length - 1]?.toLocaleString() : '—'}
             </p>
             <p className="text-slate-500 dark:text-slate-400 text-sm">Current ELO</p>
           </div>
         </div>
 
-        {/* ELO Ranking Chart */}
-        <CollapsibleSection title="ELO Ranking" defaultExpanded>
-          {eloData.length > 0 ? (
-            <div className="h-[300px]">
+        {/* Combined ELO Ranking & Games Played Chart */}
+        <CollapsibleSection title="ELO Ranking & Games Played" defaultExpanded>
+          {chartData.length > 0 ? (
+            <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={eloData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
                   <XAxis
                     dataKey="label"
                     tick={{ fontSize: 12, fill: '#f1f5f9' }}
-                    interval={Math.floor(eloData.length / 6)}
+                    interval={Math.floor(chartData.length / 6)}
                   />
                   <YAxis
-                    tick={{ fontSize: 12, fill: '#f1f5f9' }}
+                    yAxisId="elo"
+                    tick={{ fontSize: 12, fill: '#16a34a' }}
                     domain={[eloMin, eloMax]}
                     ticks={eloTicks}
+                    allowDecimals={false}
+                  />
+                  <YAxis
+                    yAxisId="games"
+                    orientation="right"
+                    tick={{ fontSize: 12, fill: '#3b82f6' }}
                     allowDecimals={false}
                   />
                   <Tooltip
@@ -150,56 +164,28 @@ export function MyDataPanel() {
                     labelStyle={{ color: '#f1f5f9' }}
                     itemStyle={{ color: '#f1f5f9' }}
                     labelFormatter={(_label, payload) => payload?.[0]?.payload?.tooltipLabel ?? _label}
-                    formatter={(value) => [value ?? 0, 'ELO']}
+                    formatter={(value: number, name: string) => [value ?? 0, name === 'elo' ? 'ELO' : 'Games']}
+                  />
+                  <Bar
+                    yAxisId="games"
+                    dataKey="games_played"
+                    fill="#3b82f6"
+                    opacity={0.4}
+                    radius={[4, 4, 0, 0]}
                   />
                   <Line
+                    yAxisId="elo"
                     type="monotone"
                     dataKey="elo"
                     stroke="#16a34a"
                     strokeWidth={2}
                     dot={false}
                   />
-                </LineChart>
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <p className="text-slate-500 text-center py-8">No ELO history data available.</p>
-          )}
-        </CollapsibleSection>
-
-        {/* Number of Games Played Chart */}
-        <CollapsibleSection title="Number of games played" defaultExpanded>
-          {gamesData.length > 0 ? (
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={gamesData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 12, fill: '#f1f5f9' }}
-                    interval={Math.floor(gamesData.length / 6)}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#f1f5f9' }}
-                  />
-                  <Tooltip
-                    cursor={false}
-                    contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155' }}
-                    labelStyle={{ color: '#f1f5f9' }}
-                    itemStyle={{ color: '#f1f5f9' }}
-                    labelFormatter={(_label, payload) => payload?.[0]?.payload?.tooltipLabel ?? _label}
-                    formatter={(value) => [value ?? 0, 'Games']}
-                  />
-                  <Bar
-                    dataKey="games_played"
-                    fill="#3b82f6"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <p className="text-slate-500 text-center py-8">No games history data available.</p>
+            <p className="text-slate-500 text-center py-8">No data available.</p>
           )}
         </CollapsibleSection>
       </div>
