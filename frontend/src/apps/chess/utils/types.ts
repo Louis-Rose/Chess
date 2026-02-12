@@ -50,6 +50,13 @@ export interface DailyVolumeStats {
   total_games: number;
 }
 
+export interface StreakStats {
+  streak_type: 'win' | 'loss';
+  streak_length: number;
+  win_rate: number;
+  sample_size: number;
+}
+
 export interface HourlyStats {
   hour_group: number;
   start_hour: number;
@@ -144,6 +151,7 @@ export interface ApiResponse {
   };
   game_number_stats: GameNumberStats[];
   daily_volume_stats?: DailyVolumeStats[];
+  streak_stats?: StreakStats[];
   hourly_stats: HourlyStats[];
   win_prediction: WinPredictionAnalysis;
 }

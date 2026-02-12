@@ -6,7 +6,7 @@ import { useChessData } from '../contexts/ChessDataContext';
 import type { ApiResponse } from '../utils/types';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 import {
-  ComposedChart, BarChart, Line, Bar, Cell, ReferenceLine,
+  ComposedChart, BarChart, Line, Bar, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import axios from 'axios';
@@ -95,21 +95,21 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
       {(fullscreen) => {
         if (!rawDvs || rawDvs.length === 0) return <p className="text-slate-500 text-center py-8">No data available.</p>;
 
-        // Fill gaps: ensure every integer from 1..max has an entry
-        const dvsMap = new Map(rawDvs.map(d => [d.games_per_day, d]));
-        const maxGames = Math.max(...rawDvs.map(d => d.games_per_day));
-        const dvs = [];
-        for (let i = 1; i <= maxGames; i++) {
-          dvs.push(dvsMap.get(i) ?? { games_per_day: i, days: 0, win_pct: 0, draw_pct: 0, loss_pct: 0, total_games: 0 });
-        }
+        // Only show statistically significant data (> 5 days)
+        const dvs = rawDvs.filter(d => d.days > 5);
+        if (dvs.length === 0) return <p className="text-slate-500 text-center py-8">Not enough data yet.</p>;
 
         const fs = fullscreen ? 18 : 14;
-        const dimmed = (d: { days: number }) => d.days <= 5;
 
         return (
           <div className="space-y-4">
             <div>
-              <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Win / Draw / Loss Rate</h4>
+              <div className="text-center mb-3">
+                <h4 className="text-white font-semibold">Win / Draw / Loss Rate</h4>
+                <p className="text-white/70 text-xs mt-1">
+                  Win rate = (wins + draws / 2) / total. Only game counts with more than 5 days of data are shown.
+                </p>
+              </div>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={dvs} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
@@ -142,21 +142,12 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
                         );
                       }}
                     />
-                    <Bar dataKey="win_pct" stackId="a" name="win_pct">
-                      {dvs.map((d, i) => <Cell key={i} fill={dimmed(d) ? '#475569' : '#16a34a'} />)}
-                    </Bar>
-                    <Bar dataKey="draw_pct" stackId="a" name="draw_pct">
-                      {dvs.map((d, i) => <Cell key={i} fill={dimmed(d) ? '#374151' : '#64748b'} />)}
-                    </Bar>
-                    <Bar dataKey="loss_pct" stackId="a" name="loss_pct" radius={[4, 4, 0, 0]}>
-                      {dvs.map((d, i) => <Cell key={i} fill={dimmed(d) ? '#334155' : '#dc2626'} />)}
-                    </Bar>
+                    <Bar dataKey="win_pct" stackId="a" fill="#16a34a" />
+                    <Bar dataKey="draw_pct" stackId="a" fill="#64748b" />
+                    <Bar dataKey="loss_pct" stackId="a" fill="#dc2626" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              <p className="text-slate-500 dark:text-slate-400 text-xs mt-2 text-center">
-                Win rate = (wins + draws / 2) / total. Greyed-out bars have 5 or fewer days of data.
-              </p>
             </div>
 
             {/* AI Summary */}
@@ -164,11 +155,81 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
               {aiLoading ? (
                 <p className="text-slate-400 text-sm text-center animate-pulse">Analyzing your data...</p>
               ) : aiSummary ? (
-                <ul className="text-slate-300 text-sm space-y-2 list-disc list-inside">
+                <div className="text-slate-300 text-sm space-y-1">
                   {aiSummary.split('\n').filter(Boolean).map((line, i) => (
-                    <li key={i}>{line.replace(/^[-•]\s*/, '')}</li>
+                    <p key={i}>{line}</p>
                   ))}
-                </ul>
+                </div>
+              ) : (
+                <p className="text-slate-500 text-sm text-center">AI analysis unavailable.</p>
+              )}
+            </div>
+          </div>
+        );
+      }}
+    </CollapsibleSection>
+  );
+}
+
+function StreakSection({ data }: { data: ApiResponse }) {
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const stats = data.streak_stats;
+
+  useEffect(() => {
+    if (!stats || stats.length === 0) return;
+    setAiLoading(true);
+    axios.post('/api/chess/analyze-streak', { stats })
+      .then(res => setAiSummary(res.data.summary))
+      .catch(() => setAiSummary(null))
+      .finally(() => setAiLoading(false));
+  }, [stats]);
+
+  const formatLabel = (type: string, len: number) => {
+    if (type === 'win') return `After ${len} win${len > 1 ? 's' : ''}`;
+    return `After ${len} loss${len > 1 ? 'es' : ''}`;
+  };
+
+  return (
+    <CollapsibleSection title="Should you keep playing after wins or losses?" defaultExpanded>
+      {() => {
+        if (!stats || stats.length === 0) return <p className="text-slate-500 text-center py-8">No data available.</p>;
+
+        const wins = stats.filter(s => s.streak_type === 'win').sort((a, b) => a.streak_length - b.streak_length);
+        const losses = stats.filter(s => s.streak_type === 'loss').sort((a, b) => a.streak_length - b.streak_length);
+        const rows = [...wins, ...losses];
+
+        return (
+          <div className="space-y-4">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-600">
+                  <th className="text-left text-slate-400 text-sm font-semibold py-2 px-3">Situation</th>
+                  <th className="text-right text-slate-400 text-sm font-semibold py-2 px-3">Win Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((s) => (
+                  <tr key={`${s.streak_type}-${s.streak_length}`} className="border-b border-slate-700/50">
+                    <td className="text-slate-200 text-sm py-2.5 px-3">{formatLabel(s.streak_type, s.streak_length)}</td>
+                    <td className={`text-right text-sm font-semibold py-2.5 px-3 ${s.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}`}>
+                      {s.win_rate}%
+                      <span className="text-slate-500 font-normal ml-2 text-xs">({s.sample_size} games)</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* AI Summary */}
+            <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+              {aiLoading ? (
+                <p className="text-slate-400 text-sm text-center animate-pulse">Analyzing your data...</p>
+              ) : aiSummary ? (
+                <div className="text-slate-300 text-sm">
+                  {aiSummary}
+                </div>
               ) : (
                 <p className="text-slate-500 text-sm text-center">AI analysis unavailable.</p>
               )}
@@ -377,6 +438,9 @@ export function MyDataPanel() {
 
         {/* Games per day analysis */}
         <DailyVolumeSection data={data} />
+
+        {/* Streak analysis */}
+        <StreakSection data={data} />
       </div>
     </div>
   );

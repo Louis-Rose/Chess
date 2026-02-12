@@ -93,6 +93,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 'total_games': cached.get('total_games', 0),
                 'cached_game_number_stats': cached.get('game_number_stats', []),  # Preserve for incremental updates
                 'cached_daily_volume_stats': cached.get('daily_volume_stats', []),  # Preserve for incremental updates
+                'cached_streak_stats': cached.get('streak_stats', []),  # Preserve for incremental updates
                 'cached_hourly_stats': cached.get('hourly_stats', []),  # Preserve for incremental updates
                 'cached_win_prediction': cached.get('win_prediction'),  # Preserve for incremental updates
             }
@@ -107,6 +108,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 'total_games': 0,
                 'cached_game_number_stats': [],
                 'cached_daily_volume_stats': [],
+                'cached_streak_stats': [],
                 'cached_hourly_stats': [],
                 'cached_win_prediction': None,
             }
@@ -295,6 +297,46 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
         if not daily_volume_stats and tcd.get('cached_daily_volume_stats'):
             daily_volume_stats = tcd['cached_daily_volume_stats']
 
+        # Streak stats: win rate after consecutive wins/losses
+        all_games_chrono = []
+        for date_key, games in tcd['games_by_day'].items():
+            for ts, result in games:
+                all_games_chrono.append((ts, result))
+        all_games_chrono.sort(key=lambda x: x[0])
+
+        streak_buckets = {}
+        for streak_len in [1, 2, 3]:
+            for streak_type in ['win', 'loss']:
+                streak_buckets[(streak_len, streak_type)] = {'wins': 0, 'draws': 0, 'total': 0}
+
+        for i in range(1, len(all_games_chrono)):
+            for streak_len in [1, 2, 3]:
+                if i < streak_len:
+                    continue
+                for streak_type in ['win', 'loss']:
+                    if all(all_games_chrono[i - j - 1][1] == streak_type for j in range(streak_len)):
+                        b = streak_buckets[(streak_len, streak_type)]
+                        b['total'] += 1
+                        if all_games_chrono[i][1] == 'win':
+                            b['wins'] += 1
+                        elif all_games_chrono[i][1] == 'draw':
+                            b['draws'] += 1
+
+        streak_stats = []
+        for streak_len in [1, 2, 3]:
+            for streak_type in ['win', 'loss']:
+                b = streak_buckets[(streak_len, streak_type)]
+                win_rate = round(((b['wins'] + 0.5 * b['draws']) / b['total']) * 100, 1) if b['total'] > 0 else 0
+                streak_stats.append({
+                    'streak_type': streak_type,
+                    'streak_length': streak_len,
+                    'win_rate': win_rate,
+                    'sample_size': b['total'],
+                })
+
+        if not streak_stats and tcd.get('cached_streak_stats'):
+            streak_stats = tcd['cached_streak_stats']
+
         # Hourly stats (win rate by 2-hour groups)
         hourly_result = []
         for hour_group in range(12):  # 12 groups of 2 hours each
@@ -342,6 +384,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             'openings': processed_openings,
             'game_number_stats': game_number_result,
             'daily_volume_stats': daily_volume_stats,
+            'streak_stats': streak_stats,
             'hourly_stats': hourly_result,
             'win_prediction': win_prediction,
             'last_archive': last_archive_processed

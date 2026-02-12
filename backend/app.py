@@ -85,15 +85,56 @@ def analyze_daily_volume():
 Here is the data (win rate = wins + draws/2, as percentage):
 {chr(10).join(lines)}
 
-Note: entries with 5 or fewer days of data are not statistically reliable.
+Note: entries with 5 or fewer days of data are not statistically reliable and should be ignored.
 
-Give exactly 3 short bullet points (one sentence each) advising the player on how many games per day they should play to maximize their win rate. Be specific, reference the numbers. Do NOT use markdown formatting — just plain text, one bullet per line, starting with a dash."""
+Give exactly 2 lines, addressing the player as "you":
+1. Best Results: list the top 3 games-per-day values with the highest win rate (only from entries with more than 5 days of data). Format: "Best Results: X games/day (Y.Z%), X games/day (Y.Z%), X games/day (Y.Z%)"
+2. Worst Results: list the bottom 3 games-per-day values with the lowest win rate (only from entries with more than 5 days of data). Format: "Worst Results: X games/day (Y.Z%), X games/day (Y.Z%), X games/day (Y.Z%)"
+
+Do NOT use markdown formatting — just plain text, one line each."""
 
         response = model.generate_content(prompt)
         summary = response.text.strip()
         return jsonify({'summary': summary}), 200
     except Exception as e:
         print(f"Gemini analyze-daily-volume error: {e}")
+        return jsonify({'summary': ''}), 200
+
+
+@app.route('/api/chess/analyze-streak', methods=['POST'])
+def analyze_streak():
+    """Use Gemini to interpret streak stats."""
+    data = request.get_json()
+    stats = data.get('stats', [])
+    if not stats:
+        return jsonify({'summary': ''}), 200
+
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        return jsonify({'summary': ''}), 200
+
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+
+        lines = []
+        for s in stats:
+            label = f"After {s['streak_length']} {'win' if s['streak_type'] == 'win' else 'loss'}{'es' if s['streak_type'] == 'loss' and s['streak_length'] > 1 else 's' if s['streak_length'] > 1 else ''}"
+            lines.append(f"{label}: win rate {s['win_rate']}%, {s['sample_size']} games")
+
+        prompt = f"""You are a chess coach analyzing whether a player should keep playing after consecutive wins or losses.
+
+Here is the data (win rate = wins + draws/2, as percentage):
+{chr(10).join(lines)}
+
+Give exactly 2 short sentences addressing the player as "you", advising whether to keep playing after wins and after losses. Be specific, reference the numbers. Do NOT use markdown formatting — just plain text."""
+
+        response = model.generate_content(prompt)
+        summary = response.text.strip()
+        return jsonify({'summary': summary}), 200
+    except Exception as e:
+        print(f"Gemini analyze-streak error: {e}")
         return jsonify({'summary': ''}), 200
 
 
@@ -191,7 +232,7 @@ def get_chess_stats_stream():
                 all_cached = {}
 
             # Force re-fetch if cache is missing daily_volume_stats
-            if all_cached and any('daily_volume_stats' not in s for (s, _, _) in all_cached.values()):
+            if all_cached and any('daily_volume_stats' not in s or 'streak_stats' not in s for (s, _, _) in all_cached.values()):
                 all_cached = {}
 
             # Check if requested time class has fresh cache
