@@ -1,4 +1,4 @@
-// My Data panel with ELO history and games played charts
+// My Data panel with Elo history and games played charts
 
 import { useState } from 'react';
 import { BarChart3, ChevronRight } from 'lucide-react';
@@ -84,7 +84,7 @@ export function MyDataPanel() {
     return `${month} ${day}${suffix}, ${date.getFullYear()}`;
   };
 
-  // Merge ELO history and games played into a single dataset keyed by date
+  // Merge Elo history and games played into a single dataset keyed by date
   const mergedMap = new Map<string, { date: string; elo?: number; games_played?: number }>();
 
   for (const item of data.elo_history || []) {
@@ -115,7 +115,7 @@ export function MyDataPanel() {
   const step = allMonthBoundaries.length > 18 ? 2 : 1;
   const monthBoundaries = new Set(allMonthBoundaries.filter((_, i) => i % step === 0));
 
-  // Compute explicit ELO Y-axis ticks (multiples of 100)
+  // Compute explicit Elo Y-axis ticks (multiples of 100)
   const eloValues = chartData.map(d => d.elo).filter((v): v is number => v != null);
   const eloMin = eloValues.length > 0 ? Math.floor(Math.min(...eloValues) / 100) * 100 : 0;
   const eloMax = eloValues.length > 0 ? Math.ceil(Math.max(...eloValues) / 100) * 100 : 100;
@@ -152,12 +152,12 @@ export function MyDataPanel() {
             <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">
               {eloValues.length > 0 ? eloValues[eloValues.length - 1]?.toLocaleString() : '—'}
             </p>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Current ELO</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Current Elo</p>
           </div>
         </div>
 
-        {/* Combined ELO Ranking & Games Played Chart */}
-        <CollapsibleSection title="ELO Rating & Games Played" defaultExpanded>
+        {/* Combined Elo Ranking & Games Played Chart */}
+        <CollapsibleSection title="Elo Rating & Games Played" defaultExpanded>
           {chartData.length > 0 ? (
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -202,7 +202,7 @@ export function MyDataPanel() {
                     labelStyle={{ color: '#f1f5f9', fontWeight: 700 }}
                     itemStyle={{ color: '#f1f5f9' }}
                     labelFormatter={(_label, payload) => payload?.[0]?.payload?.tooltipLabel ?? _label}
-                    formatter={(value, name) => [value ?? 0, name === 'elo' ? 'ELO' : 'Games']}
+                    formatter={(value, name) => [value ?? 0, name === 'elo' ? 'Elo' : 'Games']}
                   />
                   <Bar
                     yAxisId="games"
