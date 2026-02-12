@@ -56,8 +56,8 @@ interface ChessDataContextType {
   handleAnalyzeFatigue: () => void;
 
   // Processed data
-  processedHistory: Array<{ year: number; week: number; games_played: number; periodLabel: string }> | undefined;
-  processedEloHistory: Array<{ year: number; week: number; elo: number; periodLabel: string }> | undefined;
+  processedHistory: Array<{ date: string; games_played: number; periodLabel: string }> | undefined;
+  processedEloHistory: Array<{ date: string; elo: number; periodLabel: string }> | undefined;
   allOpenings: Array<OpeningData & { side: 'White' | 'Black' }>;
 
   // Actions
@@ -76,7 +76,6 @@ export function useChessData() {
   return context;
 }
 
-import { formatWeekYear } from '../utils/helpers';
 
 interface ChessDataProviderProps {
   children: ReactNode;
@@ -235,13 +234,13 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
   // Pre-process the history data to include the label directly
   const processedHistory = data?.history.map(item => ({
     ...item,
-    periodLabel: formatWeekYear(item.year, item.week)
+    periodLabel: item.date
   }));
 
   // Pre-process the Elo history data
   const processedEloHistory = data?.elo_history.map(item => ({
     ...item,
-    periodLabel: formatWeekYear(item.year, item.week)
+    periodLabel: item.date
   }));
 
   // Get all openings for dropdown

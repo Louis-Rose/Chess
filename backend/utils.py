@@ -84,8 +84,8 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
         cached = cached_stats_map.get(tc) if cached_stats_map else None
         if cached:
             tc_data[tc] = {
-                'games_by_week': {(d['year'], d['week']): d['games_played'] for d in cached.get('history', [])},
-                'elo_by_week': {(d['year'], d['week']): {'elo': d['elo'], 'timestamp': 0} for d in cached.get('elo_history', [])},
+                'games_by_week': {d['date']: d['games_played'] for d in cached.get('history', [])},
+                'elo_by_week': {d['date']: {'elo': d['elo'], 'timestamp': 0} for d in cached.get('elo_history', [])},
                 'games_by_day': {},
                 'games_by_hour': {},  # Track win rate by hour of day
                 'openings_white': [],
@@ -149,16 +149,15 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                     continue
 
                 game_date = datetime.datetime.fromtimestamp(end_time)
-                year, week, _ = game_date.isocalendar()
+                date_str = game_date.strftime('%Y-%m-%d')
 
                 # Get data structure for this time class
                 tcd = tc_data[game_time_class]
                 tcd['total_games'] += 1
 
-                key = (year, week)
-                if key not in tcd['games_by_week']:
-                    tcd['games_by_week'][key] = 0
-                tcd['games_by_week'][key] += 1
+                if date_str not in tcd['games_by_week']:
+                    tcd['games_by_week'][date_str] = 0
+                tcd['games_by_week'][date_str] += 1
 
                 # Determine user's side and rating
                 if game['white']['username'].lower() == USERNAME.lower():
@@ -172,10 +171,10 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 else:
                     continue
 
-                # Elo per week
+                # Elo per day
                 if rating:
-                    if key not in tcd['elo_by_week'] or end_time > tcd['elo_by_week'][key]['timestamp']:
-                        tcd['elo_by_week'][key] = {'elo': rating, 'timestamp': end_time}
+                    if date_str not in tcd['elo_by_week'] or end_time > tcd['elo_by_week'][date_str]['timestamp']:
+                        tcd['elo_by_week'][date_str] = {'elo': rating, 'timestamp': end_time}
 
                 # Game number stats
                 game_result = get_game_result(result_code)
@@ -214,21 +213,21 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
     for tc in TIME_CLASSES:
         tcd = tc_data[tc]
 
-        # Games per week
-        games_per_week_data = [
-            {'year': year, 'week': week, 'games_played': count}
-            for (year, week), count in tcd['games_by_week'].items()
+        # Games per day
+        games_per_day_data = [
+            {'date': date_str, 'games_played': count}
+            for date_str, count in tcd['games_by_week'].items()
         ]
-        games_per_week_data.sort(key=lambda x: (x['year'], x['week']))
-        games_per_week_data = fill_missing_weeks(games_per_week_data)
+        games_per_day_data.sort(key=lambda x: x['date'])
+        games_per_day_data = fill_missing_days(games_per_day_data)
 
-        # Elo per week
-        elo_per_week_data = [
-            {'year': year, 'week': week, 'elo': data['elo']}
-            for (year, week), data in tcd['elo_by_week'].items()
+        # Elo per day
+        elo_per_day_data = [
+            {'date': date_str, 'elo': data['elo']}
+            for date_str, data in tcd['elo_by_week'].items()
         ]
-        elo_per_week_data.sort(key=lambda x: (x['year'], x['week']))
-        elo_per_week_data = fill_missing_weeks_elo(elo_per_week_data)
+        elo_per_day_data.sort(key=lambda x: x['date'])
+        elo_per_day_data = fill_missing_days_elo(elo_per_day_data)
 
         # Game number stats
         game_number_stats = {}
@@ -301,8 +300,8 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
 
         all_time_classes_data[tc] = {
             'time_class': tc,
-            'history': games_per_week_data,
-            'elo_history': elo_per_week_data,
+            'history': games_per_day_data,
+            'elo_history': elo_per_day_data,
             'total_games': tcd['total_games'],
             'total_rapid': total_rapid,
             'total_blitz': total_blitz,
@@ -326,10 +325,10 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
     yield f"data: {json.dumps(final_data)}\n\n"
 
 
-def fetch_games_played_per_week(USERNAME, time_class=None, archives=None):
-    """Fetch games played per week, optionally filtered by time class."""
+def fetch_games_played_per_day(USERNAME, time_class=None, archives=None):
+    """Fetch games played per day, optionally filtered by time class."""
     monthly_archives_urls_list = archives if archives is not None else fetch_player_games_archives(USERNAME)
-    games_by_week = {}
+    games_by_day = {}
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
 
     for archive_url in monthly_archives_urls_list:
@@ -347,13 +346,11 @@ def fetch_games_played_per_week(USERNAME, time_class=None, archives=None):
                 if not end_time:
                     continue
 
-                game_date = datetime.datetime.fromtimestamp(end_time)
-                year, week, _ = game_date.isocalendar()
+                date_str = datetime.datetime.fromtimestamp(end_time).strftime('%Y-%m-%d')
 
-                key = (year, week)
-                if key not in games_by_week:
-                    games_by_week[key] = 0
-                games_by_week[key] += 1
+                if date_str not in games_by_day:
+                    games_by_day[date_str] = 0
+                games_by_day[date_str] += 1
 
             parts = archive_url.split('/')
             print(f"Processed {parts[-2]}-{parts[-1]}")
@@ -361,20 +358,20 @@ def fetch_games_played_per_week(USERNAME, time_class=None, archives=None):
         except requests.exceptions.RequestException as e:
             print(f"Error fetching {archive_url}: {e}")
 
-    games_per_week_data = [
-        {'year': year, 'week': week, 'games_played': count}
-        for (year, week), count in games_by_week.items()
+    games_per_day_data = [
+        {'date': date_str, 'games_played': count}
+        for date_str, count in games_by_day.items()
     ]
-    games_per_week_data.sort(key=lambda x: (x['year'], x['week']))
+    games_per_day_data.sort(key=lambda x: x['date'])
 
-    return fill_missing_weeks(games_per_week_data)
+    return fill_missing_days(games_per_day_data)
 
-def fetch_elo_per_week(USERNAME, time_class='rapid', archives=None):
-    """Fetch the last Elo rating per week for a given time control.
-    Returns: (elo_per_week_data, total_games_count)
+def fetch_elo_per_day(USERNAME, time_class='rapid', archives=None):
+    """Fetch the last Elo rating per day for a given time control.
+    Returns: (elo_per_day_data, total_games_count)
     """
     monthly_archives_urls_list = archives if archives is not None else fetch_player_games_archives(USERNAME)
-    elo_by_week = {}  # {(year, week): {'elo': rating, 'timestamp': end_time}}
+    elo_by_day = {}  # {date_str: {'elo': rating, 'timestamp': end_time}}
     total_games = 0
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
 
@@ -406,13 +403,11 @@ def fetch_elo_per_week(USERNAME, time_class='rapid', archives=None):
                 if not rating:
                     continue
 
-                game_date = datetime.datetime.fromtimestamp(end_time)
-                year, week, _ = game_date.isocalendar()
-                key = (year, week)
+                date_str = datetime.datetime.fromtimestamp(end_time).strftime('%Y-%m-%d')
 
-                # Keep the most recent game's rating for each week
-                if key not in elo_by_week or end_time > elo_by_week[key]['timestamp']:
-                    elo_by_week[key] = {'elo': rating, 'timestamp': end_time}
+                # Keep the most recent game's rating for each day
+                if date_str not in elo_by_day or end_time > elo_by_day[date_str]['timestamp']:
+                    elo_by_day[date_str] = {'elo': rating, 'timestamp': end_time}
 
             parts = archive_url.split('/')
             print(f"Processed Elo {parts[-2]}-{parts[-1]}")
@@ -420,13 +415,13 @@ def fetch_elo_per_week(USERNAME, time_class='rapid', archives=None):
         except requests.exceptions.RequestException as e:
             print(f"Error fetching {archive_url}: {e}")
 
-    elo_per_week_data = [
-        {'year': year, 'week': week, 'elo': data['elo']}
-        for (year, week), data in elo_by_week.items()
+    elo_per_day_data = [
+        {'date': date_str, 'elo': data['elo']}
+        for date_str, data in elo_by_day.items()
     ]
-    elo_per_week_data.sort(key=lambda x: (x['year'], x['week']))
+    elo_per_day_data.sort(key=lambda x: x['date'])
 
-    return fill_missing_weeks_elo(elo_per_week_data), total_games
+    return fill_missing_days_elo(elo_per_day_data), total_games
 
 def fetch_win_rate_by_game_number(USERNAME, time_class='rapid', archives=None):
     """
@@ -520,32 +515,28 @@ def fetch_win_rate_by_game_number(USERNAME, time_class='rapid', archives=None):
 
     return filtered_data
 
-def fill_missing_weeks_elo(data):
-    """Fill missing weeks by carrying forward the last known Elo."""
+def fill_missing_days_elo(data):
+    """Fill missing days by carrying forward the last known Elo."""
     if not data:
         return []
 
-    data.sort(key=lambda x: (x['year'], x['week']))
-    existing_data = {(d['year'], d['week']): d['elo'] for d in data}
+    data.sort(key=lambda x: x['date'])
+    existing_data = {d['date']: d['elo'] for d in data}
 
-    start_year, start_week = data[0]['year'], data[0]['week']
-    end_year, end_week = data[-1]['year'], data[-1]['week']
+    start_date = datetime.date.fromisoformat(data[0]['date'])
+    end_date = datetime.date.fromisoformat(data[-1]['date'])
 
     filled_data = []
-    curr_year, curr_week = start_year, start_week
+    curr_date = start_date
     last_elo = data[0]['elo']
+    one_day = datetime.timedelta(days=1)
 
-    while (curr_year, curr_week) <= (end_year, end_week):
-        if (curr_year, curr_week) in existing_data:
-            last_elo = existing_data[(curr_year, curr_week)]
-        filled_data.append({'year': curr_year, 'week': curr_week, 'elo': last_elo})
-
-        max_week = datetime.date(curr_year, 12, 28).isocalendar()[1]
-        if curr_week >= max_week:
-            curr_week = 1
-            curr_year += 1
-        else:
-            curr_week += 1
+    while curr_date <= end_date:
+        date_str = curr_date.isoformat()
+        if date_str in existing_data:
+            last_elo = existing_data[date_str]
+        filled_data.append({'date': date_str, 'elo': last_elo})
+        curr_date += one_day
 
     return filled_data
 
@@ -581,30 +572,24 @@ def fetch_all_openings(USERNAME, monthly_games_archives_urls_list):
 
 # --- Helper Functions ---
 
-def fill_missing_weeks(data):
+def fill_missing_days(data):
     if not data: return []
-    data.sort(key=lambda x: (x['year'], x['week']))
+    data.sort(key=lambda x: x['date'])
 
-    existing_data = {(d['year'], d['week']): d['games_played'] for d in data}
+    existing_data = {d['date']: d['games_played'] for d in data}
 
-    start_year, start_week = data[0]['year'], data[0]['week']
-    end_year, end_week = data[-1]['year'], data[-1]['week']
+    start_date = datetime.date.fromisoformat(data[0]['date'])
+    end_date = datetime.date.fromisoformat(data[-1]['date'])
 
     filled_data = []
-    curr_year, curr_week = start_year, start_week
+    curr_date = start_date
+    one_day = datetime.timedelta(days=1)
 
-    while (curr_year, curr_week) <= (end_year, end_week):
-        count = existing_data.get((curr_year, curr_week), 0)
-        filled_data.append({'year': curr_year, 'week': curr_week, 'games_played': count})
-
-        # Get max weeks in current year (52 or 53)
-        max_week = datetime.date(curr_year, 12, 28).isocalendar()[1]
-
-        if curr_week >= max_week:
-            curr_week = 1
-            curr_year += 1
-        else:
-            curr_week += 1
+    while curr_date <= end_date:
+        date_str = curr_date.isoformat()
+        count = existing_data.get(date_str, 0)
+        filled_data.append({'date': date_str, 'games_played': count})
+        curr_date += one_day
 
     return filled_data
 

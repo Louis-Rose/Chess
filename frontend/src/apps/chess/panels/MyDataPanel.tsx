@@ -54,49 +54,40 @@ export function MyDataPanel() {
     );
   }
 
-  // Convert ISO week/year to a proper date (Monday of that week)
-  const weekToDate = (year: number, week: number) => {
-    const jan4 = new Date(year, 0, 4);
-    const dayOfWeek = jan4.getDay() || 7;
-    const monday = new Date(jan4);
-    monday.setDate(jan4.getDate() - dayOfWeek + 1 + (week - 1) * 7);
-    return monday;
-  };
-
   // X-axis label: full month + 4-digit year
-  const formatAxisLabel = (year: number, week: number) => {
-    const date = weekToDate(year, week);
+  const formatAxisLabel = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
 
   // Tooltip label: full month + ordinal day + 4-digit year
-  const formatTooltipLabel = (year: number, week: number) => {
-    const date = weekToDate(year, week);
+  const formatTooltipLabel = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
     const month = date.toLocaleDateString('en-US', { month: 'long' });
     const day = date.getDate();
     const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
     return `${month} ${day}${suffix}, ${date.getFullYear()}`;
   };
 
-  // Merge ELO history and games played into a single dataset keyed by year+week
-  const mergedMap = new Map<string, { year: number; week: number; elo?: number; games_played?: number }>();
+  // Merge ELO history and games played into a single dataset keyed by date
+  const mergedMap = new Map<string, { date: string; elo?: number; games_played?: number }>();
 
   for (const item of data.elo_history || []) {
-    const key = `${item.year}-${item.week}`;
-    mergedMap.set(key, { ...mergedMap.get(key), year: item.year, week: item.week, elo: item.elo });
+    mergedMap.set(item.date, { ...mergedMap.get(item.date), date: item.date, elo: item.elo });
   }
   for (const item of data.history || []) {
-    const key = `${item.year}-${item.week}`;
-    mergedMap.set(key, { ...mergedMap.get(key), year: item.year, week: item.week, games_played: item.games_played });
+    mergedMap.set(item.date, { ...mergedMap.get(item.date), date: item.date, games_played: item.games_played });
   }
 
   // Sort by date and add labels
   const chartData = Array.from(mergedMap.values())
-    .sort((a, b) => a.year !== b.year ? a.year - b.year : a.week - b.week)
+    .sort((a, b) => a.date.localeCompare(b.date))
     .map(item => ({
       ...item,
-      label: formatAxisLabel(item.year, item.week),
-      tooltipLabel: formatTooltipLabel(item.year, item.week),
+      label: formatAxisLabel(item.date),
+      tooltipLabel: formatTooltipLabel(item.date),
     }));
 
   // Compute explicit ELO Y-axis ticks (multiples of 100)
@@ -135,7 +126,7 @@ export function MyDataPanel() {
         </div>
 
         {/* Combined ELO Ranking & Games Played Chart */}
-        <CollapsibleSection title="ELO Ranking & Games Played" defaultExpanded>
+        <CollapsibleSection title="ELO Rating & Games Played" defaultExpanded>
           {chartData.length > 0 ? (
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">

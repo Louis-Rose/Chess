@@ -75,11 +75,11 @@ def get_chess_stats():
         # 2. Fetch archives once - reuse for all functions
         archives = utils.fetch_player_games_archives(username)
 
-        # 3. Fetch History (weekly) - filtered by time class
-        history = utils.fetch_games_played_per_week(username, time_class=time_class, archives=archives)
+        # 3. Fetch History (daily) - filtered by time class
+        history = utils.fetch_games_played_per_day(username, time_class=time_class, archives=archives)
 
         # 4. Fetch Elo history - filtered by time class
-        elo_history, total_games = utils.fetch_elo_per_week(username, time_class=time_class, archives=archives)
+        elo_history, total_games = utils.fetch_elo_per_day(username, time_class=time_class, archives=archives)
 
         # 5. Fetch Openings
         raw_openings = utils.fetch_all_openings(username, archives)

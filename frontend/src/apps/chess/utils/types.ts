@@ -18,14 +18,12 @@ export interface PlayerData {
 }
 
 export interface HistoryData {
-  year: number;
-  week: number;
+  date: string;
   games_played: number;
 }
 
 export interface EloData {
-  year: number;
-  week: number;
+  date: string;
   elo: number;
 }
 
