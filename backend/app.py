@@ -244,7 +244,11 @@ def get_chess_stats_stream():
                 all_cached = {}
 
             # Force re-fetch if cache is missing daily_volume_stats
-            if all_cached and any('daily_volume_stats' not in s or 'streak_stats' not in s for (s, _, _) in all_cached.values()):
+            if all_cached and any(
+                'daily_volume_stats' not in s or 'streak_stats' not in s
+                or len(s.get('streak_stats', [])) < 10  # Need 5 win + 5 loss entries
+                for (s, _, _) in all_cached.values()
+            ):
                 all_cached = {}
 
             # Check if requested time class has fresh cache

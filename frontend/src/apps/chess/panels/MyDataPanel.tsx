@@ -77,9 +77,22 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
 }
 
 function DailyVolumeSection({ data }: { data: ApiResponse }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const [aiCache, setAiCache] = useState<Record<string, string>>({});
+  const [aiLoading, setAiLoading] = useState(false);
 
   const rawDvs = data.daily_volume_stats;
+  const aiSummary = aiCache[language] || null;
+
+  useEffect(() => {
+    if (!rawDvs || rawDvs.length === 0) return;
+    if (aiCache[language]) return;
+    setAiLoading(true);
+    axios.post('/api/chess/analyze-daily-volume', { stats: rawDvs, language })
+      .then(res => setAiCache(prev => ({ ...prev, [language]: res.data.summary })))
+      .catch(() => {})
+      .finally(() => setAiLoading(false));
+  }, [rawDvs, language, aiCache]);
 
   return (
     <CollapsibleSection title={t('chess.dailyVolumeTitle')} defaultExpanded>
@@ -188,6 +201,19 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
                 )}
               </tbody>
             </table>
+
+            {/* AI Summary */}
+            <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+              {aiLoading ? (
+                <p className="text-slate-400 text-sm text-center animate-pulse">{t('chess.analyzing')}</p>
+              ) : aiSummary ? (
+                <div className="text-slate-300 text-sm">
+                  {aiSummary}
+                </div>
+              ) : (
+                <p className="text-slate-500 text-sm text-center">{t('chess.aiUnavailable')}</p>
+              )}
+            </div>
           </div>
         );
       }}
@@ -241,9 +267,9 @@ function StreakSection({ data }: { data: ApiResponse }) {
       {() => {
         if (!stats || stats.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
-        // Sort descending by streak length (5, 4, 3, 2, 1)
+        // Wins: descending (5, 4, 3, 2, 1). Losses: ascending (1, 2, 3, 4, 5)
         const wins = stats.filter(s => s.streak_type === 'win').sort((a, b) => b.streak_length - a.streak_length);
-        const losses = stats.filter(s => s.streak_type === 'loss').sort((a, b) => b.streak_length - a.streak_length);
+        const losses = stats.filter(s => s.streak_type === 'loss').sort((a, b) => a.streak_length - b.streak_length);
 
         return (
           <div className="space-y-4">
