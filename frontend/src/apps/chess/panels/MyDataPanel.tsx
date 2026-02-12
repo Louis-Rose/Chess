@@ -63,16 +63,19 @@ export function MyDataPanel() {
     return monday;
   };
 
-  // X-axis label: full month + 2-digit year
+  // X-axis label: full month + 4-digit year
   const formatAxisLabel = (year: number, week: number) => {
     const date = weekToDate(year, week);
-    return date.toLocaleDateString('en-US', { month: 'long', year: '2-digit' });
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
 
-  // Tooltip label: full month + day + 2-digit year
+  // Tooltip label: full month + ordinal day + 4-digit year
   const formatTooltipLabel = (year: number, week: number) => {
     const date = weekToDate(year, week);
-    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' });
+    const month = date.toLocaleDateString('en-US', { month: 'long' });
+    const day = date.getDate();
+    const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+    return `${month} ${day}${suffix}, ${date.getFullYear()}`;
   };
 
   // Prepare ELO history data
