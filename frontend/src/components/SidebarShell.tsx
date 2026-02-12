@@ -1,7 +1,7 @@
 // Shared sidebar shell used by both Investing and Chess sidebars
 // Provides consistent layout, sticky positioning, and bottom toggles
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
 
