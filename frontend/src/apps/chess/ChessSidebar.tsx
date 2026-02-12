@@ -117,23 +117,8 @@ export function ChessSidebar() {
         )}
       </div>
 
-      {/* Game Type Selector */}
-      <div className="px-2 py-4 border-b border-slate-700">
-        <div className="bg-white rounded-lg p-3">
-          <label className="block text-slate-600 text-xs font-medium mb-2 text-center">Game Type</label>
-          <select
-            value={selectedTimeClass}
-            onChange={(e) => handleTimeClassChange(e.target.value as 'rapid' | 'blitz')}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          >
-            <option value="rapid">Rapid</option>
-            <option value="blitz">Blitz</option>
-          </select>
-        </div>
-      </div>
-
       {/* Navigation */}
-      <div className="flex flex-col gap-1 px-2 py-4">
+      <div className="flex flex-col gap-1 px-2 py-4 border-b border-slate-700">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
@@ -151,6 +136,21 @@ export function ChessSidebar() {
             {item.label}
           </NavLink>
         ))}
+      </div>
+
+      {/* Game Type Selector */}
+      <div className="px-2 py-4 border-b border-slate-700">
+        <div className="bg-white rounded-lg p-3">
+          <label className="block text-slate-600 text-xs font-medium mb-2 text-center">Game Type</label>
+          <select
+            value={selectedTimeClass}
+            onChange={(e) => handleTimeClassChange(e.target.value as 'rapid' | 'blitz')}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          >
+            <option value="rapid">Rapid</option>
+            <option value="blitz">Blitz</option>
+          </select>
+        </div>
       </div>
     </SidebarShell>
   );
