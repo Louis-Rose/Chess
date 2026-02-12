@@ -1,12 +1,35 @@
 // My Data panel with ELO history and games played charts
 
-import { BarChart3 } from 'lucide-react';
+import { useState } from 'react';
+import { BarChart3, ChevronRight } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
+
+function CollapsibleSection({ title, defaultExpanded = true, children }: { title: string; defaultExpanded?: boolean; children: React.ReactNode }) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  return (
+    <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none">
+      <div className="flex items-center p-4">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-3 text-left flex-1"
+        >
+          <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{title}</h3>
+        </button>
+      </div>
+      {isExpanded && (
+        <div className="px-4 pb-4">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function MyDataPanel() {
   const { data, loading, progress, searchedUsername } = useChessData();
@@ -60,24 +83,25 @@ export function MyDataPanel() {
 
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Stats Summary */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
-            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_games?.toLocaleString() || 0}</p>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Total Games</p>
+        <CollapsibleSection title="Stats Summary" defaultExpanded>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
+              <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_games?.toLocaleString() || 0}</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">Total Games</p>
+            </div>
+            <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
+              <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_rapid?.toLocaleString() || 0}</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">Rapid Games</p>
+            </div>
+            <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
+              <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_blitz?.toLocaleString() || 0}</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">Blitz Games</p>
+            </div>
           </div>
-          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
-            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_rapid?.toLocaleString() || 0}</p>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Rapid Games</p>
-          </div>
-          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
-            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_blitz?.toLocaleString() || 0}</p>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Blitz Games</p>
-          </div>
-        </div>
+        </CollapsibleSection>
 
         {/* ELO History Chart */}
-        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">ELO History</h3>
+        <CollapsibleSection title="ELO History" defaultExpanded>
           {eloData.length > 0 ? (
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -111,11 +135,10 @@ export function MyDataPanel() {
           ) : (
             <p className="text-slate-500 text-center py-8">No ELO history data available.</p>
           )}
-        </div>
+        </CollapsibleSection>
 
         {/* Games Played Chart */}
-        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">Games Played</h3>
+        <CollapsibleSection title="Games Played" defaultExpanded>
           {gamesData.length > 0 ? (
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -147,7 +170,7 @@ export function MyDataPanel() {
           ) : (
             <p className="text-slate-500 text-center py-8">No games history data available.</p>
           )}
-        </div>
+        </CollapsibleSection>
       </div>
     </div>
   );
