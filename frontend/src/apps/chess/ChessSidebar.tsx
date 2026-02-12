@@ -66,6 +66,32 @@ export function ChessSidebar() {
         )}
       </div>
 
+      {/* App Switcher */}
+      <div className="px-2 pb-4 border-b border-slate-700 relative" ref={appSwitcherRef}>
+        <button
+          onClick={() => setShowAppSwitcher(!showAppSwitcher)}
+          className="w-full bg-blue-900/30 hover:bg-blue-900/50 rounded-lg p-3 transition-colors"
+        >
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-2xl">♞</span>
+            <p className="text-blue-400 font-semibold">Chess</p>
+            <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform ${showAppSwitcher ? 'rotate-180' : ''}`} />
+          </div>
+        </button>
+        {showAppSwitcher && (
+          <div className="absolute top-full left-2 right-2 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
+            <Link
+              to="/investing"
+              onClick={() => setShowAppSwitcher(false)}
+              className="flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors"
+            >
+              <span className="text-2xl">📈</span>
+              <p className="text-slate-200 font-medium">Investing</p>
+            </Link>
+          </div>
+        )}
+      </div>
+
       {/* Player Info */}
       <div className="px-2 pb-4 border-b border-slate-700">
         {isAuthenticated && myPlayerData?.player ? (
@@ -99,32 +125,6 @@ export function ChessSidebar() {
               <p>Rapid: <span className="font-semibold">--</span> games</p>
               <p>Blitz: <span className="font-semibold">--</span> games</p>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* App Switcher */}
-      <div className="px-2 pb-4 border-b border-slate-700 relative" ref={appSwitcherRef}>
-        <button
-          onClick={() => setShowAppSwitcher(!showAppSwitcher)}
-          className="w-full bg-blue-900/30 hover:bg-blue-900/50 rounded-lg p-3 transition-colors"
-        >
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-2xl">♞</span>
-            <p className="text-blue-400 font-semibold">Chess</p>
-            <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform ${showAppSwitcher ? 'rotate-180' : ''}`} />
-          </div>
-        </button>
-        {showAppSwitcher && (
-          <div className="absolute top-full left-2 right-2 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
-            <Link
-              to="/investing"
-              onClick={() => setShowAppSwitcher(false)}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors"
-            >
-              <span className="text-2xl">📈</span>
-              <p className="text-slate-200 font-medium">Investing</p>
-            </Link>
           </div>
         )}
       </div>
