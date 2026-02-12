@@ -1,7 +1,7 @@
 // My Data panel with Elo history and games played charts
 
-import { useState } from 'react';
-import { BarChart3, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { BarChart3, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 import {
@@ -11,24 +11,52 @@ import {
 
 function CollapsibleSection({ title, defaultExpanded = true, children }: { title: string; defaultExpanded?: boolean; children: React.ReactNode }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-  return (
-    <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none">
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const closeFullscreen = useCallback(() => setIsFullscreen(false), []);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeFullscreen(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isFullscreen, closeFullscreen]);
+
+  const content = (
+    <div className={isFullscreen
+      ? 'fixed inset-0 z-50 bg-slate-100 dark:bg-slate-800 p-6 overflow-auto flex flex-col'
+      : 'bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none'
+    }>
       <div className="flex items-center p-4">
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={() => { if (!isFullscreen) setIsExpanded(!isExpanded); }}
           className="flex items-center gap-3 text-left flex-1"
         >
-          <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+          {!isFullscreen && (
+            <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+          )}
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{title}</h3>
         </button>
+        <button
+          onClick={() => setIsFullscreen(f => !f)}
+          className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-400 transition-colors"
+          title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        >
+          {isFullscreen
+            ? <Minimize2 className="w-4 h-4" />
+            : <Maximize2 className="w-4 h-4" />
+          }
+        </button>
       </div>
-      {isExpanded && (
-        <div className="px-4 pb-4">
+      {(isExpanded || isFullscreen) && (
+        <div className={isFullscreen ? 'px-4 pb-4 flex-1 min-h-0' : 'px-4 pb-4'}>
           {children}
         </div>
       )}
     </div>
   );
+
+  return content;
 }
 
 export function MyDataPanel() {
