@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { BarChart3, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import type { ApiResponse, StreakStats } from '../utils/types';
+import type { ApiResponse, StreakStats, TodayStats } from '../utils/types';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 import {
   ComposedChart, BarChart, Line, Bar, ReferenceLine,
@@ -73,6 +73,91 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
   }
 
   return card;
+}
+
+function TodaySection({ data }: { data: ApiResponse }) {
+  const { t } = useLanguage();
+
+  const today = data.today_stats;
+  if (!today) return null;
+
+  const gamesToday = today.games_today;
+  const streakType = today.current_streak_type;
+  const streakLength = today.current_streak_length;
+
+  // Predicted win rate from daily volume: find entry for games_today + 1 (next game)
+  const dvs = data.daily_volume_stats;
+  const nextGameCount = gamesToday + 1;
+  const volumeEntry = dvs?.find(d => d.games_per_day === nextGameCount);
+  const volumeWinRate = volumeEntry && volumeEntry.days >= 10
+    ? (volumeEntry.win_pct + volumeEntry.draw_pct / 2) : null;
+
+  // Predicted win rate from streak: find entry matching current streak
+  const streakStats = data.streak_stats;
+  const streakEntry = streakStats?.find(
+    s => s.streak_type === streakType && s.streak_length === streakLength
+  );
+  const streakWinRate = streakEntry && streakEntry.sample_size >= 30
+    ? streakEntry.win_rate : null;
+
+  // Format streak label
+  const formatStreak = (type: TodayStats['current_streak_type'], len: number) => {
+    if (!type || len === 0) return '—';
+    const label = type === 'win' ? t('chess.wins') : type === 'loss' ? t('chess.losses') : t('chess.draws');
+    return `${len} ${label}`;
+  };
+
+  const winRateColor = (rate: number) => rate >= 50 ? 'text-green-400' : 'text-red-400';
+
+  return (
+    <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none p-5">
+      <div className="grid grid-cols-2 gap-6">
+        {/* Left column: Today */}
+        <div>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">{t('chess.today')}</h3>
+          <div className="space-y-3">
+            <div>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">{t('chess.gamesPlayed')}</p>
+              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{gamesToday}</p>
+            </div>
+            <div>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">{t('chess.currentStreak')}</p>
+              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                {formatStreak(streakType, streakLength)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right column: Predicted win rate */}
+        <div>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">{t('chess.predictedWinRate')}</h3>
+          <div className="space-y-3">
+            <div>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">{t('chess.fromDailyVolume')}</p>
+              <p className={`text-2xl font-bold ${volumeWinRate !== null ? winRateColor(volumeWinRate) : 'text-slate-500'}`}>
+                {volumeWinRate !== null ? `${volumeWinRate.toFixed(1)}%` : '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">{t('chess.fromStreak')}</p>
+              <p className={`text-2xl font-bold ${streakWinRate !== null ? winRateColor(streakWinRate) : 'text-slate-500'}`}>
+                {streakWinRate !== null ? `${streakWinRate.toFixed(1)}%` : '—'}
+              </p>
+            </div>
+          </div>
+          <a
+            href="https://www.chess.com/play/online"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-block bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+          >
+            {t('chess.go')}
+          </a>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function DailyVolumeSection({ data }: { data: ApiResponse }) {
@@ -476,6 +561,9 @@ export function MyDataPanel() {
           ) : (
             <p className="text-slate-500 text-center py-8">No data available.</p>
           )}</CollapsibleSection>
+
+        {/* Today's session stats */}
+        <TodaySection data={data} />
 
         {/* Games per day analysis */}
         <DailyVolumeSection data={data} />

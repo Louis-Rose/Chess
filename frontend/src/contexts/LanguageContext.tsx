@@ -128,6 +128,16 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.keepPlayingUpTo': 'Keep playing up to {n} wins in a row.',
     'chess.stopAfter1Loss': 'Stop playing after 1 loss.',
     'chess.stopAfterNLosses': 'Stop playing after {n} losses in a row.',
+    'chess.today': 'Today',
+    'chess.gamesPlayed': 'Games played',
+    'chess.currentStreak': 'Current streak',
+    'chess.predictedWinRate': 'Predicted win rate',
+    'chess.go': 'Go!',
+    'chess.wins': 'Wins',
+    'chess.losses': 'Losses',
+    'chess.draws': 'Draws',
+    'chess.fromDailyVolume': 'from daily volume',
+    'chess.fromStreak': 'from streak',
 
     // Common
     'common.loading': 'Loading...',
@@ -252,6 +262,16 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.keepPlayingUpTo': "Continuez à jouer jusqu'à {n} victoires d'affilée.",
     'chess.stopAfter1Loss': 'Arrêtez de jouer après 1 défaite.',
     'chess.stopAfterNLosses': 'Arrêtez de jouer après {n} défaites consécutives.',
+    'chess.today': "Aujourd'hui",
+    'chess.gamesPlayed': 'Parties jouées',
+    'chess.currentStreak': 'Série en cours',
+    'chess.predictedWinRate': 'Taux de victoire prédit',
+    'chess.go': 'Jouer !',
+    'chess.wins': 'Victoires',
+    'chess.losses': 'Défaites',
+    'chess.draws': 'Nulles',
+    'chess.fromDailyVolume': 'du volume quotidien',
+    'chess.fromStreak': 'de la série',
 
     // Common
     'common.loading': 'Chargement...',

@@ -360,6 +360,16 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
         if not streak_stats and tcd.get('cached_streak_stats'):
             streak_stats = tcd['cached_streak_stats']
 
+        # Today stats: games played today + current streak
+        today = datetime.date.today().isoformat()
+        games_today = len(tcd['games_by_day'].get(today, []))
+        # cur_len / cur_type from the max-streak loop above represent the current (last) streak
+        today_stats = {
+            'games_today': games_today,
+            'current_streak_type': cur_type if cur_type in ('win', 'loss', 'draw') else None,
+            'current_streak_length': cur_len if cur_type in ('win', 'loss', 'draw') else 0,
+        }
+
         # Hourly stats (win rate by 2-hour groups)
         hourly_result = []
         for hour_group in range(12):  # 12 groups of 2 hours each
@@ -408,6 +418,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             'game_number_stats': game_number_result,
             'daily_volume_stats': daily_volume_stats,
             'streak_stats': streak_stats,
+            'today_stats': today_stats,
             'hourly_stats': hourly_result,
             'win_prediction': win_prediction,
             'last_archive': last_archive_processed

@@ -137,6 +137,12 @@ export interface WinPredictionAnalysis {
   insights?: WinPredictionInsight[];
 }
 
+export interface TodayStats {
+  games_today: number;
+  current_streak_type: 'win' | 'loss' | 'draw' | null;
+  current_streak_length: number;
+}
+
 export interface ApiResponse {
   player: PlayerData;
   time_class: string;
@@ -152,6 +158,7 @@ export interface ApiResponse {
   game_number_stats: GameNumberStats[];
   daily_volume_stats?: DailyVolumeStats[];
   streak_stats?: StreakStats[];
+  today_stats?: TodayStats;
   hourly_stats: HourlyStats[];
   win_prediction: WinPredictionAnalysis;
 }
