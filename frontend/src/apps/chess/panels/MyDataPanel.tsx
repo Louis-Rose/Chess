@@ -82,15 +82,15 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
   const [aiLoading, setAiLoading] = useState(false);
 
   const rawDvs = data.daily_volume_stats;
-  const aiSummary = aiCache[language] || null;
+  const aiSummary = aiCache[language] ?? null;
 
   useEffect(() => {
     if (!rawDvs || rawDvs.length === 0) return;
-    if (aiCache[language]) return;
+    if (language in aiCache) return;
     setAiLoading(true);
     axios.post('/api/chess/analyze-daily-volume', { stats: rawDvs, language })
-      .then(res => setAiCache(prev => ({ ...prev, [language]: res.data.summary })))
-      .catch(() => {})
+      .then(res => setAiCache(prev => ({ ...prev, [language]: res.data.summary || '' })))
+      .catch(() => setAiCache(prev => ({ ...prev, [language]: '' })))
       .finally(() => setAiLoading(false));
   }, [rawDvs, language, aiCache]);
 
@@ -226,18 +226,33 @@ function StreakSection({ data }: { data: ApiResponse }) {
   const [aiCache, setAiCache] = useState<Record<string, string>>({});
   const [aiLoading, setAiLoading] = useState(false);
 
-  const stats = data.streak_stats;
-  const aiSummary = aiCache[language] || null;
+  const rawStats = data.streak_stats;
+  const aiSummary = aiCache[language] ?? null;
+
+  // Ensure all 5 win + 5 loss rows exist (fill missing with sample_size 0)
+  const stats = (() => {
+    if (!rawStats || rawStats.length === 0) return rawStats;
+    const existing = new Set(rawStats.map(s => `${s.streak_type}-${s.streak_length}`));
+    const filled = [...rawStats];
+    for (const len of [1, 2, 3, 4, 5]) {
+      for (const type of ['win', 'loss'] as const) {
+        if (!existing.has(`${type}-${len}`)) {
+          filled.push({ streak_type: type, streak_length: len, win_rate: 0, sample_size: 0 });
+        }
+      }
+    }
+    return filled;
+  })();
 
   useEffect(() => {
-    if (!stats || stats.length === 0) return;
-    if (aiCache[language]) return;
+    if (!rawStats || rawStats.length === 0) return;
+    if (language in aiCache) return;
     setAiLoading(true);
-    axios.post('/api/chess/analyze-streak', { stats, language })
-      .then(res => setAiCache(prev => ({ ...prev, [language]: res.data.summary })))
-      .catch(() => {})
+    axios.post('/api/chess/analyze-streak', { stats: rawStats, language })
+      .then(res => setAiCache(prev => ({ ...prev, [language]: res.data.summary || '' })))
+      .catch(() => setAiCache(prev => ({ ...prev, [language]: '' })))
       .finally(() => setAiLoading(false));
-  }, [stats, language, aiCache]);
+  }, [rawStats, language, aiCache]);
 
   const winKeys: Record<number, string> = { 1: 'chess.after1Win', 2: 'chess.after2Wins', 3: 'chess.after3Wins', 4: 'chess.after4Wins', 5: 'chess.after5Wins' };
   const lossKeys: Record<number, string> = { 1: 'chess.after1Loss', 2: 'chess.after2Losses', 3: 'chess.after3Losses', 4: 'chess.after4Losses', 5: 'chess.after5Losses' };
