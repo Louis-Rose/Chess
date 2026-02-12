@@ -152,10 +152,10 @@ def get_chess_stats_stream():
                 # Old format detected, force full re-fetch
                 all_cached = {}
 
-            # Force re-fetch if cache is missing daily_volume_stats
+            # Force re-fetch if cache is missing fields or has old fixed-5 streak format
             if all_cached and any(
                 'daily_volume_stats' not in s or 'streak_stats' not in s
-                or len(s.get('streak_stats', [])) < 10  # Need 5 win + 5 loss entries
+                or max((x.get('streak_length', 0) for x in s.get('streak_stats', [{'streak_length': 0}])), default=0) <= 5
                 for (s, _, _) in all_cached.values()
             ):
                 all_cached = {}

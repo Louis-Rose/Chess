@@ -304,13 +304,27 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 all_games_chrono.append((ts, result))
         all_games_chrono.sort(key=lambda x: x[0])
 
+        # Find max consecutive streak lengths in the data
+        max_streak = {'win': 0, 'loss': 0}
+        cur_len, cur_type = 0, None
+        for _, result in all_games_chrono:
+            if result == cur_type:
+                cur_len += 1
+            else:
+                cur_len = 1
+                cur_type = result
+            if result in max_streak:
+                max_streak[result] = max(max_streak[result], cur_len)
+        max_len = max(max_streak.get('win', 1), max_streak.get('loss', 1))
+        streak_range = list(range(1, max_len + 1))
+
         streak_buckets = {}
-        for streak_len in [1, 2, 3, 4, 5]:
+        for streak_len in streak_range:
             for streak_type in ['win', 'loss']:
                 streak_buckets[(streak_len, streak_type)] = {'wins': 0, 'draws': 0, 'total': 0}
 
         for i in range(1, len(all_games_chrono)):
-            for streak_len in [1, 2, 3, 4, 5]:
+            for streak_len in streak_range:
                 if i < streak_len:
                     continue
                 for streak_type in ['win', 'loss']:
@@ -330,10 +344,12 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                             b['draws'] += 1
 
         streak_stats = []
-        for streak_len in [1, 2, 3, 4, 5]:
+        for streak_len in streak_range:
             for streak_type in ['win', 'loss']:
                 b = streak_buckets[(streak_len, streak_type)]
-                win_rate = round(((b['wins'] + 0.5 * b['draws']) / b['total']) * 100, 1) if b['total'] > 0 else 0
+                if b['total'] == 0:
+                    continue  # Skip streak lengths with no occurrences
+                win_rate = round(((b['wins'] + 0.5 * b['draws']) / b['total']) * 100, 1)
                 streak_stats.append({
                     'streak_type': streak_type,
                     'streak_length': streak_len,

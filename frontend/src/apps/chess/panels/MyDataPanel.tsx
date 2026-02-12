@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { BarChart3, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import type { ApiResponse } from '../utils/types';
+import type { ApiResponse, StreakStats } from '../utils/types';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 import {
   ComposedChart, BarChart, Line, Bar, ReferenceLine,
@@ -174,41 +174,24 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
 function StreakSection({ data }: { data: ApiResponse }) {
   const { t } = useLanguage();
 
-  const rawStats = data.streak_stats;
-
-  // Ensure all 5 win + 5 loss rows exist (fill missing with sample_size 0)
-  const stats = (() => {
-    if (!rawStats || rawStats.length === 0) return rawStats;
-    const existing = new Set(rawStats.map(s => `${s.streak_type}-${s.streak_length}`));
-    const filled = [...rawStats];
-    for (const len of [1, 2, 3, 4, 5]) {
-      for (const type of ['win', 'loss'] as const) {
-        if (!existing.has(`${type}-${len}`)) {
-          filled.push({ streak_type: type, streak_length: len, win_rate: 0, sample_size: 0 });
-        }
-      }
-    }
-    return filled;
-  })();
-
-  const winKeys: Record<number, string> = { 1: 'chess.after1Win', 2: 'chess.after2Wins', 3: 'chess.after3Wins', 4: 'chess.after4Wins', 5: 'chess.after5Wins' };
-  const lossKeys: Record<number, string> = { 1: 'chess.after1Loss', 2: 'chess.after2Losses', 3: 'chess.after3Losses', 4: 'chess.after4Losses', 5: 'chess.after5Losses' };
+  const stats = data.streak_stats;
 
   const formatLabel = (type: string, len: number) => {
-    return t((type === 'win' ? winKeys : lossKeys)[len] || `After ${len}`);
+    if (len === 1) return type === 'win' ? t('chess.after1Win') : t('chess.after1Loss');
+    return (type === 'win' ? t('chess.afterNWins') : t('chess.afterNLosses')).replace('{n}', String(len));
   };
 
-  const renderRow = (s: { streak_type: string; streak_length: number; win_rate: number; sample_size: number }) => (
+  const renderRow = (s: StreakStats) => (
     <tr key={`${s.streak_type}-${s.streak_length}`} className="border border-slate-600">
       <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{formatLabel(s.streak_type, s.streak_length)}</td>
       <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
-        {s.sample_size > 0 ? (
+        {s.sample_size >= 30 ? (
           <>
             <span className={s.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}>{s.win_rate}%</span>
             <span className="text-slate-500 font-normal ml-2 text-xs">({s.sample_size} {t('chess.games')})</span>
           </>
         ) : (
-          <span className="text-slate-500 text-xs">{t('chess.insufficientData')}</span>
+          <span className="text-slate-500 text-xs">{t('chess.insufficientData')} ({s.sample_size} {t('chess.games')})</span>
         )}
       </td>
     </tr>
@@ -219,14 +202,21 @@ function StreakSection({ data }: { data: ApiResponse }) {
       {() => {
         if (!stats || stats.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
-        // Wins: descending (5, 4, 3, 2, 1). Losses: ascending (1, 2, 3, 4, 5)
+        // Wins: descending (max, ..., 2, 1). Losses: ascending (1, 2, ..., max)
         const wins = stats.filter(s => s.streak_type === 'win').sort((a, b) => b.streak_length - a.streak_length);
         const losses = stats.filter(s => s.streak_type === 'loss').sort((a, b) => a.streak_length - b.streak_length);
 
-        // Compute keep/stop playing lists (N >= 30 for statistical significance)
-        const significant = [...wins, ...losses].filter(s => s.sample_size >= 30);
-        const keepPlaying = significant.filter(s => s.win_rate > 50).sort((a, b) => b.win_rate - a.win_rate);
-        const stopPlaying = significant.filter(s => s.win_rate < 50).sort((a, b) => a.win_rate - b.win_rate);
+        // Compute recommendation from significant data (N >= 30)
+        const sigWins = wins.filter(s => s.sample_size >= 30).sort((a, b) => a.streak_length - b.streak_length);
+        const sigLosses = losses.filter(s => s.sample_size >= 30).sort((a, b) => a.streak_length - b.streak_length);
+
+        // Wins: if all significant entries > 50%, recommend keeping playing
+        const allWinsPositive = sigWins.length > 0 && sigWins.every(s => s.win_rate > 50);
+        // Find the last win streak length where win rate is still > 50%
+        const lastGoodWin = sigWins.filter(s => s.win_rate > 50).pop();
+
+        // Losses: find the first loss streak length where win rate drops below 50%
+        const firstBadLoss = sigLosses.find(s => s.win_rate < 50);
 
         return (
           <div className="space-y-4">
@@ -246,29 +236,24 @@ function StreakSection({ data }: { data: ApiResponse }) {
               </tbody>
             </table>
 
-            {/* Keep / Stop playing summary */}
-            <div className="bg-slate-800 rounded-lg p-4 text-sm text-center">
-              {keepPlaying.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-green-400 font-semibold mb-1">{t('chess.keepPlaying')}</p>
-                  {keepPlaying.map(s => (
-                    <p key={`keep-${s.streak_type}-${s.streak_length}`} className="text-slate-300">
-                      {formatLabel(s.streak_type, s.streak_length)} — {s.win_rate}% {t('chess.winRate').toLowerCase()}
-                    </p>
-                  ))}
-                </div>
-              )}
-              {stopPlaying.length > 0 && (
-                <div>
-                  <p className="text-red-400 font-semibold mb-1">{t('chess.stopPlaying')}</p>
-                  {stopPlaying.map(s => (
-                    <p key={`stop-${s.streak_type}-${s.streak_length}`} className="text-slate-300">
-                      {formatLabel(s.streak_type, s.streak_length)} — {s.win_rate}% {t('chess.winRate').toLowerCase()}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Computed recommendation */}
+            {(lastGoodWin || firstBadLoss) && (
+              <div className="bg-slate-800 rounded-lg p-4 text-sm text-center space-y-1">
+                {allWinsPositive && (
+                  <p className="text-green-400 font-semibold">{t('chess.keepPlayingWhileWinning')}</p>
+                )}
+                {!allWinsPositive && lastGoodWin && (
+                  <p className="text-green-400 font-semibold">
+                    {t('chess.keepPlayingUpTo').replace('{n}', String(lastGoodWin.streak_length))}
+                  </p>
+                )}
+                {firstBadLoss && (
+                  <p className="text-red-400 font-semibold">
+                    {(firstBadLoss.streak_length === 1 ? t('chess.stopAfter1Loss') : t('chess.stopAfterNLosses').replace('{n}', String(firstBadLoss.streak_length)))}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         );
       }}
