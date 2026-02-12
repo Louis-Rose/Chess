@@ -215,18 +215,18 @@ export function MyDataPanel() {
                       if (!monthBoundaries.has(props.index)) return <g />;
                       return (
                         <g transform={`translate(${props.x},${props.y})`}>
-                          <text x={0} y={0} dy={12} textAnchor="end" fill="#f1f5f9" fontSize={fullscreen ? 16 : 12} fontWeight={700} transform="rotate(-45)">
+                          <text x={0} y={0} dy={12} textAnchor="end" fill="#f1f5f9" fontSize={fullscreen ? 18 : 14} fontWeight={700} transform="rotate(-45)">
                             {formatAxisLabel(props.payload.value)}
                           </text>
                         </g>
                       );
                     }}
                     interval={0}
-                    height={fullscreen ? 90 : 70}
+                    height={fullscreen ? 100 : 80}
                   />
                   <YAxis
                     yAxisId="elo"
-                    tick={{ fontSize: fullscreen ? 16 : 12, fill: '#16a34a', fontWeight: 700 }}
+                    tick={{ fontSize: fullscreen ? 18 : 14, fill: '#16a34a', fontWeight: 700 }}
                     domain={[eloMin, eloMax]}
                     ticks={eloTicks}
                     allowDecimals={false}
@@ -234,7 +234,7 @@ export function MyDataPanel() {
                   <YAxis
                     yAxisId="games"
                     orientation="right"
-                    tick={{ fontSize: fullscreen ? 16 : 12, fill: '#3b82f6', fontWeight: 700 }}
+                    tick={{ fontSize: fullscreen ? 18 : 14, fill: '#3b82f6', fontWeight: 700 }}
                     domain={[0, gamesMax]}
                     ticks={gamesTicks}
                     allowDecimals={false}
