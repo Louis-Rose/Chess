@@ -19,8 +19,7 @@ const LumnaLogo = ({ className }: { className?: string }) => (
 );
 import { UserMenu } from '../../components/UserMenu';
 import { LoginButton } from '../../components/LoginButton';
-import { LanguageToggle } from '../../components/LanguageToggle';
-import { ThemeToggle } from '../../components/ThemeToggle';
+import { SidebarShell } from '../../components/SidebarShell';
 import { getRecentStocks, removeRecentStock } from './utils/recentStocks';
 import { getCompanyLogoUrl } from './utils/companyLogos';
 import { findStockByTicker } from './utils/allStocks';
@@ -73,7 +72,7 @@ export function InvestingSidebar() {
   }, [location.pathname, user?.id]);
 
   return (
-    <div className={`dark ${isCollapsed ? 'w-16' : 'w-64'} bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0 transition-all duration-300`}>
+    <SidebarShell>
       {/* LUMNA Logo */}
       <Link
         to="/investing"
@@ -222,13 +221,6 @@ export function InvestingSidebar() {
         </div>
       )}
 
-      {/* Theme & Language - at bottom */}
-      <div className="mt-auto flex-shrink-0 px-2 pt-2 pb-2">
-        <div className="flex items-center justify-center gap-2">
-          <ThemeToggle />
-          <LanguageToggle />
-        </div>
-      </div>
-    </div>
+    </SidebarShell>
   );
 }
