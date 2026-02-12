@@ -114,10 +114,7 @@ export function InvestingSidebar() {
               className="flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors"
             >
               <span className="text-2xl">♞</span>
-              <div>
-                <p className="text-slate-200 font-medium">Chess</p>
-                <p className="text-slate-500 text-xs">{language === 'fr' ? 'Analyse de parties' : 'Analyze your games'}</p>
-              </div>
+              <p className="text-slate-200 font-medium">Chess</p>
             </Link>
           </div>
         )}

@@ -123,10 +123,7 @@ export function ChessSidebar() {
               className="flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors"
             >
               <span className="text-2xl">📈</span>
-              <div>
-                <p className="text-slate-200 font-medium">Investing</p>
-                <p className="text-slate-500 text-xs">Track your portfolio</p>
-              </div>
+              <p className="text-slate-200 font-medium">Investing</p>
             </Link>
           </div>
         )}
