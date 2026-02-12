@@ -1,7 +1,7 @@
 // Chess Welcome panel
 
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, TrendingUp, ChevronDown, Search, Loader2 } from 'lucide-react';
+import { BarChart3, ChevronDown, Search, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useChessData } from '../contexts/ChessDataContext';
 import { LoginButton } from '../../../components/LoginButton';
@@ -138,11 +138,11 @@ export function WelcomePanel() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+        <div className="flex justify-center max-w-5xl mx-auto">
           {/* My Data */}
           <button
             onClick={() => navigate('/chess/my-data')}
-            className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-blue-500 transition-colors cursor-pointer text-left"
+            className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-blue-500 transition-colors cursor-pointer text-left max-w-sm w-full"
           >
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -151,23 +151,7 @@ export function WelcomePanel() {
               <h3 className="text-lg font-bold text-slate-100">My Data</h3>
             </div>
             <p className="text-slate-400 text-sm">
-              Track your ELO progression, games played over time, and win rates by time of day. See your complete chess journey visualized.
-            </p>
-          </button>
-
-          {/* Win Prediction */}
-          <button
-            onClick={() => navigate('/chess/win-prediction')}
-            className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-green-500 transition-colors cursor-pointer text-left"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-white" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-100">Win Prediction</h3>
-            </div>
-            <p className="text-slate-400 text-sm">
-              Uses logistic regression to analyze if your previous game result and time of day predict your next game outcome. Discover tilt and momentum patterns.
+              Track your Elo progression, games played over time, and win rates by time of day. See your complete chess journey visualized.
             </p>
           </button>
 

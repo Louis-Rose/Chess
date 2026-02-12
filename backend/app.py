@@ -57,6 +57,46 @@ def throttle_user():
             if row and row['email'] in THROTTLED_EMAILS:
                 time.sleep(5)
 
+@app.route('/api/chess/analyze-daily-volume', methods=['POST'])
+def analyze_daily_volume():
+    """Use Gemini to interpret daily volume stats."""
+    data = request.get_json()
+    stats = data.get('stats', [])
+    if not stats:
+        return jsonify({'summary': ''}), 200
+
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        return jsonify({'summary': ''}), 200
+
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+
+        # Build a concise data summary for the prompt
+        lines = []
+        for s in stats:
+            wr = s.get('win_pct', 0) + s.get('draw_pct', 0) / 2
+            lines.append(f"{s['games_per_day']} games/day: win rate {wr:.1f}%, {s['days']} days of data")
+
+        prompt = f"""You are a chess coach analyzing a player's performance based on how many games they play per day.
+
+Here is the data (win rate = wins + draws/2, as percentage):
+{chr(10).join(lines)}
+
+Note: entries with 5 or fewer days of data are not statistically reliable.
+
+Give exactly 3 short bullet points (one sentence each) advising the player on how many games per day they should play to maximize their win rate. Be specific, reference the numbers. Do NOT use markdown formatting — just plain text, one bullet per line, starting with a dash."""
+
+        response = model.generate_content(prompt)
+        summary = response.text.strip()
+        return jsonify({'summary': summary}), 200
+    except Exception as e:
+        print(f"Gemini analyze-daily-volume error: {e}")
+        return jsonify({'summary': ''}), 200
+
+
 @app.route('/api/stats', methods=['GET'])
 def get_chess_stats():
     username = request.args.get('username')

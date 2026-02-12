@@ -3,11 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BarChart3, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
+import type { ApiResponse } from '../utils/types';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 import {
-  ComposedChart, BarChart, Line, Bar, ReferenceLine,
+  ComposedChart, BarChart, Line, Bar, Cell, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
+import axios from 'axios';
 
 function CollapsibleSection({ title, defaultExpanded = true, children }: { title: string; defaultExpanded?: boolean; children: React.ReactNode | ((fullscreen: boolean) => React.ReactNode) }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -71,6 +73,111 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
   }
 
   return card;
+}
+
+function DailyVolumeSection({ data }: { data: ApiResponse }) {
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const rawDvs = data.daily_volume_stats;
+
+  useEffect(() => {
+    if (!rawDvs || rawDvs.length === 0) return;
+    setAiLoading(true);
+    axios.post('/api/chess/analyze-daily-volume', { stats: rawDvs })
+      .then(res => setAiSummary(res.data.summary))
+      .catch(() => setAiSummary(null))
+      .finally(() => setAiLoading(false));
+  }, [rawDvs]);
+
+  return (
+    <CollapsibleSection title="How many games should you play per day?" defaultExpanded>
+      {(fullscreen) => {
+        if (!rawDvs || rawDvs.length === 0) return <p className="text-slate-500 text-center py-8">No data available.</p>;
+
+        // Fill gaps: ensure every integer from 1..max has an entry
+        const dvsMap = new Map(rawDvs.map(d => [d.games_per_day, d]));
+        const maxGames = Math.max(...rawDvs.map(d => d.games_per_day));
+        const dvs = [];
+        for (let i = 1; i <= maxGames; i++) {
+          dvs.push(dvsMap.get(i) ?? { games_per_day: i, days: 0, win_pct: 0, draw_pct: 0, loss_pct: 0, total_games: 0 });
+        }
+
+        const fs = fullscreen ? 18 : 14;
+        const dimmed = (d: { days: number }) => d.days <= 5;
+
+        return (
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Win / Draw / Loss Rate</h4>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dvs} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                    <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} />
+                    <XAxis
+                      dataKey="games_per_day"
+                      tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
+                      label={{ value: 'Games per day', position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: fs, fontWeight: 700 }}
+                    />
+                    <YAxis
+                      tick={{ fontSize: fs, fill: '#94a3b8', fontWeight: 700 }}
+                      domain={[0, 100]}
+                      ticks={[0, 25, 50, 75, 100]}
+                      tickFormatter={(v) => `${v}%`}
+                    />
+                    <Tooltip
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      content={({ active, payload, label }: any) => {
+                        if (!active || !payload?.length) return null;
+                        const d = payload[0]?.payload;
+                        if (!d || d.total_games === 0) return null;
+                        const winRate = (d.win_pct + d.draw_pct / 2).toFixed(1);
+                        return (
+                          <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
+                            <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{label} game{Number(label) !== 1 ? 's' : ''} / day</p>
+                            <p style={{ color: '#f1f5f9' }}>Win rate: {winRate}%</p>
+                            <p style={{ color: '#94a3b8', fontSize: 12 }}>{d.days} day{d.days !== 1 ? 's' : ''} of data</p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar dataKey="win_pct" stackId="a" name="win_pct">
+                      {dvs.map((d, i) => <Cell key={i} fill={dimmed(d) ? '#475569' : '#16a34a'} />)}
+                    </Bar>
+                    <Bar dataKey="draw_pct" stackId="a" name="draw_pct">
+                      {dvs.map((d, i) => <Cell key={i} fill={dimmed(d) ? '#374151' : '#64748b'} />)}
+                    </Bar>
+                    <Bar dataKey="loss_pct" stackId="a" name="loss_pct" radius={[4, 4, 0, 0]}>
+                      {dvs.map((d, i) => <Cell key={i} fill={dimmed(d) ? '#334155' : '#dc2626'} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-xs mt-2 text-center">
+                Win rate = (wins + draws / 2) / total. Greyed-out bars have 5 or fewer days of data.
+              </p>
+            </div>
+
+            {/* AI Summary */}
+            <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+              {aiLoading ? (
+                <p className="text-slate-400 text-sm text-center animate-pulse">Analyzing your data...</p>
+              ) : aiSummary ? (
+                <ul className="text-slate-300 text-sm space-y-2 list-disc list-inside">
+                  {aiSummary.split('\n').filter(Boolean).map((line, i) => (
+                    <li key={i}>{line.replace(/^[-•]\s*/, '')}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-slate-500 text-sm text-center">AI analysis unavailable.</p>
+              )}
+            </div>
+          </div>
+        );
+      }}
+    </CollapsibleSection>
+  );
 }
 
 export function MyDataPanel() {
@@ -269,110 +376,7 @@ export function MyDataPanel() {
           )}</CollapsibleSection>
 
         {/* Games per day analysis */}
-        <CollapsibleSection title="How many games should you play per day?" defaultExpanded>
-          {(fullscreen) => {
-            const rawDvs = data.daily_volume_stats;
-            if (!rawDvs || rawDvs.length === 0) return <p className="text-slate-500 text-center py-8">No data available.</p>;
-
-            // Fill gaps: ensure every integer from 1..max has an entry
-            const dvsMap = new Map(rawDvs.map(d => [d.games_per_day, d]));
-            const maxGames = Math.max(...rawDvs.map(d => d.games_per_day));
-            const dvs = [];
-            for (let i = 1; i <= maxGames; i++) {
-              dvs.push(dvsMap.get(i) ?? { games_per_day: i, days: 0, win_pct: 0, draw_pct: 0, loss_pct: 0, total_games: 0 });
-            }
-
-            // Max days value for second chart Y-axis
-            const maxDays = Math.max(...dvs.map(d => d.days));
-            const daysTicks: number[] = [];
-            const daysStep = maxDays > 20 ? Math.ceil(maxDays / 10 / 5) * 5 : maxDays > 10 ? 5 : 1;
-            for (let v = 0; v <= maxDays; v += daysStep) daysTicks.push(v);
-            if (daysTicks[daysTicks.length - 1] < maxDays) daysTicks.push(daysTicks[daysTicks.length - 1] + daysStep);
-
-            const tooltipStyle = {
-              contentStyle: { backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155' },
-              labelStyle: { color: '#f1f5f9', fontWeight: 700 },
-              itemStyle: { color: '#f1f5f9' },
-            };
-            const fs = fullscreen ? 18 : 14;
-
-            return (
-              <div className="space-y-8">
-                {/* Chart 1: Win/Draw/Loss rate stacked to 100% */}
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Win / Draw / Loss Rate</h4>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={dvs} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                        <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} />
-                        <XAxis
-                          dataKey="games_per_day"
-                          tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
-                          label={{ value: 'Games per day', position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: fs, fontWeight: 700 }}
-                        />
-                        <YAxis
-                          tick={{ fontSize: fs, fill: '#94a3b8', fontWeight: 700 }}
-                          domain={[0, 100]}
-                          ticks={[0, 25, 50, 75, 100]}
-                          tickFormatter={(v) => `${v}%`}
-                        />
-                        <Tooltip
-                          {...tooltipStyle}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          content={({ active, payload, label }: any) => {
-                            if (!active || !payload?.length) return null;
-                            const d = payload[0]?.payload;
-                            if (!d || d.total_games === 0) return null;
-                            const winRate = (d.win_pct + d.draw_pct / 2).toFixed(1);
-                            return (
-                              <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
-                                <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{label} game{Number(label) !== 1 ? 's' : ''} / day</p>
-                                <p style={{ color: '#f1f5f9' }}>Win rate: {winRate}%</p>
-                              </div>
-                            );
-                          }}
-                        />
-                        <Bar dataKey="win_pct" stackId="a" fill="#16a34a" name="win_pct" radius={[0, 0, 0, 0]} />
-                        <Bar dataKey="draw_pct" stackId="a" fill="#64748b" name="draw_pct" />
-                        <Bar dataKey="loss_pct" stackId="a" fill="#dc2626" name="loss_pct" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <p className="text-slate-500 dark:text-slate-400 text-xs mt-2 text-center">Win rate is calculated as wins plus half of draws, divided by total games.</p>
-                </div>
-
-                {/* Chart 2: Number of days with N games */}
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Number of Days</h4>
-                  <div className="h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={dvs} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                        <XAxis
-                          dataKey="games_per_day"
-                          tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
-                          label={{ value: 'Games per day', position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: fs, fontWeight: 700 }}
-                        />
-                        <YAxis
-                          tick={{ fontSize: fs, fill: '#94a3b8', fontWeight: 700 }}
-                          ticks={daysTicks}
-                          allowDecimals={false}
-                        />
-                        <Tooltip
-                          {...tooltipStyle}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          formatter={(value: any) => [`${value ?? 0} day${value !== 1 ? 's' : ''}`, 'Days']}
-                          labelFormatter={(label) => `${label} game${Number(label) !== 1 ? 's' : ''} / day`}
-                        />
-                        <Bar dataKey="days" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
-            );
-          }}</CollapsibleSection>
+        <DailyVolumeSection data={data} />
       </div>
     </div>
   );
