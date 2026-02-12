@@ -1,6 +1,9 @@
 import math
 import requests
 import datetime
+from zoneinfo import ZoneInfo
+
+PARIS_TZ = ZoneInfo('Europe/Paris')
 import pandas as pd
 import numpy as np
 import json
@@ -152,7 +155,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 if game_time_class not in TIME_CLASSES:
                     continue
 
-                game_date = datetime.datetime.fromtimestamp(end_time)
+                game_date = datetime.datetime.fromtimestamp(end_time, tz=PARIS_TZ)
                 date_str = game_date.strftime('%Y-%m-%d')
 
                 # Get data structure for this time class
@@ -361,7 +364,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             streak_stats = tcd['cached_streak_stats']
 
         # Today stats: games played today + current win/loss streak (ignoring draws)
-        today = datetime.date.today().isoformat()
+        today = datetime.datetime.now(tz=PARIS_TZ).date().isoformat()
         today_games = tcd['games_by_day'].get(today, [])
         games_today = len(today_games)
         # Compute current streak from today's games only (ignoring draws)
@@ -471,7 +474,7 @@ def fetch_games_played_per_day(USERNAME, time_class=None, archives=None):
                 if not end_time:
                     continue
 
-                date_str = datetime.datetime.fromtimestamp(end_time).strftime('%Y-%m-%d')
+                date_str = datetime.datetime.fromtimestamp(end_time, tz=PARIS_TZ).strftime('%Y-%m-%d')
 
                 if date_str not in games_by_day:
                     games_by_day[date_str] = 0
@@ -528,7 +531,7 @@ def fetch_elo_per_day(USERNAME, time_class='rapid', archives=None):
                 if not rating:
                     continue
 
-                date_str = datetime.datetime.fromtimestamp(end_time).strftime('%Y-%m-%d')
+                date_str = datetime.datetime.fromtimestamp(end_time, tz=PARIS_TZ).strftime('%Y-%m-%d')
 
                 # Keep the most recent game's rating for each day
                 if date_str not in elo_by_day or end_time > elo_by_day[date_str]['timestamp']:
@@ -587,7 +590,7 @@ def fetch_win_rate_by_game_number(USERNAME, time_class='rapid', archives=None):
                 game_result = get_game_result(result)
 
                 # Group by day
-                game_date = datetime.datetime.fromtimestamp(end_time)
+                game_date = datetime.datetime.fromtimestamp(end_time, tz=PARIS_TZ)
                 date_key = game_date.strftime('%Y-%m-%d')
 
                 if date_key not in games_by_day:
@@ -1401,7 +1404,7 @@ def compute_fatigue_analysis(USERNAME, time_class='rapid', archives=None):
                 except:
                     duration_estimate = 10
 
-                game_date = datetime.datetime.fromtimestamp(end_time)
+                game_date = datetime.datetime.fromtimestamp(end_time, tz=PARIS_TZ)
                 date_key = game_date.strftime('%Y-%m-%d')
 
                 if date_key not in games_by_day:
@@ -1615,7 +1618,7 @@ def compute_win_prediction_analysis_streaming(USERNAME, time_class='rapid', arch
                 # Convert to numeric: win=1, draw=0.5, loss=0
                 win_value = 1 if game_result == 'win' else (0.5 if game_result == 'draw' else 0)
 
-                game_date = datetime.datetime.fromtimestamp(end_time)
+                game_date = datetime.datetime.fromtimestamp(end_time, tz=PARIS_TZ)
                 date_key = game_date.strftime('%Y-%m-%d')
 
                 if date_key not in games_by_day:
