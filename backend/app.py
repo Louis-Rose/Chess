@@ -58,46 +58,6 @@ def throttle_user():
                 time.sleep(5)
 
 
-@app.route('/api/chess/analyze-streak', methods=['POST'])
-def analyze_streak():
-    """Use Gemini to interpret streak stats."""
-    data = request.get_json()
-    stats = data.get('stats', [])
-    lang = data.get('language', 'en')
-    if not stats:
-        return jsonify({'summary': ''}), 200
-
-    api_key = os.environ.get('GEMINI_API_KEY')
-    if not api_key:
-        return jsonify({'summary': ''}), 200
-
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
-
-        lines = []
-        for s in stats:
-            label = f"After {s['streak_length']} {'win' if s['streak_type'] == 'win' else 'loss'}{'es' if s['streak_type'] == 'loss' and s['streak_length'] > 1 else 's' if s['streak_length'] > 1 else ''}"
-            lines.append(f"{label}: win rate {s['win_rate']}%, {s['sample_size']} games")
-
-        lang_instruction = 'Respond in French.' if lang == 'fr' else 'Respond in English.'
-
-        prompt = f"""You are a chess coach analyzing whether a player should keep playing after consecutive wins or losses.
-
-Here is the data (win rate = wins + draws/2, as percentage):
-{chr(10).join(lines)}
-
-{lang_instruction}
-Give exactly 2 short sentences addressing the player as "{"tu/vous" if lang == "fr" else "you"}", advising whether to keep playing after wins and after losses. Be specific, reference the numbers. Do NOT use markdown formatting — just plain text."""
-
-        response = model.generate_content(prompt)
-        summary = response.text.strip()
-        return jsonify({'summary': summary}), 200
-    except Exception as e:
-        print(f"Gemini analyze-streak error: {e}")
-        return jsonify({'summary': ''}), 200
-
 
 @app.route('/api/stats', methods=['GET'])
 def get_chess_stats():

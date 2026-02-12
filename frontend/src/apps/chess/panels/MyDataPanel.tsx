@@ -10,7 +10,6 @@ import {
   ComposedChart, BarChart, Line, Bar, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import axios from 'axios';
 
 function CollapsibleSection({ title, defaultExpanded = true, children }: { title: string; defaultExpanded?: boolean; children: React.ReactNode | ((fullscreen: boolean) => React.ReactNode) }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -92,10 +91,10 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
 
         const fs = fullscreen ? 18 : 14;
 
-        // Compute win rate per entry and split into best/worst
-        const withRate = dvs.map(d => ({ ...d, winRate: d.win_pct + d.draw_pct / 2 }));
-        const best = withRate.filter(d => d.winRate > 50).sort((a, b) => b.winRate - a.winRate).slice(0, 5);
-        const worst = withRate.filter(d => d.winRate < 50).sort((a, b) => a.winRate - b.winRate).slice(0, 5);
+        // Compute win rate and sort best to worst
+        const sorted = dvs
+          .map(d => ({ ...d, winRate: d.win_pct + d.draw_pct / 2 }))
+          .sort((a, b) => b.winRate - a.winRate);
 
         return (
           <div className="space-y-4">
@@ -145,7 +144,7 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
               </div>
             </div>
 
-            {/* Best / Worst results table */}
+            {/* All results table sorted best to worst */}
             <table className="w-full border-collapse border border-slate-600">
               <thead>
                 <tr className="border border-slate-600 bg-slate-800">
@@ -154,38 +153,15 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
                 </tr>
               </thead>
               <tbody>
-                {best.length > 0 && (
-                  <>
-                    <tr className="border border-slate-600">
-                      <td colSpan={2} className="text-center text-white text-xs font-semibold py-2 px-4 bg-slate-800 border border-slate-600">{t('chess.bestResults')}</td>
-                    </tr>
-                    {best.map(d => (
-                      <tr key={`best-${d.games_per_day}`} className="border border-slate-600">
-                        <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{d.games_per_day}</td>
-                        <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
-                          <span className="text-green-400">{d.winRate.toFixed(1)}%</span>
-                          <span className="text-slate-500 font-normal ml-2 text-xs">({d.days} {t('chess.daysOfData')})</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </>
-                )}
-                {worst.length > 0 && (
-                  <>
-                    <tr className="border border-slate-600">
-                      <td colSpan={2} className="text-center text-white text-xs font-semibold py-2 px-4 bg-slate-800 border border-slate-600">{t('chess.worstResults')}</td>
-                    </tr>
-                    {worst.map(d => (
-                      <tr key={`worst-${d.games_per_day}`} className="border border-slate-600">
-                        <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{d.games_per_day}</td>
-                        <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
-                          <span className="text-red-400">{d.winRate.toFixed(1)}%</span>
-                          <span className="text-slate-500 font-normal ml-2 text-xs">({d.days} {t('chess.daysOfData')})</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </>
-                )}
+                {sorted.map(d => (
+                  <tr key={d.games_per_day} className="border border-slate-600">
+                    <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{d.games_per_day} {t('chess.gamesPerDay').toLowerCase()}</td>
+                    <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
+                      <span className={d.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{d.winRate.toFixed(1)}%</span>
+                      <span className="text-slate-500 font-normal ml-2 text-xs">({d.days} {t('chess.daysOfData')})</span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -196,12 +172,9 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
 }
 
 function StreakSection({ data }: { data: ApiResponse }) {
-  const { t, language } = useLanguage();
-  const [aiCache, setAiCache] = useState<Record<string, string>>({});
-  const [aiLoading, setAiLoading] = useState(false);
+  const { t } = useLanguage();
 
   const rawStats = data.streak_stats;
-  const aiSummary = aiCache[language] ?? null;
 
   // Ensure all 5 win + 5 loss rows exist (fill missing with sample_size 0)
   const stats = (() => {
@@ -217,16 +190,6 @@ function StreakSection({ data }: { data: ApiResponse }) {
     }
     return filled;
   })();
-
-  useEffect(() => {
-    if (!rawStats || rawStats.length === 0) return;
-    if (language in aiCache) return;
-    setAiLoading(true);
-    axios.post('/api/chess/analyze-streak', { stats: rawStats, language })
-      .then(res => setAiCache(prev => ({ ...prev, [language]: res.data.summary || '' })))
-      .catch(() => setAiCache(prev => ({ ...prev, [language]: '' })))
-      .finally(() => setAiLoading(false));
-  }, [rawStats, language, aiCache]);
 
   const winKeys: Record<number, string> = { 1: 'chess.after1Win', 2: 'chess.after2Wins', 3: 'chess.after3Wins', 4: 'chess.after4Wins', 5: 'chess.after5Wins' };
   const lossKeys: Record<number, string> = { 1: 'chess.after1Loss', 2: 'chess.after2Losses', 3: 'chess.after3Losses', 4: 'chess.after4Losses', 5: 'chess.after5Losses' };
@@ -277,19 +240,6 @@ function StreakSection({ data }: { data: ApiResponse }) {
                 {losses.map(renderRow)}
               </tbody>
             </table>
-
-            {/* AI Summary */}
-            <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
-              {aiLoading ? (
-                <p className="text-slate-400 text-sm text-center animate-pulse">{t('chess.analyzing')}</p>
-              ) : aiSummary ? (
-                <div className="text-slate-300 text-sm">
-                  {aiSummary}
-                </div>
-              ) : (
-                <p className="text-slate-500 text-sm text-center">{t('chess.aiUnavailable')}</p>
-              )}
-            </div>
           </div>
         );
       }}
