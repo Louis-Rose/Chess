@@ -17,7 +17,7 @@ export function SidebarShell({ children }: SidebarShellProps) {
       </div>
 
       {/* Theme & Language - pinned at bottom */}
-      <div className="flex-shrink-0 px-2 pt-2 pb-2">
+      <div className="flex-shrink-0 px-2 pt-2 pb-2 border-t border-slate-700">
         <div className="flex items-center justify-center gap-2">
           <ThemeToggle />
           <LanguageToggle />
