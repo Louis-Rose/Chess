@@ -132,10 +132,8 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.gamesPlayed': 'Games played',
     'chess.currentStreak': 'Current streak',
     'chess.predictedWinRate': 'Predicted win rate',
-    'chess.go': 'Go!',
     'chess.wins': 'Wins',
     'chess.losses': 'Losses',
-    'chess.draws': 'Draws',
     'chess.fromDailyVolume': 'from daily volume',
     'chess.fromStreak': 'from streak',
 
@@ -266,10 +264,8 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.gamesPlayed': 'Parties jouées',
     'chess.currentStreak': 'Série en cours',
     'chess.predictedWinRate': 'Taux de victoire prédit',
-    'chess.go': 'Jouer !',
     'chess.wins': 'Victoires',
     'chess.losses': 'Défaites',
-    'chess.draws': 'Nulles',
     'chess.fromDailyVolume': 'du volume quotidien',
     'chess.fromStreak': 'de la série',
 

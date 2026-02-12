@@ -360,14 +360,25 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
         if not streak_stats and tcd.get('cached_streak_stats'):
             streak_stats = tcd['cached_streak_stats']
 
-        # Today stats: games played today + current streak
+        # Today stats: games played today + current win/loss streak (ignoring draws)
         today = datetime.date.today().isoformat()
         games_today = len(tcd['games_by_day'].get(today, []))
-        # cur_len / cur_type from the max-streak loop above represent the current (last) streak
+        # Compute current streak ignoring draws (iterate backwards)
+        streak_t, streak_l = None, 0
+        for _, result in reversed(all_games_chrono):
+            if result == 'draw':
+                continue
+            if streak_t is None:
+                streak_t = result
+                streak_l = 1
+            elif result == streak_t:
+                streak_l += 1
+            else:
+                break
         today_stats = {
             'games_today': games_today,
-            'current_streak_type': cur_type if cur_type in ('win', 'loss', 'draw') else None,
-            'current_streak_length': cur_len if cur_type in ('win', 'loss', 'draw') else 0,
+            'current_streak_type': streak_t,
+            'current_streak_length': streak_l,
         }
 
         # Hourly stats (win rate by 2-hour groups)
