@@ -1,6 +1,6 @@
 // My Data panel with Elo history and games played charts
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { BarChart3, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
@@ -13,6 +13,9 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+
   const closeFullscreen = useCallback(() => setIsFullscreen(false), []);
 
   useEffect(() => {
@@ -22,11 +25,22 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
     return () => window.removeEventListener('keydown', onKey);
   }, [isFullscreen, closeFullscreen]);
 
+  const handleExpand = useCallback(() => {
+    if (cardRef.current) {
+      const { width, height } = cardRef.current.getBoundingClientRect();
+      if (height > 0) setAspectRatio(width / height);
+    }
+    setIsFullscreen(true);
+  }, []);
+
   const card = (
-    <div className={isFullscreen
-      ? 'bg-slate-50 dark:bg-slate-700 rounded-xl shadow-lg flex flex-col max-h-full overflow-hidden'
-      : 'bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none'
-    }>
+    <div
+      ref={!isFullscreen ? cardRef : undefined}
+      className={isFullscreen
+        ? 'bg-slate-50 dark:bg-slate-700 rounded-xl shadow-lg flex flex-col max-h-full overflow-hidden w-full h-full'
+        : 'bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none'
+      }
+    >
       <div className="flex items-center p-4">
         <button
           onClick={() => { if (!isFullscreen) setIsExpanded(!isExpanded); }}
@@ -38,7 +52,7 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{title}</h3>
         </button>
         <button
-          onClick={() => setIsFullscreen(f => !f)}
+          onClick={isFullscreen ? closeFullscreen : handleExpand}
           className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-400 transition-colors"
           title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
         >
@@ -62,7 +76,11 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
         {/* placeholder to keep layout stable */}
         <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none p-4 opacity-0 pointer-events-none" aria-hidden />
         <div className="fixed inset-0 z-50 flex items-center justify-center p-8 bg-black/50" onClick={closeFullscreen}>
-          <div className="w-full max-w-[95vw] max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div
+            className="max-w-[95vw] max-h-[90vh]"
+            style={aspectRatio ? { aspectRatio: String(aspectRatio) } : undefined}
+            onClick={e => e.stopPropagation()}
+          >
             {card}
           </div>
         </div>
