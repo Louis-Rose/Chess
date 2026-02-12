@@ -9,7 +9,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
-function CollapsibleSection({ title, defaultExpanded = true, children }: { title: string; defaultExpanded?: boolean; children: React.ReactNode }) {
+function CollapsibleSection({ title, defaultExpanded = true, children }: { title: string; defaultExpanded?: boolean; children: React.ReactNode | ((fullscreen: boolean) => React.ReactNode) }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -50,7 +50,7 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
       </div>
       {(isExpanded || isFullscreen) && (
         <div className={isFullscreen ? 'px-4 pb-4 flex-1 min-h-0 flex flex-col *:flex-1 *:!h-auto' : 'px-4 pb-4'}>
-          {children}
+          {typeof children === 'function' ? children(isFullscreen) : children}
         </div>
       )}
     </div>
@@ -200,10 +200,10 @@ export function MyDataPanel() {
 
         {/* Combined Elo Ranking & Games Played Chart */}
         <CollapsibleSection title="Elo Rating & Games Played" defaultExpanded>
-          {chartData.length > 0 ? (
+          {(fullscreen) => chartData.length > 0 ? (
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 60 }}>
+                <ComposedChart data={chartData} margin={{ top: 10, right: fullscreen ? 20 : 10, left: fullscreen ? 10 : 0, bottom: fullscreen ? 80 : 60 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#475569" horizontalCoordinatesGenerator={({ yAxis }) => {
                     if (!yAxis?.ticks) return [];
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -215,18 +215,18 @@ export function MyDataPanel() {
                       if (!monthBoundaries.has(props.index)) return <g />;
                       return (
                         <g transform={`translate(${props.x},${props.y})`}>
-                          <text x={0} y={0} dy={12} textAnchor="end" fill="#f1f5f9" fontSize={12} fontWeight={700} transform="rotate(-45)">
+                          <text x={0} y={0} dy={12} textAnchor="end" fill="#f1f5f9" fontSize={fullscreen ? 16 : 12} fontWeight={700} transform="rotate(-45)">
                             {formatAxisLabel(props.payload.value)}
                           </text>
                         </g>
                       );
                     }}
                     interval={0}
-                    height={70}
+                    height={fullscreen ? 90 : 70}
                   />
                   <YAxis
                     yAxisId="elo"
-                    tick={{ fontSize: 12, fill: '#16a34a', fontWeight: 700 }}
+                    tick={{ fontSize: fullscreen ? 16 : 12, fill: '#16a34a', fontWeight: 700 }}
                     domain={[eloMin, eloMax]}
                     ticks={eloTicks}
                     allowDecimals={false}
@@ -234,7 +234,7 @@ export function MyDataPanel() {
                   <YAxis
                     yAxisId="games"
                     orientation="right"
-                    tick={{ fontSize: 12, fill: '#3b82f6', fontWeight: 700 }}
+                    tick={{ fontSize: fullscreen ? 16 : 12, fill: '#3b82f6', fontWeight: 700 }}
                     domain={[0, gamesMax]}
                     ticks={gamesTicks}
                     allowDecimals={false}
@@ -266,8 +266,7 @@ export function MyDataPanel() {
             </div>
           ) : (
             <p className="text-slate-500 text-center py-8">No data available.</p>
-          )}
-        </CollapsibleSection>
+          )}</CollapsibleSection>
       </div>
     </div>
   );
