@@ -199,7 +199,7 @@ export function MyDataPanel() {
                   />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155' }}
-                    labelStyle={{ color: '#f1f5f9' }}
+                    labelStyle={{ color: '#f1f5f9', fontWeight: 700 }}
                     itemStyle={{ color: '#f1f5f9' }}
                     labelFormatter={(_label, payload) => payload?.[0]?.payload?.tooltipLabel ?? _label}
                     formatter={(value, name) => [value ?? 0, name === 'elo' ? 'ELO' : 'Games']}
