@@ -201,7 +201,7 @@ export function MyDataPanel() {
         {/* Combined Elo Ranking & Games Played Chart */}
         <CollapsibleSection title="Elo Rating & Games Played" defaultExpanded>
           {(fullscreen) => chartData.length > 0 ? (
-            <div className="h-[400px]">
+            <div className="h-[400px] px-4">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 10, right: fullscreen ? 30 : 20, left: fullscreen ? 20 : 10, bottom: fullscreen ? 80 : 60 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#475569" horizontalCoordinatesGenerator={({ yAxis }) => {
