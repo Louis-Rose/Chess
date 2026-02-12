@@ -42,7 +42,20 @@ app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
 # Initialize database on startup
-init_db() 
+init_db()
+
+# Throttle specific users (5-second delay on every request)
+import time
+THROTTLED_EMAILS = {'invest@alphawise.fr'}
+
+@app.before_request
+def throttle_user():
+    user_id = get_current_user()
+    if user_id:
+        with get_db() as conn:
+            row = conn.execute('SELECT email FROM users WHERE id = ?', (user_id,)).fetchone()
+            if row and row['email'] in THROTTLED_EMAILS:
+                time.sleep(5)
 
 @app.route('/api/stats', methods=['GET'])
 def get_chess_stats():
