@@ -151,7 +151,7 @@ export function WelcomePanel() {
               <h3 className="text-lg font-bold text-slate-100">My Data</h3>
             </div>
             <p className="text-slate-400 text-sm">
-              Track your Elo progression, games played over time, and win rates by time of day. See your complete chess journey visualized.
+              Track your Elo progression, find your optimal number of games per day, and discover whether you should keep playing after wins or losses.
             </p>
           </button>
 
