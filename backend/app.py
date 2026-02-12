@@ -57,57 +57,6 @@ def throttle_user():
             if row and row['email'] in THROTTLED_EMAILS:
                 time.sleep(5)
 
-@app.route('/api/chess/analyze-daily-volume', methods=['POST'])
-def analyze_daily_volume():
-    """Use Gemini to interpret daily volume stats."""
-    data = request.get_json()
-    stats = data.get('stats', [])
-    lang = data.get('language', 'en')
-    if not stats:
-        return jsonify({'summary': ''}), 200
-
-    api_key = os.environ.get('GEMINI_API_KEY')
-    if not api_key:
-        return jsonify({'summary': ''}), 200
-
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
-
-        # Build a concise data summary for the prompt
-        lines = []
-        for s in stats:
-            wr = s.get('win_pct', 0) + s.get('draw_pct', 0) / 2
-            lines.append(f"{s['games_per_day']} games per day: win rate {wr:.1f}%, {s['days']} days of data")
-
-        lang_instruction = 'Respond in French.' if lang == 'fr' else 'Respond in English.'
-        best_label = 'Meilleurs résultats' if lang == 'fr' else 'Best Results'
-        worst_label = 'Pires résultats' if lang == 'fr' else 'Worst Results'
-        gpd = 'parties/jour' if lang == 'fr' else 'games per day'
-
-        prompt = f"""You are a chess coach analyzing a player's performance based on how many games they play per day.
-
-Here is the data (win rate = wins + draws/2, as percentage):
-{chr(10).join(lines)}
-
-Note: entries with 5 or fewer days of data are not statistically reliable and should be ignored.
-
-{lang_instruction}
-Give exactly 2 lines, addressing the player as "{"tu/vous" if lang == "fr" else "you"}":
-1. List up to 5 games-per-day values with the highest win rate, ONLY those ABOVE 50% (and only from entries with more than 5 days of data), sorted from best to worst. Format: "{best_label}: X {gpd} (Y.Z%), X {gpd} (Y.Z%), ..."
-2. List up to 5 games-per-day values with the lowest win rate, ONLY those BELOW 50% (and only from entries with more than 5 days of data), sorted from worst to best. Format: "{worst_label}: X {gpd} (Y.Z%), X {gpd} (Y.Z%), ..."
-
-If no entries qualify for a line, omit that line entirely.
-Do NOT use markdown formatting — just plain text, one line each."""
-
-        response = model.generate_content(prompt)
-        summary = response.text.strip()
-        return jsonify({'summary': summary}), 200
-    except Exception as e:
-        print(f"Gemini analyze-daily-volume error: {e}")
-        return jsonify({'summary': ''}), 200
-
 
 @app.route('/api/chess/analyze-streak', methods=['POST'])
 def analyze_streak():
