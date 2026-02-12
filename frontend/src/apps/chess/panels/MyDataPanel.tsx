@@ -155,7 +155,7 @@ export function MyDataPanel() {
   });
   // Skip every other month if >18 months to avoid overlap
   const step = allMonthBoundaries.length > 18 ? 2 : 1;
-  const monthBoundaries = new Set(allMonthBoundaries.filter((_, i) => i % step === 0));
+  const monthBoundaries = new Set(allMonthBoundaries.filter((_, i) => i !== 0 && i % step === 0));
 
   // Compute explicit Elo Y-axis ticks (multiples of 100)
   const eloValues = chartData.map(d => d.elo).filter((v): v is number => v != null);
@@ -201,7 +201,7 @@ export function MyDataPanel() {
         {/* Combined Elo Ranking & Games Played Chart */}
         <CollapsibleSection title="Elo Rating & Games Played" defaultExpanded>
           {(fullscreen) => chartData.length > 0 ? (
-            <div className="h-[400px] px-4">
+            <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 10, right: fullscreen ? 30 : 20, left: fullscreen ? 20 : 10, bottom: fullscreen ? 80 : 60 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#475569" horizontalCoordinatesGenerator={({ yAxis }) => {
