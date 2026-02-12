@@ -133,15 +133,6 @@ export function ChessSidebar() {
               onChange={(e) => setUsernameInput(e.target.value)}
               onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
             />
-            {savedPlayers.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowUsernameDropdown(!showUsernameDropdown)}
-                className="bg-white border border-l-0 border-slate-300 px-2 hover:bg-slate-50"
-              >
-                <ChevronDown className={`w-3 h-3 text-slate-500 transition-transform ${showUsernameDropdown ? 'rotate-180' : ''}`} />
-              </button>
-            )}
             <button
               type="submit"
               disabled={loading}
