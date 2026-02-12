@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BarChart3, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import type { ApiResponse } from '../utils/types';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 import {
@@ -76,6 +77,7 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
 }
 
 function DailyVolumeSection({ data }: { data: ApiResponse }) {
+  const { t } = useLanguage();
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
@@ -91,13 +93,13 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
   }, [rawDvs]);
 
   return (
-    <CollapsibleSection title="How many games should you play per day?" defaultExpanded>
+    <CollapsibleSection title={t('chess.dailyVolumeTitle')} defaultExpanded>
       {(fullscreen) => {
-        if (!rawDvs || rawDvs.length === 0) return <p className="text-slate-500 text-center py-8">No data available.</p>;
+        if (!rawDvs || rawDvs.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
         // Only show statistically significant data (> 5 days)
         const dvs = rawDvs.filter(d => d.days > 5);
-        if (dvs.length === 0) return <p className="text-slate-500 text-center py-8">Not enough data yet.</p>;
+        if (dvs.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
         const fs = fullscreen ? 18 : 14;
 
@@ -105,10 +107,9 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
           <div className="space-y-4">
             <div>
               <div className="text-center mb-3">
-                <h4 className="text-white font-semibold">Win / Draw / Loss Rate</h4>
-                <p className="text-white/70 text-xs mt-1">
-                  Win rate = (wins + draws / 2) / total. Only game counts with more than 5 days of data are shown.
-                </p>
+                <h4 className="text-white font-semibold">{t('chess.winRate')}</h4>
+                <p className="text-white/70 text-xs mt-1">{t('chess.winRateFormula')}</p>
+                <p className="text-white/70 text-xs">{t('chess.winRateFilter')}</p>
               </div>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -121,7 +122,7 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
                       label={{ value: 'Games per day', position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: fs, fontWeight: 700 }}
                     />
                     <YAxis
-                      tick={{ fontSize: fs, fill: '#94a3b8', fontWeight: 700 }}
+                      tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
                       domain={[0, 100]}
                       ticks={[0, 25, 50, 75, 100]}
                       tickFormatter={(v) => `${v}%`}
@@ -153,15 +154,27 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
             {/* AI Summary */}
             <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
               {aiLoading ? (
-                <p className="text-slate-400 text-sm text-center animate-pulse">Analyzing your data...</p>
+                <p className="text-slate-400 text-sm text-center animate-pulse">{t('chess.analyzing')}</p>
               ) : aiSummary ? (
-                <div className="text-slate-300 text-sm space-y-1">
-                  {aiSummary.split('\n').filter(Boolean).map((line, i) => (
-                    <p key={i}>{line}</p>
-                  ))}
+                <div className="text-slate-300 text-sm space-y-3">
+                  {aiSummary.split('\n').filter(Boolean).map((line, i) => {
+                    // Split "Best Results: A, B, C" into label + individual results
+                    const colonIdx = line.indexOf(':');
+                    if (colonIdx === -1) return <p key={i}>{line}</p>;
+                    const label = line.slice(0, colonIdx + 1).trim();
+                    const items = line.slice(colonIdx + 1).split(',').map(s => s.trim()).filter(Boolean);
+                    return (
+                      <div key={i}>
+                        <p className="font-semibold text-slate-200">{label}</p>
+                        {items.map((item, j) => (
+                          <p key={j} className="ml-4 text-slate-300">{item}</p>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
-                <p className="text-slate-500 text-sm text-center">AI analysis unavailable.</p>
+                <p className="text-slate-500 text-sm text-center">{t('chess.aiUnavailable')}</p>
               )}
             </div>
           </div>
@@ -172,6 +185,7 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
 }
 
 function StreakSection({ data }: { data: ApiResponse }) {
+  const { t } = useLanguage();
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
@@ -187,14 +201,14 @@ function StreakSection({ data }: { data: ApiResponse }) {
   }, [stats]);
 
   const formatLabel = (type: string, len: number) => {
-    if (type === 'win') return `After ${len} win${len > 1 ? 's' : ''}`;
-    return `After ${len} loss${len > 1 ? 'es' : ''}`;
+    if (type === 'win') return t(len === 1 ? 'chess.after1Win' : len === 2 ? 'chess.after2Wins' : 'chess.after3Wins');
+    return t(len === 1 ? 'chess.after1Loss' : len === 2 ? 'chess.after2Losses' : 'chess.after3Losses');
   };
 
   return (
-    <CollapsibleSection title="Should you keep playing after wins or losses?" defaultExpanded>
+    <CollapsibleSection title={t('chess.streakTitle')} defaultExpanded>
       {() => {
-        if (!stats || stats.length === 0) return <p className="text-slate-500 text-center py-8">No data available.</p>;
+        if (!stats || stats.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
         const wins = stats.filter(s => s.streak_type === 'win').sort((a, b) => a.streak_length - b.streak_length);
         const losses = stats.filter(s => s.streak_type === 'loss').sort((a, b) => a.streak_length - b.streak_length);
@@ -202,20 +216,20 @@ function StreakSection({ data }: { data: ApiResponse }) {
 
         return (
           <div className="space-y-4">
-            <table className="w-full">
+            <table className="w-full border-collapse border border-slate-600">
               <thead>
-                <tr className="border-b border-slate-600">
-                  <th className="text-left text-slate-400 text-sm font-semibold py-2 px-3">Situation</th>
-                  <th className="text-right text-slate-400 text-sm font-semibold py-2 px-3">Win Rate</th>
+                <tr className="border border-slate-600 bg-slate-800">
+                  <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.situation')}</th>
+                  <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((s) => (
-                  <tr key={`${s.streak_type}-${s.streak_length}`} className="border-b border-slate-700/50">
-                    <td className="text-slate-200 text-sm py-2.5 px-3">{formatLabel(s.streak_type, s.streak_length)}</td>
-                    <td className={`text-right text-sm font-semibold py-2.5 px-3 ${s.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}`}>
-                      {s.win_rate}%
-                      <span className="text-slate-500 font-normal ml-2 text-xs">({s.sample_size} games)</span>
+                  <tr key={`${s.streak_type}-${s.streak_length}`} className="border border-slate-600">
+                    <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{formatLabel(s.streak_type, s.streak_length)}</td>
+                    <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
+                      <span className={s.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}>{s.win_rate}%</span>
+                      <span className="text-slate-500 font-normal ml-2 text-xs">({s.sample_size} {t('chess.games')})</span>
                     </td>
                   </tr>
                 ))}
@@ -225,13 +239,13 @@ function StreakSection({ data }: { data: ApiResponse }) {
             {/* AI Summary */}
             <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
               {aiLoading ? (
-                <p className="text-slate-400 text-sm text-center animate-pulse">Analyzing your data...</p>
+                <p className="text-slate-400 text-sm text-center animate-pulse">{t('chess.analyzing')}</p>
               ) : aiSummary ? (
                 <div className="text-slate-300 text-sm">
                   {aiSummary}
                 </div>
               ) : (
-                <p className="text-slate-500 text-sm text-center">AI analysis unavailable.</p>
+                <p className="text-slate-500 text-sm text-center">{t('chess.aiUnavailable')}</p>
               )}
             </div>
           </div>
@@ -242,6 +256,7 @@ function StreakSection({ data }: { data: ApiResponse }) {
 }
 
 export function MyDataPanel() {
+  const { t } = useLanguage();
   const { data, loading, progress, searchedUsername, selectedTimeClass } = useChessData();
 
   if (loading && searchedUsername) {
@@ -257,8 +272,8 @@ export function MyDataPanel() {
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="flex flex-col items-center justify-center py-20">
           <BarChart3 className="w-16 h-16 text-slate-500 mb-4" />
-          <h2 className="text-2xl font-bold text-slate-300 mb-2">No Data Available</h2>
-          <p className="text-slate-500">Search for a player using the sidebar to view their statistics.</p>
+          <h2 className="text-2xl font-bold text-slate-300 mb-2">{t('chess.noData')}</h2>
+          <p className="text-slate-500">{t('chess.searchPrompt')}</p>
         </div>
       </div>
     );
@@ -341,7 +356,7 @@ export function MyDataPanel() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col items-center gap-2 mb-6 mt-8">
-        <h2 className="text-3xl font-bold text-slate-100">My Data</h2>
+        <h2 className="text-3xl font-bold text-slate-100">{t('chess.myData')}</h2>
         <p className="text-slate-400 text-lg italic">
           Viewing stats for @{data.player.username}
         </p>
@@ -367,7 +382,7 @@ export function MyDataPanel() {
         </div>
 
         {/* Combined Elo Ranking & Games Played Chart */}
-        <CollapsibleSection title="Elo Rating & Games Played" defaultExpanded>
+        <CollapsibleSection title={t('chess.eloTitle')} defaultExpanded>
           {(fullscreen) => chartData.length > 0 ? (
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
