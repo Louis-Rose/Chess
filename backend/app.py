@@ -141,6 +141,15 @@ def get_chess_stats_stream():
             # Check cache for ALL time classes
             all_cached = get_all_cached_stats(username)
 
+            # Migrate old weekly-format cache to daily format
+            def _is_old_format(stats):
+                h = stats.get('history', [])
+                return h and 'year' in h[0] and 'date' not in h[0]
+
+            if all_cached and any(_is_old_format(s) for (s, _, _) in all_cached.values()):
+                # Old format detected, force full re-fetch
+                all_cached = {}
+
             # Check if requested time class has fresh cache
             if time_class in all_cached:
                 cached_stats, _, is_fresh = all_cached[time_class]

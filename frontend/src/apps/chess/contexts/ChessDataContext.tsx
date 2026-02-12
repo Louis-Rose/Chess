@@ -234,13 +234,13 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
   // Pre-process the history data to include the label directly
   const processedHistory = data?.history.map(item => ({
     ...item,
-    periodLabel: item.date
+    periodLabel: item.date ?? ''
   }));
 
   // Pre-process the Elo history data
   const processedEloHistory = data?.elo_history.map(item => ({
     ...item,
-    periodLabel: item.date
+    periodLabel: item.date ?? ''
   }));
 
   // Get all openings for dropdown

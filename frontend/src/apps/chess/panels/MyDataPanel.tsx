@@ -54,6 +54,19 @@ export function MyDataPanel() {
     );
   }
 
+  // Handle both new {date} and old cached {year, week} format
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getDateStr = (item: any): string => {
+    if (typeof item.date === 'string') return item.date;
+    // Old format: convert ISO year+week to a date string
+    const year = item.year as number, week = item.week as number;
+    const jan4 = new Date(year, 0, 4);
+    const dayOfWeek = jan4.getDay() || 7;
+    const monday = new Date(jan4);
+    monday.setDate(jan4.getDate() - dayOfWeek + 1 + (week - 1) * 7);
+    return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+  };
+
   // X-axis label: full month + 4-digit year
   const formatAxisLabel = (dateStr: string) => {
     const [y, m, d] = dateStr.split('-').map(Number);
@@ -75,10 +88,12 @@ export function MyDataPanel() {
   const mergedMap = new Map<string, { date: string; elo?: number; games_played?: number }>();
 
   for (const item of data.elo_history || []) {
-    mergedMap.set(item.date, { ...mergedMap.get(item.date), date: item.date, elo: item.elo });
+    const d = getDateStr(item);
+    mergedMap.set(d, { ...mergedMap.get(d), date: d, elo: item.elo });
   }
   for (const item of data.history || []) {
-    mergedMap.set(item.date, { ...mergedMap.get(item.date), date: item.date, games_played: item.games_played });
+    const d = getDateStr(item);
+    mergedMap.set(d, { ...mergedMap.get(d), date: d, games_played: item.games_played });
   }
 
   // Sort by date and add labels
