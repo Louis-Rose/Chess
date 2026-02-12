@@ -96,14 +96,20 @@ export function MyDataPanel() {
     mergedMap.set(d, { ...mergedMap.get(d), date: d, games_played: item.games_played });
   }
 
-  // Sort by date and add labels
+  // Sort by date; only show label on first day of each new month
+  let prevMonth = '';
   const chartData = Array.from(mergedMap.values())
     .sort((a, b) => a.date.localeCompare(b.date))
-    .map(item => ({
-      ...item,
-      label: formatAxisLabel(item.date),
-      tooltipLabel: formatTooltipLabel(item.date),
-    }));
+    .map(item => {
+      const monthLabel = formatAxisLabel(item.date);
+      const showLabel = monthLabel !== prevMonth;
+      prevMonth = monthLabel;
+      return {
+        ...item,
+        label: showLabel ? monthLabel : '',
+        tooltipLabel: formatTooltipLabel(item.date),
+      };
+    });
 
   // Compute explicit ELO Y-axis ticks (multiples of 100)
   const eloValues = chartData.map(d => d.elo).filter((v): v is number => v != null);
@@ -152,7 +158,7 @@ export function MyDataPanel() {
                     tick={{ fontSize: 12, fill: '#f1f5f9' }}
                     angle={-45}
                     textAnchor="end"
-                    interval={Math.floor(chartData.length / 10)}
+                    interval={0}
                     height={70}
                   />
                   <YAxis
