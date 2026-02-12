@@ -1,8 +1,8 @@
 // Investing app sidebar
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, Home, Wallet, Eye, Calendar, TrendingUp, Shield, Clock, X, GitCompare, Newspaper, DollarSign } from 'lucide-react';
+import { Loader2, Home, Wallet, Eye, Calendar, TrendingUp, Shield, Clock, X, GitCompare, Newspaper, DollarSign, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 // Cookie consent temporarily disabled
@@ -47,6 +47,20 @@ export function InvestingSidebar() {
   // Sidebar is always expanded (collapse feature removed)
   const isCollapsed = false;
 
+  // App switcher
+  const [showAppSwitcher, setShowAppSwitcher] = useState(false);
+  const appSwitcherRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (appSwitcherRef.current && !appSwitcherRef.current.contains(event.target as Node)) {
+        setShowAppSwitcher(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Recent stocks
   const [recentStocks, setRecentStocks] = useState<string[]>([]);
 
@@ -80,47 +94,34 @@ export function InvestingSidebar() {
         )}
       </div>
 
-      {/* App Title with Switcher - commented out for now
+      {/* App Switcher */}
       <div className="px-2 pb-4 border-b border-slate-700 relative" ref={appSwitcherRef}>
         <button
           onClick={() => setShowAppSwitcher(!showAppSwitcher)}
-          className="w-full bg-green-900/30 hover:bg-green-900/50 rounded-lg p-4 text-center transition-colors"
+          className="w-full bg-green-900/30 hover:bg-green-900/50 rounded-lg p-3 transition-colors"
         >
-          <div className="text-4xl mb-2">&#128200;</div>
-          <div className="flex items-center justify-center gap-1">
-            <p className="text-green-400 font-semibold">Investing</p>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-2xl">📈</span>
+            <p className="text-green-400 font-semibold">{language === 'fr' ? 'Investissement' : 'Investing'}</p>
             <ChevronDown className={`w-4 h-4 text-green-400 transition-transform ${showAppSwitcher ? 'rotate-180' : ''}`} />
           </div>
-          <p className="text-slate-500 text-xs mt-1">Track your portfolio</p>
         </button>
         {showAppSwitcher && (
           <div className="absolute top-full left-2 right-2 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
             <Link
-              to="/"
-              onClick={() => setShowAppSwitcher(false)}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors"
-            >
-              <span className="text-2xl">🏠</span>
-              <div>
-                <p className="text-slate-200 font-medium">Home</p>
-                <p className="text-slate-500 text-xs">App selector</p>
-              </div>
-            </Link>
-            <Link
               to="/chess"
               onClick={() => setShowAppSwitcher(false)}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors border-t border-slate-700"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors"
             >
               <span className="text-2xl">♞</span>
               <div>
                 <p className="text-slate-200 font-medium">Chess</p>
-                <p className="text-slate-500 text-xs">Improve at Stuff</p>
+                <p className="text-slate-500 text-xs">{language === 'fr' ? 'Analyse de parties' : 'Analyze your games'}</p>
               </div>
             </Link>
           </div>
         )}
       </div>
-      */}
 
       {/* Navigation - fixed */}
       <div className={`flex flex-col gap-0.5 ${isCollapsed ? 'px-0' : 'px-2'} pt-2 pb-4 border-b border-slate-700 flex-shrink-0`}>

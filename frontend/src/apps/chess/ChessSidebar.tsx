@@ -118,20 +118,9 @@ export function ChessSidebar() {
         {showAppSwitcher && (
           <div className="absolute top-full left-2 right-2 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
             <Link
-              to="/"
-              onClick={() => setShowAppSwitcher(false)}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors"
-            >
-              <span className="text-2xl">🏠</span>
-              <div>
-                <p className="text-slate-200 font-medium">Home</p>
-                <p className="text-slate-500 text-xs">App selector</p>
-              </div>
-            </Link>
-            <Link
               to="/investing"
               onClick={() => setShowAppSwitcher(false)}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors border-t border-slate-700"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors"
             >
               <span className="text-2xl">📈</span>
               <div>
