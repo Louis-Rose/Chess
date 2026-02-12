@@ -85,16 +85,18 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
       {(fullscreen) => {
         if (!rawDvs || rawDvs.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
-        // Only show statistically significant data (> 5 days)
-        const dvs = rawDvs.filter(d => d.days > 5);
+        const dvs = rawDvs.filter(d => d.days > 0);
         if (dvs.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
         const fs = fullscreen ? 18 : 14;
 
-        // Compute win rate and sort best to worst
-        const sorted = dvs
+        // Sort ascending by games per day, truncate after last entry with N >= 10
+        const withRate = dvs
           .map(d => ({ ...d, winRate: d.win_pct + d.draw_pct / 2 }))
-          .sort((a, b) => b.winRate - a.winRate);
+          .sort((a, b) => a.games_per_day - b.games_per_day);
+        // Find last index where days >= 10, keep up to that point
+        const lastSignificantIdx = withRate.reduce((last, d, i) => d.days >= 10 ? i : last, -1);
+        const sorted = lastSignificantIdx >= 0 ? withRate.slice(0, lastSignificantIdx + 1) : [];
 
         return (
           <div className="space-y-4">
@@ -157,8 +159,14 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
                   <tr key={d.games_per_day} className="border border-slate-600">
                     <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{d.games_per_day} {t('chess.gamesPerDay').toLowerCase()}</td>
                     <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
-                      <span className={d.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{d.winRate.toFixed(1)}%</span>
-                      <span className="text-slate-500 font-normal ml-2 text-xs">({d.days} {t('chess.daysOfData')})</span>
+                      {d.days >= 10 ? (
+                        <>
+                          <span className={d.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{d.winRate.toFixed(1)}%</span>
+                          <span className="text-slate-500 font-normal ml-2 text-xs">({d.days} {t('chess.daysOfData')})</span>
+                        </>
+                      ) : (
+                        <span className="text-slate-500 text-xs">{t('chess.insufficientData')} ({d.days} {t('chess.daysOfData')})</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -238,7 +246,7 @@ function StreakSection({ data }: { data: ApiResponse }) {
 
             {/* Computed recommendation */}
             {(lastGoodWin || firstBadLoss) && (
-              <div className="bg-slate-800 rounded-lg p-4 text-sm text-center space-y-1">
+              <div className="bg-slate-800 rounded-lg p-4 text-sm text-center">
                 {allWinsPositive && (
                   <p className="text-green-400 font-semibold">{t('chess.keepPlayingWhileWinning')}</p>
                 )}
@@ -246,6 +254,9 @@ function StreakSection({ data }: { data: ApiResponse }) {
                   <p className="text-green-400 font-semibold">
                     {t('chess.keepPlayingUpTo').replace('{n}', String(lastGoodWin.streak_length))}
                   </p>
+                )}
+                {(allWinsPositive || lastGoodWin) && firstBadLoss && (
+                  <div className="my-2 border-t border-slate-600" />
                 )}
                 {firstBadLoss && (
                   <p className="text-red-400 font-semibold">
