@@ -1,7 +1,7 @@
 // Chess Welcome panel
 
 import { useNavigate } from 'react-router-dom';
-import { Trophy, BarChart3, TrendingUp, Target, BookOpen, Swords, ChevronDown, Search, Loader2 } from 'lucide-react';
+import { Trophy, BarChart3, TrendingUp, Target, BookOpen, ChevronDown, Search, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useChessData } from '../contexts/ChessDataContext';
 import { LoginButton } from '../../../components/LoginButton';
@@ -218,26 +218,6 @@ export function WelcomePanel() {
               See your most played openings with win rates and confidence intervals. Find video tutorials to improve your weakest lines.
             </p>
           </button>
-
-          {/* Middle & End Game */}
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 transition-colors opacity-60 text-left">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-slate-600 rounded-lg flex items-center justify-center">
-                <Swords className="w-5 h-5 text-white" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-100">Middle & End Game</h3>
-              <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded">Coming Soon</span>
-            </div>
-            <p className="text-slate-400 text-sm">
-              Advanced analysis of your middle game tactics and endgame technique. Currently in development.
-            </p>
-          </div>
-        </div>
-
-        <div className="text-center mt-8">
-          <p className="text-slate-500 text-sm">
-            Use the "Lookup Player" search in the sidebar to fetch your stats or explore any Chess.com player.
-          </p>
         </div>
       </div>
     </>
