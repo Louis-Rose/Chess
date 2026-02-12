@@ -28,6 +28,9 @@ def fetch_player_data_and_stats(USERNAME):
 
     return data_response.json() | stats_response.json()
 
+DATA_CUTOFF_YEAR = 2024  # Only include games from January 2024 onwards
+
+
 def fetch_player_games_archives(USERNAME):
     url = f"https://api.chess.com/pub/player/{USERNAME}/games/archives"
     headers = {'User-Agent': 'MyPythonScript/1.0 (contact@example.com)'}
@@ -36,7 +39,10 @@ def fetch_player_games_archives(USERNAME):
         raise ValueError(f"Player '{USERNAME}' not found on Chess.com")
     response.raise_for_status()
     data = response.json()
-    return data["archives"]
+    # Filter to only include archives from DATA_CUTOFF_YEAR onwards
+    # Archive URLs end with .../YYYY/MM
+    archives = data["archives"]
+    return [url for url in archives if int(url.split('/')[-2]) >= DATA_CUTOFF_YEAR]
 
 
 def fetch_stats_streaming(USERNAME, time_class='rapid', cached_stats=None, last_archive=None):
