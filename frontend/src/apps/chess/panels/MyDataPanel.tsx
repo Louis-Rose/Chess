@@ -22,9 +22,9 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
     return () => window.removeEventListener('keydown', onKey);
   }, [isFullscreen, closeFullscreen]);
 
-  const content = (
+  const card = (
     <div className={isFullscreen
-      ? 'fixed inset-0 z-50 bg-slate-100 dark:bg-slate-800 p-6 overflow-auto flex flex-col'
+      ? 'bg-slate-50 dark:bg-slate-700 rounded-xl shadow-lg flex flex-col max-h-full overflow-hidden'
       : 'bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none'
     }>
       <div className="flex items-center p-4">
@@ -56,7 +56,21 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
     </div>
   );
 
-  return content;
+  if (isFullscreen) {
+    return (
+      <>
+        {/* placeholder to keep layout stable */}
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none p-4 opacity-0 pointer-events-none" aria-hidden />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-8 bg-black/50" onClick={closeFullscreen}>
+          <div className="w-full max-w-[95vw] max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            {card}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return card;
 }
 
 export function MyDataPanel() {
