@@ -5,7 +5,7 @@ import { BarChart3, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 import {
-  ComposedChart, BarChart, Line, Bar,
+  ComposedChart, BarChart, Line, Bar, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
@@ -271,8 +271,16 @@ export function MyDataPanel() {
         {/* Games per day analysis */}
         <CollapsibleSection title="How many games should you play per day?" defaultExpanded>
           {(fullscreen) => {
-            const dvs = data.daily_volume_stats;
-            if (!dvs || dvs.length === 0) return <p className="text-slate-500 text-center py-8">No data available.</p>;
+            const rawDvs = data.daily_volume_stats;
+            if (!rawDvs || rawDvs.length === 0) return <p className="text-slate-500 text-center py-8">No data available.</p>;
+
+            // Fill gaps: ensure every integer from 1..max has an entry
+            const dvsMap = new Map(rawDvs.map(d => [d.games_per_day, d]));
+            const maxGames = Math.max(...rawDvs.map(d => d.games_per_day));
+            const dvs = [];
+            for (let i = 1; i <= maxGames; i++) {
+              dvs.push(dvsMap.get(i) ?? { games_per_day: i, days: 0, win_pct: 0, draw_pct: 0, loss_pct: 0, total_games: 0 });
+            }
 
             // Max days value for second chart Y-axis
             const maxDays = Math.max(...dvs.map(d => d.days));
@@ -297,6 +305,7 @@ export function MyDataPanel() {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={dvs} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                        <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} />
                         <XAxis
                           dataKey="games_per_day"
                           tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
@@ -311,11 +320,18 @@ export function MyDataPanel() {
                         <Tooltip
                           {...tooltipStyle}
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          formatter={(value: any, name: any) => {
-                            const label = name === 'win_pct' ? 'Wins' : name === 'draw_pct' ? 'Draws' : 'Losses';
-                            return [`${value ?? 0}%`, label];
+                          content={({ active, payload, label }: any) => {
+                            if (!active || !payload?.length) return null;
+                            const d = payload[0]?.payload;
+                            if (!d || d.total_games === 0) return null;
+                            const winRate = (d.win_pct + d.draw_pct / 2).toFixed(1);
+                            return (
+                              <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
+                                <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{label} game{Number(label) !== 1 ? 's' : ''} / day</p>
+                                <p style={{ color: '#f1f5f9' }}>Win rate: {winRate}%</p>
+                              </div>
+                            );
                           }}
-                          labelFormatter={(label) => `${label} game${Number(label) !== 1 ? 's' : ''} / day`}
                         />
                         <Bar dataKey="win_pct" stackId="a" fill="#16a34a" name="win_pct" radius={[0, 0, 0, 0]} />
                         <Bar dataKey="draw_pct" stackId="a" fill="#64748b" name="draw_pct" />
@@ -323,6 +339,7 @@ export function MyDataPanel() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
+                  <p className="text-slate-500 dark:text-slate-400 text-xs mt-2 text-center">Win rate is calculated as wins plus half of draws, divided by total games.</p>
                 </div>
 
                 {/* Chart 2: Number of days with N games */}
