@@ -230,8 +230,8 @@ function StreakSection({ data }: { data: ApiResponse }) {
         // Find the last win streak length where win rate is still > 50%
         const lastGoodWin = sigWins.filter(s => s.win_rate > 50).pop();
 
-        // Losses: find the first loss streak length where win rate drops below 50%
-        const firstBadLoss = sigLosses.find(s => s.win_rate < 50);
+        // Losses: find the first loss streak length where win rate drops below 48%
+        const firstBadLoss = sigLosses.find(s => s.win_rate < 48);
 
         return (
           <div className="space-y-4">
