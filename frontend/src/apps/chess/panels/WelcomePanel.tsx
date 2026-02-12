@@ -1,7 +1,7 @@
 // Chess Welcome panel
 
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, TrendingUp, BookOpen, ChevronDown, Search, Loader2 } from 'lucide-react';
+import { BarChart3, TrendingUp, ChevronDown, Search, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useChessData } from '../contexts/ChessDataContext';
 import { LoginButton } from '../../../components/LoginButton';
@@ -171,7 +171,7 @@ export function WelcomePanel() {
             </p>
           </button>
 
-          {/* Openings */}
+          {/* Openings - temporarily hidden
           <button
             onClick={() => navigate('/chess/openings')}
             className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-purple-500 transition-colors cursor-pointer text-left"
@@ -186,6 +186,7 @@ export function WelcomePanel() {
               See your most played openings with win rates and confidence intervals. Find video tutorials to improve your weakest lines.
             </p>
           </button>
+          */}
         </div>
       </div>
     </>
