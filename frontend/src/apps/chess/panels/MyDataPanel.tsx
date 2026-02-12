@@ -32,7 +32,7 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
 }
 
 export function MyDataPanel() {
-  const { data, loading, progress, searchedUsername } = useChessData();
+  const { data, loading, progress, searchedUsername, selectedTimeClass } = useChessData();
 
   if (loading && searchedUsername) {
     return (
@@ -54,10 +54,10 @@ export function MyDataPanel() {
     );
   }
 
-  // Format week/year for display
+  // Format week/year for display with full month names
   const formatPeriod = (year: number, week: number) => {
     const date = new Date(year, 0, 1 + (week - 1) * 7);
-    return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    return date.toLocaleDateString('en-US', { month: 'long', year: '2-digit' });
   };
 
   // Prepare ELO history data
@@ -82,39 +82,45 @@ export function MyDataPanel() {
       </div>
 
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Stats Summary */}
-        <CollapsibleSection title="Stats Summary" defaultExpanded>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
-              <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_games?.toLocaleString() || 0}</p>
-              <p className="text-slate-500 dark:text-slate-400 text-sm">Total Games</p>
-            </div>
-            <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
-              <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_rapid?.toLocaleString() || 0}</p>
-              <p className="text-slate-500 dark:text-slate-400 text-sm">Rapid Games</p>
-            </div>
-            <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
-              <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_blitz?.toLocaleString() || 0}</p>
-              <p className="text-slate-500 dark:text-slate-400 text-sm">Blitz Games</p>
-            </div>
+        {/* Stats Summary - always open, no title */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
+            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_games?.toLocaleString() || 0}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Total Games</p>
           </div>
-        </CollapsibleSection>
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
+            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">
+              {(selectedTimeClass === 'rapid' ? data.total_rapid : data.total_blitz)?.toLocaleString() || 0}
+            </p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
+              {selectedTimeClass === 'rapid' ? 'Rapid' : 'Blitz'} Games
+            </p>
+          </div>
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
+            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">
+              {eloData.length > 0 ? eloData[eloData.length - 1].elo?.toLocaleString() : '—'}
+            </p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Current ELO</p>
+          </div>
+        </div>
 
-        {/* ELO History Chart */}
-        <CollapsibleSection title="ELO History" defaultExpanded>
+        {/* ELO Ranking Chart */}
+        <CollapsibleSection title="ELO Ranking" defaultExpanded>
           {eloData.length > 0 ? (
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={eloData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 12, fill: '#f1f5f9' }}
                     interval={Math.floor(eloData.length / 6)}
                   />
                   <YAxis
-                    tick={{ fontSize: 12, fill: '#64748b' }}
-                    domain={['dataMin - 50', 'dataMax + 50']}
+                    tick={{ fontSize: 12, fill: '#f1f5f9' }}
+                    domain={[(dataMin: number) => Math.floor(dataMin / 100) * 100, (dataMax: number) => Math.ceil(dataMax / 100) * 100]}
+                    allowDecimals={false}
+                    tickCount={6}
                   />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155' }}
@@ -137,20 +143,20 @@ export function MyDataPanel() {
           )}
         </CollapsibleSection>
 
-        {/* Games Played Chart */}
-        <CollapsibleSection title="Games Played" defaultExpanded>
+        {/* Number of Games Played Chart */}
+        <CollapsibleSection title="Number of games played" defaultExpanded>
           {gamesData.length > 0 ? (
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={gamesData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 12, fill: '#f1f5f9' }}
                     interval={Math.floor(gamesData.length / 6)}
                   />
                   <YAxis
-                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 12, fill: '#f1f5f9' }}
                   />
                   <Tooltip
                     cursor={false}
