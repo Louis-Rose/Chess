@@ -261,6 +261,38 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
         if not game_number_result and tcd.get('cached_game_number_stats'):
             game_number_result = tcd['cached_game_number_stats']
 
+        # Daily volume stats: win/draw/loss breakdown grouped by number of games per day
+        daily_volume_stats_map = {}
+        for date_key, games in tcd['games_by_day'].items():
+            n_games = len(games)
+            if n_games not in daily_volume_stats_map:
+                daily_volume_stats_map[n_games] = {'days': 0, 'wins': 0, 'draws': 0, 'losses': 0, 'total': 0}
+            bucket = daily_volume_stats_map[n_games]
+            bucket['days'] += 1
+            for _ts, result in games:
+                bucket['total'] += 1
+                if result == 'win':
+                    bucket['wins'] += 1
+                elif result == 'draw':
+                    bucket['draws'] += 1
+                else:
+                    bucket['losses'] += 1
+        daily_volume_stats = []
+        for n_games in sorted(daily_volume_stats_map.keys()):
+            b = daily_volume_stats_map[n_games]
+            t = b['total'] or 1
+            daily_volume_stats.append({
+                'games_per_day': n_games,
+                'days': b['days'],
+                'win_pct': round(b['wins'] / t * 100, 1),
+                'draw_pct': round(b['draws'] / t * 100, 1),
+                'loss_pct': round(b['losses'] / t * 100, 1),
+                'total_games': b['total'],
+            })
+
+        if not daily_volume_stats and tcd.get('cached_daily_volume_stats'):
+            daily_volume_stats = tcd['cached_daily_volume_stats']
+
         # Hourly stats (win rate by 2-hour groups)
         hourly_result = []
         for hour_group in range(12):  # 12 groups of 2 hours each
@@ -307,6 +339,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             'total_blitz': total_blitz,
             'openings': processed_openings,
             'game_number_stats': game_number_result,
+            'daily_volume_stats': daily_volume_stats,
             'hourly_stats': hourly_result,
             'win_prediction': win_prediction,
             'last_archive': last_archive_processed

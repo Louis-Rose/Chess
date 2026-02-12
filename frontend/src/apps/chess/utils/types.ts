@@ -41,6 +41,15 @@ export interface GameNumberStats {
   sample_size: number;
 }
 
+export interface DailyVolumeStats {
+  games_per_day: number;
+  days: number;
+  win_pct: number;
+  draw_pct: number;
+  loss_pct: number;
+  total_games: number;
+}
+
 export interface HourlyStats {
   hour_group: number;
   start_hour: number;
@@ -134,6 +143,7 @@ export interface ApiResponse {
     black: OpeningData[];
   };
   game_number_stats: GameNumberStats[];
+  daily_volume_stats: DailyVolumeStats[];
   hourly_stats: HourlyStats[];
   win_prediction: WinPredictionAnalysis;
 }
