@@ -129,7 +129,7 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
                         const winRate = (d.win_pct + d.draw_pct / 2).toFixed(1);
                         return (
                           <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
-                            <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{label} {t('chess.gamesPerDay').toLowerCase()}</p>
+                            <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{label} {(Number(label) === 1 ? t('chess.gamePerDay') : t('chess.gamesPerDay')).toLowerCase()}</p>
                             <p style={{ color: '#f1f5f9' }}>{t('chess.winRate')}: {winRate}%</p>
                             <p style={{ color: '#94a3b8', fontSize: 12 }}>{d.days} {t('chess.daysOfData')}</p>
                           </div>
@@ -159,7 +159,7 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
               <tbody>
                 {sorted.map(d => (
                   <tr key={d.games_per_day} className="border border-slate-600">
-                    <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{d.games_per_day} {t('chess.gamesPerDay').toLowerCase()}</td>
+                    <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{d.games_per_day} {(d.games_per_day === 1 ? t('chess.gamePerDay') : t('chess.gamesPerDay')).toLowerCase()}</td>
                     <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
                       {d.days >= 10 ? (
                         <>
