@@ -213,8 +213,13 @@ function StreakSection({ data }: { data: ApiResponse }) {
         if (!stats || stats.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
         // Wins: descending (max, ..., 2, 1). Losses: ascending (1, 2, ..., max)
-        const wins = stats.filter(s => s.streak_type === 'win').sort((a, b) => b.streak_length - a.streak_length);
-        const losses = stats.filter(s => s.streak_type === 'loss').sort((a, b) => a.streak_length - b.streak_length);
+        // Truncate each after the last row with N >= 30
+        const allWins = stats.filter(s => s.streak_type === 'win').sort((a, b) => b.streak_length - a.streak_length);
+        const allLosses = stats.filter(s => s.streak_type === 'loss').sort((a, b) => a.streak_length - b.streak_length);
+        const lastSigWin = allWins.reduce((last, s, i) => s.sample_size >= 30 ? i : last, -1);
+        const lastSigLoss = allLosses.reduce((last, s, i) => s.sample_size >= 30 ? i : last, -1);
+        const wins = lastSigWin >= 0 ? allWins.slice(0, lastSigWin + 1) : [];
+        const losses = lastSigLoss >= 0 ? allLosses.slice(0, lastSigLoss + 1) : [];
 
         // Compute recommendation from significant data (N >= 30)
         const sigWins = wins.filter(s => s.sample_size >= 30).sort((a, b) => a.streak_length - b.streak_length);
