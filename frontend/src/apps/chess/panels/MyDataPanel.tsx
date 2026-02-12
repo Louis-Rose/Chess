@@ -421,14 +421,17 @@ export function MyDataPanel() {
   };
 
   // Merge Elo history and games played into a single dataset keyed by date
+  const DATA_CUTOFF = '2024-01-01';
   const mergedMap = new Map<string, { date: string; elo?: number; games_played?: number }>();
 
   for (const item of data.elo_history || []) {
     const d = getDateStr(item);
+    if (d < DATA_CUTOFF) continue;
     mergedMap.set(d, { ...mergedMap.get(d), date: d, elo: item.elo });
   }
   for (const item of data.history || []) {
     const d = getDateStr(item);
+    if (d < DATA_CUTOFF) continue;
     mergedMap.set(d, { ...mergedMap.get(d), date: d, games_played: item.games_played });
   }
 
