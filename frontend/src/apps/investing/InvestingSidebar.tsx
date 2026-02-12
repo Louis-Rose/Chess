@@ -107,11 +107,11 @@ export function InvestingSidebar() {
           </div>
         </button>
         {showAppSwitcher && (
-          <div className="absolute top-full left-2 right-2 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
+          <div className="absolute top-full left-2 right-2 mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-50 overflow-hidden">
             <Link
               to="/chess"
               onClick={() => setShowAppSwitcher(false)}
-              className="flex items-center justify-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors"
+              className="flex items-center justify-center gap-3 px-4 py-3 hover:bg-slate-600 transition-colors"
             >
               <span className="text-2xl">♞</span>
               <p className="text-slate-200 font-medium">Chess</p>
