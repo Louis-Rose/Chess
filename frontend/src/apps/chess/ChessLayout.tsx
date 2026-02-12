@@ -10,7 +10,7 @@ export function ChessLayout() {
     <ChessDataProvider>
       <div className="min-h-screen bg-slate-200 dark:bg-slate-800 font-sans text-slate-900 dark:text-slate-100 flex flex-col md:flex-row">
         {/* Sidebar: hidden on mobile, visible on md+ */}
-        <div className="hidden md:block bg-slate-900">
+        <div className="hidden md:block min-h-screen bg-slate-900">
           <ChessSidebar />
         </div>
         <main className="flex-1 p-4 md:p-8">
