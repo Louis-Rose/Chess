@@ -2,17 +2,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Loader2, ChevronDown, Home, Trophy, BarChart3, TrendingUp, Target, BookOpen } from 'lucide-react';
+import { Loader2, ChevronDown, Home, BarChart3, TrendingUp, BookOpen } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../../components/UserMenu';
 import { useChessData } from './contexts/ChessDataContext';
 
 const navItems = [
   { path: '/chess', icon: Home, label: 'Welcome', end: true },
-  { path: '/chess/pros-tips', icon: Trophy, label: 'How to Improve' },
   { path: '/chess/my-data', icon: BarChart3, label: 'My Data' },
   { path: '/chess/win-prediction', icon: TrendingUp, label: 'Win Prediction' },
-  { path: '/chess/weaknesses', icon: Target, label: 'Identify Weaknesses' },
   { path: '/chess/openings', icon: BookOpen, label: 'Openings' },
 ];
 
