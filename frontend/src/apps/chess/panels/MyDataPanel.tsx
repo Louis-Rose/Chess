@@ -103,8 +103,6 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
             <div>
               <div className="text-center mb-3">
                 <h4 className="text-white font-semibold">{t('chess.winRate')}</h4>
-                <p className="text-white/70 text-xs mt-1">{t('chess.winRateFormula')}</p>
-                <p className="text-white/70 text-xs">{t('chess.winRateFilter')}</p>
               </div>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -146,7 +144,11 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
               </div>
             </div>
 
-            {/* All results table sorted best to worst */}
+            <div className="text-center">
+              <p className="text-white text-sm">{t('chess.winRateFormula')}</p>
+              <p className="text-white text-sm">{t('chess.winRateFilter')}</p>
+            </div>
+
             <table className="w-full border-collapse border border-slate-600">
               <thead>
                 <tr className="border border-slate-600 bg-slate-800">
