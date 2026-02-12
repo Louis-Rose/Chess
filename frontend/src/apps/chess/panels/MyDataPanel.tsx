@@ -54,23 +54,47 @@ export function MyDataPanel() {
     );
   }
 
-  // Format week/year for display with full month names
-  const formatPeriod = (year: number, week: number) => {
-    const date = new Date(year, 0, 1 + (week - 1) * 7);
+  // Convert ISO week/year to a proper date (Monday of that week)
+  const weekToDate = (year: number, week: number) => {
+    const jan4 = new Date(year, 0, 4);
+    const dayOfWeek = jan4.getDay() || 7;
+    const monday = new Date(jan4);
+    monday.setDate(jan4.getDate() - dayOfWeek + 1 + (week - 1) * 7);
+    return monday;
+  };
+
+  // X-axis label: full month + 2-digit year
+  const formatAxisLabel = (year: number, week: number) => {
+    const date = weekToDate(year, week);
     return date.toLocaleDateString('en-US', { month: 'long', year: '2-digit' });
+  };
+
+  // Tooltip label: full month + day + 2-digit year
+  const formatTooltipLabel = (year: number, week: number) => {
+    const date = weekToDate(year, week);
+    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: '2-digit' });
   };
 
   // Prepare ELO history data
   const eloData = data.elo_history?.map(item => ({
     ...item,
-    label: formatPeriod(item.year, item.week)
+    label: formatAxisLabel(item.year, item.week),
+    tooltipLabel: formatTooltipLabel(item.year, item.week),
   })) || [];
 
   // Prepare games played data
   const gamesData = data.history?.map(item => ({
     ...item,
-    label: formatPeriod(item.year, item.week)
+    label: formatAxisLabel(item.year, item.week),
+    tooltipLabel: formatTooltipLabel(item.year, item.week),
   })) || [];
+
+  // Compute explicit ELO Y-axis ticks (multiples of 100)
+  const eloValues = eloData.map(d => d.elo).filter(Boolean);
+  const eloMin = Math.floor(Math.min(...eloValues) / 100) * 100;
+  const eloMax = Math.ceil(Math.max(...eloValues) / 100) * 100;
+  const eloTicks: number[] = [];
+  for (let v = eloMin; v <= eloMax; v += 100) eloTicks.push(v);
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -114,14 +138,15 @@ export function MyDataPanel() {
                   />
                   <YAxis
                     tick={{ fontSize: 12, fill: '#f1f5f9' }}
-                    domain={[(dataMin: number) => Math.floor(dataMin / 100) * 100, (dataMax: number) => Math.ceil(dataMax / 100) * 100]}
+                    domain={[eloMin, eloMax]}
+                    ticks={eloTicks}
                     allowDecimals={false}
-                    tickCount={6}
                   />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155' }}
                     labelStyle={{ color: '#f1f5f9' }}
                     itemStyle={{ color: '#f1f5f9' }}
+                    labelFormatter={(_label, payload) => payload?.[0]?.payload?.tooltipLabel ?? _label}
                     formatter={(value) => [value ?? 0, 'ELO']}
                   />
                   <Line
@@ -159,6 +184,7 @@ export function MyDataPanel() {
                     contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155' }}
                     labelStyle={{ color: '#f1f5f9' }}
                     itemStyle={{ color: '#f1f5f9' }}
+                    labelFormatter={(_label, payload) => payload?.[0]?.payload?.tooltipLabel ?? _label}
                     formatter={(value) => [value ?? 0, 'Games']}
                   />
                   <Bar
