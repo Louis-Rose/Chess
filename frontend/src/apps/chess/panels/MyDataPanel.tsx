@@ -119,13 +119,13 @@ function TodaySection({ data }: { data: ApiResponse }) {
   return (
     <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none">
       <div className="p-4">
-        <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('chess.today')}</h3>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('chess.todaysData')}</h3>
       </div>
       <div className="px-4 pb-4">
         <table className="w-full border-collapse border border-slate-600">
           <thead>
             <tr className="border border-slate-600 bg-slate-800">
-              <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.situation')}</th>
+              <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.currentSituation')}</th>
               <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.predictedWinRate')}</th>
             </tr>
           </thead>
