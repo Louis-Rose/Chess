@@ -83,11 +83,7 @@ export function MyDataPanel() {
 
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Stats Summary - always open, no title */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
-            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{data.total_games?.toLocaleString() || 0}</p>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Total Games</p>
-          </div>
+        <div className="grid grid-cols-2 gap-4">
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6 text-center">
             <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">
               {(selectedTimeClass === 'rapid' ? data.total_rapid : data.total_blitz)?.toLocaleString() || 0}
