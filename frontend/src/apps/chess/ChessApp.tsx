@@ -10,7 +10,7 @@ import { OpeningsPanel } from './panels/OpeningsPanel';
 
 export function ChessApp() {
   useEffect(() => {
-    document.title = 'Lumna';
+    document.title = 'LUMNA';
     const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (link) link.href = '/favicon.svg';
   }, []);

@@ -7,6 +7,17 @@ import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../../components/UserMenu';
 import { SidebarShell } from '../../components/SidebarShell';
 import { useChessData } from './contexts/ChessDataContext';
+import { LoginButton } from '../../components/LoginButton';
+
+// Custom LUMNA logo matching the favicon
+const LumnaLogo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 128 128" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="8" width="112" height="112" rx="20" fill="#16a34a"/>
+    <rect x="32" y="64" width="16" height="40" rx="2" fill="white"/>
+    <rect x="56" y="48" width="16" height="56" rx="2" fill="white"/>
+    <rect x="80" y="32" width="16" height="72" rx="2" fill="white"/>
+  </svg>
+);
 
 const navItems = [
   { path: '/chess', icon: Home, label: 'Welcome', end: true },
@@ -38,19 +49,23 @@ export function ChessSidebar() {
 
   return (
     <SidebarShell>
+      {/* LUMNA Logo */}
+      <Link
+        to="/chess"
+        className="flex items-center justify-center gap-3 px-2 pb-4 mb-2 border-b border-slate-700 hover:opacity-80 transition-opacity flex-shrink-0"
+      >
+        <LumnaLogo className="w-10 h-10 flex-shrink-0" />
+        <span className="text-xl font-bold text-white tracking-wide">LUMNA</span>
+      </Link>
+
       {/* User Menu */}
-      <div className="flex justify-center mb-4 px-2 pb-4 border-b border-slate-700">
-        {isAuthenticated ? (
-          authLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-          ) : (
-            <UserMenu />
-          )
+      <div className="flex justify-center items-center px-2 pb-4 border-b border-slate-700 flex-shrink-0 min-h-[64px]">
+        {authLoading ? (
+          <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+        ) : isAuthenticated ? (
+          <UserMenu />
         ) : (
-          <Link to="/" className="flex items-center gap-2 text-slate-500 hover:text-slate-300 transition-colors">
-            <div className="w-8 h-8 rounded-full bg-slate-700" />
-            <span className="text-sm">Not signed in</span>
-          </Link>
+          <LoginButton />
         )}
       </div>
 
