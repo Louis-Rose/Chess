@@ -28,6 +28,7 @@ const navItems = [
 export function ChessSidebar() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const {
+    data,
     myPlayerData,
     selectedTimeClass,
     handleTimeClassChange,
@@ -41,6 +42,9 @@ export function ChessSidebar() {
     handleSubmit,
     loading,
   } = useChessData();
+
+  // Show searched player if available, otherwise fall back to own data
+  const displayData = data || myPlayerData;
   const { user } = useAuth();
 
   const [showAppSwitcher, setShowAppSwitcher] = useState(false);
@@ -178,24 +182,24 @@ export function ChessSidebar() {
 
       {/* Player Info */}
       <div className="px-2 pb-4 border-b border-slate-700">
-        {isAuthenticated && myPlayerData?.player ? (
+        {displayData?.player ? (
           <div className="bg-white rounded-lg p-4 text-center">
-            {myPlayerData.player.avatar ? (
-              <img src={myPlayerData.player.avatar} alt="" className="w-16 h-16 rounded-full mx-auto mb-2" />
+            {displayData.player.avatar ? (
+              <img src={displayData.player.avatar} alt="" className="w-16 h-16 rounded-full mx-auto mb-2" />
             ) : (
               <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-xl font-bold mx-auto mb-2">
-                {myPlayerData.player.username.charAt(0).toUpperCase()}
+                {displayData.player.username.charAt(0).toUpperCase()}
               </div>
             )}
-            <p className="text-slate-800 font-semibold">{myPlayerData.player.name || myPlayerData.player.username}</p>
-            <p className="text-slate-500 text-sm">@{myPlayerData.player.username}</p>
-            <p className="text-slate-400 text-xs mt-1">{myPlayerData.player.followers} followers</p>
+            <p className="text-slate-800 font-semibold">{displayData.player.name || displayData.player.username}</p>
+            <p className="text-slate-500 text-sm">@{displayData.player.username}</p>
+            <p className="text-slate-400 text-xs mt-1">{displayData.player.followers} followers</p>
             <p className="text-slate-400 text-xs">
-              Joined {new Date(myPlayerData.player.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              Joined {new Date(displayData.player.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
             <div className="mt-3 pt-3 border-t border-slate-200 text-xs text-slate-600 space-y-1">
-              <p>Rapid: <span className="font-semibold text-slate-800">{myPlayerData.total_rapid?.toLocaleString() || 0}</span> games</p>
-              <p>Blitz: <span className="font-semibold text-slate-800">{myPlayerData.total_blitz?.toLocaleString() || 0}</span> games</p>
+              <p>Rapid: <span className="font-semibold text-slate-800">{displayData.total_rapid?.toLocaleString() || 0}</span> games</p>
+              <p>Blitz: <span className="font-semibold text-slate-800">{displayData.total_blitz?.toLocaleString() || 0}</span> games</p>
             </div>
           </div>
         ) : (
