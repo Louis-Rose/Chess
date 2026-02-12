@@ -104,13 +104,16 @@ export function MyDataPanel() {
       tooltipLabel: formatTooltipLabel(item.date),
     }));
 
-  // Build set of indices where the month changes (for axis tick labels)
-  const monthBoundaries = new Set<number>();
+  // Build list of indices where the month changes (for axis tick labels)
+  const allMonthBoundaries: number[] = [];
   let prevMonth = '';
   chartData.forEach((item, i) => {
     const ml = formatAxisLabel(item.date);
-    if (ml !== prevMonth) { monthBoundaries.add(i); prevMonth = ml; }
+    if (ml !== prevMonth) { allMonthBoundaries.push(i); prevMonth = ml; }
   });
+  // Skip every other month if >18 months to avoid overlap
+  const step = allMonthBoundaries.length > 18 ? 2 : 1;
+  const monthBoundaries = new Set(allMonthBoundaries.filter((_, i) => i % step === 0));
 
   // Compute explicit ELO Y-axis ticks (multiples of 100)
   const eloValues = chartData.map(d => d.elo).filter((v): v is number => v != null);
@@ -118,6 +121,12 @@ export function MyDataPanel() {
   const eloMax = eloValues.length > 0 ? Math.ceil(Math.max(...eloValues) / 100) * 100 : 100;
   const eloTicks: number[] = [];
   for (let v = eloMin; v <= eloMax; v += 100) eloTicks.push(v);
+
+  // Compute explicit games Y-axis ticks (multiples of 5)
+  const gamesValues = chartData.map(d => d.games_played).filter((v): v is number => v != null);
+  const gamesMax = gamesValues.length > 0 ? Math.ceil(Math.max(...gamesValues) / 5) * 5 : 5;
+  const gamesTicks: number[] = [];
+  for (let v = 0; v <= gamesMax; v += 5) gamesTicks.push(v);
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -153,14 +162,18 @@ export function MyDataPanel() {
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" horizontalCoordinatesGenerator={({ yAxis }) => {
+                    if (!yAxis?.ticks) return [];
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    return yAxis.ticks.map((t: any) => t.coordinate as number);
+                  }} />
                   <XAxis
                     dataKey="date"
                     tick={(props: { x: number; y: number; index: number; payload: { value: string } }) => {
                       if (!monthBoundaries.has(props.index)) return <g />;
                       return (
                         <g transform={`translate(${props.x},${props.y})`}>
-                          <text x={0} y={0} dy={12} textAnchor="end" fill="#f1f5f9" fontSize={12} transform="rotate(-45)">
+                          <text x={0} y={0} dy={12} textAnchor="end" fill="#f1f5f9" fontSize={12} fontWeight={700} transform="rotate(-45)">
                             {formatAxisLabel(props.payload.value)}
                           </text>
                         </g>
@@ -171,7 +184,7 @@ export function MyDataPanel() {
                   />
                   <YAxis
                     yAxisId="elo"
-                    tick={{ fontSize: 12, fill: '#16a34a' }}
+                    tick={{ fontSize: 12, fill: '#16a34a', fontWeight: 700 }}
                     domain={[eloMin, eloMax]}
                     ticks={eloTicks}
                     allowDecimals={false}
@@ -179,7 +192,9 @@ export function MyDataPanel() {
                   <YAxis
                     yAxisId="games"
                     orientation="right"
-                    tick={{ fontSize: 12, fill: '#3b82f6' }}
+                    tick={{ fontSize: 12, fill: '#3b82f6', fontWeight: 700 }}
+                    domain={[0, gamesMax]}
+                    ticks={gamesTicks}
                     allowDecimals={false}
                   />
                   <Tooltip
