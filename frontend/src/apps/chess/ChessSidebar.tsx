@@ -38,7 +38,7 @@ export function ChessSidebar() {
   }, []);
 
   return (
-    <div className="w-64 bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0 overflow-y-auto">
+    <div className="w-64 bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0">
       {/* User Menu */}
       <div className="flex justify-center mb-4 px-2 pb-4 border-b border-slate-700">
         {isAuthenticated ? (
@@ -155,7 +155,7 @@ export function ChessSidebar() {
       </div>
 
       {/* Theme & Language - at bottom */}
-      <div className="mt-auto flex-shrink-0 px-2 pt-2 pb-2">
+      <div className="mt-auto flex-shrink-0 px-2 pt-2 pb-2 border-t border-slate-700">
         <div className="flex items-center justify-center gap-2">
           <ThemeToggle />
           <LanguageToggle />
