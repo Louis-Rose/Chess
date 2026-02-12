@@ -227,7 +227,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.eloTitle': 'Classement Elo & Parties Jouées',
     'chess.dailyVolumeTitle': 'Combien de parties devriez-vous jouer par jour ?',
     'chess.winRate': 'Taux de Victoire',
-    'chess.winRateFormula': 'Taux de victoire = (victoires + nulles / 2) / total.',
+    'chess.winRateFormula': 'Taux de victoire = (Taux de victoires + 0.5 x Taux de nulles)',
     'chess.winRateFilter': 'Seuls les volumes avec plus de 5 jours de données sont affichés.',
     'chess.streakTitle': 'Faut-il continuer à jouer après des victoires ou des défaites ?',
     'chess.situation': 'Situation',

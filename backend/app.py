@@ -62,6 +62,7 @@ def analyze_daily_volume():
     """Use Gemini to interpret daily volume stats."""
     data = request.get_json()
     stats = data.get('stats', [])
+    lang = data.get('language', 'en')
     if not stats:
         return jsonify({'summary': ''}), 200
 
@@ -78,7 +79,12 @@ def analyze_daily_volume():
         lines = []
         for s in stats:
             wr = s.get('win_pct', 0) + s.get('draw_pct', 0) / 2
-            lines.append(f"{s['games_per_day']} games/day: win rate {wr:.1f}%, {s['days']} days of data")
+            lines.append(f"{s['games_per_day']} games per day: win rate {wr:.1f}%, {s['days']} days of data")
+
+        lang_instruction = 'Respond in French.' if lang == 'fr' else 'Respond in English.'
+        best_label = 'Meilleurs résultats' if lang == 'fr' else 'Best Results'
+        worst_label = 'Pires résultats' if lang == 'fr' else 'Worst Results'
+        gpd = 'parties/jour' if lang == 'fr' else 'games per day'
 
         prompt = f"""You are a chess coach analyzing a player's performance based on how many games they play per day.
 
@@ -87,10 +93,12 @@ Here is the data (win rate = wins + draws/2, as percentage):
 
 Note: entries with 5 or fewer days of data are not statistically reliable and should be ignored.
 
-Give exactly 2 lines, addressing the player as "you":
-1. Best Results: list the top 3 games-per-day values with the highest win rate (only from entries with more than 5 days of data). Format: "Best Results: X games/day (Y.Z%), X games/day (Y.Z%), X games/day (Y.Z%)"
-2. Worst Results: list the bottom 3 games-per-day values with the lowest win rate (only from entries with more than 5 days of data). Format: "Worst Results: X games/day (Y.Z%), X games/day (Y.Z%), X games/day (Y.Z%)"
+{lang_instruction}
+Give exactly 2 lines, addressing the player as "{"tu/vous" if lang == "fr" else "you"}":
+1. List the top 5 games-per-day values with the highest win rate (only from entries with more than 5 days of data), sorted from best to worst. Format: "{best_label}: X {gpd} (Y.Z%), X {gpd} (Y.Z%), ..."
+2. List the bottom 5 games-per-day values with the lowest win rate (only from entries with more than 5 days of data), sorted from worst to best. Format: "{worst_label}: X {gpd} (Y.Z%), X {gpd} (Y.Z%), ..."
 
+If fewer than 5 entries qualify, list as many as available.
 Do NOT use markdown formatting — just plain text, one line each."""
 
         response = model.generate_content(prompt)
@@ -106,6 +114,7 @@ def analyze_streak():
     """Use Gemini to interpret streak stats."""
     data = request.get_json()
     stats = data.get('stats', [])
+    lang = data.get('language', 'en')
     if not stats:
         return jsonify({'summary': ''}), 200
 
@@ -123,12 +132,15 @@ def analyze_streak():
             label = f"After {s['streak_length']} {'win' if s['streak_type'] == 'win' else 'loss'}{'es' if s['streak_type'] == 'loss' and s['streak_length'] > 1 else 's' if s['streak_length'] > 1 else ''}"
             lines.append(f"{label}: win rate {s['win_rate']}%, {s['sample_size']} games")
 
+        lang_instruction = 'Respond in French.' if lang == 'fr' else 'Respond in English.'
+
         prompt = f"""You are a chess coach analyzing whether a player should keep playing after consecutive wins or losses.
 
 Here is the data (win rate = wins + draws/2, as percentage):
 {chr(10).join(lines)}
 
-Give exactly 2 short sentences addressing the player as "you", advising whether to keep playing after wins and after losses. Be specific, reference the numbers. Do NOT use markdown formatting — just plain text."""
+{lang_instruction}
+Give exactly 2 short sentences addressing the player as "{"tu/vous" if lang == "fr" else "you"}", advising whether to keep playing after wins and after losses. Be specific, reference the numbers. Do NOT use markdown formatting — just plain text."""
 
         response = model.generate_content(prompt)
         summary = response.text.strip()
