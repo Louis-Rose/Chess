@@ -215,7 +215,7 @@ export function MyDataPanel() {
                       if (!monthBoundaries.has(props.index)) return <g />;
                       return (
                         <g transform={`translate(${props.x},${props.y})`}>
-                          <text x={0} y={0} dy={12} textAnchor="end" fill="#f1f5f9" fontSize={fullscreen ? 18 : 14} fontWeight={700} transform="rotate(-45)">
+                          <text x={0} y={0} dy={20} textAnchor="end" fill="#f1f5f9" fontSize={fullscreen ? 18 : 14} fontWeight={700} transform="rotate(-45)">
                             {formatAxisLabel(props.payload.value)}
                           </text>
                         </g>
@@ -269,7 +269,7 @@ export function MyDataPanel() {
           )}</CollapsibleSection>
 
         {/* Games per day analysis */}
-        <CollapsibleSection title="How many games should you play per day?" defaultExpanded={false}>
+        <CollapsibleSection title="How many games should you play per day?" defaultExpanded>
           {(fullscreen) => {
             const dvs = data.daily_volume_stats;
             if (!dvs || dvs.length === 0) return <p className="text-slate-500 text-center py-8">No data available.</p>;

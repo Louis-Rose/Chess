@@ -92,6 +92,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 'openings_black': [],
                 'total_games': cached.get('total_games', 0),
                 'cached_game_number_stats': cached.get('game_number_stats', []),  # Preserve for incremental updates
+                'cached_daily_volume_stats': cached.get('daily_volume_stats', []),  # Preserve for incremental updates
                 'cached_hourly_stats': cached.get('hourly_stats', []),  # Preserve for incremental updates
                 'cached_win_prediction': cached.get('win_prediction'),  # Preserve for incremental updates
             }
@@ -105,6 +106,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 'openings_black': [],
                 'total_games': 0,
                 'cached_game_number_stats': [],
+                'cached_daily_volume_stats': [],
                 'cached_hourly_stats': [],
                 'cached_win_prediction': None,
             }

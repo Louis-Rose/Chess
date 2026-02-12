@@ -143,7 +143,7 @@ export interface ApiResponse {
     black: OpeningData[];
   };
   game_number_stats: GameNumberStats[];
-  daily_volume_stats: DailyVolumeStats[];
+  daily_volume_stats?: DailyVolumeStats[];
   hourly_stats: HourlyStats[];
   win_prediction: WinPredictionAnalysis;
 }
