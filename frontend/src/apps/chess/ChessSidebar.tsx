@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Loader2, ChevronDown, Home, BarChart3 } from 'lucide-react';
+import { Loader2, ChevronDown, Home, BarChart3, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../../components/UserMenu';
 import { SidebarShell } from '../../components/SidebarShell';
@@ -32,10 +32,21 @@ export function ChessSidebar() {
     myPlayerData,
     selectedTimeClass,
     handleTimeClassChange,
+    usernameInput,
+    setUsernameInput,
+    savedPlayers,
+    showUsernameDropdown,
+    setShowUsernameDropdown,
+    dropdownRef,
+    handleSelectSavedUsername,
+    handleSubmit,
+    loading,
   } = useChessData();
 
   // Show searched player if available, otherwise fall back to own data
   const displayData = data || myPlayerData;
+  const { user } = useAuth();
+
   const [showAppSwitcher, setShowAppSwitcher] = useState(false);
   const appSwitcherRef = useRef<HTMLDivElement>(null);
 
@@ -107,6 +118,66 @@ export function ChessSidebar() {
             </Link>
           </div>
         )}
+      </div>
+
+      {/* Search Bar */}
+      <div className="px-2 pb-3">
+        <div ref={dropdownRef} className="relative">
+        <form onSubmit={handleSubmit}>
+          <div className="flex">
+            <input
+              type="text"
+              placeholder="Chess.com username"
+              className="bg-white text-slate-900 placeholder:text-slate-400 px-3 py-2 border border-slate-300 rounded-l-lg w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={usernameInput}
+              onChange={(e) => setUsernameInput(e.target.value)}
+              onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
+            />
+            {savedPlayers.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowUsernameDropdown(!showUsernameDropdown)}
+                className="bg-white border border-l-0 border-slate-300 px-2 hover:bg-slate-50"
+              >
+                <ChevronDown className={`w-3 h-3 text-slate-500 transition-transform ${showUsernameDropdown ? 'rotate-180' : ''}`} />
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-blue-600 text-white px-3 py-2 rounded-r-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
+            </button>
+          </div>
+          {showUsernameDropdown && savedPlayers.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-48 overflow-auto">
+              <div className="px-3 py-1.5 text-xs text-slate-500 border-b border-slate-200">Recent searches</div>
+              {savedPlayers.map((player, idx) => {
+                const isMe = user?.preferences?.chess_username?.toLowerCase() === player.username.toLowerCase();
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSelectSavedUsername(player)}
+                    className="w-full px-3 py-1.5 text-left text-slate-800 hover:bg-blue-50 flex items-center gap-2 text-sm"
+                  >
+                    {player.avatar ? (
+                      <img src={player.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs font-bold">
+                        {player.username.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {player.username}
+                    {isMe && <span className="text-xs text-slate-400">(me)</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </form>
+        </div>
       </div>
 
       {/* Player Info */}
