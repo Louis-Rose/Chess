@@ -223,6 +223,11 @@ function StreakSection({ data }: { data: ApiResponse }) {
         const wins = stats.filter(s => s.streak_type === 'win').sort((a, b) => b.streak_length - a.streak_length);
         const losses = stats.filter(s => s.streak_type === 'loss').sort((a, b) => a.streak_length - b.streak_length);
 
+        // Compute keep/stop playing lists from all entries with data
+        const allWithData = [...wins, ...losses].filter(s => s.sample_size > 0);
+        const keepPlaying = allWithData.filter(s => s.win_rate >= 50).sort((a, b) => b.win_rate - a.win_rate);
+        const stopPlaying = allWithData.filter(s => s.win_rate < 50).sort((a, b) => a.win_rate - b.win_rate);
+
         return (
           <div className="space-y-4">
             <table className="w-full border-collapse border border-slate-600">
@@ -240,6 +245,30 @@ function StreakSection({ data }: { data: ApiResponse }) {
                 {losses.map(renderRow)}
               </tbody>
             </table>
+
+            {/* Keep / Stop playing summary */}
+            <div className="bg-slate-800 rounded-lg p-4 text-sm">
+              {keepPlaying.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-green-400 font-semibold mb-1">{t('chess.keepPlaying')}</p>
+                  {keepPlaying.map(s => (
+                    <p key={`keep-${s.streak_type}-${s.streak_length}`} className="text-slate-300 ml-2">
+                      {formatLabel(s.streak_type, s.streak_length)} — {s.win_rate}%
+                    </p>
+                  ))}
+                </div>
+              )}
+              {stopPlaying.length > 0 && (
+                <div>
+                  <p className="text-red-400 font-semibold mb-1">{t('chess.stopPlaying')}</p>
+                  {stopPlaying.map(s => (
+                    <p key={`stop-${s.streak_type}-${s.streak_length}`} className="text-slate-300 ml-2">
+                      {formatLabel(s.streak_type, s.streak_length)} — {s.win_rate}%
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         );
       }}
