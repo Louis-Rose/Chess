@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Loader2, Search, ChevronDown, Home, Trophy, BarChart3, TrendingUp, Target, BookOpen, Swords, Crown } from 'lucide-react';
+import { Loader2, ChevronDown, Home, Trophy, BarChart3, TrendingUp, Target, BookOpen, Swords, Crown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../../components/UserMenu';
 import { useChessData } from './contexts/ChessDataContext';
@@ -19,18 +19,9 @@ const navItems = [
 ];
 
 export function ChessSidebar() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const {
-    usernameInput,
-    setUsernameInput,
-    loading,
     myPlayerData,
-    savedPlayers,
-    showUsernameDropdown,
-    setShowUsernameDropdown,
-    dropdownRef,
-    handleSelectSavedUsername,
-    handleSubmit,
     selectedTimeClass,
     handleTimeClassChange,
   } = useChessData();
@@ -128,76 +119,6 @@ export function ChessSidebar() {
           </div>
         )}
       </div>
-
-      {/* Username Search */}
-      {isAuthenticated && myPlayerData && (
-        <div className="px-2 py-4 border-b border-slate-700">
-          <div className="bg-white rounded-lg p-3">
-            <label className="block text-slate-600 text-xs font-medium mb-2 text-center">Lookup Player</label>
-            <form onSubmit={handleSubmit} className="space-y-2">
-              <div className="relative" ref={dropdownRef}>
-                <div className="flex">
-                  <input
-                    type="text"
-                    placeholder="chess.com username"
-                    className="bg-white text-slate-900 placeholder:text-slate-400 px-3 py-2 border border-slate-300 rounded-l-lg w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={usernameInput}
-                    onChange={(e) => setUsernameInput(e.target.value)}
-                    onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
-                  />
-                  {savedPlayers.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowUsernameDropdown(!showUsernameDropdown)}
-                      className="bg-white border border-l-0 border-slate-300 rounded-r-lg px-2 hover:bg-slate-50"
-                    >
-                      <ChevronDown className={`w-3 h-3 text-slate-500 transition-transform ${showUsernameDropdown ? 'rotate-180' : ''}`} />
-                    </button>
-                  )}
-                  {savedPlayers.length === 0 && (
-                    <div className="w-0 border-r border-slate-300 rounded-r-lg" />
-                  )}
-                </div>
-                {/* Dropdown */}
-                {showUsernameDropdown && savedPlayers.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-48 overflow-auto">
-                    <div className="px-2 py-1 text-xs text-slate-500 border-b border-slate-200">Recent</div>
-                    {savedPlayers.map((player, idx) => {
-                      const isMe = user?.preferences?.chess_username?.toLowerCase() === player.username.toLowerCase();
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => handleSelectSavedUsername(player)}
-                          className="w-full px-2 py-1.5 text-left text-slate-800 hover:bg-blue-50 flex items-center gap-2 text-sm"
-                        >
-                          {player.avatar ? (
-                            <img src={player.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs font-bold">
-                              {player.username.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <span className="truncate">{player.username}</span>
-                          {isMe && <span className="text-xs text-slate-400">(me)</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm font-medium"
-              >
-                {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
-                Fetch
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Game Type Selector */}
       <div className="px-2 py-4 border-b border-slate-700">
