@@ -139,18 +139,20 @@ function TodaySection({ data }: { data: ApiResponse }) {
                 )}
               </td>
             </tr>
-            <tr className="border border-slate-600">
-              <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">
-                {formatStreak(streakType, streakLength)}
-              </td>
-              <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
-                {streakWinRate !== null ? (
-                  <span className={winRateColor(streakWinRate)}>{streakWinRate.toFixed(1)}%</span>
-                ) : (
-                  <span className="text-slate-500">—</span>
-                )}
-              </td>
-            </tr>
+            {gamesToday > 0 && streakLength > 0 && (
+              <tr className="border border-slate-600">
+                <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">
+                  {formatStreak(streakType, streakLength)}
+                </td>
+                <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
+                  {streakWinRate !== null ? (
+                    <span className={winRateColor(streakWinRate)}>{streakWinRate.toFixed(1)}%</span>
+                  ) : (
+                    <span className="text-slate-500">—</span>
+                  )}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       )}

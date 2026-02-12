@@ -362,19 +362,21 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
 
         # Today stats: games played today + current win/loss streak (ignoring draws)
         today = datetime.date.today().isoformat()
-        games_today = len(tcd['games_by_day'].get(today, []))
-        # Compute current streak ignoring draws (iterate backwards)
+        today_games = tcd['games_by_day'].get(today, [])
+        games_today = len(today_games)
+        # Compute current streak from today's games only (ignoring draws)
         streak_t, streak_l = None, 0
-        for _, result in reversed(all_games_chrono):
-            if result == 'draw':
-                continue
-            if streak_t is None:
-                streak_t = result
-                streak_l = 1
-            elif result == streak_t:
-                streak_l += 1
-            else:
-                break
+        if games_today > 0:
+            for _, result in reversed(today_games):
+                if result == 'draw':
+                    continue
+                if streak_t is None:
+                    streak_t = result
+                    streak_l = 1
+                elif result == streak_t:
+                    streak_l += 1
+                else:
+                    break
         today_stats = {
             'games_today': games_today,
             'current_streak_type': streak_t,
