@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clickCount = useRef(0);
   const newThreshold = () => Math.floor(Math.random() * 5) + 3; // 3-7
   const clickThreshold = useRef(newThreshold());
-  const blockTimer = useRef<ReturnType<typeof setTimeout>>();
+  const blockTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const queryClient = useQueryClient();
   const hasRecordedSettings = useRef(false);
   const isLoggingOut = useRef(false);
