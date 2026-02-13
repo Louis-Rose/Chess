@@ -163,7 +163,7 @@ export function WelcomePanel() {
             <div className="absolute top-5 left-5 w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
               <Calendar className="w-5 h-5 text-white" />
             </div>
-            <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance px-2 py-4">How many games per day should you play?</h3>
+            <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance px-2 py-4">How many games should you play per day?</h3>
           </button>
 
           {/* Best Games */}
