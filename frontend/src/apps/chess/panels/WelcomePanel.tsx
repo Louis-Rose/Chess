@@ -80,8 +80,7 @@ function loadGridOrder(): GridSlot[] {
   }
 }
 
-function CardContent({ cardId, icon: Icon, iconBg, title, description }: {
-  cardId: CardId;
+function CardContent({ icon: Icon, iconBg, title, description }: {
   icon: LucideIcon;
   iconBg: string;
   title: string;
@@ -221,7 +220,6 @@ export function WelcomePanel() {
         }`}
       >
         <CardContent
-          cardId={cardId}
           icon={card.icon}
           iconBg={card.iconBg}
           title={card.title}
