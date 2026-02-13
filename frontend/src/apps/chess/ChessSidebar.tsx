@@ -48,7 +48,9 @@ export function ChessSidebar() {
   const { user } = useAuth();
 
   const [showAppSwitcher, setShowAppSwitcher] = useState(false);
+  const [switcherPos, setSwitcherPos] = useState<{ top: number; left: number } | null>(null);
   const appSwitcherRef = useRef<HTMLDivElement>(null);
+  const appSwitcherBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -59,6 +61,13 @@ export function ChessSidebar() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (showAppSwitcher && appSwitcherBtnRef.current) {
+      const rect = appSwitcherBtnRef.current.getBoundingClientRect();
+      setSwitcherPos({ top: rect.top, left: rect.right + 8 });
+    }
+  }, [showAppSwitcher]);
 
   return (
     <SidebarShell bottomContent={
@@ -95,8 +104,9 @@ export function ChessSidebar() {
       </div>
 
       {/* App Switcher */}
-      <div className="px-2 pb-4 border-b border-slate-700 relative" ref={appSwitcherRef}>
+      <div className="px-2 pb-4 border-b border-slate-700" ref={appSwitcherRef}>
         <button
+          ref={appSwitcherBtnRef}
           onClick={() => setShowAppSwitcher(!showAppSwitcher)}
           className="w-full bg-blue-900/30 hover:bg-blue-900/50 rounded-lg p-3 transition-colors"
         >
@@ -106,12 +116,15 @@ export function ChessSidebar() {
             <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform ${showAppSwitcher ? 'rotate-180' : ''}`} />
           </div>
         </button>
-        {showAppSwitcher && (
-          <div className="absolute top-full left-2 right-2 mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-50 overflow-hidden">
+        {showAppSwitcher && switcherPos && (
+          <div
+            className="fixed bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-50 overflow-hidden"
+            style={{ top: switcherPos.top, left: switcherPos.left }}
+          >
             <Link
               to="/investing"
               onClick={() => setShowAppSwitcher(false)}
-              className="flex items-center justify-center gap-3 px-4 py-3 hover:bg-slate-600 transition-colors"
+              className="flex items-center gap-3 px-5 py-3 hover:bg-slate-600 transition-colors"
             >
               <span className="text-2xl">📈</span>
               <p className="text-slate-200 font-medium">Investing</p>
