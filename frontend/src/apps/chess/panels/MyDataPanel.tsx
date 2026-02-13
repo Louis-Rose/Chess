@@ -322,7 +322,7 @@ function GameNumberSection({ data }: { data: ApiResponse }) {
                         if (!active || !payload?.length) return null;
                         const d = payload[0]?.payload;
                         if (!d) return null;
-                        const gameLabel = d.game_number === 1 ? t('chess.nthGame') : t('chess.nthGames');
+                        const gameLabel = t('chess.nthGame');
                         return (
                           <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
                             <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{d.game_number}{d.game_number === 1 ? 'st' : d.game_number === 2 ? 'nd' : d.game_number === 3 ? 'rd' : 'th'} {gameLabel}</p>
@@ -350,7 +350,7 @@ function GameNumberSection({ data }: { data: ApiResponse }) {
                 {filtered.map(g => (
                   <tr key={g.game_number} className="border border-slate-600">
                     <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">
-                      {g.game_number}{g.game_number === 1 ? 'st' : g.game_number === 2 ? 'nd' : g.game_number === 3 ? 'rd' : 'th'} {g.game_number === 1 ? t('chess.nthGame') : t('chess.nthGames')}
+                      {g.game_number}{g.game_number === 1 ? 'st' : g.game_number === 2 ? 'nd' : g.game_number === 3 ? 'rd' : 'th'} {t('chess.nthGame')}
                     </td>
                     <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
                       {g.sample_size >= 10 ? (
