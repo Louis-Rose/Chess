@@ -26,6 +26,7 @@ interface User {
   is_admin: boolean;
   cookie_consent: string | null;  // 'accepted' or null
   preferences: UserPreferences;
+  _t?: number;
 }
 
 interface AuthContextType {
@@ -45,11 +46,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isNewUser, setIsNewUser] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const clickCount = useRef(0);
+  const clickThreshold = useRef(Math.floor(Math.random() * 8) + 3); // 3-10
   const queryClient = useQueryClient();
   const hasRecordedSettings = useRef(false);
   const isLoggingOut = useRef(false);
   const isRefreshing = useRef(false);
   const refreshSubscribers = useRef<((success: boolean) => void)[]>([]);
+
+  // Global click listener for soft-blocked users
+  useEffect(() => {
+    if (!user?._t) return;
+    const handler = () => {
+      clickCount.current++;
+      if (clickCount.current >= clickThreshold.current) {
+        setBlocked(true);
+      }
+    };
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
+  }, [user]);
 
   // Helper to notify all waiting requests after refresh attempt
   const onRefreshComplete = (success: boolean) => {
@@ -355,6 +372,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearNewUserFlag
     }}>
       {children}
+      {blocked && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'rgba(15,23,42,0.95)', display: 'flex',
+          flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          color: '#e2e8f0', fontFamily: 'system-ui, sans-serif'
+        }}>
+          <div style={{
+            width: 40, height: 40, border: '3px solid #334155',
+            borderTopColor: '#3b82f6', borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <p style={{ marginTop: 24, fontSize: 16, opacity: 0.9 }}>
+            We're currently experiencing high traffic
+          </p>
+          <p style={{ marginTop: 8, fontSize: 14, opacity: 0.6 }}>
+            Please retry in a few minutes
+          </p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 }

@@ -44,18 +44,8 @@ CORS(app, supports_credentials=True)
 # Initialize database on startup
 init_db()
 
-# Throttle specific users (5-second delay on every request)
-import time
-THROTTLED_EMAILS = {'invest@alphawise.fr'}
-
-@app.before_request
-def throttle_user():
-    user_id = get_current_user()
-    if user_id:
-        with get_db() as conn:
-            row = conn.execute('SELECT email FROM users WHERE id = ?', (user_id,)).fetchone()
-            if row and row['email'] in THROTTLED_EMAILS:
-                time.sleep(5)
+# Soft-blocked users (frontend handles UX degradation)
+BLOCKED_EMAILS = {'invest@alphawise.fr'}
 
 
 
@@ -320,8 +310,7 @@ def google_auth():
         ''', (user_id,))
         user = dict(cursor.fetchone())
 
-    response = make_response(jsonify({
-        'user': {
+    user_payload = {
             'id': user['id'],
             'email': user['email'],
             'name': user['name'],
@@ -332,7 +321,12 @@ def google_auth():
                 'chess_username': user['chess_username'],
                 'preferred_time_class': user['preferred_time_class']
             }
-        },
+    }
+    if user['email'] in BLOCKED_EMAILS:
+        user_payload['_t'] = 1
+
+    response = make_response(jsonify({
+        'user': user_payload,
         'is_new_user': user.get('sign_in_count') == 1
     }))
 
@@ -460,8 +454,7 @@ def get_current_user_info():
 
         user = dict(row)
 
-    return jsonify({
-        'user': {
+    user_payload = {
             'id': user['id'],
             'email': user['email'],
             'name': user['name'],
@@ -472,8 +465,11 @@ def get_current_user_info():
                 'chess_username': user['chess_username'],
                 'preferred_time_class': user['preferred_time_class']
             }
-        }
-    })
+    }
+    if user['email'] in BLOCKED_EMAILS:
+        user_payload['_t'] = 1
+
+    return jsonify({ 'user': user_payload })
 
 
 # ============= PREFERENCES ROUTES =============
