@@ -11,7 +11,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
-export function CollapsibleSection({ title, defaultExpanded = true, children }: { title: string; defaultExpanded?: boolean; children: React.ReactNode | ((fullscreen: boolean) => React.ReactNode) }) {
+export function CollapsibleSection({ title, defaultExpanded = true, standalone = false, children }: { title: string; defaultExpanded?: boolean; standalone?: boolean; children: React.ReactNode | ((fullscreen: boolean) => React.ReactNode) }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -23,6 +23,20 @@ export function CollapsibleSection({ title, defaultExpanded = true, children }: 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isFullscreen, closeFullscreen]);
+
+  // Standalone mode: no collapse, no fullscreen, just title + content
+  if (standalone) {
+    return (
+      <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none">
+        <div className="flex items-center p-4">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 select-text">{title}</h3>
+        </div>
+        <div className="select-text px-4 pb-4">
+          {typeof children === 'function' ? children(false) : children}
+        </div>
+      </div>
+    );
+  }
 
   const card = (
     <div className={isFullscreen
@@ -162,13 +176,13 @@ function TodaySection({ data }: { data: ApiResponse }) {
   );
 }
 
-export function DailyVolumeSection({ data }: { data: ApiResponse }) {
+export function DailyVolumeSection({ data, standalone = false }: { data: ApiResponse; standalone?: boolean }) {
   const { t } = useLanguage();
 
   const rawDvs = data.daily_volume_stats;
 
   return (
-    <CollapsibleSection title={t('chess.dailyVolumeTitle')} defaultExpanded>
+    <CollapsibleSection title={t('chess.dailyVolumeTitle')} defaultExpanded standalone={standalone}>
       {(fullscreen) => {
         if (!rawDvs || rawDvs.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
@@ -268,13 +282,13 @@ export function DailyVolumeSection({ data }: { data: ApiResponse }) {
   );
 }
 
-export function GameNumberSection({ data }: { data: ApiResponse }) {
+export function GameNumberSection({ data, standalone = false }: { data: ApiResponse; standalone?: boolean }) {
   const { t } = useLanguage();
 
   const raw = data.game_number_stats;
 
   return (
-    <CollapsibleSection title={t('chess.gameNumberTitle')} defaultExpanded>
+    <CollapsibleSection title={t('chess.gameNumberTitle')} defaultExpanded standalone={standalone}>
       {(fullscreen) => {
         if (!raw || raw.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
@@ -373,7 +387,7 @@ export function GameNumberSection({ data }: { data: ApiResponse }) {
   );
 }
 
-export function StreakSection({ data }: { data: ApiResponse }) {
+export function StreakSection({ data, standalone = false }: { data: ApiResponse; standalone?: boolean }) {
   const { t } = useLanguage();
 
   const stats = data.streak_stats;
@@ -400,7 +414,7 @@ export function StreakSection({ data }: { data: ApiResponse }) {
   );
 
   return (
-    <CollapsibleSection title={t('chess.streakTitle')} defaultExpanded>
+    <CollapsibleSection title={t('chess.streakTitle')} defaultExpanded standalone={standalone}>
       {() => {
         if (!stats || stats.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
