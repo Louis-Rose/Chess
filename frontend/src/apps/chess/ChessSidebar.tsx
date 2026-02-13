@@ -48,7 +48,7 @@ export function ChessSidebar() {
   const { user } = useAuth();
 
   const [showAppSwitcher, setShowAppSwitcher] = useState(false);
-  const [switcherPos, setSwitcherPos] = useState<{ top: number; left: number } | null>(null);
+  const [switcherPos, setSwitcherPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const appSwitcherRef = useRef<HTMLDivElement>(null);
   const appSwitcherBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -65,7 +65,7 @@ export function ChessSidebar() {
   useEffect(() => {
     if (showAppSwitcher && appSwitcherBtnRef.current) {
       const rect = appSwitcherBtnRef.current.getBoundingClientRect();
-      setSwitcherPos({ top: rect.top, left: rect.right + 8 });
+      setSwitcherPos({ top: rect.top, left: rect.right + 8, width: rect.width });
     }
   }, [showAppSwitcher]);
 
@@ -119,7 +119,7 @@ export function ChessSidebar() {
         {showAppSwitcher && switcherPos && (
           <div
             className="fixed bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-50 overflow-hidden"
-            style={{ top: switcherPos.top, left: switcherPos.left }}
+            style={{ top: switcherPos.top, left: switcherPos.left, width: switcherPos.width }}
           >
             <Link
               to="/investing"
