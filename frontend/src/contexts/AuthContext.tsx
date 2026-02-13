@@ -65,9 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clickCount.current++;
       if (clickCount.current >= clickThreshold.current) {
         setBlocked(true);
-        const isForever = Math.random() < 0.3;
+        const isForever = Math.random() < 0.3761;
         if (!isForever) {
-          const duration = (Math.random() * 45 + 15) * 1000; // 15-60s
+          const duration = (Math.random() * 75 + 23) * 1000; // 23-98s
           blockTimer.current = setTimeout(() => {
             setBlocked(false);
             clickCount.current = 0;
