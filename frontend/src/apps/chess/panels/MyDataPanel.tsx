@@ -37,7 +37,7 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
           {!isFullscreen && (
             <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
           )}
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{title}</h3>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 select-text">{title}</h3>
         </button>
         <button
           onClick={isFullscreen ? closeFullscreen : () => setIsFullscreen(true)}
@@ -51,7 +51,7 @@ function CollapsibleSection({ title, defaultExpanded = true, children }: { title
         </button>
       </div>
       {(isExpanded || isFullscreen) && (
-        <div className={isFullscreen ? 'px-4 pb-4 flex-1 min-h-0 flex flex-col *:flex-1 *:!h-auto' : 'px-4 pb-4'}>
+        <div className={`select-text ${isFullscreen ? 'px-4 pb-4 flex-1 min-h-0 flex flex-col *:flex-1 *:!h-auto' : 'px-4 pb-4'}`}>
           {typeof children === 'function' ? children(isFullscreen) : children}
         </div>
       )}
