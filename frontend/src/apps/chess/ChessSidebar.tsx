@@ -70,7 +70,7 @@ export function ChessSidebar() {
   }, [showAppSwitcher]);
 
   return (
-    <SidebarShell bottomContent={
+    <SidebarShell hideThemeToggle bottomContent={
       <div className="bg-white rounded-lg p-3">
         <label className="block text-slate-600 text-xs font-medium mb-2 text-center">Game Type</label>
         <select
