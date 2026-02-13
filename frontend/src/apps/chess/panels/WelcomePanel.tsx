@@ -148,9 +148,9 @@ export function WelcomePanel() {
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                 <BarChart3 className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-slate-100">My Data</h3>
+              <h3 className="text-lg font-bold text-slate-100 select-text">My Data</h3>
             </div>
-            <p className="text-slate-400 text-sm">
+            <p className="text-slate-400 text-sm select-text">
               Track your Elo progression and today's session stats.
             </p>
           </button>
@@ -164,9 +164,9 @@ export function WelcomePanel() {
               <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-slate-100">Games Per Day</h3>
+              <h3 className="text-lg font-bold text-slate-100 select-text">Games Per Day</h3>
             </div>
-            <p className="text-slate-400 text-sm">
+            <p className="text-slate-400 text-sm select-text">
               Find your optimal number of games per day to maximize your win rate.
             </p>
           </button>
@@ -180,9 +180,9 @@ export function WelcomePanel() {
               <div className="w-10 h-10 bg-amber-600 rounded-lg flex items-center justify-center">
                 <Hash className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-slate-100">Best Games</h3>
+              <h3 className="text-lg font-bold text-slate-100 select-text">Best Games</h3>
             </div>
-            <p className="text-slate-400 text-sm">
+            <p className="text-slate-400 text-sm select-text">
               Which game of the day is your strongest? See your win rate by game number.
             </p>
           </button>
@@ -196,9 +196,9 @@ export function WelcomePanel() {
               <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-slate-100">Streaks</h3>
+              <h3 className="text-lg font-bold text-slate-100 select-text">Streaks</h3>
             </div>
-            <p className="text-slate-400 text-sm">
+            <p className="text-slate-400 text-sm select-text">
               Should you play another game after wins or losses? Data-driven streak analysis.
             </p>
           </button>
