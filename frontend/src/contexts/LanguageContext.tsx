@@ -130,7 +130,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.stopAfterNLosses': 'Stop playing after {n} losses in a row.',
     'chess.todaysData': "Today's data",
     'chess.currentSituation': 'Current situation',
-    'chess.gamesPlayed': 'Games played',
+    'chess.gamesPlayed': 'Games Played',
     'chess.currentStreak': 'Current streak',
     'chess.predictedWinRate': 'Predicted win rate',
     'chess.win': 'Win',
