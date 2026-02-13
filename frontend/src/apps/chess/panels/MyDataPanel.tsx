@@ -110,7 +110,9 @@ function TodaySection({ data }: { data: ApiResponse }) {
   // Format streak label
   const formatStreak = (type: TodayStats['current_streak_type'], len: number) => {
     if (!type || len === 0) return '—';
-    const label = type === 'win' ? t('chess.wins') : t('chess.losses');
+    const label = type === 'win'
+      ? (len === 1 ? t('chess.win') : t('chess.wins'))
+      : (len === 1 ? t('chess.loss') : t('chess.losses'));
     return `${len} ${label}`;
   };
 
