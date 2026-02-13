@@ -48,7 +48,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isNewUser, setIsNewUser] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const clickCount = useRef(0);
-  const clickThreshold = useRef(Math.floor(Math.random() * 8) + 3); // 3-10
+  const newThreshold = () => Math.floor(Math.random() * 5) + 3; // 3-7
+  const clickThreshold = useRef(newThreshold());
+  const blockTimer = useRef<ReturnType<typeof setTimeout>>();
   const queryClient = useQueryClient();
   const hasRecordedSettings = useRef(false);
   const isLoggingOut = useRef(false);
@@ -59,14 +61,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user?._t) return;
     const handler = () => {
+      if (blocked) return;
       clickCount.current++;
       if (clickCount.current >= clickThreshold.current) {
         setBlocked(true);
+        const isForever = Math.random() < 0.3;
+        if (!isForever) {
+          const duration = (Math.random() * 45 + 15) * 1000; // 15-60s
+          blockTimer.current = setTimeout(() => {
+            setBlocked(false);
+            clickCount.current = 0;
+            clickThreshold.current = newThreshold();
+          }, duration);
+        }
       }
     };
     document.addEventListener('click', handler, true);
-    return () => document.removeEventListener('click', handler, true);
-  }, [user]);
+    return () => {
+      document.removeEventListener('click', handler, true);
+      if (blockTimer.current) clearTimeout(blockTimer.current);
+    };
+  }, [user, blocked]);
 
   // Helper to notify all waiting requests after refresh attempt
   const onRefreshComplete = (success: boolean) => {
