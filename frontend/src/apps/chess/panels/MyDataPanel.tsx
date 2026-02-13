@@ -24,17 +24,13 @@ export function CollapsibleSection({ title, defaultExpanded = true, standalone =
     return () => window.removeEventListener('keydown', onKey);
   }, [isFullscreen, closeFullscreen]);
 
-  // Standalone mode: no collapse, no fullscreen, just title + content
+  // Standalone mode: title as page heading, children unwrapped (they provide their own containers)
   if (standalone) {
     return (
-      <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none">
-        <div className="flex items-center p-4">
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 select-text">{title}</h3>
-        </div>
-        <div className="select-text px-4 pb-4">
-          {typeof children === 'function' ? children(false) : children}
-        </div>
-      </div>
+      <>
+        <h2 className="text-2xl font-bold text-slate-100 text-center select-text">{title}</h2>
+        {typeof children === 'function' ? children(false) : children}
+      </>
     );
   }
 
@@ -199,82 +195,97 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
         const lastSignificantIdx = withRate.reduce((last, d, i) => d.days >= 10 ? i : last, -1);
         const sorted = lastSignificantIdx >= 0 ? withRate.slice(0, lastSignificantIdx + 1) : [];
 
-        return (
-          <div className="space-y-4">
-            <div>
-              <div className="text-center mb-3">
-                <h4 className="text-white font-semibold">{t('chess.winRate')}</h4>
-              </div>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={sorted} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                    <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} />
-                    <XAxis
-                      dataKey="games_per_day"
-                      tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
-                      label={{ value: t('chess.gamesPerDay'), position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: fs, fontWeight: 700 }}
-                    />
-                    <YAxis
-                      tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
-                      domain={[0, 100]}
-                      ticks={[0, 25, 50, 75, 100]}
-                      tickFormatter={(v) => `${v}%`}
-                    />
-                    <Tooltip
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      content={({ active, payload, label }: any) => {
-                        if (!active || !payload?.length) return null;
-                        const d = payload[0]?.payload;
-                        if (!d || d.total_games === 0) return null;
-                        const winRate = (d.win_pct + d.draw_pct / 2).toFixed(1);
-                        return (
-                          <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
-                            <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{label} {(Number(label) === 1 ? t('chess.gamePerDay') : t('chess.gamesPerDay')).toLowerCase()}</p>
-                            <p style={{ color: '#f1f5f9' }}>{t('chess.winRate')}: {winRate}%</p>
-                            <p style={{ color: '#94a3b8', fontSize: 12 }}>{d.days} {t('chess.daysOfData')}</p>
-                          </div>
-                        );
-                      }}
-                    />
-                    <Bar dataKey="win_pct" stackId="a" fill="#16a34a" />
-                    <Bar dataKey="draw_pct" stackId="a" fill="#64748b" />
-                    <Bar dataKey="loss_pct" stackId="a" fill="#dc2626" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+        const chart = (
+          <div>
+            <div className="text-center mb-3">
+              <h4 className="text-white font-semibold">{t('chess.winRate')}</h4>
             </div>
-
-            <div className="text-center">
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={sorted} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                  <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} />
+                  <XAxis
+                    dataKey="games_per_day"
+                    tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
+                    label={{ value: t('chess.gamesPerDay'), position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: fs, fontWeight: 700 }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
+                    domain={[0, 100]}
+                    ticks={[0, 25, 50, 75, 100]}
+                    tickFormatter={(v) => `${v}%`}
+                  />
+                  <Tooltip
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    content={({ active, payload, label }: any) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0]?.payload;
+                      if (!d || d.total_games === 0) return null;
+                      const winRate = (d.win_pct + d.draw_pct / 2).toFixed(1);
+                      return (
+                        <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
+                          <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{label} {(Number(label) === 1 ? t('chess.gamePerDay') : t('chess.gamesPerDay')).toLowerCase()}</p>
+                          <p style={{ color: '#f1f5f9' }}>{t('chess.winRate')}: {winRate}%</p>
+                          <p style={{ color: '#94a3b8', fontSize: 12 }}>{d.days} {t('chess.daysOfData')}</p>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="win_pct" stackId="a" fill="#16a34a" />
+                  <Bar dataKey="draw_pct" stackId="a" fill="#64748b" />
+                  <Bar dataKey="loss_pct" stackId="a" fill="#dc2626" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="text-center mt-3">
               <p className="text-white text-sm">{t('chess.winRateFormula')}</p>
               <p className="text-white text-sm">{t('chess.winRateFilter')}</p>
             </div>
+          </div>
+        );
 
-            <table className="w-full border-collapse border border-slate-600">
-              <thead>
-                <tr className="border border-slate-600 bg-slate-800">
-                  <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.gamesPerDay')}</th>
-                  <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
+        const table = (
+          <table className="w-full border-collapse border border-slate-600">
+            <thead>
+              <tr className="border border-slate-600 bg-slate-800">
+                <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.gamesPerDay')}</th>
+                <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(d => (
+                <tr key={d.games_per_day} className="border border-slate-600">
+                  <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{d.games_per_day} {(d.games_per_day === 1 ? t('chess.gamePerDay') : t('chess.gamesPerDay')).toLowerCase()}</td>
+                  <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
+                    {d.days >= 10 ? (
+                      <>
+                        <span className={d.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{d.winRate.toFixed(1)}%</span>
+                        <span className="text-slate-500 font-normal ml-2 text-xs">({d.days} {t('chess.daysOfData')})</span>
+                      </>
+                    ) : (
+                      <span className="text-slate-500 text-xs">{t('chess.insufficientData')} ({d.days} {t('chess.daysOfData')})</span>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {sorted.map(d => (
-                  <tr key={d.games_per_day} className="border border-slate-600">
-                    <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{d.games_per_day} {(d.games_per_day === 1 ? t('chess.gamePerDay') : t('chess.gamesPerDay')).toLowerCase()}</td>
-                    <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
-                      {d.days >= 10 ? (
-                        <>
-                          <span className={d.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{d.winRate.toFixed(1)}%</span>
-                          <span className="text-slate-500 font-normal ml-2 text-xs">({d.days} {t('chess.daysOfData')})</span>
-                        </>
-                      ) : (
-                        <span className="text-slate-500 text-xs">{t('chess.insufficientData')} ({d.days} {t('chess.daysOfData')})</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
+        );
+
+        if (standalone) {
+          return (
+            <>
+              <div className="bg-slate-700 rounded-xl p-4 select-text">{chart}</div>
+              <div className="bg-slate-700 rounded-xl p-4 select-text">{table}</div>
+            </>
+          );
+        }
+
+        return (
+          <div className="space-y-4">
+            {chart}
+            {table}
           </div>
         );
       }}
@@ -309,77 +320,93 @@ export function GameNumberSection({ data, standalone = false }: { data: ApiRespo
           loss_pct: 100 - g.win_rate,
         }));
 
+        const chart = (
+          <div>
+            <div className="text-center mb-3">
+              <h4 className="text-white font-semibold">{t('chess.winRate')}</h4>
+            </div>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                  <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
+                    label={{ value: t('chess.gameNumber'), position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: fs, fontWeight: 700 }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
+                    domain={[0, 100]}
+                    ticks={[0, 25, 50, 75, 100]}
+                    tickFormatter={(v) => `${v}%`}
+                  />
+                  <Tooltip
+                    content={({ active, payload }: any) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0]?.payload;
+                      if (!d) return null;
+                      const gameLabel = t('chess.nthGame');
+                      return (
+                        <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
+                          <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{d.game_number}{d.game_number === 1 ? 'st' : d.game_number === 2 ? 'nd' : d.game_number === 3 ? 'rd' : 'th'} {gameLabel}</p>
+                          <p style={{ color: '#f1f5f9' }}>{t('chess.winRate')}: {d.win_rate.toFixed(1)}%</p>
+                          <p style={{ color: '#94a3b8', fontSize: 12 }}>{d.sample_size} {t('chess.games')}</p>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="win_pct" stackId="a" fill="#16a34a" />
+                  <Bar dataKey="loss_pct" stackId="a" fill="#dc2626" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        );
+
+        const table = (
+          <table className="w-full border-collapse border border-slate-600">
+            <thead>
+              <tr className="border border-slate-600 bg-slate-800">
+                <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.gameNumber')}</th>
+                <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(g => (
+                <tr key={g.game_number} className="border border-slate-600">
+                  <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">
+                    {g.game_number}{g.game_number === 1 ? 'st' : g.game_number === 2 ? 'nd' : g.game_number === 3 ? 'rd' : 'th'} {t('chess.nthGame')}
+                  </td>
+                  <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
+                    {g.sample_size >= 10 ? (
+                      <>
+                        <span className={g.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}>{g.win_rate.toFixed(1)}%</span>
+                        <span className="text-slate-500 font-normal ml-2 text-xs">({g.sample_size} {t('chess.games')})</span>
+                      </>
+                    ) : (
+                      <span className="text-slate-500 text-xs">{t('chess.insufficientData')} ({g.sample_size} {t('chess.games')})</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        );
+
+        if (standalone) {
+          return (
+            <>
+              <div className="bg-slate-700 rounded-xl p-4 select-text">{chart}</div>
+              <div className="bg-slate-700 rounded-xl p-4 select-text">{table}</div>
+            </>
+          );
+        }
+
         return (
           <div className="space-y-4">
-            <div>
-              <div className="text-center mb-3">
-                <h4 className="text-white font-semibold">{t('chess.winRate')}</h4>
-              </div>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                    <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
-                      label={{ value: t('chess.gameNumber'), position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: fs, fontWeight: 700 }}
-                    />
-                    <YAxis
-                      tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
-                      domain={[0, 100]}
-                      ticks={[0, 25, 50, 75, 100]}
-                      tickFormatter={(v) => `${v}%`}
-                    />
-                    <Tooltip
-                      content={({ active, payload }: any) => {
-                        if (!active || !payload?.length) return null;
-                        const d = payload[0]?.payload;
-                        if (!d) return null;
-                        const gameLabel = t('chess.nthGame');
-                        return (
-                          <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
-                            <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{d.game_number}{d.game_number === 1 ? 'st' : d.game_number === 2 ? 'nd' : d.game_number === 3 ? 'rd' : 'th'} {gameLabel}</p>
-                            <p style={{ color: '#f1f5f9' }}>{t('chess.winRate')}: {d.win_rate.toFixed(1)}%</p>
-                            <p style={{ color: '#94a3b8', fontSize: 12 }}>{d.sample_size} {t('chess.games')}</p>
-                          </div>
-                        );
-                      }}
-                    />
-                    <Bar dataKey="win_pct" stackId="a" fill="#16a34a" />
-                    <Bar dataKey="loss_pct" stackId="a" fill="#dc2626" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <table className="w-full border-collapse border border-slate-600">
-              <thead>
-                <tr className="border border-slate-600 bg-slate-800">
-                  <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.gameNumber')}</th>
-                  <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(g => (
-                  <tr key={g.game_number} className="border border-slate-600">
-                    <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">
-                      {g.game_number}{g.game_number === 1 ? 'st' : g.game_number === 2 ? 'nd' : g.game_number === 3 ? 'rd' : 'th'} {t('chess.nthGame')}
-                    </td>
-                    <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
-                      {g.sample_size >= 10 ? (
-                        <>
-                          <span className={g.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}>{g.win_rate.toFixed(1)}%</span>
-                          <span className="text-slate-500 font-normal ml-2 text-xs">({g.sample_size} {t('chess.games')})</span>
-                        </>
-                      ) : (
-                        <span className="text-slate-500 text-xs">{t('chess.insufficientData')} ({g.sample_size} {t('chess.games')})</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {chart}
+            {table}
           </div>
         );
       }}
@@ -441,45 +468,60 @@ export function StreakSection({ data, standalone = false }: { data: ApiResponse;
         // Losses: find the first loss streak length where win rate drops below 48%
         const firstBadLoss = sigLosses.find(s => s.win_rate < 48);
 
+        const table = (
+          <table className="w-full border-collapse border border-slate-600">
+            <thead>
+              <tr className="border border-slate-600 bg-slate-800">
+                <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.situation')}</th>
+                <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {wins.map(renderRow)}
+              <tr className="border border-slate-600">
+                <td colSpan={2} className="py-1 bg-slate-800 border border-slate-600" />
+              </tr>
+              {losses.map(renderRow)}
+            </tbody>
+          </table>
+        );
+
+        const recommendation = (lastGoodWin || firstBadLoss) ? (
+          <div className="bg-slate-800 rounded-lg p-4 text-sm text-center">
+            {allWinsPositive && (
+              <p className="text-green-400 font-semibold">{t('chess.keepPlayingWhileWinning')}</p>
+            )}
+            {!allWinsPositive && lastGoodWin && (
+              <p className="text-green-400 font-semibold">
+                {t('chess.keepPlayingUpTo').replace('{n}', String(lastGoodWin.streak_length))}
+              </p>
+            )}
+            {(allWinsPositive || lastGoodWin) && firstBadLoss && (
+              <div className="my-2 border-t border-slate-600" />
+            )}
+            {firstBadLoss && (
+              <p className="text-red-400 font-semibold">
+                {(firstBadLoss.streak_length === 1 ? t('chess.stopAfter1Loss') : t('chess.stopAfterNLosses').replace('{n}', String(firstBadLoss.streak_length)))}
+              </p>
+            )}
+          </div>
+        ) : null;
+
+        if (standalone) {
+          return (
+            <>
+              <div className="bg-slate-700 rounded-xl p-4 select-text space-y-4">
+                {table}
+                {recommendation}
+              </div>
+            </>
+          );
+        }
+
         return (
           <div className="space-y-4">
-            <table className="w-full border-collapse border border-slate-600">
-              <thead>
-                <tr className="border border-slate-600 bg-slate-800">
-                  <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.situation')}</th>
-                  <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {wins.map(renderRow)}
-                <tr className="border border-slate-600">
-                  <td colSpan={2} className="py-1 bg-slate-800 border border-slate-600" />
-                </tr>
-                {losses.map(renderRow)}
-              </tbody>
-            </table>
-
-            {/* Computed recommendation */}
-            {(lastGoodWin || firstBadLoss) && (
-              <div className="bg-slate-800 rounded-lg p-4 text-sm text-center">
-                {allWinsPositive && (
-                  <p className="text-green-400 font-semibold">{t('chess.keepPlayingWhileWinning')}</p>
-                )}
-                {!allWinsPositive && lastGoodWin && (
-                  <p className="text-green-400 font-semibold">
-                    {t('chess.keepPlayingUpTo').replace('{n}', String(lastGoodWin.streak_length))}
-                  </p>
-                )}
-                {(allWinsPositive || lastGoodWin) && firstBadLoss && (
-                  <div className="my-2 border-t border-slate-600" />
-                )}
-                {firstBadLoss && (
-                  <p className="text-red-400 font-semibold">
-                    {(firstBadLoss.streak_length === 1 ? t('chess.stopAfter1Loss') : t('chess.stopAfterNLosses').replace('{n}', String(firstBadLoss.streak_length)))}
-                  </p>
-                )}
-              </div>
-            )}
+            {table}
+            {recommendation}
           </div>
         );
       }}

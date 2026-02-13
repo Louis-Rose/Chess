@@ -18,9 +18,9 @@ export function StreakPage() {
       <div className="max-w-4xl mx-auto mt-8 space-y-6">
         <button
           onClick={() => navigate('/chess')}
-          className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors"
+          className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base -ml-1"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-5 h-5" />
           <span>Previous</span>
         </button>
         <StreakSection data={data} standalone />
