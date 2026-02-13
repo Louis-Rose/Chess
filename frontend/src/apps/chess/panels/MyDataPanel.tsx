@@ -268,6 +268,111 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
   );
 }
 
+function GameNumberSection({ data }: { data: ApiResponse }) {
+  const { t } = useLanguage();
+
+  const raw = data.game_number_stats;
+
+  return (
+    <CollapsibleSection title={t('chess.gameNumberTitle')} defaultExpanded>
+      {(fullscreen) => {
+        if (!raw || raw.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
+
+        const fs = fullscreen ? 18 : 14;
+
+        // Sort by game number, truncate after last entry with sample_size >= 10
+        const sorted = [...raw].sort((a, b) => a.game_number - b.game_number);
+        const lastSigIdx = sorted.reduce((last, g, i) => g.sample_size >= 10 ? i : last, -1);
+        const filtered = lastSigIdx >= 0 ? sorted.slice(0, lastSigIdx + 1) : [];
+
+        if (filtered.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
+
+        // Compute loss_rate and draw_rate for stacked bars (win_rate already provided)
+        const chartData = filtered.map(g => ({
+          ...g,
+          label: `#${g.game_number}`,
+          win_pct: g.win_rate,
+          loss_pct: 100 - g.win_rate,
+        }));
+
+        return (
+          <div className="space-y-4">
+            <div>
+              <div className="text-center mb-3">
+                <h4 className="text-white font-semibold">{t('chess.winRate')}</h4>
+              </div>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                    <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
+                      label={{ value: t('chess.gameNumber'), position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: fs, fontWeight: 700 }}
+                    />
+                    <YAxis
+                      tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
+                      domain={[0, 100]}
+                      ticks={[0, 25, 50, 75, 100]}
+                      tickFormatter={(v) => `${v}%`}
+                    />
+                    <Tooltip
+                      content={({ active, payload }: any) => {
+                        if (!active || !payload?.length) return null;
+                        const d = payload[0]?.payload;
+                        if (!d) return null;
+                        const gameLabel = d.game_number === 1 ? t('chess.nthGame') : t('chess.nthGames');
+                        return (
+                          <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
+                            <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{d.game_number}{d.game_number === 1 ? 'st' : d.game_number === 2 ? 'nd' : d.game_number === 3 ? 'rd' : 'th'} {gameLabel}</p>
+                            <p style={{ color: '#f1f5f9' }}>{t('chess.winRate')}: {d.win_rate.toFixed(1)}%</p>
+                            <p style={{ color: '#94a3b8', fontSize: 12 }}>{d.sample_size} {t('chess.games')}</p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar dataKey="win_pct" stackId="a" fill="#16a34a" />
+                    <Bar dataKey="loss_pct" stackId="a" fill="#dc2626" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <table className="w-full border-collapse border border-slate-600">
+              <thead>
+                <tr className="border border-slate-600 bg-slate-800">
+                  <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.gameNumber')}</th>
+                  <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(g => (
+                  <tr key={g.game_number} className="border border-slate-600">
+                    <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">
+                      {g.game_number}{g.game_number === 1 ? 'st' : g.game_number === 2 ? 'nd' : g.game_number === 3 ? 'rd' : 'th'} {g.game_number === 1 ? t('chess.nthGame') : t('chess.nthGames')}
+                    </td>
+                    <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
+                      {g.sample_size >= 10 ? (
+                        <>
+                          <span className={g.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}>{g.win_rate.toFixed(1)}%</span>
+                          <span className="text-slate-500 font-normal ml-2 text-xs">({g.sample_size} {t('chess.games')})</span>
+                        </>
+                      ) : (
+                        <span className="text-slate-500 text-xs">{t('chess.insufficientData')} ({g.sample_size} {t('chess.games')})</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }}
+    </CollapsibleSection>
+  );
+}
+
 function StreakSection({ data }: { data: ApiResponse }) {
   const { t } = useLanguage();
 
@@ -572,6 +677,9 @@ export function MyDataPanel() {
 
         {/* Games per day analysis */}
         <DailyVolumeSection data={data} />
+
+        {/* Game number analysis */}
+        <GameNumberSection data={data} />
 
         {/* Streak analysis */}
         <StreakSection data={data} />
