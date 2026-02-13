@@ -7,6 +7,9 @@ import { WelcomePanel } from './panels/WelcomePanel';
 import { MyDataPanel } from './panels/MyDataPanel';
 import { WinPredictionPanel } from './panels/WinPredictionPanel';
 import { OpeningsPanel } from './panels/OpeningsPanel';
+import { DailyVolumePage } from './panels/DailyVolumePage';
+import { GameNumberPage } from './panels/GameNumberPage';
+import { StreakPage } from './panels/StreakPage';
 
 export function ChessApp() {
   useEffect(() => {
@@ -20,6 +23,9 @@ export function ChessApp() {
       <Route element={<ChessLayout />}>
         <Route index element={<WelcomePanel />} />
         <Route path="my-data" element={<MyDataPanel />} />
+        <Route path="daily-volume" element={<DailyVolumePage />} />
+        <Route path="game-number" element={<GameNumberPage />} />
+        <Route path="streak" element={<StreakPage />} />
         <Route path="win-prediction" element={<WinPredictionPanel />} />
         <Route path="openings" element={<OpeningsPanel />} />
       </Route>

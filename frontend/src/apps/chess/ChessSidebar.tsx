@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Loader2, ChevronDown, Home, BarChart3, Search } from 'lucide-react';
+import { Loader2, ChevronDown, Home, BarChart3, Search, Calendar, Hash, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../../components/UserMenu';
 import { SidebarShell } from '../../components/SidebarShell';
@@ -22,7 +22,9 @@ const LumnaLogo = ({ className }: { className?: string }) => (
 const navItems = [
   { path: '/chess', icon: Home, label: 'Welcome', end: true },
   { path: '/chess/my-data', icon: BarChart3, label: 'My Data' },
-  // { path: '/chess/openings', icon: BookOpen, label: 'Openings' },
+  { path: '/chess/daily-volume', icon: Calendar, label: 'Games Per Day' },
+  { path: '/chess/game-number', icon: Hash, label: 'Best Games' },
+  { path: '/chess/streak', icon: TrendingUp, label: 'Streaks' },
 ];
 
 export function ChessSidebar() {

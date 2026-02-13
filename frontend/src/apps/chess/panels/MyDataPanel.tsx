@@ -11,7 +11,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
-function CollapsibleSection({ title, defaultExpanded = true, children }: { title: string; defaultExpanded?: boolean; children: React.ReactNode | ((fullscreen: boolean) => React.ReactNode) }) {
+export function CollapsibleSection({ title, defaultExpanded = true, children }: { title: string; defaultExpanded?: boolean; children: React.ReactNode | ((fullscreen: boolean) => React.ReactNode) }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -162,7 +162,7 @@ function TodaySection({ data }: { data: ApiResponse }) {
   );
 }
 
-function DailyVolumeSection({ data }: { data: ApiResponse }) {
+export function DailyVolumeSection({ data }: { data: ApiResponse }) {
   const { t } = useLanguage();
 
   const rawDvs = data.daily_volume_stats;
@@ -268,7 +268,7 @@ function DailyVolumeSection({ data }: { data: ApiResponse }) {
   );
 }
 
-function GameNumberSection({ data }: { data: ApiResponse }) {
+export function GameNumberSection({ data }: { data: ApiResponse }) {
   const { t } = useLanguage();
 
   const raw = data.game_number_stats;
@@ -373,7 +373,7 @@ function GameNumberSection({ data }: { data: ApiResponse }) {
   );
 }
 
-function StreakSection({ data }: { data: ApiResponse }) {
+export function StreakSection({ data }: { data: ApiResponse }) {
   const { t } = useLanguage();
 
   const stats = data.streak_stats;
