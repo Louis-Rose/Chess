@@ -1,11 +1,10 @@
-// My Data panel with Elo history and games played charts
+// Chess analysis section components
 
 import { useState, useEffect, useCallback } from 'react';
-import { BarChart3, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import { ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import type { ApiResponse, StreakStats, TodayStats } from '../utils/types';
-import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 import {
   ComposedChart, BarChart, Line, Bar, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -85,7 +84,7 @@ export function CollapsibleSection({ title, defaultExpanded = true, standalone =
   return card;
 }
 
-function TodaySection({ data }: { data: ApiResponse }) {
+export function TodaySection({ data, standalone = false }: { data: ApiResponse; standalone?: boolean }) {
   const { t } = useLanguage();
 
   const today = data.today_stats;
@@ -96,7 +95,6 @@ function TodaySection({ data }: { data: ApiResponse }) {
   const streakLength = today.current_streak_length;
 
   // Predicted win rate from daily volume: find entry matching current games count
-  // (on days when you play this many, your win rate is X%). Fall back to closest entry.
   const dvs = data.daily_volume_stats;
   const lookupCount = Math.max(gamesToday, 1);
   let volumeEntry = dvs?.find(d => d.games_per_day === lookupCount && d.days >= 10);
@@ -109,7 +107,7 @@ function TodaySection({ data }: { data: ApiResponse }) {
   }
   const volumeWinRate = volumeEntry ? (volumeEntry.win_pct + volumeEntry.draw_pct / 2) : null;
 
-  // Predicted win rate from streak: find entry matching current streak
+  // Predicted win rate from streak
   const streakStats = data.streak_stats;
   const streakEntry = streakType && streakLength > 0
     ? streakStats?.find(s => s.streak_type === streakType && s.streak_length === streakLength)
@@ -117,7 +115,6 @@ function TodaySection({ data }: { data: ApiResponse }) {
   const streakWinRate = streakEntry && streakEntry.sample_size >= 30
     ? streakEntry.win_rate : null;
 
-  // Format streak label
   const formatStreak = (type: TodayStats['current_streak_type'], len: number) => {
     if (!type || len === 0) return '—';
     const label = type === 'win'
@@ -128,46 +125,59 @@ function TodaySection({ data }: { data: ApiResponse }) {
 
   const winRateColor = (rate: number) => rate >= 50 ? 'text-green-400' : 'text-red-400';
 
-  return (
-    <CollapsibleSection title={t('chess.todaysData')} defaultExpanded>
-      {() => (
-        <table className="w-full border-collapse border border-slate-600">
-          <thead>
-            <tr className="border border-slate-600 bg-slate-800">
-              <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.currentSituation')}</th>
-              <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.predictedWinRate')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border border-slate-600">
-              <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">
-                {gamesToday} {(gamesToday === 1 ? t('chess.gamePerDay') : t('chess.gamesPlayed')).toLowerCase()}
-              </td>
-              <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
-                {volumeWinRate !== null ? (
-                  <span className={winRateColor(volumeWinRate)}>{volumeWinRate.toFixed(1)}%</span>
-                ) : (
-                  <span className="text-slate-500">—</span>
-                )}
-              </td>
-            </tr>
-            {gamesToday > 0 && streakLength > 0 && (
-              <tr className="border border-slate-600">
-                <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">
-                  {formatStreak(streakType, streakLength)}
-                </td>
-                <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
-                  {streakWinRate !== null ? (
-                    <span className={winRateColor(streakWinRate)}>{streakWinRate.toFixed(1)}%</span>
-                  ) : (
-                    <span className="text-slate-500">—</span>
-                  )}
-                </td>
-              </tr>
+  const title = "Next game's predicted win rate";
+
+  const table = (
+    <table className="w-full border-collapse border border-slate-600">
+      <thead>
+        <tr className="border border-slate-600 bg-slate-800">
+          <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.currentSituation')}</th>
+          <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.predictedWinRate')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr className="border border-slate-600">
+          <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">
+            {gamesToday} {(gamesToday === 1 ? t('chess.gamePerDay') : t('chess.gamesPlayed')).toLowerCase()}
+          </td>
+          <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
+            {volumeWinRate !== null ? (
+              <span className={winRateColor(volumeWinRate)}>{volumeWinRate.toFixed(1)}%</span>
+            ) : (
+              <span className="text-slate-500">—</span>
             )}
+          </td>
+        </tr>
+        {gamesToday > 0 && streakLength > 0 && (
+          <tr className="border border-slate-600">
+            <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">
+              {formatStreak(streakType, streakLength)}
+            </td>
+            <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
+              {streakWinRate !== null ? (
+                <span className={winRateColor(streakWinRate)}>{streakWinRate.toFixed(1)}%</span>
+              ) : (
+                <span className="text-slate-500">—</span>
+              )}
+            </td>
+          </tr>
+        )}
           </tbody>
         </table>
-      )}
+      );
+
+  if (standalone) {
+    return (
+      <>
+        <h2 className="text-2xl font-bold text-slate-100 text-center select-text">{title}</h2>
+        <div className="bg-slate-700 rounded-xl p-4 select-text">{table}</div>
+      </>
+    );
+  }
+
+  return (
+    <CollapsibleSection title={t('chess.todaysData')} defaultExpanded>
+      {() => table}
     </CollapsibleSection>
   );
 }
@@ -691,8 +701,10 @@ export function EloSection({ data, standalone = false }: { data: ApiResponse; st
         if (standalone) {
           return (
             <>
-              {stats}
-              <div className="bg-slate-700 rounded-xl p-4 select-text">{chart}</div>
+              <div className="bg-slate-700 rounded-xl p-4 select-text space-y-4">
+                {stats}
+                {chart}
+              </div>
             </>
           );
         }
@@ -708,43 +720,3 @@ export function EloSection({ data, standalone = false }: { data: ApiResponse; st
   );
 }
 
-export function MyDataPanel() {
-  const { t } = useLanguage();
-  const { data, loading, progress, searchedUsername } = useChessData();
-
-  if (loading && searchedUsername) {
-    return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <LoadingProgress progress={progress} />
-      </div>
-    );
-  }
-
-  if (!data) {
-    return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="flex flex-col items-center justify-center py-20">
-          <BarChart3 className="w-16 h-16 text-slate-500 mb-4" />
-          <h2 className="text-2xl font-bold text-slate-300 mb-2">{t('chess.noData')}</h2>
-          <p className="text-slate-500">{t('chess.searchPrompt')}</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex flex-col items-center gap-2 mb-6 mt-8">
-        <h2 className="text-3xl font-bold text-slate-100">{t('chess.myData')}</h2>
-        <p className="text-slate-400 text-lg italic">
-          Viewing stats for @{data.player.username}
-        </p>
-      </div>
-
-      <div className="max-w-4xl mx-auto space-y-6">
-        <EloSection data={data} />
-        <TodaySection data={data} />
-      </div>
-    </div>
-  );
-}

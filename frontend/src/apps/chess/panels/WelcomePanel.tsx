@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LineChart, Calendar, Hash, TrendingUp, ChevronDown, Search, Loader2 } from 'lucide-react';
+import { LineChart, Calendar, Hash, TrendingUp, Target, ChevronDown, Search, Loader2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useChessData } from '../contexts/ChessDataContext';
@@ -19,6 +19,15 @@ const CARDS = {
     iconBg: 'bg-blue-600',
     title: 'Elo Rating & Games Played',
     description: 'Track your Elo progression and games played over time.',
+  },
+  'today': {
+    path: '/chess/today',
+    icon: Target,
+    color: 'purple',
+    hoverBorder: 'hover:border-purple-500',
+    iconBg: 'bg-purple-600',
+    title: "Next game's predicted win rate",
+    description: null,
   },
   'daily-volume': {
     path: '/chess/daily-volume',
@@ -50,7 +59,7 @@ const CARDS = {
 } as const;
 
 type CardId = keyof typeof CARDS;
-const ALL_CARD_IDS: CardId[] = ['elo', 'daily-volume', 'game-number', 'streak'];
+const ALL_CARD_IDS: CardId[] = ['elo', 'today', 'daily-volume', 'game-number', 'streak'];
 const GRID_SIZE = 6;
 type GridSlot = CardId | null;
 const DEFAULT_GRID: GridSlot[] = [...ALL_CARD_IDS, null, null];

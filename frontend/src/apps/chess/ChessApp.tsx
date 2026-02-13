@@ -4,10 +4,10 @@ import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ChessLayout } from './ChessLayout';
 import { WelcomePanel } from './panels/WelcomePanel';
-import { MyDataPanel } from './panels/MyDataPanel';
 import { WinPredictionPanel } from './panels/WinPredictionPanel';
 import { OpeningsPanel } from './panels/OpeningsPanel';
 import { EloPage } from './panels/EloPage';
+import { TodayPage } from './panels/TodayPage';
 import { DailyVolumePage } from './panels/DailyVolumePage';
 import { GameNumberPage } from './panels/GameNumberPage';
 import { StreakPage } from './panels/StreakPage';
@@ -23,8 +23,8 @@ export function ChessApp() {
     <Routes>
       <Route element={<ChessLayout />}>
         <Route index element={<WelcomePanel />} />
-        <Route path="my-data" element={<MyDataPanel />} />
         <Route path="elo" element={<EloPage />} />
+        <Route path="today" element={<TodayPage />} />
         <Route path="daily-volume" element={<DailyVolumePage />} />
         <Route path="game-number" element={<GameNumberPage />} />
         <Route path="streak" element={<StreakPage />} />

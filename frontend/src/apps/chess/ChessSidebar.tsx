@@ -1,8 +1,8 @@
 // Chess app sidebar with navigation
 
 import { useState, useEffect, useRef } from 'react';
-import { NavLink, Link } from 'react-router-dom';
-import { Loader2, ChevronDown, Home, BarChart3, LineChart, Search, Calendar, Hash, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Loader2, ChevronDown, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../../components/UserMenu';
 import { SidebarShell } from '../../components/SidebarShell';
@@ -19,14 +19,6 @@ const LumnaLogo = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const navItems = [
-  { path: '/chess', icon: Home, label: 'Welcome', end: true },
-  { path: '/chess/elo', icon: LineChart, label: 'Elo Rating' },
-  { path: '/chess/daily-volume', icon: Calendar, label: 'Games Per Day' },
-  { path: '/chess/game-number', icon: Hash, label: 'Best Games' },
-  { path: '/chess/streak', icon: TrendingUp, label: 'Streaks' },
-  { path: '/chess/my-data', icon: BarChart3, label: 'My Data' },
-];
 
 export function ChessSidebar() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -225,27 +217,6 @@ export function ChessSidebar() {
             <option value="blitz">Blitz</option>
           </select>
         </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex flex-col gap-1 px-2 py-4 border-b border-slate-700">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.end}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-300 hover:bg-slate-800'
-              }`
-            }
-          >
-            <item.icon className="w-5 h-5" />
-            {item.label}
-          </NavLink>
-        ))}
       </div>
 
     </SidebarShell>
