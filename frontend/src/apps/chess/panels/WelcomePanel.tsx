@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Calendar, Hash, TrendingUp, ChevronDown, Search, Loader2 } from 'lucide-react';
+import { LineChart, Calendar, Hash, TrendingUp, ChevronDown, Search, Loader2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useChessData } from '../contexts/ChessDataContext';
@@ -11,14 +11,14 @@ import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 
 // Card definitions
 const CARDS = {
-  'my-data': {
-    path: '/chess/my-data',
-    icon: BarChart3,
+  'elo': {
+    path: '/chess/elo',
+    icon: LineChart,
     color: 'blue',
     hoverBorder: 'hover:border-blue-500',
     iconBg: 'bg-blue-600',
-    title: 'My Data',
-    description: 'Track your Elo progression and today\'s session stats.',
+    title: 'Elo Rating & Games Played',
+    description: 'Track your Elo progression and games played over time.',
   },
   'daily-volume': {
     path: '/chess/daily-volume',
@@ -50,7 +50,7 @@ const CARDS = {
 } as const;
 
 type CardId = keyof typeof CARDS;
-const ALL_CARD_IDS: CardId[] = ['my-data', 'daily-volume', 'game-number', 'streak'];
+const ALL_CARD_IDS: CardId[] = ['elo', 'daily-volume', 'game-number', 'streak'];
 const GRID_SIZE = 6;
 type GridSlot = CardId | null;
 const DEFAULT_GRID: GridSlot[] = [...ALL_CARD_IDS, null, null];
