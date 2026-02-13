@@ -125,7 +125,7 @@ export function TodaySection({ data, standalone = false }: { data: ApiResponse; 
 
   const winRateColor = (rate: number) => rate >= 50 ? 'text-green-400' : 'text-red-400';
 
-  const title = "Next game's predicted win rate";
+  const title = t('chess.todayTitle');
 
   const table = (
     <table className="w-full border-collapse border border-slate-600">

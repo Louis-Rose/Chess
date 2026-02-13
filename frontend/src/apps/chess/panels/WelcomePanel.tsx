@@ -6,55 +6,51 @@ import { LineChart, Calendar, Hash, TrendingUp, Target, ChevronDown, Search, Loa
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useChessData } from '../contexts/ChessDataContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoginButton } from '../../../components/LoginButton';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 
-// Card definitions
+// Card definitions - titleKey/descriptionKey are i18n keys resolved at render time
 const CARDS = {
   'elo': {
     path: '/chess/elo',
     icon: LineChart,
-    color: 'blue',
     hoverBorder: 'hover:border-blue-500',
     iconBg: 'bg-blue-600',
-    title: 'Elo Rating & Games Played',
-    description: 'Track your Elo progression and games played over time.',
+    titleKey: 'chess.eloTitle',
+    descriptionKey: 'chess.eloDescription',
   },
   'today': {
     path: '/chess/today',
     icon: Target,
-    color: 'purple',
     hoverBorder: 'hover:border-purple-500',
     iconBg: 'bg-purple-600',
-    title: "Next game's predicted win rate",
-    description: null,
+    titleKey: 'chess.todayTitle',
+    descriptionKey: null,
   },
   'daily-volume': {
     path: '/chess/daily-volume',
     icon: Calendar,
-    color: 'green',
     hoverBorder: 'hover:border-green-500',
     iconBg: 'bg-green-600',
-    title: 'How many games should you play per day?',
-    description: null,
+    titleKey: 'chess.dailyVolumeTitle',
+    descriptionKey: null,
   },
   'game-number': {
     path: '/chess/game-number',
     icon: Hash,
-    color: 'amber',
     hoverBorder: 'hover:border-amber-500',
     iconBg: 'bg-amber-600',
-    title: 'Best Games',
-    description: 'Which game of the day is your strongest? See your win rate by game number.',
+    titleKey: 'chess.bestGamesTitle',
+    descriptionKey: 'chess.bestGamesDescription',
   },
   'streak': {
     path: '/chess/streak',
     icon: TrendingUp,
-    color: 'red',
     hoverBorder: 'hover:border-red-500',
     iconBg: 'bg-red-600',
-    title: 'Streaks',
-    description: 'Should you play another game after wins or losses? Data-driven streak analysis.',
+    titleKey: 'chess.streaksCardTitle',
+    descriptionKey: 'chess.streaksDescription',
   },
 } as const;
 
@@ -123,6 +119,7 @@ function CardContent({ icon: Icon, iconBg, title, description }: {
 
 export function WelcomePanel() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { user, isAuthenticated } = useAuth();
   const {
     usernameInput,
@@ -209,7 +206,9 @@ export function WelcomePanel() {
 
     const card = CARDS[cardId];
     const isDragging = draggedCardId === cardId;
-    const hasDescription = card.description !== null;
+    const title = t(card.titleKey);
+    const description = card.descriptionKey ? t(card.descriptionKey) : null;
+    const hasDescription = description !== null;
 
     return (
       <div
@@ -231,8 +230,8 @@ export function WelcomePanel() {
         <CardContent
           icon={card.icon}
           iconBg={card.iconBg}
-          title={card.title}
-          description={card.description}
+          title={title}
+          description={description}
         />
       </div>
     );
@@ -242,16 +241,16 @@ export function WelcomePanel() {
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center min-h-[70vh]">
-        <h1 className="text-5xl font-bold text-slate-100 mt-16">Let's improve your chess rating !</h1>
+        <h1 className="text-5xl font-bold text-slate-100 mt-16">{t('chess.loginTitle')}</h1>
         <div className="flex items-start pt-8">
           <img src="/favicon.svg" alt="" className="w-48 h-48 opacity-15" />
         </div>
         <div className="flex flex-col items-center flex-1 justify-end pb-8">
           <p className="text-xl text-slate-300 mb-3 text-center max-w-lg font-light tracking-wide">
-            Analyze your Chess.com games.
+            {t('chess.loginSubtitle1')}
           </p>
           <p className="text-xl text-slate-300 mb-10 text-center max-w-lg font-light tracking-wide">
-            Get personalized insights to improve your play.
+            {t('chess.loginSubtitle2')}
           </p>
           <LoginButton />
         </div>
@@ -263,18 +262,18 @@ export function WelcomePanel() {
     <>
       {/* Header with search */}
       <div className="text-center space-y-6">
-        <h1 className="text-4xl font-bold text-slate-100">Your Chess AI Assistant</h1>
+        <h1 className="text-4xl font-bold text-slate-100">{t('chess.welcomeTitle')}</h1>
 
         {/* First-time user: show search bar in main area */}
         {!myPlayerData && (
           <>
-            <p className="text-xl text-slate-300 font-light">What is your Chess.com username?</p>
+            <p className="text-xl text-slate-300 font-light">{t('chess.usernamePrompt')}</p>
             <form onSubmit={handleSubmit} className="flex items-center justify-center gap-2">
               <div className="relative" ref={dropdownRef}>
                 <div className="flex">
                   <input
                     type="text"
-                    placeholder="Enter your chess.com username"
+                    placeholder={t('chess.usernamePlaceholder')}
                     className="bg-white text-slate-900 placeholder:text-slate-400 px-4 py-3 border border-slate-300 rounded-l-lg w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={usernameInput}
                     onChange={(e) => setUsernameInput(e.target.value)}
@@ -296,7 +295,7 @@ export function WelcomePanel() {
                 {/* Dropdown */}
                 {showUsernameDropdown && savedPlayers.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
-                    <div className="px-3 py-2 text-xs text-slate-500 border-b border-slate-200">Recent searches</div>
+                    <div className="px-3 py-2 text-xs text-slate-500 border-b border-slate-200">{t('chess.recentSearches')}</div>
                     {savedPlayers.map((player, idx) => {
                       const isMe = user?.preferences?.chess_username?.toLowerCase() === player.username.toLowerCase();
                       return (
@@ -327,7 +326,7 @@ export function WelcomePanel() {
                 className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
               >
                 {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
-                Fetch data
+                {t('chess.fetchData')}
               </button>
             </form>
           </>
@@ -342,11 +341,11 @@ export function WelcomePanel() {
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-slate-100 mb-2">
             {myPlayerData?.player?.name || myPlayerData?.player?.username
-              ? `Welcome back, ${myPlayerData.player.name || myPlayerData.player.username}!`
-              : 'Welcome!'}
+              ? t('chess.welcomeBack').replace('{name}', myPlayerData.player.name || myPlayerData.player.username)
+              : t('chess.welcome')}
           </h2>
           <p className="text-slate-400">
-            Explore these powerful analysis tools to improve your game:
+            {t('chess.welcomeSubtitle')}
           </p>
         </div>
 
