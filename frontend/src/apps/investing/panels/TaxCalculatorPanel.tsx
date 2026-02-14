@@ -246,9 +246,9 @@ export function TaxCalculatorPanel() {
               <Tooltip
                 contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                 labelStyle={{ color: '#94a3b8' }}
-                formatter={(value: number | undefined, name: string) => [
+                formatter={(value?: number, name?: string) => [
                   formatEuro(value ?? 0),
-                  name === 'dutch' ? (language === 'fr' ? 'CTO Néerlandais' : 'Dutch CTO') : (language === 'fr' ? 'Holding Française' : 'French Holding'),
+                  (name ?? '') === 'dutch' ? (language === 'fr' ? 'CTO Néerlandais' : 'Dutch CTO') : (language === 'fr' ? 'Holding Française' : 'French Holding'),
                 ]}
                 labelFormatter={(label: number) => `${language === 'fr' ? 'Année' : 'Year'} ${label}`}
               />
