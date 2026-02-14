@@ -139,7 +139,7 @@ export function TaxCalculatorPanel() {
         <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">
           {t('taxCalc.parameters')}
         </h3>
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 mx-auto w-1/2">
           {/* Years */}
           <div>
             <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">
