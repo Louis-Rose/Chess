@@ -47,14 +47,10 @@ function simulateHolding(years: number, growthRate: number, v0: number): {
   const yearly: { portfolio: number; costs: number; cumulativeCosts: number }[] = [];
   let portfolio = v0;
   let cumulativeCosts = 0;
-  const annualOpCost = 2500;
 
   for (let y = 1; y <= years; y++) {
     portfolio = portfolio * (1 + growthRate / 100);
-    let yearCosts = annualOpCost;
-    portfolio -= yearCosts;
-    cumulativeCosts += yearCosts;
-    yearly.push({ portfolio, costs: yearCosts, cumulativeCosts });
+    yearly.push({ portfolio, costs: 0, cumulativeCosts });
   }
 
   // Exit: corporate tax (IS) at 15% on gains, then flat tax 31.4% on dividends
@@ -143,7 +139,7 @@ export function TaxCalculatorPanel() {
         <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">
           {t('taxCalc.parameters')}
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="flex flex-col gap-6">
           {/* Years */}
           <div>
             <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">
