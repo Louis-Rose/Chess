@@ -17,6 +17,7 @@ import { DeleteAccountPanel } from './panels/DeleteAccountPanel';
 import { SettingsPanel } from './panels/SettingsPanel';
 import { ComparisonPanel } from './panels/ComparisonPanel';
 import { NewsFeedPanel } from './panels/NewsFeedPanel';
+import { TaxCalculatorPanel } from './panels/TaxCalculatorPanel';
 
 export function InvestingApp() {
   useEffect(() => {
@@ -35,6 +36,7 @@ export function InvestingApp() {
         <Route path="dividends" element={<DividendsPanel />} />
         <Route path="comparison" element={<ComparisonPanel />} />
         <Route path="news-feed" element={<NewsFeedPanel />} />
+        <Route path="tax-calculator" element={<TaxCalculatorPanel />} />
         <Route path="financials" element={<FinancialsPanel />} />
         <Route path="stock/:ticker" element={<StockDetailPanel />} />
         <Route path="admin" element={<AdminPanel />} />

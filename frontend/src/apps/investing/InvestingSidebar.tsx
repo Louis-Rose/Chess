@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, Home, Wallet, Eye, Calendar, TrendingUp, Shield, Clock, X, GitCompare, Newspaper, DollarSign, ChevronDown } from 'lucide-react';
+import { Loader2, Home, Wallet, Eye, Calendar, TrendingUp, Shield, Clock, X, GitCompare, Newspaper, DollarSign, Calculator, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 // Cookie consent temporarily disabled
@@ -33,6 +33,7 @@ const navItems = [
   { path: '/investing/dividends', icon: DollarSign, labelEn: 'Dividend Calendar', labelFr: 'Calendrier des Dividendes' },
   { path: '/investing/comparison', icon: GitCompare, labelEn: 'Compare Stocks', labelFr: 'Comparer' },
   { path: '/investing/news-feed', icon: Newspaper, labelEn: 'News Feed', labelFr: 'Fil d\'actualités' },
+  { path: '/investing/tax-calculator', icon: Calculator, labelEn: 'Tax Calculator', labelFr: 'Simulateur fiscal' },
 ];
 
 export function InvestingSidebar() {
