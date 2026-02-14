@@ -1,4 +1,4 @@
-// Tax Calculator Panel - Compare Dutch CTO vs French Holding investment scenarios
+// Tax Calculator Panel - Compare CTO (unrealized gains tax) vs French Holding scenarios
 
 import { useState, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -20,7 +20,8 @@ interface SimulationResult {
   frenchNetFinal: number;
 }
 
-function simulateDutchCTO(years: number, growthRate: number, v0: number, _g0: number): { yearly: { portfolio: number; tax: number; cumulativeTax: number }[] } {
+// CTO with 31.4% tax on unrealized gains each year
+function simulateCTO(years: number, growthRate: number, v0: number): { yearly: { portfolio: number; tax: number; cumulativeTax: number }[] } {
   const yearly: { portfolio: number; tax: number; cumulativeTax: number }[] = [];
   let portfolio = v0;
   let cumulativeTax = 0;
@@ -28,8 +29,8 @@ function simulateDutchCTO(years: number, growthRate: number, v0: number, _g0: nu
   for (let y = 1; y <= years; y++) {
     const startValue = portfolio;
     const endValue = startValue * (1 + growthRate / 100);
-    const newGains = endValue - startValue;
-    const tax = Math.max(0, (newGains - 1800) * 0.36);
+    const unrealizedGains = endValue - startValue;
+    const tax = Math.max(0, unrealizedGains * 0.314);
     portfolio = endValue - tax;
     cumulativeTax += tax;
     yearly.push({ portfolio, tax, cumulativeTax });
@@ -38,48 +39,36 @@ function simulateDutchCTO(years: number, growthRate: number, v0: number, _g0: nu
   return { yearly };
 }
 
-function simulateFrenchHolding(years: number, growthRate: number, v0: number, g0: number): {
+// French Holding: no yearly tax on gains, IS at 15% then flat tax 31.4% on dividends at exit
+function simulateHolding(years: number, growthRate: number, v0: number): {
   yearly: { portfolio: number; costs: number; cumulativeCosts: number }[];
   netInPocket: number;
 } {
   const yearly: { portfolio: number; costs: number; cumulativeCosts: number }[] = [];
   let portfolio = v0;
   let cumulativeCosts = 0;
-  const frozenTax = g0 * 0.314;
   const annualOpCost = 2500;
 
   for (let y = 1; y <= years; y++) {
     portfolio = portfolio * (1 + growthRate / 100);
     let yearCosts = annualOpCost;
-    // Passive asset tax if portfolio > 5M
-    if (portfolio > 5_000_000) {
-      const passiveTax = portfolio * 0.02;
-      yearCosts += passiveTax;
-    }
     portfolio -= yearCosts;
     cumulativeCosts += yearCosts;
     yearly.push({ portfolio, costs: yearCosts, cumulativeCosts });
   }
 
-  // Exit taxes at final year
+  // Exit: corporate tax (IS) at 15% on gains, then flat tax 31.4% on dividends
   const finalValue = portfolio;
-  const totalGainInHolding = finalValue - v0;
+  const totalGain = Math.max(0, finalValue - v0);
 
-  // Corporate tax (IS): 15% on first 42500, 25% above
-  let corporateTax = 0;
-  if (totalGainInHolding > 0) {
-    if (totalGainInHolding <= 42500) {
-      corporateTax = totalGainInHolding * 0.15;
-    } else {
-      corporateTax = 42500 * 0.15 + (totalGainInHolding - 42500) * 0.25;
-    }
-  }
-
+  // IS at 15%
+  const corporateTax = totalGain * 0.15;
   const afterIS = finalValue - corporateTax;
-  const netDistributable = afterIS - frozenTax;
-  const newPersonalGain = Math.max(0, netDistributable - v0);
-  const flatTax = newPersonalGain * 0.314;
-  const netInPocket = netDistributable - flatTax;
+
+  // Distributable dividend = afterIS - v0 (return of capital is tax-free)
+  const dividend = Math.max(0, afterIS - v0);
+  const flatTax = dividend * 0.314;
+  const netInPocket = afterIS - flatTax;
 
   return { yearly, netInPocket };
 }
@@ -97,31 +86,30 @@ export function TaxCalculatorPanel() {
   const [years, setYears] = useState(10);
   const [growthRate, setGrowthRate] = useState(7);
   const [initialValue, setInitialValue] = useState(100000);
-  const [initialGains, setInitialGains] = useState(20000);
 
   const simulation = useMemo<SimulationResult>(() => {
-    const dutch = simulateDutchCTO(years, growthRate, initialValue, initialGains);
-    const french = simulateFrenchHolding(years, growthRate, initialValue, initialGains);
+    const cto = simulateCTO(years, growthRate, initialValue);
+    const holding = simulateHolding(years, growthRate, initialValue);
 
     const yearly: YearlyData[] = [];
     for (let i = 0; i < years; i++) {
       yearly.push({
         year: i + 1,
-        dutchPortfolio: dutch.yearly[i].portfolio,
-        dutchTax: dutch.yearly[i].tax,
-        dutchCumulativeTax: dutch.yearly[i].cumulativeTax,
-        frenchPortfolio: french.yearly[i].portfolio,
-        frenchCosts: french.yearly[i].costs,
-        frenchCumulativeCosts: french.yearly[i].cumulativeCosts,
+        dutchPortfolio: cto.yearly[i].portfolio,
+        dutchTax: cto.yearly[i].tax,
+        dutchCumulativeTax: cto.yearly[i].cumulativeTax,
+        frenchPortfolio: holding.yearly[i].portfolio,
+        frenchCosts: holding.yearly[i].costs,
+        frenchCumulativeCosts: holding.yearly[i].cumulativeCosts,
       });
     }
 
-    // Dutch net = final portfolio (taxes already deducted yearly)
-    const dutchNetFinal = dutch.yearly[years - 1].portfolio;
-    const frenchNetFinal = french.netInPocket;
+    // CTO net = final portfolio (taxes already deducted yearly)
+    const dutchNetFinal = cto.yearly[years - 1].portfolio;
+    const frenchNetFinal = holding.netInPocket;
 
     return { yearly, dutchNetFinal, frenchNetFinal };
-  }, [years, growthRate, initialValue, initialGains]);
+  }, [years, growthRate, initialValue]);
 
   const difference = simulation.frenchNetFinal - simulation.dutchNetFinal;
   const differencePercent = simulation.dutchNetFinal !== 0
@@ -131,9 +119,12 @@ export function TaxCalculatorPanel() {
 
   const chartData = simulation.yearly.map((d) => ({
     year: d.year,
-    dutch: Math.round(d.dutchPortfolio),
-    french: Math.round(d.frenchPortfolio),
+    cto: Math.round(d.dutchPortfolio),
+    holding: Math.round(d.frenchPortfolio),
   }));
+
+  const ctoLabel = language === 'fr' ? 'CTO (31.4% gains latents)' : 'CTO (31.4% unrealized gains)';
+  const holdingLabel = language === 'fr' ? 'Holding (IS 15% + PFU 31.4%)' : 'Holding (IS 15% + flat tax 31.4%)';
 
   return (
     <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700 mt-8 flex flex-col">
@@ -152,7 +143,7 @@ export function TaxCalculatorPanel() {
         <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">
           {t('taxCalc.parameters')}
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {/* Years */}
           <div>
             <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">
@@ -204,20 +195,6 @@ export function TaxCalculatorPanel() {
               step={10000}
             />
           </div>
-
-          {/* Initial Unrealized Gains */}
-          <div>
-            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">
-              {t('taxCalc.initialGains')}
-            </label>
-            <input
-              type="number"
-              value={initialGains}
-              onChange={(e) => setInitialGains(Math.max(0, Number(e.target.value)))}
-              className="w-full bg-slate-100 dark:bg-slate-600 border border-slate-300 dark:border-slate-500 rounded-lg px-3 py-2 text-slate-800 dark:text-white"
-              step={5000}
-            />
-          </div>
         </div>
       </div>
 
@@ -248,27 +225,27 @@ export function TaxCalculatorPanel() {
                 labelStyle={{ color: '#94a3b8' }}
                 formatter={(value?: number, name?: string) => [
                   formatEuro(value ?? 0),
-                  (name ?? '') === 'dutch' ? (language === 'fr' ? 'CTO Néerlandais' : 'Dutch CTO') : (language === 'fr' ? 'Holding Française' : 'French Holding'),
+                  (name ?? '') === 'cto' ? ctoLabel : holdingLabel,
                 ]}
                 labelFormatter={(label: number) => `${language === 'fr' ? 'Année' : 'Year'} ${label}`}
               />
               <Area
                 type="monotone"
-                dataKey="dutch"
+                dataKey="cto"
                 stroke="#f97316"
                 fill="#f97316"
                 fillOpacity={0.15}
                 strokeWidth={2}
-                name="dutch"
+                name="cto"
               />
               <Area
                 type="monotone"
-                dataKey="french"
+                dataKey="holding"
                 stroke="#22c55e"
                 fill="#22c55e"
                 fillOpacity={0.15}
                 strokeWidth={2}
-                name="french"
+                name="holding"
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -276,11 +253,11 @@ export function TaxCalculatorPanel() {
         <div className="flex items-center justify-center gap-6 mt-3 text-sm">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-orange-500" />
-            <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'CTO Néerlandais' : 'Dutch CTO'}</span>
+            <span className="text-slate-600 dark:text-slate-300">{ctoLabel}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-green-500" />
-            <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Holding Française' : 'French Holding'}</span>
+            <span className="text-slate-600 dark:text-slate-300">{holdingLabel}</span>
           </div>
         </div>
       </div>
@@ -294,10 +271,10 @@ export function TaxCalculatorPanel() {
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-600">
               <th className="text-left py-2 px-3 text-slate-500 dark:text-slate-400 font-medium">{t('taxCalc.yearCol')}</th>
-              <th className="text-right py-2 px-3 text-orange-500 font-medium">{t('taxCalc.dutchPortfolio')}</th>
-              <th className="text-right py-2 px-3 text-orange-500 font-medium">{t('taxCalc.dutchTax')}</th>
-              <th className="text-right py-2 px-3 text-green-500 font-medium">{t('taxCalc.frenchPortfolio')}</th>
-              <th className="text-right py-2 px-3 text-green-500 font-medium">{t('taxCalc.frenchCosts')}</th>
+              <th className="text-right py-2 px-3 text-orange-500 font-medium">{t('taxCalc.ctoPortfolio')}</th>
+              <th className="text-right py-2 px-3 text-orange-500 font-medium">{t('taxCalc.ctoTax')}</th>
+              <th className="text-right py-2 px-3 text-green-500 font-medium">{t('taxCalc.holdingPortfolio')}</th>
+              <th className="text-right py-2 px-3 text-green-500 font-medium">{t('taxCalc.holdingCosts')}</th>
               <th className="text-right py-2 px-3 text-slate-500 dark:text-slate-400 font-medium">{t('taxCalc.difference')}</th>
             </tr>
           </thead>
@@ -325,14 +302,14 @@ export function TaxCalculatorPanel() {
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
-            <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">{language === 'fr' ? 'CTO Néerlandais' : 'Dutch CTO'}</p>
+            <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">{ctoLabel}</p>
             <p className="text-2xl font-bold text-orange-700 dark:text-orange-300 mt-1">{formatEuro(simulation.dutchNetFinal)}</p>
             <p className="text-xs text-orange-500 dark:text-orange-400 mt-1">
               {t('taxCalc.totalTaxPaid')}: {formatEuro(simulation.yearly[simulation.yearly.length - 1]?.dutchCumulativeTax ?? 0)}
             </p>
           </div>
           <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-            <p className="text-sm text-green-600 dark:text-green-400 font-medium">{language === 'fr' ? 'Holding Française' : 'French Holding'}</p>
+            <p className="text-sm text-green-600 dark:text-green-400 font-medium">{holdingLabel}</p>
             <p className="text-2xl font-bold text-green-700 dark:text-green-300 mt-1">{formatEuro(simulation.frenchNetFinal)}</p>
             <p className="text-xs text-green-500 dark:text-green-400 mt-1">
               {t('taxCalc.totalCosts')}: {formatEuro(simulation.yearly[simulation.yearly.length - 1]?.frenchCumulativeCosts ?? 0)}
@@ -342,8 +319,8 @@ export function TaxCalculatorPanel() {
         <div className={`rounded-lg p-4 text-center ${frenchWins ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700' : 'bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700'}`}>
           <p className={`text-lg font-bold ${frenchWins ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`}>
             {frenchWins
-              ? (language === 'fr' ? 'Holding Française gagne' : 'French Holding wins')
-              : (language === 'fr' ? 'CTO Néerlandais gagne' : 'Dutch CTO wins')
+              ? (language === 'fr' ? 'La Holding gagne' : 'Holding wins')
+              : (language === 'fr' ? 'Le CTO gagne' : 'CTO wins')
             }
           </p>
           <p className={`text-sm mt-1 ${frenchWins ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
