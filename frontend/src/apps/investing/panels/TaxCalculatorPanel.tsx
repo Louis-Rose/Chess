@@ -4,69 +4,54 @@ import { useState, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
-interface YearlyData {
+interface YearlyRow {
   year: number;
-  dutchPortfolio: number;
-  dutchTax: number;
-  dutchCumulativeTax: number;
-  frenchPortfolio: number;
-  frenchCosts: number;
-  frenchCumulativeCosts: number;
+  // CTO
+  ctoBrut: number;
+  ctoTax: number;
+  ctoNet: number;
+  // Holding (assuming full liquidation + dividend distribution at year N)
+  holdingBrut: number;
+  holdingIS: number;
+  holdingDividendTax: number;
+  holdingNet: number;
+  holdingDividends: number;
 }
 
-interface SimulationResult {
-  yearly: YearlyData[];
-  dutchNetFinal: number;
-  frenchNetFinal: number;
-}
-
-// CTO with 31.4% tax on unrealized gains each year
-function simulateCTO(years: number, growthRate: number, v0: number): { yearly: { portfolio: number; tax: number; cumulativeTax: number }[] } {
-  const yearly: { portfolio: number; tax: number; cumulativeTax: number }[] = [];
-  let portfolio = v0;
-  let cumulativeTax = 0;
+function simulate(years: number, growthRate: number, v0: number): YearlyRow[] {
+  const rows: YearlyRow[] = [];
+  let ctoNet = v0;
 
   for (let y = 1; y <= years; y++) {
-    const startValue = portfolio;
-    const endValue = startValue * (1 + growthRate / 100);
-    const unrealizedGains = endValue - startValue;
-    const tax = Math.max(0, unrealizedGains * 0.314);
-    portfolio = endValue - tax;
-    cumulativeTax += tax;
-    yearly.push({ portfolio, tax, cumulativeTax });
+    // CTO: grow then tax unrealized gains at 31.4%
+    const ctoBrut = ctoNet * (1 + growthRate / 100);
+    const ctoTax = Math.max(0, (ctoBrut - ctoNet) * 0.314);
+    ctoNet = ctoBrut - ctoTax;
+
+    // Holding: grows untaxed, then simulate full exit at year N
+    const holdingBrut = v0 * Math.pow(1 + growthRate / 100, y);
+    const holdingGain = Math.max(0, holdingBrut - v0);
+    const holdingIS = holdingGain * 0.15;
+    const afterIS = holdingBrut - holdingIS;
+    const dividend = Math.max(0, afterIS - v0);
+    const holdingDividendTax = dividend * 0.314;
+    const holdingNet = afterIS - holdingDividendTax;
+    const holdingDividends = dividend - holdingDividendTax;
+
+    rows.push({
+      year: y,
+      ctoBrut,
+      ctoTax,
+      ctoNet,
+      holdingBrut,
+      holdingIS,
+      holdingDividendTax,
+      holdingNet,
+      holdingDividends,
+    });
   }
 
-  return { yearly };
-}
-
-// French Holding: no yearly tax on gains, IS at 15% then flat tax 31.4% on dividends at exit
-function simulateHolding(years: number, growthRate: number, v0: number): {
-  yearly: { portfolio: number; costs: number; cumulativeCosts: number }[];
-  netInPocket: number;
-} {
-  const yearly: { portfolio: number; costs: number; cumulativeCosts: number }[] = [];
-  let portfolio = v0;
-  let cumulativeCosts = 0;
-
-  for (let y = 1; y <= years; y++) {
-    portfolio = portfolio * (1 + growthRate / 100);
-    yearly.push({ portfolio, costs: 0, cumulativeCosts });
-  }
-
-  // Exit: corporate tax (IS) at 15% on gains, then flat tax 31.4% on dividends
-  const finalValue = portfolio;
-  const totalGain = Math.max(0, finalValue - v0);
-
-  // IS at 15%
-  const corporateTax = totalGain * 0.15;
-  const afterIS = finalValue - corporateTax;
-
-  // Distributable dividend = afterIS - v0 (return of capital is tax-free)
-  const dividend = Math.max(0, afterIS - v0);
-  const flatTax = dividend * 0.314;
-  const netInPocket = afterIS - flatTax;
-
-  return { yearly, netInPocket };
+  return rows;
 }
 
 function formatEuro(value: number): string {
@@ -83,44 +68,24 @@ export function TaxCalculatorPanel() {
   const [growthRate, setGrowthRate] = useState(7);
   const [initialValue, setInitialValue] = useState(100000);
 
-  const simulation = useMemo<SimulationResult>(() => {
-    const cto = simulateCTO(years, growthRate, initialValue);
-    const holding = simulateHolding(years, growthRate, initialValue);
+  const rows = useMemo(() => simulate(years, growthRate, initialValue), [years, growthRate, initialValue]);
 
-    const yearly: YearlyData[] = [];
-    for (let i = 0; i < years; i++) {
-      yearly.push({
-        year: i + 1,
-        dutchPortfolio: cto.yearly[i].portfolio,
-        dutchTax: cto.yearly[i].tax,
-        dutchCumulativeTax: cto.yearly[i].cumulativeTax,
-        frenchPortfolio: holding.yearly[i].portfolio,
-        frenchCosts: holding.yearly[i].costs,
-        frenchCumulativeCosts: holding.yearly[i].cumulativeCosts,
-      });
-    }
+  const finalRow = rows[rows.length - 1];
+  const difference = finalRow.holdingNet - finalRow.ctoNet;
+  const differencePercent = finalRow.ctoNet !== 0 ? (difference / finalRow.ctoNet) * 100 : 0;
+  const holdingWins = difference > 0;
 
-    // CTO net = final portfolio (taxes already deducted yearly)
-    const dutchNetFinal = cto.yearly[years - 1].portfolio;
-    const frenchNetFinal = holding.netInPocket;
-
-    return { yearly, dutchNetFinal, frenchNetFinal };
-  }, [years, growthRate, initialValue]);
-
-  const difference = simulation.frenchNetFinal - simulation.dutchNetFinal;
-  const differencePercent = simulation.dutchNetFinal !== 0
-    ? ((difference / simulation.dutchNetFinal) * 100)
-    : 0;
-  const frenchWins = difference > 0;
-
-  const chartData = simulation.yearly.map((d) => ({
+  const chartData = rows.map((d) => ({
     year: d.year,
-    cto: Math.round(d.dutchPortfolio),
-    holding: Math.round(d.frenchPortfolio),
+    cto: Math.round(d.ctoNet),
+    holding: Math.round(d.holdingNet),
   }));
 
   const ctoLabel = language === 'fr' ? 'CTO (31.4% gains latents)' : 'CTO (31.4% unrealized gains)';
   const holdingLabel = language === 'fr' ? 'Holding (IS 15% + PFU 31.4%)' : 'Holding (IS 15% + flat tax 31.4%)';
+
+  const th = "py-2 px-3 text-center font-medium text-xs border border-slate-200 dark:border-slate-600";
+  const td = "py-2 px-3 text-center text-sm border border-slate-200 dark:border-slate-600";
 
   return (
     <div className="md:animate-in md:fade-in md:slide-in-from-bottom-4 md:duration-700 mt-8 flex flex-col">
@@ -140,45 +105,20 @@ export function TaxCalculatorPanel() {
           {t('taxCalc.parameters')}
         </h3>
         <div className="flex flex-col gap-6 mx-auto w-1/2">
-          {/* Years */}
           <div>
             <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">
               {t('taxCalc.years')}: <span className="font-bold text-slate-800 dark:text-white">{years}</span>
             </label>
-            <input
-              type="range"
-              min={1}
-              max={30}
-              value={years}
-              onChange={(e) => setYears(Number(e.target.value))}
-              className="w-full accent-green-600"
-            />
-            <div className="flex justify-between text-xs text-slate-400">
-              <span>1</span>
-              <span>30</span>
-            </div>
+            <input type="range" min={1} max={30} value={years} onChange={(e) => setYears(Number(e.target.value))} className="w-full accent-green-600" />
+            <div className="flex justify-between text-xs text-slate-400"><span>1</span><span>30</span></div>
           </div>
-
-          {/* Growth Rate */}
           <div>
             <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">
               {t('taxCalc.growthRate')}: <span className="font-bold text-slate-800 dark:text-white">{growthRate}%</span>
             </label>
-            <input
-              type="range"
-              min={1}
-              max={20}
-              value={growthRate}
-              onChange={(e) => setGrowthRate(Number(e.target.value))}
-              className="w-full accent-green-600"
-            />
-            <div className="flex justify-between text-xs text-slate-400">
-              <span>1%</span>
-              <span>20%</span>
-            </div>
+            <input type="range" min={1} max={20} value={growthRate} onChange={(e) => setGrowthRate(Number(e.target.value))} className="w-full accent-green-600" />
+            <div className="flex justify-between text-xs text-slate-400"><span>1%</span><span>20%</span></div>
           </div>
-
-          {/* Initial Value */}
           <div>
             <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">
               {t('taxCalc.initialValue')}
@@ -203,46 +143,16 @@ export function TaxCalculatorPanel() {
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-              <XAxis
-                dataKey="year"
-                tick={{ fill: '#94a3b8', fontSize: 12 }}
-                tickLine={false}
-                axisLine={{ stroke: '#475569' }}
-                label={{ value: language === 'fr' ? 'Année' : 'Year', position: 'insideBottomRight', offset: -5, fill: '#94a3b8', fontSize: 12 }}
-              />
-              <YAxis
-                tick={{ fill: '#94a3b8', fontSize: 12 }}
-                tickLine={false}
-                axisLine={{ stroke: '#475569' }}
-                tickFormatter={(v: number) => formatEuro(v)}
-              />
+              <XAxis dataKey="year" tick={{ fill: '#94a3b8', fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#475569' }} label={{ value: language === 'fr' ? 'Année' : 'Year', position: 'insideBottomRight', offset: -5, fill: '#94a3b8', fontSize: 12 }} />
+              <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#475569' }} tickFormatter={(v: number) => formatEuro(v)} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                 labelStyle={{ color: '#94a3b8' }}
-                formatter={(value?: number, name?: string) => [
-                  formatEuro(value ?? 0),
-                  (name ?? '') === 'cto' ? ctoLabel : holdingLabel,
-                ]}
+                formatter={(value?: number, name?: string) => [formatEuro(value ?? 0), (name ?? '') === 'cto' ? ctoLabel : holdingLabel]}
                 labelFormatter={(label: number) => `${language === 'fr' ? 'Année' : 'Year'} ${label}`}
               />
-              <Area
-                type="monotone"
-                dataKey="cto"
-                stroke="#f97316"
-                fill="#f97316"
-                fillOpacity={0.15}
-                strokeWidth={2}
-                name="cto"
-              />
-              <Area
-                type="monotone"
-                dataKey="holding"
-                stroke="#22c55e"
-                fill="#22c55e"
-                fillOpacity={0.15}
-                strokeWidth={2}
-                name="holding"
-              />
+              <Area type="monotone" dataKey="cto" stroke="#f97316" fill="#f97316" fillOpacity={0.15} strokeWidth={2} name="cto" />
+              <Area type="monotone" dataKey="holding" stroke="#22c55e" fill="#22c55e" fillOpacity={0.15} strokeWidth={2} name="holding" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -263,28 +173,40 @@ export function TaxCalculatorPanel() {
         <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">
           {t('taxCalc.tableTitle')}
         </h3>
-        <table className="w-full text-sm">
+        <table className="w-full text-sm border-collapse border border-slate-200 dark:border-slate-600">
           <thead>
-            <tr className="border-b border-slate-200 dark:border-slate-600">
-              <th className="text-left py-2 px-3 text-slate-500 dark:text-slate-400 font-medium">{t('taxCalc.yearCol')}</th>
-              <th className="text-right py-2 px-3 text-orange-500 font-medium">{t('taxCalc.ctoPortfolio')}</th>
-              <th className="text-right py-2 px-3 text-orange-500 font-medium">{t('taxCalc.ctoTax')}</th>
-              <th className="text-right py-2 px-3 text-green-500 font-medium">{t('taxCalc.holdingPortfolio')}</th>
-              <th className="text-right py-2 px-3 text-green-500 font-medium">{t('taxCalc.holdingCosts')}</th>
-              <th className="text-right py-2 px-3 text-slate-500 dark:text-slate-400 font-medium">{t('taxCalc.difference')}</th>
+            {/* Group headers */}
+            <tr>
+              <th rowSpan={2} className={`${th} text-slate-500 dark:text-slate-400`}>{t('taxCalc.yearCol')}</th>
+              <th colSpan={3} className={`${th} text-orange-500 bg-orange-50 dark:bg-orange-900/10`}>CTO</th>
+              <th rowSpan={2} className="w-1 bg-slate-300 dark:bg-slate-500 border border-slate-200 dark:border-slate-600" />
+              <th colSpan={5} className={`${th} text-green-500 bg-green-50 dark:bg-green-900/10`}>Holding</th>
+            </tr>
+            {/* Sub headers */}
+            <tr>
+              <th className={`${th} text-orange-500`}>{language === 'fr' ? 'Brut' : 'Gross'}</th>
+              <th className={`${th} text-orange-500`}>{language === 'fr' ? 'Impôts' : 'Tax'}</th>
+              <th className={`${th} text-orange-500`}>Net</th>
+              <th className={`${th} text-green-500`}>{language === 'fr' ? 'Brut' : 'Gross'}</th>
+              <th className={`${th} text-green-500`}>{language === 'fr' ? 'Impôts (IS)' : 'Tax (IS)'}</th>
+              <th className={`${th} text-green-500`}>{language === 'fr' ? 'Impôts div.' : 'Div. tax'}</th>
+              <th className={`${th} text-green-500`}>Net</th>
+              <th className={`${th} text-green-500`}>{language === 'fr' ? 'Dividendes' : 'Dividends'}</th>
             </tr>
           </thead>
           <tbody>
-            {simulation.yearly.map((row) => (
-              <tr key={row.year} className="border-b border-slate-100 dark:border-slate-600/50 hover:bg-slate-100 dark:hover:bg-slate-600/30 transition-colors">
-                <td className="py-2 px-3 text-slate-700 dark:text-slate-300 font-medium">{row.year}</td>
-                <td className="py-2 px-3 text-right text-slate-700 dark:text-slate-300">{formatEuro(row.dutchPortfolio)}</td>
-                <td className="py-2 px-3 text-right text-orange-600 dark:text-orange-400">{formatEuro(row.dutchTax)}</td>
-                <td className="py-2 px-3 text-right text-slate-700 dark:text-slate-300">{formatEuro(row.frenchPortfolio)}</td>
-                <td className="py-2 px-3 text-right text-green-600 dark:text-green-400">{formatEuro(row.frenchCosts)}</td>
-                <td className={`py-2 px-3 text-right font-medium ${row.frenchPortfolio > row.dutchPortfolio ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                  {row.frenchPortfolio > row.dutchPortfolio ? '+' : ''}{formatEuro(row.frenchPortfolio - row.dutchPortfolio)}
-                </td>
+            {rows.map((row) => (
+              <tr key={row.year} className="hover:bg-slate-100 dark:hover:bg-slate-600/30 transition-colors">
+                <td className={`${td} text-slate-700 dark:text-slate-300 font-medium`}>{row.year}</td>
+                <td className={`${td} text-slate-700 dark:text-slate-300`}>{formatEuro(row.ctoBrut)}</td>
+                <td className={`${td} text-orange-600 dark:text-orange-400`}>{formatEuro(row.ctoTax)}</td>
+                <td className={`${td} text-slate-700 dark:text-slate-300 font-medium`}>{formatEuro(row.ctoNet)}</td>
+                <td className="w-1 bg-slate-300 dark:bg-slate-500 border border-slate-200 dark:border-slate-600" />
+                <td className={`${td} text-slate-700 dark:text-slate-300`}>{formatEuro(row.holdingBrut)}</td>
+                <td className={`${td} text-green-600 dark:text-green-400`}>{formatEuro(row.holdingIS)}</td>
+                <td className={`${td} text-green-600 dark:text-green-400`}>{formatEuro(row.holdingDividendTax)}</td>
+                <td className={`${td} text-slate-700 dark:text-slate-300 font-medium`}>{formatEuro(row.holdingNet)}</td>
+                <td className={`${td} text-green-700 dark:text-green-300 font-medium`}>{formatEuro(row.holdingDividends)}</td>
               </tr>
             ))}
           </tbody>
@@ -299,27 +221,27 @@ export function TaxCalculatorPanel() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
             <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">{ctoLabel}</p>
-            <p className="text-2xl font-bold text-orange-700 dark:text-orange-300 mt-1">{formatEuro(simulation.dutchNetFinal)}</p>
+            <p className="text-2xl font-bold text-orange-700 dark:text-orange-300 mt-1">{formatEuro(finalRow.ctoNet)}</p>
             <p className="text-xs text-orange-500 dark:text-orange-400 mt-1">
-              {t('taxCalc.totalTaxPaid')}: {formatEuro(simulation.yearly[simulation.yearly.length - 1]?.dutchCumulativeTax ?? 0)}
+              {t('taxCalc.totalTaxPaid')}: {formatEuro(rows.reduce((sum, r) => sum + r.ctoTax, 0))}
             </p>
           </div>
           <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
             <p className="text-sm text-green-600 dark:text-green-400 font-medium">{holdingLabel}</p>
-            <p className="text-2xl font-bold text-green-700 dark:text-green-300 mt-1">{formatEuro(simulation.frenchNetFinal)}</p>
+            <p className="text-2xl font-bold text-green-700 dark:text-green-300 mt-1">{formatEuro(finalRow.holdingNet)}</p>
             <p className="text-xs text-green-500 dark:text-green-400 mt-1">
-              {t('taxCalc.totalCosts')}: {formatEuro(simulation.yearly[simulation.yearly.length - 1]?.frenchCumulativeCosts ?? 0)}
+              {t('taxCalc.totalTaxPaid')}: {formatEuro(finalRow.holdingIS + finalRow.holdingDividendTax)}
             </p>
           </div>
         </div>
-        <div className={`rounded-lg p-4 text-center ${frenchWins ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700' : 'bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700'}`}>
-          <p className={`text-lg font-bold ${frenchWins ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`}>
-            {frenchWins
+        <div className={`rounded-lg p-4 text-center ${holdingWins ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700' : 'bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700'}`}>
+          <p className={`text-lg font-bold ${holdingWins ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`}>
+            {holdingWins
               ? (language === 'fr' ? 'La Holding gagne' : 'Holding wins')
               : (language === 'fr' ? 'Le CTO gagne' : 'CTO wins')
             }
           </p>
-          <p className={`text-sm mt-1 ${frenchWins ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+          <p className={`text-sm mt-1 ${holdingWins ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
             {t('taxCalc.differenceLabel')}: {difference > 0 ? '+' : ''}{formatEuro(Math.abs(difference))} ({differencePercent > 0 ? '+' : ''}{differencePercent.toFixed(1)}%)
           </p>
         </div>

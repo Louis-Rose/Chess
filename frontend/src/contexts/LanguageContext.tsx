@@ -171,14 +171,8 @@ const translations: Record<Language, Record<string, string>> = {
     'taxCalc.chartTitle': 'Portfolio Value Over Time',
     'taxCalc.tableTitle': 'Year-by-Year Breakdown',
     'taxCalc.yearCol': 'Year',
-    'taxCalc.ctoPortfolio': 'CTO Portfolio',
-    'taxCalc.ctoTax': 'CTO Tax',
-    'taxCalc.holdingPortfolio': 'Holding Portfolio',
-    'taxCalc.holdingCosts': 'Holding Costs',
-    'taxCalc.difference': 'Difference',
     'taxCalc.verdict': 'Final Comparison (Net in Pocket)',
     'taxCalc.totalTaxPaid': 'Total tax paid',
-    'taxCalc.totalCosts': 'Total costs + exit taxes',
     'taxCalc.differenceLabel': 'Difference',
 
     // Common
@@ -347,14 +341,8 @@ const translations: Record<Language, Record<string, string>> = {
     'taxCalc.chartTitle': 'Valeur du portefeuille dans le temps',
     'taxCalc.tableTitle': 'Détail année par année',
     'taxCalc.yearCol': 'Année',
-    'taxCalc.ctoPortfolio': 'Portefeuille CTO',
-    'taxCalc.ctoTax': 'Impôt CTO',
-    'taxCalc.holdingPortfolio': 'Portefeuille Holding',
-    'taxCalc.holdingCosts': 'Coûts Holding',
-    'taxCalc.difference': 'Différence',
     'taxCalc.verdict': 'Comparaison finale (Net en poche)',
     'taxCalc.totalTaxPaid': 'Impôts totaux payés',
-    'taxCalc.totalCosts': 'Coûts totaux + impôts de sortie',
     'taxCalc.differenceLabel': 'Différence',
 
     // Common
