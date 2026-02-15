@@ -21,6 +21,7 @@ instance/
 
 # --- Node / React (Frontend) ---
 node_modules/
+.vite/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -43,6 +44,9 @@ build/
 
 # Allow example files (so people know what keys they need)
 !.env.example
+
+# --- Notebooks ---
+*.ipynb
 
 # --- Database ---
 *.db
