@@ -2,6 +2,33 @@
 
 import type { ProPlayer, SavedPlayer } from './types';
 
+// localStorage helpers for chess preferences (username + time class)
+export const CHESS_PREFS_KEY = 'chess_preferences';
+
+interface ChessPrefs {
+  chess_username: string | null;
+  preferred_time_class: string | null;
+}
+
+export const getChessPrefs = (): ChessPrefs => {
+  try {
+    const saved = localStorage.getItem(CHESS_PREFS_KEY);
+    if (!saved) return { chess_username: null, preferred_time_class: null };
+    return JSON.parse(saved);
+  } catch {
+    return { chess_username: null, preferred_time_class: null };
+  }
+};
+
+export const saveChessPrefs = (prefs: Partial<ChessPrefs>) => {
+  try {
+    const current = getChessPrefs();
+    localStorage.setItem(CHESS_PREFS_KEY, JSON.stringify({ ...current, ...prefs }));
+  } catch {
+    // Ignore localStorage errors
+  }
+};
+
 // localStorage helpers for username history
 export const STORAGE_KEY = 'chess_stats_usernames';
 export const MAX_USERNAMES = 10;

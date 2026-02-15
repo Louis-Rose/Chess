@@ -4,10 +4,9 @@
 import { Link, NavLink } from 'react-router-dom';
 import { Loader2, /* ChevronDown, */ Search, Shield } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { UserMenu } from '../../components/UserMenu';
 import { SidebarShell } from '../../components/SidebarShell';
 import { useChessData } from './contexts/ChessDataContext';
-import { LoginButton } from '../../components/LoginButton';
+import { getChessPrefs } from './utils/constants';
 
 // Custom LUMNA logo matching the favicon
 const LumnaLogo = ({ className }: { className?: string }) => (
@@ -21,7 +20,7 @@ const LumnaLogo = ({ className }: { className?: string }) => (
 
 
 export function ChessSidebar() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const {
     data,
     myPlayerData,
@@ -40,7 +39,7 @@ export function ChessSidebar() {
 
   // Show searched player if available, otherwise fall back to own data
   const displayData = data || myPlayerData;
-  const { user } = useAuth();
+  const savedChessUsername = getChessPrefs().chess_username;
 
   // App switcher state - commented out, may re-enable later
   // const [showAppSwitcher, setShowAppSwitcher] = useState(false);
@@ -75,17 +74,6 @@ export function ChessSidebar() {
         <LumnaLogo className="w-10 h-10 flex-shrink-0" />
         <span className="text-xl font-bold text-white tracking-wide">LUMNA</span>
       </Link>
-
-      {/* User Menu */}
-      <div className="flex justify-center items-center px-2 pb-4 border-b border-slate-700 flex-shrink-0 min-h-[64px]">
-        {authLoading ? (
-          <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-        ) : isAuthenticated ? (
-          <UserMenu />
-        ) : (
-          <LoginButton />
-        )}
-      </div>
 
       {/* App Switcher - commented out, may re-enable later */}
       {/* <div className="px-2 pb-4 border-b border-slate-700" ref={appSwitcherRef}>
@@ -142,7 +130,7 @@ export function ChessSidebar() {
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-48 overflow-auto">
               <div className="px-3 py-1.5 text-xs text-slate-500 border-b border-slate-200">Recent searches</div>
               {savedPlayers.map((player, idx) => {
-                const isMe = user?.preferences?.chess_username?.toLowerCase() === player.username.toLowerCase();
+                const isMe = savedChessUsername?.toLowerCase() === player.username.toLowerCase();
                 return (
                   <button
                     key={idx}

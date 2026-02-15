@@ -3,10 +3,9 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '../../../contexts/AuthContext';
 import { useStreamingStats } from '../hooks/useStreamingStats';
 import { fetchYouTubeVideos, fetchFatigueAnalysis } from '../hooks/api';
-import { getSavedPlayers, savePlayer } from '../utils/constants';
+import { getSavedPlayers, savePlayer, getChessPrefs, saveChessPrefs } from '../utils/constants';
 import type {
   TimeClass,
   SavedPlayer,
@@ -82,13 +81,14 @@ interface ChessDataProviderProps {
 }
 
 export function ChessDataProvider({ children }: ChessDataProviderProps) {
-  const { user, isAuthenticated, updatePreferences } = useAuth();
+  // Load saved preferences from localStorage on init
+  const prefs = getChessPrefs();
 
   // UI state
-  const [usernameInput, setUsernameInput] = useState('');
-  const [searchedUsername, setSearchedUsername] = useState('');
+  const [usernameInput, setUsernameInput] = useState(prefs.chess_username || '');
+  const [searchedUsername, setSearchedUsername] = useState(prefs.chess_username || '');
   const [selectedOpening, setSelectedOpening] = useState<string>('');
-  const [selectedTimeClass, setSelectedTimeClass] = useState<TimeClass>('rapid');
+  const [selectedTimeClass, setSelectedTimeClass] = useState<TimeClass>((prefs.preferred_time_class as TimeClass) || 'rapid');
   const [selectedPro, setSelectedPro] = useState<string>('');
 
   // Username history
@@ -103,31 +103,6 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
   useEffect(() => {
     setSavedPlayers(getSavedPlayers());
   }, []);
-
-  // Use saved preferences when user logs in - auto-load their data
-  const hasAutoLoaded = useRef(false);
-  const wasAuthenticated = useRef(false);
-
-  useEffect(() => {
-    // Handle logout - clear data
-    if (wasAuthenticated.current && !isAuthenticated) {
-      setSearchedUsername('');
-      setUsernameInput('');
-      setMyPlayerData(null);
-      hasAutoLoaded.current = false;
-    }
-    wasAuthenticated.current = isAuthenticated;
-
-    // Handle login - auto-load user's data
-    if (user?.preferences?.chess_username && !hasAutoLoaded.current) {
-      setUsernameInput(user.preferences.chess_username);
-      setSearchedUsername(user.preferences.chess_username);
-      hasAutoLoaded.current = true;
-    }
-    if (user?.preferences?.preferred_time_class) {
-      setSelectedTimeClass(user.preferences.preferred_time_class as TimeClass);
-    }
-  }, [user, isAuthenticated]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -203,19 +178,20 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
       savePlayer(data.player.username, data.player.avatar);
       setSavedPlayers(getSavedPlayers());
 
-      // If this matches the user's saved chess username, update myPlayerData
-      if (isAuthenticated && user?.preferences?.chess_username?.toLowerCase() === data.player.username.toLowerCase()) {
+      const savedUsername = getChessPrefs().chess_username;
+
+      // If this matches the saved chess username, update myPlayerData
+      if (savedUsername?.toLowerCase() === data.player.username.toLowerCase()) {
         setMyPlayerData(data);
       }
 
-      // First-time user: when they answer "What is your Chess.com username?" and search,
-      // save that as their profile. Only if they don't have a preference yet.
-      if (isAuthenticated && !user?.preferences?.chess_username && !myPlayerData) {
-        updatePreferences({ chess_username: data.player.username });
+      // First-time user: save their first search as their username
+      if (!savedUsername && !myPlayerData) {
+        saveChessPrefs({ chess_username: data.player.username });
         setMyPlayerData(data);
       }
     }
-  }, [data?.player, isAuthenticated, user?.preferences?.chess_username, myPlayerData, updatePreferences]);
+  }, [data?.player, myPlayerData]);
 
   const handleSelectSavedUsername = (player: SavedPlayer) => {
     setUsernameInput(player.username);
@@ -229,6 +205,7 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
 
   const handleTimeClassChange = (newTimeClass: TimeClass) => {
     setSelectedTimeClass(newTimeClass);
+    saveChessPrefs({ preferred_time_class: newTimeClass });
   };
 
   // Pre-process the history data to include the label directly

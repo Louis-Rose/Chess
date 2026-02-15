@@ -4,11 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Calendar, Hash, TrendingUp, Target, ChevronDown, Search, Loader2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { LoginButton } from '../../../components/LoginButton';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
+import { getChessPrefs } from '../utils/constants';
 
 // Card definitions - titleKey/descriptionKey are i18n keys resolved at render time
 const CARDS = {
@@ -120,7 +119,6 @@ function CardContent({ icon: Icon, iconBg, title, description }: {
 export function WelcomePanel() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { user, isAuthenticated } = useAuth();
   const {
     usernameInput,
     setUsernameInput,
@@ -237,26 +235,7 @@ export function WelcomePanel() {
     );
   };
 
-  // Not authenticated - show login prompt
-  if (!isAuthenticated) {
-    return (
-      <div className="flex flex-col items-center min-h-[70vh]">
-        <h1 className="text-5xl font-bold text-slate-100 mt-16">{t('chess.loginTitle')}</h1>
-        <div className="flex items-start pt-8">
-          <img src="/favicon.svg" alt="" className="w-48 h-48 opacity-15" />
-        </div>
-        <div className="flex flex-col items-center flex-1 justify-end pb-8">
-          <p className="text-xl text-slate-300 mb-3 text-center max-w-lg font-light tracking-wide">
-            {t('chess.loginSubtitle1')}
-          </p>
-          <p className="text-xl text-slate-300 mb-10 text-center max-w-lg font-light tracking-wide">
-            {t('chess.loginSubtitle2')}
-          </p>
-          <LoginButton />
-        </div>
-      </div>
-    );
-  }
+  const savedChessUsername = getChessPrefs().chess_username;
 
   return (
     <>
@@ -297,7 +276,7 @@ export function WelcomePanel() {
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
                     <div className="px-3 py-2 text-xs text-slate-500 border-b border-slate-200">{t('chess.recentSearches')}</div>
                     {savedPlayers.map((player, idx) => {
-                      const isMe = user?.preferences?.chess_username?.toLowerCase() === player.username.toLowerCase();
+                      const isMe = savedChessUsername?.toLowerCase() === player.username.toLowerCase();
                       return (
                         <button
                           key={idx}
