@@ -1,8 +1,8 @@
 // Chess app sidebar with navigation
 
-import { useState, useEffect, useRef } from 'react';
+// import { useState, useEffect, useRef } from 'react'; // needed for app switcher
 import { Link } from 'react-router-dom';
-import { Loader2, ChevronDown, Search } from 'lucide-react';
+import { Loader2, /* ChevronDown, */ Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserMenu } from '../../components/UserMenu';
 import { SidebarShell } from '../../components/SidebarShell';
@@ -42,27 +42,28 @@ export function ChessSidebar() {
   const displayData = data || myPlayerData;
   const { user } = useAuth();
 
-  const [showAppSwitcher, setShowAppSwitcher] = useState(false);
-  const [switcherPos, setSwitcherPos] = useState<{ top: number; left: number; width: number } | null>(null);
-  const appSwitcherRef = useRef<HTMLDivElement>(null);
-  const appSwitcherBtnRef = useRef<HTMLButtonElement>(null);
+  // App switcher state - commented out, may re-enable later
+  // const [showAppSwitcher, setShowAppSwitcher] = useState(false);
+  // const [switcherPos, setSwitcherPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  // const appSwitcherRef = useRef<HTMLDivElement>(null);
+  // const appSwitcherBtnRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (appSwitcherRef.current && !appSwitcherRef.current.contains(event.target as Node)) {
-        setShowAppSwitcher(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  // useEffect(() => {
+  //   const handleClickOutside = (event: MouseEvent) => {
+  //     if (appSwitcherRef.current && !appSwitcherRef.current.contains(event.target as Node)) {
+  //       setShowAppSwitcher(false);
+  //     }
+  //   };
+  //   document.addEventListener('mousedown', handleClickOutside);
+  //   return () => document.removeEventListener('mousedown', handleClickOutside);
+  // }, []);
 
-  useEffect(() => {
-    if (showAppSwitcher && appSwitcherBtnRef.current) {
-      const rect = appSwitcherBtnRef.current.getBoundingClientRect();
-      setSwitcherPos({ top: rect.top, left: rect.right + 8, width: rect.width });
-    }
-  }, [showAppSwitcher]);
+  // useEffect(() => {
+  //   if (showAppSwitcher && appSwitcherBtnRef.current) {
+  //     const rect = appSwitcherBtnRef.current.getBoundingClientRect();
+  //     setSwitcherPos({ top: rect.top, left: rect.right + 8, width: rect.width });
+  //   }
+  // }, [showAppSwitcher]);
 
   return (
     <SidebarShell hideThemeToggle>
