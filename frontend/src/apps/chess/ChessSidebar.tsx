@@ -75,7 +75,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
   const cardLoaded = !!displayData?.player;
 
   return (
-    <SidebarShell hideThemeToggle fullWidth>
+    <SidebarShell hideThemeToggle hideLanguageToggle fullWidth>
       {/* LUMNA Logo */}
       <Link
         to="/chess"
@@ -175,7 +175,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
 
       {/* Language toggle + Continue — shown once card is loaded */}
       {cardLoaded && (
-        <div className="px-2 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="px-2 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300 border-t border-slate-700 pt-4">
           <LanguageSlider />
           <button
             onClick={onComplete}
