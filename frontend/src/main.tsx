@@ -21,6 +21,12 @@ const posthogOptions = {
   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
   person_profiles: 'identified_only' as const,
   session_idle_timeout_seconds: 600,
+  enable_recording_console_log: false,
+  session_replay_config: {
+    captureNetworkTelemetry: false,
+    throttleDelayMs: 2000,
+    maskAllInputs: false,
+  },
 }
 
 // Configure axios to always send cookies for authentication
