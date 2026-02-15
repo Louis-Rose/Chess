@@ -1,12 +1,8 @@
 // Landing page - app selector
 
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { LoginButton } from '../components/LoginButton';
 
 export function LandingPage() {
-  const { isAuthenticated } = useAuth();
-
   return (
     <div className="min-h-screen bg-slate-800 flex flex-col items-center justify-center p-8">
       <h1 className="text-5xl font-bold text-slate-100 mb-4 text-center">
@@ -51,21 +47,6 @@ export function LandingPage() {
           </div>
         </Link>
       </div>
-
-      {!isAuthenticated && (
-        <div className="mt-16 text-center">
-          <p className="text-slate-400 mb-4">Sign in to save your preferences</p>
-          <LoginButton />
-        </div>
-      )}
-
-      {isAuthenticated && (
-        <div className="mt-16 text-center">
-          <p className="text-slate-500 text-sm">
-            You're signed in. Choose an app above to get started.
-          </p>
-        </div>
-      )}
 
       <footer className="mt-auto pt-16">
         <Link
