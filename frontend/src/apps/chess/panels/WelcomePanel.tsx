@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LineChart, Calendar, Hash, TrendingUp, Target, ChevronDown, Search, Loader2 } from 'lucide-react';
+import { LineChart, Calendar, Hash, TrendingUp, Target } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
-import { getChessPrefs } from '../utils/constants';
 
 // Card definitions - titleKey/descriptionKey are i18n keys resolved at render time
 const CARDS = {
@@ -120,18 +119,10 @@ export function WelcomePanel() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const {
-    usernameInput,
-    setUsernameInput,
     loading,
     error,
     progress,
     myPlayerData,
-    savedPlayers,
-    showUsernameDropdown,
-    setShowUsernameDropdown,
-    dropdownRef,
-    handleSelectSavedUsername,
-    handleSubmit,
     searchedUsername,
   } = useChessData();
 
@@ -235,81 +226,11 @@ export function WelcomePanel() {
     );
   };
 
-  const savedChessUsername = getChessPrefs().chess_username;
-
   return (
     <>
-      {/* Header with search */}
+      {/* Header */}
       <div className="text-center space-y-6">
         <h1 className="text-4xl font-bold text-slate-100">{t('chess.welcomeTitle')}</h1>
-
-        {/* First-time user: show search bar in main area */}
-        {!myPlayerData && (
-          <>
-            <p className="text-xl text-slate-300 font-light">{t('chess.usernamePrompt')}</p>
-            <form onSubmit={handleSubmit} className="flex items-center justify-center gap-2">
-              <div className="relative" ref={dropdownRef}>
-                <div className="flex">
-                  <input
-                    type="text"
-                    placeholder={t('chess.usernamePlaceholder')}
-                    className="bg-white text-slate-900 placeholder:text-slate-400 px-4 py-3 border border-slate-300 rounded-l-lg w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={usernameInput}
-                    onChange={(e) => setUsernameInput(e.target.value)}
-                    onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
-                  />
-                  {savedPlayers.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowUsernameDropdown(!showUsernameDropdown)}
-                      className="bg-white border border-l-0 border-slate-300 rounded-r-lg px-3 hover:bg-slate-50"
-                    >
-                      <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${showUsernameDropdown ? 'rotate-180' : ''}`} />
-                    </button>
-                  )}
-                  {savedPlayers.length === 0 && (
-                    <div className="w-0 border-r border-slate-300 rounded-r-lg" />
-                  )}
-                </div>
-                {/* Dropdown */}
-                {showUsernameDropdown && savedPlayers.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
-                    <div className="px-3 py-2 text-xs text-slate-500 border-b border-slate-200">{t('chess.recentSearches')}</div>
-                    {savedPlayers.map((player, idx) => {
-                      const isMe = savedChessUsername?.toLowerCase() === player.username.toLowerCase();
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => handleSelectSavedUsername(player)}
-                          className="w-full px-3 py-2 text-left text-slate-800 hover:bg-blue-50 flex items-center gap-2"
-                        >
-                          {player.avatar ? (
-                            <img src={player.avatar} alt="" className="w-6 h-6 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-6 h-6 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs font-bold">
-                              {player.username.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          {player.username}
-                          {isMe && <span className="text-sm"> (me)</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-              >
-                {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
-                {t('chess.fetchData')}
-              </button>
-            </form>
-          </>
-        )}
 
         {error && <p className="text-red-500 bg-red-100 py-2 px-4 rounded inline-block">{error}</p>}
         {loading && searchedUsername && <LoadingProgress progress={progress} />}
