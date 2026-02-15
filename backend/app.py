@@ -1388,7 +1388,7 @@ def get_chess_users():
             LEFT JOIN user_activity a ON u.id = a.user_id
             WHERE up.chess_username IS NOT NULL
               AND u.email != ?
-            GROUP BY up.user_id
+            GROUP BY up.user_id, up.chess_username, u.session_count
             ORDER BY total_minutes DESC
         ''', (excluded_email,))
         users = []
