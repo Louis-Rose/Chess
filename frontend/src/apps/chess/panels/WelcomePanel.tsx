@@ -95,7 +95,6 @@ export function WelcomePanel() {
     loading,
     error,
     progress,
-    myPlayerData,
     searchedUsername,
   } = useChessData();
 
@@ -111,14 +110,6 @@ export function WelcomePanel() {
 
       {/* Welcome cards */}
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-8">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-slate-100">
-            {myPlayerData?.player?.name || myPlayerData?.player?.username
-              ? t('chess.welcomeBack').replace('{name}', myPlayerData.player.name || myPlayerData.player.username)
-              : t('chess.welcome')}
-          </h2>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
           {CARDS.map((card) => {
             const title = t(card.titleKey);
