@@ -156,7 +156,7 @@ export function ChessAdminPanel() {
 
   // Compute time spent chart data (from 2026 onwards)
   const timeSpentChartData = useMemo(() => {
-    const CHART_START_DATE = '2026-01-01';
+    const CHART_START_DATE = '2026-02-14';
     const startDate = new Date(CHART_START_DATE);
     const endDate = new Date();
 
