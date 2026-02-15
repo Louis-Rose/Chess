@@ -65,7 +65,7 @@ export function ChessSidebar() {
   // }, [showAppSwitcher]);
 
   return (
-    <SidebarShell hideThemeToggle>
+    <SidebarShell hideThemeToggle fullWidth>
       {/* LUMNA Logo */}
       <Link
         to="/chess"

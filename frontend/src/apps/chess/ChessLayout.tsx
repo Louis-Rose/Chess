@@ -12,13 +12,16 @@ function ChessLayoutInner() {
 
   return (
     <div className="h-screen bg-slate-800 font-sans text-slate-100 flex overflow-hidden">
-      {!hasUsername && <ChessSidebar />}
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-        <Outlet />
-      </main>
-
-      {/* Floating feedback widget */}
-      <FeedbackWidget language="en" />
+      {!hasUsername ? (
+        <ChessSidebar />
+      ) : (
+        <>
+          <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+            <Outlet />
+          </main>
+          <FeedbackWidget language="en" />
+        </>
+      )}
     </div>
   );
 }
