@@ -86,8 +86,8 @@ export function ChessSidebar() {
         )}
       </div>
 
-      {/* App Switcher */}
-      <div className="px-2 pb-4 border-b border-slate-700" ref={appSwitcherRef}>
+      {/* App Switcher - commented out, may re-enable later */}
+      {/* <div className="px-2 pb-4 border-b border-slate-700" ref={appSwitcherRef}>
         <button
           ref={appSwitcherBtnRef}
           onClick={() => setShowAppSwitcher(!showAppSwitcher)}
@@ -114,7 +114,7 @@ export function ChessSidebar() {
             </Link>
           </div>
         )}
-      </div>
+      </div> */}
 
       {/* Search Bar */}
       <div className="px-2 pb-3">
