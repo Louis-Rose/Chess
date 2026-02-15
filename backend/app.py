@@ -1371,6 +1371,36 @@ def list_users():
     return jsonify({'users': users, 'total': len(users)})
 
 
+@app.route('/api/admin/chess-users', methods=['GET'])
+@admin_required
+def get_chess_users():
+    """Get chess user statistics (admin only)."""
+    excluded_email = 'rose.louis.mail@gmail.com'
+
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT up.chess_username,
+                   COALESCE(SUM(a.minutes), 0) as total_minutes,
+                   MAX(a.last_ping) as last_active,
+                   u.session_count
+            FROM user_preferences up
+            JOIN users u ON up.user_id = u.id
+            LEFT JOIN user_activity a ON u.id = a.user_id
+            WHERE up.chess_username IS NOT NULL
+              AND u.email != ?
+            GROUP BY up.user_id
+            ORDER BY total_minutes DESC
+        ''', (excluded_email,))
+        users = []
+        for row in cursor.fetchall():
+            user = dict(row)
+            if user.get('last_active') and hasattr(user['last_active'], 'isoformat'):
+                user['last_active'] = user['last_active'].isoformat()
+            users.append(user)
+
+    return jsonify({'users': users})
+
+
 @app.route('/api/admin/users/<int:user_id>/activity', methods=['GET'])
 @admin_required
 def get_user_activity(user_id):

@@ -11,6 +11,7 @@ import { TodayPage } from './panels/TodayPage';
 import { DailyVolumePage } from './panels/DailyVolumePage';
 import { GameNumberPage } from './panels/GameNumberPage';
 import { StreakPage } from './panels/StreakPage';
+import { ChessAdminPanel } from './panels/ChessAdminPanel';
 
 export function ChessApp() {
   useEffect(() => {
@@ -30,6 +31,7 @@ export function ChessApp() {
         <Route path="streak" element={<StreakPage />} />
         <Route path="win-prediction" element={<WinPredictionPanel />} />
         <Route path="openings" element={<OpeningsPanel />} />
+        <Route path="admin" element={<ChessAdminPanel />} />
       </Route>
     </Routes>
   );
