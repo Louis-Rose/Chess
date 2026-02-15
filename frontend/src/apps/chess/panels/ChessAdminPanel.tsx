@@ -38,7 +38,7 @@ const fetchChessUsers = async (): Promise<ChessUser[]> => {
 };
 
 const fetchTimeSpent = async (): Promise<TimeSpentData[]> => {
-  const response = await axios.get('/api/admin/time-spent');
+  const response = await axios.get('/api/admin/chess-time-spent');
   return response.data.daily_stats;
 };
 
@@ -108,7 +108,7 @@ export function ChessAdminPanel() {
     setSelectedTimeSpentPeriod(period);
     setIsLoadingTimeSpentUsers(true);
     try {
-      const response = await axios.get(`/api/admin/time-spent/${period}`);
+      const response = await axios.get(`/api/admin/chess-time-spent/${period}`);
       setTimeSpentUsers(response.data.users);
     } catch (err) {
       console.error('Failed to fetch time spent details:', err);

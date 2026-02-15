@@ -1401,6 +1401,112 @@ def get_chess_users():
     return jsonify({'users': users})
 
 
+@app.route('/api/admin/chess-time-spent', methods=['GET'])
+@admin_required
+def get_chess_time_spent_stats():
+    """Get daily time spent stats for chess users only (admin only)."""
+    excluded_email = 'rose.louis.mail@gmail.com'
+
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT a.activity_date, SUM(a.minutes) as total_minutes
+            FROM user_activity a
+            JOIN users u ON a.user_id = u.id
+            JOIN user_preferences up ON u.id = up.user_id
+            WHERE u.email != ?
+              AND up.chess_username IS NOT NULL
+            GROUP BY a.activity_date
+            ORDER BY a.activity_date ASC
+        ''', (excluded_email,))
+        daily_stats = [dict(row) for row in cursor.fetchall()]
+
+    return jsonify({'daily_stats': daily_stats})
+
+
+@app.route('/api/admin/chess-time-spent/<period>', methods=['GET'])
+@admin_required
+def get_chess_time_spent_details(period):
+    """Get chess users' time spent for a specific period (admin only)."""
+    excluded_email = 'rose.louis.mail@gmail.com'
+    chess_filter = 'AND up.chess_username IS NOT NULL'
+
+    with get_db() as conn:
+        if '-W' in period:
+            year, week = period.split('-W')
+            if USE_POSTGRES:
+                cursor = conn.execute(f'''
+                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    FROM user_activity a
+                    JOIN users u ON a.user_id = u.id
+                    JOIN user_preferences up ON u.id = up.user_id
+                    WHERE EXTRACT(YEAR FROM a.activity_date::date) = %s
+                      AND EXTRACT(WEEK FROM a.activity_date::date) = %s
+                      AND u.email != %s {chess_filter}
+                    GROUP BY u.id, u.name, u.picture
+                    ORDER BY minutes DESC
+                ''', (int(year), int(week), excluded_email))
+            else:
+                cursor = conn.execute(f'''
+                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    FROM user_activity a
+                    JOIN users u ON a.user_id = u.id
+                    JOIN user_preferences up ON u.id = up.user_id
+                    WHERE strftime('%Y', a.activity_date) = ?
+                      AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
+                      AND u.email != ? {chess_filter}
+                    GROUP BY u.id
+                    ORDER BY minutes DESC
+                ''', (year, int(week), excluded_email))
+        elif len(period) == 7:
+            if USE_POSTGRES:
+                cursor = conn.execute(f'''
+                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    FROM user_activity a
+                    JOIN users u ON a.user_id = u.id
+                    JOIN user_preferences up ON u.id = up.user_id
+                    WHERE to_char(a.activity_date::date, 'YYYY-MM') = %s
+                      AND u.email != %s {chess_filter}
+                    GROUP BY u.id, u.name, u.picture
+                    ORDER BY minutes DESC
+                ''', (period, excluded_email))
+            else:
+                cursor = conn.execute(f'''
+                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    FROM user_activity a
+                    JOIN users u ON a.user_id = u.id
+                    JOIN user_preferences up ON u.id = up.user_id
+                    WHERE strftime('%Y-%m', a.activity_date) = ?
+                      AND u.email != ? {chess_filter}
+                    GROUP BY u.id
+                    ORDER BY minutes DESC
+                ''', (period, excluded_email))
+        else:
+            if USE_POSTGRES:
+                cursor = conn.execute(f'''
+                    SELECT u.id, u.name, u.picture, a.minutes
+                    FROM user_activity a
+                    JOIN users u ON a.user_id = u.id
+                    JOIN user_preferences up ON u.id = up.user_id
+                    WHERE a.activity_date = %s
+                      AND u.email != %s {chess_filter}
+                    ORDER BY a.minutes DESC
+                ''', (period, excluded_email))
+            else:
+                cursor = conn.execute(f'''
+                    SELECT u.id, u.name, u.picture, a.minutes
+                    FROM user_activity a
+                    JOIN users u ON a.user_id = u.id
+                    JOIN user_preferences up ON u.id = up.user_id
+                    WHERE a.activity_date = ?
+                      AND u.email != ? {chess_filter}
+                    ORDER BY a.minutes DESC
+                ''', (period, excluded_email))
+
+        users = [dict(row) for row in cursor.fetchall()]
+
+    return jsonify({'users': users, 'period': period})
+
+
 @app.route('/api/admin/users/<int:user_id>/activity', methods=['GET'])
 @admin_required
 def get_user_activity(user_id):
