@@ -1,19 +1,24 @@
 // Chess app layout with sidebar and content area
 
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { ChessDataProvider, useChessData } from './contexts/ChessDataContext';
+import { ChessDataProvider } from './contexts/ChessDataContext';
 import { ChessSidebar } from './ChessSidebar';
 import { FeedbackWidget } from '../../components/FeedbackWidget';
-import { getChessPrefs } from './utils/constants';
+import { getChessPrefs, saveChessPrefs } from './utils/constants';
 
 function ChessLayoutInner() {
-  const { myPlayerData } = useChessData();
-  const hasUsername = !!(getChessPrefs().chess_username || myPlayerData);
+  const [onboardingDone, setOnboardingDone] = useState(getChessPrefs().onboarding_done);
+
+  const handleOnboardingComplete = () => {
+    saveChessPrefs({ onboarding_done: true });
+    setOnboardingDone(true);
+  };
 
   return (
     <div className="h-screen bg-slate-800 font-sans text-slate-100 flex overflow-hidden">
-      {!hasUsername ? (
-        <ChessSidebar />
+      {!onboardingDone ? (
+        <ChessSidebar onComplete={handleOnboardingComplete} />
       ) : (
         <>
           <main className="flex-1 p-4 md:p-8 overflow-y-auto">

@@ -1,11 +1,11 @@
-// Chess app sidebar with navigation
+// Chess app sidebar — onboarding screen
 
-// import { useState, useEffect, useRef } from 'react'; // needed for app switcher
 import { Link, NavLink } from 'react-router-dom';
-import { Loader2, /* ChevronDown, */ Search, Shield } from 'lucide-react';
+import { Loader2, Search, Shield, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { SidebarShell } from '../../components/SidebarShell';
 import { useChessData } from './contexts/ChessDataContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { getChessPrefs } from './utils/constants';
 
 // Custom LUMNA logo matching the favicon
@@ -18,14 +18,46 @@ const LumnaLogo = ({ className }: { className?: string }) => (
   </svg>
 );
 
+// Sliding language toggle
+function LanguageSlider() {
+  const { language, setLanguage } = useLanguage();
 
-export function ChessSidebar() {
+  return (
+    <div className="relative flex bg-slate-700 rounded-lg p-1">
+      {/* Sliding background */}
+      <div
+        className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-slate-500 rounded-md transition-transform duration-200 ease-in-out"
+        style={{ transform: language === 'en' ? 'translateX(0)' : 'translateX(100%)' }}
+      />
+      <button
+        onClick={() => setLanguage('en')}
+        className={`relative z-10 flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+          language === 'en' ? 'text-white' : 'text-slate-400'
+        }`}
+      >
+        English
+      </button>
+      <button
+        onClick={() => setLanguage('fr')}
+        className={`relative z-10 flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+          language === 'fr' ? 'text-white' : 'text-slate-400'
+        }`}
+      >
+        Fran&ccedil;ais
+      </button>
+    </div>
+  );
+}
+
+interface ChessSidebarProps {
+  onComplete: () => void;
+}
+
+export function ChessSidebar({ onComplete }: ChessSidebarProps) {
   const { user } = useAuth();
   const {
     data,
     myPlayerData,
-    selectedTimeClass,
-    handleTimeClassChange,
     usernameInput,
     setUsernameInput,
     savedPlayers,
@@ -40,29 +72,7 @@ export function ChessSidebar() {
   // Show searched player if available, otherwise fall back to own data
   const displayData = data || myPlayerData;
   const savedChessUsername = getChessPrefs().chess_username;
-
-  // App switcher state - commented out, may re-enable later
-  // const [showAppSwitcher, setShowAppSwitcher] = useState(false);
-  // const [switcherPos, setSwitcherPos] = useState<{ top: number; left: number; width: number } | null>(null);
-  // const appSwitcherRef = useRef<HTMLDivElement>(null);
-  // const appSwitcherBtnRef = useRef<HTMLButtonElement>(null);
-
-  // useEffect(() => {
-  //   const handleClickOutside = (event: MouseEvent) => {
-  //     if (appSwitcherRef.current && !appSwitcherRef.current.contains(event.target as Node)) {
-  //       setShowAppSwitcher(false);
-  //     }
-  //   };
-  //   document.addEventListener('mousedown', handleClickOutside);
-  //   return () => document.removeEventListener('mousedown', handleClickOutside);
-  // }, []);
-
-  // useEffect(() => {
-  //   if (showAppSwitcher && appSwitcherBtnRef.current) {
-  //     const rect = appSwitcherBtnRef.current.getBoundingClientRect();
-  //     setSwitcherPos({ top: rect.top, left: rect.right + 8, width: rect.width });
-  //   }
-  // }, [showAppSwitcher]);
+  const cardLoaded = !!displayData?.player;
 
   return (
     <SidebarShell hideThemeToggle fullWidth>
@@ -74,36 +84,6 @@ export function ChessSidebar() {
         <LumnaLogo className="w-10 h-10 flex-shrink-0" />
         <span className="text-xl font-bold text-white tracking-wide">LUMNA</span>
       </Link>
-
-      {/* App Switcher - commented out, may re-enable later */}
-      {/* <div className="px-2 pb-4 border-b border-slate-700" ref={appSwitcherRef}>
-        <button
-          ref={appSwitcherBtnRef}
-          onClick={() => setShowAppSwitcher(!showAppSwitcher)}
-          className="w-full bg-blue-900/30 hover:bg-blue-900/50 rounded-lg p-3 transition-colors"
-        >
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-2xl">♞</span>
-            <p className="text-blue-400 font-semibold">Chess</p>
-            <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform ${showAppSwitcher ? 'rotate-180' : ''}`} />
-          </div>
-        </button>
-        {showAppSwitcher && switcherPos && (
-          <div
-            className="fixed bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-50 overflow-hidden"
-            style={{ top: switcherPos.top, left: switcherPos.left, width: switcherPos.width }}
-          >
-            <Link
-              to="/investing"
-              onClick={() => setShowAppSwitcher(false)}
-              className="flex items-center justify-center gap-2 px-5 py-3 hover:bg-slate-600 transition-colors"
-            >
-              <span className="text-2xl">📈</span>
-              <p className="text-slate-200 font-medium">Investing</p>
-            </Link>
-          </div>
-        )}
-      </div> */}
 
       {/* Search Bar */}
       <div className="px-2 pb-3">
@@ -157,7 +137,7 @@ export function ChessSidebar() {
       </div>
 
       {/* Player Info */}
-      <div className="px-2 pb-4 border-b border-slate-700">
+      <div className="px-2 pb-4">
         {displayData?.player ? (
           <div className="bg-white rounded-lg p-4 text-center">
             {displayData.player.avatar ? (
@@ -193,20 +173,17 @@ export function ChessSidebar() {
         )}
       </div>
 
-      {/* Game Type - hidden until user has a saved username */}
-      {savedChessUsername && (
-        <div className="px-2 pb-4 border-b border-slate-700">
-          <div className="bg-white rounded-lg p-3">
-            <label className="block text-slate-600 text-xs font-medium mb-2 text-center">Game Type</label>
-            <select
-              value={selectedTimeClass}
-              onChange={(e) => handleTimeClassChange(e.target.value as 'rapid' | 'blitz')}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              <option value="rapid">Rapid</option>
-              <option value="blitz">Blitz</option>
-            </select>
-          </div>
+      {/* Language toggle + Continue — shown once card is loaded */}
+      {cardLoaded && (
+        <div className="px-2 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <LanguageSlider />
+          <button
+            onClick={onComplete}
+            className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
+          >
+            Continue
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       )}
 

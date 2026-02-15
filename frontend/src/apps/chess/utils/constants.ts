@@ -8,15 +8,18 @@ export const CHESS_PREFS_KEY = 'chess_preferences';
 interface ChessPrefs {
   chess_username: string | null;
   preferred_time_class: string | null;
+  onboarding_done: boolean;
 }
+
+const DEFAULT_PREFS: ChessPrefs = { chess_username: null, preferred_time_class: null, onboarding_done: false };
 
 export const getChessPrefs = (): ChessPrefs => {
   try {
     const saved = localStorage.getItem(CHESS_PREFS_KEY);
-    if (!saved) return { chess_username: null, preferred_time_class: null };
-    return JSON.parse(saved);
+    if (!saved) return { ...DEFAULT_PREFS };
+    return { ...DEFAULT_PREFS, ...JSON.parse(saved) };
   } catch {
-    return { chess_username: null, preferred_time_class: null };
+    return { ...DEFAULT_PREFS };
   }
 };
 
