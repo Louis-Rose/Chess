@@ -48,6 +48,19 @@ function LanguageSlider() {
   );
 }
 
+// Renders both EN/FR text overlapping; only the active language is visible.
+// The container always takes the height of the taller text, preventing layout shifts.
+function StableText({ tKey, className }: { tKey: string; className?: string }) {
+  const { language, tAll } = useLanguage();
+  const texts = tAll(tKey);
+  return (
+    <span className="grid">
+      <span className={`col-start-1 row-start-1 ${className ?? ''} ${language === 'en' ? '' : 'invisible'}`}>{texts.en}</span>
+      <span className={`col-start-1 row-start-1 ${className ?? ''} ${language === 'fr' ? '' : 'invisible'}`}>{texts.fr}</span>
+    </span>
+  );
+}
+
 interface ChessSidebarProps {
   onComplete: () => void;
 }
@@ -87,7 +100,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
       {/* Instruction — only when no player loaded */}
       {!cardLoaded && (
         <div className="px-3 pb-3">
-          <p className="text-slate-300 text-sm md:text-lg font-medium text-center">{t('chess.onboardingInstruction')}</p>
+          <StableText tKey="chess.onboardingInstruction" className="text-slate-300 text-sm md:text-lg font-medium text-center block" />
           <div className="h-px bg-slate-700 mt-3" />
         </div>
       )}
@@ -188,7 +201,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
 
       {/* Description */}
       <div className="px-3 pt-1">
-        <p className="text-slate-300 text-sm md:text-lg leading-relaxed text-center">{t('chess.onboardingDescription')}</p>
+        <StableText tKey="chess.onboardingDescription" className="text-slate-300 text-sm md:text-lg leading-relaxed text-center block" />
         <div className="h-px bg-slate-700 mt-4" />
       </div>
 

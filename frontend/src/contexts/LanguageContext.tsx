@@ -8,6 +8,7 @@ interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
+  tAll: (key: string) => { en: string; fr: string };
 }
 
 const translations: Record<Language, Record<string, string>> = {
@@ -162,6 +163,13 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.streaksDescription': 'Should you play another game after wins or losses? Data-driven streak analysis.',
     'chess.onboardingInstruction': 'Enter your Chess.com username to get your personalized data analysis.',
     'chess.onboardingDescription': 'LUMNA is an AI-powered chess analytics tool which provides insights on how and when you should play to improve faster, based on your complete games history.',
+    'chess.navHome': 'Home',
+    'chess.navElo': 'Elo',
+    'chess.navToday': 'Today',
+    'chess.navDailyVolume': 'Daily Volume',
+    'chess.navBestGames': 'Best Games',
+    'chess.navStreaks': 'Streaks',
+    'chess.logout': 'Log out',
 
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
@@ -334,6 +342,13 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.streaksDescription': 'Devriez-vous rejouer après des victoires ou défaites ? Analyse basée sur les données.',
     'chess.onboardingInstruction': 'Entrez votre nom d\'utilisateur Chess.com pour obtenir votre analyse personnalisée.',
     'chess.onboardingDescription': 'LUMNA est un outil d\'analyse basé sur l\'IA qui vous indique quand et comment jouer pour progresser plus vite aux échecs, en se basant sur votre historique complet de parties.',
+    'chess.navHome': 'Accueil',
+    'chess.navElo': 'Elo',
+    'chess.navToday': 'Aujourd\'hui',
+    'chess.navDailyVolume': 'Volume quotidien',
+    'chess.navBestGames': 'Meilleures parties',
+    'chess.navStreaks': 'Séries',
+    'chess.logout': 'Se déconnecter',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',
@@ -380,8 +395,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     return translations[language][key] || key;
   };
 
+  const tAll = (key: string) => ({
+    en: translations.en[key] || key,
+    fr: translations.fr[key] || key,
+  });
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, tAll }}>
       {children}
     </LanguageContext.Provider>
   );
