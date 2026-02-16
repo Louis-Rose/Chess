@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { LineChart, Calendar, Hash, TrendingUp, Target, Home, Shield, Search, Loader2, LogOut } from 'lucide-react';
+import { LineChart, Calendar, Hash, TrendingUp, Target, Home, Shield, LogOut } from 'lucide-react';
 import { ChessDataProvider } from './contexts/ChessDataContext';
 import { useChessData } from './contexts/ChessDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -26,19 +26,9 @@ function ChessNavSidebar() {
   const {
     data,
     myPlayerData,
-    usernameInput,
-    setUsernameInput,
-    savedPlayers,
-    showUsernameDropdown,
-    setShowUsernameDropdown,
-    dropdownRef,
-    handleSelectSavedUsername,
-    handleSubmit,
-    loading,
   } = useChessData();
 
   const displayData = data || myPlayerData;
-  const savedChessUsername = getChessPrefs().chess_username;
   const [showPlayerMenu, setShowPlayerMenu] = useState(false);
   const playerMenuRef = useRef<HTMLDivElement>(null);
 
@@ -95,55 +85,6 @@ function ChessNavSidebar() {
             )}
           </div>
         )}
-
-        {/* Search bar */}
-        <div ref={dropdownRef} className="relative mb-1">
-          <form onSubmit={handleSubmit}>
-            <div className="flex">
-              <input
-                type="text"
-                placeholder="Chess.com username"
-                className="bg-slate-800 text-white placeholder:text-slate-500 px-2.5 py-1.5 border border-slate-700 rounded-l-lg w-full text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                value={usernameInput}
-                onChange={(e) => setUsernameInput(e.target.value)}
-                onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 text-white px-2.5 py-1.5 rounded-r-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                {loading ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : <Search className="w-3.5 h-3.5" />}
-              </button>
-            </div>
-            {showUsernameDropdown && savedPlayers.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-48 overflow-auto">
-                <div className="px-3 py-1.5 text-xs text-slate-500 border-b border-slate-200">Recent searches</div>
-                {savedPlayers.map((player, idx) => {
-                  const isMe = savedChessUsername?.toLowerCase() === player.username.toLowerCase();
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleSelectSavedUsername(player)}
-                      className="w-full px-3 py-1.5 text-left text-slate-800 hover:bg-blue-50 flex items-center gap-2 text-sm"
-                    >
-                      {player.avatar ? (
-                        <img src={player.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs font-bold">
-                          {player.username.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      {player.username}
-                      {isMe && <span className="text-xs text-slate-400">(me)</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </form>
-        </div>
 
         <div className="h-px bg-slate-700" />
 
