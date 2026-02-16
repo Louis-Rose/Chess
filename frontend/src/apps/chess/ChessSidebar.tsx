@@ -66,7 +66,6 @@ interface ChessSidebarProps {
 }
 
 export function ChessSidebar({ onComplete }: ChessSidebarProps) {
-  const { t } = useLanguage();
   const {
     data,
     myPlayerData,
