@@ -209,8 +209,8 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
         </div>
       )}
 
-      {/* Admin Link - only visible to admins */}
-      {user?.is_admin && (
+      {/* Admin Link - only visible to admins after onboarding */}
+      {user?.is_admin && cardLoaded && (
         <div className="px-2 py-2 border-t border-slate-700 flex-shrink-0">
           <NavLink
             to="/chess/admin"
