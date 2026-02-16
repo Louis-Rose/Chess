@@ -191,7 +191,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
       {/* Description — only when no player loaded */}
       {!cardLoaded && (
         <div className="px-3 pt-1">
-          <p className="text-slate-400 text-sm leading-relaxed text-center">{t('chess.onboardingDescription')}</p>
+          <p className="text-slate-300 text-sm leading-relaxed text-center">{t('chess.onboardingDescription')}</p>
           <div className="h-px bg-slate-700 mt-4" />
         </div>
       )}
