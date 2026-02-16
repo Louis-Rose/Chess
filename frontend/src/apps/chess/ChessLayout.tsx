@@ -108,7 +108,7 @@ function ChessNavSidebar() {
         </nav>
 
         {/* Admin */}
-        {user?.is_admin && (
+        {(user?.is_admin || displayData?.player?.username.toLowerCase() === 'akyrosu') && (
           <>
             <div className="h-px bg-slate-700" />
             <NavLink

@@ -28,10 +28,9 @@ const posthogOptions = {
   person_profiles: 'identified_only' as const,
   session_idle_timeout_seconds: 600,
   enable_recording_console_log: false,
-  session_replay_config: {
-    captureNetworkTelemetry: false,
-    throttleDelayMs: 2000,
+  session_recording: {
     maskAllInputs: false,
+    maskTextSelector: '',
   },
 }
 
