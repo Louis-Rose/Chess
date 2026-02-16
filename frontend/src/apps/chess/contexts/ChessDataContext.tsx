@@ -162,6 +162,8 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
       const username = usernameInput.trim();
       setSearchedUsername(username);
       setShowUsernameDropdown(false);
+      (document.activeElement as HTMLElement)?.blur();
+      window.scrollTo({ top: 0 });
     }
   };
 

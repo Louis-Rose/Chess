@@ -95,7 +95,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
       )}
 
       {/* Player Info */}
-      <div className="px-2 pb-4">
+      <div className="px-3 pb-4">
         {displayData?.player ? (
           <div className="bg-white rounded-lg p-4 text-center">
             {displayData.player.avatar ? (
@@ -135,7 +135,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
       </div>
 
       {/* Search Bar */}
-      <div className="px-2 pb-3">
+      <div className="px-3 pb-3">
         <div ref={dropdownRef} className="relative">
         <form onSubmit={handleSubmit}>
           <div className="flex">
@@ -184,17 +184,15 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
         </form>
         </div>
       </div>
-      <div className="px-2 pb-3">
+      <div className="px-3 pb-3">
         <div className="h-px bg-slate-700" />
       </div>
 
-      {/* Description — only when no player loaded */}
-      {!cardLoaded && (
-        <div className="px-3 pt-1">
-          <p className="text-slate-300 text-sm leading-relaxed text-center">{t('chess.onboardingDescription')}</p>
-          <div className="h-px bg-slate-700 mt-4" />
-        </div>
-      )}
+      {/* Description */}
+      <div className="px-3 pt-1">
+        <p className="text-slate-300 text-sm leading-relaxed text-center">{t('chess.onboardingDescription')}</p>
+        <div className="h-px bg-slate-700 mt-4" />
+      </div>
 
       {/* Language toggle + Continue — shown once card is loaded */}
       {cardLoaded && (
