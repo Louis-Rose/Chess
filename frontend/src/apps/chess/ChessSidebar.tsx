@@ -205,6 +205,11 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
         </form>
         </div>
       </div>
+      {loading && (
+        <p className="px-3 pb-2 text-slate-400 text-xs md:text-sm text-center animate-pulse">
+          {t('chess.fetchingData')}
+        </p>
+      )}
       <div className="px-3 pb-3">
         <div className="h-px bg-slate-700" />
       </div>
