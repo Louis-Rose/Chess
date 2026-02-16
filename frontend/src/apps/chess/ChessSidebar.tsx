@@ -112,8 +112,8 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
               Joined {new Date(displayData.player.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
             <div className="mt-3 pt-3 border-t border-slate-200 text-xs text-slate-600 space-y-1">
-              <p>Rapid: {displayData.player.rapid_rating && <span className="font-semibold text-slate-800">{displayData.player.rapid_rating} elo</span>} · <span className="font-semibold text-slate-800">{displayData.total_rapid?.toLocaleString() || 0}</span> games</p>
-              <p>Blitz: {displayData.player.blitz_rating && <span className="font-semibold text-slate-800">{displayData.player.blitz_rating} elo</span>} · <span className="font-semibold text-slate-800">{displayData.total_blitz?.toLocaleString() || 0}</span> games</p>
+              <p>Rapid: {displayData.player.rapid_rating && <><span className="font-semibold text-slate-800">{displayData.player.rapid_rating}</span> elo · </>}<span className="font-semibold text-slate-800">{displayData.total_rapid?.toLocaleString() || 0}</span> {(displayData.total_rapid ?? 0) === 1 ? 'game' : 'games'}</p>
+              <p>Blitz: {displayData.player.blitz_rating && <><span className="font-semibold text-slate-800">{displayData.player.blitz_rating}</span> elo · </>}<span className="font-semibold text-slate-800">{displayData.total_blitz?.toLocaleString() || 0}</span> {(displayData.total_blitz ?? 0) === 1 ? 'game' : 'games'}</p>
             </div>
           </div>
         ) : (
@@ -125,8 +125,8 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
               <p className="text-slate-500 text-xs mt-1">-- followers</p>
               <p className="text-slate-500 text-xs">Joined --</p>
               <div className="mt-3 pt-3 border-t border-slate-600 text-xs text-slate-500 space-y-1">
-                <p>Rapid: <span className="font-semibold">--</span> games</p>
-                <p>Blitz: <span className="font-semibold">--</span> games</p>
+                <p>Rapid: <span className="font-semibold">--</span> elo · <span className="font-semibold">--</span> games</p>
+                <p>Blitz: <span className="font-semibold">--</span> elo · <span className="font-semibold">--</span> games</p>
               </div>
             </div>
             <div className="h-px bg-slate-700 mt-4" />
