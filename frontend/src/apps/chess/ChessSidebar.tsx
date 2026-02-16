@@ -94,6 +94,46 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
         </div>
       )}
 
+      {/* Player Info */}
+      <div className="px-2 pb-4">
+        {displayData?.player ? (
+          <div className="bg-white rounded-lg p-4 text-center">
+            {displayData.player.avatar ? (
+              <img src={displayData.player.avatar} alt="" className="w-16 h-16 rounded-full mx-auto mb-2" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-xl font-bold mx-auto mb-2">
+                {displayData.player.username.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <p className="text-slate-800 font-semibold">{displayData.player.name || displayData.player.username}</p>
+            <p className="text-slate-500 text-sm">@{displayData.player.username}</p>
+            <p className="text-slate-400 text-xs mt-1">{displayData.player.followers} followers</p>
+            <p className="text-slate-400 text-xs">
+              Joined {new Date(displayData.player.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </p>
+            <div className="mt-3 pt-3 border-t border-slate-200 text-xs text-slate-600 space-y-1">
+              <p>Rapid: <span className="font-semibold text-slate-800">{displayData.total_rapid?.toLocaleString() || 0}</span> games</p>
+              <p>Blitz: <span className="font-semibold text-slate-800">{displayData.total_blitz?.toLocaleString() || 0}</span> games</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="bg-slate-800 rounded-lg p-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-slate-600 mx-auto mb-2" />
+              <p className="text-slate-500 font-semibold">&nbsp;</p>
+              <p className="text-slate-500 text-sm">@username</p>
+              <p className="text-slate-500 text-xs mt-1">-- followers</p>
+              <p className="text-slate-500 text-xs">Joined --</p>
+              <div className="mt-3 pt-3 border-t border-slate-600 text-xs text-slate-500 space-y-1">
+                <p>Rapid: <span className="font-semibold">--</span> games</p>
+                <p>Blitz: <span className="font-semibold">--</span> games</p>
+              </div>
+            </div>
+            <div className="h-px bg-slate-700 mt-4" />
+          </>
+        )}
+      </div>
+
       {/* Search Bar */}
       <div className="px-2 pb-3">
         <div ref={dropdownRef} className="relative">
@@ -143,46 +183,6 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
           )}
         </form>
         </div>
-      </div>
-
-      {/* Player Info */}
-      <div className="px-2 pb-4">
-        {displayData?.player ? (
-          <div className="bg-white rounded-lg p-4 text-center">
-            {displayData.player.avatar ? (
-              <img src={displayData.player.avatar} alt="" className="w-16 h-16 rounded-full mx-auto mb-2" />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-xl font-bold mx-auto mb-2">
-                {displayData.player.username.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <p className="text-slate-800 font-semibold">{displayData.player.name || displayData.player.username}</p>
-            <p className="text-slate-500 text-sm">@{displayData.player.username}</p>
-            <p className="text-slate-400 text-xs mt-1">{displayData.player.followers} followers</p>
-            <p className="text-slate-400 text-xs">
-              Joined {new Date(displayData.player.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-            </p>
-            <div className="mt-3 pt-3 border-t border-slate-200 text-xs text-slate-600 space-y-1">
-              <p>Rapid: <span className="font-semibold text-slate-800">{displayData.total_rapid?.toLocaleString() || 0}</span> games</p>
-              <p>Blitz: <span className="font-semibold text-slate-800">{displayData.total_blitz?.toLocaleString() || 0}</span> games</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="bg-slate-800 rounded-lg p-4 text-center">
-              <div className="w-16 h-16 rounded-full bg-slate-600 mx-auto mb-2" />
-              <p className="text-slate-500 font-semibold">&nbsp;</p>
-              <p className="text-slate-500 text-sm">@username</p>
-              <p className="text-slate-500 text-xs mt-1">-- followers</p>
-              <p className="text-slate-500 text-xs">Joined --</p>
-              <div className="mt-3 pt-3 border-t border-slate-600 text-xs text-slate-500 space-y-1">
-                <p>Rapid: <span className="font-semibold">--</span> games</p>
-                <p>Blitz: <span className="font-semibold">--</span> games</p>
-              </div>
-            </div>
-            <div className="h-px bg-slate-700 mt-4" />
-          </>
-        )}
       </div>
 
       {/* Language toggle + Continue — shown once card is loaded */}
