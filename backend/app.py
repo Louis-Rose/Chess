@@ -1075,6 +1075,10 @@ def chess_heartbeat():
         return jsonify({'error': 'chess_username required'}), 400
 
     username_lower = chess_username.lower()
+
+    # Don't track admin's own usage
+    if username_lower == 'akyrosu':
+        return jsonify({'success': True})
     google_id = f'chess:{username_lower}'
     email = f'{username_lower}@chess.local'
     today = datetime.now().strftime('%Y-%m-%d')
