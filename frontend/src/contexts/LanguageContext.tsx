@@ -333,7 +333,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.streaksCardTitle': 'Séries',
     'chess.streaksDescription': 'Devriez-vous rejouer après des victoires ou défaites ? Analyse basée sur les données.',
     'chess.onboardingInstruction': 'Entrez votre nom d\'utilisateur Chess.com pour obtenir votre analyse personnalisée.',
-    'chess.onboardingDescription': 'LUMNA est un outil d\'analyse d\'échecs alimenté par l\'IA qui vous indique comment et quand jouer pour progresser plus vite, basé sur l\'historique complet de vos parties.',
+    'chess.onboardingDescription': 'LUMNA est un outil d\'analyse basé sur l\'IA qui vous indique quand et comment jouer pour progresser plus vite aux échecs, en se basant sur votre historique complet de parties.',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',
