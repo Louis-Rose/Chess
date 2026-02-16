@@ -8,6 +8,7 @@ import { Shield, Users, Loader2, ChevronUp, ChevronDown, Clock, RefreshCw, Chevr
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useChessData } from '../contexts/ChessDataContext';
 
 interface ChessUser {
   chess_username: string;
@@ -32,19 +33,25 @@ type SortColumn = 'chess_username' | 'last_active' | 'total_minutes' | 'session_
 type SortDirection = 'asc' | 'desc';
 type TimeUnit = 'days' | 'weeks' | 'months';
 
-const fetchChessUsers = async (): Promise<ChessUser[]> => {
-  const response = await axios.get('/api/admin/chess-users');
+const getAdminHeaders = (username: string) =>
+  username ? { 'X-Chess-Admin': username } : {};
+
+const fetchChessUsers = async (username: string): Promise<ChessUser[]> => {
+  const response = await axios.get('/api/admin/chess-users', { headers: getAdminHeaders(username) });
   return response.data.users;
 };
 
-const fetchTimeSpent = async (): Promise<TimeSpentData[]> => {
-  const response = await axios.get('/api/admin/chess-time-spent');
+const fetchTimeSpent = async (username: string): Promise<TimeSpentData[]> => {
+  const response = await axios.get('/api/admin/chess-time-spent', { headers: getAdminHeaders(username) });
   return response.data.daily_stats;
 };
 
 export function ChessAdminPanel() {
   const { user, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
+  const { data: chessData, myPlayerData } = useChessData();
+  const chessUsername = (chessData?.player?.username || myPlayerData?.player?.username || '').toLowerCase();
+  const isAdmin = !!user?.is_admin || chessUsername === 'akyrosu';
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Sort state
@@ -65,14 +72,14 @@ export function ChessAdminPanel() {
 
   const { data: chessUsers, isLoading, refetch: refetchChessUsers } = useQuery({
     queryKey: ['admin-chess-users'],
-    queryFn: fetchChessUsers,
-    enabled: !!user?.is_admin,
+    queryFn: () => fetchChessUsers(chessUsername),
+    enabled: isAdmin,
   });
 
   const { data: timeSpentData, refetch: refetchTimeSpent } = useQuery({
     queryKey: ['admin-time-spent'],
-    queryFn: fetchTimeSpent,
-    enabled: !!user?.is_admin,
+    queryFn: () => fetchTimeSpent(chessUsername),
+    enabled: isAdmin,
   });
 
   const handleRefresh = async () => {
@@ -108,7 +115,7 @@ export function ChessAdminPanel() {
     setSelectedTimeSpentPeriod(period);
     setIsLoadingTimeSpentUsers(true);
     try {
-      const response = await axios.get(`/api/admin/chess-time-spent/${period}`);
+      const response = await axios.get(`/api/admin/chess-time-spent/${period}`, { headers: getAdminHeaders(chessUsername) });
       setTimeSpentUsers(response.data.users);
     } catch (err) {
       console.error('Failed to fetch time spent details:', err);
@@ -250,17 +257,8 @@ export function ChessAdminPanel() {
   };
 
   // Redirect non-admins
-  if (!authLoading && (!user || !user.is_admin)) {
+  if (!authLoading && !isAdmin) {
     return <Navigate to="/chess" replace />;
-  }
-
-  if (authLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className="w-10 h-10 text-green-500 animate-spin mb-4" />
-        <p className="text-slate-400">{language === 'fr' ? 'Chargement...' : 'Loading...'}</p>
-      </div>
-    );
   }
 
   return (

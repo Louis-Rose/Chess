@@ -227,19 +227,26 @@ def login_optional(f):
 
 def admin_required(f):
     """Decorator for endpoints that require admin privileges."""
+    CHESS_ADMIN_USERNAMES = {'akyrosu'}
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user_id = get_current_user()
-        if user_id is None:
-            return jsonify({'error': 'Authentication required'}), 401
+        if user_id is not None:
+            # JWT auth path
+            with get_db() as conn:
+                cursor = conn.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,))
+                row = cursor.fetchone()
+                if not row or not row['is_admin']:
+                    return jsonify({'error': 'Admin privileges required'}), 403
+            request.user_id = user_id
+            return f(*args, **kwargs)
 
-        # Check if user is admin
-        with get_db() as conn:
-            cursor = conn.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,))
-            row = cursor.fetchone()
-            if not row or not row['is_admin']:
-                return jsonify({'error': 'Admin privileges required'}), 403
+        # Fallback: chess username admin (for chess app without Google login)
+        chess_admin = request.headers.get('X-Chess-Admin', '').lower()
+        if chess_admin in CHESS_ADMIN_USERNAMES:
+            request.user_id = None
+            return f(*args, **kwargs)
 
-        request.user_id = user_id
-        return f(*args, **kwargs)
+        return jsonify({'error': 'Authentication required'}), 401
     return decorated_function
