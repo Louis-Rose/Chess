@@ -12,8 +12,14 @@ import { ThemeProvider } from './contexts/ThemeContext'
 // import { CookieConsentProvider } from './contexts/CookieConsentContext'
 // import { ConditionalPostHog } from './components/ConditionalPostHog'
 // import { CookieBanner } from './components/CookieBanner'
+import posthog from 'posthog-js'
 import './index.css'
 import App from './App.tsx'
+
+// Allow opting out of tracking via ?no_track URL param (persists in localStorage)
+if (new URLSearchParams(window.location.search).has('no_track')) {
+  posthog.opt_out_capturing()
+}
 
 // PostHog config (previously in ConditionalPostHog)
 // Note: Minimum session recording duration is configured in PostHog dashboard (Project Settings > Session Replay)
