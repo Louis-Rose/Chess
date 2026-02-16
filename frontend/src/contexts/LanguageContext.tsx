@@ -160,6 +160,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.bestGamesDescription': 'Which game of the day is your strongest? See your win rate by game number.',
     'chess.streaksCardTitle': 'Streaks',
     'chess.streaksDescription': 'Should you play another game after wins or losses? Data-driven streak analysis.',
+    'chess.onboardingInstruction': 'Enter your Chess.com username to analyze your data.',
 
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
@@ -330,6 +331,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.bestGamesDescription': 'Quelle partie de la journée est la meilleure ? Votre taux de victoire par numéro de partie.',
     'chess.streaksCardTitle': 'Séries',
     'chess.streaksDescription': 'Devriez-vous rejouer après des victoires ou défaites ? Analyse basée sur les données.',
+    'chess.onboardingInstruction': 'Entrez votre nom d\'utilisateur Chess.com pour analyser vos données.',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',

@@ -55,6 +55,7 @@ interface ChessSidebarProps {
 
 export function ChessSidebar({ onComplete }: ChessSidebarProps) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const {
     data,
     myPlayerData,
@@ -159,17 +160,23 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
             </div>
           </div>
         ) : (
-          <div className="bg-slate-800 rounded-lg p-4 text-center">
-            <div className="w-16 h-16 rounded-full bg-slate-600 mx-auto mb-2" />
-            <p className="text-slate-500 font-semibold">&nbsp;</p>
-            <p className="text-slate-500 text-sm">@username</p>
-            <p className="text-slate-500 text-xs mt-1">-- followers</p>
-            <p className="text-slate-500 text-xs">Joined --</p>
-            <div className="mt-3 pt-3 border-t border-slate-600 text-xs text-slate-500 space-y-1">
-              <p>Rapid: <span className="font-semibold">--</span> games</p>
-              <p>Blitz: <span className="font-semibold">--</span> games</p>
+          <>
+            <div className="bg-slate-800 rounded-lg p-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-slate-600 mx-auto mb-2" />
+              <p className="text-slate-500 font-semibold">&nbsp;</p>
+              <p className="text-slate-500 text-sm">@username</p>
+              <p className="text-slate-500 text-xs mt-1">-- followers</p>
+              <p className="text-slate-500 text-xs">Joined --</p>
+              <div className="mt-3 pt-3 border-t border-slate-600 text-xs text-slate-500 space-y-1">
+                <p>Rapid: <span className="font-semibold">--</span> games</p>
+                <p>Blitz: <span className="font-semibold">--</span> games</p>
+              </div>
             </div>
-          </div>
+            <div className="flex flex-col items-center gap-3 mt-4">
+              <div className="w-px h-6 bg-slate-600" />
+              <p className="text-slate-400 text-sm text-center">{t('chess.onboardingInstruction')}</p>
+            </div>
+          </>
         )}
       </div>
 
