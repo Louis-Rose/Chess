@@ -192,6 +192,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
       {!cardLoaded && (
         <div className="px-4 pt-1">
           <p className="text-slate-400 text-sm leading-relaxed text-center">{t('chess.onboardingDescription')}</p>
+          <div className="h-px bg-slate-700 mt-4" />
         </div>
       )}
 
