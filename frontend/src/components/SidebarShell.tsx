@@ -18,7 +18,7 @@ export function SidebarShell({ children, bottomContent, hideThemeToggle, hideLan
 
   return (
     <div className={`dark ${fullWidth ? 'w-full' : 'w-64'} bg-slate-900 h-screen p-4 flex flex-col gap-2 sticky top-0`}>
-      <div className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 ${fullWidth ? 'max-w-xs mx-auto w-full' : ''}`}>
+      <div className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 ${fullWidth ? 'max-w-xs md:max-w-lg mx-auto w-full' : ''}`}>
         {children}
       </div>
 

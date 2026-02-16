@@ -82,14 +82,14 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
         to="/chess"
         className="flex items-center justify-center gap-3 px-2 pb-4 mb-2 border-b border-slate-700 hover:opacity-80 transition-opacity flex-shrink-0"
       >
-        <LumnaLogo className="w-10 h-10 flex-shrink-0" />
-        <span className="text-xl font-bold text-white tracking-wide">LUMNA</span>
+        <LumnaLogo className="w-10 h-10 md:w-14 md:h-14 flex-shrink-0" />
+        <span className="text-xl md:text-3xl font-bold text-white tracking-wide">LUMNA</span>
       </Link>
 
       {/* Instruction — only when no player loaded */}
       {!cardLoaded && (
         <div className="px-3 pb-3">
-          <p className="text-slate-300 text-sm font-medium text-center">{t('chess.onboardingInstruction')}</p>
+          <p className="text-slate-300 text-sm md:text-lg font-medium text-center">{t('chess.onboardingInstruction')}</p>
           <div className="h-px bg-slate-700 mt-3" />
         </div>
       )}
@@ -97,34 +97,34 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
       {/* Player Info */}
       <div className="px-3 pb-4">
         {displayData?.player ? (
-          <div className="bg-white rounded-lg p-4 text-center">
+          <div className="bg-white rounded-lg p-4 md:p-6 text-center">
             {displayData.player.avatar ? (
-              <img src={displayData.player.avatar} alt="" className="w-16 h-16 rounded-full mx-auto mb-2" />
+              <img src={displayData.player.avatar} alt="" className="w-16 h-16 md:w-20 md:h-20 rounded-full mx-auto mb-2" />
             ) : (
-              <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-xl font-bold mx-auto mb-2">
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-xl md:text-2xl font-bold mx-auto mb-2">
                 {displayData.player.username.charAt(0).toUpperCase()}
               </div>
             )}
-            <p className="text-slate-800 font-semibold">{displayData.player.name || displayData.player.username}</p>
-            <p className="text-slate-500 text-sm">@{displayData.player.username}</p>
-            <p className="text-slate-400 text-xs mt-1">{displayData.player.followers} followers</p>
-            <p className="text-slate-400 text-xs">
+            <p className="text-slate-800 font-semibold md:text-lg">{displayData.player.name || displayData.player.username}</p>
+            <p className="text-slate-500 text-sm md:text-base">@{displayData.player.username}</p>
+            <p className="text-slate-400 text-xs md:text-sm mt-1">{displayData.player.followers} followers</p>
+            <p className="text-slate-400 text-xs md:text-sm">
               Joined {new Date(displayData.player.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
-            <div className="mt-3 pt-3 border-t border-slate-200 text-xs text-slate-600 space-y-1">
+            <div className="mt-3 pt-3 border-t border-slate-200 text-xs md:text-sm text-slate-600 space-y-1">
               <p>Rapid: {displayData.player.rapid_rating && <><span className="font-semibold text-slate-800">{displayData.player.rapid_rating}</span> elo · </>}<span className="font-semibold text-slate-800">{displayData.total_rapid?.toLocaleString() || 0}</span> {(displayData.total_rapid ?? 0) === 1 ? 'game' : 'games'}</p>
               <p>Blitz: {displayData.player.blitz_rating && <><span className="font-semibold text-slate-800">{displayData.player.blitz_rating}</span> elo · </>}<span className="font-semibold text-slate-800">{displayData.total_blitz?.toLocaleString() || 0}</span> {(displayData.total_blitz ?? 0) === 1 ? 'game' : 'games'}</p>
             </div>
           </div>
         ) : (
           <>
-            <div className="bg-slate-800 rounded-lg p-4 text-center">
-              <div className="w-16 h-16 rounded-full bg-slate-600 mx-auto mb-2" />
-              <p className="text-slate-500 font-semibold">&nbsp;</p>
-              <p className="text-slate-500 text-sm">@username</p>
-              <p className="text-slate-500 text-xs mt-1">-- followers</p>
-              <p className="text-slate-500 text-xs">Joined --</p>
-              <div className="mt-3 pt-3 border-t border-slate-600 text-xs text-slate-500 space-y-1">
+            <div className="bg-slate-800 rounded-lg p-4 md:p-6 text-center">
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-600 mx-auto mb-2" />
+              <p className="text-slate-500 font-semibold md:text-lg">&nbsp;</p>
+              <p className="text-slate-500 text-sm md:text-base">@username</p>
+              <p className="text-slate-500 text-xs md:text-sm mt-1">-- followers</p>
+              <p className="text-slate-500 text-xs md:text-sm">Joined --</p>
+              <div className="mt-3 pt-3 border-t border-slate-600 text-xs md:text-sm text-slate-500 space-y-1">
                 <p>Rapid: <span className="font-semibold">--</span> elo · <span className="font-semibold">--</span> games</p>
                 <p>Blitz: <span className="font-semibold">--</span> elo · <span className="font-semibold">--</span> games</p>
               </div>
@@ -142,7 +142,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
             <input
               type="text"
               placeholder="Chess.com username"
-              className="bg-white text-slate-900 placeholder:text-slate-400 px-3 py-2 border border-slate-300 rounded-l-lg w-full text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-white text-slate-900 placeholder:text-slate-400 px-3 py-2 md:py-3 md:px-4 border border-slate-300 rounded-l-lg w-full text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={usernameInput}
               onChange={(e) => setUsernameInput(e.target.value)}
               onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
@@ -150,7 +150,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
             <button
               type="submit"
               disabled={loading}
-              className="bg-blue-600 text-white px-3 py-2 rounded-r-lg hover:bg-blue-700 disabled:opacity-50"
+              className="bg-blue-600 text-white px-3 py-2 md:px-4 md:py-3 rounded-r-lg hover:bg-blue-700 disabled:opacity-50"
             >
               {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
             </button>
@@ -190,7 +190,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
 
       {/* Description */}
       <div className="px-3 pt-1">
-        <p className="text-slate-300 text-sm leading-relaxed text-center">{t('chess.onboardingDescription')}</p>
+        <p className="text-slate-300 text-sm md:text-base leading-relaxed text-center">{t('chess.onboardingDescription')}</p>
         <div className="h-px bg-slate-700 mt-4" />
       </div>
 
