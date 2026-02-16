@@ -1,5 +1,6 @@
 // Chess app sidebar — onboarding screen
 
+import { useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Search, ArrowRight } from 'lucide-react';
 import { SidebarShell } from '../../components/SidebarShell';
@@ -84,10 +85,19 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
   const displayData = data || myPlayerData;
   const savedChessUsername = getChessPrefs().chess_username;
   const cardLoaded = !!displayData?.player;
+  const topRef = useRef<HTMLDivElement>(null);
+
+  // Scroll back to top when player card loads
+  useEffect(() => {
+    if (cardLoaded) {
+      topRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [cardLoaded]);
 
   return (
     <SidebarShell hideThemeToggle hideLanguageToggle fullWidth>
       {/* LUMNA Logo */}
+      <div ref={topRef} />
       <Link
         to="/chess"
         className="flex items-center justify-center gap-3 px-2 pb-4 mb-2 border-b border-slate-700 hover:opacity-80 transition-opacity flex-shrink-0"
