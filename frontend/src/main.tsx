@@ -21,6 +21,9 @@ if (new URLSearchParams(window.location.search).has('no_track')) {
   posthog.opt_out_capturing()
 }
 
+// Skip PostHog entirely for excluded users (admin) — checked before init so no data is ever sent
+const isPostHogExcluded = localStorage.getItem('posthog-excluded') === 'true'
+
 // PostHog config (previously in ConditionalPostHog)
 // Note: Minimum session recording duration is configured in PostHog dashboard (Project Settings > Session Replay)
 const posthogOptions = {
@@ -54,21 +57,32 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <LanguageProvider>
         {/* Cookie consent temporarily disabled - recording all sessions */}
-        <PostHogProvider
-          apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
-          options={posthogOptions}
-        >
+        {isPostHogExcluded ? (
           <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
             <QueryClientProvider client={queryClient}>
               <AuthProvider>
                 <BrowserRouter>
                   <App />
-                  {/* <CookieBanner /> */}
                 </BrowserRouter>
               </AuthProvider>
             </QueryClientProvider>
           </GoogleOAuthProvider>
-        </PostHogProvider>
+        ) : (
+          <PostHogProvider
+            apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+            options={posthogOptions}
+          >
+            <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+              <QueryClientProvider client={queryClient}>
+                <AuthProvider>
+                  <BrowserRouter>
+                    <App />
+                  </BrowserRouter>
+                </AuthProvider>
+              </QueryClientProvider>
+            </GoogleOAuthProvider>
+          </PostHogProvider>
+        )}
       </LanguageProvider>
     </ThemeProvider>
   </StrictMode>
