@@ -9,7 +9,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { ChessSidebar } from './ChessSidebar';
 import { FeedbackWidget } from '../../components/FeedbackWidget';
 import { useAuth } from '../../contexts/AuthContext';
-import { getChessPrefs, saveChessPrefs } from './utils/constants';
+import { getChessPrefs, saveChessPrefs, CHESS_PREFS_KEY, STORAGE_KEY } from './utils/constants';
 
 const NAV_ITEMS = [
   { path: '/chess', labelKey: 'chess.navHome', icon: Home, end: true },
@@ -79,7 +79,13 @@ function ChessNavSidebar() {
             {showPlayerMenu && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
                 <button
-                  onClick={() => { setShowPlayerMenu(false); logout(); }}
+                  onClick={async () => {
+                    setShowPlayerMenu(false);
+                    localStorage.removeItem(CHESS_PREFS_KEY);
+                    localStorage.removeItem(STORAGE_KEY);
+                    await logout();
+                    window.location.href = '/chess';
+                  }}
                   className="w-full px-3 py-2.5 text-left text-red-400 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
