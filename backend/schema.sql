@@ -332,6 +332,15 @@ CREATE TABLE IF NOT EXISTS first_visitor_reward (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Per-month chess archive cache (completed months never change)
+CREATE TABLE IF NOT EXISTS monthly_archive_cache (
+    username TEXT NOT NULL,
+    archive_url TEXT NOT NULL,
+    games_json TEXT NOT NULL,
+    fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (username, archive_url)
+);
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);

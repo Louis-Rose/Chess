@@ -10,6 +10,7 @@ import json
 from scipy.optimize import minimize
 from scipy.special import expit  # logistic function
 from youtube_transcript_api import YouTubeTranscriptApi
+from database import get_cached_archives, save_cached_archive
 
 # --- Data Fetching Functions ---
 
@@ -134,88 +135,101 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 break
 
     # Step 2: Process each archive (only new ones if incremental)
+    # Pre-load per-month archive cache to avoid N+1 DB queries
+    cached_archives = get_cached_archives(USERNAME)
+    current_month_suffix = datetime.datetime.now(tz=PARIS_TZ).strftime('/%Y/%m')
+
     for idx, archive_url in enumerate(archives_to_fetch):
         parts = archive_url.split('/')
         year_month = f"{parts[-2]}-{parts[-1]}"
 
-        yield f"data: {json.dumps({'type': 'progress', 'current': idx + 1, 'total': total_archives, 'month': year_month})}\n\n"
+        is_current_month = archive_url.endswith(current_month_suffix)
 
-        try:
-            response = requests.get(archive_url, headers=headers)
-            response.raise_for_status()
-            data = response.json()
+        # Use cached data for completed months, always fetch current month
+        if not is_current_month and archive_url in cached_archives:
+            yield f"data: {json.dumps({'type': 'progress', 'current': idx + 1, 'total': total_archives, 'month': year_month, 'cached': True})}\n\n"
+            data = json.loads(cached_archives[archive_url])
+        else:
+            yield f"data: {json.dumps({'type': 'progress', 'current': idx + 1, 'total': total_archives, 'month': year_month})}\n\n"
 
-            for game in data.get('games', []):
-                game_time_class = game.get('time_class')
-                end_time = game.get('end_time')
-                if not end_time:
-                    continue
+            try:
+                response = requests.get(archive_url, headers=headers)
+                response.raise_for_status()
+                data = response.json()
+                # Cache this month's raw response
+                save_cached_archive(USERNAME, archive_url, json.dumps(data))
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching {archive_url}: {e}")
+                continue
 
-                # Count all rapid and blitz games
-                if game_time_class == 'rapid':
-                    total_rapid += 1
-                elif game_time_class == 'blitz':
-                    total_blitz += 1
+        for game in data.get('games', []):
+            game_time_class = game.get('time_class')
+            end_time = game.get('end_time')
+            if not end_time:
+                continue
 
-                # Skip if not a time class we track
-                if game_time_class not in TIME_CLASSES:
-                    continue
+            # Count all rapid and blitz games
+            if game_time_class == 'rapid':
+                total_rapid += 1
+            elif game_time_class == 'blitz':
+                total_blitz += 1
 
-                game_date = datetime.datetime.fromtimestamp(end_time, tz=PARIS_TZ)
-                date_str = game_date.strftime('%Y-%m-%d')
+            # Skip if not a time class we track
+            if game_time_class not in TIME_CLASSES:
+                continue
 
-                # Get data structure for this time class
-                tcd = tc_data[game_time_class]
-                tcd['total_games'] += 1
+            game_date = datetime.datetime.fromtimestamp(end_time, tz=PARIS_TZ)
+            date_str = game_date.strftime('%Y-%m-%d')
 
-                if date_str not in tcd['games_by_week']:
-                    tcd['games_by_week'][date_str] = 0
-                tcd['games_by_week'][date_str] += 1
+            # Get data structure for this time class
+            tcd = tc_data[game_time_class]
+            tcd['total_games'] += 1
 
-                # Determine user's side and rating
-                if game['white']['username'].lower() == USERNAME.lower():
-                    rating = game['white'].get('rating')
-                    result_code = game['white'].get('result')
-                    side = 'white'
-                elif game['black']['username'].lower() == USERNAME.lower():
-                    rating = game['black'].get('rating')
-                    result_code = game['black'].get('result')
-                    side = 'black'
+            if date_str not in tcd['games_by_week']:
+                tcd['games_by_week'][date_str] = 0
+            tcd['games_by_week'][date_str] += 1
+
+            # Determine user's side and rating
+            if game['white']['username'].lower() == USERNAME.lower():
+                rating = game['white'].get('rating')
+                result_code = game['white'].get('result')
+                side = 'white'
+            elif game['black']['username'].lower() == USERNAME.lower():
+                rating = game['black'].get('rating')
+                result_code = game['black'].get('result')
+                side = 'black'
+            else:
+                continue
+
+            # Elo per day
+            if rating:
+                if date_str not in tcd['elo_by_week'] or end_time > tcd['elo_by_week'][date_str]['timestamp']:
+                    tcd['elo_by_week'][date_str] = {'elo': rating, 'timestamp': end_time}
+
+            # Game number stats
+            game_result = get_game_result(result_code)
+            date_key = game_date.strftime('%Y-%m-%d')
+            if date_key not in tcd['games_by_day']:
+                tcd['games_by_day'][date_key] = []
+            tcd['games_by_day'][date_key].append((end_time, game_result))
+
+            # Hourly stats (win rate by 2-hour groups for better statistical significance)
+            hour_group = game_date.hour // 2  # 0-1 -> 0, 2-3 -> 1, etc.
+            if hour_group not in tcd['games_by_hour']:
+                tcd['games_by_hour'][hour_group] = {'wins': 0, 'draws': 0, 'total': 0}
+            tcd['games_by_hour'][hour_group]['total'] += 1
+            if game_result == 'win':
+                tcd['games_by_hour'][hour_group]['wins'] += 1
+            elif game_result == 'draw':
+                tcd['games_by_hour'][hour_group]['draws'] += 1
+
+            # Openings (last 12 months only)
+            if archive_url in archives[-12:] and 'eco' in game:
+                opening_data = {'opening': game['eco'], 'result': game_result}
+                if side == 'white':
+                    tcd['openings_white'].append(opening_data)
                 else:
-                    continue
-
-                # Elo per day
-                if rating:
-                    if date_str not in tcd['elo_by_week'] or end_time > tcd['elo_by_week'][date_str]['timestamp']:
-                        tcd['elo_by_week'][date_str] = {'elo': rating, 'timestamp': end_time}
-
-                # Game number stats
-                game_result = get_game_result(result_code)
-                date_key = game_date.strftime('%Y-%m-%d')
-                if date_key not in tcd['games_by_day']:
-                    tcd['games_by_day'][date_key] = []
-                tcd['games_by_day'][date_key].append((end_time, game_result))
-
-                # Hourly stats (win rate by 2-hour groups for better statistical significance)
-                hour_group = game_date.hour // 2  # 0-1 -> 0, 2-3 -> 1, etc.
-                if hour_group not in tcd['games_by_hour']:
-                    tcd['games_by_hour'][hour_group] = {'wins': 0, 'draws': 0, 'total': 0}
-                tcd['games_by_hour'][hour_group]['total'] += 1
-                if game_result == 'win':
-                    tcd['games_by_hour'][hour_group]['wins'] += 1
-                elif game_result == 'draw':
-                    tcd['games_by_hour'][hour_group]['draws'] += 1
-
-                # Openings (last 12 months only)
-                if archive_url in archives[-12:] and 'eco' in game:
-                    opening_data = {'opening': game['eco'], 'result': game_result}
-                    if side == 'white':
-                        tcd['openings_white'].append(opening_data)
-                    else:
-                        tcd['openings_black'].append(opening_data)
-
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching {archive_url}: {e}")
+                    tcd['openings_black'].append(opening_data)
 
     # Step 3: Process collected data for ALL time classes
     yield f"data: {json.dumps({'type': 'processing', 'message': 'Processing collected data...'})}\n\n"

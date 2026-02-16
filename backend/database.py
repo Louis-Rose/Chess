@@ -379,6 +379,23 @@ def init_db():
                     )
                 """)
                 print("[Database] Created alphawise_model_portfolio table")
+
+            # Migration: Create monthly_archive_cache table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'monthly_archive_cache'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE monthly_archive_cache (
+                        username TEXT NOT NULL,
+                        archive_url TEXT NOT NULL,
+                        games_json TEXT NOT NULL,
+                        fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (username, archive_url)
+                    )
+                """)
+                print("[Database] Created monthly_archive_cache table")
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
@@ -567,3 +584,32 @@ def save_all_cached_stats(username, player_data, all_stats_data, last_archive):
                 json.dumps(player_data), json.dumps(stats_data),
                 last_archive, now
             ))
+
+
+# ============= MONTHLY ARCHIVE CACHE =============
+
+def get_cached_archives(username):
+    """Get all cached monthly archives for a player.
+    Returns: dict of {archive_url: games_json_string}
+    """
+    username = username.lower()
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT archive_url, games_json FROM monthly_archive_cache WHERE username = ?',
+            (username,)
+        )
+        return {row['archive_url']: row['games_json'] for row in cursor.fetchall()}
+
+
+def save_cached_archive(username, archive_url, games_json):
+    """Save or update a single month's archive cache."""
+    username = username.lower()
+    with get_db() as conn:
+        query = _upsert_query(
+            'monthly_archive_cache',
+            ['username', 'archive_url'],
+            ['games_json', 'fetched_at'],
+            ['username', 'archive_url', 'games_json', 'fetched_at']
+        )
+        now = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
+        conn.execute(query, (username, archive_url, games_json, now))
