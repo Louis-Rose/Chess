@@ -188,6 +188,13 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
         <div className="h-px bg-slate-700" />
       </div>
 
+      {/* Description — only when no player loaded */}
+      {!cardLoaded && (
+        <div className="px-4 pt-1">
+          <p className="text-slate-400 text-sm leading-relaxed text-center">{t('chess.onboardingDescription')}</p>
+        </div>
+      )}
+
       {/* Language toggle + Continue — shown once card is loaded */}
       {cardLoaded && (
         <div className="px-2 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300 border-t border-slate-700 pt-4">
