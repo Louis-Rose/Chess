@@ -36,12 +36,20 @@ interface ChessDataContextType {
   dropdownRef: React.RefObject<HTMLDivElement | null>;
   handleSelectSavedUsername: (player: SavedPlayer) => void;
 
+  // Player info (lightweight, for onboarding)
+  playerInfo: PlayerData | null;
+  playerInfoLoading: boolean;
+  playerInfoError: string;
+
   // Data
   data: ApiResponse | null;
   loading: boolean;
   error: string;
   progress: StreamProgress | null;
   myPlayerData: ApiResponse | null;
+
+  // Actions
+  triggerFullFetch: () => void;
 
   // YouTube videos
   videos: VideoData[];
@@ -115,6 +123,32 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Lightweight player info (for onboarding)
+  const [playerInfo, setPlayerInfo] = useState<PlayerData | null>(null);
+  const [playerInfoLoading, setPlayerInfoLoading] = useState(false);
+  const [playerInfoError, setPlayerInfoError] = useState('');
+
+  const fetchPlayerInfo = async (username: string) => {
+    setPlayerInfoLoading(true);
+    setPlayerInfoError('');
+    try {
+      const res = await fetch(`/api/player-info?username=${encodeURIComponent(username)}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to fetch player info');
+      setPlayerInfo(json.player);
+      savePlayer(json.player.username, json.player.avatar);
+      setSavedPlayers(getSavedPlayers());
+      const savedUsername = getChessPrefs().chess_username;
+      if (!savedUsername) {
+        saveChessPrefs({ chess_username: json.player.username });
+      }
+    } catch (e) {
+      setPlayerInfoError(e instanceof Error ? e.message : 'Unknown error');
+    } finally {
+      setPlayerInfoLoading(false);
+    }
+  };
+
   // Player stats with streaming progress
   const {
     data,
@@ -123,6 +157,13 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     progress,
     fetchStats
   } = useStreamingStats(searchedUsername, selectedTimeClass);
+
+  // Trigger full stats fetch (called after onboarding)
+  const triggerFullFetch = () => {
+    if (searchedUsername) {
+      fetchStats();
+    }
+  };
 
   // YouTube videos query - cached by opening + side
   const [openingName, openingSide] = selectedOpening ? selectedOpening.split('-') : ['', ''];
@@ -164,12 +205,16 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
       setShowUsernameDropdown(false);
       (document.activeElement as HTMLElement)?.blur();
       window.scrollTo({ top: 0 });
+      // If onboarding not done, only fetch player info
+      if (!getChessPrefs().onboarding_done) {
+        fetchPlayerInfo(username);
+      }
     }
   };
 
-  // Trigger fetch when username or time class changes
+  // Trigger full fetch when username or time class changes (only after onboarding)
   useEffect(() => {
-    if (searchedUsername) {
+    if (searchedUsername && getChessPrefs().onboarding_done) {
       fetchStats();
     }
   }, [searchedUsername, selectedTimeClass, fetchStats]);
@@ -199,6 +244,9 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     setUsernameInput(player.username);
     setSearchedUsername(player.username);
     setShowUsernameDropdown(false);
+    if (!getChessPrefs().onboarding_done) {
+      fetchPlayerInfo(player.username);
+    }
   };
 
   const handleOpeningSelect = (value: string) => {
@@ -244,11 +292,15 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     setShowUsernameDropdown,
     dropdownRef,
     handleSelectSavedUsername,
+    playerInfo,
+    playerInfoLoading,
+    playerInfoError,
     data,
     loading,
     error,
     progress,
     myPlayerData,
+    triggerFullFetch,
     videos,
     videosLoading,
     videosError: videosError as Error | null,

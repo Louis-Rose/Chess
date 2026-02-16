@@ -101,17 +101,47 @@ def get_chess_stats():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/player-info', methods=['GET'])
+def get_player_info():
+    """Lightweight endpoint that returns only Chess.com player profile + ratings."""
+    username = request.args.get('username')
+    if not username:
+        return jsonify({"error": "Username required"}), 400
+    try:
+        player_data = utils.fetch_player_data_and_stats(username)
+        return jsonify({
+            'player': {
+                'name': player_data.get('name', username),
+                'username': player_data.get('username', username),
+                'avatar': player_data.get('avatar'),
+                'followers': player_data.get('followers', 0),
+                'joined': player_data.get('joined'),
+                'rapid_rating': (player_data.get('chess_rapid') or {}).get('last', {}).get('rating'),
+                'blitz_rating': (player_data.get('chess_blitz') or {}).get('last', {}).get('rating'),
+            }
+        })
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/stats-stream', methods=['GET'])
 def get_chess_stats_stream():
     """SSE endpoint that streams progress while fetching stats. Uses caching for performance.
 
     Optimization: Fetches ALL time classes (rapid, blitz) in a single pass through archives.
     This makes switching between time classes instant after the first fetch.
+
+    Accepts optional client_last_archive query param for client-side incremental caching.
+    When the server cache is stale but the client provides cached stats via last_archive,
+    the server will only fetch archives newer than that checkpoint.
     """
     import json as json_module
 
     username = request.args.get('username')
     time_class = request.args.get('time_class', 'rapid')
+    client_last_archive = request.args.get('client_last_archive')
 
     if not username:
         return jsonify({"error": "Username required"}), 400
@@ -156,17 +186,19 @@ def get_chess_stats_stream():
 
             # Check if requested time class has fresh cache
             if time_class in all_cached:
-                cached_stats, _, is_fresh = all_cached[time_class]
+                cached_stats, cached_last_archive, is_fresh = all_cached[time_class]
                 if is_fresh:
-                    # Return cached data immediately
+                    # Return cached data immediately (include last_archive for client caching)
+                    cached_with_archive = {**cached_stats, 'last_archive': cached_last_archive}
                     yield f"data: {json_module.dumps({'type': 'start', 'total_archives': 0, 'incremental': False, 'cached': True})}\n\n"
-                    yield f"data: {json_module.dumps({'type': 'complete', 'data': cached_stats})}\n\n"
+                    yield f"data: {json_module.dumps({'type': 'complete', 'data': cached_with_archive})}\n\n"
                     return
 
-            # Need to fetch - only use incremental update if ALL cached time classes are fresh
-            # Stale cache means full re-fetch to avoid missing games from partially-cached months
+            # Need to fetch - use incremental update from server or client cache
             cached_stats_map = None
             last_archive = None
+
+            # First try: server cache (if all fresh)
             all_fresh = all_cached and all(is_fresh for (_, _, is_fresh) in all_cached.values())
             if all_fresh:
                 cached_stats_map = {}
@@ -174,6 +206,12 @@ def get_chess_stats_stream():
                     cached_stats_map[tc] = stats
                     if archive:
                         last_archive = archive
+            # Fallback: server cache is stale but exists — use it with client_last_archive
+            elif all_cached and client_last_archive:
+                cached_stats_map = {}
+                for tc, (stats, archive, _) in all_cached.items():
+                    cached_stats_map[tc] = stats
+                last_archive = client_last_archive
 
             # Fetch stats for ALL time classes
             all_time_classes_data = None

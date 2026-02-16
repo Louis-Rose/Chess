@@ -73,6 +73,11 @@ function ChessNavSidebar() {
                     setShowPlayerMenu(false);
                     localStorage.removeItem(CHESS_PREFS_KEY);
                     localStorage.removeItem(STORAGE_KEY);
+                    // Clear stats cache
+                    for (let i = localStorage.length - 1; i >= 0; i--) {
+                      const k = localStorage.key(i);
+                      if (k?.startsWith('chess_stats_cache_')) localStorage.removeItem(k);
+                    }
                     await logout();
                     window.location.href = '/chess';
                   }}

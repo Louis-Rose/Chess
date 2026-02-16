@@ -68,8 +68,9 @@ interface ChessSidebarProps {
 
 export function ChessSidebar({ onComplete }: ChessSidebarProps) {
   const {
-    data,
-    myPlayerData,
+    playerInfo,
+    playerInfoLoading,
+    playerInfoError,
     usernameInput,
     setUsernameInput,
     savedPlayers,
@@ -78,14 +79,12 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
     dropdownRef,
     handleSelectSavedUsername,
     handleSubmit,
-    loading,
+    triggerFullFetch,
   } = useChessData();
   const { t } = useLanguage();
 
-  // Show searched player if available, otherwise fall back to own data
-  const displayData = data || myPlayerData;
   const savedChessUsername = getChessPrefs().chess_username;
-  const cardLoaded = !!displayData?.player;
+  const cardLoaded = !!playerInfo;
   const topRef = useRef<HTMLDivElement>(null);
 
   // Scroll back to top when player card loads
@@ -117,24 +116,24 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
 
       {/* Player Info */}
       <div className="px-3 pb-4">
-        {displayData?.player ? (
+        {playerInfo ? (
           <div className="bg-white rounded-lg p-4 md:p-6 text-center">
-            {displayData.player.avatar ? (
-              <img src={displayData.player.avatar} alt="" className="w-16 h-16 md:w-20 md:h-20 rounded-full mx-auto mb-2" />
+            {playerInfo.avatar ? (
+              <img src={playerInfo.avatar} alt="" className="w-16 h-16 md:w-20 md:h-20 rounded-full mx-auto mb-2" />
             ) : (
               <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-xl md:text-2xl font-bold mx-auto mb-2">
-                {displayData.player.username.charAt(0).toUpperCase()}
+                {playerInfo.username.charAt(0).toUpperCase()}
               </div>
             )}
-            <p className="text-slate-800 font-semibold md:text-lg">{displayData.player.name || displayData.player.username}</p>
-            <p className="text-slate-500 text-sm md:text-base">@{displayData.player.username}</p>
-            <p className="text-slate-400 text-xs md:text-sm mt-1">{displayData.player.followers} followers</p>
+            <p className="text-slate-800 font-semibold md:text-lg">{playerInfo.name || playerInfo.username}</p>
+            <p className="text-slate-500 text-sm md:text-base">@{playerInfo.username}</p>
+            <p className="text-slate-400 text-xs md:text-sm mt-1">{playerInfo.followers} followers</p>
             <p className="text-slate-400 text-xs md:text-sm">
-              Joined {new Date(displayData.player.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              Joined {new Date(playerInfo.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
             <div className="mt-3 pt-3 border-t border-slate-200 text-xs md:text-sm text-slate-600 space-y-1">
-              <p>Rapid: {displayData.player.rapid_rating && <><span className="font-semibold text-slate-800">{displayData.player.rapid_rating}</span> elo · </>}<span className="font-semibold text-slate-800">{displayData.total_rapid?.toLocaleString() || 0}</span> {(displayData.total_rapid ?? 0) === 1 ? 'game' : 'games'}</p>
-              <p>Blitz: {displayData.player.blitz_rating && <><span className="font-semibold text-slate-800">{displayData.player.blitz_rating}</span> elo · </>}<span className="font-semibold text-slate-800">{displayData.total_blitz?.toLocaleString() || 0}</span> {(displayData.total_blitz ?? 0) === 1 ? 'game' : 'games'}</p>
+              <p>Rapid: {playerInfo.rapid_rating && <><span className="font-semibold text-slate-800">{playerInfo.rapid_rating}</span> elo</>}</p>
+              <p>Blitz: {playerInfo.blitz_rating && <><span className="font-semibold text-slate-800">{playerInfo.blitz_rating}</span> elo</>}</p>
             </div>
           </div>
         ) : (
@@ -170,10 +169,10 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
             />
             <button
               type="submit"
-              disabled={loading}
+              disabled={playerInfoLoading}
               className="bg-blue-600 text-white px-3 py-2 md:px-4 md:py-3 rounded-r-lg hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
+              {playerInfoLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
             </button>
           </div>
           {showUsernameDropdown && savedPlayers.length > 0 && (
@@ -205,9 +204,14 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
         </form>
         </div>
       </div>
-      {loading && (
+      {playerInfoLoading && (
         <p className="px-3 pb-2 text-slate-400 text-xs md:text-sm text-center animate-pulse">
           {t('chess.fetchingData')}
+        </p>
+      )}
+      {playerInfoError && (
+        <p className="px-3 pb-2 text-red-400 text-xs md:text-sm text-center">
+          {playerInfoError}
         </p>
       )}
       <div className="px-3 pb-3">
@@ -226,7 +230,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
           <LanguageSlider />
           <div className="h-px bg-slate-700" />
           <button
-            onClick={onComplete}
+            onClick={() => { triggerFullFetch(); onComplete(); }}
             className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
           >
             {t('chess.continue')}
