@@ -9,6 +9,7 @@ import { getSavedPlayers, savePlayer, getChessPrefs, saveChessPrefs } from '../u
 import type {
   TimeClass,
   SavedPlayer,
+  PlayerData,
   ApiResponse,
   VideoData,
   FatigueAnalysis,
