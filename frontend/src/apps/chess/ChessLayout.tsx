@@ -60,7 +60,7 @@ function ChessNavSidebar() {
           <div ref={playerMenuRef} className="relative mb-1">
             <button
               onClick={() => setShowPlayerMenu(!showPlayerMenu)}
-              className="w-full bg-slate-800 rounded-lg p-3 hover:bg-slate-750 transition-colors"
+              className="w-full bg-slate-800 rounded-lg p-3 hover:bg-slate-750 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 {displayData.player.avatar ? (
