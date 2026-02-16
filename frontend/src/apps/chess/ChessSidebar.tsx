@@ -190,7 +190,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
 
       {/* Description */}
       <div className="px-3 pt-1">
-        <p className="text-slate-300 text-sm md:text-base leading-relaxed text-center">{t('chess.onboardingDescription')}</p>
+        <p className="text-slate-300 text-sm md:text-lg leading-relaxed text-center">{t('chess.onboardingDescription')}</p>
         <div className="h-px bg-slate-700 mt-4" />
       </div>
 
