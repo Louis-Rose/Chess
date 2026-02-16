@@ -161,7 +161,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.streaksCardTitle': 'Streaks',
     'chess.streaksDescription': 'Should you play another game after wins or losses? Data-driven streak analysis.',
     'chess.onboardingInstruction': 'Enter your Chess.com username to get your personalized data analysis.',
-    'chess.onboardingDescription': 'LUMNA is an AI-powered chess analytics tool which provides insights on how and when you should play to improve faster, based on your complete history of chess games.',
+    'chess.onboardingDescription': 'LUMNA is an AI-powered chess analytics tool which provides insights on how and when you should play to improve faster, based on your complete games history.',
 
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
@@ -333,7 +333,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.streaksCardTitle': 'Séries',
     'chess.streaksDescription': 'Devriez-vous rejouer après des victoires ou défaites ? Analyse basée sur les données.',
     'chess.onboardingInstruction': 'Entrez votre nom d\'utilisateur Chess.com pour obtenir votre analyse personnalisée.',
-    'chess.onboardingDescription': 'LUMNA est un outil d\'analyse d\'échecs alimenté par l\'IA qui vous indique comment et quand jouer pour progresser plus vite, basé sur l\'intégralité de vos parties.',
+    'chess.onboardingDescription': 'LUMNA est un outil d\'analyse d\'échecs alimenté par l\'IA qui vous indique comment et quand jouer pour progresser plus vite, basé sur l\'historique complet de vos parties.',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',
