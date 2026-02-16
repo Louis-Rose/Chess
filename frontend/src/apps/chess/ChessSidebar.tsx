@@ -112,8 +112,8 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
               Joined {new Date(displayData.player.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
             <div className="mt-3 pt-3 border-t border-slate-200 text-xs text-slate-600 space-y-1">
-              <p>Rapid: <span className="font-semibold text-slate-800">{displayData.total_rapid?.toLocaleString() || 0}</span> games</p>
-              <p>Blitz: <span className="font-semibold text-slate-800">{displayData.total_blitz?.toLocaleString() || 0}</span> games</p>
+              <p>Rapid: {displayData.player.rapid_rating && <span className="font-semibold text-slate-800">{displayData.player.rapid_rating}</span>} · <span className="font-semibold text-slate-800">{displayData.total_rapid?.toLocaleString() || 0}</span> games</p>
+              <p>Blitz: {displayData.player.blitz_rating && <span className="font-semibold text-slate-800">{displayData.player.blitz_rating}</span>} · <span className="font-semibold text-slate-800">{displayData.total_blitz?.toLocaleString() || 0}</span> games</p>
             </div>
           </div>
         ) : (
@@ -183,6 +183,9 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
           )}
         </form>
         </div>
+      </div>
+      <div className="px-2 pb-3">
+        <div className="h-px bg-slate-700" />
       </div>
 
       {/* Language toggle + Continue — shown once card is loaded */}

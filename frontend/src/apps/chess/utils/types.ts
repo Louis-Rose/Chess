@@ -15,6 +15,8 @@ export interface PlayerData {
   avatar: string | null;
   followers: number;
   joined: number; // Unix timestamp
+  rapid_rating?: number | null;
+  blitz_rating?: number | null;
 }
 
 export interface HistoryData {

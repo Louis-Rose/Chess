@@ -86,7 +86,9 @@ def get_chess_stats():
                 "username": player_data.get("username", username),
                 "avatar": player_data.get("avatar"),
                 "followers": player_data.get("followers", 0),
-                "joined": player_data.get("joined")
+                "joined": player_data.get("joined"),
+                "rapid_rating": (player_data.get("chess_rapid") or {}).get("last", {}).get("rating"),
+                "blitz_rating": (player_data.get("chess_blitz") or {}).get("last", {}).get("rating"),
             },
             "time_class": time_class,
             "history": history,
@@ -126,7 +128,9 @@ def get_chess_stats_stream():
                 'username': player_data.get('username', username),
                 'avatar': player_data.get('avatar'),
                 'followers': player_data.get('followers', 0),
-                'joined': player_data.get('joined')
+                'joined': player_data.get('joined'),
+                'rapid_rating': (player_data.get('chess_rapid') or {}).get('last', {}).get('rating'),
+                'blitz_rating': (player_data.get('chess_blitz') or {}).get('last', {}).get('rating'),
             }
             yield f"data: {json_module.dumps({'type': 'player', 'player': player_info})}\n\n"
 
