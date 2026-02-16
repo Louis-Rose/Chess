@@ -36,6 +36,16 @@ export function useStreamingStats(username: string, timeClass: TimeClass) {
         switch (message.type) {
           case 'player':
             playerData = message.player;
+            // Show player card immediately while archives are fetched
+            setData(prev => prev ? { ...prev, player: playerData! } : {
+              player: playerData!,
+              history: [],
+              elo_history: [],
+              openings: { white: [], black: [] },
+              streaks: { longest_win: null, longest_loss: null, current: null },
+              total_rapid: 0,
+              total_blitz: 0,
+            } as ApiResponse);
             break;
 
           case 'start':
