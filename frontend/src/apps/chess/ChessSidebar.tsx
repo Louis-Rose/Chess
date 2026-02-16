@@ -196,8 +196,9 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
 
       {/* Language toggle + Continue — shown once card is loaded */}
       {cardLoaded && (
-        <div className="px-2 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300 border-t border-slate-700 pt-4">
+        <div className="px-3 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <LanguageSlider />
+          <div className="h-px bg-slate-700" />
           <button
             onClick={onComplete}
             className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
