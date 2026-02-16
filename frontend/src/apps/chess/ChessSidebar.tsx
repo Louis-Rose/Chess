@@ -80,6 +80,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
     handleSubmit,
     loading,
   } = useChessData();
+  const { t } = useLanguage();
 
   // Show searched player if available, otherwise fall back to own data
   const displayData = data || myPlayerData;
@@ -223,7 +224,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
             onClick={onComplete}
             className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
           >
-            Continue
+            {t('chess.continue')}
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

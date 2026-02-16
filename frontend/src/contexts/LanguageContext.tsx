@@ -170,6 +170,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.navBestGames': 'Best Games',
     'chess.navStreaks': 'Streaks',
     'chess.logout': 'Log out',
+    'chess.continue': 'Continue',
 
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
@@ -349,6 +350,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.navBestGames': 'Meilleures parties',
     'chess.navStreaks': 'Séries',
     'chess.logout': 'Se déconnecter',
+    'chess.continue': 'Continuer',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',
