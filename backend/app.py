@@ -1066,6 +1066,110 @@ def activity_heartbeat():
     return jsonify({'success': True})
 
 
+@app.route('/api/chess/heartbeat', methods=['POST'])
+def chess_heartbeat():
+    """Record a heartbeat for chess-only visitors (no auth required)."""
+    data = request.get_json() or {}
+    chess_username = (data.get('chess_username') or '').strip()
+    if not chess_username:
+        return jsonify({'error': 'chess_username required'}), 400
+
+    username_lower = chess_username.lower()
+    google_id = f'chess:{username_lower}'
+    email = f'{username_lower}@chess.local'
+    today = datetime.now().strftime('%Y-%m-%d')
+
+    page = data.get('page', 'chess_other')
+    language = data.get('language')
+    device_type = data.get('device_type')
+
+    # Normalize chess page names
+    valid_chess_pages = ('chess_home', 'chess_elo', 'chess_today', 'chess_daily_volume',
+                         'chess_game_number', 'chess_streak', 'chess_admin')
+    if page not in valid_chess_pages:
+        page = 'chess_other'
+
+    with get_db() as conn:
+        # Upsert synthetic user
+        conn.execute('''
+            INSERT INTO users (google_id, email, name)
+            VALUES (?, ?, ?)
+            ON CONFLICT(google_id) DO UPDATE SET name = excluded.name
+        ''', (google_id, email, chess_username))
+
+        cursor = conn.execute('SELECT id, last_session_ping FROM users WHERE google_id = ?', (google_id,))
+        row = cursor.fetchone()
+        user_id = row['id']
+        last_ping = row['last_session_ping']
+
+        # Upsert chess_username in user_preferences
+        conn.execute('''
+            INSERT INTO user_preferences (user_id, chess_username)
+            VALUES (?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET chess_username = excluded.chess_username
+        ''', (user_id, chess_username))
+
+        # Session detection (same 30min gap logic)
+        is_new_session = True
+        if last_ping:
+            try:
+                last_ping_time = datetime.fromisoformat(last_ping.replace('Z', '+00:00')) if isinstance(last_ping, str) else last_ping
+                minutes_since_last = (datetime.utcnow() - last_ping_time.replace(tzinfo=None)).total_seconds() / 60
+                is_new_session = minutes_since_last > 30
+            except:
+                is_new_session = True
+
+        if is_new_session:
+            conn.execute('''
+                UPDATE users SET session_count = COALESCE(session_count, 0) + 1, last_session_ping = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (user_id,))
+        else:
+            conn.execute('''
+                UPDATE users SET last_session_ping = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (user_id,))
+
+        # Daily activity
+        conn.execute('''
+            INSERT INTO user_activity (user_id, activity_date, minutes, last_ping)
+            VALUES (?, ?, 1, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id, activity_date) DO UPDATE SET
+                minutes = user_activity.minutes + 1,
+                last_ping = CURRENT_TIMESTAMP
+        ''', (user_id, today))
+
+        # Page activity
+        conn.execute('''
+            INSERT INTO page_activity (user_id, page, minutes)
+            VALUES (?, ?, 1)
+            ON CONFLICT(user_id, page) DO UPDATE SET
+                minutes = page_activity.minutes + 1
+        ''', (user_id, page))
+
+        # Language
+        if language:
+            conn.execute('''
+                INSERT INTO language_usage (user_id, language, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    language = excluded.language,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (user_id, language))
+
+        # Device
+        if device_type in ('mobile', 'desktop'):
+            conn.execute('''
+                INSERT INTO device_usage (user_id, device_type, minutes, updated_at)
+                VALUES (?, ?, 1, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id, device_type) DO UPDATE SET
+                    minutes = device_usage.minutes + 1,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (user_id, device_type))
+
+    return jsonify({'success': True})
+
+
 @app.route('/api/theme', methods=['POST'])
 @login_required
 def record_theme():

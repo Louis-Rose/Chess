@@ -10,6 +10,7 @@ import { ChessSidebar } from './ChessSidebar';
 import { FeedbackWidget } from '../../components/FeedbackWidget';
 import { useAuth } from '../../contexts/AuthContext';
 import { getChessPrefs, saveChessPrefs, CHESS_PREFS_KEY, STORAGE_KEY } from './utils/constants';
+import { useChessHeartbeat } from './hooks/useChessHeartbeat';
 
 const NAV_ITEMS = [
   { path: '/chess', labelKey: 'chess.navHome', icon: Home, end: true },
@@ -136,6 +137,10 @@ function ChessNavSidebar() {
 
 function ChessLayoutInner() {
   const [onboardingDone, setOnboardingDone] = useState(getChessPrefs().onboarding_done);
+  const { searchedUsername } = useChessData();
+
+  // Track chess-only visitors (no Google auth needed)
+  useChessHeartbeat(onboardingDone ? searchedUsername : '');
 
   const handleOnboardingComplete = () => {
     saveChessPrefs({ onboarding_done: true });
