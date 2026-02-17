@@ -197,6 +197,15 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
       <div className="px-3 pb-3">
         <div ref={dropdownRef} className="relative">
         <form onSubmit={handleSubmit}>
+          {usernameStatus === 'checking' && (
+            <p className="flex items-center gap-1.5 mb-1.5 text-slate-400 text-xs"><Loader2 className="w-3 h-3 animate-spin" />Checking username...</p>
+          )}
+          {usernameStatus === 'exists' && (
+            <p className="flex items-center gap-1.5 mb-1.5 text-green-400 text-xs"><Check className="w-3 h-3" />Player found on Chess.com</p>
+          )}
+          {usernameStatus === 'not_found' && (
+            <p className="flex items-center gap-1.5 mb-1.5 text-red-400 text-xs"><X className="w-3 h-3" />Player not found on Chess.com</p>
+          )}
           <div className="flex">
             <input
               type="text"
@@ -214,15 +223,6 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
               {playerInfoLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
             </button>
           </div>
-          {usernameStatus === 'checking' && (
-            <p className="flex items-center gap-1.5 mt-1.5 text-slate-400 text-xs"><Loader2 className="w-3 h-3 animate-spin" />Checking username...</p>
-          )}
-          {usernameStatus === 'exists' && (
-            <p className="flex items-center gap-1.5 mt-1.5 text-green-400 text-xs"><Check className="w-3 h-3" />Player found on Chess.com</p>
-          )}
-          {usernameStatus === 'not_found' && (
-            <p className="flex items-center gap-1.5 mt-1.5 text-red-400 text-xs"><X className="w-3 h-3" />Player not found on Chess.com</p>
-          )}
           {showUsernameDropdown && savedPlayers.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-48 overflow-auto">
               <div className="px-3 py-1.5 text-xs text-slate-500 border-b border-slate-200">Recent searches</div>
