@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useStreamingStats } from '../hooks/useStreamingStats';
 import { fetchYouTubeVideos, fetchFatigueAnalysis } from '../hooks/api';
-import { getSavedPlayers, savePlayer, getChessPrefs, saveChessPrefs } from '../utils/constants';
+import { getSavedPlayers, savePlayer, removePlayer, getChessPrefs, saveChessPrefs } from '../utils/constants';
 import type {
   TimeClass,
   SavedPlayer,
@@ -36,6 +36,7 @@ interface ChessDataContextType {
   setShowUsernameDropdown: (value: boolean) => void;
   dropdownRef: React.RefObject<HTMLDivElement | null>;
   handleSelectSavedUsername: (player: SavedPlayer) => void;
+  handleRemoveSavedPlayer: (username: string) => void;
 
   // Player info (lightweight, for onboarding)
   playerInfo: PlayerData | null;
@@ -251,6 +252,11 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     }
   };
 
+  const handleRemoveSavedPlayer = (username: string) => {
+    removePlayer(username);
+    setSavedPlayers(getSavedPlayers());
+  };
+
   const handleOpeningSelect = (value: string) => {
     setSelectedOpening(value);
   };
@@ -294,6 +300,7 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     setShowUsernameDropdown,
     dropdownRef,
     handleSelectSavedUsername,
+    handleRemoveSavedPlayer,
     playerInfo,
     playerInfoLoading,
     playerInfoError,

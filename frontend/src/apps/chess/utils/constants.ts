@@ -63,6 +63,16 @@ export const savePlayer = (username: string, avatar: string | null) => {
   }
 };
 
+export const removePlayer = (username: string) => {
+  try {
+    const existing = getSavedPlayers();
+    const filtered = existing.filter(p => p.username.toLowerCase() !== username.toLowerCase());
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  } catch {
+    // Ignore localStorage errors
+  }
+};
+
 // Top 3 FIDE rated players with their tips and videos
 export const PRO_PLAYERS: ProPlayer[] = [
   {
