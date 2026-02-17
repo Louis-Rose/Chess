@@ -144,7 +144,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.losses': 'Losses',
     'chess.fromDailyVolume': 'from daily volume',
     'chess.fromStreak': 'from streak',
-    'chess.welcomeTitle': 'Your Chess AI Assistant',
+    'chess.welcomeTitle': 'Your AI Chess Assistant',
     'chess.welcomeBack': 'Welcome back, {name}!',
     'chess.welcome': 'Welcome!',
     'chess.welcomeSubtitle': 'Explore these powerful analysis tools to improve your game:',
