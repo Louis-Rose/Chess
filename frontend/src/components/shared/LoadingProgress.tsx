@@ -17,7 +17,7 @@ export const LoadingProgress = ({ progress, loading, totalGames }: LoadingProgre
     if (!month) return null;
     const [year, monthNum] = month.split('-');
     const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
-    const monthName = date.toLocaleString('en-US', { month: isMobile ? 'short' : 'long' });
+    const monthName = date.toLocaleString('en-US', { month: 'long' });
     return `${monthName} ${isMobile ? year.slice(2) : year}`;
   };
 
@@ -41,8 +41,8 @@ export const LoadingProgress = ({ progress, loading, totalGames }: LoadingProgre
           <Loader2 className="animate-spin w-5 h-5 text-blue-500" />
           <span className="text-slate-300">
             {formattedMonth
-              ? `Fetching your chess.com games from ${formattedMonth}...`
-              : 'Fetching your chess.com games...'}
+              ? `Fetching your ${isMobile ? '' : 'chess.com '}games from ${formattedMonth}...`
+              : `Fetching your ${isMobile ? '' : 'chess.com '}games...`}
           </span>
         </div>
       );
