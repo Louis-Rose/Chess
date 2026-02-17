@@ -22,7 +22,9 @@ if (new URLSearchParams(window.location.search).has('no_track')) {
 }
 
 // Skip PostHog entirely for excluded users (admin) — checked before init so no data is ever sent
-const isPostHogExcluded = localStorage.getItem('posthog-excluded') === 'true'
+const EXCLUDED_CHESS_USERNAMES = ['akyrosu']
+const chessUsername = (() => { try { return JSON.parse(localStorage.getItem('chess_preferences') || '{}').chess_username?.toLowerCase(); } catch { return null; } })()
+const isPostHogExcluded = localStorage.getItem('posthog-excluded') === 'true' || EXCLUDED_CHESS_USERNAMES.includes(chessUsername)
 
 // PostHog config (previously in ConditionalPostHog)
 // Note: Minimum session recording duration is configured in PostHog dashboard (Project Settings > Session Replay)
