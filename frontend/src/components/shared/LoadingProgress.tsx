@@ -20,7 +20,6 @@ export const LoadingProgress = ({ progress, loading, totalGames }: LoadingProgre
     return `${monthName} ${year}`;
   };
 
-  const percentage = progress && progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
   const formattedMonth = formatProgressMonth(progress?.month || '');
 
   let content;
@@ -37,28 +36,13 @@ export const LoadingProgress = ({ progress, loading, totalGames }: LoadingProgre
     } else {
       // Actively fetching archives
       content = (
-        <div className="flex flex-col items-center gap-3 py-4">
-          <div className="flex items-center gap-3">
-            <Loader2 className="animate-spin w-5 h-5 text-blue-500" />
-            <span className="text-slate-300">
-              {formattedMonth
-                ? `Fetching your chess.com games from ${formattedMonth}...`
-                : 'Fetching your chess.com games...'}
-            </span>
-          </div>
-          {progress && progress.total > 0 && (
-            <>
-              <div className="w-64 h-2 bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 transition-all duration-300"
-                  style={{ width: `${percentage}%` }}
-                />
-              </div>
-              <div className="text-slate-400 text-sm">
-                {progress.current} / {progress.total} months processed
-              </div>
-            </>
-          )}
+        <div className="flex items-center justify-center gap-3 py-4">
+          <Loader2 className="animate-spin w-5 h-5 text-blue-500" />
+          <span className="text-slate-300">
+            {formattedMonth
+              ? `Fetching your chess.com games from ${formattedMonth}...`
+              : 'Fetching your chess.com games...'}
+          </span>
         </div>
       );
     }
