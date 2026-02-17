@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
+import { TimeClassToggle } from '../components/TimeClassToggle';
 import { StreakSection } from './MyDataPanel';
 
 export function StreakPage() {
@@ -25,6 +26,7 @@ export function StreakPage() {
         {searchedUsername && (
           <LoadingProgress progress={progress} loading={loading} totalGames={data?.total_games} />
         )}
+        {searchedUsername && <TimeClassToggle />}
         {data && <StreakSection data={data} standalone />}
       </div>
     </div>

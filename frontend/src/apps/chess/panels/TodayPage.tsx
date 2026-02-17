@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
+import { TimeClassToggle } from '../components/TimeClassToggle';
 import { TodaySection } from './MyDataPanel';
 
 export function TodayPage() {
@@ -25,6 +26,7 @@ export function TodayPage() {
         {searchedUsername && (
           <LoadingProgress progress={progress} loading={loading} totalGames={data?.total_games} />
         )}
+        {searchedUsername && <TimeClassToggle />}
         {data && <TodaySection data={data} standalone />}
       </div>
     </div>
