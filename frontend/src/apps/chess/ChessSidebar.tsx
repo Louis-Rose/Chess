@@ -226,19 +226,15 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
             <input
               type="text"
               placeholder="Chess.com username"
-              className="bg-white text-slate-900 placeholder:text-slate-400 px-3 py-2 md:py-3 md:px-4 border border-slate-300 rounded-l-lg w-full text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-white text-slate-900 placeholder:text-slate-400 px-3 py-2 md:py-3 md:px-4 border border-slate-300 rounded-lg w-full text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={usernameInput}
               onChange={(e) => setUsernameInput(e.target.value)}
               onFocus={() => { inputFocusedRef.current = true; (savedPlayers.length > 0 || livePlayer) && setShowUsernameDropdown(true); }}
               onBlur={() => { inputFocusedRef.current = false; }}
             />
-            <button
-              type="submit"
-              disabled={playerInfoLoading}
-              className="bg-blue-600 text-white px-3 py-2 md:px-4 md:py-3 rounded-r-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {playerInfoLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
-            </button>
+            <div className="flex items-center -ml-8 pointer-events-none">
+              {playerInfoLoading ? <Loader2 className="animate-spin w-4 h-4 text-slate-400" /> : <Search className="w-4 h-4 text-slate-400" />}
+            </div>
           </div>
           {showUsernameDropdown && (livePlayer || savedPlayers.length > 0) && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-48 overflow-auto">
