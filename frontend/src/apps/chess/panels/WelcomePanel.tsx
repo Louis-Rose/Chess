@@ -33,8 +33,8 @@ const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; 
     icon: Hash,
     hoverBorder: 'hover:border-amber-500',
     iconBg: 'bg-amber-600',
-    titleKey: 'chess.bestGamesTitle',
-    descriptionKey: 'chess.bestGamesDescription',
+    titleKey: 'chess.bestGamesCardTitle',
+    descriptionKey: null,
   },
   {
     id: 'streak',
@@ -43,7 +43,7 @@ const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; 
     hoverBorder: 'hover:border-red-500',
     iconBg: 'bg-red-600',
     titleKey: 'chess.streaksCardTitle',
-    descriptionKey: 'chess.streaksDescription',
+    descriptionKey: null,
   },
   {
     id: 'today',
