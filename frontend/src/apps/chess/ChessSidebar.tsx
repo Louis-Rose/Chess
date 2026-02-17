@@ -5,7 +5,6 @@ import { Loader2, Search, ArrowRight, Check, X } from 'lucide-react';
 import { SidebarShell } from '../../components/SidebarShell';
 import { useChessData } from './contexts/ChessDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { getChessPrefs } from './utils/constants';
 
 // Custom LUMNA logo matching the favicon
 const LumnaLogo = ({ className }: { className?: string }) => (
@@ -65,9 +64,14 @@ interface ChessSidebarProps {
   onComplete: () => void;
 }
 
-// Debounced username existence check
-function useUsernameCheck(username: string, savedPlayers: { username: string }[]) {
-  const [status, setStatus] = useState<'idle' | 'checking' | 'exists' | 'not_found'>('idle');
+// Debounced username existence check — returns status + player info when found
+interface CheckResult {
+  status: 'idle' | 'checking' | 'exists' | 'not_found';
+  player: { username: string; avatar: string | null } | null;
+}
+
+function useUsernameCheck(username: string, savedPlayers: { username: string; avatar: string | null }[]): CheckResult {
+  const [result, setResult] = useState<CheckResult>({ status: 'idle', player: null });
   const abortRef = useRef<AbortController | null>(null);
 
   const check = useCallback(async (name: string, signal: AbortSignal) => {
@@ -75,9 +79,13 @@ function useUsernameCheck(username: string, savedPlayers: { username: string }[]
       const res = await fetch(`/api/chess-username-check?username=${encodeURIComponent(name)}`, { signal });
       if (signal.aborted) return;
       const json = await res.json();
-      setStatus(json.exists ? 'exists' : 'not_found');
+      if (json.exists) {
+        setResult({ status: 'exists', player: { username: json.username, avatar: json.avatar || null } });
+      } else {
+        setResult({ status: 'not_found', player: null });
+      }
     } catch {
-      if (!signal.aborted) setStatus('idle');
+      if (!signal.aborted) setResult({ status: 'idle', player: null });
     }
   }, []);
 
@@ -85,22 +93,23 @@ function useUsernameCheck(username: string, savedPlayers: { username: string }[]
     abortRef.current?.abort();
     const trimmed = username.trim().toLowerCase();
 
-    if (trimmed.length < 3) { setStatus('idle'); return; }
+    if (trimmed.length < 3) { setResult({ status: 'idle', player: null }); return; }
 
-    // Skip check if it's a saved player (we know they exist)
-    if (savedPlayers.some(p => p.username.toLowerCase() === trimmed)) {
-      setStatus('exists');
+    // Skip API call if it's a saved player (we know they exist)
+    const saved = savedPlayers.find(p => p.username.toLowerCase() === trimmed);
+    if (saved) {
+      setResult({ status: 'exists', player: saved });
       return;
     }
 
-    setStatus('checking');
+    setResult({ status: 'checking', player: null });
     const controller = new AbortController();
     abortRef.current = controller;
     const timer = setTimeout(() => check(trimmed, controller.signal), 400);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [username, savedPlayers, check]);
 
-  return status;
+  return result;
 }
 
 export function ChessSidebar({ onComplete }: ChessSidebarProps) {
@@ -119,11 +128,15 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
     triggerFullFetch,
   } = useChessData();
   const { t } = useLanguage();
-  const usernameStatus = useUsernameCheck(usernameInput, savedPlayers);
+  const { status: usernameStatus, player: livePlayer } = useUsernameCheck(usernameInput, savedPlayers);
 
-  const savedChessUsername = getChessPrefs().chess_username;
   const cardLoaded = !!playerInfo;
   const topRef = useRef<HTMLDivElement>(null);
+
+  // Auto-show dropdown when a live player is found
+  useEffect(() => {
+    if (livePlayer) setShowUsernameDropdown(true);
+  }, [livePlayer, setShowUsernameDropdown]);
 
   // Scroll back to top when player card loads
   useEffect(() => {
@@ -214,7 +227,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
               className="bg-white text-slate-900 placeholder:text-slate-400 px-3 py-2 md:py-3 md:px-4 border border-slate-300 rounded-l-lg w-full text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={usernameInput}
               onChange={(e) => setUsernameInput(e.target.value)}
-              onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
+              onFocus={() => (savedPlayers.length > 0 || livePlayer) && setShowUsernameDropdown(true)}
             />
             <button
               type="submit"
@@ -224,30 +237,46 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
               {playerInfoLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
             </button>
           </div>
-          {showUsernameDropdown && savedPlayers.length > 0 && (
+          {showUsernameDropdown && (livePlayer || savedPlayers.length > 0) && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-48 overflow-auto">
-              <div className="px-3 py-1.5 text-xs text-slate-500 border-b border-slate-200">Recent searches</div>
-              {savedPlayers.map((player, idx) => {
-                const isMe = savedChessUsername?.toLowerCase() === player.username.toLowerCase();
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSelectSavedUsername(player)}
-                    className="w-full px-3 py-1.5 text-left text-slate-800 hover:bg-blue-50 flex items-center gap-2 text-sm"
-                  >
-                    {player.avatar ? (
-                      <img src={player.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs font-bold">
-                        {player.username.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    {player.username}
-                    {isMe && <span className="text-xs text-slate-400">(me)</span>}
-                  </button>
-                );
-              })}
+              {livePlayer && !savedPlayers.some(p => p.username.toLowerCase() === livePlayer.username.toLowerCase()) && (
+                <button
+                  type="button"
+                  onClick={() => handleSelectSavedUsername(livePlayer)}
+                  className="w-full px-3 py-1.5 text-left text-slate-800 hover:bg-blue-50 flex items-center gap-2 text-sm border-b border-slate-200"
+                >
+                  {livePlayer.avatar ? (
+                    <img src={livePlayer.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs font-bold">
+                      {livePlayer.username.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  {livePlayer.username}
+                </button>
+              )}
+              {savedPlayers.length > 0 && (
+                <>
+                  <div className="px-3 py-1.5 text-xs text-slate-500 border-b border-slate-200">Recent searches</div>
+                  {savedPlayers.map((player, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSelectSavedUsername(player)}
+                      className="w-full px-3 py-1.5 text-left text-slate-800 hover:bg-blue-50 flex items-center gap-2 text-sm"
+                    >
+                      {player.avatar ? (
+                        <img src={player.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs font-bold">
+                          {player.username.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      {player.username}
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </form>

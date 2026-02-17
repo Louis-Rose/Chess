@@ -104,14 +104,21 @@ def get_chess_stats():
 
 @app.route('/api/chess-username-check', methods=['GET'])
 def chess_username_check():
-    """Ultra-lightweight: just check if a Chess.com username exists."""
+    """Lightweight: check if a Chess.com username exists and return basic info."""
     username = request.args.get('username', '').strip()
     if not username:
         return jsonify({"exists": False}), 200
     try:
         headers = {'User-Agent': 'MyPythonScript/1.0 (contact@example.com)'}
         r = http_requests.get(f"https://api.chess.com/pub/player/{username}", headers=headers, timeout=5)
-        return jsonify({"exists": r.status_code == 200}), 200
+        if r.status_code == 200:
+            data = r.json()
+            return jsonify({
+                "exists": True,
+                "username": data.get("username", username),
+                "avatar": data.get("avatar"),
+            }), 200
+        return jsonify({"exists": False}), 200
     except Exception:
         return jsonify({"exists": False}), 200
 
