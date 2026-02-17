@@ -213,12 +213,13 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     }
   };
 
-  // Trigger full fetch when username or time class changes (only after onboarding)
+  // Trigger full fetch when username changes (only after onboarding)
+  // Time class changes are handled by useStreamingStats' internal useEffect (localStorage swap or SSE)
   useEffect(() => {
     if (searchedUsername && getChessPrefs().onboarding_done) {
       fetchStats();
     }
-  }, [searchedUsername, selectedTimeClass, fetchStats]);
+  }, [searchedUsername]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Save player with avatar after successful fetch
   useEffect(() => {

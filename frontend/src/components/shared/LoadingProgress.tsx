@@ -80,7 +80,7 @@ export const LoadingProgress = ({
           />
           <button
             onClick={() => onTimeClassChange('rapid')}
-            className={`relative z-10 px-5 py-1.5 text-sm font-medium rounded-md transition-colors ${
+            className={`relative z-10 flex-1 text-center px-5 py-1.5 text-sm font-medium rounded-md transition-colors ${
               selectedTimeClass === 'rapid' ? 'text-white' : 'text-slate-400'
             }`}
           >
@@ -88,7 +88,7 @@ export const LoadingProgress = ({
           </button>
           <button
             onClick={() => onTimeClassChange('blitz')}
-            className={`relative z-10 px-5 py-1.5 text-sm font-medium rounded-md transition-colors ${
+            className={`relative z-10 flex-1 text-center px-5 py-1.5 text-sm font-medium rounded-md transition-colors ${
               selectedTimeClass === 'blitz' ? 'text-white' : 'text-slate-400'
             }`}
           >
