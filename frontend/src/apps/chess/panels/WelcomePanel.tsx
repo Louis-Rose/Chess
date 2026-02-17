@@ -16,15 +16,6 @@ const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; 
     hoverBorder: 'hover:border-blue-500',
     iconBg: 'bg-blue-600',
     titleKey: 'chess.eloTitle',
-    descriptionKey: 'chess.eloDescription',
-  },
-  {
-    id: 'today',
-    path: '/chess/today',
-    icon: Target,
-    hoverBorder: 'hover:border-purple-500',
-    iconBg: 'bg-purple-600',
-    titleKey: 'chess.todayTitle',
     descriptionKey: null,
   },
   {
@@ -53,6 +44,15 @@ const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; 
     iconBg: 'bg-red-600',
     titleKey: 'chess.streaksCardTitle',
     descriptionKey: 'chess.streaksDescription',
+  },
+  {
+    id: 'today',
+    path: '/chess/today',
+    icon: Target,
+    hoverBorder: 'hover:border-purple-500',
+    iconBg: 'bg-purple-600',
+    titleKey: 'chess.todayTitle',
+    descriptionKey: null,
   },
 ];
 
