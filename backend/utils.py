@@ -29,7 +29,7 @@ def fetch_player_data_and_stats(USERNAME):
 
     return data_response.json() | stats_response.json()
 
-DATA_CUTOFF_YEAR = 2024  # Only include games from January 2024 onwards
+DATA_CUTOFF_YEAR = 2021  # Only include games from January 2021 onwards
 
 
 def fetch_player_games_archives(USERNAME):
