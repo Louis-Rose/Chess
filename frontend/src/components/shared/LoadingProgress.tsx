@@ -11,13 +11,14 @@ interface LoadingProgressProps {
 }
 
 export const LoadingProgress = ({ progress, loading, totalGames }: LoadingProgressProps) => {
-  // Format month from "2024-01" to "January 2024"
+  // Format month from "2024-01" to "January 2024" (short on mobile: "Jan. 2024")
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const formatProgressMonth = (month: string) => {
     if (!month) return null;
     const [year, monthNum] = month.split('-');
     const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
-    const monthName = date.toLocaleString('en-US', { month: 'long' });
-    return `${monthName} ${year}`;
+    const monthName = date.toLocaleString('en-US', { month: isMobile ? 'short' : 'long' });
+    return `${monthName} ${isMobile ? year.slice(2) : year}`;
   };
 
   const formattedMonth = formatProgressMonth(progress?.month || '');
