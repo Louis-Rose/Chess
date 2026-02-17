@@ -9,7 +9,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { ChessSidebar } from './ChessSidebar';
 import { FeedbackWidget } from '../../components/FeedbackWidget';
 import { useAuth } from '../../contexts/AuthContext';
-import { getChessPrefs, saveChessPrefs, CHESS_PREFS_KEY, STORAGE_KEY } from './utils/constants';
+import { getChessPrefs, saveChessPrefs, CHESS_PREFS_KEY } from './utils/constants';
 import { useChessHeartbeat } from './hooks/useChessHeartbeat';
 
 const NAV_ITEMS = [
@@ -73,8 +73,7 @@ function ChessNavSidebar() {
                   onClick={async () => {
                     setShowPlayerMenu(false);
                     localStorage.removeItem(CHESS_PREFS_KEY);
-                    localStorage.removeItem(STORAGE_KEY);
-                    // Clear stats cache
+                    // Clear stats cache (keep saved player history)
                     for (let i = localStorage.length - 1; i >= 0; i--) {
                       const k = localStorage.key(i);
                       if (k?.startsWith('chess_stats_cache_')) localStorage.removeItem(k);
@@ -172,7 +171,7 @@ function MobilePlayerButton() {
             onClick={async () => {
               setOpen(false);
               localStorage.removeItem(CHESS_PREFS_KEY);
-              localStorage.removeItem(STORAGE_KEY);
+              // Clear stats cache (keep saved player history)
               for (let i = localStorage.length - 1; i >= 0; i--) {
                 const k = localStorage.key(i);
                 if (k?.startsWith('chess_stats_cache_')) localStorage.removeItem(k);
