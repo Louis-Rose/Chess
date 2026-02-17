@@ -126,7 +126,7 @@ export function WelcomePanel() {
               <div
                 key={card.id}
                 onClick={() => navigate(card.path)}
-                className={`${hasDescription ? '' : 'relative'} bg-slate-800 border border-slate-700 rounded-xl p-5 h-[160px] flex flex-col ${
+                className={`${hasDescription ? '' : 'relative'} bg-slate-800 border border-slate-700 rounded-xl p-5 h-[120px] flex flex-col ${
                   hasDescription ? 'text-left' : 'items-center justify-center'
                 } ${card.hoverBorder} transition-colors cursor-pointer`}
               >
