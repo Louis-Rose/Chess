@@ -73,14 +73,14 @@ export const LoadingProgress = ({
       {statusContent}
       {/* Time class toggle */}
       <div className="flex justify-center pb-3">
-        <div className="relative flex bg-slate-700 rounded-lg p-1">
+        <div className="relative flex bg-slate-700 rounded-lg p-1 w-72">
           <div
             className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-slate-500 rounded-md transition-transform duration-200 ease-in-out"
             style={{ transform: selectedTimeClass === 'rapid' ? 'translateX(0)' : 'translateX(100%)' }}
           />
           <button
             onClick={() => onTimeClassChange('rapid')}
-            className={`relative z-10 flex-1 text-center px-5 py-1.5 text-sm font-medium rounded-md transition-colors ${
+            className={`relative z-10 flex-1 text-center whitespace-nowrap py-2 text-sm font-medium rounded-md transition-colors ${
               selectedTimeClass === 'rapid' ? 'text-white' : 'text-slate-400'
             }`}
           >
@@ -88,7 +88,7 @@ export const LoadingProgress = ({
           </button>
           <button
             onClick={() => onTimeClassChange('blitz')}
-            className={`relative z-10 flex-1 text-center px-5 py-1.5 text-sm font-medium rounded-md transition-colors ${
+            className={`relative z-10 flex-1 text-center whitespace-nowrap py-2 text-sm font-medium rounded-md transition-colors ${
               selectedTimeClass === 'blitz' ? 'text-white' : 'text-slate-400'
             }`}
           >
