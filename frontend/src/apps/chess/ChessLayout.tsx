@@ -154,7 +154,7 @@ function ChessLayoutInner() {
       ) : (
         <>
           <ChessNavSidebar />
-          <main className="flex-1 p-4 pb-8 md:p-8 overflow-y-auto">
+          <main className="flex-1 p-4 pb-8 md:p-8 overflow-y-auto overscroll-y-contain">
             <Outlet />
           </main>
           <FeedbackWidget language="en" />
