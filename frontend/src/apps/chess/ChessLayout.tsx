@@ -148,7 +148,7 @@ function ChessLayoutInner() {
   };
 
   return (
-    <div className="h-screen bg-slate-800 font-sans text-slate-100 flex overflow-hidden">
+    <div className="h-dvh bg-slate-800 font-sans text-slate-100 flex overflow-hidden">
       {!onboardingDone ? (
         <ChessSidebar onComplete={handleOnboardingComplete} />
       ) : (
