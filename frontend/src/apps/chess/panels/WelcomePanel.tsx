@@ -92,6 +92,7 @@ export function WelcomePanel() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const {
+    data,
     loading,
     error,
     progress,
@@ -105,7 +106,9 @@ export function WelcomePanel() {
         <h1 className="text-4xl font-bold text-slate-100">{t('chess.welcomeTitle')}</h1>
 
         {error && <p className="text-red-500 bg-red-100 py-2 px-4 rounded inline-block">{error}</p>}
-        {loading && searchedUsername && <LoadingProgress progress={progress} />}
+        {searchedUsername && (
+          <LoadingProgress progress={progress} loading={loading} totalGames={data?.total_games} />
+        )}
       </div>
 
       {/* Welcome cards */}

@@ -10,8 +10,7 @@ export function StreakPage() {
   const { t } = useLanguage();
   const { data, loading, progress, searchedUsername } = useChessData();
 
-  if (loading && searchedUsername) return <LoadingProgress progress={progress} />;
-  if (!data) return <p className="text-slate-400 text-center mt-16">{t('chess.noData')}</p>;
+  if (!data && !loading) return <p className="text-slate-400 text-center mt-16">{t('chess.noData')}</p>;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -23,7 +22,10 @@ export function StreakPage() {
           <ArrowLeft className="w-5 h-5" />
           <span>Previous</span>
         </button>
-        <StreakSection data={data} standalone />
+        {searchedUsername && (
+          <LoadingProgress progress={progress} loading={loading} totalGames={data?.total_games} />
+        )}
+        {data && <StreakSection data={data} standalone />}
       </div>
     </div>
   );
