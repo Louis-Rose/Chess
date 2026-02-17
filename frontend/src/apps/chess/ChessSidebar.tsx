@@ -1,8 +1,8 @@
 // Chess app sidebar — onboarding screen
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Search, ArrowRight } from 'lucide-react';
+import { Loader2, Search, ArrowRight, Check, X } from 'lucide-react';
 import { SidebarShell } from '../../components/SidebarShell';
 import { useChessData } from './contexts/ChessDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -66,6 +66,44 @@ interface ChessSidebarProps {
   onComplete: () => void;
 }
 
+// Debounced username existence check
+function useUsernameCheck(username: string, savedPlayers: { username: string }[]) {
+  const [status, setStatus] = useState<'idle' | 'checking' | 'exists' | 'not_found'>('idle');
+  const abortRef = useRef<AbortController | null>(null);
+
+  const check = useCallback(async (name: string, signal: AbortSignal) => {
+    try {
+      const res = await fetch(`/api/chess-username-check?username=${encodeURIComponent(name)}`, { signal });
+      if (signal.aborted) return;
+      const json = await res.json();
+      setStatus(json.exists ? 'exists' : 'not_found');
+    } catch {
+      if (!signal.aborted) setStatus('idle');
+    }
+  }, []);
+
+  useEffect(() => {
+    abortRef.current?.abort();
+    const trimmed = username.trim().toLowerCase();
+
+    if (trimmed.length < 3) { setStatus('idle'); return; }
+
+    // Skip check if it's a saved player (we know they exist)
+    if (savedPlayers.some(p => p.username.toLowerCase() === trimmed)) {
+      setStatus('exists');
+      return;
+    }
+
+    setStatus('checking');
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const timer = setTimeout(() => check(trimmed, controller.signal), 400);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [username, savedPlayers, check]);
+
+  return status;
+}
+
 export function ChessSidebar({ onComplete }: ChessSidebarProps) {
   const {
     playerInfo,
@@ -82,6 +120,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
     triggerFullFetch,
   } = useChessData();
   const { t } = useLanguage();
+  const usernameStatus = useUsernameCheck(usernameInput, savedPlayers);
 
   const savedChessUsername = getChessPrefs().chess_username;
   const cardLoaded = !!playerInfo;
@@ -159,14 +198,25 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
         <div ref={dropdownRef} className="relative">
         <form onSubmit={handleSubmit}>
           <div className="flex">
-            <input
-              type="text"
-              placeholder="Chess.com username"
-              className="bg-white text-slate-900 placeholder:text-slate-400 px-3 py-2 md:py-3 md:px-4 border border-slate-300 rounded-l-lg w-full text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={usernameInput}
-              onChange={(e) => setUsernameInput(e.target.value)}
-              onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
-            />
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Chess.com username"
+                className="bg-white text-slate-900 placeholder:text-slate-400 px-3 py-2 md:py-3 md:px-4 pr-9 border border-slate-300 rounded-l-lg w-full text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
+              />
+              {usernameStatus === 'checking' && (
+                <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 animate-spin" />
+              )}
+              {usernameStatus === 'exists' && (
+                <Check className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+              )}
+              {usernameStatus === 'not_found' && (
+                <X className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-red-400" />
+              )}
+            </div>
             <button
               type="submit"
               disabled={playerInfoLoading}

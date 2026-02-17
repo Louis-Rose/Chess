@@ -101,6 +101,20 @@ def get_chess_stats():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/chess-username-check', methods=['GET'])
+def chess_username_check():
+    """Ultra-lightweight: just check if a Chess.com username exists."""
+    username = request.args.get('username', '').strip()
+    if not username:
+        return jsonify({"exists": False}), 200
+    try:
+        headers = {'User-Agent': 'MyPythonScript/1.0 (contact@example.com)'}
+        r = requests.get(f"https://api.chess.com/pub/player/{username}", headers=headers, timeout=5)
+        return jsonify({"exists": r.status_code == 200}), 200
+    except Exception:
+        return jsonify({"exists": False}), 200
+
+
 @app.route('/api/player-info', methods=['GET'])
 def get_player_info():
     """Lightweight endpoint that returns only Chess.com player profile + ratings."""
