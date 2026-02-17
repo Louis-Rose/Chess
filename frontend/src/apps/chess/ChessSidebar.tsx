@@ -132,10 +132,11 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
 
   const cardLoaded = !!playerInfo;
   const topRef = useRef<HTMLDivElement>(null);
+  const inputFocusedRef = useRef(false);
 
-  // Auto-show dropdown when a live player is found
+  // Auto-show dropdown when a live player is found (only while typing)
   useEffect(() => {
-    if (livePlayer) setShowUsernameDropdown(true);
+    if (livePlayer && inputFocusedRef.current) setShowUsernameDropdown(true);
   }, [livePlayer, setShowUsernameDropdown]);
 
   // Scroll back to top when player card loads
@@ -227,7 +228,8 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
               className="bg-white text-slate-900 placeholder:text-slate-400 px-3 py-2 md:py-3 md:px-4 border border-slate-300 rounded-l-lg w-full text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={usernameInput}
               onChange={(e) => setUsernameInput(e.target.value)}
-              onFocus={() => (savedPlayers.length > 0 || livePlayer) && setShowUsernameDropdown(true)}
+              onFocus={() => { inputFocusedRef.current = true; (savedPlayers.length > 0 || livePlayer) && setShowUsernameDropdown(true); }}
+              onBlur={() => { inputFocusedRef.current = false; }}
             />
             <button
               type="submit"
