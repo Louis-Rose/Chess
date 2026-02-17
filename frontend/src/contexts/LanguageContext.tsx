@@ -108,7 +108,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.noData': 'No Data Available',
     'chess.searchPrompt': 'Search for a player using the sidebar to view their statistics.',
     'chess.eloTitle': 'Elo Rating & Games Played',
-    'chess.dailyVolumeTitle': 'How many games should you play per day?',
+    'chess.dailyVolumeTitle': 'How many games should you play every day?',
     'chess.winRate': 'Win Rate',
     'chess.winRateFormula': 'Win rate = (wins + draws / 2) / total.',
     'chess.winRateFilter': 'Only game counts with at least 10 days of data are shown.',
