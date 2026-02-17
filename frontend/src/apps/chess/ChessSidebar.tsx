@@ -154,7 +154,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
       )}
 
       {/* Player Info */}
-      <div className="px-3 pb-4">
+      <div className="px-3 pb-2">
         {playerInfo ? (
           <div className="bg-white rounded-lg p-4 md:p-6 text-center">
             {playerInfo.avatar ? (
@@ -197,15 +197,17 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
       <div className="px-3 pb-3">
         <div ref={dropdownRef} className="relative">
         <form onSubmit={handleSubmit}>
-          {usernameStatus === 'checking' && (
-            <p className="flex items-center gap-1.5 mb-1.5 text-slate-400 text-xs"><Loader2 className="w-3 h-3 animate-spin" />Checking username...</p>
-          )}
-          {usernameStatus === 'exists' && (
-            <p className="flex items-center gap-1.5 mb-1.5 text-green-400 text-xs"><Check className="w-3 h-3" />Player found on Chess.com</p>
-          )}
-          {usernameStatus === 'not_found' && (
-            <p className="flex items-center gap-1.5 mb-1.5 text-red-400 text-xs"><X className="w-3 h-3" />Player not found on Chess.com</p>
-          )}
+          <div className="h-5 flex items-end mb-0.5">
+            {usernameStatus === 'checking' && (
+              <p className="flex items-center gap-1.5 text-slate-400 text-xs"><Loader2 className="w-3 h-3 animate-spin" />Checking username...</p>
+            )}
+            {usernameStatus === 'exists' && (
+              <p className="flex items-center gap-1.5 text-green-400 text-xs"><Check className="w-3 h-3" />Player found on Chess.com</p>
+            )}
+            {usernameStatus === 'not_found' && (
+              <p className="flex items-center gap-1.5 text-red-400 text-xs"><X className="w-3 h-3" />Player not found on Chess.com</p>
+            )}
+          </div>
           <div className="flex">
             <input
               type="text"
