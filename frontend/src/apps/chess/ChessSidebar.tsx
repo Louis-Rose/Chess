@@ -198,25 +198,14 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
         <div ref={dropdownRef} className="relative">
         <form onSubmit={handleSubmit}>
           <div className="flex">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Chess.com username"
-                className="bg-white text-slate-900 placeholder:text-slate-400 px-3 py-2 md:py-3 md:px-4 pr-9 border border-slate-300 rounded-l-lg w-full text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={usernameInput}
-                onChange={(e) => setUsernameInput(e.target.value)}
-                onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
-              />
-              {usernameStatus === 'checking' && (
-                <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 animate-spin" />
-              )}
-              {usernameStatus === 'exists' && (
-                <Check className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
-              )}
-              {usernameStatus === 'not_found' && (
-                <X className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-red-400" />
-              )}
-            </div>
+            <input
+              type="text"
+              placeholder="Chess.com username"
+              className="bg-white text-slate-900 placeholder:text-slate-400 px-3 py-2 md:py-3 md:px-4 border border-slate-300 rounded-l-lg w-full text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={usernameInput}
+              onChange={(e) => setUsernameInput(e.target.value)}
+              onFocus={() => savedPlayers.length > 0 && setShowUsernameDropdown(true)}
+            />
             <button
               type="submit"
               disabled={playerInfoLoading}
@@ -225,6 +214,15 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
               {playerInfoLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
             </button>
           </div>
+          {usernameStatus === 'checking' && (
+            <p className="flex items-center gap-1.5 mt-1.5 text-slate-400 text-xs"><Loader2 className="w-3 h-3 animate-spin" />Checking username...</p>
+          )}
+          {usernameStatus === 'exists' && (
+            <p className="flex items-center gap-1.5 mt-1.5 text-green-400 text-xs"><Check className="w-3 h-3" />Player found on Chess.com</p>
+          )}
+          {usernameStatus === 'not_found' && (
+            <p className="flex items-center gap-1.5 mt-1.5 text-red-400 text-xs"><X className="w-3 h-3" />Player not found on Chess.com</p>
+          )}
           {showUsernameDropdown && savedPlayers.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-48 overflow-auto">
               <div className="px-3 py-1.5 text-xs text-slate-500 border-b border-slate-200">Recent searches</div>
