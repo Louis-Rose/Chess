@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, Response, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
+import requests as http_requests
 import utils
 from database import get_db, init_db, get_all_cached_stats, save_all_cached_stats, USE_POSTGRES
 
@@ -109,7 +110,7 @@ def chess_username_check():
         return jsonify({"exists": False}), 200
     try:
         headers = {'User-Agent': 'MyPythonScript/1.0 (contact@example.com)'}
-        r = requests.get(f"https://api.chess.com/pub/player/{username}", headers=headers, timeout=5)
+        r = http_requests.get(f"https://api.chess.com/pub/player/{username}", headers=headers, timeout=5)
         return jsonify({"exists": r.status_code == 200}), 200
     except Exception:
         return jsonify({"exists": False}), 200
