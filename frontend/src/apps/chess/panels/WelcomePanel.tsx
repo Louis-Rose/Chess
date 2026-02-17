@@ -69,7 +69,7 @@ function CardContent({ icon: Icon, iconBg, title, description }: {
         <div className={`absolute top-5 left-5 w-10 h-10 ${iconBg} rounded-lg flex items-center justify-center`}>
           <Icon className="w-5 h-5 text-white" />
         </div>
-        <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance px-2 py-4">{title}</h3>
+        <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance pl-12 pr-2 py-4">{title}</h3>
       </>
     );
   }
