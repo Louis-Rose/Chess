@@ -60,7 +60,7 @@ export function CollapsibleSection({ title, defaultExpanded = true, standalone =
         </button>
       </div>
       {(isExpanded || isFullscreen) && (
-        <div className={`select-text ${isFullscreen ? 'px-4 pb-4 flex-1 min-h-0 flex flex-col *:flex-1 *:!h-auto' : 'px-4 pb-4'}`}>
+        <div className={`select-text ${isFullscreen ? 'px-4 pb-4 flex-1 min-h-0 flex flex-col *:flex-1 *:!h-auto' : 'px-1 pb-4 sm:px-4'}`}>
           {typeof children === 'function' ? children(isFullscreen) : children}
         </div>
       )}
@@ -170,7 +170,7 @@ export function TodaySection({ data, standalone = false }: { data: ApiResponse; 
     return (
       <>
         <h2 className="text-2xl font-bold text-slate-100 text-center select-text">{title}</h2>
-        <div className="bg-slate-700 rounded-xl p-4 select-text">{table}</div>
+        <div className="bg-slate-700 rounded-xl p-1.5 sm:p-4 select-text">{table}</div>
       </>
     );
   }
@@ -212,7 +212,7 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
             </div>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={sorted} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                <BarChart data={sorted} margin={{ top: 10, right: 5, left: 0, bottom: 30 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
                   <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} />
                   <XAxis
@@ -286,8 +286,8 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
         if (standalone) {
           return (
             <>
-              <div className="bg-slate-700 rounded-xl p-4 select-text">{chart}</div>
-              <div className="bg-slate-700 rounded-xl p-4 select-text">{table}</div>
+              <div className="bg-slate-700 rounded-xl p-1.5 sm:p-4 select-text">{chart}</div>
+              <div className="bg-slate-700 rounded-xl p-1.5 sm:p-4 select-text">{table}</div>
             </>
           );
         }
@@ -337,7 +337,7 @@ export function GameNumberSection({ data, standalone = false }: { data: ApiRespo
             </div>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+                <BarChart data={chartData} margin={{ top: 10, right: 5, left: 0, bottom: 30 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
                   <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} />
                   <XAxis
@@ -407,8 +407,8 @@ export function GameNumberSection({ data, standalone = false }: { data: ApiRespo
         if (standalone) {
           return (
             <>
-              <div className="bg-slate-700 rounded-xl p-4 select-text">{chart}</div>
-              <div className="bg-slate-700 rounded-xl p-4 select-text">{table}</div>
+              <div className="bg-slate-700 rounded-xl p-1.5 sm:p-4 select-text">{chart}</div>
+              <div className="bg-slate-700 rounded-xl p-1.5 sm:p-4 select-text">{table}</div>
             </>
           );
         }
@@ -520,7 +520,7 @@ export function StreakSection({ data, standalone = false }: { data: ApiResponse;
         if (standalone) {
           return (
             <>
-              <div className="bg-slate-700 rounded-xl p-4 select-text space-y-4">
+              <div className="bg-slate-700 rounded-xl p-1.5 sm:p-4 select-text space-y-4">
                 {table}
                 {recommendation}
               </div>
@@ -633,7 +633,7 @@ export function EloSection({ data, standalone = false }: { data: ApiResponse; st
         const chart = chartData.length > 0 ? (
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 10, right: fullscreen ? 30 : 20, left: fullscreen ? 20 : 10, bottom: fullscreen ? 80 : 60 }}>
+              <ComposedChart data={chartData} margin={{ top: 10, right: fullscreen ? 30 : 5, left: fullscreen ? 20 : 0, bottom: fullscreen ? 80 : 60 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#475569" horizontalCoordinatesGenerator={({ yAxis }) => {
                   if (!yAxis?.ticks) return [];
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -701,7 +701,7 @@ export function EloSection({ data, standalone = false }: { data: ApiResponse; st
         if (standalone) {
           return (
             <>
-              <div className="bg-slate-700 rounded-xl p-4 select-text space-y-4">
+              <div className="bg-slate-700 rounded-xl p-1.5 sm:p-4 select-text space-y-4">
                 {stats}
                 {chart}
               </div>
