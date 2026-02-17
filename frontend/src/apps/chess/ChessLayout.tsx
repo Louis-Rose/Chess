@@ -135,6 +135,62 @@ function ChessNavSidebar() {
   );
 }
 
+function MobilePlayerButton() {
+  const { logout } = useAuth();
+  const { t } = useLanguage();
+  const { data, myPlayerData } = useChessData();
+  const displayData = data || myPlayerData;
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  if (!displayData?.player) return null;
+
+  return (
+    <div ref={ref} className="md:hidden absolute top-3 left-2 z-50">
+      <button onClick={() => setOpen(!open)} className="rounded-full overflow-hidden w-9 h-9 bg-slate-700 flex items-center justify-center">
+        {displayData.player.avatar ? (
+          <img src={displayData.player.avatar} alt="" className="w-9 h-9 rounded-full" />
+        ) : (
+          <span className="text-slate-300 font-bold text-sm">{displayData.player.username.charAt(0).toUpperCase()}</span>
+        )}
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg overflow-hidden whitespace-nowrap">
+          <div className="px-3 py-2 border-b border-slate-700">
+            <p className="text-white text-sm font-medium">{displayData.player.name || displayData.player.username}</p>
+            <p className="text-slate-400 text-xs">@{displayData.player.username}</p>
+          </div>
+          <button
+            onClick={async () => {
+              setOpen(false);
+              localStorage.removeItem(CHESS_PREFS_KEY);
+              localStorage.removeItem(STORAGE_KEY);
+              for (let i = localStorage.length - 1; i >= 0; i--) {
+                const k = localStorage.key(i);
+                if (k?.startsWith('chess_stats_cache_')) localStorage.removeItem(k);
+              }
+              await logout();
+              window.location.href = '/chess';
+            }}
+            className="w-full px-3 py-2.5 text-left text-red-400 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            {t('chess.logout')}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ChessLayoutInner() {
   const [onboardingDone, setOnboardingDone] = useState(getChessPrefs().onboarding_done);
   const { searchedUsername } = useChessData();
@@ -154,7 +210,8 @@ function ChessLayoutInner() {
       ) : (
         <>
           <ChessNavSidebar />
-          <main className="flex-1 px-2 pt-4 pb-8 md:p-8 overflow-y-auto overscroll-y-contain">
+          <main className="relative flex-1 px-2 pt-4 pb-8 md:p-8 overflow-y-auto overscroll-y-contain">
+            <MobilePlayerButton />
             <Outlet />
           </main>
           <FeedbackWidget language="en" />
