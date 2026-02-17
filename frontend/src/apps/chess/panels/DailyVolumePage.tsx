@@ -2,13 +2,12 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 import { DailyVolumeSection } from './MyDataPanel';
 
 export function DailyVolumePage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { data, loading, progress, searchedUsername, selectedTimeClass, handleTimeClassChange } = useChessData();
+  const { data, loading } = useChessData();
 
   if (!data && !loading) return <p className="text-slate-400 text-center mt-16">{t('chess.noData')}</p>;
 
@@ -22,11 +21,6 @@ export function DailyVolumePage() {
           <ArrowLeft className="w-5 h-5" />
           <span>Previous</span>
         </button>
-        {searchedUsername && (
-          <LoadingProgress progress={progress} loading={loading} totalGames={data?.total_games}
-            selectedTimeClass={selectedTimeClass} onTimeClassChange={handleTimeClassChange}
-            totalRapid={data?.total_rapid} totalBlitz={data?.total_blitz} />
-        )}
         {data && <DailyVolumeSection data={data} standalone />}
       </div>
     </div>
