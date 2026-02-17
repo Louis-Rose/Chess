@@ -15,10 +15,10 @@ export function StreakPage() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="max-w-4xl mx-auto mt-8 space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="relative flex items-center justify-center">
           <button
             onClick={() => navigate('/chess')}
-            className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base"
+            className="absolute left-0 flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>Previous</span>
