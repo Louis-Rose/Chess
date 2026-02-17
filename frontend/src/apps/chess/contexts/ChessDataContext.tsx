@@ -93,9 +93,9 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
   // Load saved preferences from localStorage on init
   const prefs = getChessPrefs();
 
-  // UI state
-  const [usernameInput, setUsernameInput] = useState(prefs.chess_username || '');
-  const [searchedUsername, setSearchedUsername] = useState(prefs.chess_username || '');
+  // UI state — don't pre-fill the search bar during onboarding
+  const [usernameInput, setUsernameInput] = useState(prefs.onboarding_done ? (prefs.chess_username || '') : '');
+  const [searchedUsername, setSearchedUsername] = useState(prefs.onboarding_done ? (prefs.chess_username || '') : '');
   const [selectedOpening, setSelectedOpening] = useState<string>('');
   const [selectedTimeClass, setSelectedTimeClass] = useState<TimeClass>((prefs.preferred_time_class as TimeClass) || 'rapid');
   const [selectedPro, setSelectedPro] = useState<string>('');

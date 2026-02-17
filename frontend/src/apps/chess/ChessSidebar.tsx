@@ -1,7 +1,6 @@
 // Chess app sidebar — onboarding screen
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import { Loader2, Search, ArrowRight, Check, X } from 'lucide-react';
 import { SidebarShell } from '../../components/SidebarShell';
 import { useChessData } from './contexts/ChessDataContext';
@@ -137,13 +136,13 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
     <SidebarShell hideThemeToggle hideLanguageToggle fullWidth>
       {/* LUMNA Logo */}
       <div ref={topRef} />
-      <Link
-        to="/chess"
+      <a
+        href="/chess"
         className="flex items-center justify-center gap-3 px-2 pb-4 mb-2 border-b border-slate-700 hover:opacity-80 transition-opacity flex-shrink-0"
       >
         <LumnaLogo className="w-10 h-10 md:w-14 md:h-14 flex-shrink-0" />
         <span className="text-xl md:text-3xl font-bold text-white tracking-wide">LUMNA</span>
-      </Link>
+      </a>
 
       {/* Instruction — only when no player loaded */}
       {!cardLoaded && (
