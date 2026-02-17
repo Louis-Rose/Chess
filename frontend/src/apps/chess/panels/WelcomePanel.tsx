@@ -6,7 +6,6 @@ import type { LucideIcon } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
-import { TimeClassToggle } from '../components/TimeClassToggle';
 
 // Card definitions - titleKey/descriptionKey are i18n keys resolved at render time
 const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; iconBg: string; titleKey: string; descriptionKey: string | null }[] = [
@@ -98,6 +97,8 @@ export function WelcomePanel() {
     error,
     progress,
     searchedUsername,
+    selectedTimeClass,
+    handleTimeClassChange,
   } = useChessData();
 
   return (
@@ -108,9 +109,10 @@ export function WelcomePanel() {
 
         {error && <p className="text-red-500 bg-red-100 py-2 px-4 rounded inline-block">{error}</p>}
         {searchedUsername && (
-          <LoadingProgress progress={progress} loading={loading} totalGames={data?.total_games} />
+          <LoadingProgress progress={progress} loading={loading} totalGames={data?.total_games}
+            selectedTimeClass={selectedTimeClass} onTimeClassChange={handleTimeClassChange}
+            totalRapid={data?.total_rapid} totalBlitz={data?.total_blitz} />
         )}
-        {searchedUsername && <TimeClassToggle />}
       </div>
 
       {/* Welcome cards */}

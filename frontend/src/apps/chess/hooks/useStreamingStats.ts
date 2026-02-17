@@ -63,6 +63,8 @@ export function useStreamingStats(username: string, timeClass: TimeClass) {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<StreamProgress | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  // Track whether initial fetch has completed for this username
+  const hasFetchedRef = useRef<string | null>(null);
 
   const fetchStats = useCallback(() => {
     if (!username) return;
@@ -153,6 +155,7 @@ export function useStreamingStats(username: string, timeClass: TimeClass) {
                 saveCachedStats(username, timeClass, statsOnly, lastArchive);
               }
             }
+            hasFetchedRef.current = username;
             setLoading(false);
             setProgress(null);
             eventSource.close();
@@ -176,6 +179,19 @@ export function useStreamingStats(username: string, timeClass: TimeClass) {
       eventSource.close();
     };
   }, [username, timeClass]);
+
+  // When timeClass changes after initial fetch, swap from localStorage instantly
+  useEffect(() => {
+    if (!username || !hasFetchedRef.current) return;
+    const cached = getCachedStats(username, timeClass);
+    if (cached) {
+      // Preserve current player data, swap stats
+      setData(prev => prev ? { player: prev.player, ...cached.data } : null);
+    } else {
+      // No local cache for this time class — need to fetch
+      fetchStats();
+    }
+  }, [timeClass]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup on unmount
   useEffect(() => {

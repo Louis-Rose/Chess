@@ -3,13 +3,12 @@ import { ArrowLeft } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
-import { TimeClassToggle } from '../components/TimeClassToggle';
 import { StreakSection } from './MyDataPanel';
 
 export function StreakPage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { data, loading, progress, searchedUsername } = useChessData();
+  const { data, loading, progress, searchedUsername, selectedTimeClass, handleTimeClassChange } = useChessData();
 
   if (!data && !loading) return <p className="text-slate-400 text-center mt-16">{t('chess.noData')}</p>;
 
@@ -24,9 +23,10 @@ export function StreakPage() {
           <span>Previous</span>
         </button>
         {searchedUsername && (
-          <LoadingProgress progress={progress} loading={loading} totalGames={data?.total_games} />
+          <LoadingProgress progress={progress} loading={loading} totalGames={data?.total_games}
+            selectedTimeClass={selectedTimeClass} onTimeClassChange={handleTimeClassChange}
+            totalRapid={data?.total_rapid} totalBlitz={data?.total_blitz} />
         )}
-        {searchedUsername && <TimeClassToggle />}
         {data && <StreakSection data={data} standalone />}
       </div>
     </div>
