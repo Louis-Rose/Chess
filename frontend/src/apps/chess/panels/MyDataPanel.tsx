@@ -634,11 +634,7 @@ export function EloSection({ data, standalone = false }: { data: ApiResponse; st
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 10, right: fullscreen ? 30 : 0, left: fullscreen ? 20 : 0, bottom: fullscreen ? 80 : 60 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#475569" horizontalCoordinatesGenerator={({ yAxis }) => {
-                  if (!yAxis?.ticks) return [];
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  return yAxis.ticks.map((t: any) => t.coordinate as number);
-                }} />
+                <CartesianGrid vertical={false} stroke="#475569" strokeWidth={0.5} />
                 <XAxis
                   dataKey="date"
                   tick={(props: { x: number; y: number; index: number; payload: { value: string } }) => {
@@ -657,7 +653,7 @@ export function EloSection({ data, standalone = false }: { data: ApiResponse; st
                 <YAxis
                   yAxisId="elo"
                   tick={{ fontSize: fullscreen ? 18 : 11, fill: '#16a34a', fontWeight: 700 }}
-                  width={fullscreen ? 60 : 35}
+                  width={fullscreen ? 60 : 40}
                   domain={[eloMin, eloMax]}
                   ticks={eloTicks}
                   allowDecimals={false}
