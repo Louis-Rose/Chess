@@ -16,7 +16,7 @@ export function EloPage() {
       <div className="max-w-4xl mx-auto mt-8 space-y-6">
         <button
           onClick={() => navigate('/chess')}
-          className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base -ml-1"
+          className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base"
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Previous</span>
