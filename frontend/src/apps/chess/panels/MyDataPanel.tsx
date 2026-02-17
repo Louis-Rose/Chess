@@ -10,7 +10,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
-export function CollapsibleSection({ title, defaultExpanded = true, standalone = false, children }: { title: string; defaultExpanded?: boolean; standalone?: boolean; children: React.ReactNode | ((fullscreen: boolean) => React.ReactNode) }) {
+export function CollapsibleSection({ title, defaultExpanded = true, standalone = false, children }: { title: string; defaultExpanded?: boolean; standalone?: boolean; children: React.ReactNode | ((fullscreen: boolean, title?: string) => React.ReactNode) }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -23,12 +23,11 @@ export function CollapsibleSection({ title, defaultExpanded = true, standalone =
     return () => window.removeEventListener('keydown', onKey);
   }, [isFullscreen, closeFullscreen]);
 
-  // Standalone mode: title as page heading, children unwrapped (they provide their own containers)
+  // Standalone mode: children handle their own card containers; pass title for embedding
   if (standalone) {
     return (
       <>
-        <h2 className="text-2xl font-bold text-slate-100 text-center select-text">{title}</h2>
-        {typeof children === 'function' ? children(false) : children}
+        {typeof children === 'function' ? children(false, title) : children}
       </>
     );
   }
@@ -168,10 +167,10 @@ export function TodaySection({ data, standalone = false }: { data: ApiResponse; 
 
   if (standalone) {
     return (
-      <>
-        <h2 className="text-2xl font-bold text-slate-100 text-center select-text">{title}</h2>
-        <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">{table}</div>
-      </>
+      <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">
+        <h2 className="text-2xl font-bold text-slate-100 text-center select-text py-3">{title}</h2>
+        {table}
+      </div>
     );
   }
 
@@ -189,7 +188,7 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
 
   return (
     <CollapsibleSection title={t('chess.dailyVolumeTitle')} defaultExpanded standalone={standalone}>
-      {(fullscreen) => {
+      {(fullscreen, sectionTitle) => {
         if (!rawDvs || rawDvs.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
         const dvs = rawDvs.filter(d => d.days > 0);
@@ -286,7 +285,10 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
         if (standalone) {
           return (
             <>
-              <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">{chart}</div>
+              <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">
+                <h2 className="text-2xl font-bold text-slate-100 text-center select-text py-3">{sectionTitle}</h2>
+                {chart}
+              </div>
               <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">{table}</div>
             </>
           );
@@ -310,7 +312,7 @@ export function GameNumberSection({ data, standalone = false }: { data: ApiRespo
 
   return (
     <CollapsibleSection title={t('chess.gameNumberTitle')} defaultExpanded standalone={standalone}>
-      {(fullscreen) => {
+      {(fullscreen, sectionTitle) => {
         if (!raw || raw.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
         const fs = fullscreen ? 18 : 14;
@@ -407,7 +409,10 @@ export function GameNumberSection({ data, standalone = false }: { data: ApiRespo
         if (standalone) {
           return (
             <>
-              <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">{chart}</div>
+              <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">
+                <h2 className="text-2xl font-bold text-slate-100 text-center select-text py-3">{sectionTitle}</h2>
+                {chart}
+              </div>
               <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">{table}</div>
             </>
           );
@@ -452,7 +457,7 @@ export function StreakSection({ data, standalone = false }: { data: ApiResponse;
 
   return (
     <CollapsibleSection title={t('chess.streakTitle')} defaultExpanded standalone={standalone}>
-      {() => {
+      {(_fullscreen, sectionTitle) => {
         if (!stats || stats.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
         // Wins: descending (max, ..., 2, 1). Losses: ascending (1, 2, ..., max)
@@ -519,12 +524,11 @@ export function StreakSection({ data, standalone = false }: { data: ApiResponse;
 
         if (standalone) {
           return (
-            <>
-              <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text space-y-4">
-                {table}
-                {recommendation}
-              </div>
-            </>
+            <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text space-y-4">
+              <h2 className="text-2xl font-bold text-slate-100 text-center select-text py-3">{sectionTitle}</h2>
+              {table}
+              {recommendation}
+            </div>
           );
         }
 
@@ -629,7 +633,7 @@ export function EloSection({ data, standalone = false }: { data: ApiResponse; st
 
   return (
     <CollapsibleSection title={t('chess.eloTitle')} defaultExpanded standalone={standalone}>
-      {(fullscreen) => {
+      {(fullscreen, sectionTitle) => {
         const chart = chartData.length > 0 ? (
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -698,12 +702,11 @@ export function EloSection({ data, standalone = false }: { data: ApiResponse; st
 
         if (standalone) {
           return (
-            <>
-              <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text space-y-4">
-                {stats}
-                {chart}
-              </div>
-            </>
+            <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text space-y-4">
+              <h2 className="text-2xl font-bold text-slate-100 text-center select-text py-3">{sectionTitle}</h2>
+              {stats}
+              {chart}
+            </div>
           );
         }
 
