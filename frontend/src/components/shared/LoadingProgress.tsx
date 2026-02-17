@@ -58,7 +58,7 @@ export const LoadingProgress = ({
       <div className="flex items-center justify-center gap-2 py-3">
         <CheckCircle2 className="w-5 h-5 text-green-500" />
         <span className="text-slate-400">
-          Fetched and analyzed {totalGames?.toLocaleString() ?? 0} chess.com games.
+          Fetched and analyzed {totalGames?.toLocaleString() ?? 0} chess.com game{totalGames !== 1 ? 's' : ''}.
         </span>
       </div>
     );
