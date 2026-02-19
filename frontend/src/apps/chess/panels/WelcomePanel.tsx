@@ -1,7 +1,7 @@
 // Chess Welcome panel
 
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Hash, TrendingUp, Coffee, ChevronRight } from 'lucide-react';
+import { Calendar, TrendingUp, ChevronRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
