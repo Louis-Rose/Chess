@@ -435,12 +435,9 @@ export function StreakSection({ data, standalone = false }: { data: ApiResponse;
       <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{formatLabel(s.streak_type, s.streak_length)}</td>
       <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
         {s.sample_size >= 30 ? (
-          <>
-            <span className={s.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}>{s.win_rate}%</span>
-            <span className="text-slate-500 font-normal ml-2 text-xs">({s.sample_size} {t('chess.games')})</span>
-          </>
+          <span className={s.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}>{s.win_rate}%</span>
         ) : (
-          <span className="text-slate-500 text-xs">{t('chess.insufficientData')} ({s.sample_size} {t('chess.games')})</span>
+          <span className="text-slate-500 text-xs">{t('chess.insufficientData')}</span>
         )}
       </td>
     </tr>
