@@ -225,6 +225,8 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
   // Save player with avatar after successful fetch
   useEffect(() => {
     if (data?.player) {
+      // Use API's correctly-cased username
+      setSearchedUsername(data.player.username);
       savePlayer(data.player.username, data.player.avatar);
       setSavedPlayers(getSavedPlayers());
 
