@@ -343,7 +343,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.bestGamesCardTitle': 'Êtes-vous meilleur à votre 1ère, 3ème ou 5ème partie du jour ?',
     'chess.streaksCardTitle': 'Devriez-vous continuer à jouer après une défaite ?',
     'chess.onboardingInstruction': 'Entrez votre nom d\'utilisateur Chess.com pour obtenir votre analyse personnalisée.',
-    'chess.onboardingDescription': 'LUMNA est un outil d\'analyse basé sur l\'IA qui vous indique quand et comment jouer pour progresser plus vite aux échecs, en se basant sur votre historique complet de parties.',
+    'chess.onboardingDescription': 'LUMNA est un outil d\'analyse IA qui vous indique quand et comment jouer pour progresser plus vite aux échecs, en se basant sur votre historique complet de parties.',
     'chess.navHome': 'Accueil',
     'chess.navElo': 'Elo',
     'chess.navToday': 'Aujourd\'hui',
@@ -383,7 +383,9 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('language');
-    return (saved as Language) || 'en';
+    if (saved) return saved as Language;
+    const browserLang = navigator.language || navigator.languages?.[0] || '';
+    return browserLang.startsWith('fr') ? 'fr' : 'en';
   });
 
   // Record language to backend for analytics (called when user changes language)

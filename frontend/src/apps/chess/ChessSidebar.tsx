@@ -309,12 +309,9 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
         <div className="h-px bg-slate-700 mt-4" />
       </div>
 
-      {/* Language toggle + Continue — shown once card is loaded */}
+      {/* Continue — shown once card is loaded */}
       {cardLoaded && (
         <div className="px-3 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <StableText tKey="chess.selectLanguage" className="text-slate-400 text-xs md:text-sm text-center block" />
-          <LanguageSlider />
-          <div className="h-px bg-slate-700" />
           <button
             onClick={() => { triggerFullFetch(); onComplete(); }}
             className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
