@@ -35,30 +35,36 @@ export const LoadingProgress = ({
   if (loading) {
     if (progress?.cached) {
       statusContent = (
-        <div className="flex items-center justify-center gap-3 py-2">
-          <Loader2 className="animate-spin w-5 h-5 text-blue-500" />
-          <span className="text-slate-300">Loading...</span>
+        <div className="flex items-center justify-center py-2">
+          <div className="relative flex items-center">
+            <Loader2 className="animate-spin w-5 h-5 text-blue-500 absolute -left-7" />
+            <span className="text-slate-300">Loading...</span>
+          </div>
         </div>
       );
     } else {
       statusContent = (
-        <div className="flex items-center justify-center gap-3 py-2">
-          <Loader2 className="animate-spin w-5 h-5 text-blue-500" />
-          <span className="text-slate-300">
-            {formattedMonth
-              ? `Fetching your ${isMobile ? '' : 'chess.com '}games from ${formattedMonth}...`
-              : `Fetching your ${isMobile ? '' : 'chess.com '}games...`}
-          </span>
+        <div className="flex items-center justify-center py-2">
+          <div className="relative flex items-center">
+            <Loader2 className="animate-spin w-5 h-5 text-blue-500 absolute -left-7" />
+            <span className="text-slate-300">
+              {formattedMonth
+                ? `Fetching your ${isMobile ? '' : 'chess.com '}games from ${formattedMonth}...`
+                : `Fetching your ${isMobile ? '' : 'chess.com '}games...`}
+            </span>
+          </div>
         </div>
       );
     }
   } else {
     statusContent = (
-      <div className="flex items-center justify-center gap-2 py-2">
-        <CheckCircle2 className="w-5 h-5 text-green-500" />
-        <span className="text-slate-400">
-          Analyzed {username ? `@${username}'s ` : ''}{totalGames?.toLocaleString() ?? 0} game{totalGames !== 1 ? 's' : ''}.
-        </span>
+      <div className="flex items-center justify-center py-2">
+        <div className="relative flex items-center">
+          <CheckCircle2 className="w-5 h-5 text-green-500 absolute -left-7" />
+          <span className="text-slate-400">
+            Analyzed {username ? `@${username}'s ` : ''}{totalGames?.toLocaleString() ?? 0} game{totalGames !== 1 ? 's' : ''}.
+          </span>
+        </div>
       </div>
     );
   }
