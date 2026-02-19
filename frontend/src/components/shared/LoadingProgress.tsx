@@ -61,7 +61,7 @@ export const LoadingProgress = ({
   } else {
     const count = totalGames?.toLocaleString() ?? '0';
     const plural = totalGames !== 1 ? 's' : '';
-    const usernameStr = username ? `@${username}` : '';
+    const usernameStr = username ? (language === 'fr' ? ` de @${username}` : ` of @${username}`) : '';
     const analyzedText = t('chess.analyzedGames')
       .replace('{username}', usernameStr)
       .replace('{count}', count)
