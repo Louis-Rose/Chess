@@ -4,6 +4,7 @@
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import type { StreamProgress, TimeClass } from '../../apps/chess/utils/types';
 import { TimeClassToggle } from '../../apps/chess/components/TimeClassToggle';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface LoadingProgressProps {
   progress: StreamProgress | null;
@@ -18,14 +19,16 @@ export const LoadingProgress = ({
   progress, loading, totalGames, username,
   selectedTimeClass, onTimeClassChange,
 }: LoadingProgressProps) => {
-  // Format month from "2024-01" to "January 2024" (2-digit year on mobile)
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const { t, language } = useLanguage();
+
+  // Format month from "2024-01" to localized month name + year
   const formatProgressMonth = (month: string) => {
     if (!month) return null;
     const [year, monthNum] = month.split('-');
     const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
-    const monthName = date.toLocaleString('en-US', { month: 'long' });
-    return `${monthName} ${isMobile ? year.slice(2) : year}`;
+    const locale = language === 'fr' ? 'fr-FR' : 'en-US';
+    const monthName = date.toLocaleString(locale, { month: 'long' });
+    return `${monthName} ${year}`;
   };
 
   const formattedMonth = formatProgressMonth(progress?.month || '');
@@ -38,32 +41,36 @@ export const LoadingProgress = ({
         <div className="flex items-center justify-center py-2">
           <div className="relative flex items-center">
             <Loader2 className="animate-spin w-5 h-5 text-blue-500 absolute -left-7" />
-            <span className="text-slate-300">Loading...</span>
+            <span className="text-slate-300">{t('chess.loadingCached')}</span>
           </div>
         </div>
       );
     } else {
+      const fetchingText = formattedMonth
+        ? t('chess.fetchingGamesFrom').replace('{month}', formattedMonth)
+        : t('chess.fetchingGames');
       statusContent = (
         <div className="flex items-center justify-center py-2">
           <div className="relative flex items-center">
             <Loader2 className="animate-spin w-5 h-5 text-blue-500 absolute -left-7" />
-            <span className="text-slate-300">
-              {formattedMonth
-                ? `Fetching your ${isMobile ? '' : 'chess.com '}games from ${formattedMonth}...`
-                : `Fetching your ${isMobile ? '' : 'chess.com '}games...`}
-            </span>
+            <span className="text-slate-300">{fetchingText}</span>
           </div>
         </div>
       );
     }
   } else {
+    const count = totalGames?.toLocaleString() ?? '0';
+    const plural = totalGames !== 1 ? 's' : '';
+    const usernameStr = username ? `@${username}` : '';
+    const analyzedText = t('chess.analyzedGames')
+      .replace('{username}', usernameStr)
+      .replace('{count}', count)
+      .replace(/\{plural\}/g, plural);
     statusContent = (
       <div className="flex items-center justify-center py-2">
         <div className="relative flex items-center">
           <CheckCircle2 className="w-5 h-5 text-green-500 absolute -left-7" />
-          <span className="text-slate-400">
-            Analyzed {username ? `@${username}'s ` : ''}{totalGames?.toLocaleString() ?? 0} game{totalGames !== 1 ? 's' : ''}.
-          </span>
+          <span className="text-slate-400">{analyzedText}</span>
         </div>
       </div>
     );
