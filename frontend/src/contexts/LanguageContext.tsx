@@ -170,6 +170,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.navStreaks': 'Streaks',
     'chess.logout': 'Log out',
     'chess.continue': 'Continue',
+    'chess.selectLanguage': 'Select preferred language',
     'chess.fetchingData': 'Your data is being fetched...',
 
     // Tax Calculator
@@ -350,6 +351,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.navStreaks': 'Séries',
     'chess.logout': 'Se déconnecter',
     'chess.continue': 'Continuer',
+    'chess.selectLanguage': 'Choisissez votre langue',
     'chess.fetchingData': 'Vos données sont en cours de chargement...',
 
     // Tax Calculator
