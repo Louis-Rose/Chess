@@ -516,8 +516,8 @@ export function StreakSection({ data, standalone = false }: { data: ApiResponse;
         if (standalone) {
           return (
             <StandaloneCard title={sectionTitle ?? ''}>
-              {table}
               {recommendation}
+              {table}
             </StandaloneCard>
           );
         }
