@@ -125,16 +125,30 @@ export function WelcomePanel() {
     searchedUsername,
     selectedTimeClass,
     handleTimeClassChange,
+    playerInfo,
   } = useChessData();
 
   return (
     <>
+      {/* Language toggle */}
+      <div className="flex justify-end px-2 mb-2">
+        <LanguageToggle />
+      </div>
+
       {/* Header */}
       <div className="text-center space-y-6">
-        <div className="flex items-center justify-center gap-3">
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-100">{t('chess.welcomeTitle')}</h1>
-          <LanguageToggle />
-        </div>
+        {/* Avatar placeholder while loading */}
+        {loading && !data?.player && playerInfo && (
+          <div className="flex justify-center">
+            {playerInfo.avatar ? (
+              <img src={playerInfo.avatar} alt="" className="w-16 h-16 rounded-full opacity-50" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-slate-700" />
+            )}
+          </div>
+        )}
+
+        <h1 className="text-3xl md:text-4xl font-bold text-slate-100">{t('chess.welcomeTitle')}</h1>
 
         {error && <p className="text-red-500 bg-red-100 py-2 px-4 rounded inline-block">{error}</p>}
         {searchedUsername && (
