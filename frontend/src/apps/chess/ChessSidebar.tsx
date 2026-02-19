@@ -122,11 +122,12 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
       <div ref={topRef} />
       <a
         href="/chess"
-        className="flex items-center justify-center gap-3 px-2 pb-4 mb-2 border-b border-slate-700 hover:opacity-80 transition-opacity flex-shrink-0"
+        className="flex items-center justify-center gap-3 px-2 pb-3 mb-2 hover:opacity-80 transition-opacity flex-shrink-0"
       >
         <LumnaLogo className="w-10 h-10 md:w-14 md:h-14 flex-shrink-0" />
         <span className="text-xl md:text-3xl font-bold text-white tracking-wide">LUMNA</span>
       </a>
+      <div className="h-px bg-slate-700 mx-3 mb-2" />
 
       {/* Instruction — only when no player loaded */}
       {!cardLoaded && (
@@ -137,7 +138,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
       )}
 
       {/* Player Info */}
-      <div className="px-3 pb-2">
+      <div className="px-3 pb-1">
         {playerInfo ? (
           <div className="bg-white rounded-lg p-4 md:p-6 text-center">
             {playerInfo.avatar ? (
@@ -171,7 +172,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
                 <p>Blitz: <span className="font-semibold">--</span> elo · <span className="font-semibold">--</span> games</p>
               </div>
             </div>
-            <div className="h-px bg-slate-700 mt-4" />
+            <div className="h-px bg-slate-700 mt-3" />
           </>
         )}
       </div>
@@ -180,7 +181,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
       <div className="px-3 pb-3">
         <div ref={dropdownRef} className="relative">
         <form onSubmit={handleSubmit}>
-          <div className="h-5 flex items-end mb-0.5">
+          <div className="flex items-end mb-0.5">
             {usernameStatus === 'checking' && (
               <p className="flex items-center gap-1.5 text-slate-400 text-xs"><Loader2 className="w-3 h-3 animate-spin" />Checking username...</p>
             )}
