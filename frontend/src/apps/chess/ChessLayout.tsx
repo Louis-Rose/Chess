@@ -134,6 +134,39 @@ function ChessNavSidebar() {
   );
 }
 
+const LumnaLogo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 128 128" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="8" width="112" height="112" rx="20" fill="#16a34a"/>
+    <rect x="32" y="64" width="16" height="40" rx="2" fill="white"/>
+    <rect x="56" y="48" width="16" height="56" rx="2" fill="white"/>
+    <rect x="80" y="32" width="16" height="72" rx="2" fill="white"/>
+  </svg>
+);
+
+function LanguageToggle() {
+  const { language, setLanguage } = useLanguage();
+  return (
+    <div className="relative flex bg-slate-700 rounded-md p-0.5">
+      <div
+        className="absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] bg-slate-500 rounded transition-transform duration-200"
+        style={{ transform: language === 'en' ? 'translateX(0)' : 'translateX(100%)' }}
+      />
+      <button
+        onClick={() => setLanguage('en')}
+        className={`relative z-10 px-2 py-1 text-xs font-medium rounded transition-colors ${language === 'en' ? 'text-white' : 'text-slate-400'}`}
+      >
+        EN
+      </button>
+      <button
+        onClick={() => setLanguage('fr')}
+        className={`relative z-10 px-2 py-1 text-xs font-medium rounded transition-colors ${language === 'fr' ? 'text-white' : 'text-slate-400'}`}
+      >
+        FR
+      </button>
+    </div>
+  );
+}
+
 function MobilePlayerButton() {
   const { logout } = useAuth();
   const { t } = useLanguage();
@@ -153,7 +186,7 @@ function MobilePlayerButton() {
   if (!displayData?.player) return null;
 
   return (
-    <div ref={ref} className="md:hidden absolute top-3 left-2 z-50">
+    <div ref={ref} className="md:hidden relative z-50">
       <button onClick={() => setOpen(!open)} className="rounded-full overflow-hidden w-9 h-9 bg-slate-700 flex items-center justify-center">
         {displayData.player.avatar ? (
           <img src={displayData.player.avatar} alt="" className="w-9 h-9 rounded-full" />
@@ -171,7 +204,6 @@ function MobilePlayerButton() {
             onClick={async () => {
               setOpen(false);
               localStorage.removeItem(CHESS_PREFS_KEY);
-              // Clear stats cache (keep saved player history)
               for (let i = localStorage.length - 1; i >= 0; i--) {
                 const k = localStorage.key(i);
                 if (k?.startsWith('chess_stats_cache_')) localStorage.removeItem(k);
@@ -186,6 +218,26 @@ function MobilePlayerButton() {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function ChessHeader() {
+  return (
+    <div className="relative flex items-center justify-center px-2 py-3">
+      {/* Mobile player avatar — left */}
+      <div className="absolute left-2">
+        <MobilePlayerButton />
+      </div>
+      {/* LUMNA logo — center */}
+      <div className="flex items-center gap-2">
+        <LumnaLogo className="w-8 h-8" />
+        <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
+      </div>
+      {/* Language toggle — right */}
+      <div className="absolute right-2">
+        <LanguageToggle />
+      </div>
     </div>
   );
 }
@@ -209,8 +261,9 @@ function ChessLayoutInner() {
       ) : (
         <>
           <ChessNavSidebar />
-          <main className="relative flex-1 px-2 pt-4 pb-8 md:p-8 overflow-y-auto overscroll-y-contain">
-            <MobilePlayerButton />
+          <main className="relative flex-1 px-2 pb-8 md:px-8 md:pb-8 overflow-y-auto overscroll-y-contain">
+            <ChessHeader />
+            <div className="border-t border-slate-700" />
             <Outlet />
           </main>
           <FeedbackWidget language="en" />
