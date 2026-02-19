@@ -71,7 +71,7 @@ function CardContent({ icon: Icon, iconBg, title, description, exploreLabel }: {
           <Icon className="w-5 h-5 text-white" />
         </div>
         <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance pl-12 pr-2 py-4">{title}</h3>
-        <span className="absolute bottom-3 right-4 text-xs text-slate-500">{exploreLabel}</span>
+        <span className="absolute top-3 right-4 text-xs text-slate-500">{exploreLabel}</span>
       </>
     );
   }
