@@ -229,9 +229,9 @@ function ChessHeader() {
       <div className="absolute left-2">
         <MobilePlayerButton />
       </div>
-      {/* LUMNA logo — center */}
-      <div className="flex items-center gap-2">
-        <LumnaLogo className="w-8 h-8" />
+      {/* LUMNA — text centered on screen, logo positioned to its left */}
+      <div className="relative flex items-center">
+        <LumnaLogo className="w-8 h-8 absolute -left-10" />
         <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
       </div>
       {/* Language toggle — right */}
