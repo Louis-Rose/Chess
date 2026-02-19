@@ -16,37 +16,6 @@ const LumnaLogo = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// Sliding language toggle
-function LanguageSlider() {
-  const { language, setLanguage } = useLanguage();
-
-  return (
-    <div className="relative flex bg-slate-700 rounded-lg p-1">
-      {/* Sliding background */}
-      <div
-        className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-slate-500 rounded-md transition-transform duration-200 ease-in-out"
-        style={{ transform: language === 'en' ? 'translateX(0)' : 'translateX(100%)' }}
-      />
-      <button
-        onClick={() => setLanguage('en')}
-        className={`relative z-10 flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
-          language === 'en' ? 'text-white' : 'text-slate-400'
-        }`}
-      >
-        English
-      </button>
-      <button
-        onClick={() => setLanguage('fr')}
-        className={`relative z-10 flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
-          language === 'fr' ? 'text-white' : 'text-slate-400'
-        }`}
-      >
-        Fran&ccedil;ais
-      </button>
-    </div>
-  );
-}
-
 // Renders both EN/FR text overlapping; only the active language is visible.
 // The container always takes the height of the taller text, preventing layout shifts.
 function StableText({ tKey, className }: { tKey: string; className?: string }) {
