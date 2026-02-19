@@ -64,14 +64,13 @@ function useUsernameCheck(username: string, savedPlayers: { username: string; av
 
     if (trimmed.length < 3) { setResult({ status: 'idle', player: null }); return; }
 
-    // Skip API call if it's a saved player (we know they exist)
+    // Show saved player immediately (optimistic), but still call API for correct casing
     const saved = savedPlayers.find(p => p.username.toLowerCase() === trimmed);
     if (saved) {
       setResult({ status: 'exists', player: saved });
-      return;
+    } else {
+      setResult({ status: 'checking', player: null });
     }
-
-    setResult({ status: 'checking', player: null });
     const controller = new AbortController();
     abortRef.current = controller;
     const timer = setTimeout(() => check(trimmed, controller.signal), 400);
