@@ -251,6 +251,7 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     setUsernameInput(player.username);
     setSearchedUsername(player.username);
     setShowUsernameDropdown(false);
+    (document.activeElement as HTMLElement)?.blur();
     if (!getChessPrefs().onboarding_done) {
       fetchPlayerInfo(player.username);
     }
