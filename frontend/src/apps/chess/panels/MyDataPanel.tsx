@@ -183,7 +183,7 @@ export function TodaySection({ data, standalone = false }: { data: ApiResponse; 
 }
 
 function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRate: number; days: number }[] }) {
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const fetchedRef = useRef<string>('');
@@ -192,8 +192,8 @@ function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRa
     const significant = sorted.filter(d => d.days >= 10);
     if (significant.length === 0) return;
 
-    // Cache key to avoid re-fetching for same data
-    const key = significant.map(d => `${d.games_per_day}:${d.winRate.toFixed(1)}`).join(',') + `:${language}`;
+    // Cache key based on data only — language toggle should not re-fetch
+    const key = significant.map(d => `${d.games_per_day}:${d.winRate.toFixed(1)}`).join(',');
     if (fetchedRef.current === key) return;
     fetchedRef.current = key;
 
@@ -201,17 +201,18 @@ function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRa
     fetchChessInsight(
       'daily_volume',
       significant.map(d => ({ games_per_day: d.games_per_day, win_rate: d.winRate })),
-      language
+      'en'
     )
       .then(text => setSummary(text))
       .catch(() => setSummary(null))
       .finally(() => setLoading(false));
-  }, [sorted, language]);
+  }, [sorted]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-3 text-slate-400 text-sm">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />
+        <span>{t('chess.analysisLoading')}</span>
       </div>
     );
   }
