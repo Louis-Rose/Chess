@@ -9,12 +9,13 @@ interface LoadingProgressProps {
   progress: StreamProgress | null;
   loading: boolean;
   totalGames?: number;
+  username?: string;
   selectedTimeClass: TimeClass;
   onTimeClassChange: (tc: TimeClass) => void;
 }
 
 export const LoadingProgress = ({
-  progress, loading, totalGames,
+  progress, loading, totalGames, username,
   selectedTimeClass, onTimeClassChange,
 }: LoadingProgressProps) => {
   // Format month from "2024-01" to "January 2024" (2-digit year on mobile)
@@ -56,7 +57,7 @@ export const LoadingProgress = ({
       <div className="flex items-center justify-center gap-2 py-3">
         <CheckCircle2 className="w-5 h-5 text-green-500" />
         <span className="text-slate-400">
-          Fetched and analyzed {totalGames?.toLocaleString() ?? 0} chess.com game{totalGames !== 1 ? 's' : ''}.
+          Analyzed {username ? `@${username}'s ` : ''}{totalGames?.toLocaleString() ?? 0} game{totalGames !== 1 ? 's' : ''}.
         </span>
       </div>
     );
@@ -66,10 +67,10 @@ export const LoadingProgress = ({
     <div className="w-full max-w-4xl mx-auto">
       <div className="border-t border-slate-700" />
       {statusContent}
-      <div className="flex justify-center pb-3">
+      <div className="border-t border-slate-700" />
+      <div className="flex justify-center pt-3">
         <TimeClassToggle selected={selectedTimeClass} onChange={onTimeClassChange} />
       </div>
-      <div className="border-t border-slate-700" />
     </div>
   );
 };

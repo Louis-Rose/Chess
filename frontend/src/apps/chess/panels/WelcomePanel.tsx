@@ -168,7 +168,7 @@ export function WelcomePanel() {
         {error && <p className="text-red-500 bg-red-100 py-2 px-4 rounded inline-block">{error}</p>}
         {searchedUsername && (
           <LoadingProgress progress={progress} loading={loading} totalGames={data?.total_games}
-            selectedTimeClass={selectedTimeClass} onTimeClassChange={handleTimeClassChange} />
+            username={searchedUsername} selectedTimeClass={selectedTimeClass} onTimeClassChange={handleTimeClassChange} />
         )}
       </div>
 
