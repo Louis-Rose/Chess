@@ -25,6 +25,7 @@ export function TodayPage() {
           </button>
           <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} />
         </div>
+        <div className="border-t border-slate-700" />
         {data && <TodaySection data={data} standalone />}
       </div>
     </div>

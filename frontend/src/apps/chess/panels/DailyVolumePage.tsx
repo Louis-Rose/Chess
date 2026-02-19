@@ -25,6 +25,7 @@ export function DailyVolumePage() {
           </button>
           <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} />
         </div>
+        <div className="border-t border-slate-700" />
         {data && <DailyVolumeSection data={data} standalone />}
       </div>
     </div>

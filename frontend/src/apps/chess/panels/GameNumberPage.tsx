@@ -25,6 +25,7 @@ export function GameNumberPage() {
           </button>
           <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} />
         </div>
+        <div className="border-t border-slate-700" />
         {data && <GameNumberSection data={data} standalone />}
       </div>
     </div>
