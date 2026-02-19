@@ -68,7 +68,7 @@ export const LoadingProgress = ({
       <div className="border-t border-slate-700" />
       {statusContent}
       <div className="border-t border-slate-700" />
-      <div className="flex justify-center pt-3">
+      <div className="flex justify-center pt-2">
         <TimeClassToggle selected={selectedTimeClass} onChange={onTimeClassChange} />
       </div>
     </div>
