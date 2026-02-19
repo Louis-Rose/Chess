@@ -139,22 +139,22 @@ export function WelcomePanel() {
 
   return (
     <>
-      {/* Top bar: logo centered, language toggle right */}
-      <div className="relative flex items-center justify-center px-2 mb-2">
-        <div className="flex items-center gap-2">
-          <LumnaLogo className="w-8 h-8" />
-          <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
+      {/* Header area: vertically centered above separator */}
+      <div className="flex flex-col items-center justify-center pb-4 space-y-2">
+        {/* Logo + language toggle row */}
+        <div className="relative flex items-center justify-center w-full px-2">
+          <div className="flex items-center gap-2">
+            <LumnaLogo className="w-8 h-8" />
+            <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
+          </div>
+          <div className="absolute right-2">
+            <LanguageToggle />
+          </div>
         </div>
-        <div className="absolute right-2">
-          <LanguageToggle />
-        </div>
-      </div>
 
-      {/* Header */}
-      <div className="text-center space-y-4">
         {/* Avatar placeholder while loading */}
         {loading && !data?.player && playerInfo && (
-          <div className="flex justify-center">
+          <div className="flex justify-center pt-2">
             {playerInfo.avatar ? (
               <img src={playerInfo.avatar} alt="" className="w-16 h-16 rounded-full opacity-50" />
             ) : (
@@ -164,7 +164,10 @@ export function WelcomePanel() {
         )}
 
         <h1 className="text-lg font-bold text-slate-100">{t('chess.welcomeTitle')}</h1>
+      </div>
 
+      {/* Loading / status */}
+      <div className="text-center">
         {error && <p className="text-red-500 bg-red-100 py-2 px-4 rounded inline-block">{error}</p>}
         {searchedUsername && (
           <LoadingProgress progress={progress} loading={loading} totalGames={data?.total_games}
