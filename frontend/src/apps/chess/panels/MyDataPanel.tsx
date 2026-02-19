@@ -1,9 +1,10 @@
 // Chess analysis section components
 
-import { useState, useEffect, useCallback } from 'react';
-import { ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { ChevronRight, Maximize2, Minimize2, Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { fetchChessInsight } from '../hooks/api';
 import type { ApiResponse, StreakStats, TodayStats } from '../utils/types';
 import {
   ComposedChart, BarChart, Line, Bar, ReferenceLine,
@@ -181,6 +182,49 @@ export function TodaySection({ data, standalone = false }: { data: ApiResponse; 
   );
 }
 
+function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRate: number; days: number }[] }) {
+  const { language } = useLanguage();
+  const [summary, setSummary] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const fetchedRef = useRef<string>('');
+
+  useEffect(() => {
+    const significant = sorted.filter(d => d.days >= 10);
+    if (significant.length === 0) return;
+
+    // Cache key to avoid re-fetching for same data
+    const key = significant.map(d => `${d.games_per_day}:${d.winRate.toFixed(1)}`).join(',') + `:${language}`;
+    if (fetchedRef.current === key) return;
+    fetchedRef.current = key;
+
+    setLoading(true);
+    fetchChessInsight(
+      'daily_volume',
+      significant.map(d => ({ games_per_day: d.games_per_day, win_rate: d.winRate })),
+      language
+    )
+      .then(text => setSummary(text))
+      .catch(() => setSummary(null))
+      .finally(() => setLoading(false));
+  }, [sorted, language]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-3 text-slate-400 text-sm">
+        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+      </div>
+    );
+  }
+
+  if (!summary) return null;
+
+  return (
+    <div className="text-slate-300 text-sm pb-3 whitespace-pre-line leading-relaxed">
+      {summary}
+    </div>
+  );
+}
+
 export function DailyVolumeSection({ data, standalone = false }: { data: ApiResponse; standalone?: boolean }) {
   const { t } = useLanguage();
 
@@ -216,12 +260,9 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
                   <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{d.games_per_day} {(d.games_per_day === 1 ? t('chess.gamePerDay') : t('chess.gamesPerDay')).toLowerCase()}</td>
                   <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
                     {d.days >= 10 ? (
-                      <>
-                        <span className={d.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{d.winRate.toFixed(1)}%</span>
-                        <span className="text-slate-500 font-normal ml-2 text-xs">({d.days} {t('chess.daysOfData')})</span>
-                      </>
+                      <span className={d.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{d.winRate.toFixed(1)}%</span>
                     ) : (
-                      <span className="text-slate-500 text-xs">{t('chess.insufficientData')} ({d.days} {t('chess.daysOfData')})</span>
+                      <span className="text-slate-500 text-xs">{t('chess.insufficientData')}</span>
                     )}
                   </td>
                 </tr>
@@ -232,8 +273,9 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
 
         if (standalone) {
           return (
-            <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 mx-4 select-text">
-              <h2 className="text-lg font-bold text-slate-100 text-center select-text py-3">{sectionTitle}</h2>
+            <div className="bg-slate-700 rounded-xl px-3 sm:px-6 py-4 mx-4 select-text">
+              <h2 className="text-lg font-bold text-slate-100 text-center select-text pb-3">{sectionTitle}</h2>
+              <DailyVolumeSummary sorted={sorted} />
               {table}
             </div>
           );

@@ -290,6 +290,48 @@ def get_fatigue_analysis():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/chess-insight', methods=['POST'])
+def get_chess_insight():
+    """Generate a short Gemini summary of chess stat data (daily volume, streaks, etc.)."""
+    import google.generativeai as genai
+
+    body = request.get_json(silent=True) or {}
+    stat_type = body.get('type')
+    rows = body.get('rows')
+    lang = body.get('lang', 'en')
+
+    if not stat_type or not rows:
+        return jsonify({"error": "type and rows required"}), 400
+
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+
+        lang_instruction = "Answer in French." if lang == 'fr' else "Answer in English."
+
+        if stat_type == 'daily_volume':
+            data_str = "\n".join(f"- {r['games_per_day']} games/day → {r['win_rate']:.1f}% win rate" for r in rows)
+            prompt = f"""You are a chess coach. Here is a player's win rate by number of games played per day:
+
+{data_str}
+
+Give 1 to 3 very short bullet points (one sentence each, ≤15 words per bullet) summarizing the key takeaways.
+Focus on: optimal number of games, when performance drops, and any clear trends.
+Use bullet points starting with •. No intro, no filler. {lang_instruction}"""
+        else:
+            return jsonify({"error": f"Unknown stat type: {stat_type}"}), 400
+
+        response = model.generate_content(prompt)
+        return jsonify({"summary": response.text.strip()})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/win-prediction-stream', methods=['GET'])
 def get_win_prediction_stream():
     """SSE endpoint that streams progress while analyzing win prediction patterns."""

@@ -12,3 +12,12 @@ export const fetchFatigueAnalysis = async (username: string, timeClass: TimeClas
   const response = await axios.get(`/api/fatigue-analysis?username=${username}&time_class=${timeClass}`);
   return response.data;
 };
+
+export const fetchChessInsight = async (
+  type: string,
+  rows: { games_per_day: number; win_rate: number }[],
+  lang: string
+): Promise<string> => {
+  const response = await axios.post('/api/chess-insight', { type, rows, lang });
+  return response.data.summary;
+};
