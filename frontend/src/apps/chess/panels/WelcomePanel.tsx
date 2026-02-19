@@ -139,18 +139,19 @@ export function WelcomePanel() {
 
   return (
     <>
-      {/* Language toggle */}
-      <div className="flex justify-end px-2 mb-2">
-        <LanguageToggle />
+      {/* Top bar: logo centered, language toggle right */}
+      <div className="relative flex items-center justify-center px-2 mb-4">
+        <div className="flex items-center gap-2">
+          <LumnaLogo className="w-8 h-8" />
+          <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
+        </div>
+        <div className="absolute right-2">
+          <LanguageToggle />
+        </div>
       </div>
 
-      {/* Logo + Header */}
+      {/* Header */}
       <div className="text-center space-y-4">
-        <div className="flex items-center justify-center gap-2">
-          <LumnaLogo className="w-8 h-8" />
-          <span className="text-lg font-bold text-white tracking-wide">LUMNA</span>
-        </div>
-
         {/* Avatar placeholder while loading */}
         {loading && !data?.player && playerInfo && (
           <div className="flex justify-center">
@@ -162,7 +163,7 @@ export function WelcomePanel() {
           </div>
         )}
 
-        <h1 className="text-2xl font-bold text-slate-100">{t('chess.welcomeTitle')}</h1>
+        <h1 className="text-lg font-bold text-slate-100">{t('chess.welcomeTitle')}</h1>
 
         {error && <p className="text-red-500 bg-red-100 py-2 px-4 rounded inline-block">{error}</p>}
         {searchedUsername && (
