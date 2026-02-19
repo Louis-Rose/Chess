@@ -319,7 +319,7 @@ def get_chess_insight():
 
 {data_str}
 
-Your output should be: You should play between X and Y games per day. You should avoid playing less than X games per day, or more than Y games per day.
+Your output should be: You should play between X and Y games per day (X.y% win rate). You should avoid playing less than X games per day (X.y% win rate), or more than Y games per day (X.y% win rate).
 Focus on: optimal number of games, when performance drops or peaks, and any clear trends.
 No intro, no filler. No "here's my summary:". {lang_instruction}"""
         else:
