@@ -1,7 +1,7 @@
 // Chess Welcome panel
 
 import { useNavigate } from 'react-router-dom';
-import { LineChart, Calendar, Hash, TrendingUp, Target } from 'lucide-react';
+import { LineChart, Calendar, Hash, TrendingUp, Target, ChevronRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -9,15 +9,15 @@ import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 
 // Card definitions - titleKey/descriptionKey are i18n keys resolved at render time
 const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; iconBg: string; titleKey: string; descriptionKey: string | null }[] = [
-  {
-    id: 'elo',
-    path: '/chess/elo',
-    icon: LineChart,
-    hoverBorder: 'hover:border-blue-500',
-    iconBg: 'bg-blue-600',
-    titleKey: 'chess.eloTitle',
-    descriptionKey: null,
-  },
+  // {
+  //   id: 'elo',
+  //   path: '/chess/elo',
+  //   icon: LineChart,
+  //   hoverBorder: 'hover:border-blue-500',
+  //   iconBg: 'bg-blue-600',
+  //   titleKey: 'chess.eloTitle',
+  //   descriptionKey: null,
+  // },
   {
     id: 'daily-volume',
     path: '/chess/daily-volume',
@@ -45,23 +45,22 @@ const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; 
     titleKey: 'chess.streaksCardTitle',
     descriptionKey: null,
   },
-  {
-    id: 'today',
-    path: '/chess/today',
-    icon: Target,
-    hoverBorder: 'hover:border-purple-500',
-    iconBg: 'bg-purple-600',
-    titleKey: 'chess.todayTitle',
-    descriptionKey: null,
-  },
+  // {
+  //   id: 'today',
+  //   path: '/chess/today',
+  //   icon: Target,
+  //   hoverBorder: 'hover:border-purple-500',
+  //   iconBg: 'bg-purple-600',
+  //   titleKey: 'chess.todayTitle',
+  //   descriptionKey: null,
+  // },
 ];
 
-function CardContent({ icon: Icon, iconBg, title, description, exploreLabel }: {
+function CardContent({ icon: Icon, iconBg, title, description }: {
   icon: LucideIcon;
   iconBg: string;
   title: string;
   description: string | null;
-  exploreLabel: string;
 }) {
   // Title-only card (like daily-volume) - icon absolute, title centered
   if (!description) {
@@ -71,7 +70,7 @@ function CardContent({ icon: Icon, iconBg, title, description, exploreLabel }: {
           <Icon className="w-5 h-5 text-white" />
         </div>
         <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance pl-12 pr-2 py-4">{title}</h3>
-        <span className="absolute top-3 right-4 text-xs text-slate-500">{exploreLabel}</span>
+        <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
       </>
     );
   }
@@ -152,7 +151,6 @@ export function WelcomePanel() {
                   iconBg={card.iconBg}
                   title={title}
                   description={description}
-                  exploreLabel={t('chess.explore')}
                 />
               </div>
             );
