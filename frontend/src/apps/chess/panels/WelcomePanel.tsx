@@ -7,6 +7,15 @@ import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 
+const LumnaLogo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 128 128" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="8" width="112" height="112" rx="20" fill="#16a34a"/>
+    <rect x="32" y="64" width="16" height="40" rx="2" fill="white"/>
+    <rect x="56" y="48" width="16" height="56" rx="2" fill="white"/>
+    <rect x="80" y="32" width="16" height="72" rx="2" fill="white"/>
+  </svg>
+);
+
 function LanguageToggle() {
   const { language, setLanguage } = useLanguage();
   return (
@@ -135,8 +144,13 @@ export function WelcomePanel() {
         <LanguageToggle />
       </div>
 
-      {/* Header */}
-      <div className="text-center space-y-6">
+      {/* Logo + Header */}
+      <div className="text-center space-y-4">
+        <div className="flex items-center justify-center gap-2">
+          <LumnaLogo className="w-8 h-8" />
+          <span className="text-lg font-bold text-white tracking-wide">LUMNA</span>
+        </div>
+
         {/* Avatar placeholder while loading */}
         {loading && !data?.player && playerInfo && (
           <div className="flex justify-center">
@@ -148,7 +162,7 @@ export function WelcomePanel() {
           </div>
         )}
 
-        <h1 className="text-3xl md:text-4xl font-bold text-slate-100">{t('chess.welcomeTitle')}</h1>
+        <h1 className="text-2xl font-bold text-slate-100">{t('chess.welcomeTitle')}</h1>
 
         {error && <p className="text-red-500 bg-red-100 py-2 px-4 rounded inline-block">{error}</p>}
         {searchedUsername && (
