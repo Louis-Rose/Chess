@@ -188,13 +188,11 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
 
   return (
     <CollapsibleSection title={t('chess.dailyVolumeTitle')} defaultExpanded standalone={standalone}>
-      {(fullscreen, sectionTitle) => {
+      {(_fullscreen, sectionTitle) => {
         if (!rawDvs || rawDvs.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
         const dvs = rawDvs.filter(d => d.days > 0);
         if (dvs.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
-
-        const fs = fullscreen ? 18 : 14;
 
         // Sort ascending by games per day, truncate after last entry with N >= 10
         const withRate = dvs
@@ -203,56 +201,6 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
         // Find last index where days >= 10, keep up to that point
         const lastSignificantIdx = withRate.reduce((last, d, i) => d.days >= 10 ? i : last, -1);
         const sorted = lastSignificantIdx >= 0 ? withRate.slice(0, lastSignificantIdx + 1) : [];
-
-        const chart = (
-          <div>
-            <div className="text-center mb-3">
-              <h4 className="text-white font-semibold">{t('chess.winRate')}</h4>
-            </div>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={sorted} margin={{ top: 10, right: 0, left: 0, bottom: 30 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                  <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} />
-                  <XAxis
-                    dataKey="games_per_day"
-                    tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
-                    label={{ value: t('chess.gamesPerDay'), position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: fs, fontWeight: 700 }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: fs, fill: '#f1f5f9', fontWeight: 700 }}
-                    domain={[0, 100]}
-                    ticks={[0, 25, 50, 75, 100]}
-                    tickFormatter={(v) => `${v}%`}
-                  />
-                  <Tooltip
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    content={({ active, payload, label }: any) => {
-                      if (!active || !payload?.length) return null;
-                      const d = payload[0]?.payload;
-                      if (!d || d.total_games === 0) return null;
-                      const winRate = (d.win_pct + d.draw_pct / 2).toFixed(1);
-                      return (
-                        <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
-                          <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{label} {(Number(label) === 1 ? t('chess.gamePerDay') : t('chess.gamesPerDay')).toLowerCase()}</p>
-                          <p style={{ color: '#f1f5f9' }}>{t('chess.winRate')}: {winRate}%</p>
-                          <p style={{ color: '#94a3b8', fontSize: 12 }}>{d.days} {t('chess.daysOfData')}</p>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Bar dataKey="win_pct" stackId="a" fill="#16a34a" />
-                  <Bar dataKey="draw_pct" stackId="a" fill="#64748b" />
-                  <Bar dataKey="loss_pct" stackId="a" fill="#dc2626" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="text-center mt-3">
-              <p className="text-white text-sm">{t('chess.winRateFormula')}</p>
-              <p className="text-white text-sm">{t('chess.winRateFilter')}</p>
-            </div>
-          </div>
-        );
 
         const table = (
           <table className="w-full border-collapse border border-slate-600">
@@ -284,22 +232,14 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
 
         if (standalone) {
           return (
-            <>
-              <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">
-                <h2 className="text-2xl font-bold text-slate-100 text-center select-text py-3">{sectionTitle}</h2>
-                {chart}
-              </div>
-              <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">{table}</div>
-            </>
+            <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 mx-4 select-text">
+              <h2 className="text-lg font-bold text-slate-100 text-center select-text py-3">{sectionTitle}</h2>
+              {table}
+            </div>
           );
         }
 
-        return (
-          <div className="space-y-4">
-            {chart}
-            {table}
-          </div>
-        );
+        return table;
       }}
     </CollapsibleSection>
   );
