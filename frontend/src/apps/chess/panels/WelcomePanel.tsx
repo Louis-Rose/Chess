@@ -107,7 +107,7 @@ export function WelcomePanel() {
   return (
     <>
       {/* Header */}
-      <div className="text-center space-y-4 pt-1 pb-1">
+      <div className="text-center space-y-4 -mt-1 pb-1">
         {/* Avatar placeholder while loading */}
         {loading && !data?.player && playerInfo && (
           <div className="flex justify-center">
