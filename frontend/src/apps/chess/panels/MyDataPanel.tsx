@@ -229,7 +229,7 @@ function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRa
   if (!summary) return null;
 
   return (
-    <div className="text-slate-300 text-sm pb-3 whitespace-pre-line leading-relaxed">
+    <div className="text-slate-300 text-sm pb-3 whitespace-pre-line leading-relaxed text-center">
       {summary}
     </div>
   );
