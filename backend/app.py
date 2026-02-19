@@ -320,8 +320,8 @@ def get_chess_insight():
 {data_str}
 
 Give 1 to 3 very short bullet points (one sentence each, ≤15 words per bullet) summarizing the key takeaways.
-Focus on: optimal number of games, when performance drops, and any clear trends.
-Use bullet points starting with •. No intro, no filler. {lang_instruction}"""
+Focus on: optimal number of games, when performance drops or peaks, and any clear trends.
+No intro, no filler. No "here's my summary:". {lang_instruction}"""
         else:
             return jsonify({"error": f"Unknown stat type: {stat_type}"}), 400
 
