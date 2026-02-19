@@ -1,7 +1,7 @@
 // Chess Welcome panel
 
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Hash, TrendingUp, ChevronRight } from 'lucide-react';
+import { Calendar, Hash, TrendingUp, Coffee, ChevronRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -43,6 +43,15 @@ const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; 
     hoverBorder: 'hover:border-red-500',
     iconBg: 'bg-red-600',
     titleKey: 'chess.streaksCardTitle',
+    descriptionKey: null,
+  },
+  {
+    id: 'breaks',
+    path: '/chess/breaks',
+    icon: Coffee,
+    hoverBorder: 'hover:border-blue-500',
+    iconBg: 'bg-blue-600',
+    titleKey: 'chess.breaksCardTitle',
     descriptionKey: null,
   },
   // {

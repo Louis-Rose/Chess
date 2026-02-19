@@ -208,30 +208,33 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
           {showUsernameDropdown && (livePlayer || savedPlayers.length > 0) && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 max-h-48 overflow-auto">
               {livePlayer && !savedPlayers.some(p => p.username.toLowerCase() === livePlayer.username.toLowerCase()) && (
-                <button
-                  type="button"
-                  onClick={() => handleSelectSavedUsername(livePlayer)}
-                  className="w-full px-3 py-1.5 text-left text-slate-800 hover:bg-blue-50 flex items-center gap-2 text-sm border-b border-slate-200"
-                >
-                  {livePlayer.avatar ? (
-                    <img src={livePlayer.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs font-bold">
-                      {livePlayer.username.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  {livePlayer.username}
-                </button>
+                <>
+                  <div className="px-3 h-[40px] flex items-center text-xs text-slate-500 border-b border-slate-200">Found</div>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectSavedUsername(livePlayer)}
+                    className="w-full px-3 h-[40px] text-left text-slate-800 hover:bg-blue-50 flex items-center gap-2 text-base border-b border-slate-200"
+                  >
+                    {livePlayer.avatar ? (
+                      <img src={livePlayer.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs font-bold">
+                        {livePlayer.username.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {livePlayer.username}
+                  </button>
+                </>
               )}
               {savedPlayers.length > 0 && (
                 <>
-                  <div className="px-3 py-1.5 text-xs text-slate-500 border-b border-slate-200">Recent searches</div>
+                  <div className="px-3 h-[40px] flex items-center text-xs text-slate-500 border-b border-slate-200">Recent searches</div>
                   {savedPlayers.map((player, idx) => (
-                    <div key={idx} className="flex items-center hover:bg-blue-50">
+                    <div key={idx} className="flex items-center hover:bg-blue-50 h-[40px]">
                       <button
                         type="button"
                         onClick={() => handleSelectSavedUsername(player)}
-                        className="flex-1 px-3 py-1.5 text-left text-slate-800 flex items-center gap-2 text-sm"
+                        className="flex-1 px-3 h-full text-left text-slate-800 flex items-center gap-2 text-base"
                       >
                         {player.avatar ? (
                           <img src={player.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
@@ -245,7 +248,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
                       <button
                         type="button"
                         onClick={() => handleRemoveSavedPlayer(player.username)}
-                        className="px-2 py-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                        className="px-2 h-full flex items-center text-slate-400 hover:text-red-500 transition-colors"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>

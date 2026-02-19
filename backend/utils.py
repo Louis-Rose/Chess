@@ -320,6 +320,48 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
         if not daily_volume_stats and tcd.get('cached_daily_volume_stats'):
             daily_volume_stats = tcd['cached_daily_volume_stats']
 
+        # Breaks stats: win rate by time gap between consecutive games (same day)
+        breaks_buckets = {}  # gap_minutes_bucket -> {wins, draws, total}
+        BREAK_BINS = [0, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 1440]  # upper bounds in minutes
+        def get_break_bin(gap_minutes):
+            for b in BREAK_BINS:
+                if gap_minutes <= b:
+                    return b
+            return BREAK_BINS[-1]
+
+        for date_key, games in tcd['games_by_day'].items():
+            games_sorted = sorted(games, key=lambda x: x[0])
+            for i in range(1, len(games_sorted)):
+                gap_seconds = games_sorted[i][0] - games_sorted[i - 1][0]
+                gap_minutes = gap_seconds / 60
+                if gap_minutes > 1440:  # skip gaps > 24h (shouldn't happen same day but safety)
+                    continue
+                bucket = get_break_bin(gap_minutes)
+                if bucket not in breaks_buckets:
+                    breaks_buckets[bucket] = {'wins': 0, 'draws': 0, 'total': 0}
+                b = breaks_buckets[bucket]
+                b['total'] += 1
+                result = games_sorted[i][1]
+                if result == 'win':
+                    b['wins'] += 1
+                elif result == 'draw':
+                    b['draws'] += 1
+
+        breaks_stats = []
+        for bucket in sorted(breaks_buckets.keys()):
+            b = breaks_buckets[bucket]
+            if b['total'] < 5:
+                continue
+            win_rate = round(((b['wins'] + 0.5 * b['draws']) / b['total']) * 100, 1)
+            breaks_stats.append({
+                'gap_minutes': bucket,
+                'win_rate': win_rate,
+                'sample_size': b['total'],
+            })
+
+        if not breaks_stats and tcd.get('cached_breaks_stats'):
+            breaks_stats = tcd['cached_breaks_stats']
+
         # Streak stats: win rate after EXACTLY N consecutive wins/losses
         all_games_chrono = []
         for date_key, games in tcd['games_by_day'].items():
@@ -454,6 +496,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             'game_number_stats': game_number_result,
             'daily_volume_stats': daily_volume_stats,
             'streak_stats': streak_stats,
+            'breaks_stats': breaks_stats,
             'today_stats': today_stats,
             'hourly_stats': hourly_result,
             'win_prediction': win_prediction,

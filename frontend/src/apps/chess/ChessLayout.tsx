@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { LineChart, Calendar, Hash, TrendingUp, Target, Home, Shield, LogOut } from 'lucide-react';
+import { LineChart, Calendar, Hash, TrendingUp, Target, Coffee, Home, Shield, LogOut } from 'lucide-react';
 import { ChessDataProvider } from './contexts/ChessDataContext';
 import { useChessData } from './contexts/ChessDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { path: '/chess/daily-volume', labelKey: 'chess.navDailyVolume', icon: Calendar },
   { path: '/chess/game-number', labelKey: 'chess.navBestGames', icon: Hash },
   { path: '/chess/streak', labelKey: 'chess.navStreaks', icon: TrendingUp },
+  { path: '/chess/breaks', labelKey: 'chess.navBreaks', icon: Coffee },
 ];
 
 function ChessNavSidebar() {

@@ -59,6 +59,12 @@ export interface StreakStats {
   sample_size: number;
 }
 
+export interface BreaksStats {
+  gap_minutes: number;
+  win_rate: number;
+  sample_size: number;
+}
+
 export interface HourlyStats {
   hour_group: number;
   start_hour: number;
@@ -160,6 +166,7 @@ export interface ApiResponse {
   game_number_stats: GameNumberStats[];
   daily_volume_stats?: DailyVolumeStats[];
   streak_stats?: StreakStats[];
+  breaks_stats?: BreaksStats[];
   today_stats?: TodayStats;
   hourly_stats: HourlyStats[];
   win_prediction: WinPredictionAnalysis;
