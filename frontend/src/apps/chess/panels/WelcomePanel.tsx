@@ -7,6 +7,30 @@ import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 
+function LanguageToggle() {
+  const { language, setLanguage } = useLanguage();
+  return (
+    <div className="relative flex bg-slate-700 rounded-md p-0.5">
+      <div
+        className="absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] bg-slate-500 rounded transition-transform duration-200"
+        style={{ transform: language === 'en' ? 'translateX(0)' : 'translateX(100%)' }}
+      />
+      <button
+        onClick={() => setLanguage('en')}
+        className={`relative z-10 px-2 py-1 text-xs font-medium rounded transition-colors ${language === 'en' ? 'text-white' : 'text-slate-400'}`}
+      >
+        EN
+      </button>
+      <button
+        onClick={() => setLanguage('fr')}
+        className={`relative z-10 px-2 py-1 text-xs font-medium rounded transition-colors ${language === 'fr' ? 'text-white' : 'text-slate-400'}`}
+      >
+        FR
+      </button>
+    </div>
+  );
+}
+
 // Card definitions - titleKey/descriptionKey are i18n keys resolved at render time
 const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; iconBg: string; titleKey: string; descriptionKey: string | null }[] = [
   {
@@ -107,7 +131,10 @@ export function WelcomePanel() {
     <>
       {/* Header */}
       <div className="text-center space-y-6">
-        <h1 className="text-4xl font-bold text-slate-100">{t('chess.welcomeTitle')}</h1>
+        <div className="flex items-center justify-center gap-3">
+          <h1 className="text-3xl md:text-4xl font-bold text-slate-100">{t('chess.welcomeTitle')}</h1>
+          <LanguageToggle />
+        </div>
 
         {error && <p className="text-red-500 bg-red-100 py-2 px-4 rounded inline-block">{error}</p>}
         {searchedUsername && (
