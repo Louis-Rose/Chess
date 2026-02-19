@@ -140,7 +140,7 @@ export function WelcomePanel() {
   return (
     <>
       {/* Top bar: logo centered, language toggle right */}
-      <div className="relative flex items-center justify-center px-2 mb-4">
+      <div className="relative flex items-center justify-center px-2 mb-2">
         <div className="flex items-center gap-2">
           <LumnaLogo className="w-8 h-8" />
           <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
