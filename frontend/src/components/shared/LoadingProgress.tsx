@@ -54,7 +54,7 @@ export const LoadingProgress = ({
     }
   } else {
     statusContent = (
-      <div className="flex items-center justify-center gap-2 py-3">
+      <div className="flex items-center justify-center gap-2 py-2">
         <CheckCircle2 className="w-5 h-5 text-green-500" />
         <span className="text-slate-400">
           Analyzed {username ? `@${username}'s ` : ''}{totalGames?.toLocaleString() ?? 0} game{totalGames !== 1 ? 's' : ''}.
