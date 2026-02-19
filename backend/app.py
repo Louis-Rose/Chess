@@ -320,8 +320,15 @@ def get_chess_insight():
 {data_str}
 
 Your output should follow this format exactly, don't add anything:
+<OUTPUT>
 You should play between X and Y games per day (X.y% win rate).
-You should avoid playing less than X games per day (X.y% win rate), or more than Y games per day (X.y% win rate).
+You should avoid playing less than X games per day (X.y% win rate).
+You should avoid playing more than Y games per day (X.y% win rate).
+</OUTPUT>
+
+Rules:
+1) The win rate for the first sentence should be the average win rate for that optimal range.
+2) If the win rate for "less than X" or "more than Y" is above 50%, that's positive — remove that specific sentence entirely.
 No intro, no filler. No "here's my summary:". {lang_instruction}"""
         else:
             return jsonify({"error": f"Unknown stat type: {stat_type}"}), 400
