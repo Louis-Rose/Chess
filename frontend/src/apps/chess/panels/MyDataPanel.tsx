@@ -447,7 +447,7 @@ export function StreakSection({ data, standalone = false }: { data: ApiResponse;
   );
 
   return (
-    <CollapsibleSection title={t('chess.streakTitle')} defaultExpanded standalone={standalone}>
+    <CollapsibleSection title={t('chess.streaksCardTitle')} defaultExpanded standalone={standalone}>
       {(_fullscreen, sectionTitle) => {
         if (!stats || stats.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
