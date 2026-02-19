@@ -107,7 +107,7 @@ export function WelcomePanel() {
   return (
     <>
       {/* Header */}
-      <div className="text-center space-y-4 py-4">
+      <div className="text-center space-y-4 pt-1 pb-4">
         {/* Avatar placeholder while loading */}
         {loading && !data?.player && playerInfo && (
           <div className="flex justify-center">
@@ -132,7 +132,7 @@ export function WelcomePanel() {
       </div>
 
       {/* Welcome cards */}
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-8">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-[5%] md:mx-auto">
           {CARDS.map((card) => {
             const title = t(card.titleKey);
