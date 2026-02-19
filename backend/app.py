@@ -319,12 +319,11 @@ def get_chess_insight():
 
 {data_str}
 
-Your output should follow this format exactly (without the <OUTPUT> tags, obviously), don't add anything:
-<OUTPUT>
+Your output should follow this format exactly, don't add anything:
+
 You should play between X and Y games per day (X.y% win rate).
 You should avoid playing less than X games per day (X.y% win rate).
 You should avoid playing more than Y games per day (X.y% win rate).
-</OUTPUT>
 
 Rules:
 1) The win rate for the first sentence should be the average win rate for that optimal range.
