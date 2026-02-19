@@ -35,14 +35,14 @@ export const LoadingProgress = ({
   if (loading) {
     if (progress?.cached) {
       statusContent = (
-        <div className="flex items-center justify-center gap-3 py-3">
+        <div className="flex items-center justify-center gap-3 py-2">
           <Loader2 className="animate-spin w-5 h-5 text-blue-500" />
           <span className="text-slate-300">Loading...</span>
         </div>
       );
     } else {
       statusContent = (
-        <div className="flex items-center justify-center gap-3 py-3">
+        <div className="flex items-center justify-center gap-3 py-2">
           <Loader2 className="animate-spin w-5 h-5 text-blue-500" />
           <span className="text-slate-300">
             {formattedMonth

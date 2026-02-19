@@ -1,7 +1,7 @@
 // Chess app layout with sidebar and content area
 
 import { useState, useRef, useEffect } from 'react';
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink } from 'react-router-dom';
 import { LineChart, Calendar, Hash, TrendingUp, Target, Home, Shield, LogOut } from 'lucide-react';
 import { ChessDataProvider } from './contexts/ChessDataContext';
 import { useChessData } from './contexts/ChessDataContext';
@@ -245,7 +245,6 @@ function ChessHeader() {
 function ChessLayoutInner() {
   const [onboardingDone, setOnboardingDone] = useState(getChessPrefs().onboarding_done);
   const { searchedUsername } = useChessData();
-  const location = useLocation();
 
   // Track chess-only visitors (no Google auth needed)
   useChessHeartbeat(onboardingDone ? searchedUsername : '');
@@ -264,7 +263,6 @@ function ChessLayoutInner() {
           <ChessNavSidebar />
           <main className="relative flex-1 px-2 pb-8 md:px-8 md:pb-8 overflow-y-auto overscroll-y-contain">
             <ChessHeader />
-            {location.pathname !== '/chess' && <div className="border-t border-slate-700" />}
             <Outlet />
           </main>
           <FeedbackWidget language="en" />
