@@ -192,8 +192,8 @@ export function TodaySection({ data, standalone = false }: { data: ApiResponse; 
 }
 
 function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRate: number; days: number }[] }) {
-  const { t } = useLanguage();
-  const [summary, setSummary] = useState<string | null>(null);
+  const { t, language } = useLanguage();
+  const [summaries, setSummaries] = useState<{ en: string | null; fr: string | null }>({ en: null, fr: null });
   const [loading, setLoading] = useState(false);
   const fetchedRef = useRef<string>('');
 
@@ -201,19 +201,17 @@ function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRa
     const significant = sorted.filter(d => d.days >= 10);
     if (significant.length === 0) return;
 
-    // Cache key based on data only — language toggle should not re-fetch
     const key = significant.map(d => `${d.games_per_day}:${d.winRate.toFixed(1)}`).join(',');
     if (fetchedRef.current === key) return;
     fetchedRef.current = key;
 
+    const rows = significant.map(d => ({ games_per_day: d.games_per_day, win_rate: d.winRate }));
     setLoading(true);
-    fetchChessInsight(
-      'daily_volume',
-      significant.map(d => ({ games_per_day: d.games_per_day, win_rate: d.winRate })),
-      'en'
-    )
-      .then(text => setSummary(text))
-      .catch(() => setSummary(null))
+    Promise.all([
+      fetchChessInsight('daily_volume', rows, 'en').catch(() => null),
+      fetchChessInsight('daily_volume', rows, 'fr').catch(() => null),
+    ])
+      .then(([en, fr]) => setSummaries({ en, fr }))
       .finally(() => setLoading(false));
   }, [sorted]);
 
@@ -226,6 +224,7 @@ function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRa
     );
   }
 
+  const summary = summaries[language];
   if (!summary) return null;
 
   return (
