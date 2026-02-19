@@ -138,6 +138,7 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to fetch player info');
       setPlayerInfo(json.player);
+      setUsernameInput(json.player.username);
       savePlayer(json.player.username, json.player.avatar);
       setSavedPlayers(getSavedPlayers());
       const savedUsername = getChessPrefs().chess_username;
@@ -227,6 +228,7 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     if (data?.player) {
       // Use API's correctly-cased username
       setSearchedUsername(data.player.username);
+      setUsernameInput(data.player.username);
       savePlayer(data.player.username, data.player.avatar);
       setSavedPlayers(getSavedPlayers());
 
