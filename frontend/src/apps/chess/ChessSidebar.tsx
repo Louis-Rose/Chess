@@ -178,7 +178,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
       </div>
 
       {/* Search Bar */}
-      <div className="px-3 pb-3">
+      <div className="px-3 pb-2">
         <div ref={dropdownRef} className="relative">
         <form onSubmit={handleSubmit}>
           <div className="flex items-end mb-0.5">
@@ -272,7 +272,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
           {playerInfoError}
         </p>
       )}
-      <div className="px-3 pb-3">
+      <div className="px-3 pb-2 pt-1">
         <div className="h-px bg-slate-700" />
       </div>
 
