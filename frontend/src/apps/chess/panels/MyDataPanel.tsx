@@ -84,6 +84,15 @@ export function CollapsibleSection({ title, defaultExpanded = true, standalone =
   return card;
 }
 
+function StandaloneCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-slate-700 rounded-xl px-3 sm:px-6 py-4 mx-4 select-text space-y-3">
+      <h2 className="text-lg font-bold text-slate-100 text-center select-text">{title}</h2>
+      {children}
+    </div>
+  );
+}
+
 export function TodaySection({ data, standalone = false }: { data: ApiResponse; standalone?: boolean }) {
   const { t } = useLanguage();
 
@@ -274,11 +283,10 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
 
         if (standalone) {
           return (
-            <div className="bg-slate-700 rounded-xl px-3 sm:px-6 py-4 mx-4 select-text">
-              <h2 className="text-lg font-bold text-slate-100 text-center select-text pb-3">{sectionTitle}</h2>
+            <StandaloneCard title={sectionTitle ?? ''}>
               <DailyVolumeSummary sorted={sorted} />
               {table}
-            </div>
+            </StandaloneCard>
           );
         }
 
@@ -507,11 +515,10 @@ export function StreakSection({ data, standalone = false }: { data: ApiResponse;
 
         if (standalone) {
           return (
-            <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text space-y-4">
-              <h2 className="text-2xl font-bold text-slate-100 text-center select-text py-3">{sectionTitle}</h2>
+            <StandaloneCard title={sectionTitle ?? ''}>
               {table}
               {recommendation}
-            </div>
+            </StandaloneCard>
           );
         }
 
