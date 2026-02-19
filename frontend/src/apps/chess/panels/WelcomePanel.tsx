@@ -158,6 +158,7 @@ export function WelcomePanel() {
             );
           })}
         </div>
+        <div className="border-t border-slate-700 mt-4" />
       </div>
     </>
   );
