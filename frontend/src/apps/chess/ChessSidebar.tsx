@@ -213,7 +213,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
                   <div className="px-3 h-[40px] flex items-center text-xs text-slate-500 border-b border-slate-200">Found</div>
                   <button
                     type="button"
-                    onClick={() => handleSelectSavedUsername(livePlayer)}
+                    onMouseDown={(e) => { e.preventDefault(); handleSelectSavedUsername(livePlayer); }}
                     className="w-full px-3 h-[40px] text-left text-slate-800 hover:bg-blue-50 flex items-center gap-2 text-base border-b border-slate-200"
                   >
                     {livePlayer.avatar ? (
@@ -234,7 +234,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
                     <div key={idx} className="flex items-center hover:bg-blue-50 h-[40px]">
                       <button
                         type="button"
-                        onClick={() => handleSelectSavedUsername(player)}
+                        onMouseDown={(e) => { e.preventDefault(); handleSelectSavedUsername(player); }}
                         className="flex-1 px-3 h-full text-left text-slate-800 flex items-center gap-2 text-base"
                       >
                         {player.avatar ? (
@@ -248,7 +248,7 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleRemoveSavedPlayer(player.username)}
+                        onMouseDown={(e) => { e.preventDefault(); handleRemoveSavedPlayer(player.username); }}
                         className="px-2 h-full flex items-center text-slate-400 hover:text-red-500 transition-colors"
                       >
                         <X className="w-3.5 h-3.5" />
