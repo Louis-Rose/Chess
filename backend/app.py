@@ -1662,71 +1662,73 @@ def get_chess_time_spent_details(period):
             year, week = period.split('-W')
             if USE_POSTGRES:
                 cursor = conn.execute(f'''
-                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     JOIN user_preferences up ON u.id = up.user_id
                     WHERE EXTRACT(YEAR FROM a.activity_date::date) = %s
                       AND EXTRACT(WEEK FROM a.activity_date::date) = %s
                       AND u.email != %s {chess_filter}
-                    GROUP BY u.id, u.name, u.picture
+                    GROUP BY LOWER(up.chess_username)
                     ORDER BY minutes DESC
                 ''', (int(year), int(week), excluded_email))
             else:
                 cursor = conn.execute(f'''
-                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     JOIN user_preferences up ON u.id = up.user_id
                     WHERE strftime('%Y', a.activity_date) = ?
                       AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
                       AND u.email != ? {chess_filter}
-                    GROUP BY u.id
+                    GROUP BY LOWER(up.chess_username)
                     ORDER BY minutes DESC
                 ''', (year, int(week), excluded_email))
         elif len(period) == 7:
             if USE_POSTGRES:
                 cursor = conn.execute(f'''
-                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     JOIN user_preferences up ON u.id = up.user_id
                     WHERE to_char(a.activity_date::date, 'YYYY-MM') = %s
                       AND u.email != %s {chess_filter}
-                    GROUP BY u.id, u.name, u.picture
+                    GROUP BY LOWER(up.chess_username)
                     ORDER BY minutes DESC
                 ''', (period, excluded_email))
             else:
                 cursor = conn.execute(f'''
-                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     JOIN user_preferences up ON u.id = up.user_id
                     WHERE strftime('%Y-%m', a.activity_date) = ?
                       AND u.email != ? {chess_filter}
-                    GROUP BY u.id
+                    GROUP BY LOWER(up.chess_username)
                     ORDER BY minutes DESC
                 ''', (period, excluded_email))
         else:
             if USE_POSTGRES:
                 cursor = conn.execute(f'''
-                    SELECT u.id, u.name, u.picture, a.minutes
+                    SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     JOIN user_preferences up ON u.id = up.user_id
                     WHERE a.activity_date = %s
                       AND u.email != %s {chess_filter}
-                    ORDER BY a.minutes DESC
+                    GROUP BY LOWER(up.chess_username)
+                    ORDER BY minutes DESC
                 ''', (period, excluded_email))
             else:
                 cursor = conn.execute(f'''
-                    SELECT u.id, u.name, u.picture, a.minutes
+                    SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     JOIN user_preferences up ON u.id = up.user_id
                     WHERE a.activity_date = ?
                       AND u.email != ? {chess_filter}
-                    ORDER BY a.minutes DESC
+                    GROUP BY LOWER(up.chess_username)
+                    ORDER BY minutes DESC
                 ''', (period, excluded_email))
 
         users = [dict(row) for row in cursor.fetchall()]

@@ -24,9 +24,7 @@ interface TimeSpentData {
 }
 
 interface TimeSpentUser {
-  id: number;
   name: string;
-  picture: string;
   minutes: number;
 }
 
@@ -241,12 +239,11 @@ export function ChessAdminPanel() {
     return language === 'fr' ? `${diffDays}j` : `${diffDays}d`;
   };
 
-  // Format minutes as h:mm
+  // Format minutes as Xm or XhYY
   const formatTime = (minutes: number) => {
     if (minutes === 0) return '—';
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return `${h}:${String(m).padStart(2, '0')}`;
+    if (minutes >= 60) return `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}`;
+    return `${minutes}m`;
   };
 
   // Sort indicator
@@ -425,17 +422,13 @@ export function ChessAdminPanel() {
                         const percentage = totalMinutes > 0 ? Math.round((u.minutes / totalMinutes) * 100) : 0;
                         return (
                           <div
-                            key={u.id}
+                            key={u.name}
                             className="flex items-center justify-between py-1 px-2 rounded hover:bg-slate-500"
                           >
                             <div className="flex items-center gap-2">
-                              {u.picture ? (
-                                <img src={u.picture} alt={u.name} className="w-6 h-6 rounded-full" />
-                              ) : (
-                                <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
-                                  {u.name?.charAt(0) || '?'}
-                                </div>
-                              )}
+                              <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
+                                {u.name?.charAt(0) || '?'}
+                              </div>
                               <span className="text-sm text-slate-200">{u.name}</span>
                             </div>
                             <span className="text-sm font-medium text-slate-300">
