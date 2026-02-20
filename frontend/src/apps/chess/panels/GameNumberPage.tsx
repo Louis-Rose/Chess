@@ -23,7 +23,7 @@ export function GameNumberPage() {
             <ArrowLeft className="w-5 h-5" />
             <span>Previous</span>
           </button>
-          <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} />
+          <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} disabled={loading} />
         </div>
         <div className="border-t border-slate-700" />
         {loading && !data ? (
