@@ -1,6 +1,6 @@
 // Chess analysis section components
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChevronRight, Maximize2, Minimize2, Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
