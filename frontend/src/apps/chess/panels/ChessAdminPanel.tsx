@@ -228,17 +228,18 @@ export function ChessAdminPanel() {
     return (Math.ceil(maxMinutes / 30) * 30 + 30) * 60; // Convert back to seconds for domain
   }, [timeSpentChartData]);
 
-  // Format "days ago" for last_active (calendar-day comparison)
+  // Format "days ago" for last_active (calendar-day comparison + time)
   const formatDaysAgo = (lastActive: string | null) => {
     if (!lastActive) return '—';
     const now = new Date();
     const last = new Date(lastActive);
+    const timeStr = last.toLocaleTimeString(language === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
     const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const lastDate = new Date(last.getFullYear(), last.getMonth(), last.getDate());
     const diffDays = Math.round((nowDate.getTime() - lastDate.getTime()) / 86400000);
-    if (diffDays === 0) return language === 'fr' ? "Aujourd'hui" : 'Today';
-    if (diffDays === 1) return language === 'fr' ? 'Hier' : 'Yesterday';
-    return language === 'fr' ? `${diffDays}j` : `${diffDays}d`;
+    if (diffDays === 0) return `${language === 'fr' ? "Auj." : 'Today'} ${timeStr}`;
+    if (diffDays === 1) return `${language === 'fr' ? 'Hier' : 'Yest.'} ${timeStr}`;
+    return `${language === 'fr' ? `${diffDays}j` : `${diffDays}d`} ${timeStr}`;
   };
 
   // Format seconds as Xs, Xm, XmYYs, or XhYYm
