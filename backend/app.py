@@ -6315,7 +6315,7 @@ def get_page_breakdown():
             SELECT p.page, SUM(p.minutes) as total_minutes
             FROM page_activity p
             JOIN users u ON p.user_id = u.id
-            WHERE u.google_id NOT LIKE 'chess:%'
+            WHERE u.google_id NOT LIKE 'chess:%' AND u.email != 'rose.louis.mail@gmail.com'
             GROUP BY p.page
             ORDER BY total_minutes DESC
         ''')
