@@ -1595,14 +1595,17 @@ def list_users():
     return jsonify({'users': users, 'total': len(users)})
 
 
+EXCLUDED_CHESS_TESTERS = ('akyrosu', 'pingu-dav', 'remi75014', 'pengumasc', 'augustincbs', 'lau_tiny')
+
 @app.route('/api/admin/chess-users', methods=['GET'])
 @admin_required
 def get_chess_users():
     """Get chess user statistics (admin only)."""
     excluded_email = 'rose.louis.mail@gmail.com'
+    placeholders = ','.join(['?' for _ in EXCLUDED_CHESS_TESTERS])
 
     with get_db() as conn:
-        cursor = conn.execute('''
+        cursor = conn.execute(f'''
             SELECT LOWER(up.chess_username) as chess_username,
                    COALESCE(SUM(a.minutes), 0) as total_minutes,
                    MAX(a.last_ping) as last_active,
@@ -1613,9 +1616,10 @@ def get_chess_users():
             LEFT JOIN user_activity a ON u.id = a.user_id
             WHERE up.chess_username IS NOT NULL
               AND u.email != ?
+              AND LOWER(up.chess_username) NOT IN ({placeholders})
             GROUP BY LOWER(up.chess_username)
             ORDER BY total_minutes DESC
-        ''', (excluded_email,))
+        ''', (excluded_email, *EXCLUDED_CHESS_TESTERS))
         users = []
         for row in cursor.fetchall():
             user = dict(row)
@@ -1633,18 +1637,20 @@ def get_chess_users():
 def get_chess_time_spent_stats():
     """Get daily time spent stats for chess users only (admin only)."""
     excluded_email = 'rose.louis.mail@gmail.com'
+    placeholders = ','.join(['?' for _ in EXCLUDED_CHESS_TESTERS])
 
     with get_db() as conn:
-        cursor = conn.execute('''
+        cursor = conn.execute(f'''
             SELECT a.activity_date, SUM(a.minutes) as total_minutes
             FROM user_activity a
             JOIN users u ON a.user_id = u.id
             JOIN user_preferences up ON u.id = up.user_id
             WHERE u.email != ?
               AND up.chess_username IS NOT NULL
+              AND LOWER(up.chess_username) NOT IN ({placeholders})
             GROUP BY a.activity_date
             ORDER BY a.activity_date ASC
-        ''', (excluded_email,))
+        ''', (excluded_email, *EXCLUDED_CHESS_TESTERS))
         daily_stats = [dict(row) for row in cursor.fetchall()]
 
     return jsonify({'daily_stats': daily_stats})
@@ -1655,7 +1661,8 @@ def get_chess_time_spent_stats():
 def get_chess_time_spent_details(period):
     """Get chess users' time spent for a specific period (admin only)."""
     excluded_email = 'rose.louis.mail@gmail.com'
-    chess_filter = 'AND up.chess_username IS NOT NULL'
+    tester_placeholders = ','.join(['?' for _ in EXCLUDED_CHESS_TESTERS])
+    chess_filter = f'AND up.chess_username IS NOT NULL AND LOWER(up.chess_username) NOT IN ({tester_placeholders})'
 
     with get_db() as conn:
         if '-W' in period:
@@ -1671,7 +1678,7 @@ def get_chess_time_spent_details(period):
                       AND u.email != %s {chess_filter}
                     GROUP BY LOWER(up.chess_username)
                     ORDER BY minutes DESC
-                ''', (int(year), int(week), excluded_email))
+                ''', (int(year), int(week), excluded_email, *EXCLUDED_CHESS_TESTERS))
             else:
                 cursor = conn.execute(f'''
                     SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
@@ -1683,7 +1690,7 @@ def get_chess_time_spent_details(period):
                       AND u.email != ? {chess_filter}
                     GROUP BY LOWER(up.chess_username)
                     ORDER BY minutes DESC
-                ''', (year, int(week), excluded_email))
+                ''', (year, int(week), excluded_email, *EXCLUDED_CHESS_TESTERS))
         elif len(period) == 7:
             if USE_POSTGRES:
                 cursor = conn.execute(f'''
@@ -1695,7 +1702,7 @@ def get_chess_time_spent_details(period):
                       AND u.email != %s {chess_filter}
                     GROUP BY LOWER(up.chess_username)
                     ORDER BY minutes DESC
-                ''', (period, excluded_email))
+                ''', (period, excluded_email, *EXCLUDED_CHESS_TESTERS))
             else:
                 cursor = conn.execute(f'''
                     SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
@@ -1706,7 +1713,7 @@ def get_chess_time_spent_details(period):
                       AND u.email != ? {chess_filter}
                     GROUP BY LOWER(up.chess_username)
                     ORDER BY minutes DESC
-                ''', (period, excluded_email))
+                ''', (period, excluded_email, *EXCLUDED_CHESS_TESTERS))
         else:
             if USE_POSTGRES:
                 cursor = conn.execute(f'''
@@ -1718,7 +1725,7 @@ def get_chess_time_spent_details(period):
                       AND u.email != %s {chess_filter}
                     GROUP BY LOWER(up.chess_username)
                     ORDER BY minutes DESC
-                ''', (period, excluded_email))
+                ''', (period, excluded_email, *EXCLUDED_CHESS_TESTERS))
             else:
                 cursor = conn.execute(f'''
                     SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
@@ -1729,7 +1736,7 @@ def get_chess_time_spent_details(period):
                       AND u.email != ? {chess_filter}
                     GROUP BY LOWER(up.chess_username)
                     ORDER BY minutes DESC
-                ''', (period, excluded_email))
+                ''', (period, excluded_email, *EXCLUDED_CHESS_TESTERS))
 
         users = [dict(row) for row in cursor.fetchall()]
 
@@ -1741,16 +1748,19 @@ def get_chess_time_spent_details(period):
 def get_chess_page_breakdown():
     """Get aggregated time spent by page/section for chess users only (admin only)."""
     excluded_email = 'rose.louis.mail@gmail.com'
+    placeholders = ','.join(['?' for _ in EXCLUDED_CHESS_TESTERS])
 
     with get_db() as conn:
-        cursor = conn.execute('''
+        cursor = conn.execute(f'''
             SELECT p.page, SUM(p.minutes) as total_minutes
             FROM page_activity p
             JOIN users u ON p.user_id = u.id
+            JOIN user_preferences up ON u.id = up.user_id
             WHERE u.google_id LIKE ? AND u.email != ?
+              AND LOWER(up.chess_username) NOT IN ({placeholders})
             GROUP BY p.page
             ORDER BY total_minutes DESC
-        ''', ('chess:%', excluded_email))
+        ''', ('chess:%', excluded_email, *EXCLUDED_CHESS_TESTERS))
 
         breakdown = [dict(row) for row in cursor.fetchall()]
         total = sum(item['total_minutes'] for item in breakdown)
