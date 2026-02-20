@@ -315,15 +315,25 @@ def get_chess_insight():
 
         if stat_type == 'daily_volume':
             data_str = "\n".join(f"- {r['games_per_day']} games/day → {r['win_rate']:.1f}% win rate" for r in rows)
+            if lang == 'fr':
+                format_example = (
+                    "Vous devriez jouer entre X et Y parties par jour (X.y% de taux de victoire).\n"
+                    "Vous devriez éviter de jouer moins de X parties par jour (X.y% de taux de victoire).\n"
+                    "Vous devriez éviter de jouer plus de Y parties par jour (X.y% de taux de victoire)."
+                )
+            else:
+                format_example = (
+                    "You should play between X and Y games per day (X.y% win rate).\n"
+                    "You should avoid playing less than X games per day (X.y% win rate).\n"
+                    "You should avoid playing more than Y games per day (X.y% win rate)."
+                )
             prompt = f"""You are a chess coach. Here is a player's win rate by number of games played per day:
 
 {data_str}
 
 Your output should follow this format exactly, don't add anything:
 
-You should play between X and Y games per day (X.y% win rate).
-You should avoid playing less than X games per day (X.y% win rate).
-You should avoid playing more than Y games per day (X.y% win rate).
+{format_example}
 
 Rules:
 1) The win rate for the first sentence should be the average win rate for that optimal range.

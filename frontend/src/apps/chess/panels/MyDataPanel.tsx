@@ -215,7 +215,12 @@ function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRa
 
   useEffect(() => {
     const significant = sorted.filter(d => d.days >= 10);
-    if (significant.length === 0) return;
+    if (significant.length === 0) {
+      // Clear stale summaries when switching to a time class with no data
+      setSummaries({ en: null, fr: null });
+      fetchedRef.current = '';
+      return;
+    }
 
     const key = significant.map(d => `${d.games_per_day}:${d.winRate.toFixed(1)}`).join(',');
     if (fetchedRef.current === key) return;
