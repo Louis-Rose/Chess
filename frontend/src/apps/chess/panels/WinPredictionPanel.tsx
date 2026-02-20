@@ -1,10 +1,22 @@
 // Win Prediction panel - placeholder
 
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 export function WinPredictionPanel() {
-  const { data } = useChessData();
+  const { data, loading, selectedTimeClass } = useChessData();
+  const { t, language } = useLanguage();
+
+  if (loading && !data) {
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-12 h-12 text-slate-400 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   if (!data) {
     return (
@@ -20,6 +32,29 @@ export function WinPredictionPanel() {
 
   const wp = data.win_prediction;
 
+  if (!wp) {
+    const count = data.total_games;
+    const timeClassLabel = language === 'fr'
+      ? (selectedTimeClass === 'rapid' ? 'rapide' : 'blitz')
+      : selectedTimeClass;
+    const gamesWord = count === 1
+      ? (language === 'fr' ? 'partie' : 'game')
+      : (language === 'fr' ? 'parties' : 'games');
+    const msg = t('chess.notEnoughGames')
+      .replace('{count}', String(count))
+      .replace('{timeClass}', timeClassLabel)
+      .replace('{games}', gamesWord);
+
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="flex flex-col items-center justify-center py-20">
+          <TrendingUp className="w-16 h-16 text-slate-500 mb-4" />
+          <p className="text-slate-400 text-center max-w-md">{msg}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col items-center gap-2 mb-6 mt-8">
@@ -29,31 +64,29 @@ export function WinPredictionPanel() {
 
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Win rates after previous results */}
-        {wp && (
-          <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 dark:text-slate-100 mb-4">Win Rate After Previous Result</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-white rounded-lg">
-                <p className="text-2xl font-bold text-green-600">{wp.win_rate_after_win?.toFixed(1)}%</p>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">After Win</p>
-                <p className="text-slate-400 text-xs">{wp.games_after_win} games</p>
-              </div>
-              <div className="text-center p-4 bg-white rounded-lg">
-                <p className="text-2xl font-bold text-red-600">{wp.win_rate_after_loss?.toFixed(1)}%</p>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">After Loss</p>
-                <p className="text-slate-400 text-xs">{wp.games_after_loss} games</p>
-              </div>
-              <div className="text-center p-4 bg-white rounded-lg">
-                <p className="text-2xl font-bold text-yellow-600">{wp.win_rate_after_draw?.toFixed(1)}%</p>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">After Draw</p>
-                <p className="text-slate-400 text-xs">{wp.games_after_draw} games</p>
-              </div>
+        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 dark:text-slate-100 mb-4">Win Rate After Previous Result</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-white rounded-lg">
+              <p className="text-2xl font-bold text-green-600">{wp.win_rate_after_win?.toFixed(1)}%</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">After Win</p>
+              <p className="text-slate-400 text-xs">{wp.games_after_win} games</p>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg">
+              <p className="text-2xl font-bold text-red-600">{wp.win_rate_after_loss?.toFixed(1)}%</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">After Loss</p>
+              <p className="text-slate-400 text-xs">{wp.games_after_loss} games</p>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg">
+              <p className="text-2xl font-bold text-yellow-600">{wp.win_rate_after_draw?.toFixed(1)}%</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">After Draw</p>
+              <p className="text-slate-400 text-xs">{wp.games_after_draw} games</p>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Insights */}
-        {wp?.insights && wp.insights.length > 0 && (
+        {wp.insights && wp.insights.length > 0 && (
           <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-6">
             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 dark:text-slate-100 mb-4">Insights</h3>
             <div className="space-y-3">

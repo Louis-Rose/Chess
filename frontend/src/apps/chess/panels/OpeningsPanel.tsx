@@ -1,11 +1,23 @@
 // Openings panel - placeholder
 
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import { OpeningsChart } from '../../../components/charts/OpeningsChart';
 
 export function OpeningsPanel() {
-  const { data, allOpenings, selectedOpening, handleOpeningSelect, videos, videosLoading } = useChessData();
+  const { data, loading, selectedTimeClass, allOpenings, selectedOpening, handleOpeningSelect, videos, videosLoading } = useChessData();
+  const { t, language } = useLanguage();
+
+  if (loading && !data) {
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-12 h-12 text-slate-400 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   if (!data) {
     return (
@@ -14,6 +26,32 @@ export function OpeningsPanel() {
           <BookOpen className="w-16 h-16 text-slate-500 mb-4" />
           <h2 className="text-2xl font-bold text-slate-300 mb-2">No Data Available</h2>
           <p className="text-slate-500">Search for a player using the sidebar to view openings.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const whiteEmpty = !data.openings.white || data.openings.white.length === 0;
+  const blackEmpty = !data.openings.black || data.openings.black.length === 0;
+
+  if (whiteEmpty && blackEmpty) {
+    const count = data.total_games;
+    const timeClassLabel = language === 'fr'
+      ? (selectedTimeClass === 'rapid' ? 'rapide' : 'blitz')
+      : selectedTimeClass;
+    const gamesWord = count === 1
+      ? (language === 'fr' ? 'partie' : 'game')
+      : (language === 'fr' ? 'parties' : 'games');
+    const msg = t('chess.notEnoughGames')
+      .replace('{count}', String(count))
+      .replace('{timeClass}', timeClassLabel)
+      .replace('{games}', gamesWord);
+
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="flex flex-col items-center justify-center py-20">
+          <BookOpen className="w-16 h-16 text-slate-500 mb-4" />
+          <p className="text-slate-400 text-center max-w-md">{msg}</p>
         </div>
       </div>
     );

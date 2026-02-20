@@ -106,6 +106,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Chess
     'chess.myData': 'My Data',
     'chess.noData': 'No Data Available',
+    'chess.notEnoughGames': 'Only {count} {timeClass} {games} found — not enough for this analysis. Play more to unlock this view!',
     'chess.searchPrompt': 'Search for a player using the sidebar to view their statistics.',
     'chess.eloTitle': 'Elo Rating & Games Played',
     'chess.dailyVolumeTitle': 'How many games should you play every day?',
@@ -297,6 +298,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Chess
     'chess.myData': 'Mes Données',
     'chess.noData': 'Aucune donnée disponible',
+    'chess.notEnoughGames': 'Seulement {count} {games} en {timeClass} — pas assez pour cette analyse. Jouez davantage pour débloquer cette vue !',
     'chess.searchPrompt': 'Recherchez un joueur via la barre latérale pour voir ses statistiques.',
     'chess.eloTitle': 'Classement Elo & Parties Jouées',
     'chess.dailyVolumeTitle': 'Combien de parties jouer par jour ?',

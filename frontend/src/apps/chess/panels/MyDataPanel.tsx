@@ -11,6 +11,22 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
+function NotEnoughGames({ totalGames }: { totalGames: number }) {
+  const { t, language } = useLanguage();
+  const { selectedTimeClass } = useChessData();
+  const timeClassLabel = language === 'fr'
+    ? (selectedTimeClass === 'rapid' ? 'rapide' : 'blitz')
+    : selectedTimeClass;
+  const gamesWord = totalGames === 1
+    ? (language === 'fr' ? 'partie' : 'game')
+    : (language === 'fr' ? 'parties' : 'games');
+  const msg = t('chess.notEnoughGames')
+    .replace('{count}', String(totalGames))
+    .replace('{timeClass}', timeClassLabel)
+    .replace('{games}', gamesWord);
+  return <p className="text-slate-400 text-center py-8 max-w-md mx-auto">{msg}</p>;
+}
+
 export function CollapsibleSection({ title, defaultExpanded = true, standalone = false, children }: { title: string; defaultExpanded?: boolean; standalone?: boolean; children: React.ReactNode | ((fullscreen: boolean, title?: string) => React.ReactNode) }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -242,10 +258,10 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
   return (
     <CollapsibleSection title={t('chess.dailyVolumeTitle')} defaultExpanded standalone={standalone}>
       {(_fullscreen, sectionTitle) => {
-        if (!rawDvs || rawDvs.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
+        if (!rawDvs || rawDvs.length === 0) return <NotEnoughGames totalGames={data.total_games} />;
 
         const dvs = rawDvs.filter(d => d.days > 0);
-        if (dvs.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
+        if (dvs.length === 0) return <NotEnoughGames totalGames={data.total_games} />;
 
         // Sort ascending by games per day, truncate after last entry with N >= 10
         const withRate = dvs
@@ -303,7 +319,7 @@ export function GameNumberSection({ data, standalone = false }: { data: ApiRespo
   return (
     <CollapsibleSection title={t('chess.gameNumberTitle')} defaultExpanded standalone={standalone}>
       {(fullscreen, sectionTitle) => {
-        if (!raw || raw.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
+        if (!raw || raw.length === 0) return <NotEnoughGames totalGames={data.total_games} />;
 
         const fs = fullscreen ? 18 : 14;
 
@@ -312,7 +328,7 @@ export function GameNumberSection({ data, standalone = false }: { data: ApiRespo
         const lastSigIdx = sorted.reduce((last, g, i) => g.sample_size >= 10 ? i : last, -1);
         const filtered = lastSigIdx >= 0 ? sorted.slice(0, lastSigIdx + 1) : [];
 
-        if (filtered.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
+        if (filtered.length === 0) return <NotEnoughGames totalGames={data.total_games} />;
 
         // Compute loss_rate and draw_rate for stacked bars (win_rate already provided)
         const chartData = filtered.map(g => ({
@@ -445,7 +461,7 @@ export function StreakSection({ data, standalone = false }: { data: ApiResponse;
   return (
     <CollapsibleSection title={t('chess.streaksCardTitle')} defaultExpanded standalone={standalone}>
       {(_fullscreen, sectionTitle) => {
-        if (!stats || stats.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
+        if (!stats || stats.length === 0) return <NotEnoughGames totalGames={data.total_games} />;
 
         // Wins: descending (max, ..., 2, 1). Losses: ascending (1, 2, ..., max)
         // Truncate each after the last row with N >= 30
@@ -683,7 +699,7 @@ export function EloSection({ data, standalone = false }: { data: ApiResponse; st
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="text-slate-500 text-center py-8">No data available.</p>
+          <NotEnoughGames totalGames={data.total_games} />
         );
 
         if (standalone) {
