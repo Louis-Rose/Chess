@@ -1603,16 +1603,16 @@ def get_chess_users():
 
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT up.chess_username,
+            SELECT LOWER(up.chess_username) as chess_username,
                    COALESCE(SUM(a.minutes), 0) as total_minutes,
                    MAX(a.last_ping) as last_active,
-                   u.session_count
+                   SUM(u.session_count) as session_count
             FROM user_preferences up
             JOIN users u ON up.user_id = u.id
             LEFT JOIN user_activity a ON u.id = a.user_id
             WHERE up.chess_username IS NOT NULL
               AND u.email != ?
-            GROUP BY up.user_id, up.chess_username, u.session_count
+            GROUP BY LOWER(up.chess_username)
             ORDER BY total_minutes DESC
         ''', (excluded_email,))
         users = []
