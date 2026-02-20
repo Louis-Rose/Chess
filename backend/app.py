@@ -1456,9 +1456,9 @@ def get_users_by_theme(theme):
             SELECT u.id, u.name, u.picture
             FROM users u
             INNER JOIN theme_usage t ON u.id = t.user_id
-            WHERE t.resolved_theme = ? AND u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
+            WHERE t.resolved_theme = ? AND u.is_admin = 0 AND u.google_id NOT LIKE ?
             ORDER BY u.name
-        ''', (theme,))
+        ''', (theme, 'chess:%'))
         users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture']} for row in cursor.fetchall()]
 
     return jsonify({'users': users})
@@ -1476,9 +1476,9 @@ def get_users_by_language(lang):
             SELECT u.id, u.name, u.picture
             FROM users u
             INNER JOIN language_usage l ON u.id = l.user_id
-            WHERE l.language = ? AND u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
+            WHERE l.language = ? AND u.is_admin = 0 AND u.google_id NOT LIKE ?
             ORDER BY u.name
-        ''', (lang,))
+        ''', (lang, 'chess:%'))
         users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture']} for row in cursor.fetchall()]
 
     return jsonify({'users': users})
@@ -1496,9 +1496,9 @@ def get_users_by_device(device):
             SELECT u.id, u.name, u.picture, d.minutes
             FROM users u
             INNER JOIN device_usage d ON u.id = d.user_id
-            WHERE d.device_type = ? AND u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
+            WHERE d.device_type = ? AND u.is_admin = 0 AND u.google_id NOT LIKE ?
             ORDER BY d.minutes DESC
-        ''', (device,))
+        ''', (device, 'chess:%'))
         users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture'], 'minutes': row['minutes']} for row in cursor.fetchall()]
 
     return jsonify({'users': users})
@@ -6211,10 +6211,10 @@ def get_time_spent_stats():
             SELECT a.activity_date, SUM(a.minutes) as total_minutes
             FROM user_activity a
             JOIN users u ON a.user_id = u.id
-            WHERE u.email != ? AND u.google_id NOT LIKE 'chess:%'
+            WHERE u.email != ? AND u.google_id NOT LIKE ?
             GROUP BY a.activity_date
             ORDER BY a.activity_date ASC
-        ''', (excluded_email,))
+        ''', (excluded_email, 'chess:%'))
         daily_stats = [dict(row) for row in cursor.fetchall()]
 
     return jsonify({'daily_stats': daily_stats})
@@ -6254,10 +6254,10 @@ def get_time_spent_details(period):
                     JOIN users u ON a.user_id = u.id
                     WHERE strftime('%Y', a.activity_date) = ?
                       AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
-                      AND u.email != ? AND u.google_id NOT LIKE 'chess:%'
+                      AND u.email != ? AND u.google_id NOT LIKE ?
                     GROUP BY u.id
                     ORDER BY minutes DESC
-                ''', (year, int(week), excluded_email))
+                ''', (year, int(week), excluded_email, 'chess:%'))
         elif len(period) == 7:
             # Month format: YYYY-MM
             if USE_POSTGRES:
@@ -6276,10 +6276,10 @@ def get_time_spent_details(period):
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE strftime('%Y-%m', a.activity_date) = ?
-                      AND u.email != ? AND u.google_id NOT LIKE 'chess:%'
+                      AND u.email != ? AND u.google_id NOT LIKE ?
                     GROUP BY u.id
                     ORDER BY minutes DESC
-                ''', (period, excluded_email))
+                ''', (period, excluded_email, 'chess:%'))
         else:
             # Date format: YYYY-MM-DD
             if USE_POSTGRES:
@@ -6297,9 +6297,9 @@ def get_time_spent_details(period):
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE a.activity_date = ?
-                      AND u.email != ? AND u.google_id NOT LIKE 'chess:%'
+                      AND u.email != ? AND u.google_id NOT LIKE ?
                     ORDER BY a.minutes DESC
-                ''', (period, excluded_email))
+                ''', (period, excluded_email, 'chess:%'))
 
         users = [dict(row) for row in cursor.fetchall()]
 
