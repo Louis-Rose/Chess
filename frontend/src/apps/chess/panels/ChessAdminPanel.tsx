@@ -12,7 +12,7 @@ import { useChessData } from '../contexts/ChessDataContext';
 
 interface ChessUser {
   chess_username: string;
-  total_minutes: number;
+  total_seconds: number;
   last_active: string | null;
   session_count: number;
   created_at: string | null;
@@ -20,15 +20,15 @@ interface ChessUser {
 
 interface TimeSpentData {
   activity_date: string;
-  total_minutes: number;
+  total_seconds: number;
 }
 
 interface TimeSpentUser {
   name: string;
-  minutes: number;
+  seconds: number;
 }
 
-type SortColumn = 'chess_username' | 'created_at' | 'last_active' | 'total_minutes' | 'session_count';
+type SortColumn = 'chess_username' | 'created_at' | 'last_active' | 'total_seconds' | 'session_count';
 type SortDirection = 'asc' | 'desc';
 type TimeUnit = 'days' | 'weeks' | 'months';
 
@@ -46,8 +46,8 @@ const fetchTimeSpent = async (username: string): Promise<TimeSpentData[]> => {
 };
 
 interface PageBreakdown {
-  breakdown: { page: string; total_minutes: number }[];
-  total_minutes: number;
+  breakdown: { page: string; total_seconds: number }[];
+  total_seconds: number;
 }
 
 const fetchPageBreakdown = async (username: string): Promise<PageBreakdown> => {
@@ -64,7 +64,7 @@ export function ChessAdminPanel() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Sort state
-  const [sortColumn, setSortColumn] = useState<SortColumn>('total_minutes');
+  const [sortColumn, setSortColumn] = useState<SortColumn>('total_seconds');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   // Collapsible sections
@@ -172,8 +172,8 @@ export function ChessAdminPanel() {
           comparison = aTime - bTime;
           break;
         }
-        case 'total_minutes':
-          comparison = a.total_minutes - b.total_minutes;
+        case 'total_seconds':
+          comparison = a.total_seconds - b.total_seconds;
           break;
         case 'session_count':
           comparison = (a.session_count || 0) - (b.session_count || 0);
@@ -189,10 +189,10 @@ export function ChessAdminPanel() {
     const startDate = new Date(CHART_START_DATE);
     const endDate = new Date();
 
-    const minutesByDate: Record<string, number> = {};
+    const secondsByDate: Record<string, number> = {};
     if (timeSpentData) {
       timeSpentData.forEach(d => {
-        minutesByDate[d.activity_date] = d.total_minutes;
+        secondsByDate[d.activity_date] = d.total_seconds;
       });
     }
 
@@ -205,26 +205,27 @@ export function ChessAdminPanel() {
 
     const dailyData = allDates.map(date => ({
       date,
-      minutes: minutesByDate[date] || 0,
+      seconds: secondsByDate[date] || 0,
     }));
 
     if (chartUnit === 'days') return dailyData;
 
     const grouped: Record<string, number> = {};
-    dailyData.forEach(({ date, minutes }) => {
+    dailyData.forEach(({ date, seconds }) => {
       const key = chartUnit === 'weeks' ? getWeekKey(date) : getMonthKey(date);
-      grouped[key] = (grouped[key] || 0) + minutes;
+      grouped[key] = (grouped[key] || 0) + seconds;
     });
 
     return Object.entries(grouped)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, minutes]) => ({ date: key, minutes }));
+      .map(([key, seconds]) => ({ date: key, seconds }));
   }, [timeSpentData, chartUnit]);
 
-  // Y-axis max for time spent
+  // Y-axis max for time spent (in seconds, displayed as minutes)
   const timeYAxisMax = useMemo(() => {
-    const maxMinutes = Math.max(...timeSpentChartData.map(d => d.minutes), 0);
-    return Math.ceil(maxMinutes / 30) * 30 + 30;
+    const maxSeconds = Math.max(...timeSpentChartData.map(d => d.seconds), 0);
+    const maxMinutes = maxSeconds / 60;
+    return (Math.ceil(maxMinutes / 30) * 30 + 30) * 60; // Convert back to seconds for domain
   }, [timeSpentChartData]);
 
   // Format "days ago" for last_active (calendar-day comparison)
@@ -240,11 +241,14 @@ export function ChessAdminPanel() {
     return language === 'fr' ? `${diffDays}j` : `${diffDays}d`;
   };
 
-  // Format minutes as Xm or XhYY
-  const formatTime = (minutes: number) => {
-    if (minutes === 0) return '—';
+  // Format seconds as Xs, Xm, XmYYs, or XhYYm
+  const formatTime = (totalSeconds: number) => {
+    if (totalSeconds === 0) return '—';
+    const minutes = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    if (minutes === 0) return `${secs}s`;
     if (minutes >= 60) return `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}`;
-    return `${minutes}m`;
+    return `${minutes}m${secs > 0 ? `${String(secs).padStart(2, '0')}s` : ''}`;
   };
 
   // Sort indicator
@@ -347,7 +351,7 @@ export function ChessAdminPanel() {
                       tick={{ fontSize: 12, fill: '#94a3b8' }}
                       allowDecimals={false}
                       domain={[0, timeYAxisMax]}
-                      tickFormatter={(value) => `${value} min`}
+                      tickFormatter={(value) => `${Math.round(value / 60)} min`}
                     />
                     <Tooltip
                       cursor={false}
@@ -370,10 +374,10 @@ export function ChessAdminPanel() {
                         }
                         return new Date(dateStr).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' });
                       }}
-                      formatter={(value) => [`${value} min`]}
+                      formatter={(value: number) => [formatTime(value)]}
                     />
                     <Bar
-                      dataKey="minutes"
+                      dataKey="seconds"
                       fill="#22c55e"
                       radius={[4, 4, 0, 0]}
                       cursor="pointer"
@@ -418,9 +422,9 @@ export function ChessAdminPanel() {
                 ) : timeSpentUsers.length > 0 ? (
                   <div className="space-y-2 max-h-[200px] overflow-y-auto">
                     {(() => {
-                      const totalMinutes = timeSpentUsers.reduce((sum, u) => sum + u.minutes, 0);
+                      const totalSecs = timeSpentUsers.reduce((sum, u) => sum + u.seconds, 0);
                       return timeSpentUsers.map((u) => {
-                        const percentage = totalMinutes > 0 ? Math.round((u.minutes / totalMinutes) * 100) : 0;
+                        const percentage = totalSecs > 0 ? Math.round((u.seconds / totalSecs) * 100) : 0;
                         return (
                           <div
                             key={u.name}
@@ -433,9 +437,7 @@ export function ChessAdminPanel() {
                               <span className="text-sm text-slate-200">{u.name}</span>
                             </div>
                             <span className="text-sm font-medium text-slate-300">
-                              {u.minutes >= 60
-                                ? `${Math.floor(u.minutes / 60)}h${String(u.minutes % 60).padStart(2, '0')}`
-                                : `${u.minutes}m`}
+                              {formatTime(u.seconds)}
                               {' '}
                               <span className="text-slate-500">({percentage}%)</span>
                             </span>
@@ -475,16 +477,16 @@ export function ChessAdminPanel() {
                           chess_admin: { en: 'Admin', fr: 'Admin' },
                           chess_other: { en: 'Other', fr: 'Autre' },
                         };
-                        const breakdownMap = new Map(pageBreakdown?.breakdown.map(b => [b.page, b.total_minutes]) || []);
-                        const total = pageBreakdown?.total_minutes || 0;
+                        const breakdownMap = new Map(pageBreakdown?.breakdown.map(b => [b.page, b.total_seconds]) || []);
+                        const total = pageBreakdown?.total_seconds || 0;
 
                         const allPages = [...breakdownMap.keys()].sort((a, b) => {
                           return (breakdownMap.get(b) || 0) - (breakdownMap.get(a) || 0);
                         });
 
                         return allPages.map((page) => {
-                          const minutes = breakdownMap.get(page) || 0;
-                          const percentage = total > 0 ? Math.round((minutes / total) * 100) : 0;
+                          const secs = breakdownMap.get(page) || 0;
+                          const percentage = total > 0 ? Math.round((secs / total) * 100) : 0;
                           const label = pageLabels[page]?.[language === 'fr' ? 'fr' : 'en'] || page;
                           return (
                             <div key={page} className="flex items-center gap-3">
@@ -567,10 +569,10 @@ export function ChessAdminPanel() {
                         </th>
                         <th
                           className="text-left py-2 px-3 text-slate-400 font-medium cursor-pointer hover:text-slate-200 transition-colors"
-                          onClick={() => handleSort('total_minutes')}
+                          onClick={() => handleSort('total_seconds')}
                         >
                           {language === 'fr' ? 'Temps' : 'Time'}
-                          <SortIcon column="total_minutes" />
+                          <SortIcon column="total_seconds" />
                         </th>
                         <th
                           className="text-left py-2 px-3 text-slate-400 font-medium cursor-pointer hover:text-slate-200 transition-colors"
@@ -607,7 +609,7 @@ export function ChessAdminPanel() {
                             {formatDaysAgo(u.last_active)}
                           </td>
                           <td className="py-2 px-3 text-slate-300">
-                            {formatTime(u.total_minutes)}
+                            {formatTime(u.total_seconds)}
                           </td>
                           <td className="py-2 px-3 text-slate-300">
                             {u.session_count || 0}

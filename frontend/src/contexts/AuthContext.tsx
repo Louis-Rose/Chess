@@ -205,9 +205,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isLoading]);
 
-  // Heartbeat for activity tracking (every 60s when logged in and tab visible)
+  // Heartbeat for activity tracking (every 15s when logged in, tab visible, and user active)
   useEffect(() => {
     if (!user) return;
+
+    let isActive = true; // Start active on mount
+    const markActive = () => { isActive = true; };
+
+    const events: (keyof WindowEventMap)[] = ['mousemove', 'click', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(e => window.addEventListener(e, markActive, { passive: true }));
 
     const getPageFromPath = (path: string): string => {
       // Extract page from path like /investing/portfolio -> portfolio
@@ -223,39 +229,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const sendHeartbeat = () => {
-      if (document.visibilityState === 'visible') {
-        const page = getPageFromPath(window.location.pathname);
+      if (document.visibilityState !== 'visible') return;
+      if (!isActive) return;
 
-        // Include settings data for tracking
-        const theme = localStorage.getItem('theme') || 'system';
-        const getSystemTheme = (): 'light' | 'dark' => {
-          if (typeof window !== 'undefined' && window.matchMedia) {
-            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          }
-          return 'dark';
-        };
-        const resolved_theme = theme === 'system' ? getSystemTheme() : theme;
-        const language = localStorage.getItem('language') || 'en';
-        const userAgent = navigator.userAgent.toLowerCase();
-        const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(userAgent);
-        const device_type = isMobile ? 'mobile' : 'desktop';
+      isActive = false;
 
-        fetch('/api/activity/heartbeat', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ page, theme, resolved_theme, language, device_type })
-        }).catch(() => {}); // Silently fail
-      }
+      const page = getPageFromPath(window.location.pathname);
+
+      // Include settings data for tracking
+      const theme = localStorage.getItem('theme') || 'system';
+      const getSystemTheme = (): 'light' | 'dark' => {
+        if (typeof window !== 'undefined' && window.matchMedia) {
+          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        return 'dark';
+      };
+      const resolved_theme = theme === 'system' ? getSystemTheme() : theme;
+      const language = localStorage.getItem('language') || 'en';
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(userAgent);
+      const device_type = isMobile ? 'mobile' : 'desktop';
+
+      fetch('/api/activity/heartbeat', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page, theme, resolved_theme, language, device_type })
+      }).catch(() => {}); // Silently fail
     };
 
     // Send initial heartbeat
     sendHeartbeat();
 
     // Set up interval
-    const interval = setInterval(sendHeartbeat, 60000);
+    const interval = setInterval(sendHeartbeat, 15000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      events.forEach(e => window.removeEventListener(e, markActive));
+    };
   }, [user]);
 
   const checkAuth = async () => {

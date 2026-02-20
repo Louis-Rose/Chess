@@ -19,7 +19,7 @@ interface AdminUser {
   is_admin: number;
   created_at: string;
   updated_at: string;
-  total_minutes: number;
+  total_seconds: number;
   last_active: string | null;
   account_count: number;
   graph_downloads: number;
@@ -34,7 +34,7 @@ interface AdminUsersResponse {
   total: number;
 }
 
-type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_minutes' | 'account_count' | 'graph_downloads' | 'session_count' | 'portfolio_companies' | 'watchlist_companies';
+type SortColumn = 'id' | 'name' | 'created_at' | 'last_active' | 'total_seconds' | 'account_count' | 'graph_downloads' | 'session_count' | 'portfolio_companies' | 'watchlist_companies';
 type SortDirection = 'asc' | 'desc';
 
 const fetchUsers = async (): Promise<AdminUsersResponse> => {
@@ -44,14 +44,14 @@ const fetchUsers = async (): Promise<AdminUsersResponse> => {
 
 interface TimeSpentData {
   activity_date: string;
-  total_minutes: number;
+  total_seconds: number;
 }
 
 interface TimeSpentUser {
   id: number;
   name: string;
   picture: string;
-  minutes: number;
+  seconds: number;
 }
 
 interface StockViewStats {
@@ -130,8 +130,8 @@ interface LanguageStats {
 
 interface DeviceStats {
   total: number;
-  total_minutes: number;
-  by_device: Record<string, number>;  // Now contains minutes per device type
+  total_seconds: number;
+  by_device: Record<string, number>;  // Contains seconds per device type
 }
 
 const fetchThemeStats = async (): Promise<ThemeStats> => {
@@ -150,8 +150,8 @@ const fetchDeviceStats = async (): Promise<DeviceStats> => {
 };
 
 interface PageBreakdown {
-  breakdown: { page: string; total_minutes: number }[];
-  total_minutes: number;
+  breakdown: { page: string; total_seconds: number }[];
+  total_seconds: number;
 }
 
 const fetchPageBreakdown = async (): Promise<PageBreakdown> => {
@@ -235,7 +235,7 @@ export function AdminPanel() {
   });
 
   // Sort state for Users table (default: most time spent first)
-  const [sortColumn, setSortColumn] = useState<SortColumn>('total_minutes');
+  const [sortColumn, setSortColumn] = useState<SortColumn>('total_seconds');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   // Email export - selected user IDs
@@ -284,7 +284,7 @@ export function AdminPanel() {
   const [selectedTheme, setSelectedTheme] = useState<ThemeSelection>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageSelection>(null);
   const [selectedDevice, setSelectedDevice] = useState<DeviceSelection>(null);
-  const [settingsUsers, setSettingsUsers] = useState<{ id: number; name: string; picture: string; minutes?: number }[]>([]);
+  const [settingsUsers, setSettingsUsers] = useState<{ id: number; name: string; picture: string; seconds?: number }[]>([]);
   const [isLoadingSettingsUsers, setIsLoadingSettingsUsers] = useState(false);
 
   const handleSettingClick = async (type: 'theme' | 'language' | 'device', value: string) => {
@@ -544,8 +544,8 @@ export function AdminPanel() {
           const bTime = b.last_active ? new Date(b.last_active).getTime() : 0;
           comparison = aTime - bTime;
           break;
-        case 'total_minutes':
-          comparison = a.total_minutes - b.total_minutes;
+        case 'total_seconds':
+          comparison = a.total_seconds - b.total_seconds;
           break;
         case 'account_count':
           comparison = a.account_count - b.account_count;
@@ -652,10 +652,10 @@ export function AdminPanel() {
     const endDate = new Date();
 
     // Create a map for quick lookup of time spent data
-    const minutesByDate: Record<string, number> = {};
+    const secondsByDate: Record<string, number> = {};
     if (timeSpentData) {
       timeSpentData.forEach(d => {
-        minutesByDate[d.activity_date] = d.total_minutes;
+        secondsByDate[d.activity_date] = d.total_seconds;
       });
     }
 
@@ -669,30 +669,31 @@ export function AdminPanel() {
 
     const dailyData = allDates.map(date => ({
       date,
-      minutes: minutesByDate[date] || 0,
+      seconds: secondsByDate[date] || 0,
     }));
 
     if (chartUnit === 'days') return dailyData;
 
-    // Aggregate by week or month (sum minutes)
+    // Aggregate by week or month (sum seconds)
     const grouped: Record<string, number> = {};
-    dailyData.forEach(({ date, minutes }) => {
+    dailyData.forEach(({ date, seconds }) => {
       const key = chartUnit === 'weeks' ? getWeekKey(date) : getMonthKey(date);
-      grouped[key] = (grouped[key] || 0) + minutes;
+      grouped[key] = (grouped[key] || 0) + seconds;
     });
 
     return Object.entries(grouped)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, minutes]) => ({
+      .map(([key, seconds]) => ({
         date: key,
-        minutes,
+        seconds,
       }));
   }, [timeSpentData, chartUnit, getWeekKey, getMonthKey]);
 
-  // Calculate Y-axis max for time spent chart
+  // Calculate Y-axis max for time spent chart (in seconds, displayed as minutes)
   const timeYAxisMax = useMemo(() => {
-    const maxMinutes = Math.max(...timeSpentChartData.map(d => d.minutes), 0);
-    return Math.ceil(maxMinutes / 30) * 30 + 30; // Round up to nearest 30
+    const maxSeconds = Math.max(...timeSpentChartData.map(d => d.seconds), 0);
+    const maxMinutes = maxSeconds / 60;
+    return (Math.ceil(maxMinutes / 30) * 30 + 30) * 60; // Convert back to seconds for domain
   }, [timeSpentChartData]);
 
   // Redirect non-admins
@@ -795,7 +796,7 @@ export function AdminPanel() {
                     tick={{ fontSize: 12, fill: '#e2e8f0' }}
                     allowDecimals={false}
                     domain={[0, timeYAxisMax]}
-                    tickFormatter={(value) => `${value} min`}
+                    tickFormatter={(value) => `${Math.round(value / 60)} min`}
                   />
                   <Tooltip
                     cursor={false}
@@ -818,10 +819,16 @@ export function AdminPanel() {
                       }
                       return new Date(dateStr).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' });
                     }}
-                    formatter={(value) => [`${value} min`]}
+                    formatter={(value: number) => {
+                      const mins = Math.floor(value / 60);
+                      const secs = value % 60;
+                      if (mins === 0) return [`${secs}s`];
+                      if (mins >= 60) return [`${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, '0')}`];
+                      return [secs > 0 ? `${mins}m${String(secs).padStart(2, '0')}s` : `${mins}m`];
+                    }}
                   />
                   <Bar
-                    dataKey="minutes"
+                    dataKey="seconds"
                     fill="#22c55e"
                     radius={[4, 4, 0, 0]}
                     cursor="pointer"
@@ -865,9 +872,16 @@ export function AdminPanel() {
                 ) : timeSpentUsers.length > 0 ? (
                   <div className="space-y-2 max-h-[200px] overflow-y-auto">
                     {(() => {
-                      const totalMinutes = timeSpentUsers.reduce((sum, u) => sum + u.minutes, 0);
+                      const formatSecs = (s: number) => {
+                        const m = Math.floor(s / 60);
+                        const sec = s % 60;
+                        if (m === 0) return `${sec}s`;
+                        if (m >= 60) return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
+                        return sec > 0 ? `${m}m${String(sec).padStart(2, '0')}s` : `${m}m`;
+                      };
+                      const totalSecs = timeSpentUsers.reduce((sum, u) => sum + u.seconds, 0);
                       return timeSpentUsers.map((u) => {
-                        const percentage = totalMinutes > 0 ? Math.round((u.minutes / totalMinutes) * 100) : 0;
+                        const percentage = totalSecs > 0 ? Math.round((u.seconds / totalSecs) * 100) : 0;
                         return (
                           <div
                             key={u.id}
@@ -885,9 +899,7 @@ export function AdminPanel() {
                               <span className="text-sm text-slate-700 dark:text-slate-200">{u.name}</span>
                             </div>
                             <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                              {u.minutes >= 60
-                                ? `${Math.floor(u.minutes / 60)}h${String(u.minutes % 60).padStart(2, '0')}`
-                                : `${u.minutes}m`}
+                              {formatSecs(u.seconds)}
                               {' '}
                               <span className="text-slate-400">({percentage}%)</span>
                             </span>
@@ -925,19 +937,19 @@ export function AdminPanel() {
                           stock: { en: 'Company Pages', fr: 'Pages entreprises' },
                         };
                         const allPages = ['portfolio', 'watchlist', 'earnings', 'financials', 'stock'];
-                        const breakdownMap = new Map(pageBreakdown?.breakdown.map(b => [b.page, b.total_minutes]) || []);
-                        const total = pageBreakdown?.total_minutes || 0;
+                        const breakdownMap = new Map(pageBreakdown?.breakdown.map(b => [b.page, b.total_seconds]) || []);
+                        const total = pageBreakdown?.total_seconds || 0;
 
-                        // Sort pages by minutes (highest to lowest)
+                        // Sort pages by seconds (highest to lowest)
                         const sortedPages = [...allPages].sort((a, b) => {
-                          const minutesA = breakdownMap.get(a) || 0;
-                          const minutesB = breakdownMap.get(b) || 0;
-                          return minutesB - minutesA;
+                          const secsA = breakdownMap.get(a) || 0;
+                          const secsB = breakdownMap.get(b) || 0;
+                          return secsB - secsA;
                         });
 
                         return sortedPages.map((page) => {
-                          const minutes = breakdownMap.get(page) || 0;
-                          const percentage = total > 0 ? Math.round((minutes / total) * 100) : 0;
+                          const secs = breakdownMap.get(page) || 0;
+                          const percentage = total > 0 ? Math.round((secs / total) * 100) : 0;
                           const label = pageLabels[page]?.[language === 'fr' ? 'fr' : 'en'] || page;
                           return (
                             <div key={page} className="flex items-center gap-3">
@@ -1192,10 +1204,10 @@ export function AdminPanel() {
                       </button>
                     </th>
                     <th className="pb-2 text-center whitespace-nowrap">
-                      <button onClick={() => handleSort('total_minutes')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
+                      <button onClick={() => handleSort('total_seconds')} className="flex items-center gap-0.5 hover:text-slate-900 dark:hover:text-white mx-auto">
                         <span className="hidden sm:inline">{language === 'fr' ? 'Temps' : 'Time'}</span>
                         <span className="sm:hidden"><Clock className="w-3 h-3" /></span>
-                        {sortColumn === 'total_minutes' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                        {sortColumn === 'total_seconds' && (sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                       </button>
                     </th>
                     <th className="pb-2 text-center whitespace-nowrap">
@@ -1305,10 +1317,14 @@ export function AdminPanel() {
                         )}
                       </td>
                       <td className="py-2 text-center text-slate-500 dark:text-slate-300">
-                        {u.total_minutes > 0 ? (
-                          u.total_minutes >= 60
-                            ? `${Math.floor(u.total_minutes / 60)}h${String(u.total_minutes % 60).padStart(2, '0')}`
-                            : `${u.total_minutes}m`
+                        {u.total_seconds > 0 ? (
+                          (() => {
+                            const m = Math.floor(u.total_seconds / 60);
+                            const s = u.total_seconds % 60;
+                            if (m === 0) return `${s}s`;
+                            if (m >= 60) return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
+                            return s > 0 ? `${m}m${String(s).padStart(2, '0')}s` : `${m}m`;
+                          })()
                         ) : '-'}
                       </td>
                       <td className="py-2 text-center text-slate-500 dark:text-slate-300">
@@ -1992,10 +2008,16 @@ export function AdminPanel() {
                   </h4>
                   <div className="space-y-1">
                     {(() => {
-                      const mobileMinutes = deviceStats.by_device['mobile'] || 0;
-                      const desktopMinutes = deviceStats.by_device['desktop'] || 0;
-                      const totalMinutes = mobileMinutes + desktopMinutes;
-                      const formatMinutes = (m: number) => m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` : `${m}m`;
+                      const mobileSecs = deviceStats.by_device['mobile'] || 0;
+                      const desktopSecs = deviceStats.by_device['desktop'] || 0;
+                      const totalSecs = mobileSecs + desktopSecs;
+                      const formatSecs = (s: number) => {
+                        const m = Math.floor(s / 60);
+                        const sec = s % 60;
+                        if (m === 0) return `${sec}s`;
+                        if (m >= 60) return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
+                        return sec > 0 ? `${m}m${String(sec).padStart(2, '0')}s` : `${m}m`;
+                      };
                       return (
                         <>
                           <button
@@ -2011,7 +2033,7 @@ export function AdminPanel() {
                               <span className="text-sm text-slate-600 dark:text-slate-300">Desktop</span>
                             </div>
                             <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                              {totalMinutes > 0 ? Math.round((desktopMinutes / totalMinutes) * 100) : 0}% ({formatMinutes(desktopMinutes)})
+                              {totalSecs > 0 ? Math.round((desktopSecs / totalSecs) * 100) : 0}% ({formatSecs(desktopSecs)})
                             </span>
                           </button>
                           <button
@@ -2027,7 +2049,7 @@ export function AdminPanel() {
                               <span className="text-sm text-slate-600 dark:text-slate-300">Mobile</span>
                             </div>
                             <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                              {totalMinutes > 0 ? Math.round((mobileMinutes / totalMinutes) * 100) : 0}% ({formatMinutes(mobileMinutes)})
+                              {totalSecs > 0 ? Math.round((mobileSecs / totalSecs) * 100) : 0}% ({formatSecs(mobileSecs)})
                             </span>
                           </button>
                         </>
@@ -2055,7 +2077,13 @@ export function AdminPanel() {
                       ) : settingsUsers.length > 0 ? (
                         <div className="space-y-2 max-h-[200px] overflow-y-auto">
                           {settingsUsers.map((u) => {
-                            const formatMins = (m: number) => m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` : `${m}m`;
+                            const fmtSecs = (s: number) => {
+                              const m = Math.floor(s / 60);
+                              const sec = s % 60;
+                              if (m === 0) return `${sec}s`;
+                              if (m >= 60) return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
+                              return sec > 0 ? `${m}m${String(sec).padStart(2, '0')}s` : `${m}m`;
+                            };
                             return (
                               <div
                                 key={u.id}
@@ -2070,8 +2098,8 @@ export function AdminPanel() {
                                   </div>
                                 )}
                                 <span className="text-sm text-slate-700 dark:text-slate-200 flex-1">{u.name}</span>
-                                {u.minutes !== undefined && (
-                                  <span className="text-xs text-slate-400 dark:text-slate-300">{formatMins(u.minutes)}</span>
+                                {u.seconds !== undefined && (
+                                  <span className="text-xs text-slate-400 dark:text-slate-300">{fmtSecs(u.seconds)}</span>
                                 )}
                               </div>
                             );

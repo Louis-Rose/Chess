@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS user_activity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     activity_date TEXT NOT NULL,  -- YYYY-MM-DD
-    minutes INTEGER DEFAULT 0,
+    seconds INTEGER DEFAULT 0,
     last_ping TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, activity_date)
@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS page_activity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     page TEXT NOT NULL,  -- portfolio, watchlist, earnings, financials, stock, admin, other
-    minutes INTEGER DEFAULT 0,
+    seconds INTEGER DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, page)
 );
@@ -310,12 +310,12 @@ CREATE TABLE IF NOT EXISTS language_usage (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Device type tracking (for analytics) - tracks minutes per device type
+-- Device type tracking (for analytics) - tracks seconds per device type
 CREATE TABLE IF NOT EXISTS device_usage (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     device_type TEXT NOT NULL,       -- 'mobile' or 'desktop'
-    minutes INTEGER DEFAULT 0,       -- Total minutes spent on this device type
+    seconds INTEGER DEFAULT 0,       -- Total seconds spent on this device type
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, device_type)

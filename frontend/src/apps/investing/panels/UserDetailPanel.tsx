@@ -17,13 +17,13 @@ interface UserData {
   picture: string;
   is_admin: number;
   created_at: string;
-  total_minutes: number;
+  total_seconds: number;
   last_active: string | null;
 }
 
 interface DailyActivity {
   activity_date: string;
-  minutes: number;
+  seconds: number;
 }
 
 interface PortfolioHolding {
@@ -97,11 +97,12 @@ const fetchUserStockViews = async (userId: string): Promise<StockView[]> => {
   return response.data.views;
 };
 
-const formatTime = (minutes: number): string => {
-  if (minutes >= 60) {
-    return `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}`;
-  }
-  return `${minutes} min`;
+const formatTime = (totalSeconds: number): string => {
+  const minutes = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  if (minutes === 0) return `${secs}s`;
+  if (minutes >= 60) return `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}`;
+  return secs > 0 ? `${minutes}m${String(secs).padStart(2, '0')}s` : `${minutes}m`;
 };
 
 export function UserDetailPanel() {
@@ -179,12 +180,12 @@ export function UserDetailPanel() {
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
   const rawActivity = activityData?.filter(d => new Date(d.activity_date) >= threeMonthsAgo) || [];
 
-  // Fill in missing days with 0 minutes
+  // Fill in missing days with 0 seconds
   const filteredActivity = (() => {
     if (rawActivity.length === 0) return [];
 
     // Create a map of existing activity
-    const activityMap = new Map(rawActivity.map(d => [d.activity_date, d.minutes]));
+    const activityMap = new Map(rawActivity.map(d => [d.activity_date, d.seconds]));
 
     // Find date range (from first activity to today)
     const dates = rawActivity.map(d => new Date(d.activity_date));
@@ -198,7 +199,7 @@ export function UserDetailPanel() {
       const dateStr = current.toISOString().split('T')[0];
       filledActivity.push({
         activity_date: dateStr,
-        minutes: activityMap.get(dateStr) || 0
+        seconds: activityMap.get(dateStr) || 0
       });
       current.setDate(current.getDate() + 1);
     }
@@ -254,7 +255,7 @@ export function UserDetailPanel() {
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                {formatTime(userData.total_minutes)}
+                {formatTime(userData.total_seconds)}
               </p>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 {language === 'fr' ? 'temps total' : 'total time'}
@@ -285,19 +286,19 @@ export function UserDetailPanel() {
                     tickFormatter={(date) => new Date(date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
                     stroke="#cbd5e1"
                   />
-                  <YAxis tick={{ fontSize: 11 }} stroke="#cbd5e1" />
+                  <YAxis tick={{ fontSize: 11 }} stroke="#cbd5e1" tickFormatter={(value) => `${Math.round(value / 60)} min`} />
                   <Tooltip
                     cursor={false}
                     contentStyle={{ backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155', padding: '2px 8px', fontSize: '12px' }}
                     labelStyle={{ marginBottom: '-2px', color: '#f1f5f9' }}
                     labelFormatter={(date) => new Date(String(date)).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
                     formatter={(value) => {
-                      const mins = Number(value);
-                      return [formatTime(mins), null];
+                      const secs = Number(value);
+                      return [formatTime(secs), null];
                     }}
                     separator=""
                   />
-                  <Bar dataKey="minutes" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="seconds" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

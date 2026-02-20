@@ -1039,7 +1039,7 @@ def update_financial_card_order():
 @app.route('/api/activity/heartbeat', methods=['POST'])
 @login_required
 def activity_heartbeat():
-    """Record a heartbeat for activity tracking (called every 60s by frontend)."""
+    """Record a heartbeat for activity tracking (called every 15s by frontend when user is active)."""
     today = datetime.now().strftime('%Y-%m-%d')
     data = request.get_json() or {}
     page = data.get('page', 'other')
@@ -1088,19 +1088,19 @@ def activity_heartbeat():
 
         # Track daily activity
         conn.execute('''
-            INSERT INTO user_activity (user_id, activity_date, minutes, last_ping)
-            VALUES (?, ?, 1, CURRENT_TIMESTAMP)
+            INSERT INTO user_activity (user_id, activity_date, seconds, last_ping)
+            VALUES (?, ?, 15, CURRENT_TIMESTAMP)
             ON CONFLICT(user_id, activity_date) DO UPDATE SET
-                minutes = user_activity.minutes + 1,
+                seconds = user_activity.seconds + 15,
                 last_ping = CURRENT_TIMESTAMP
         ''', (request.user_id, today))
 
         # Track page-level activity
         conn.execute('''
-            INSERT INTO page_activity (user_id, page, minutes)
-            VALUES (?, ?, 1)
+            INSERT INTO page_activity (user_id, page, seconds)
+            VALUES (?, ?, 15)
             ON CONFLICT(user_id, page) DO UPDATE SET
-                minutes = page_activity.minutes + 1
+                seconds = page_activity.seconds + 15
         ''', (request.user_id, page))
 
         # Track theme preference (if provided)
@@ -1124,13 +1124,13 @@ def activity_heartbeat():
                     updated_at = CURRENT_TIMESTAMP
             ''', (request.user_id, language))
 
-        # Track device usage minutes (if provided)
+        # Track device usage seconds (if provided)
         if device_type in ('mobile', 'desktop'):
             conn.execute('''
-                INSERT INTO device_usage (user_id, device_type, minutes, updated_at)
-                VALUES (?, ?, 1, CURRENT_TIMESTAMP)
+                INSERT INTO device_usage (user_id, device_type, seconds, updated_at)
+                VALUES (?, ?, 15, CURRENT_TIMESTAMP)
                 ON CONFLICT(user_id, device_type) DO UPDATE SET
-                    minutes = device_usage.minutes + 1,
+                    seconds = device_usage.seconds + 15,
                     updated_at = CURRENT_TIMESTAMP
             ''', (request.user_id, device_type))
 
@@ -1207,19 +1207,19 @@ def chess_heartbeat():
 
         # Daily activity
         conn.execute('''
-            INSERT INTO user_activity (user_id, activity_date, minutes, last_ping)
-            VALUES (?, ?, 1, CURRENT_TIMESTAMP)
+            INSERT INTO user_activity (user_id, activity_date, seconds, last_ping)
+            VALUES (?, ?, 15, CURRENT_TIMESTAMP)
             ON CONFLICT(user_id, activity_date) DO UPDATE SET
-                minutes = user_activity.minutes + 1,
+                seconds = user_activity.seconds + 15,
                 last_ping = CURRENT_TIMESTAMP
         ''', (user_id, today))
 
         # Page activity
         conn.execute('''
-            INSERT INTO page_activity (user_id, page, minutes)
-            VALUES (?, ?, 1)
+            INSERT INTO page_activity (user_id, page, seconds)
+            VALUES (?, ?, 15)
             ON CONFLICT(user_id, page) DO UPDATE SET
-                minutes = page_activity.minutes + 1
+                seconds = page_activity.seconds + 15
         ''', (user_id, page))
 
         # Language
@@ -1235,10 +1235,10 @@ def chess_heartbeat():
         # Device
         if device_type in ('mobile', 'desktop'):
             conn.execute('''
-                INSERT INTO device_usage (user_id, device_type, minutes, updated_at)
-                VALUES (?, ?, 1, CURRENT_TIMESTAMP)
+                INSERT INTO device_usage (user_id, device_type, seconds, updated_at)
+                VALUES (?, ?, 15, CURRENT_TIMESTAMP)
                 ON CONFLICT(user_id, device_type) DO UPDATE SET
-                    minutes = device_usage.minutes + 1,
+                    seconds = device_usage.seconds + 15,
                     updated_at = CURRENT_TIMESTAMP
             ''', (user_id, device_type))
 
@@ -1330,7 +1330,7 @@ def record_device():
 
     with get_db() as conn:
         conn.execute('''
-            INSERT INTO device_usage (user_id, device_type, minutes, updated_at)
+            INSERT INTO device_usage (user_id, device_type, seconds, updated_at)
             VALUES (?, ?, 0, CURRENT_TIMESTAMP)
             ON CONFLICT(user_id, device_type) DO UPDATE SET
                 updated_at = CURRENT_TIMESTAMP
@@ -1415,15 +1415,15 @@ def get_language_stats():
 def get_device_stats():
     """Get device type usage statistics (admin only). Excludes admin users."""
     with get_db() as conn:
-        # Get total minutes per device type - exclude admins
+        # Get total seconds per device type - exclude admins
         cursor = conn.execute('''
-            SELECT d.device_type, SUM(d.minutes) as total_minutes
+            SELECT d.device_type, SUM(d.seconds) as total_seconds
             FROM device_usage d
             INNER JOIN users u ON d.user_id = u.id
             WHERE u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
             GROUP BY d.device_type
         ''')
-        by_device = {row['device_type']: row['total_minutes'] for row in cursor.fetchall()}
+        by_device = {row['device_type']: row['total_seconds'] for row in cursor.fetchall()}
 
         # Get total users with device data - exclude admins
         cursor = conn.execute('''
@@ -1434,12 +1434,12 @@ def get_device_stats():
         ''')
         total = cursor.fetchone()['total']
 
-        # Calculate total minutes for percentage
-        total_minutes = sum(by_device.values())
+        # Calculate total seconds for percentage
+        total_seconds = sum(by_device.values())
 
     return jsonify({
         'total': total,
-        'total_minutes': total_minutes,
+        'total_seconds': total_seconds,
         'by_device': by_device
     })
 
@@ -1493,13 +1493,13 @@ def get_users_by_device(device):
 
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT u.id, u.name, u.picture, d.minutes
+            SELECT u.id, u.name, u.picture, d.seconds
             FROM users u
             INNER JOIN device_usage d ON u.id = d.user_id
             WHERE d.device_type = ? AND u.is_admin = 0 AND u.google_id NOT LIKE ?
-            ORDER BY d.minutes DESC
+            ORDER BY d.seconds DESC
         ''', (device, 'chess:%'))
-        users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture'], 'minutes': row['minutes']} for row in cursor.fetchall()]
+        users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture'], 'seconds': row['seconds']} for row in cursor.fetchall()]
 
     return jsonify({'users': users})
 
@@ -1515,12 +1515,12 @@ def get_settings_crosstab():
                 t.resolved_theme,
                 l.language,
                 COUNT(*) as user_count,
-                COALESCE(SUM(u.total_minutes), 0) as total_minutes
+                COALESCE(SUM(u.total_seconds), 0) as total_seconds
             FROM theme_usage t
             INNER JOIN language_usage l ON t.user_id = l.user_id
             INNER JOIN users usr ON t.user_id = usr.id
             LEFT JOIN (
-                SELECT user_id, SUM(duration_minutes) as total_minutes
+                SELECT user_id, SUM(seconds) as total_seconds
                 FROM user_activity
                 GROUP BY user_id
             ) u ON t.user_id = u.user_id
@@ -1532,26 +1532,26 @@ def get_settings_crosstab():
 
         # Build crosstab data
         crosstab = {}
-        total_minutes = 0
+        total_seconds = 0
         total_users = 0
 
         for row in results:
             theme = row['resolved_theme']
             lang = row['language']
-            minutes = row['total_minutes']
+            secs = row['total_seconds']
             users = row['user_count']
 
             key = f"{theme}_{lang}"
             crosstab[key] = {
                 'users': users,
-                'minutes': minutes
+                'seconds': secs
             }
-            total_minutes += minutes
+            total_seconds += secs
             total_users += users
 
     return jsonify({
         'crosstab': crosstab,
-        'total_minutes': total_minutes,
+        'total_seconds': total_seconds,
         'total_users': total_users
     })
 
@@ -1566,7 +1566,7 @@ def list_users():
     with get_db() as conn:
         cursor = conn.execute('''
             SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at, u.sign_in_count, u.session_count,
-                   COALESCE(SUM(a.minutes), 0) as total_minutes,
+                   COALESCE(SUM(a.seconds), 0) as total_seconds,
                    MAX(a.last_ping) as last_active,
                    (SELECT COUNT(*) FROM graph_downloads g WHERE g.user_id = u.id) as graph_downloads,
                    (SELECT COUNT(*) FROM investment_accounts ia WHERE ia.user_id = u.id) as account_count,
@@ -1607,7 +1607,7 @@ def get_chess_users():
     with get_db() as conn:
         cursor = conn.execute(f'''
             SELECT LOWER(up.chess_username) as chess_username,
-                   COALESCE(SUM(a.minutes), 0) as total_minutes,
+                   COALESCE(SUM(a.seconds), 0) as total_seconds,
                    MAX(a.last_ping) as last_active,
                    SUM(u.session_count) as session_count,
                    MIN(u.created_at) as created_at
@@ -1618,7 +1618,7 @@ def get_chess_users():
               AND u.email != ?
               AND LOWER(up.chess_username) NOT IN ({placeholders})
             GROUP BY LOWER(up.chess_username)
-            ORDER BY total_minutes DESC
+            ORDER BY total_seconds DESC
         ''', (excluded_email, *EXCLUDED_CHESS_TESTERS))
         users = []
         for row in cursor.fetchall():
@@ -1641,7 +1641,7 @@ def get_chess_time_spent_stats():
 
     with get_db() as conn:
         cursor = conn.execute(f'''
-            SELECT a.activity_date, SUM(a.minutes) as total_minutes
+            SELECT a.activity_date, SUM(a.seconds) as total_seconds
             FROM user_activity a
             JOIN users u ON a.user_id = u.id
             JOIN user_preferences up ON u.id = up.user_id
@@ -1669,7 +1669,7 @@ def get_chess_time_spent_details(period):
             year, week = period.split('-W')
             if USE_POSTGRES:
                 cursor = conn.execute(f'''
-                    SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
+                    SELECT LOWER(up.chess_username) as name, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     JOIN user_preferences up ON u.id = up.user_id
@@ -1677,11 +1677,11 @@ def get_chess_time_spent_details(period):
                       AND EXTRACT(WEEK FROM a.activity_date::date) = %s
                       AND u.email != %s {chess_filter}
                     GROUP BY LOWER(up.chess_username)
-                    ORDER BY minutes DESC
+                    ORDER BY seconds DESC
                 ''', (int(year), int(week), excluded_email, *EXCLUDED_CHESS_TESTERS))
             else:
                 cursor = conn.execute(f'''
-                    SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
+                    SELECT LOWER(up.chess_username) as name, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     JOIN user_preferences up ON u.id = up.user_id
@@ -1689,53 +1689,53 @@ def get_chess_time_spent_details(period):
                       AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
                       AND u.email != ? {chess_filter}
                     GROUP BY LOWER(up.chess_username)
-                    ORDER BY minutes DESC
+                    ORDER BY seconds DESC
                 ''', (year, int(week), excluded_email, *EXCLUDED_CHESS_TESTERS))
         elif len(period) == 7:
             if USE_POSTGRES:
                 cursor = conn.execute(f'''
-                    SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
+                    SELECT LOWER(up.chess_username) as name, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     JOIN user_preferences up ON u.id = up.user_id
                     WHERE to_char(a.activity_date::date, 'YYYY-MM') = %s
                       AND u.email != %s {chess_filter}
                     GROUP BY LOWER(up.chess_username)
-                    ORDER BY minutes DESC
+                    ORDER BY seconds DESC
                 ''', (period, excluded_email, *EXCLUDED_CHESS_TESTERS))
             else:
                 cursor = conn.execute(f'''
-                    SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
+                    SELECT LOWER(up.chess_username) as name, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     JOIN user_preferences up ON u.id = up.user_id
                     WHERE strftime('%Y-%m', a.activity_date) = ?
                       AND u.email != ? {chess_filter}
                     GROUP BY LOWER(up.chess_username)
-                    ORDER BY minutes DESC
+                    ORDER BY seconds DESC
                 ''', (period, excluded_email, *EXCLUDED_CHESS_TESTERS))
         else:
             if USE_POSTGRES:
                 cursor = conn.execute(f'''
-                    SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
+                    SELECT LOWER(up.chess_username) as name, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     JOIN user_preferences up ON u.id = up.user_id
                     WHERE a.activity_date = %s
                       AND u.email != %s {chess_filter}
                     GROUP BY LOWER(up.chess_username)
-                    ORDER BY minutes DESC
+                    ORDER BY seconds DESC
                 ''', (period, excluded_email, *EXCLUDED_CHESS_TESTERS))
             else:
                 cursor = conn.execute(f'''
-                    SELECT LOWER(up.chess_username) as name, SUM(a.minutes) as minutes
+                    SELECT LOWER(up.chess_username) as name, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     JOIN user_preferences up ON u.id = up.user_id
                     WHERE a.activity_date = ?
                       AND u.email != ? {chess_filter}
                     GROUP BY LOWER(up.chess_username)
-                    ORDER BY minutes DESC
+                    ORDER BY seconds DESC
                 ''', (period, excluded_email, *EXCLUDED_CHESS_TESTERS))
 
         users = [dict(row) for row in cursor.fetchall()]
@@ -1752,22 +1752,22 @@ def get_chess_page_breakdown():
 
     with get_db() as conn:
         cursor = conn.execute(f'''
-            SELECT p.page, SUM(p.minutes) as total_minutes
+            SELECT p.page, SUM(p.seconds) as total_seconds
             FROM page_activity p
             JOIN users u ON p.user_id = u.id
             JOIN user_preferences up ON u.id = up.user_id
             WHERE u.google_id LIKE ? AND u.email != ?
               AND LOWER(up.chess_username) NOT IN ({placeholders})
             GROUP BY p.page
-            ORDER BY total_minutes DESC
+            ORDER BY total_seconds DESC
         ''', ('chess:%', excluded_email, *EXCLUDED_CHESS_TESTERS))
 
         breakdown = [dict(row) for row in cursor.fetchall()]
-        total = sum(item['total_minutes'] for item in breakdown)
+        total = sum(item['total_seconds'] for item in breakdown)
 
     return jsonify({
         'breakdown': breakdown,
-        'total_minutes': total
+        'total_seconds': total
     })
 
 
@@ -1777,7 +1777,7 @@ def get_user_activity(user_id):
     """Get daily activity breakdown for a user (admin only)."""
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT activity_date, minutes
+            SELECT activity_date, seconds
             FROM user_activity
             WHERE user_id = ?
             ORDER BY activity_date DESC
@@ -1810,7 +1810,7 @@ def get_user_detail(user_id):
     with get_db() as conn:
         cursor = conn.execute('''
             SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at,
-                   COALESCE(SUM(a.minutes), 0) as total_minutes,
+                   COALESCE(SUM(a.seconds), 0) as total_seconds,
                    MAX(a.last_ping) as last_active
             FROM users u
             LEFT JOIN user_activity a ON u.id = a.user_id
@@ -6248,7 +6248,7 @@ def get_time_spent_stats():
 
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT a.activity_date, SUM(a.minutes) as total_minutes
+            SELECT a.activity_date, SUM(a.seconds) as total_seconds
             FROM user_activity a
             JOIN users u ON a.user_id = u.id
             WHERE u.email != ? AND u.google_id NOT LIKE ?
@@ -6278,67 +6278,67 @@ def get_time_spent_details(period):
             year, week = period.split('-W')
             if USE_POSTGRES:
                 cursor = conn.execute('''
-                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    SELECT u.id, u.name, u.picture, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE EXTRACT(YEAR FROM a.activity_date::date) = %s
                       AND EXTRACT(WEEK FROM a.activity_date::date) = %s
                       AND u.email != %s AND u.google_id NOT LIKE 'chess:%%'
                     GROUP BY u.id, u.name, u.picture
-                    ORDER BY minutes DESC
+                    ORDER BY seconds DESC
                 ''', (int(year), int(week), excluded_email))
             else:
                 cursor = conn.execute('''
-                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    SELECT u.id, u.name, u.picture, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE strftime('%Y', a.activity_date) = ?
                       AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
                       AND u.email != ? AND u.google_id NOT LIKE ?
                     GROUP BY u.id
-                    ORDER BY minutes DESC
+                    ORDER BY seconds DESC
                 ''', (year, int(week), excluded_email, 'chess:%'))
         elif len(period) == 7:
             # Month format: YYYY-MM
             if USE_POSTGRES:
                 cursor = conn.execute('''
-                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    SELECT u.id, u.name, u.picture, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE to_char(a.activity_date::date, 'YYYY-MM') = %s
                       AND u.email != %s AND u.google_id NOT LIKE 'chess:%%'
                     GROUP BY u.id, u.name, u.picture
-                    ORDER BY minutes DESC
+                    ORDER BY seconds DESC
                 ''', (period, excluded_email))
             else:
                 cursor = conn.execute('''
-                    SELECT u.id, u.name, u.picture, SUM(a.minutes) as minutes
+                    SELECT u.id, u.name, u.picture, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE strftime('%Y-%m', a.activity_date) = ?
                       AND u.email != ? AND u.google_id NOT LIKE ?
                     GROUP BY u.id
-                    ORDER BY minutes DESC
+                    ORDER BY seconds DESC
                 ''', (period, excluded_email, 'chess:%'))
         else:
             # Date format: YYYY-MM-DD
             if USE_POSTGRES:
                 cursor = conn.execute('''
-                    SELECT u.id, u.name, u.picture, a.minutes
+                    SELECT u.id, u.name, u.picture, a.seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE a.activity_date = %s
                       AND u.email != %s AND u.google_id NOT LIKE 'chess:%%'
-                    ORDER BY a.minutes DESC
+                    ORDER BY a.seconds DESC
                 ''', (period, excluded_email))
             else:
                 cursor = conn.execute('''
-                    SELECT u.id, u.name, u.picture, a.minutes
+                    SELECT u.id, u.name, u.picture, a.seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE a.activity_date = ?
                       AND u.email != ? AND u.google_id NOT LIKE ?
-                    ORDER BY a.minutes DESC
+                    ORDER BY a.seconds DESC
                 ''', (period, excluded_email, 'chess:%'))
 
         users = [dict(row) for row in cursor.fetchall()]
@@ -6352,20 +6352,20 @@ def get_page_breakdown():
     """Get aggregated time spent by page/section (admin only)."""
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT p.page, SUM(p.minutes) as total_minutes
+            SELECT p.page, SUM(p.seconds) as total_seconds
             FROM page_activity p
             JOIN users u ON p.user_id = u.id
             WHERE u.google_id NOT LIKE 'chess:%' AND u.email != 'rose.louis.mail@gmail.com'
             GROUP BY p.page
-            ORDER BY total_minutes DESC
+            ORDER BY total_seconds DESC
         ''')
 
         breakdown = [dict(row) for row in cursor.fetchall()]
-        total = sum(item['total_minutes'] for item in breakdown)
+        total = sum(item['total_seconds'] for item in breakdown)
 
     return jsonify({
         'breakdown': breakdown,
-        'total_minutes': total
+        'total_seconds': total
     })
 
 
