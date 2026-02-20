@@ -12,7 +12,7 @@ export function TimeClassToggle({ selected, onChange }: { selected: TimeClass; o
       />
       <button
         onClick={() => onChange('rapid')}
-        className={`relative z-10 flex-1 py-1 text-sm font-medium rounded-md text-center transition-colors ${
+        className={`relative z-10 flex-1 px-4 py-1 text-sm font-medium rounded-md text-center transition-colors ${
           selected === 'rapid' ? 'text-white' : 'text-slate-400'
         }`}
       >
@@ -20,7 +20,7 @@ export function TimeClassToggle({ selected, onChange }: { selected: TimeClass; o
       </button>
       <button
         onClick={() => onChange('blitz')}
-        className={`relative z-10 flex-1 py-1 text-sm font-medium rounded-md text-center transition-colors ${
+        className={`relative z-10 flex-1 px-4 py-1 text-sm font-medium rounded-md text-center transition-colors ${
           selected === 'blitz' ? 'text-white' : 'text-slate-400'
         }`}
       >
