@@ -819,9 +819,10 @@ export function AdminPanel() {
                       }
                       return new Date(dateStr).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' });
                     }}
-                    formatter={(value: number) => {
-                      const mins = Math.floor(value / 60);
-                      const secs = value % 60;
+                    formatter={(value) => {
+                      const v = Number(value);
+                      const mins = Math.floor(v / 60);
+                      const secs = v % 60;
                       if (mins === 0) return [`${secs}s`];
                       if (mins >= 60) return [`${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, '0')}`];
                       return [secs > 0 ? `${mins}m${String(secs).padStart(2, '0')}s` : `${mins}m`];

@@ -374,7 +374,7 @@ export function ChessAdminPanel() {
                         }
                         return new Date(dateStr).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' });
                       }}
-                      formatter={(value: number) => [formatTime(value)]}
+                      formatter={(value) => [formatTime(Number(value))]}
                     />
                     <Bar
                       dataKey="seconds"
