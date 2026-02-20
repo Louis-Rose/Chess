@@ -1,8 +1,8 @@
 // Investing app sidebar
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, Home, Wallet, Eye, Calendar, TrendingUp, Shield, Clock, X, GitCompare, Newspaper, DollarSign, Calculator, ChevronDown } from 'lucide-react';
+import { Loader2, Home, Wallet, Eye, Calendar, TrendingUp, Shield, Clock, X, GitCompare, Newspaper, DollarSign, Calculator } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 // Cookie consent temporarily disabled
@@ -47,28 +47,28 @@ export function InvestingSidebar() {
   // Sidebar is always expanded (collapse feature removed)
   const isCollapsed = false;
 
-  // App switcher
-  const [showAppSwitcher, setShowAppSwitcher] = useState(false);
-  const [switcherPos, setSwitcherPos] = useState<{ top: number; left: number; width: number } | null>(null);
-  const appSwitcherRef = useRef<HTMLDivElement>(null);
-  const appSwitcherBtnRef = useRef<HTMLButtonElement>(null);
+  // App switcher - hidden until chess app is ready for public
+  // const [showAppSwitcher, setShowAppSwitcher] = useState(false);
+  // const [switcherPos, setSwitcherPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  // const appSwitcherRef = useRef<HTMLDivElement>(null);
+  // const appSwitcherBtnRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (appSwitcherRef.current && !appSwitcherRef.current.contains(event.target as Node)) {
-        setShowAppSwitcher(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  // useEffect(() => {
+  //   const handleClickOutside = (event: MouseEvent) => {
+  //     if (appSwitcherRef.current && !appSwitcherRef.current.contains(event.target as Node)) {
+  //       setShowAppSwitcher(false);
+  //     }
+  //   };
+  //   document.addEventListener('mousedown', handleClickOutside);
+  //   return () => document.removeEventListener('mousedown', handleClickOutside);
+  // }, []);
 
-  useEffect(() => {
-    if (showAppSwitcher && appSwitcherBtnRef.current) {
-      const rect = appSwitcherBtnRef.current.getBoundingClientRect();
-      setSwitcherPos({ top: rect.top, left: rect.right + 8, width: rect.width });
-    }
-  }, [showAppSwitcher]);
+  // useEffect(() => {
+  //   if (showAppSwitcher && appSwitcherBtnRef.current) {
+  //     const rect = appSwitcherBtnRef.current.getBoundingClientRect();
+  //     setSwitcherPos({ top: rect.top, left: rect.right + 8, width: rect.width });
+  //   }
+  // }, [showAppSwitcher]);
 
   // Recent stocks
   const [recentStocks, setRecentStocks] = useState<string[]>([]);
@@ -103,7 +103,7 @@ export function InvestingSidebar() {
         )}
       </div>
 
-      {/* App Switcher */}
+      {/* App Switcher - hidden until chess app is ready for public
       <div className="px-2 pb-4 border-b border-slate-700" ref={appSwitcherRef}>
         <button
           ref={appSwitcherBtnRef}
@@ -132,6 +132,7 @@ export function InvestingSidebar() {
           </div>
         )}
       </div>
+      */}
 
       {/* Navigation - fixed */}
       <div className={`flex flex-col gap-0.5 ${isCollapsed ? 'px-0' : 'px-2'} pt-2 pb-4 border-b border-slate-700 flex-shrink-0`}>
