@@ -1351,7 +1351,7 @@ def get_theme_stats():
             SELECT t.resolved_theme, COUNT(*) as count
             FROM theme_usage t
             INNER JOIN users u ON t.user_id = u.id
-            WHERE u.is_admin = 0
+            WHERE u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
             GROUP BY t.resolved_theme
         ''')
         by_resolved = {row['resolved_theme']: row['count'] for row in cursor.fetchall()}
@@ -1361,7 +1361,7 @@ def get_theme_stats():
             SELECT t.theme, COUNT(*) as count
             FROM theme_usage t
             INNER JOIN users u ON t.user_id = u.id
-            WHERE u.is_admin = 0
+            WHERE u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
             GROUP BY t.theme
         ''')
         by_setting = {row['theme']: row['count'] for row in cursor.fetchall()}
@@ -1371,7 +1371,7 @@ def get_theme_stats():
             SELECT COUNT(*) as total
             FROM theme_usage t
             INNER JOIN users u ON t.user_id = u.id
-            WHERE u.is_admin = 0
+            WHERE u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
         ''')
         total = cursor.fetchone()['total']
 
@@ -1391,7 +1391,7 @@ def get_language_stats():
             SELECT l.language, COUNT(*) as count
             FROM language_usage l
             INNER JOIN users u ON l.user_id = u.id
-            WHERE u.is_admin = 0
+            WHERE u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
             GROUP BY l.language
         ''')
         by_language = {row['language']: row['count'] for row in cursor.fetchall()}
@@ -1400,7 +1400,7 @@ def get_language_stats():
             SELECT COUNT(*) as total
             FROM language_usage l
             INNER JOIN users u ON l.user_id = u.id
-            WHERE u.is_admin = 0
+            WHERE u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
         ''')
         total = cursor.fetchone()['total']
 
@@ -1420,7 +1420,7 @@ def get_device_stats():
             SELECT d.device_type, SUM(d.minutes) as total_minutes
             FROM device_usage d
             INNER JOIN users u ON d.user_id = u.id
-            WHERE u.is_admin = 0
+            WHERE u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
             GROUP BY d.device_type
         ''')
         by_device = {row['device_type']: row['total_minutes'] for row in cursor.fetchall()}
@@ -1430,7 +1430,7 @@ def get_device_stats():
             SELECT COUNT(DISTINCT d.user_id) as total
             FROM device_usage d
             INNER JOIN users u ON d.user_id = u.id
-            WHERE u.is_admin = 0
+            WHERE u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
         ''')
         total = cursor.fetchone()['total']
 
@@ -1456,7 +1456,7 @@ def get_users_by_theme(theme):
             SELECT u.id, u.name, u.picture
             FROM users u
             INNER JOIN theme_usage t ON u.id = t.user_id
-            WHERE t.resolved_theme = ? AND u.is_admin = 0
+            WHERE t.resolved_theme = ? AND u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
             ORDER BY u.name
         ''', (theme,))
         users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture']} for row in cursor.fetchall()]
@@ -1476,7 +1476,7 @@ def get_users_by_language(lang):
             SELECT u.id, u.name, u.picture
             FROM users u
             INNER JOIN language_usage l ON u.id = l.user_id
-            WHERE l.language = ? AND u.is_admin = 0
+            WHERE l.language = ? AND u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
             ORDER BY u.name
         ''', (lang,))
         users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture']} for row in cursor.fetchall()]
@@ -1496,7 +1496,7 @@ def get_users_by_device(device):
             SELECT u.id, u.name, u.picture, d.minutes
             FROM users u
             INNER JOIN device_usage d ON u.id = d.user_id
-            WHERE d.device_type = ? AND u.is_admin = 0
+            WHERE d.device_type = ? AND u.is_admin = 0 AND u.google_id NOT LIKE 'chess:%'
             ORDER BY d.minutes DESC
         ''', (device,))
         users = [{'id': row['id'], 'name': row['name'], 'picture': row['picture'], 'minutes': row['minutes']} for row in cursor.fetchall()]
@@ -1518,11 +1518,13 @@ def get_settings_crosstab():
                 COALESCE(SUM(u.total_minutes), 0) as total_minutes
             FROM theme_usage t
             INNER JOIN language_usage l ON t.user_id = l.user_id
+            INNER JOIN users usr ON t.user_id = usr.id
             LEFT JOIN (
                 SELECT user_id, SUM(duration_minutes) as total_minutes
                 FROM user_activity
                 GROUP BY user_id
             ) u ON t.user_id = u.user_id
+            WHERE usr.google_id NOT LIKE 'chess:%'
             GROUP BY t.resolved_theme, l.language
         ''')
 
@@ -1572,6 +1574,7 @@ def list_users():
                    (SELECT COUNT(DISTINCT stock_ticker) FROM watchlist w WHERE w.user_id = u.id) as watchlist_companies
             FROM users u
             LEFT JOIN user_activity a ON u.id = a.user_id
+            WHERE u.google_id NOT LIKE 'chess:%'
             GROUP BY u.id
             ORDER BY u.created_at DESC
         ''')
@@ -6208,7 +6211,7 @@ def get_time_spent_stats():
             SELECT a.activity_date, SUM(a.minutes) as total_minutes
             FROM user_activity a
             JOIN users u ON a.user_id = u.id
-            WHERE u.email != ?
+            WHERE u.email != ? AND u.google_id NOT LIKE 'chess:%'
             GROUP BY a.activity_date
             ORDER BY a.activity_date ASC
         ''', (excluded_email,))
@@ -6240,7 +6243,7 @@ def get_time_spent_details(period):
                     JOIN users u ON a.user_id = u.id
                     WHERE EXTRACT(YEAR FROM a.activity_date::date) = %s
                       AND EXTRACT(WEEK FROM a.activity_date::date) = %s
-                      AND u.email != %s
+                      AND u.email != %s AND u.google_id NOT LIKE 'chess:%%'
                     GROUP BY u.id, u.name, u.picture
                     ORDER BY minutes DESC
                 ''', (int(year), int(week), excluded_email))
@@ -6251,7 +6254,7 @@ def get_time_spent_details(period):
                     JOIN users u ON a.user_id = u.id
                     WHERE strftime('%Y', a.activity_date) = ?
                       AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
-                      AND u.email != ?
+                      AND u.email != ? AND u.google_id NOT LIKE 'chess:%'
                     GROUP BY u.id
                     ORDER BY minutes DESC
                 ''', (year, int(week), excluded_email))
@@ -6263,7 +6266,7 @@ def get_time_spent_details(period):
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE to_char(a.activity_date::date, 'YYYY-MM') = %s
-                      AND u.email != %s
+                      AND u.email != %s AND u.google_id NOT LIKE 'chess:%%'
                     GROUP BY u.id, u.name, u.picture
                     ORDER BY minutes DESC
                 ''', (period, excluded_email))
@@ -6273,7 +6276,7 @@ def get_time_spent_details(period):
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE strftime('%Y-%m', a.activity_date) = ?
-                      AND u.email != ?
+                      AND u.email != ? AND u.google_id NOT LIKE 'chess:%'
                     GROUP BY u.id
                     ORDER BY minutes DESC
                 ''', (period, excluded_email))
@@ -6285,7 +6288,7 @@ def get_time_spent_details(period):
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE a.activity_date = %s
-                      AND u.email != %s
+                      AND u.email != %s AND u.google_id NOT LIKE 'chess:%%'
                     ORDER BY a.minutes DESC
                 ''', (period, excluded_email))
             else:
@@ -6294,7 +6297,7 @@ def get_time_spent_details(period):
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
                     WHERE a.activity_date = ?
-                      AND u.email != ?
+                      AND u.email != ? AND u.google_id NOT LIKE 'chess:%'
                     ORDER BY a.minutes DESC
                 ''', (period, excluded_email))
 
@@ -6311,6 +6314,8 @@ def get_page_breakdown():
         cursor = conn.execute('''
             SELECT p.page, SUM(p.minutes) as total_minutes
             FROM page_activity p
+            JOIN users u ON p.user_id = u.id
+            WHERE u.google_id NOT LIKE 'chess:%'
             GROUP BY p.page
             ORDER BY total_minutes DESC
         ''')
