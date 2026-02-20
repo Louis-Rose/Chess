@@ -1,50 +1,19 @@
-import { Sun, Moon, Monitor } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
+import { Moon } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
   const { language } = useLanguage();
-
-  const cycleTheme = () => {
-    if (theme === 'light') setTheme('dark');
-    else if (theme === 'dark') setTheme('system');
-    else setTheme('light');
-  };
-
-  const getIcon = () => {
-    switch (theme) {
-      case 'light':
-        return <Sun className="w-4 h-4" />;
-      case 'dark':
-        return <Moon className="w-4 h-4" />;
-      case 'system':
-        return <Monitor className="w-4 h-4" />;
-    }
-  };
-
-  const getLabel = () => {
-    switch (theme) {
-      case 'light':
-        return language === 'fr' ? 'Clair' : 'Light';
-      case 'dark':
-        return language === 'fr' ? 'Sombre' : 'Dark';
-      case 'system':
-        return language === 'fr' ? 'Système' : 'System';
-    }
-  };
 
   return (
     <button
-      onClick={cycleTheme}
-      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-sm transition-colors"
-      title={language === 'fr' ? 'Changer le thème' : 'Change theme'}
+      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-700 text-sm cursor-default"
+      title={language === 'fr' ? 'Sombre' : 'Dark'}
     >
-      <span className="text-slate-500 dark:text-slate-400">
-        {getIcon()}
+      <span className="text-slate-400">
+        <Moon className="w-4 h-4" />
       </span>
-      <span className="text-slate-700 dark:text-slate-200 font-medium">
-        {getLabel()}
+      <span className="text-slate-200 font-medium">
+        {language === 'fr' ? 'Sombre' : 'Dark'}
       </span>
     </button>
   );
