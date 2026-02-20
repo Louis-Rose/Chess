@@ -8,9 +8,9 @@ import { fetchYouTubeVideos, fetchFatigueAnalysis } from '../hooks/api';
 import posthog from 'posthog-js';
 import { getSavedPlayers, savePlayer, removePlayer, getChessPrefs, saveChessPrefs } from '../utils/constants';
 
-const EXCLUDED_CHESS_USERNAMES = ['akyrosu'];
+const POSTHOG_EXCLUDED_CHESS_USERNAMES = ['akyrosu'];
 const checkPostHogExclusion = (username: string) => {
-  if (EXCLUDED_CHESS_USERNAMES.includes(username.toLowerCase())) {
+  if (POSTHOG_EXCLUDED_CHESS_USERNAMES.includes(username.toLowerCase())) {
     posthog.opt_out_capturing();
     try { localStorage.setItem('posthog-excluded', 'true'); } catch {}
   }
