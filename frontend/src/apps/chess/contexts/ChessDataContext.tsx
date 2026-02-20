@@ -5,7 +5,16 @@ import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useStreamingStats } from '../hooks/useStreamingStats';
 import { fetchYouTubeVideos, fetchFatigueAnalysis } from '../hooks/api';
+import posthog from 'posthog-js';
 import { getSavedPlayers, savePlayer, removePlayer, getChessPrefs, saveChessPrefs } from '../utils/constants';
+
+const EXCLUDED_CHESS_USERNAMES = ['akyrosu'];
+const checkPostHogExclusion = (username: string) => {
+  if (EXCLUDED_CHESS_USERNAMES.includes(username.toLowerCase())) {
+    posthog.opt_out_capturing();
+    try { localStorage.setItem('posthog-excluded', 'true'); } catch {}
+  }
+};
 import type {
   TimeClass,
   SavedPlayer,
@@ -93,6 +102,7 @@ interface ChessDataProviderProps {
 export function ChessDataProvider({ children }: ChessDataProviderProps) {
   // Load saved preferences from localStorage on init
   const prefs = getChessPrefs();
+  if (prefs.chess_username) checkPostHogExclusion(prefs.chess_username);
 
   // UI state — don't pre-fill the search bar during onboarding
   const [usernameInput, setUsernameInput] = useState(prefs.onboarding_done ? (prefs.chess_username || '') : '');
@@ -144,6 +154,7 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
       const savedUsername = getChessPrefs().chess_username;
       if (!savedUsername) {
         saveChessPrefs({ chess_username: json.player.username });
+        checkPostHogExclusion(json.player.username);
       }
     } catch (e) {
       setPlayerInfoError(e instanceof Error ? e.message : 'Unknown error');
@@ -242,6 +253,7 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
       // First-time user: save their first search as their username
       if (!savedUsername && !myPlayerData) {
         saveChessPrefs({ chess_username: data.player.username });
+        checkPostHogExclusion(data.player.username);
         setMyPlayerData(data);
       }
     }
