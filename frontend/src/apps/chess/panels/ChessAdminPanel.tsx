@@ -327,7 +327,7 @@ export function ChessAdminPanel() {
               <div className="h-[250px] select-none [&_svg]:outline-none [&_*]:outline-none [&_.recharts-surface]:focus:outline-none [&_.recharts-wrapper]:focus:outline-none">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={timeSpentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }} accessibilityLayer={false}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis
                       dataKey="date"
                       tick={{ fontSize: 12, fill: '#94a3b8' }}
