@@ -298,7 +298,6 @@ def get_chess_insight():
     body = request.get_json(silent=True) or {}
     stat_type = body.get('type')
     rows = body.get('rows')
-    lang = body.get('lang', 'en')
 
     if not stat_type or not rows:
         return jsonify({"error": "type and rows required"}), 400
@@ -311,39 +310,40 @@ def get_chess_insight():
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.0-flash')
 
-        lang_instruction = "Answer in French." if lang == 'fr' else "Answer in English."
-
         if stat_type == 'daily_volume':
             data_str = "\n".join(f"- {r['games_per_day']} games/day → {r['win_rate']:.1f}% win rate" for r in rows)
-            if lang == 'fr':
-                format_example = (
-                    "Vous devriez jouer entre X et Y parties par jour (X.y% de taux de victoire).\n"
-                    "Vous devriez éviter de jouer moins de X parties par jour (X.y% de taux de victoire).\n"
-                    "Vous devriez éviter de jouer plus de Y parties par jour (X.y% de taux de victoire)."
-                )
-            else:
-                format_example = (
-                    "You should play between X and Y games per day (X.y% win rate).\n"
-                    "You should avoid playing less than X games per day (X.y% win rate).\n"
-                    "You should avoid playing more than Y games per day (X.y% win rate)."
-                )
             prompt = f"""You are a chess coach. Here is a player's win rate by number of games played per day:
 
 {data_str}
 
-Your output should follow this format exactly, don't add anything:
+Output the analysis in BOTH English and French with EXACTLY the same numbers and conclusions.
+Each line must start with "EN: " or "FR: ".
 
-{format_example}
+Format:
+EN: You should play between X and Y games per day (X.y% win rate).
+EN: You should avoid playing less than X games per day (X.y% win rate).
+EN: You should avoid playing more than Y games per day (X.y% win rate).
+FR: Vous devriez jouer entre X et Y parties par jour (X.y% de taux de victoire).
+FR: Vous devriez éviter de jouer moins de X parties par jour (X.y% de taux de victoire).
+FR: Vous devriez éviter de jouer plus de Y parties par jour (X.y% de taux de victoire).
 
 Rules:
-1) The win rate for the first sentence should be the average win rate for that optimal range.
-2) If the win rate for "less than X" or "more than Y" is above 50%, that's positive — remove that specific sentence entirely.
-No intro, no filler. No "here's my summary:". {lang_instruction}"""
+1) The recommended range is the consecutive span of games_per_day values with the highest average win rate (must be above 50%).
+2) The win rate shown in the first sentence is the average for that optimal range.
+3) If the win rate for playing fewer than X games is above 50%, remove BOTH the EN and FR "avoid playing less" lines.
+4) If the win rate for playing more than Y games is above 50%, remove BOTH the EN and FR "avoid playing more" lines.
+No intro, no filler. Output ONLY the prefixed lines."""
         else:
             return jsonify({"error": f"Unknown stat type: {stat_type}"}), 400
 
         response = model.generate_content(prompt)
-        return jsonify({"summary": response.text.strip()})
+        text = response.text.strip()
+        en_lines = [line[4:].strip() for line in text.split('\n') if line.startswith('EN: ')]
+        fr_lines = [line[4:].strip() for line in text.split('\n') if line.startswith('FR: ')]
+        return jsonify({
+            "summary_en": '\n'.join(en_lines),
+            "summary_fr": '\n'.join(fr_lines),
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

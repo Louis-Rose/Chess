@@ -214,9 +214,10 @@ function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRa
   const fetchedRef = useRef<string>('');
 
   useEffect(() => {
+    let aborted = false;
+
     const significant = sorted.filter(d => d.days >= 10);
     if (significant.length === 0) {
-      // Clear stale summaries when switching to a time class with no data
       setSummaries({ en: null, fr: null });
       fetchedRef.current = '';
       return;
@@ -227,13 +228,14 @@ function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRa
     fetchedRef.current = key;
 
     const rows = significant.map(d => ({ games_per_day: d.games_per_day, win_rate: d.winRate }));
+    setSummaries({ en: null, fr: null });
     setLoading(true);
-    Promise.all([
-      fetchChessInsight('daily_volume', rows, 'en').catch(() => null),
-      fetchChessInsight('daily_volume', rows, 'fr').catch(() => null),
-    ])
-      .then(([en, fr]) => setSummaries({ en, fr }))
-      .finally(() => setLoading(false));
+    fetchChessInsight('daily_volume', rows)
+      .then(result => { if (!aborted) setSummaries({ en: result.en, fr: result.fr }); })
+      .catch(() => { if (!aborted) setSummaries({ en: null, fr: null }); })
+      .finally(() => { if (!aborted) setLoading(false); });
+
+    return () => { aborted = true; };
   }, [sorted]);
 
   if (loading) {
