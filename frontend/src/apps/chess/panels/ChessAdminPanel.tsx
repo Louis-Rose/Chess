@@ -15,6 +15,7 @@ interface ChessUser {
   total_minutes: number;
   last_active: string | null;
   session_count: number;
+  created_at: string | null;
 }
 
 interface TimeSpentData {
@@ -29,7 +30,7 @@ interface TimeSpentUser {
   minutes: number;
 }
 
-type SortColumn = 'chess_username' | 'last_active' | 'total_minutes' | 'session_count';
+type SortColumn = 'chess_username' | 'created_at' | 'last_active' | 'total_minutes' | 'session_count';
 type SortDirection = 'asc' | 'desc';
 type TimeUnit = 'days' | 'weeks' | 'months';
 
@@ -161,6 +162,12 @@ export function ChessAdminPanel() {
         case 'chess_username':
           comparison = a.chess_username.localeCompare(b.chess_username);
           break;
+        case 'created_at': {
+          const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
+          comparison = aCreated - bCreated;
+          break;
+        }
         case 'last_active': {
           const aTime = a.last_active ? new Date(a.last_active).getTime() : 0;
           const bTime = b.last_active ? new Date(b.last_active).getTime() : 0;
@@ -552,6 +559,13 @@ export function ChessAdminPanel() {
                         </th>
                         <th
                           className="text-left py-2 px-3 text-slate-400 font-medium cursor-pointer hover:text-slate-200 transition-colors"
+                          onClick={() => handleSort('created_at')}
+                        >
+                          {language === 'fr' ? 'Inscrit' : 'Joined'}
+                          <SortIcon column="created_at" />
+                        </th>
+                        <th
+                          className="text-left py-2 px-3 text-slate-400 font-medium cursor-pointer hover:text-slate-200 transition-colors"
                           onClick={() => handleSort('last_active')}
                         >
                           {language === 'fr' ? 'Actif' : 'Active'}
@@ -588,6 +602,12 @@ export function ChessAdminPanel() {
                             >
                               {u.chess_username}
                             </a>
+                          </td>
+                          <td className="py-2 px-3 text-slate-300 whitespace-nowrap">
+                            {u.created_at ? new Date(u.created_at).toLocaleDateString(
+                              language === 'fr' ? 'fr-FR' : 'en-US',
+                              { day: 'numeric', month: 'short', year: '2-digit' }
+                            ) : '—'}
                           </td>
                           <td className="py-2 px-3 text-slate-300">
                             {formatDaysAgo(u.last_active)}

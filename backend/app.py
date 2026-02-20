@@ -1606,7 +1606,8 @@ def get_chess_users():
             SELECT LOWER(up.chess_username) as chess_username,
                    COALESCE(SUM(a.minutes), 0) as total_minutes,
                    MAX(a.last_ping) as last_active,
-                   SUM(u.session_count) as session_count
+                   SUM(u.session_count) as session_count,
+                   MIN(u.created_at) as created_at
             FROM user_preferences up
             JOIN users u ON up.user_id = u.id
             LEFT JOIN user_activity a ON u.id = a.user_id
@@ -1620,6 +1621,8 @@ def get_chess_users():
             user = dict(row)
             if user.get('last_active') and hasattr(user['last_active'], 'isoformat'):
                 user['last_active'] = user['last_active'].isoformat()
+            if user.get('created_at') and hasattr(user['created_at'], 'isoformat'):
+                user['created_at'] = user['created_at'].isoformat()
             users.append(user)
 
     return jsonify({'users': users})
