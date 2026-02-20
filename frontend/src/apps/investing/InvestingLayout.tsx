@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { UserMenu } from '../../components/UserMenu';
 import { LanguageToggle } from '../../components/LanguageToggle';
-import { ThemeToggle } from '../../components/ThemeToggle';
+
 import { FeedbackWidget } from '../../components/FeedbackWidget';
 import { RewardPopup } from './components/RewardPopup';
 import { LoginOverlay } from './components/LoginOverlay';
@@ -28,7 +28,6 @@ export function InvestingLayout() {
           <span className="text-lg font-bold text-slate-900 dark:text-white tracking-wide">LUMNA</span>
         </Link>
         <div className="flex items-center gap-1">
-          <ThemeToggle />
           <LanguageToggle />
           {isAuthenticated ? (
             authLoading ? (

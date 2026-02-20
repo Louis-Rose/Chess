@@ -82,7 +82,7 @@ export function InvestingSidebar() {
   }, [location.pathname, user?.id]);
 
   return (
-    <SidebarShell>
+    <SidebarShell hideThemeToggle>
       {/* LUMNA Logo */}
       <Link
         to="/investing"

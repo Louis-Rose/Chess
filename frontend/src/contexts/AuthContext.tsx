@@ -171,16 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (hasRecordedSettings.current) return;
     hasRecordedSettings.current = true;
 
-    // Get theme from localStorage
-    const theme = localStorage.getItem('theme') || 'system';
-    const getSystemTheme = (): 'light' | 'dark' => {
-      if (typeof window !== 'undefined' && window.matchMedia) {
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      }
-      return 'dark';
-    };
-    const resolvedTheme = theme === 'system' ? getSystemTheme() : theme;
-    axios.post('/api/theme', { theme, resolved_theme: resolvedTheme }).catch(() => {});
+    axios.post('/api/theme', { theme: 'dark', resolved_theme: 'dark' }).catch(() => {});
 
     // Get language from localStorage
     const language = localStorage.getItem('language') || 'en';
@@ -237,14 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const page = getPageFromPath(window.location.pathname);
 
       // Include settings data for tracking
-      const theme = localStorage.getItem('theme') || 'system';
-      const getSystemTheme = (): 'light' | 'dark' => {
-        if (typeof window !== 'undefined' && window.matchMedia) {
-          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
-        return 'dark';
-      };
-      const resolved_theme = theme === 'system' ? getSystemTheme() : theme;
+      const resolved_theme = 'dark';
       const language = localStorage.getItem('language') || 'en';
       const userAgent = navigator.userAgent.toLowerCase();
       const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(userAgent);
@@ -254,7 +238,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ page, theme, resolved_theme, language, device_type })
+        body: JSON.stringify({ page, theme: 'dark', resolved_theme, language, device_type })
       }).catch(() => {}); // Silently fail
     };
 
