@@ -211,7 +211,7 @@ function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRa
   const { t, language } = useLanguage();
   const [summaries, setSummaries] = useState<{ en: string | null; fr: string | null }>({ en: null, fr: null });
   const [loading, setLoading] = useState(false);
-  const fetchedRef = useRef<string>('');
+  const cacheRef = useRef<Map<string, { en: string; fr: string }>>(new Map());
 
   useEffect(() => {
     let aborted = false;
@@ -219,19 +219,27 @@ function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRa
     const significant = sorted.filter(d => d.days >= 10);
     if (significant.length === 0) {
       setSummaries({ en: null, fr: null });
-      fetchedRef.current = '';
+      setLoading(false);
       return;
     }
 
     const key = significant.map(d => `${d.games_per_day}:${d.winRate.toFixed(1)}`).join(',');
-    if (fetchedRef.current === key) return;
-    fetchedRef.current = key;
+
+    const cached = cacheRef.current.get(key);
+    if (cached) {
+      setSummaries(cached);
+      setLoading(false);
+      return;
+    }
 
     const rows = significant.map(d => ({ games_per_day: d.games_per_day, win_rate: d.winRate }));
     setSummaries({ en: null, fr: null });
     setLoading(true);
     fetchChessInsight('daily_volume', rows)
-      .then(result => { if (!aborted) setSummaries({ en: result.en, fr: result.fr }); })
+      .then(result => {
+        cacheRef.current.set(key, result);
+        if (!aborted) setSummaries(result);
+      })
       .catch(() => { if (!aborted) setSummaries({ en: null, fr: null }); })
       .finally(() => { if (!aborted) setLoading(false); });
 
