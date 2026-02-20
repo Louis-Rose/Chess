@@ -286,6 +286,8 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
         const lastSignificantIdx = withRate.reduce((last, d, i) => d.days >= 10 ? i : last, -1);
         const sorted = lastSignificantIdx >= 0 ? withRate.slice(0, lastSignificantIdx + 1) : [];
 
+        if (sorted.length === 0) return <NotEnoughGames totalGames={data.total_games} />;
+
         const table = (
           <table className="w-full border-collapse border border-slate-600">
             <thead>
