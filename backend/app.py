@@ -1619,7 +1619,7 @@ def get_chess_users():
             SELECT LOWER(up.chess_username) as chess_username,
                    COALESCE(SUM(a.seconds), 0) as total_seconds,
                    MAX(a.last_ping) as last_active,
-                   SUM(u.session_count) as session_count,
+                   MAX(u.session_count) as session_count,
                    MIN(u.created_at) as created_at
             FROM user_preferences up
             JOIN users u ON up.user_id = u.id
