@@ -227,13 +227,14 @@ export function ChessAdminPanel() {
     return Math.ceil(maxMinutes / 30) * 30 + 30;
   }, [timeSpentChartData]);
 
-  // Format "days ago" for last_active
+  // Format "days ago" for last_active (calendar-day comparison)
   const formatDaysAgo = (lastActive: string | null) => {
     if (!lastActive) return '—';
     const now = new Date();
     const last = new Date(lastActive);
-    const diffMs = now.getTime() - last.getTime();
-    const diffDays = Math.floor(diffMs / 86400000);
+    const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const lastDate = new Date(last.getFullYear(), last.getMonth(), last.getDate());
+    const diffDays = Math.round((nowDate.getTime() - lastDate.getTime()) / 86400000);
     if (diffDays === 0) return language === 'fr' ? "Aujourd'hui" : 'Today';
     if (diffDays === 1) return language === 'fr' ? 'Hier' : 'Yesterday';
     return language === 'fr' ? `${diffDays}j` : `${diffDays}d`;
