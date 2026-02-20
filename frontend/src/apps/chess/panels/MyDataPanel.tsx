@@ -207,11 +207,13 @@ export function TodaySection({ data, standalone = false }: { data: ApiResponse; 
   );
 }
 
+// Module-level cache so Gemini results survive component unmount/remount
+const insightCache = new Map<string, { en: string; fr: string }>();
+
 function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRate: number; days: number }[] }) {
   const { t, language } = useLanguage();
   const [summaries, setSummaries] = useState<{ en: string | null; fr: string | null }>({ en: null, fr: null });
   const [loading, setLoading] = useState(false);
-  const cacheRef = useRef<Map<string, { en: string; fr: string }>>(new Map());
 
   useEffect(() => {
     let aborted = false;
@@ -225,7 +227,7 @@ function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRa
 
     const key = significant.map(d => `${d.games_per_day}:${d.winRate.toFixed(1)}`).join(',');
 
-    const cached = cacheRef.current.get(key);
+    const cached = insightCache.get(key);
     if (cached) {
       setSummaries(cached);
       setLoading(false);
@@ -237,7 +239,7 @@ function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRa
     setLoading(true);
     fetchChessInsight('daily_volume', rows)
       .then(result => {
-        cacheRef.current.set(key, result);
+        insightCache.set(key, result);
         if (!aborted) setSummaries(result);
       })
       .catch(() => { if (!aborted) setSummaries({ en: null, fr: null }); })
