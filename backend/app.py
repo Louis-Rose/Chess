@@ -1599,7 +1599,7 @@ def list_users():
             if user.get('updated_at') and hasattr(user['updated_at'], 'isoformat'):
                 user['updated_at'] = user['updated_at'].isoformat()
             if user.get('last_active') and hasattr(user['last_active'], 'isoformat'):
-                user['last_active'] = user['last_active'].isoformat()
+                user['last_active'] = user['last_active'].isoformat() + 'Z'
             users.append(user)
 
     return jsonify({'users': users, 'total': len(users)})
@@ -1634,7 +1634,7 @@ def get_chess_users():
         for row in cursor.fetchall():
             user = dict(row)
             if user.get('last_active') and hasattr(user['last_active'], 'isoformat'):
-                user['last_active'] = user['last_active'].isoformat()
+                user['last_active'] = user['last_active'].isoformat() + 'Z'
             if user.get('created_at') and hasattr(user['created_at'], 'isoformat'):
                 user['created_at'] = user['created_at'].isoformat()
             users.append(user)
@@ -1839,7 +1839,7 @@ def get_user_detail(user_id):
     if user_dict.get('updated_at') and hasattr(user_dict['updated_at'], 'isoformat'):
         user_dict['updated_at'] = user_dict['updated_at'].isoformat()
     if user_dict.get('last_active') and hasattr(user_dict['last_active'], 'isoformat'):
-        user_dict['last_active'] = user_dict['last_active'].isoformat()
+        user_dict['last_active'] = user_dict['last_active'].isoformat() + 'Z'
 
     return jsonify({'user': user_dict})
 
