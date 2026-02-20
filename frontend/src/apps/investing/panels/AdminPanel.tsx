@@ -642,32 +642,6 @@ export function AdminPanel() {
   }, [yAxisMax]);
 
   // Calculate geometric growth rates for Users chart
-  const usersGrowthRates = useMemo(() => {
-    if (chartData.length < 2) return null;
-
-    const periods = [1, 2, 3, 5];
-    const rates: { period: number; rate: number | null }[] = [];
-
-    const currentValue = chartData[chartData.length - 1].users;
-
-    periods.forEach(n => {
-      if (chartData.length > n) {
-        const pastValue = chartData[chartData.length - 1 - n].users;
-        if (pastValue > 0) {
-          // Geometric growth rate: (current/past)^(1/n) - 1
-          const rate = (Math.pow(currentValue / pastValue, 1 / n) - 1) * 100;
-          rates.push({ period: n, rate });
-        } else {
-          rates.push({ period: n, rate: null });
-        }
-      } else {
-        rates.push({ period: n, rate: null });
-      }
-    });
-
-    return rates;
-  }, [chartData]);
-
   // Compute time spent chart data (supports days/weeks/months with sum)
   // Only shows data from 2026 onwards (same as users chart)
   const timeSpentChartData = useMemo(() => {
@@ -719,33 +693,6 @@ export function AdminPanel() {
   const timeYAxisMax = useMemo(() => {
     const maxMinutes = Math.max(...timeSpentChartData.map(d => d.minutes), 0);
     return Math.ceil(maxMinutes / 30) * 30 + 30; // Round up to nearest 30
-  }, [timeSpentChartData]);
-
-  // Calculate geometric growth rates for Time Spent chart
-  const timeSpentGrowthRates = useMemo(() => {
-    if (timeSpentChartData.length < 2) return null;
-
-    const periods = [1, 2, 3, 5];
-    const rates: { period: number; rate: number | null }[] = [];
-
-    const currentValue = timeSpentChartData[timeSpentChartData.length - 1].minutes;
-
-    periods.forEach(n => {
-      if (timeSpentChartData.length > n) {
-        const pastValue = timeSpentChartData[timeSpentChartData.length - 1 - n].minutes;
-        if (pastValue > 0) {
-          // Geometric growth rate: (current/past)^(1/n) - 1
-          const rate = (Math.pow(currentValue / pastValue, 1 / n) - 1) * 100;
-          rates.push({ period: n, rate });
-        } else {
-          rates.push({ period: n, rate: null });
-        }
-      } else {
-        rates.push({ period: n, rate: null });
-      }
-    });
-
-    return rates;
   }, [timeSpentChartData]);
 
   // Redirect non-admins
@@ -884,26 +831,6 @@ export function AdminPanel() {
                 </BarChart>
               </ResponsiveContainer>
             </div>}
-            {/* Growth Rates */}
-            {isTimeSpentExpanded && timeSpentGrowthRates && (
-              <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mt-4">
-                {timeSpentGrowthRates.map(({ period, rate }) => (
-                  <div key={period} className="px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-xs sm:text-sm">
-                    <span className="text-slate-100 font-medium">
-                      {period}{chartUnit === 'days' ? 'D' : chartUnit === 'weeks' ? 'W' : 'M'}
-                    </span>
-                    <span className="mx-1 text-slate-400">·</span>
-                    {rate !== null ? (
-                      <span className={`font-bold ${rate >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {rate >= 0 ? '+' : ''}{rate.toFixed(1)}%
-                      </span>
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
             {/* Users for selected period */}
             {isTimeSpentExpanded && selectedTimeSpentPeriod && (
               <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-600 rounded-lg">
@@ -1139,27 +1066,6 @@ export function AdminPanel() {
                       />
                     </BarChart>
                   </ResponsiveContainer>
-                </div>
-              )}
-
-              {/* Growth Rates */}
-              {usersGrowthRates && (
-                <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mb-4">
-                  {usersGrowthRates.map(({ period, rate }) => (
-                    <div key={period} className="px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg text-xs sm:text-sm">
-                      <span className="text-slate-100 font-medium">
-                        {period}{chartUnit === 'days' ? 'D' : chartUnit === 'weeks' ? 'W' : 'M'}
-                      </span>
-                      <span className="mx-1 text-slate-400">·</span>
-                      {rate !== null ? (
-                        <span className={`font-bold ${rate >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {rate >= 0 ? '+' : ''}{rate.toFixed(1)}%
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </div>
-                  ))}
                 </div>
               )}
 
