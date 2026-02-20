@@ -286,7 +286,7 @@ export function ChessAdminPanel() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* 1. Time Spent Chart */}
         {timeSpentChartData.length > 0 && (
-          <div className="bg-slate-800 rounded-xl p-6">
+          <div className="bg-slate-700 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
               <button
                 onClick={(e) => {
@@ -302,7 +302,7 @@ export function ChessAdminPanel() {
                 </h3>
               </button>
               {isTimeSpentExpanded && (
-                <div className="flex items-center gap-1 bg-slate-700 rounded-lg p-1">
+                <div className="flex items-center gap-1 bg-slate-600 rounded-lg p-1">
                   {(['days', 'weeks', 'months'] as const).map((unit) => (
                     <button
                       key={unit}
@@ -314,7 +314,7 @@ export function ChessAdminPanel() {
                       className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
                         chartUnit === unit
                           ? 'bg-green-600 text-white'
-                          : 'text-slate-300 hover:bg-slate-600'
+                          : 'text-slate-300 hover:bg-slate-500'
                       }`}
                     >
                       {unit === 'days' ? (language === 'fr' ? 'J' : 'D') : unit === 'weeks' ? (language === 'fr' ? 'S' : 'W') : 'M'}
@@ -389,7 +389,7 @@ export function ChessAdminPanel() {
             {isTimeSpentExpanded && timeSpentGrowthRates && (
               <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mt-4">
                 {timeSpentGrowthRates.map(({ period, rate }) => (
-                  <div key={period} className="px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-700 rounded-lg text-xs sm:text-sm">
+                  <div key={period} className="px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-600 rounded-lg text-xs sm:text-sm">
                     <span className="text-slate-100 font-medium">
                       {period}{chartUnit === 'days' ? 'D' : chartUnit === 'weeks' ? 'W' : 'M'}
                     </span>
@@ -407,7 +407,7 @@ export function ChessAdminPanel() {
             )}
             {/* Users for selected period */}
             {isTimeSpentExpanded && selectedTimeSpentPeriod && (
-              <div className="mt-4 p-3 bg-slate-700 rounded-lg">
+              <div className="mt-4 p-3 bg-slate-600 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-sm font-medium text-slate-200">
                     {(() => {
@@ -445,7 +445,7 @@ export function ChessAdminPanel() {
                         return (
                           <div
                             key={u.id}
-                            className="flex items-center justify-between py-1 px-2 rounded hover:bg-slate-600"
+                            className="flex items-center justify-between py-1 px-2 rounded hover:bg-slate-500"
                           >
                             <div className="flex items-center gap-2">
                               {u.picture ? (
@@ -480,7 +480,7 @@ export function ChessAdminPanel() {
         )}
 
         {/* 2. Chess Users Table */}
-        <div className="bg-slate-800 rounded-xl p-6">
+        <div className="bg-slate-700 rounded-xl p-6">
           <button
             onClick={(e) => {
               setIsUsersExpanded(!isUsersExpanded);
@@ -510,7 +510,7 @@ export function ChessAdminPanel() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-slate-700">
+                      <tr className="border-b border-slate-600">
                         <th
                           className="text-left py-2 px-3 text-slate-400 font-medium cursor-pointer hover:text-slate-200 transition-colors"
                           onClick={() => handleSort('chess_username')}
@@ -545,7 +545,7 @@ export function ChessAdminPanel() {
                       {sortedUsers.map((u) => (
                         <tr
                           key={u.chess_username}
-                          className="border-b border-slate-700/50 hover:bg-slate-700/50 transition-colors"
+                          className="border-b border-slate-600/50 hover:bg-slate-600/50 transition-colors"
                         >
                           <td className="py-2 px-3">
                             <a
