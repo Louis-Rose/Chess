@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { TimeClassToggle } from '../components/TimeClassToggle';
@@ -26,7 +26,11 @@ export function DailyVolumePage() {
           <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} />
         </div>
         <div className="border-t border-slate-700" />
-        {data && <DailyVolumeSection data={data} standalone />}
+        {loading && !data ? (
+          <div className="flex justify-center py-20"><Loader2 className="w-12 h-12 text-slate-400 animate-spin" /></div>
+        ) : data ? (
+          <DailyVolumeSection data={data} standalone />
+        ) : null}
       </div>
     </div>
   );

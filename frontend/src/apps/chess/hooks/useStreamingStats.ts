@@ -188,10 +188,12 @@ export function useStreamingStats(username: string, timeClass: TimeClass) {
       // Preserve current player data, swap stats
       setData(prev => prev ? { player: prev.player, ...cached.data } : null);
     } else {
-      // No local cache for this time class — need to fetch
+      // Clear stale data immediately so panels don't flash old time class
+      setData(null);
+      setLoading(true);
       fetchStats();
     }
-  }, [timeClass]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [timeClass, fetchStats]);
 
   // Cleanup on unmount
   useEffect(() => {

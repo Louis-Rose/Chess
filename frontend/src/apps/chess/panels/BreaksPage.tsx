@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { TimeClassToggle } from '../components/TimeClassToggle';
@@ -181,7 +181,9 @@ export function BreaksPage() {
           <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} />
         </div>
         <div className="border-t border-slate-700" />
-        {stats && stats.length > 0 ? (
+        {loading && !data ? (
+          <div className="flex justify-center py-20"><Loader2 className="w-12 h-12 text-slate-400 animate-spin" /></div>
+        ) : stats && stats.length > 0 ? (
           <>
             <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">
               <h2 className="text-2xl font-bold text-slate-100 text-center select-text py-3">{t('chess.breaksCardTitle')}</h2>
