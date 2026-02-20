@@ -1731,6 +1731,31 @@ def get_chess_time_spent_details(period):
     return jsonify({'users': users, 'period': period})
 
 
+@app.route('/api/admin/chess-page-breakdown', methods=['GET'])
+@admin_required
+def get_chess_page_breakdown():
+    """Get aggregated time spent by page/section for chess users only (admin only)."""
+    excluded_email = 'rose.louis.mail@gmail.com'
+
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT p.page, SUM(p.minutes) as total_minutes
+            FROM page_activity p
+            JOIN users u ON p.user_id = u.id
+            WHERE u.google_id LIKE ? AND u.email != ?
+            GROUP BY p.page
+            ORDER BY total_minutes DESC
+        ''', ('chess:%', excluded_email))
+
+        breakdown = [dict(row) for row in cursor.fetchall()]
+        total = sum(item['total_minutes'] for item in breakdown)
+
+    return jsonify({
+        'breakdown': breakdown,
+        'total_minutes': total
+    })
+
+
 @app.route('/api/admin/users/<int:user_id>/activity', methods=['GET'])
 @admin_required
 def get_user_activity(user_id):

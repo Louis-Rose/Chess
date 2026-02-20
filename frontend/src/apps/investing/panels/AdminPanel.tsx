@@ -253,7 +253,7 @@ export function AdminPanel() {
   const [isCompaniesExpanded, setIsCompaniesExpanded] = useState(true);
   const [isStockSearchesExpanded, setIsStockSearchesExpanded] = useState(true);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(true);
-  const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(true);
+  const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(false);
 
   // Sort state for Companies table
   type CompanySortColumn = 'ticker' | 'portfolio_count' | 'watchlist_count' | 'total';
