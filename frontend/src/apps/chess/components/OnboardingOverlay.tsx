@@ -6,7 +6,7 @@ import { useChessData } from '../contexts/ChessDataContext';
 import { Loader2, Clock, Zap } from 'lucide-react';
 
 const SLIDES_TEXT = [
-  "Welcome to LUMNA. We're analyzing your games to find patterns in how you play, what helps you win, and what doesn't.",
+  "Welcome to LUMNA. We analyze your games to find patterns in how you play, what helps you win, and what doesn't.",
   "We look at your games volume and frequency, when you play during the day, whether you take breaks during games or play back-to-back, and much more. Everything is computed from your Chess.com game history.",
   "One last thing, which time control do you prefer?",
 ];
