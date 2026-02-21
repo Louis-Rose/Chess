@@ -132,7 +132,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
     currentSlide === 0
   );
   const slide1 = useWordReveal(
-    "We analyze your game volume, frequency, and daily playing patterns, including whether you take breaks or play back-to-back. By evaluating your full Chess.com history, we provide a comprehensive look at your playing habits.",
+    "We analyze your play volume, frequency, whether you take breaks or play games back-to-back, and much more. By compiling your full Chess.com history, we provide a comprehensive look at your playing habits.",
     currentSlide === 1
   );
   const slide2 = useWordReveal(
