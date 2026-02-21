@@ -10,9 +10,12 @@ interface ChessPrefs {
   preferred_time_class: string | null;
   onboarding_done: boolean;
   elo_goal: number | null;
+  elo_goal_start_elo: number | null;
+  elo_goal_start_date: string | null;
+  elo_goal_months: number;
 }
 
-const DEFAULT_PREFS: ChessPrefs = { chess_username: null, preferred_time_class: null, onboarding_done: false, elo_goal: null };
+const DEFAULT_PREFS: ChessPrefs = { chess_username: null, preferred_time_class: null, onboarding_done: false, elo_goal: null, elo_goal_start_elo: null, elo_goal_start_date: null, elo_goal_months: 3 };
 
 export const getChessPrefs = (): ChessPrefs => {
   try {

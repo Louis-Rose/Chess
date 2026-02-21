@@ -6,6 +6,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
+import { EloGoalCard } from '../components/EloGoalCard';
 
 // Card definitions - titleKey/descriptionKey are i18n keys resolved at render time
 const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; iconBg: string; titleKey: string; descriptionKey: string | null }[] = [
@@ -137,6 +138,11 @@ export function WelcomePanel() {
           <LoadingProgress progress={progress} loading={loading} totalGames={data?.total_games}
             username={searchedUsername} selectedTimeClass={selectedTimeClass} onTimeClassChange={handleTimeClassChange} />
         )}
+      </div>
+
+      {/* Elo Goal Card */}
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
+        <EloGoalCard />
       </div>
 
       {/* Welcome cards */}

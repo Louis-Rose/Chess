@@ -195,6 +195,16 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.ob.letsGo': "Let's go",
     'chess.ob.almostReady': 'Almost ready...',
     'chess.ob.processing': 'Processing {month}...',
+    'chess.goalCard.title': 'Your Goal',
+    'chess.goalCard.updateGoal': 'Update goal',
+    'chess.goalCard.setGoal': 'Set a goal',
+    'chess.goalCard.setGoalPrompt': 'Set an elo goal to track your progress.',
+    'chess.goalCard.goal': 'Goal',
+    'chess.goalCard.actual': 'Actual',
+    'chess.goalCard.save': 'Save',
+    'chess.goalCard.cancel': 'Cancel',
+    'chess.goalCard.months': '{n} mo',
+    'chess.goalCard.timeline': 'Timeline',
 
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
@@ -399,6 +409,16 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.ob.letsGo': "C'est parti",
     'chess.ob.almostReady': 'Presque prêt...',
     'chess.ob.processing': 'Traitement de {month}...',
+    'chess.goalCard.title': 'Votre Objectif',
+    'chess.goalCard.updateGoal': 'Modifier l\'objectif',
+    'chess.goalCard.setGoal': 'Fixer un objectif',
+    'chess.goalCard.setGoalPrompt': 'Fixez un objectif elo pour suivre votre progression.',
+    'chess.goalCard.goal': 'Objectif',
+    'chess.goalCard.actual': 'Réel',
+    'chess.goalCard.save': 'Enregistrer',
+    'chess.goalCard.cancel': 'Annuler',
+    'chess.goalCard.months': '{n} mois',
+    'chess.goalCard.timeline': 'Durée',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',

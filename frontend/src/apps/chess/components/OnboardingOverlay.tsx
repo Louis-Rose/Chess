@@ -198,7 +198,12 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
 
   const handleGoalSelect = (value: number) => {
     setSelectedGoal(value);
-    saveChessPrefs({ elo_goal: value });
+    saveChessPrefs({
+      elo_goal: value,
+      elo_goal_start_elo: currentElo ?? null,
+      elo_goal_start_date: new Date().toISOString().slice(0, 10),
+      elo_goal_months: 3,
+    });
   };
 
   // When slides are done and loading is done, fade out
