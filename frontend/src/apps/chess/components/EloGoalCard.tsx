@@ -206,9 +206,9 @@ export function EloGoalCard() {
                   const [y, m, d] = dateStr.split('-').map(Number);
                   return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
                 }}
-                formatter={(value: number, name: string) => {
+                formatter={(value?: number, name?: string) => {
                   const label = name === 'goal' ? t('chess.goalCard.goal') : t('chess.goalCard.actual');
-                  return [value, label];
+                  return [value ?? '', label];
                 }}
               />
               <Legend
