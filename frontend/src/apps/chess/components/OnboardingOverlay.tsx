@@ -7,7 +7,7 @@ import { Loader2, Clock, Zap } from 'lucide-react';
 
 const SLIDES_TEXT = [
   "Welcome to LUMNA. We analyze your games to find patterns in how you play, what helps you win, and what doesn't.",
-  "We look at your games volume and frequency, when you play during the day, whether you take breaks during games or play back-to-back, and much more. Everything is computed from your Chess.com game history.",
+  "We analyze your game volume, frequency, and daily playing patterns, including whether you take breaks or play back-to-back. By evaluating your full Chess.com history, we provide a comprehensive look at your playing habits.",
   "One last thing, which time control do you prefer?",
 ];
 
