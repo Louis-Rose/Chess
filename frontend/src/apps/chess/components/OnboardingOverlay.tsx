@@ -6,9 +6,9 @@ import { useChessData } from '../contexts/ChessDataContext';
 import { Loader2, Clock, Zap } from 'lucide-react';
 
 const SLIDES_TEXT = [
-  "Welcome to LUMNA. We're analyzing your games to find patterns in how you play — what helps you win, and what doesn't.",
-  "We look at your streaks, your daily volume, the time of day you play, and much more. Everything is computed from your Chess.com game history.",
-  "One last thing — which time control do you prefer?",
+  "Welcome to LUMNA. We're analyzing your games to find patterns in how you play, what helps you win, and what doesn't.",
+  "We look at your games volume and frequency, when you play during the day, whether you take breaks during games or play back-to-back, and much more. Everything is computed from your Chess.com game history.",
+  "One last thing, which time control do you prefer?",
 ];
 
 const WORD_INTERVAL_MS = 60;
@@ -45,11 +45,11 @@ function WordByWord({ words, visibleCount }: { words: string[]; visibleCount: nu
       {words.map((word, i) => (
         <span
           key={i}
-          className={`inline-block mr-[0.3em] transition-opacity duration-200 ${
+          className={`transition-opacity duration-200 ${
             i < visibleCount ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          {word}
+          {word}{' '}
         </span>
       ))}
     </span>
