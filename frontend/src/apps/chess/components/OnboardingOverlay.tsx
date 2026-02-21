@@ -1,4 +1,4 @@
-// Onboarding overlay — 6-slide intro with word-by-word text reveal
+// Onboarding overlay — 5-slide intro with word-by-word text reveal
 // Shown after the user clicks "Continue" while data loads via SSE
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -74,11 +74,20 @@ function TimeClassCard({ label, sublabel, icon: Icon, selected, onClick }: {
   );
 }
 
-function EloGoalCard({ value, selected, onClick }: {
+function EloCard({ value, label, selected, onClick, current }: {
   value: number;
-  selected: boolean;
-  onClick: () => void;
+  label?: string;
+  selected?: boolean;
+  onClick?: () => void;
+  current?: boolean;
 }) {
+  if (current) {
+    return (
+      <div className="px-5 py-3 rounded-xl border-2 border-green-500 bg-green-500/10 text-white font-semibold text-lg">
+        {value}
+      </div>
+    );
+  }
   return (
     <button
       onClick={onClick}
@@ -89,7 +98,32 @@ function EloGoalCard({ value, selected, onClick }: {
       }`}
     >
       {value}
+      {label && <span className="block text-xs font-normal opacity-70">{label}</span>}
     </button>
+  );
+}
+
+function EloTimeline({ currentElo, goalElo }: { currentElo: number; goalElo: number }) {
+  const now = new Date();
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const currentMonth = `${months[now.getMonth()]} ${now.getFullYear()}`;
+  const target = new Date(now.getFullYear(), now.getMonth() + 3, 1);
+  const targetMonth = `${months[target.getMonth()]} ${target.getFullYear()}`;
+
+  return (
+    <div className="flex items-center gap-3 w-full max-w-sm mx-auto">
+      <div className="text-center flex-shrink-0">
+        <p className="text-green-400 font-bold text-lg">{currentElo}</p>
+        <p className="text-slate-500 text-xs">{currentMonth}</p>
+      </div>
+      <div className="flex-1 relative h-px bg-slate-600">
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] border-l-blue-400" />
+      </div>
+      <div className="text-center flex-shrink-0">
+        <p className="text-blue-400 font-bold text-lg">{goalElo}</p>
+        <p className="text-slate-500 text-xs">{targetMonth}</p>
+      </div>
+    </div>
   );
 }
 
@@ -122,11 +156,6 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
 
   const timeClassLabel = selectedTimeClass === 'blitz' ? 'Blitz' : 'Rapid';
 
-  // Build slide 3 text dynamically
-  const slide3Text = currentElo
-    ? `Your current ${timeClassLabel} elo is: ${currentElo}`
-    : `Your current ${timeClassLabel} elo is: unrated`;
-
   const slide0 = useWordReveal(
     "Welcome to LUMNA. We analyze your chess games to find patterns in how you play, what helps you win, and what doesn't.",
     currentSlide === 0
@@ -136,17 +165,16 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
     currentSlide === 1
   );
   const slide2 = useWordReveal(
-    "One last thing, which time control do you prefer?",
+    "Before we continue, which time control do you prefer?",
     currentSlide === 2
   );
+  const slide3Text = currentElo
+    ? `Your current ${timeClassLabel} elo is`
+    : `You are currently unrated in ${timeClassLabel}. Set a goal to work towards.`;
   const slide3 = useWordReveal(slide3Text, currentSlide === 3);
   const slide4 = useWordReveal(
-    "What's your elo goal for the next 3 months?",
-    currentSlide === 4
-  );
-  const slide5 = useWordReveal(
     "You're all set. Let's see what your games reveal.",
-    currentSlide === 5 && !slidesComplete
+    currentSlide === 4 && !slidesComplete
   );
 
   const handleNext = () => setCurrentSlide(prev => prev + 1);
@@ -247,58 +275,64 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
           </div>
         )}
 
-        {/* Slide 3 — Current elo */}
+        {/* Slide 3 — Current elo + goal selection */}
         {currentSlide === 3 && (
-          <div className="space-y-8">
+          <div className="space-y-6">
             <p className="text-xl text-slate-200 leading-relaxed">
               <WordByWord words={slide3.words} visibleCount={slide3.visibleCount} />
             </p>
-            <button
-              onClick={handleNext}
-              className={`px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all duration-300 ${
-                slide3.allVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
-              }`}
-            >
-              Next
-            </button>
-          </div>
-        )}
 
-        {/* Slide 4 — Elo goal */}
-        {currentSlide === 4 && (
-          <div className="space-y-8">
-            <p className="text-xl text-slate-200 leading-relaxed">
-              <WordByWord words={slide4.words} visibleCount={slide4.visibleCount} />
-            </p>
-            {eloGoals.length > 0 ? (
+            {currentElo && (
               <div
-                className={`flex gap-3 justify-center flex-wrap transition-all duration-500 ${
-                  slide4.allVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+                className={`transition-all duration-500 ${
+                  slide3.allVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
                 }`}
               >
-                {eloGoals.map(goal => (
-                  <EloGoalCard
-                    key={goal}
-                    value={goal}
-                    selected={selectedGoal === goal}
-                    onClick={() => handleGoalSelect(goal)}
-                  />
-                ))}
+                {/* Current elo card */}
+                <div className="flex justify-center mb-6">
+                  <EloCard value={currentElo} current />
+                </div>
+
+                {/* Goal label */}
+                <p className="text-slate-400 text-sm mb-3">What's your goal for the next 3 months?</p>
+
+                {/* Goal cards */}
+                <div className="flex gap-3 justify-center flex-wrap mb-6">
+                  {eloGoals.map(goal => (
+                    <EloCard
+                      key={goal}
+                      value={goal}
+                      selected={selectedGoal === goal}
+                      onClick={() => handleGoalSelect(goal)}
+                    />
+                  ))}
+                </div>
+
+                {/* Timeline — appears when a goal is selected */}
+                {selectedGoal && (
+                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <EloTimeline currentElo={currentElo} goalElo={selectedGoal} />
+                  </div>
+                )}
               </div>
-            ) : (
+            )}
+
+            {/* Unrated fallback */}
+            {!currentElo && (
               <p
-                className={`text-slate-400 transition-all duration-500 ${
-                  slide4.allVisible ? 'opacity-100' : 'opacity-0'
+                className={`text-slate-400 text-sm transition-all duration-500 ${
+                  slide3.allVisible ? 'opacity-100' : 'opacity-0'
                 }`}
               >
-                No rating data available to set a goal.
+                Play some {timeClassLabel.toLowerCase()} games on Chess.com to track your progress.
               </p>
             )}
+
             <button
               onClick={handleNext}
-              disabled={!selectedGoal && eloGoals.length > 0}
+              disabled={!!currentElo && !selectedGoal}
               className={`px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all duration-300 ${
-                slide4.allVisible && (selectedGoal || eloGoals.length === 0)
+                slide3.allVisible && (selectedGoal || !currentElo)
                   ? 'opacity-100 translate-y-0'
                   : 'opacity-0 translate-y-2 pointer-events-none'
               }`}
@@ -308,16 +342,16 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
           </div>
         )}
 
-        {/* Slide 5 — Conclusion */}
-        {currentSlide === 5 && !slidesComplete && (
+        {/* Slide 4 — Conclusion */}
+        {currentSlide === 4 && !slidesComplete && (
           <div className="space-y-8">
             <p className="text-xl text-slate-200 leading-relaxed">
-              <WordByWord words={slide5.words} visibleCount={slide5.visibleCount} />
+              <WordByWord words={slide4.words} visibleCount={slide4.visibleCount} />
             </p>
             <button
               onClick={handleFinish}
-              className={`px-8 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all duration-300 text-lg ${
-                slide5.allVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
+              className={`px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all duration-300 text-lg ${
+                slide4.allVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
               }`}
             >
               Let's go
