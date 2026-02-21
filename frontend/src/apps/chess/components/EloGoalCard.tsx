@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useReducer } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -16,10 +16,13 @@ function generateEloGoals(currentElo: number): number[] {
 export function EloGoalCard() {
   const { data, selectedTimeClass, playerInfo } = useChessData();
   const { t } = useLanguage();
-  const [prefs, setPrefs] = useState(getChessPrefs);
+  const [, forceUpdate] = useReducer(x => x + 1, 0);
   const [editing, setEditing] = useState(false);
   const [draftGoal, setDraftGoal] = useState<number | null>(null);
   const [draftMonths, setDraftMonths] = useState(3);
+
+  // Read prefs fresh each render so onboarding changes are picked up
+  const prefs = getChessPrefs();
 
   const currentElo = selectedTimeClass === 'blitz'
     ? playerInfo?.blitz_rating
@@ -44,20 +47,17 @@ export function EloGoalCard() {
     const startMs = new Date(elo_goal_start_date).getTime();
     const endMs = endDate.getTime();
 
-    // Goal line: 2 points
     const goalPoints: Record<string, { date: string; goal?: number; actual?: number }> = {};
     const startKey = elo_goal_start_date;
     const endKey = endDate.toISOString().slice(0, 10);
     goalPoints[startKey] = { date: startKey, goal: elo_goal_start_elo! };
     goalPoints[endKey] = { date: endKey, goal: elo_goal! };
 
-    // Actual elo from history
     const eloHistory = data?.elo_history ?? [];
     for (const entry of eloHistory) {
       const d = entry.date;
       const ms = new Date(d).getTime();
       if (ms < startMs) continue;
-      // Include points up to a bit past end for visibility
       if (ms > endMs + 7 * 86400000) continue;
       if (goalPoints[d]) {
         goalPoints[d].actual = entry.elo;
@@ -99,14 +99,13 @@ export function EloGoalCard() {
 
   const handleSave = () => {
     if (draftGoal === null || !currentElo) return;
-    const newPrefs = {
+    saveChessPrefs({
       elo_goal: draftGoal,
       elo_goal_start_elo: currentElo,
       elo_goal_start_date: new Date().toISOString().slice(0, 10),
       elo_goal_months: draftMonths,
-    };
-    saveChessPrefs(newPrefs);
-    setPrefs(getChessPrefs());
+    });
+    forceUpdate();
     setEditing(false);
   };
 
@@ -115,32 +114,33 @@ export function EloGoalCard() {
     [currentElo]
   );
 
-  // No goal set yet
-  if (!hasGoal) {
+  // No goal set yet — compact card matching grid siblings
+  if (!hasGoal && !editing) {
     return (
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 max-w-3xl mx-[5%] md:mx-auto">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Target className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-100">{t('chess.goalCard.title')}</h3>
-              <p className="text-slate-400 text-sm">{t('chess.goalCard.setGoalPrompt')}</p>
-            </div>
-          </div>
-          {!editing && (
-            <button
-              onClick={openSetGoal}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {t('chess.goalCard.setGoal')}
-            </button>
-          )}
+      <div className="relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[120px] flex items-center justify-center hover:border-blue-500 transition-colors cursor-pointer"
+        onClick={openSetGoal}
+      >
+        <div className="absolute top-5 left-5 w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+          <Target className="w-5 h-5 text-white" />
         </div>
+        <h3 className="text-lg font-bold text-slate-100 text-center text-balance pl-12 pr-2 py-4">
+          {t('chess.goalCard.setGoal')}
+        </h3>
+      </div>
+    );
+  }
 
-        {/* Inline editor when setting goal for first time */}
-        {editing && currentElo && (
+  // Editing without a goal — expanded inline editor
+  if (!hasGoal && editing) {
+    return (
+      <div className="md:col-span-2 bg-slate-800 border border-slate-700 rounded-xl p-5">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <Target className="w-5 h-5 text-white" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-100">{t('chess.goalCard.title')}</h3>
+        </div>
+        {currentElo && (
           <GoalEditor
             currentElo={currentElo}
             eloGoals={eloGoals}
@@ -157,8 +157,9 @@ export function EloGoalCard() {
     );
   }
 
+  // Goal set — chart view spanning full grid width
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 max-w-3xl mx-[5%] md:mx-auto">
+    <div className="md:col-span-2 bg-slate-800 border border-slate-700 rounded-xl p-5">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -179,7 +180,7 @@ export function EloGoalCard() {
       </div>
 
       {/* Chart */}
-      {hasGoal && chartData.length > 0 && (
+      {chartData.length > 0 && (
         <div className="h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>

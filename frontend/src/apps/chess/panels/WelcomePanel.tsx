@@ -140,14 +140,10 @@ export function WelcomePanel() {
         )}
       </div>
 
-      {/* Elo Goal Card */}
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
-        <EloGoalCard />
-      </div>
-
       {/* Welcome cards */}
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-[5%] md:mx-auto">
+          <EloGoalCard />
           {CARDS.map((card) => {
             const title = t(card.titleKey);
             const description = card.descriptionKey ? t(card.descriptionKey) : null;
