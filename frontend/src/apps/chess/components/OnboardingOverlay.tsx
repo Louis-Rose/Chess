@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { Loader2, Clock, Zap } from 'lucide-react';
-import type { TimeClass } from '../utils/types';
 
 const SLIDES_TEXT = [
   "Welcome to LUMNA. We're analyzing your games to find patterns in how you play — what helps you win, and what doesn't.",
