@@ -31,6 +31,7 @@ export const saveChessPrefs = (prefs: Partial<ChessPrefs>) => {
   try {
     const current = getChessPrefs();
     localStorage.setItem(CHESS_PREFS_KEY, JSON.stringify({ ...current, ...prefs }));
+    window.dispatchEvent(new Event('chess-prefs-change'));
   } catch {
     // Ignore localStorage errors
   }

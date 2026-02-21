@@ -1,3 +1,4 @@
+import { useReducer, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Target, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -6,8 +7,14 @@ import { getChessPrefs } from '../utils/constants';
 export function EloGoalCard() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const prefs = getChessPrefs();
-  const hasGoal = prefs.elo_goal !== null;
+  const [, forceUpdate] = useReducer(x => x + 1, 0);
+
+  useEffect(() => {
+    window.addEventListener('chess-prefs-change', forceUpdate);
+    return () => window.removeEventListener('chess-prefs-change', forceUpdate);
+  }, [forceUpdate]);
+
+  const hasGoal = getChessPrefs().elo_goal !== null;
 
   return (
     <div
