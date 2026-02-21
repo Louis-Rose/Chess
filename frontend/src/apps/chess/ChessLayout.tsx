@@ -85,8 +85,9 @@ function ChessNavSidebar() {
                 </button>
                 {displayData?.player?.username.toLowerCase() === 'akyrosu' && (
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setShowPlayerMenu(false);
+                      await fetch('/api/chess/clear-cache?username=akyrosu', { method: 'DELETE' }).catch(() => {});
                       localStorage.removeItem(CHESS_PREFS_KEY);
                       localStorage.removeItem(STORAGE_KEY);
                       for (let i = localStorage.length - 1; i >= 0; i--) {
@@ -233,8 +234,9 @@ function MobilePlayerButton() {
           </button>
           {displayData?.player?.username.toLowerCase() === 'akyrosu' && (
             <button
-              onClick={() => {
+              onClick={async () => {
                 setOpen(false);
+                await fetch('/api/chess/clear-cache?username=akyrosu', { method: 'DELETE' }).catch(() => {});
                 localStorage.removeItem(CHESS_PREFS_KEY);
                 localStorage.removeItem(STORAGE_KEY);
                 for (let i = localStorage.length - 1; i >= 0; i--) {

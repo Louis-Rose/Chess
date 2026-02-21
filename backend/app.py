@@ -1255,6 +1255,20 @@ def chess_heartbeat():
     return jsonify({'success': True})
 
 
+@app.route('/api/chess/clear-cache', methods=['DELETE'])
+def chess_clear_cache():
+    """Clear server-side cache for a chess username (admin/dev only)."""
+    username = (request.args.get('username') or '').strip().lower()
+    if not username or username != 'akyrosu':
+        return jsonify({'error': 'not allowed'}), 403
+
+    with get_db() as conn:
+        conn.execute('DELETE FROM player_stats_cache WHERE username = ?', (username,))
+        conn.execute('DELETE FROM monthly_archive_cache WHERE username = ?', (username,))
+
+    return jsonify({'success': True})
+
+
 @app.route('/api/theme', methods=['POST'])
 @login_required
 def record_theme():
