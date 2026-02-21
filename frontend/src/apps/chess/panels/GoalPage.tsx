@@ -209,16 +209,28 @@ export function GoalPage() {
                     width={45}
                   />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155' }}
-                    labelStyle={{ color: '#f1f5f9', fontWeight: 700 }}
-                    itemStyle={{ color: '#f1f5f9' }}
-                    labelFormatter={(dateStr: string) => {
-                      const [y, m, d] = dateStr.split('-').map(Number);
-                      return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-                    }}
-                    formatter={(value?: number, name?: string) => {
-                      const label = name === 'goal' ? t('chess.goalCard.goal') : t('chess.goalCard.actual');
-                      return [value ?? '', label];
+                    content={({ active, payload, label }: any) => {
+                      if (!active || !payload?.length) return null;
+                      const [y, m, d] = (label as string).split('-').map(Number);
+                      const dateLabel = new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                      // Filter: only show goal on the end date, only show actual when present
+                      const endKey = endDate!.toISOString().slice(0, 10);
+                      const items = payload.filter((p: any) => {
+                        if (p.value == null) return false;
+                        if (p.dataKey === 'goal' && label !== endKey) return false;
+                        return true;
+                      });
+                      if (!items.length) return null;
+                      return (
+                        <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
+                          <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{dateLabel}</p>
+                          {items.map((p: any) => (
+                            <p key={p.dataKey} style={{ color: p.color, margin: 0, fontSize: 13 }}>
+                              {p.dataKey === 'goal' ? t('chess.goalCard.goal') : t('chess.goalCard.actual')}: {p.value}
+                            </p>
+                          ))}
+                        </div>
+                      );
                     }}
                   />
                   <Legend
