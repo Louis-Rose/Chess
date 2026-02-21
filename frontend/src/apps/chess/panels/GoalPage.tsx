@@ -1,7 +1,7 @@
 import { useState, useMemo, useReducer, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot,
 } from 'recharts';
 import { ArrowLeft, Pencil } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
@@ -228,6 +228,15 @@ export function GoalPage() {
                   />
                   <Line dataKey="goal" stroke="#3b82f6" strokeWidth={2} strokeDasharray="6 3" dot={false} connectNulls />
                   <Line dataKey="actual" stroke="#16a34a" strokeWidth={2} dot={false} connectNulls />
+                  {/* Start point */}
+                  <ReferenceDot x={elo_goal_start_date!} y={elo_goal_start_elo!} r={5} fill="#3b82f6" stroke="#1e293b" strokeWidth={2} />
+                  {/* Goal point */}
+                  <ReferenceDot x={endDate!.toISOString().slice(0, 10)} y={elo_goal!} r={5} fill="#3b82f6" stroke="#1e293b" strokeWidth={2} />
+                  {/* Latest actual elo point */}
+                  {(() => {
+                    const last = [...chartData].reverse().find(d => d.actual != null);
+                    return last ? <ReferenceDot x={last.date} y={last.actual!} r={5} fill="#16a34a" stroke="#1e293b" strokeWidth={2} /> : null;
+                  })()}
                 </LineChart>
               </ResponsiveContainer>
             </div>
