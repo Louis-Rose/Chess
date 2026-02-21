@@ -178,7 +178,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
     [currentElo]
   );
 
-  const timeClassLabel = selectedTimeClass === 'blitz' ? 'Blitz' : 'Rapid';
+  const timeClassLabel = selectedTimeClass === 'blitz' ? 'Blitz' : t('chess.rapid');
 
   const slide3Text = currentElo
     ? t('chess.ob.currentElo').replace('{timeClass}', timeClassLabel)

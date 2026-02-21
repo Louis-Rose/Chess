@@ -104,6 +104,7 @@ const translations: Record<Language, Record<string, string>> = {
     'performance.invested': 'Invested capital',
 
     // Chess
+    'chess.rapid': 'Rapid',
     'chess.myData': 'My Data',
     'chess.noData': 'No Data Available',
     'chess.notEnoughGames': 'Only {count} {timeClass} {games} found — not enough for this analysis. Play more to unlock this view!',
@@ -318,6 +319,7 @@ const translations: Record<Language, Record<string, string>> = {
     'performance.invested': 'Capital investi',
 
     // Chess
+    'chess.rapid': 'Rapide',
     'chess.myData': 'Mes Données',
     'chess.noData': 'Aucune donnée disponible',
     'chess.notEnoughGames': 'Seulement {count} {games} en {timeClass} — pas assez pour cette analyse. Jouez davantage pour débloquer cette vue !',
