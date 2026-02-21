@@ -9,9 +9,10 @@ interface ChessPrefs {
   chess_username: string | null;
   preferred_time_class: string | null;
   onboarding_done: boolean;
+  elo_goal: number | null;
 }
 
-const DEFAULT_PREFS: ChessPrefs = { chess_username: null, preferred_time_class: null, onboarding_done: false };
+const DEFAULT_PREFS: ChessPrefs = { chess_username: null, preferred_time_class: null, onboarding_done: false, elo_goal: null };
 
 export const getChessPrefs = (): ChessPrefs => {
   try {
