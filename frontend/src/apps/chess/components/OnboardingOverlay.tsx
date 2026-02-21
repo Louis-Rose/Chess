@@ -228,11 +228,22 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
 
       <div className="max-w-lg mx-auto px-6 text-center">
         {/* Slide 0 — Welcome */}
-        {currentSlide === 0 && (
+        {currentSlide === 0 && (() => {
+          const splitIdx = slide0.words.findIndex((w, i) => i > 0 && w.endsWith('.'));
+          const firstPart = splitIdx >= 0 ? slide0.words.slice(0, splitIdx + 1) : slide0.words;
+          const secondPart = splitIdx >= 0 ? slide0.words.slice(splitIdx + 1) : [];
+          return (
           <div className="space-y-8">
-            <p className="text-xl text-slate-200 leading-relaxed">
-              <WordByWord words={slide0.words} visibleCount={slide0.visibleCount} />
-            </p>
+            <div className="space-y-4">
+              <p className="text-2xl font-semibold text-slate-100 leading-relaxed">
+                <WordByWord words={firstPart} visibleCount={slide0.visibleCount} />
+              </p>
+              {secondPart.length > 0 && (
+                <p className="text-xl text-slate-300 leading-relaxed">
+                  <WordByWord words={secondPart} visibleCount={Math.max(0, slide0.visibleCount - firstPart.length)} />
+                </p>
+              )}
+            </div>
             <button
               onClick={handleNext}
               className={`px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all duration-300 ${
@@ -242,7 +253,8 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
               {t('chess.ob.next')}
             </button>
           </div>
-        )}
+          );
+        })()}
 
         {/* Slide 1 — What we look at */}
         {currentSlide === 1 && (
