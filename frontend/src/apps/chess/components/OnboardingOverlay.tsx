@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useChessData } from '../contexts/ChessDataContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import { saveChessPrefs } from '../utils/constants';
 import { Loader2, Clock, Zap } from 'lucide-react';
 
@@ -51,6 +52,30 @@ function WordByWord({ words, visibleCount }: { words: string[]; visibleCount: nu
   );
 }
 
+function OverlayLanguageToggle() {
+  const { language, setLanguage } = useLanguage();
+  return (
+    <div className="relative flex bg-slate-700 rounded-md p-0.5">
+      <div
+        className="absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] bg-slate-500 rounded transition-transform duration-200"
+        style={{ transform: language === 'en' ? 'translateX(0)' : 'translateX(100%)' }}
+      />
+      <button
+        onClick={() => setLanguage('en')}
+        className={`relative z-10 px-2 py-1 text-xs font-medium rounded transition-colors ${language === 'en' ? 'text-white' : 'text-slate-400'}`}
+      >
+        EN
+      </button>
+      <button
+        onClick={() => setLanguage('fr')}
+        className={`relative z-10 px-2 py-1 text-xs font-medium rounded transition-colors ${language === 'fr' ? 'text-white' : 'text-slate-400'}`}
+      >
+        FR
+      </button>
+    </div>
+  );
+}
+
 function TimeClassCard({ label, sublabel, icon: Icon, selected, onClick }: {
   label: string;
   sublabel: string;
@@ -74,9 +99,8 @@ function TimeClassCard({ label, sublabel, icon: Icon, selected, onClick }: {
   );
 }
 
-function EloCard({ value, label, selected, onClick, current }: {
+function EloCard({ value, selected, onClick, current }: {
   value: number;
-  label?: string;
   selected?: boolean;
   onClick?: () => void;
   current?: boolean;
@@ -98,7 +122,6 @@ function EloCard({ value, label, selected, onClick, current }: {
       }`}
     >
       {value}
-      {label && <span className="block text-xs font-normal opacity-70">{label}</span>}
     </button>
   );
 }
@@ -139,6 +162,7 @@ interface OnboardingOverlayProps {
 
 export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
   const { loading, progress, selectedTimeClass, handleTimeClassChange, playerInfo } = useChessData();
+  const { t } = useLanguage();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slidesComplete, setSlidesComplete] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
@@ -156,26 +180,15 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
 
   const timeClassLabel = selectedTimeClass === 'blitz' ? 'Blitz' : 'Rapid';
 
-  const slide0 = useWordReveal(
-    "Welcome to LUMNA. We analyze your chess games to find patterns in how you play, what helps you win, and what doesn't.",
-    currentSlide === 0
-  );
-  const slide1 = useWordReveal(
-    "We analyze your play volume, frequency, whether you take breaks or play games back-to-back, and much more. By compiling your full Chess.com history, we provide a comprehensive look at your playing habits.",
-    currentSlide === 1
-  );
-  const slide2 = useWordReveal(
-    "Before we continue, which time control do you prefer?",
-    currentSlide === 2
-  );
   const slide3Text = currentElo
-    ? `Your current ${timeClassLabel} elo is`
-    : `You are currently unrated in ${timeClassLabel}. Set a goal to work towards.`;
+    ? t('chess.ob.currentElo').replace('{timeClass}', timeClassLabel)
+    : t('chess.ob.unrated').replace('{timeClass}', timeClassLabel);
+
+  const slide0 = useWordReveal(t('chess.ob.slide0'), currentSlide === 0);
+  const slide1 = useWordReveal(t('chess.ob.slide1'), currentSlide === 1);
+  const slide2 = useWordReveal(t('chess.ob.slide2'), currentSlide === 2);
   const slide3 = useWordReveal(slide3Text, currentSlide === 3);
-  const slide4 = useWordReveal(
-    "You're all set. Let's see what your games reveal.",
-    currentSlide === 4 && !slidesComplete
-  );
+  const slide4 = useWordReveal(t('chess.ob.conclusion'), currentSlide === 4 && !slidesComplete);
 
   const handleNext = () => setCurrentSlide(prev => prev + 1);
 
@@ -203,6 +216,11 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
         fadeOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
+      {/* Language toggle — top right */}
+      <div className="absolute top-4 right-4">
+        <OverlayLanguageToggle />
+      </div>
+
       <div className="max-w-lg mx-auto px-6 text-center">
         {/* Slide 0 — Welcome */}
         {currentSlide === 0 && (
@@ -216,7 +234,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
                 slide0.allVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
               }`}
             >
-              Next
+              {t('chess.ob.next')}
             </button>
           </div>
         )}
@@ -233,7 +251,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
                 slide1.allVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
               }`}
             >
-              Next
+              {t('chess.ob.next')}
             </button>
           </div>
         )}
@@ -270,7 +288,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
                 slide2.allVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
               }`}
             >
-              Next
+              {t('chess.ob.next')}
             </button>
           </div>
         )}
@@ -294,7 +312,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
                 </div>
 
                 {/* Goal label */}
-                <p className="text-slate-400 text-sm mb-3">What's your goal for the next 3 months?</p>
+                <p className="text-slate-400 text-sm mb-3">{t('chess.ob.goalPrompt')}</p>
 
                 {/* Goal cards */}
                 <div className="flex gap-3 justify-center flex-wrap mb-6">
@@ -324,7 +342,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
                   slide3.allVisible ? 'opacity-100' : 'opacity-0'
                 }`}
               >
-                Play some {timeClassLabel.toLowerCase()} games on Chess.com to track your progress.
+                {t('chess.ob.noRating').replace('{timeClass}', timeClassLabel.toLowerCase())}
               </p>
             )}
 
@@ -337,7 +355,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
                   : 'opacity-0 translate-y-2 pointer-events-none'
               }`}
             >
-              Next
+              {t('chess.ob.next')}
             </button>
           </div>
         )}
@@ -354,7 +372,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
                 slide4.allVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
               }`}
             >
-              Let's go
+              {t('chess.ob.letsGo')}
             </button>
           </div>
         )}
@@ -363,10 +381,10 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
         {slidesComplete && loading && (
           <div className="space-y-4 animate-in fade-in duration-300">
             <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
-            <p className="text-lg text-slate-300">Almost ready...</p>
+            <p className="text-lg text-slate-300">{t('chess.ob.almostReady')}</p>
             {progress && !progress.cached && progress.month && (
               <p className="text-sm text-slate-500">
-                Processing {progress.month}...
+                {t('chess.ob.processing').replace('{month}', progress.month)}
               </p>
             )}
           </div>
