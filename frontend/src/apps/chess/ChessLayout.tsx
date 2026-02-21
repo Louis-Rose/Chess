@@ -45,7 +45,7 @@ function ChessNavSidebar() {
     <div className="hidden md:flex w-64 bg-slate-900 h-screen flex-col flex-shrink-0">
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
         {/* Player card (compact) — clickable with menu */}
-        {displayData?.player && (
+        {displayData?.player ? (
           <div ref={playerMenuRef} className="relative mb-1">
             <button
               onClick={() => setShowPlayerMenu(!showPlayerMenu)}
@@ -105,6 +105,16 @@ function ChessNavSidebar() {
                 )}
               </div>
             )}
+          </div>
+        ) : (
+          <div className="mb-1 bg-slate-800 rounded-lg p-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-slate-700 animate-pulse" />
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <div className="h-4 w-24 bg-slate-700 rounded animate-pulse" />
+                <div className="h-3 w-16 bg-slate-700 rounded animate-pulse" />
+              </div>
+            </div>
           </div>
         )}
 
