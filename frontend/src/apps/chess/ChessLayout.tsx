@@ -7,6 +7,7 @@ import { ChessDataProvider } from './contexts/ChessDataContext';
 import { useChessData } from './contexts/ChessDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { ChessSidebar } from './ChessSidebar';
+import { OnboardingOverlay } from './components/OnboardingOverlay';
 import { FeedbackWidget } from '../../components/FeedbackWidget';
 import { useAuth } from '../../contexts/AuthContext';
 import { getChessPrefs, saveChessPrefs, CHESS_PREFS_KEY, STORAGE_KEY } from './utils/constants';
@@ -279,6 +280,7 @@ function ChessHeader() {
 
 function ChessLayoutInner() {
   const [onboardingDone, setOnboardingDone] = useState(getChessPrefs().onboarding_done);
+  const [showOverlay, setShowOverlay] = useState(false);
   const { searchedUsername } = useChessData();
 
   // Track chess-only visitors (no Google auth needed)
@@ -287,6 +289,7 @@ function ChessLayoutInner() {
   const handleOnboardingComplete = () => {
     saveChessPrefs({ onboarding_done: true });
     setOnboardingDone(true);
+    setShowOverlay(true);
   };
 
   return (
@@ -301,6 +304,9 @@ function ChessLayoutInner() {
             <Outlet />
           </main>
           <FeedbackWidget language="en" />
+          {showOverlay && (
+            <OnboardingOverlay onDone={() => setShowOverlay(false)} />
+          )}
         </>
       )}
     </div>
