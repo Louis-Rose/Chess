@@ -2,14 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { Calendar, TrendingUp, Home, Shield, LogOut } from 'lucide-react';
+import { Calendar, TrendingUp, Home, Shield, LogOut, Trash2 } from 'lucide-react';
 import { ChessDataProvider } from './contexts/ChessDataContext';
 import { useChessData } from './contexts/ChessDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { ChessSidebar } from './ChessSidebar';
 import { FeedbackWidget } from '../../components/FeedbackWidget';
 import { useAuth } from '../../contexts/AuthContext';
-import { getChessPrefs, saveChessPrefs, CHESS_PREFS_KEY } from './utils/constants';
+import { getChessPrefs, saveChessPrefs, CHESS_PREFS_KEY, STORAGE_KEY } from './utils/constants';
 import { useChessHeartbeat } from './hooks/useChessHeartbeat';
 
 const NAV_ITEMS = [
@@ -83,6 +83,24 @@ function ChessNavSidebar() {
                   <LogOut className="w-4 h-4" />
                   {t('chess.logout')}
                 </button>
+                {displayData?.player?.username.toLowerCase() === 'akyrosu' && (
+                  <button
+                    onClick={() => {
+                      setShowPlayerMenu(false);
+                      localStorage.removeItem(CHESS_PREFS_KEY);
+                      localStorage.removeItem(STORAGE_KEY);
+                      for (let i = localStorage.length - 1; i >= 0; i--) {
+                        const k = localStorage.key(i);
+                        if (k?.startsWith('chess_stats_cache_')) localStorage.removeItem(k);
+                      }
+                      window.location.href = '/chess';
+                    }}
+                    className="w-full px-3 py-2.5 text-left text-red-500 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors border-t border-slate-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Forget data & log out
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -213,6 +231,24 @@ function MobilePlayerButton() {
             <LogOut className="w-4 h-4" />
             {t('chess.logout')}
           </button>
+          {displayData?.player?.username.toLowerCase() === 'akyrosu' && (
+            <button
+              onClick={() => {
+                setOpen(false);
+                localStorage.removeItem(CHESS_PREFS_KEY);
+                localStorage.removeItem(STORAGE_KEY);
+                for (let i = localStorage.length - 1; i >= 0; i--) {
+                  const k = localStorage.key(i);
+                  if (k?.startsWith('chess_stats_cache_')) localStorage.removeItem(k);
+                }
+                window.location.href = '/chess';
+              }}
+              className="w-full px-3 py-2.5 text-left text-red-500 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors border-t border-slate-700"
+            >
+              <Trash2 className="w-4 h-4" />
+              Forget data & log out
+            </button>
+          )}
         </div>
       )}
     </div>
