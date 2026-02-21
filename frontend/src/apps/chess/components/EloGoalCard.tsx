@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Target } from 'lucide-react';
+import { Target, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getChessPrefs } from '../utils/constants';
 
@@ -20,6 +20,7 @@ export function EloGoalCard() {
       <h3 className="text-lg font-bold text-slate-100 text-center text-balance pl-12 pr-2 py-4">
         {hasGoal ? t('chess.goalCard.title') : t('chess.goalCard.setGoal')}
       </h3>
+      <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
     </div>
   );
 }
