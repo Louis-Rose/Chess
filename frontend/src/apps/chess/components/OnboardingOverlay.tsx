@@ -128,7 +128,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
     : `Your current ${timeClassLabel} elo is: unrated`;
 
   const slide0 = useWordReveal(
-    "Welcome to LUMNA. We analyze your games to find patterns in how you play, what helps you win, and what doesn't.",
+    "Welcome to LUMNA. We analyze your chess games to find patterns in how you play, what helps you win, and what doesn't.",
     currentSlide === 0
   );
   const slide1 = useWordReveal(
