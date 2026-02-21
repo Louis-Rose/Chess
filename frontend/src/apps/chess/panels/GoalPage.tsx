@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useReducer } from 'react';
+import { useState, useMemo, useReducer, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -62,19 +62,56 @@ export function GoalPage() {
     return Object.values(points).sort((a, b) => a.date.localeCompare(b.date));
   }, [hasGoal, elo_goal_start_date, elo_goal_start_elo, elo_goal, endDate, data, elo_goal_months]);
 
-  const yDomain = useMemo(() => {
-    if (!chartData.length) return [0, 100];
+  const { yDomain, yTicks } = useMemo(() => {
+    if (!chartData.length) return { yDomain: [0, 100], yTicks: [0, 50, 100] };
     const values = chartData.flatMap(d => [d.goal, d.actual].filter((v): v is number => v != null));
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const padding = Math.max(30, Math.round((max - min) * 0.15));
-    return [Math.floor((min - padding) / 10) * 10, Math.ceil((max + padding) / 10) * 10];
+    const lo = Math.floor((min - 25) / 50) * 50;
+    const hi = Math.ceil((max + 25) / 50) * 50;
+    const ticks: number[] = [];
+    for (let v = lo; v <= hi; v += 50) ticks.push(v);
+    return { yDomain: [lo, hi], yTicks: ticks };
   }, [chartData]);
 
-  const formatMonth = useCallback((dateStr: string) => {
-    const [y, m] = dateStr.split('-').map(Number);
-    return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'short' });
+  // Generate x-axis tick dates: adapt density to screen width and timeline length
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  const xTicks = useMemo(() => {
+    if (!elo_goal_start_date || !endDate) return [];
+    const start = new Date(elo_goal_start_date);
+    const totalDays = (endDate.getTime() - start.getTime()) / 86400000;
+    // Choose interval: mobile gets fewer ticks
+    const maxTicks = isMobile ? 4 : 8;
+    let intervalDays: number;
+    if (totalDays <= 45) intervalDays = 7;
+    else if (totalDays <= 90) intervalDays = 14;
+    else intervalDays = 30;
+    // Adjust if too many ticks
+    while (totalDays / intervalDays > maxTicks) intervalDays *= 2;
+
+    const ticks: string[] = [];
+    const cursor = new Date(start);
+    while (cursor <= endDate) {
+      ticks.push(cursor.toISOString().slice(0, 10));
+      cursor.setDate(cursor.getDate() + intervalDays);
+    }
+    // Always include end date
+    const endKey = endDate.toISOString().slice(0, 10);
+    if (ticks[ticks.length - 1] !== endKey) ticks.push(endKey);
+    return ticks;
+  }, [elo_goal_start_date, endDate, isMobile]);
+
+  const formatDate = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
 
   const openEditor = () => {
     setDraftGoal(elo_goal);
@@ -137,11 +174,8 @@ export function GoalPage() {
         {/* Chart */}
         {hasGoal && chartData.length > 0 && (
           <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-slate-400">
-                {elo_goal_start_elo} → {elo_goal}
-              </span>
-              {!editing && (
+            {!editing && (
+              <div className="flex justify-end mb-4">
                 <button
                   onClick={openEditor}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
@@ -149,21 +183,26 @@ export function GoalPage() {
                   <Pencil className="w-3.5 h-3.5" />
                   {t('chess.goalCard.updateGoal')}
                 </button>
-              )}
-            </div>
+              </div>
+            )}
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid stroke="#475569" vertical={false} />
                   <XAxis
                     dataKey="date"
-                    tickFormatter={formatMonth}
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    ticks={xTicks}
+                    tickFormatter={formatDate}
+                    tick={{ fill: '#94a3b8', fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
+                    angle={isMobile ? -35 : 0}
+                    textAnchor={isMobile ? 'end' : 'middle'}
+                    height={isMobile ? 50 : 30}
                   />
                   <YAxis
                     domain={yDomain}
+                    ticks={yTicks}
                     tick={{ fill: '#94a3b8', fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
