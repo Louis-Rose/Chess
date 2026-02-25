@@ -1,6 +1,6 @@
 // Chess analysis section components
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { ChevronRight, Maximize2, Minimize2, Info } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -393,6 +393,35 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           return 'text-red-500';
         };
 
+        const InfoTooltip = () => {
+          const [open, setOpen] = useState(false);
+          const ref = useRef<HTMLSpanElement>(null);
+          useEffect(() => {
+            if (!open) return;
+            const handler = (e: MouseEvent | TouchEvent) => {
+              if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+            };
+            document.addEventListener('mousedown', handler);
+            document.addEventListener('touchstart', handler);
+            return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler); };
+          }, [open]);
+          return (
+            <span ref={ref} className="relative">
+              <Info
+                className="w-3.5 h-3.5 text-slate-400 cursor-help"
+                onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+                onMouseEnter={() => setOpen(true)}
+                onMouseLeave={() => setOpen(false)}
+              />
+              {open && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-900 text-white text-xs font-normal rounded-lg z-20 w-64 text-left whitespace-pre-line pointer-events-none">
+                  {infoTooltip}
+                </div>
+              )}
+            </span>
+          );
+        };
+
         const table = grouped.length > 0 ? (
           <table className="w-full table-fixed border-collapse border border-slate-600">
             <thead>
@@ -401,12 +430,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                 <th className="w-1/2 text-center text-white text-sm font-semibold py-2 px-2 border border-slate-600">
                   <div className="flex items-center justify-center gap-1.5">
                     {t('chess.winRate')}
-                    <span className="relative group">
-                      <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-900 text-white text-xs font-normal rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-20 w-64 text-left whitespace-pre-line after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3">
-                        {infoTooltip}
-                      </div>
-                    </span>
+                    <InfoTooltip />
                   </div>
                 </th>
               </tr>
@@ -461,11 +485,11 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
         const winRateLabel = language === 'fr' ? 'Taux de victoire' : 'Win Rate';
 
         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-        const AXIS_PAD = isMobile ? 28 : 48;
+        const AXIS_PAD = isMobile ? 34 : 48;
 
         const chart = chartData.length >= 2 ? (
           <div>
-            <p className="text-[10px] md:text-[14px] text-white font-semibold mb-1 whitespace-nowrap">{winRateLabel}</p>
+            <p className="text-[12px] md:text-[14px] text-white font-semibold mb-1 whitespace-nowrap">{winRateLabel}</p>
             <div className="h-[280px] [&_svg]:overflow-visible">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 12, right: AXIS_PAD, left: 0, bottom: 30 }}>
@@ -479,14 +503,14 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                   <ReferenceLine y={50} stroke="#94a3b8" strokeWidth={1.5} strokeOpacity={0.4} />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: isMobile ? 10 : 13, fill: '#f1f5f9', fontWeight: 600 }}
-                    label={{ value: language === 'fr' ? (isMobile ? 'Parties / jour' : 'Parties par jour') : (isMobile ? 'Games' : 'Games per day'), position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: isMobile ? 11 : 14, fontWeight: 600 }}
+                    tick={{ fontSize: isMobile ? 12 : 13, fill: '#f1f5f9', fontWeight: 600 }}
+                    label={{ value: language === 'fr' ? (isMobile ? 'Parties / jour' : 'Parties par jour') : (isMobile ? 'Games' : 'Games per day'), position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: isMobile ? 13 : 14, fontWeight: 600 }}
                   />
                   <YAxis
                     domain={[0, 100]}
                     ticks={isMobile ? [0, 20, 40, 50, 60, 80, 100] : [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]}
                     tick={({ x, y, payload }: any) => (
-                      <text x={x} y={y} dy={4} textAnchor="end" fontSize={isMobile ? 9 : 13} fontWeight={600} fill={getYAxisTickColor(payload.value)}>
+                      <text x={x} y={y} dy={4} textAnchor="end" fontSize={isMobile ? 11 : 13} fontWeight={600} fill={getYAxisTickColor(payload.value)}>
                         {payload.value}%
                       </text>
                     )}
