@@ -7,7 +7,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 // import { fetchChessInsight } from '../hooks/api';
 import type { ApiResponse, StreakStats, TodayStats, DailyVolumeStats } from '../utils/types';
 import {
-  ComposedChart, BarChart, Line, Bar, ReferenceLine,
+  ComposedChart, BarChart, Line, Bar, Area, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
@@ -424,6 +424,83 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           <NotEnoughGames totalGames={data.total_games} />
         );
 
+        const significantGrouped = grouped.filter(b => b.totalGames >= MIN_GAMES);
+        const chartData = significantGrouped.map(b => ({
+          label: b.label,
+          winRate: Math.round(b.winRate * 10) / 10,
+          ciLower: Math.max(Math.round((b.winRate - b.ci) * 10) / 10, 0),
+          ciBand: Math.round(b.ci * 2 * 10) / 10, // height of CI band (stacked on ciLower)
+          ciUpper: Math.min(Math.round((b.winRate + b.ci) * 10) / 10, 100),
+        }));
+
+        const chart = chartData.length >= 2 ? (
+          <div className="h-[280px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
+                <defs>
+                  <linearGradient id="ciBandFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#4ade80" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#f87171" stopOpacity={0.25} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={1.5} strokeOpacity={0.3} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 12, fill: '#f1f5f9', fontWeight: 600 }}
+                />
+                <YAxis
+                  tick={{ fontSize: 12, fill: '#f1f5f9', fontWeight: 600 }}
+                  domain={([_dataMin, _dataMax]: [number, number]) => {
+                    const lo = Math.min(...chartData.map(d => d.ciLower));
+                    const hi = Math.max(...chartData.map(d => d.ciUpper));
+                    return [Math.floor(lo / 5) * 5, Math.ceil(hi / 5) * 5];
+                  }}
+                  tickFormatter={(v) => `${v}%`}
+                  width={45}
+                />
+                <Tooltip
+                  content={({ active, payload }: any) => {
+                    if (!active || !payload?.length) return null;
+                    const d = payload[0]?.payload;
+                    if (!d) return null;
+                    return (
+                      <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
+                        <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{d.label} {t('chess.gamesPerDay').toLowerCase()}</p>
+                        <p style={{ color: d.winRate >= 50 ? '#4ade80' : '#f87171', fontWeight: 600 }}>{d.winRate}%</p>
+                        <p style={{ color: '#94a3b8', fontSize: 11 }}>{d.ciLower}% – {d.ciUpper}%</p>
+                      </div>
+                    );
+                  }}
+                />
+                {/* CI band: invisible base + colored band stacked on top */}
+                <Area
+                  type="monotone"
+                  dataKey="ciLower"
+                  stackId="ci"
+                  fill="transparent"
+                  stroke="none"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="ciBand"
+                  stackId="ci"
+                  fill="url(#ciBandFill)"
+                  stroke="none"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="winRate"
+                  stroke="#f1f5f9"
+                  strokeWidth={2.5}
+                  dot={{ fill: '#f1f5f9', r: 4, strokeWidth: 0 }}
+                  activeDot={{ fill: '#f1f5f9', r: 6, strokeWidth: 0 }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        ) : null;
+
         if (standalone) {
           return (
             <div className="bg-slate-700 rounded-xl px-3 sm:px-6 py-4 mx-4 select-text space-y-3">
@@ -433,6 +510,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
               <h2 className="text-lg font-bold text-slate-100 select-text text-center">{sectionTitle ?? ''}</h2>
               <div />
               {table}
+              {chart}
             </div>
           );
         }
@@ -443,6 +521,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
               {toggle}
             </div>
             {table}
+            {chart}
           </div>
         );
       }}
