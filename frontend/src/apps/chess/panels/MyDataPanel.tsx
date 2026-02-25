@@ -467,7 +467,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
             <p className="text-[14px] text-white font-semibold mb-1 whitespace-nowrap" style={{ width: `${AXIS_PAD}px` }}>{winRateLabel}</p>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 5, right: AXIS_PAD, left: 0, bottom: 30 }}>
+                <ComposedChart data={chartData} margin={{ top: 12, right: AXIS_PAD, left: 0, bottom: 30 }}>
                   <defs>
                     <linearGradient id="ciBandFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#4ade80" stopOpacity={0.25} />
