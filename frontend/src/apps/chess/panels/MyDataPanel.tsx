@@ -461,7 +461,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
 
         const chart = chartData.length >= 2 ? (
           <div>
-            <p className="text-[11px] text-slate-400 font-medium mb-1">{winRateLabel}</p>
+            <p className="text-sm text-white font-semibold mb-1">{winRateLabel}</p>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 30 }}>
@@ -476,7 +476,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                   <XAxis
                     dataKey="label"
                     tick={{ fontSize: 11, fill: '#f1f5f9', fontWeight: 600 }}
-                    label={{ value: language === 'fr' ? 'Parties par jour' : 'Games per day', position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: 12 }}
+                    label={{ value: language === 'fr' ? 'Parties par jour' : 'Games per day', position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: 14, fontWeight: 600 }}
                   />
                   <YAxis
                     mirror
