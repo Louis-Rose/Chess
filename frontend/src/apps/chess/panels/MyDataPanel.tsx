@@ -348,26 +348,23 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
   return (
     <CollapsibleSection title={t('chess.dailyVolumeTitle')} defaultExpanded standalone={standalone}>
       {(_fullscreen, sectionTitle) => {
-        if (!rawDvs || rawDvs.length === 0) return <NotEnoughGames totalGames={data.total_games} />;
-
-        const dvs = rawDvs.filter(d => d.days > 0);
-        if (dvs.length === 0) return <NotEnoughGames totalGames={data.total_games} />;
-
-        // Sort ascending by games per day, truncate after last entry with N >= 10
-        const withRate = dvs
-          .map(d => ({ ...d, winRate: d.win_pct + d.draw_pct / 2 }))
-          .sort((a, b) => a.games_per_day - b.games_per_day);
-        // Find last index where days >= 10, keep up to that point
-        const lastSignificantIdx = withRate.reduce((last, d, i) => d.days >= 10 ? i : last, -1);
-        const sorted = lastSignificantIdx >= 0 ? withRate.slice(0, lastSignificantIdx + 1) : [];
-
-        if (sorted.length === 0) return <NotEnoughGames totalGames={data.total_games} />;
-
         const toggle = (
           <TimePeriodToggle selected={period} onChange={setPeriod} />
         );
 
-        const table = (
+        const dvs = (rawDvs ?? []).filter(d => d.days > 0);
+        const withRate = dvs
+          .map(d => ({ ...d, winRate: d.win_pct + d.draw_pct / 2 }))
+          .sort((a, b) => a.games_per_day - b.games_per_day);
+
+        // Show all rows up to (and including) the last significant one;
+        // if none are significant, show at least the first row as insufficient
+        const lastSignificantIdx = withRate.reduce((last, d, i) => d.days >= 10 ? i : last, -1);
+        const sorted = lastSignificantIdx >= 0
+          ? withRate.slice(0, lastSignificantIdx + 1)
+          : withRate.slice(0, 1); // keep first row to show "insufficient data"
+
+        const table = sorted.length > 0 ? (
           <table className="w-full border-collapse border border-slate-600">
             <thead>
               <tr className="border border-slate-600 bg-slate-800">
@@ -390,6 +387,8 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
               ))}
             </tbody>
           </table>
+        ) : (
+          <NotEnoughGames totalGames={data.total_games} />
         );
 
         if (standalone) {
