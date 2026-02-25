@@ -353,18 +353,30 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
         );
 
         const dvs = (rawDvs ?? []).filter(d => d.days > 0);
-        const withRate = dvs
-          .map(d => ({ ...d, winRate: d.win_pct + d.draw_pct / 2 }))
-          .sort((a, b) => a.games_per_day - b.games_per_day);
 
-        // Show all rows up to (and including) the last significant one;
-        // if none are significant, show at least the first row as insufficient
-        const lastSignificantIdx = withRate.reduce((last, d, i) => d.days >= 10 ? i : last, -1);
-        const sorted = lastSignificantIdx >= 0
-          ? withRate.slice(0, lastSignificantIdx + 1)
-          : withRate.slice(0, 1); // keep first row to show "insufficient data"
+        // Group into buckets
+        const BUCKETS: { label: string; min: number; max: number }[] = [
+          { label: '1-3', min: 1, max: 3 },
+          { label: '4-6', min: 4, max: 6 },
+          { label: '7-10', min: 7, max: 10 },
+          { label: '11-15', min: 11, max: 15 },
+          { label: '15-20', min: 15, max: 20 },
+          { label: '20+', min: 21, max: Infinity },
+        ];
 
-        const table = sorted.length > 0 ? (
+        const MIN_GAMES = 0; // threshold for showing win rate
+
+        const grouped = BUCKETS.map(bucket => {
+          const matching = dvs.filter(d => d.games_per_day >= bucket.min && d.games_per_day <= bucket.max);
+          const days = matching.reduce((s, d) => s + d.days, 0);
+          const totalGames = matching.reduce((s, d) => s + d.total_games, 0);
+          const wins = matching.reduce((s, d) => s + Math.round(d.win_pct * d.total_games / 100), 0);
+          const draws = matching.reduce((s, d) => s + Math.round(d.draw_pct * d.total_games / 100), 0);
+          const winRate = totalGames > 0 ? ((wins + draws * 0.5) / totalGames) * 100 : 0;
+          return { label: bucket.label, days, totalGames, winRate };
+        }).filter(b => b.totalGames > 0);
+
+        const table = grouped.length > 0 ? (
           <table className="w-full table-fixed border-collapse border border-slate-600">
             <thead>
               <tr className="border border-slate-600 bg-slate-800">
@@ -373,12 +385,15 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
               </tr>
             </thead>
             <tbody>
-              {sorted.map(d => (
-                <tr key={d.games_per_day} className="border border-slate-600">
-                  <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{d.games_per_day} {(d.games_per_day === 1 ? t('chess.gamePerDay') : t('chess.gamesPerDay')).toLowerCase()}</td>
+              {grouped.map(b => (
+                <tr key={b.label} className="border border-slate-600">
+                  <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{b.label} {t('chess.gamesPerDay').toLowerCase()}</td>
                   <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
-                    {d.days >= 10 ? (
-                      <span className={d.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{d.winRate.toFixed(1)}%</span>
+                    {b.totalGames >= MIN_GAMES ? (
+                      <>
+                        <span className={b.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{b.winRate.toFixed(1)}%</span>
+                        <span className="text-slate-500 font-normal ml-1.5 text-xs">({b.days}d, {b.totalGames}g)</span>
+                      </>
                     ) : (
                       <span className="text-slate-500 text-xs">{t('chess.insufficientData')}</span>
                     )}
