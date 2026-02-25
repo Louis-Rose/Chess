@@ -384,20 +384,23 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           : 'Win rate shows your performance based on how many games you play per day.\n\nThe confidence interval (∓) represents the 95% margin of error. Smaller means more reliable.';
 
         const table = grouped.length > 0 ? (
-          <div className="relative">
-            <span className="absolute top-2.5 left-2 z-10 group">
-              <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
-              <div className="absolute top-full left-0 mt-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-20 w-64 text-left whitespace-pre-line after:content-[''] after:absolute after:bottom-full after:left-0 after:right-0 after:h-3">
-                {infoTooltip}
-              </div>
-            </span>
-            <table className="w-full table-fixed border-collapse border border-slate-600">
-              <thead>
-                <tr className="border border-slate-600 bg-slate-800">
-                  <th className="w-1/2 text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.gamesPerDay')}</th>
-                  <th className="w-1/2 text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
-                </tr>
-              </thead>
+          <table className="w-full table-fixed border-collapse border border-slate-600">
+            <thead>
+              <tr className="border border-slate-600 bg-slate-800">
+                <th className="w-1/2 text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.gamesPerDay')}</th>
+                <th className="w-1/2 text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">
+                  <div className="flex items-center justify-center gap-1.5">
+                    {t('chess.winRate')}
+                    <span className="relative group">
+                      <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-900 text-white text-xs font-normal rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-20 w-64 text-left whitespace-pre-line after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-3">
+                        {infoTooltip}
+                      </div>
+                    </span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
               <tbody>
                 {grouped.map(b => (
                   <tr key={b.label} className="border border-slate-600">
@@ -416,7 +419,6 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                 ))}
               </tbody>
             </table>
-          </div>
         ) : (
           <NotEnoughGames totalGames={data.total_games} />
         );
