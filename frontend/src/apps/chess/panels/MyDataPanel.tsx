@@ -379,9 +379,10 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           return { label: bucket.label, days, totalGames, winRate, ci };
         }).filter(b => b.totalGames > 0);
 
+        const pmSymbol = <span className="inline-flex flex-col items-center leading-[0.5] align-middle text-[9px]"><span>+</span><span>−</span></span>;
         const infoTooltip = language === 'fr'
-          ? 'Le taux de victoire indique votre performance selon le nombre de parties jouées par jour.\n\nL\'intervalle de confiance (±) représente la marge d\'erreur à 95%. Plus il est petit, plus le résultat est fiable.'
-          : 'Win rate shows your performance based on how many games you play per day.\n\nThe confidence interval (±) represents the 95% margin of error. Smaller means more reliable.';
+          ? <>Le taux de victoire indique votre performance selon le nombre de parties jouées par jour.{'\n\n'}L'intervalle de confiance ({pmSymbol}) représente la marge d'erreur à 95%. Plus il est petit, plus le résultat est fiable.</>
+          : <>Win rate shows your performance based on how many games you play per day.{'\n\n'}The confidence interval ({pmSymbol}) represents the 95% margin of error. Smaller means more reliable.</>;
 
         const table = grouped.length > 0 ? (
           <table className="w-full table-fixed border-collapse border border-slate-600">
