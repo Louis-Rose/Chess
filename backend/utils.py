@@ -103,6 +103,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 'total_games': cached.get('total_games', 0),
                 'cached_game_number_stats': cached.get('game_number_stats', []),  # Preserve for incremental updates
                 'cached_daily_volume_stats': cached.get('daily_volume_stats', []),  # Preserve for incremental updates
+                'cached_daily_game_results': cached.get('daily_game_results', []),  # Preserve for time-period filtering
                 'cached_streak_stats': cached.get('streak_stats', []),  # Preserve for incremental updates
                 'cached_hourly_stats': cached.get('hourly_stats', []),  # Preserve for incremental updates
                 'cached_win_prediction': cached.get('win_prediction'),  # Preserve for incremental updates
@@ -118,6 +119,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 'total_games': 0,
                 'cached_game_number_stats': [],
                 'cached_daily_volume_stats': [],
+                'cached_daily_game_results': [],
                 'cached_streak_stats': [],
                 'cached_hourly_stats': [],
                 'cached_win_prediction': None,
@@ -320,6 +322,34 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
         if not daily_volume_stats and tcd.get('cached_daily_volume_stats'):
             daily_volume_stats = tcd['cached_daily_volume_stats']
 
+        # Per-day game results for frontend time-period filtering
+        # Merge new data with cached results for incremental updates
+        daily_game_results_map = {}
+        for cached_day in tcd.get('cached_daily_game_results', []):
+            daily_game_results_map[cached_day['date']] = cached_day
+        for date_key, games in tcd['games_by_day'].items():
+            wins = sum(1 for _, r in games if r == 'win')
+            draws = sum(1 for _, r in games if r == 'draw')
+            losses = len(games) - wins - draws
+            existing = daily_game_results_map.get(date_key)
+            if existing:
+                daily_game_results_map[date_key] = {
+                    'date': date_key,
+                    'total': existing['total'] + len(games),
+                    'wins': existing['wins'] + wins,
+                    'draws': existing['draws'] + draws,
+                    'losses': existing['losses'] + losses,
+                }
+            else:
+                daily_game_results_map[date_key] = {
+                    'date': date_key,
+                    'total': len(games),
+                    'wins': wins,
+                    'draws': draws,
+                    'losses': losses,
+                }
+        daily_game_results = sorted(daily_game_results_map.values(), key=lambda x: x['date'])
+
         # Breaks stats: win rate by time gap between consecutive games (same day)
         breaks_buckets = {}  # gap_minutes_bucket -> {wins, draws, total}
         BREAK_BINS = [0, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 1440]  # upper bounds in minutes
@@ -495,6 +525,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             'openings': processed_openings,
             'game_number_stats': game_number_result,
             'daily_volume_stats': daily_volume_stats,
+            'daily_game_results': daily_game_results,
             'streak_stats': streak_stats,
             'breaks_stats': breaks_stats,
             'today_stats': today_stats,

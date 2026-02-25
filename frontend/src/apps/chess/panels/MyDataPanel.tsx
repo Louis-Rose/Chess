@@ -1,11 +1,11 @@
 // Chess analysis section components
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { ChevronRight, Maximize2, Minimize2, Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { fetchChessInsight } from '../hooks/api';
-import type { ApiResponse, StreakStats, TodayStats } from '../utils/types';
+import type { ApiResponse, StreakStats, TodayStats, DailyVolumeStats } from '../utils/types';
 import {
   ComposedChart, BarChart, Line, Bar, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -267,10 +267,79 @@ function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRa
   );
 }
 
+type TimePeriod = '1M' | '3M' | '6M' | '1Y' | '2Y' | 'ALL';
+const TIME_PERIODS: TimePeriod[] = ['1M', '3M', '6M', '1Y', '2Y', 'ALL'];
+
+function TimePeriodToggle({ selected, onChange }: { selected: TimePeriod; onChange: (p: TimePeriod) => void }) {
+  return (
+    <div className="inline-flex bg-slate-800 rounded-lg p-0.5 gap-0.5">
+      {TIME_PERIODS.map(p => (
+        <button
+          key={p}
+          onClick={() => onChange(p)}
+          className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+            selected === p
+              ? 'bg-slate-600 text-white'
+              : 'text-slate-400 hover:text-slate-300'
+          }`}
+        >
+          {p}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function getDateCutoff(period: TimePeriod): string | null {
+  if (period === 'ALL') return null;
+  const now = new Date();
+  const months: Record<Exclude<TimePeriod, 'ALL'>, number> = { '1M': 1, '3M': 3, '6M': 6, '1Y': 12, '2Y': 24 };
+  now.setMonth(now.getMonth() - months[period]);
+  return now.toISOString().slice(0, 10);
+}
+
+function aggregateDailyVolume(data: ApiResponse, period: TimePeriod): DailyVolumeStats[] {
+  const raw = data.daily_game_results;
+  if (!raw || raw.length === 0) return data.daily_volume_stats ?? [];
+
+  // If ALL and no game results, fall back to pre-computed
+  if (period === 'ALL') return data.daily_volume_stats ?? [];
+
+  const cutoff = getDateCutoff(period);
+  const filtered = cutoff ? raw.filter(d => d.date >= cutoff) : raw;
+
+  const buckets = new Map<number, { days: number; wins: number; draws: number; losses: number; total: number }>();
+  for (const day of filtered) {
+    const n = day.total;
+    if (!buckets.has(n)) buckets.set(n, { days: 0, wins: 0, draws: 0, losses: 0, total: 0 });
+    const b = buckets.get(n)!;
+    b.days += 1;
+    b.wins += day.wins;
+    b.draws += day.draws;
+    b.losses += day.losses;
+    b.total += day.total;
+  }
+
+  const result: DailyVolumeStats[] = [];
+  for (const [nGames, b] of [...buckets.entries()].sort((a, c) => a[0] - c[0])) {
+    const t = b.total || 1;
+    result.push({
+      games_per_day: nGames,
+      days: b.days,
+      win_pct: Math.round(b.wins / t * 1000) / 10,
+      draw_pct: Math.round(b.draws / t * 1000) / 10,
+      loss_pct: Math.round(b.losses / t * 1000) / 10,
+      total_games: b.total,
+    });
+  }
+  return result;
+}
+
 export function DailyVolumeSection({ data, standalone = false }: { data: ApiResponse; standalone?: boolean }) {
   const { t } = useLanguage();
+  const [period, setPeriod] = useState<TimePeriod>('ALL');
 
-  const rawDvs = data.daily_volume_stats;
+  const rawDvs = useMemo(() => aggregateDailyVolume(data, period), [data, period]);
 
   return (
     <CollapsibleSection title={t('chess.dailyVolumeTitle')} defaultExpanded standalone={standalone}>
@@ -289,6 +358,10 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
         const sorted = lastSignificantIdx >= 0 ? withRate.slice(0, lastSignificantIdx + 1) : [];
 
         if (sorted.length === 0) return <NotEnoughGames totalGames={data.total_games} />;
+
+        const toggle = (
+          <TimePeriodToggle selected={period} onChange={setPeriod} />
+        );
 
         const table = (
           <table className="w-full border-collapse border border-slate-600">
@@ -317,14 +390,25 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
 
         if (standalone) {
           return (
-            <StandaloneCard title={sectionTitle ?? ''}>
+            <div className="bg-slate-700 rounded-xl px-3 sm:px-6 py-4 mx-4 select-text space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-slate-100 select-text">{sectionTitle ?? ''}</h2>
+                {toggle}
+              </div>
               <DailyVolumeSummary sorted={sorted} />
               {table}
-            </StandaloneCard>
+            </div>
           );
         }
 
-        return table;
+        return (
+          <div className="space-y-3">
+            <div className="flex justify-end px-1">
+              {toggle}
+            </div>
+            {table}
+          </div>
+        );
       }}
     </CollapsibleSection>
   );

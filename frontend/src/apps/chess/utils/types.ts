@@ -52,6 +52,14 @@ export interface DailyVolumeStats {
   total_games: number;
 }
 
+export interface DailyGameResult {
+  date: string;
+  total: number;
+  wins: number;
+  draws: number;
+  losses: number;
+}
+
 export interface StreakStats {
   streak_type: 'win' | 'loss';
   streak_length: number;
@@ -165,6 +173,7 @@ export interface ApiResponse {
   };
   game_number_stats: GameNumberStats[];
   daily_volume_stats?: DailyVolumeStats[];
+  daily_game_results?: DailyGameResult[];
   streak_stats?: StreakStats[];
   breaks_stats?: BreaksStats[];
   today_stats?: TodayStats;
