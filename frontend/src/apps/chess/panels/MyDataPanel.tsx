@@ -451,11 +451,10 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                 />
                 <YAxis
                   tick={{ fontSize: 12, fill: '#f1f5f9', fontWeight: 600 }}
-                  domain={([_dataMin, _dataMax]: [number, number]) => {
-                    const lo = Math.min(...chartData.map(d => d.ciLower));
-                    const hi = Math.max(...chartData.map(d => d.ciUpper));
-                    return [Math.floor(lo / 5) * 5, Math.ceil(hi / 5) * 5];
-                  }}
+                  domain={[
+                    Math.floor(Math.min(...chartData.map(d => d.ciLower)) / 5) * 5,
+                    Math.ceil(Math.max(...chartData.map(d => d.ciUpper)) / 5) * 5,
+                  ]}
                   tickFormatter={(v) => `${v}%`}
                   width={45}
                 />
