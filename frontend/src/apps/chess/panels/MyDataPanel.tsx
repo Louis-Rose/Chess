@@ -460,7 +460,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
 
         const winRateLabel = language === 'fr' ? 'Taux de victoire' : 'Win Rate';
 
-        const AXIS_PAD = 40; // px reserved for y-axis labels on left (and symmetric right)
+        const AXIS_PAD = 48; // px reserved for y-axis labels on left (and symmetric right)
 
         const chart = chartData.length >= 2 ? (
           <div>
