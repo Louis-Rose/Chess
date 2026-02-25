@@ -388,8 +388,8 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           <table className="w-full table-fixed border-collapse border border-slate-600">
             <thead>
               <tr className="border border-slate-600 bg-slate-800">
-                <th className="w-1/2 text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.gamesPerDay')}</th>
-                <th className="w-1/2 text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">
+                <th className="w-1/2 text-center text-white text-sm font-semibold py-2 px-2 border border-slate-600">{t('chess.gamesPerDay')}</th>
+                <th className="w-1/2 text-center text-white text-sm font-semibold py-2 px-2 border border-slate-600">
                   <div className="flex items-center justify-center gap-1.5">
                     {t('chess.winRate')}
                     <span className="relative group">
@@ -405,8 +405,8 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
               <tbody>
                 {grouped.map(b => (
                   <tr key={b.label} className="border border-slate-600">
-                    <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{b.label} {t('chess.gamesPerDay').toLowerCase()}</td>
-                    <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
+                    <td className="text-center text-white text-sm py-2 px-2 border border-slate-600">{b.label} {t('chess.gamesPerDay').toLowerCase()}</td>
+                    <td className="text-center text-sm font-semibold py-2 px-2 border border-slate-600">
                       {b.totalGames >= MIN_GAMES ? (
                         <>
                           <span className={b.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{b.winRate.toFixed(1)}%</span>
@@ -433,70 +433,119 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           ciUpper: Math.min(Math.round((b.winRate + b.ci) * 10) / 10, 100),
         }));
 
+        // Color helpers for chart: green/red with darker variants
+        const getWinRateColor = (rate: number) => {
+          if (rate >= 60) return '#16a34a'; // darker green
+          if (rate >= 50) return '#4ade80'; // green-400
+          if (rate <= 40) return '#dc2626'; // darker red
+          return '#f87171'; // red-400
+        };
+
+        const getYAxisTickColor = (value: number) => {
+          if (value >= 60) return '#16a34a';
+          if (value > 50) return '#4ade80';
+          if (value === 50) return '#94a3b8'; // neutral slate
+          if (value <= 40) return '#dc2626';
+          return '#f87171';
+        };
+
+        const chartTitle = language === 'fr' ? 'Taux de victoire par volume' : 'Win Rate by Volume';
+
         const chart = chartData.length >= 2 ? (
-          <div className="h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
-                <defs>
-                  <linearGradient id="ciBandFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4ade80" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#f87171" stopOpacity={0.25} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                <ReferenceLine y={50} stroke="#f1f5f9" strokeWidth={1.5} strokeOpacity={0.3} />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 12, fill: '#f1f5f9', fontWeight: 600 }}
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: '#f1f5f9', fontWeight: 600 }}
-                  domain={[
-                    Math.floor(Math.min(...chartData.map(d => d.ciLower)) / 5) * 5,
-                    Math.ceil(Math.max(...chartData.map(d => d.ciUpper)) / 5) * 5,
-                  ]}
-                  tickFormatter={(v) => `${v}%`}
-                  width={45}
-                />
-                <Tooltip
-                  content={({ active, payload }: any) => {
-                    if (!active || !payload?.length) return null;
-                    const d = payload[0]?.payload;
-                    if (!d) return null;
+          <div>
+            <h3 className="text-base font-semibold text-slate-200 text-center mb-3">{chartTitle}</h3>
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 30 }}>
+                  <defs>
+                    <linearGradient id="ciBandFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#4ade80" stopOpacity={0.25} />
+                      <stop offset="100%" stopColor="#f87171" stopOpacity={0.25} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                  <ReferenceLine y={50} stroke="#94a3b8" strokeWidth={1.5} strokeOpacity={0.4} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: '#f1f5f9', fontWeight: 600 }}
+                    label={{ value: language === 'fr' ? 'Parties / jour' : 'Games / day', position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: 12 }}
+                  />
+                  <YAxis
+                    domain={[20, 80]}
+                    ticks={[20, 30, 40, 50, 60, 70, 80]}
+                    tick={({ x, y, payload }: any) => (
+                      <text x={x} y={y} dy={4} textAnchor="end" fontSize={11} fontWeight={600} fill={getYAxisTickColor(payload.value)}>
+                        {payload.value}%
+                      </text>
+                    )}
+                    width={42}
+                    label={{ value: language === 'fr' ? 'Taux de victoire' : 'Win Rate', angle: -90, position: 'insideLeft', offset: 20, fill: '#94a3b8', fontSize: 12 }}
+                  />
+                  <Tooltip
+                    content={({ active, payload }: any) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0]?.payload;
+                      if (!d) return null;
+                      return (
+                        <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
+                          <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{d.label} {t('chess.gamesPerDay').toLowerCase()}</p>
+                          <p style={{ color: getWinRateColor(d.winRate), fontWeight: 600 }}>{d.winRate}%</p>
+                          <p style={{ color: '#94a3b8', fontSize: 11 }}>{d.ciLower}% – {d.ciUpper}%</p>
+                        </div>
+                      );
+                    }}
+                  />
+                  {/* CI band: invisible base + colored band stacked on top */}
+                  <Area
+                    type="monotone"
+                    dataKey="ciLower"
+                    stackId="ci"
+                    fill="transparent"
+                    stroke="none"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="ciBand"
+                    stackId="ci"
+                    fill="url(#ciBandFill)"
+                    stroke="none"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="winRate"
+                    stroke="none"
+                    strokeWidth={2.5}
+                    dot={(props: any) => {
+                      const { cx, cy, payload } = props;
+                      const color = getWinRateColor(payload.winRate);
+                      return <circle key={`dot-${payload.label}`} cx={cx} cy={cy} r={5} fill={color} stroke="none" />;
+                    }}
+                    activeDot={(props: any) => {
+                      const { cx, cy, payload } = props;
+                      const color = getWinRateColor(payload.winRate);
+                      return <circle key={`adot-${payload.label}`} cx={cx} cy={cy} r={7} fill={color} stroke="none" />;
+                    }}
+                  />
+                  {/* Colored line segments between dots */}
+                  {chartData.map((d, i) => {
+                    if (i === 0) return null;
+                    const prev = chartData[i - 1];
+                    const avgRate = (prev.winRate + d.winRate) / 2;
                     return (
-                      <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
-                        <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{d.label} {t('chess.gamesPerDay').toLowerCase()}</p>
-                        <p style={{ color: d.winRate >= 50 ? '#4ade80' : '#f87171', fontWeight: 600 }}>{d.winRate}%</p>
-                        <p style={{ color: '#94a3b8', fontSize: 11 }}>{d.ciLower}% – {d.ciUpper}%</p>
-                      </div>
+                      <ReferenceLine
+                        key={`seg-${i}`}
+                        segment={[
+                          { x: prev.label, y: prev.winRate },
+                          { x: d.label, y: d.winRate },
+                        ]}
+                        stroke={getWinRateColor(avgRate)}
+                        strokeWidth={2.5}
+                      />
                     );
-                  }}
-                />
-                {/* CI band: invisible base + colored band stacked on top */}
-                <Area
-                  type="monotone"
-                  dataKey="ciLower"
-                  stackId="ci"
-                  fill="transparent"
-                  stroke="none"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="ciBand"
-                  stackId="ci"
-                  fill="url(#ciBandFill)"
-                  stroke="none"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="winRate"
-                  stroke="#f1f5f9"
-                  strokeWidth={2.5}
-                  dot={{ fill: '#f1f5f9', r: 4, strokeWidth: 0 }}
-                  activeDot={{ fill: '#f1f5f9', r: 6, strokeWidth: 0 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
+                  })}
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         ) : null;
 
@@ -509,7 +558,8 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
               <h2 className="text-lg font-bold text-slate-100 select-text text-center">{sectionTitle ?? ''}</h2>
               <div />
               {table}
-              {chart}
+              {chart && <div className="mt-8">{chart}</div>}
+              {chart && <div className="h-16" />}
             </div>
           );
         }
@@ -520,7 +570,8 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
               {toggle}
             </div>
             {table}
-            {chart}
+            {chart && <div className="mt-8">{chart}</div>}
+            {chart && <div className="h-16" />}
           </div>
         );
       }}
