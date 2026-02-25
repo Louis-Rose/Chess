@@ -386,10 +386,10 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
 
         // Color helper for table text (Tailwind classes)
         const getWinRateClass = (rate: number) => {
-          if (rate >= 60) return 'text-green-600';
+          if (rate >= 60) return 'text-green-500';
           if (rate >= 50) return 'text-green-400';
           if (rate <= 40) return 'text-red-600';
-          return 'text-red-400';
+          return 'text-red-500';
         };
 
         const table = grouped.length > 0 ? (
@@ -443,18 +443,18 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
 
         // Color helpers for chart: green/red with darker variants
         const getWinRateColor = (rate: number) => {
-          if (rate >= 60) return '#16a34a'; // darker green
+          if (rate >= 60) return '#22c55e'; // green-500
           if (rate >= 50) return '#4ade80'; // green-400
-          if (rate <= 40) return '#dc2626'; // darker red
-          return '#f87171'; // red-400
+          if (rate <= 40) return '#dc2626'; // red-600
+          return '#ef4444'; // red-500
         };
 
         const getYAxisTickColor = (value: number) => {
-          if (value >= 60) return '#16a34a';
+          if (value >= 60) return '#22c55e';
           if (value > 50) return '#4ade80';
           if (value === 50) return '#94a3b8'; // neutral slate
           if (value <= 40) return '#dc2626';
-          return '#f87171';
+          return '#ef4444';
         };
 
         const winRateLabel = language === 'fr' ? 'Taux de victoire' : 'Win Rate';
