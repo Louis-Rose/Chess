@@ -365,11 +365,11 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           : withRate.slice(0, 1); // keep first row to show "insufficient data"
 
         const table = sorted.length > 0 ? (
-          <table className="w-full border-collapse border border-slate-600">
+          <table className="w-full table-fixed border-collapse border border-slate-600">
             <thead>
               <tr className="border border-slate-600 bg-slate-800">
-                <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.gamesPerDay')}</th>
-                <th className="text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
+                <th className="w-1/2 text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.gamesPerDay')}</th>
+                <th className="w-1/2 text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
               </tr>
             </thead>
             <tbody>
