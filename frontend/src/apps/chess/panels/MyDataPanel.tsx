@@ -364,7 +364,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           { label: '20+', min: 21, max: Infinity },
         ];
 
-        const MIN_GAMES = 0; // threshold for showing win rate
+        const MIN_GAMES = 30;
 
         const grouped = BUCKETS.map(bucket => {
           const matching = dvs.filter(d => d.games_per_day >= bucket.min && d.games_per_day <= bucket.max);
@@ -373,7 +373,10 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           const wins = matching.reduce((s, d) => s + Math.round(d.win_pct * d.total_games / 100), 0);
           const draws = matching.reduce((s, d) => s + Math.round(d.draw_pct * d.total_games / 100), 0);
           const winRate = totalGames > 0 ? ((wins + draws * 0.5) / totalGames) * 100 : 0;
-          return { label: bucket.label, days, totalGames, winRate };
+          // 95% CI for binomial proportion: 1.96 * sqrt(p*(1-p)/n)
+          const p = winRate / 100;
+          const ci = totalGames > 0 ? 1.96 * Math.sqrt(p * (1 - p) / totalGames) * 100 : 0;
+          return { label: bucket.label, days, totalGames, winRate, ci };
         }).filter(b => b.totalGames > 0);
 
         const table = grouped.length > 0 ? (
@@ -392,6 +395,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                     {b.totalGames >= MIN_GAMES ? (
                       <>
                         <span className={b.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{b.winRate.toFixed(1)}%</span>
+                        <span className={`ml-1 text-xs ${b.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>(±{b.ci.toFixed(1)}%)</span>
                         <span className="text-slate-500 font-normal ml-1.5 text-xs">({b.days}d, {b.totalGames}g)</span>
                       </>
                     ) : (
