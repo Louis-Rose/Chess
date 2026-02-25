@@ -395,7 +395,7 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
                 <h2 className="text-lg font-bold text-slate-100 select-text">{sectionTitle ?? ''}</h2>
                 {toggle}
               </div>
-              <DailyVolumeSummary sorted={sorted} />
+              {/* <DailyVolumeSummary sorted={sorted} /> */}
               {table}
             </div>
           );
