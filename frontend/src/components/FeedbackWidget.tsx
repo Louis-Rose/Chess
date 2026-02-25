@@ -115,7 +115,7 @@ export function FeedbackWidget({ language = 'en', mobileBottom = 'bottom-24' }: 
   }
 
   return (
-    <div className={`fixed ${mobileBottom} md:bottom-6 right-4 md:right-6 z-50`}>
+    <div className={`fixed ${mobileBottom} md:bottom-6 right-2 md:right-6 z-50`}>
       {/* Expanded feedback form - centered modal */}
       {isOpen && (
         <>

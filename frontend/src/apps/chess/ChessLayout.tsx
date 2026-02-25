@@ -313,7 +313,7 @@ function ChessLayoutInner() {
             <ChessHeader />
             <Outlet />
           </main>
-          <FeedbackWidget language="en" mobileBottom="bottom-4" />
+          <FeedbackWidget language="en" mobileBottom="bottom-2" />
           {showOverlay && (
             <OnboardingOverlay onDone={() => setShowOverlay(false)} />
           )}
