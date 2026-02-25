@@ -459,12 +459,14 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
 
         const winRateLabel = language === 'fr' ? 'Taux de victoire' : 'Win Rate';
 
+        const AXIS_PAD = 40; // px reserved for y-axis labels on left (and symmetric right)
+
         const chart = chartData.length >= 2 ? (
           <div>
-            <p className="text-[14px] text-white font-semibold mb-1">{winRateLabel}</p>
+            <p className="text-[14px] text-white font-semibold mb-1 text-center" style={{ width: `${AXIS_PAD}px` }}>{winRateLabel}</p>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 30 }}>
+                <ComposedChart data={chartData} margin={{ top: 5, right: AXIS_PAD, left: 0, bottom: 30 }}>
                   <defs>
                     <linearGradient id="ciBandFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#4ade80" stopOpacity={0.25} />
@@ -475,20 +477,19 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                   <ReferenceLine y={50} stroke="#94a3b8" strokeWidth={1.5} strokeOpacity={0.4} />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 11, fill: '#f1f5f9', fontWeight: 600 }}
+                    tick={{ fontSize: 13, fill: '#f1f5f9', fontWeight: 600 }}
                     label={{ value: language === 'fr' ? 'Parties par jour' : 'Games per day', position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: 14, fontWeight: 600 }}
                   />
                   <YAxis
-                    mirror
                     domain={[20, 80]}
                     ticks={[20, 30, 40, 50, 60, 70, 80]}
                     tick={({ x, y, payload }: any) => (
-                      <text x={x + 4} y={y} dy={4} textAnchor="start" fontSize={11} fontWeight={600} fill={getYAxisTickColor(payload.value)}>
+                      <text x={x} y={y} dy={4} textAnchor="end" fontSize={13} fontWeight={600} fill={getYAxisTickColor(payload.value)}>
                         {payload.value}%
                       </text>
                     )}
                     tickLine={false}
-                    width={1}
+                    width={AXIS_PAD}
                   />
                   <Tooltip
                     content={({ active, payload }: any) => {
@@ -558,6 +559,8 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           </div>
         ) : null;
 
+        const tablePad = { paddingLeft: `${AXIS_PAD}px`, paddingRight: `${AXIS_PAD}px` };
+
         if (standalone) {
           return (
             <div className="bg-slate-700 rounded-xl px-3 sm:px-6 py-4 mx-4 select-text space-y-3">
@@ -567,7 +570,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
               <h2 className="text-lg font-bold text-slate-100 select-text text-center">{sectionTitle ?? ''}</h2>
               <div />
               <div />
-              {table}
+              <div style={tablePad}>{table}</div>
               {chart && <div className="mt-8">{chart}</div>}
               {chart && <div className="h-16" />}
             </div>
@@ -579,7 +582,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
             <div className="flex justify-end px-1">
               {toggle}
             </div>
-            {table}
+            <div style={tablePad}>{table}</div>
             {chart && <div className="mt-8">{chart}</div>}
             {chart && <div className="h-16" />}
           </div>
