@@ -384,6 +384,14 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           ? <>Le taux de victoire indique votre performance selon le nombre de parties jouées par jour.{'\n\n'}L'intervalle de confiance ({pmSymbol}) représente la marge d'erreur à 95%. Plus il est petit, plus le résultat est fiable.</>
           : <>Win rate shows your performance based on how many games you play per day.{'\n\n'}The confidence interval ({pmSymbol}) represents the 95% margin of error. Smaller means more reliable.</>;
 
+        // Color helper for table text (Tailwind classes)
+        const getWinRateClass = (rate: number) => {
+          if (rate >= 60) return 'text-green-600';
+          if (rate >= 50) return 'text-green-400';
+          if (rate <= 40) return 'text-red-600';
+          return 'text-red-400';
+        };
+
         const table = grouped.length > 0 ? (
           <table className="w-full table-fixed border-collapse border border-slate-600">
             <thead>
@@ -409,8 +417,8 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                     <td className="text-center text-sm font-semibold py-2 px-2 border border-slate-600">
                       {b.totalGames >= MIN_GAMES ? (
                         <>
-                          <span className={b.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{b.winRate.toFixed(1)}%</span>
-                          <span className={`ml-1 text-xs ${b.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>(<span className="inline-flex flex-col items-center leading-[0.5] align-middle text-[9px]"><span>+</span><span>−</span></span>{b.ci.toFixed(1)}%)</span>
+                          <span className={getWinRateClass(b.winRate)}>{b.winRate.toFixed(1)}%</span>
+                          <span className={`ml-1 text-xs ${getWinRateClass(b.winRate)}`}>(<span className="inline-flex flex-col items-center leading-[0.5] align-middle text-[9px]"><span>+</span><span>−</span></span>{b.ci.toFixed(1)}%)</span>
                         </>
                       ) : (
                         <span className="text-slate-500 text-xs">{t('chess.insufficientData')}</span>
@@ -449,11 +457,14 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           return '#f87171';
         };
 
+        const winRateLabel = language === 'fr' ? 'Taux de victoire' : 'Win Rate';
+
         const chart = chartData.length >= 2 ? (
           <div>
+            <p className="text-[11px] text-slate-400 font-medium mb-1">{winRateLabel}</p>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>
+                <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 30 }}>
                   <defs>
                     <linearGradient id="ciBandFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#4ade80" stopOpacity={0.25} />
@@ -468,15 +479,16 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                     label={{ value: language === 'fr' ? 'Parties par jour' : 'Games per day', position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: 12 }}
                   />
                   <YAxis
+                    mirror
                     domain={[20, 80]}
                     ticks={[20, 30, 40, 50, 60, 70, 80]}
                     tick={({ x, y, payload }: any) => (
-                      <text x={x} y={y} dy={4} textAnchor="end" fontSize={11} fontWeight={600} fill={getYAxisTickColor(payload.value)}>
+                      <text x={x + 4} y={y} dy={4} textAnchor="start" fontSize={11} fontWeight={600} fill={getYAxisTickColor(payload.value)}>
                         {payload.value}%
                       </text>
                     )}
-                    width={50}
-                    label={{ value: language === 'fr' ? 'Taux de victoire' : 'Win Rate', angle: -90, position: 'insideLeft', offset: 0, fill: '#94a3b8', fontSize: 12, dx: -20 }}
+                    tickLine={false}
+                    width={1}
                   />
                   <Tooltip
                     content={({ active, payload }: any) => {
