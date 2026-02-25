@@ -361,7 +361,8 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           { label: '7-10', min: 7, max: 10 },
           { label: '11-15', min: 11, max: 15 },
           { label: '15-20', min: 15, max: 20 },
-          { label: '20+', min: 21, max: Infinity },
+          { label: '20-30', min: 21, max: 30 },
+          { label: '30+', min: 31, max: Infinity },
         ];
 
         const MIN_GAMES = 30;
@@ -463,7 +464,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
 
         const chart = chartData.length >= 2 ? (
           <div>
-            <p className="text-[14px] text-white font-semibold mb-1 text-center" style={{ width: `${AXIS_PAD}px` }}>{winRateLabel}</p>
+            <p className="text-[14px] text-white font-semibold mb-1 whitespace-nowrap" style={{ width: `${AXIS_PAD}px` }}>{winRateLabel}</p>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 5, right: AXIS_PAD, left: 0, bottom: 30 }}>
@@ -481,8 +482,8 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                     label={{ value: language === 'fr' ? 'Parties par jour' : 'Games per day', position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: 14, fontWeight: 600 }}
                   />
                   <YAxis
-                    domain={[20, 80]}
-                    ticks={[20, 30, 40, 50, 60, 70, 80]}
+                    domain={[0, 100]}
+                    ticks={[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]}
                     tick={({ x, y, payload }: any) => (
                       <text x={x} y={y} dy={4} textAnchor="end" fontSize={13} fontWeight={600} fill={getYAxisTickColor(payload.value)}>
                         {payload.value}%
