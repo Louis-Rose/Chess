@@ -461,7 +461,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
 
         const chart = chartData.length >= 2 ? (
           <div>
-            <p className="text-sm text-white font-semibold mb-1">{winRateLabel}</p>
+            <p className="text-[14px] text-white font-semibold mb-1">{winRateLabel}</p>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 30 }}>
