@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { ChevronRight, Maximize2, Minimize2, Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { fetchChessInsight } from '../hooks/api';
+// import { fetchChessInsight } from '../hooks/api';
 import type { ApiResponse, StreakStats, TodayStats, DailyVolumeStats } from '../utils/types';
 import {
   ComposedChart, BarChart, Line, Bar, ReferenceLine,
@@ -207,65 +207,65 @@ export function TodaySection({ data, standalone = false }: { data: ApiResponse; 
   );
 }
 
-// Module-level cache so Gemini results survive component unmount/remount
-const insightCache = new Map<string, { en: string; fr: string }>();
-
-function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRate: number; days: number }[] }) {
-  const { t, language } = useLanguage();
-  const [summaries, setSummaries] = useState<{ en: string | null; fr: string | null }>({ en: null, fr: null });
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    let aborted = false;
-
-    const significant = sorted.filter(d => d.days >= 10);
-    if (significant.length === 0) {
-      setSummaries({ en: null, fr: null });
-      setLoading(false);
-      return;
-    }
-
-    const key = significant.map(d => `${d.games_per_day}:${d.winRate.toFixed(1)}`).join(',');
-
-    const cached = insightCache.get(key);
-    if (cached) {
-      setSummaries(cached);
-      setLoading(false);
-      return;
-    }
-
-    const rows = significant.map(d => ({ games_per_day: d.games_per_day, win_rate: d.winRate }));
-    setSummaries({ en: null, fr: null });
-    setLoading(true);
-    fetchChessInsight('daily_volume', rows)
-      .then(result => {
-        insightCache.set(key, result);
-        if (!aborted) setSummaries(result);
-      })
-      .catch(() => { if (!aborted) setSummaries({ en: null, fr: null }); })
-      .finally(() => { if (!aborted) setLoading(false); });
-
-    return () => { aborted = true; };
-  }, [sorted]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-3 text-slate-400 text-sm">
-        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-        <span>{t('chess.analysisLoading')}</span>
-      </div>
-    );
-  }
-
-  const summary = summaries[language];
-  if (!summary) return null;
-
-  return (
-    <div className="text-slate-300 text-sm pb-3 whitespace-pre-line leading-relaxed text-center">
-      {summary}
-    </div>
-  );
-}
+// // Module-level cache so Gemini results survive component unmount/remount
+// const insightCache = new Map<string, { en: string; fr: string }>();
+//
+// function DailyVolumeSummary({ sorted }: { sorted: { games_per_day: number; winRate: number; days: number }[] }) {
+//   const { t, language } = useLanguage();
+//   const [summaries, setSummaries] = useState<{ en: string | null; fr: string | null }>({ en: null, fr: null });
+//   const [loading, setLoading] = useState(false);
+//
+//   useEffect(() => {
+//     let aborted = false;
+//
+//     const significant = sorted.filter(d => d.days >= 10);
+//     if (significant.length === 0) {
+//       setSummaries({ en: null, fr: null });
+//       setLoading(false);
+//       return;
+//     }
+//
+//     const key = significant.map(d => `${d.games_per_day}:${d.winRate.toFixed(1)}`).join(',');
+//
+//     const cached = insightCache.get(key);
+//     if (cached) {
+//       setSummaries(cached);
+//       setLoading(false);
+//       return;
+//     }
+//
+//     const rows = significant.map(d => ({ games_per_day: d.games_per_day, win_rate: d.winRate }));
+//     setSummaries({ en: null, fr: null });
+//     setLoading(true);
+//     fetchChessInsight('daily_volume', rows)
+//       .then(result => {
+//         insightCache.set(key, result);
+//         if (!aborted) setSummaries(result);
+//       })
+//       .catch(() => { if (!aborted) setSummaries({ en: null, fr: null }); })
+//       .finally(() => { if (!aborted) setLoading(false); });
+//
+//     return () => { aborted = true; };
+//   }, [sorted]);
+//
+//   if (loading) {
+//     return (
+//       <div className="flex items-center justify-center py-3 text-slate-400 text-sm">
+//         <Loader2 className="w-4 h-4 animate-spin mr-2" />
+//         <span>{t('chess.analysisLoading')}</span>
+//       </div>
+//     );
+//   }
+//
+//   const summary = summaries[language];
+//   if (!summary) return null;
+//
+//   return (
+//     <div className="text-slate-300 text-sm pb-3 whitespace-pre-line leading-relaxed text-center">
+//       {summary}
+//     </div>
+//   );
+// }
 
 type TimePeriod = '1M' | '3M' | '6M' | '1Y' | '2Y' | 'ALL';
 const TIME_PERIODS: TimePeriod[] = ['1M', '3M', '6M', '1Y', '2Y', 'ALL'];
