@@ -449,14 +449,11 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           return '#f87171';
         };
 
-        const chartTitle = language === 'fr' ? 'Taux de victoire par volume' : 'Win Rate by Volume';
-
         const chart = chartData.length >= 2 ? (
           <div>
-            <h3 className="text-base font-semibold text-slate-200 text-center mb-3">{chartTitle}</h3>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 30 }}>
+                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>
                   <defs>
                     <linearGradient id="ciBandFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#4ade80" stopOpacity={0.25} />
@@ -468,7 +465,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                   <XAxis
                     dataKey="label"
                     tick={{ fontSize: 11, fill: '#f1f5f9', fontWeight: 600 }}
-                    label={{ value: language === 'fr' ? 'Parties / jour' : 'Games / day', position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: 12 }}
+                    label={{ value: language === 'fr' ? 'Parties par jour' : 'Games per day', position: 'insideBottom', offset: -15, fill: '#94a3b8', fontSize: 12 }}
                   />
                   <YAxis
                     domain={[20, 80]}
@@ -478,8 +475,8 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                         {payload.value}%
                       </text>
                     )}
-                    width={42}
-                    label={{ value: language === 'fr' ? 'Taux de victoire' : 'Win Rate', angle: -90, position: 'insideLeft', offset: 20, fill: '#94a3b8', fontSize: 12 }}
+                    width={50}
+                    label={{ value: language === 'fr' ? 'Taux de victoire' : 'Win Rate', angle: -90, position: 'insideLeft', offset: 0, fill: '#94a3b8', fontSize: 12, dx: -20 }}
                   />
                   <Tooltip
                     content={({ active, payload }: any) => {
@@ -556,6 +553,7 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                 {toggle}
               </div>
               <h2 className="text-lg font-bold text-slate-100 select-text text-center">{sectionTitle ?? ''}</h2>
+              <div />
               <div />
               {table}
               {chart && <div className="mt-8">{chart}</div>}
