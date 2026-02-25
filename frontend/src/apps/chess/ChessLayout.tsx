@@ -309,7 +309,7 @@ function ChessLayoutInner() {
       ) : (
         <>
           <ChessNavSidebar />
-          <main className="relative flex-1 px-2 pb-8 md:px-8 md:pb-8 overflow-y-auto overscroll-y-contain">
+          <main className="relative flex-1 px-2 pb-8 md:px-8 md:pb-8 overflow-y-auto overflow-x-hidden overscroll-y-contain">
             <ChessHeader />
             <Outlet />
           </main>

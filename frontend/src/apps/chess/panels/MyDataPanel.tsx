@@ -464,8 +464,8 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
         const AXIS_PAD = isMobile ? 28 : 48;
 
         const chart = chartData.length >= 2 ? (
-          <div className="overflow-hidden">
-            <p className="text-[12px] md:text-[14px] text-white font-semibold mb-1 whitespace-nowrap" style={{ width: `${AXIS_PAD}px` }}>{winRateLabel}</p>
+          <div>
+            <p className="text-[10px] md:text-[14px] text-white font-semibold mb-1" style={{ width: `${AXIS_PAD}px` }}>{winRateLabel}</p>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 12, right: AXIS_PAD, left: 0, bottom: 30 }}>
