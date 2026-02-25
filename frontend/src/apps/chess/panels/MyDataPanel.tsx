@@ -298,19 +298,21 @@ function getDateCutoff(period: TimePeriod): string | null {
   return now.toISOString().slice(0, 10);
 }
 
-function aggregateDailyVolume(data: ApiResponse, period: TimePeriod): DailyVolumeStats[] {
+function aggregateDailyVolume(data: ApiResponse, period: TimePeriod): { stats: DailyVolumeStats[]; filteredGames: number } {
   const raw = data.daily_game_results;
-  if (!raw || raw.length === 0) return data.daily_volume_stats ?? [];
+  const totalGames = data.total_games;
 
-  // If ALL and no game results, fall back to pre-computed
-  if (period === 'ALL') return data.daily_volume_stats ?? [];
+  if (!raw || raw.length === 0) return { stats: data.daily_volume_stats ?? [], filteredGames: totalGames };
+  if (period === 'ALL') return { stats: data.daily_volume_stats ?? [], filteredGames: totalGames };
 
   const cutoff = getDateCutoff(period);
   const filtered = cutoff ? raw.filter(d => d.date >= cutoff) : raw;
+  let filteredGames = 0;
 
   const buckets = new Map<number, { days: number; wins: number; draws: number; losses: number; total: number }>();
   for (const day of filtered) {
     const n = day.total;
+    filteredGames += day.total;
     if (!buckets.has(n)) buckets.set(n, { days: 0, wins: 0, draws: 0, losses: 0, total: 0 });
     const b = buckets.get(n)!;
     b.days += 1;
@@ -332,14 +334,16 @@ function aggregateDailyVolume(data: ApiResponse, period: TimePeriod): DailyVolum
       total_games: b.total,
     });
   }
-  return result;
+  return { stats: result, filteredGames };
 }
 
-export function DailyVolumeSection({ data, standalone = false }: { data: ApiResponse; standalone?: boolean }) {
+export function DailyVolumeSection({ data, standalone = false, period: controlledPeriod, onPeriodChange }: { data: ApiResponse; standalone?: boolean; period?: TimePeriod; onPeriodChange?: (p: TimePeriod) => void }) {
   const { t } = useLanguage();
-  const [period, setPeriod] = useState<TimePeriod>('ALL');
+  const [internalPeriod, setInternalPeriod] = useState<TimePeriod>('ALL');
+  const period = controlledPeriod ?? internalPeriod;
+  const setPeriod = onPeriodChange ?? setInternalPeriod;
 
-  const rawDvs = useMemo(() => aggregateDailyVolume(data, period), [data, period]);
+  const { stats: rawDvs } = useMemo(() => aggregateDailyVolume(data, period), [data, period]);
 
   return (
     <CollapsibleSection title={t('chess.dailyVolumeTitle')} defaultExpanded standalone={standalone}>
@@ -391,11 +395,11 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
         if (standalone) {
           return (
             <div className="bg-slate-700 rounded-xl px-3 sm:px-6 py-4 mx-4 select-text space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-100 select-text">{sectionTitle ?? ''}</h2>
+              <div className="flex justify-end">
                 {toggle}
               </div>
-              {/* <DailyVolumeSummary sorted={sorted} /> */}
+              <h2 className="text-lg font-bold text-slate-100 select-text text-center">{sectionTitle ?? ''}</h2>
+              <div />
               {table}
             </div>
           );
@@ -413,6 +417,9 @@ export function DailyVolumeSection({ data, standalone = false }: { data: ApiResp
     </CollapsibleSection>
   );
 }
+
+export { aggregateDailyVolume };
+export type { TimePeriod };
 
 export function GameNumberSection({ data, standalone = false }: { data: ApiResponse; standalone?: boolean }) {
   const { t } = useLanguage();
