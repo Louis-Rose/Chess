@@ -8,9 +8,10 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface FeedbackWidgetProps {
   language?: 'en' | 'fr';
+  mobileBottom?: string;
 }
 
-export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
+export function FeedbackWidget({ language = 'en', mobileBottom = 'bottom-24' }: FeedbackWidgetProps) {
   const { isAuthenticated } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -114,7 +115,7 @@ export function FeedbackWidget({ language = 'en' }: FeedbackWidgetProps) {
   }
 
   return (
-    <div className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-50">
+    <div className={`fixed ${mobileBottom} md:bottom-6 right-4 md:right-6 z-50`}>
       {/* Expanded feedback form - centered modal */}
       {isOpen && (
         <>
