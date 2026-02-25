@@ -268,7 +268,7 @@ export function TodaySection({ data, standalone = false }: { data: ApiResponse; 
 // }
 
 type TimePeriod = '1M' | '3M' | '6M' | '1Y' | '2Y' | 'ALL';
-const TIME_PERIODS: TimePeriod[] = ['1M', '3M', '6M', '1Y', '2Y', 'ALL'];
+const TIME_PERIODS: TimePeriod[] = ['ALL', '2Y', '1Y', '6M', '3M', '1M'];
 
 function TimePeriodToggle({ selected, onChange }: { selected: TimePeriod; onChange: (p: TimePeriod) => void }) {
   return (
