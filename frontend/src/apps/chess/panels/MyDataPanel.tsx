@@ -460,11 +460,12 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
 
         const winRateLabel = language === 'fr' ? 'Taux de victoire' : 'Win Rate';
 
-        const AXIS_PAD = 48; // px reserved for y-axis labels on left (and symmetric right)
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+        const AXIS_PAD = isMobile ? 28 : 48;
 
         const chart = chartData.length >= 2 ? (
-          <div>
-            <p className="text-[14px] text-white font-semibold mb-1 whitespace-nowrap" style={{ width: `${AXIS_PAD}px` }}>{winRateLabel}</p>
+          <div className="overflow-hidden">
+            <p className="text-[12px] md:text-[14px] text-white font-semibold mb-1 whitespace-nowrap" style={{ width: `${AXIS_PAD}px` }}>{winRateLabel}</p>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 12, right: AXIS_PAD, left: 0, bottom: 30 }}>
@@ -478,14 +479,14 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                   <ReferenceLine y={50} stroke="#94a3b8" strokeWidth={1.5} strokeOpacity={0.4} />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 13, fill: '#f1f5f9', fontWeight: 600 }}
-                    label={{ value: language === 'fr' ? 'Parties par jour' : 'Games per day', position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: 14, fontWeight: 600 }}
+                    tick={{ fontSize: isMobile ? 10 : 13, fill: '#f1f5f9', fontWeight: 600 }}
+                    label={{ value: language === 'fr' ? (isMobile ? 'Parties / jour' : 'Parties par jour') : (isMobile ? 'Games' : 'Games per day'), position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: isMobile ? 11 : 14, fontWeight: 600 }}
                   />
                   <YAxis
                     domain={[0, 100]}
-                    ticks={[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]}
+                    ticks={isMobile ? [0, 20, 40, 50, 60, 80, 100] : [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]}
                     tick={({ x, y, payload }: any) => (
-                      <text x={x} y={y} dy={4} textAnchor="end" fontSize={13} fontWeight={600} fill={getYAxisTickColor(payload.value)}>
+                      <text x={x} y={y} dy={4} textAnchor="end" fontSize={isMobile ? 9 : 13} fontWeight={600} fill={getYAxisTickColor(payload.value)}>
                         {payload.value}%
                       </text>
                     )}
@@ -497,11 +498,17 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                       if (!active || !payload?.length) return null;
                       const d = payload[0]?.payload;
                       if (!d) return null;
+                      const ci = Math.round((d.ciUpper - d.ciLower) / 2 * 10) / 10;
+                      const gamesLabel = isMobile ? (language === 'fr' ? 'parties' : 'games') : t('chess.gamesPerDay').toLowerCase();
                       return (
-                        <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
-                          <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{d.label} {t('chess.gamesPerDay').toLowerCase()}</p>
-                          <p style={{ color: getWinRateColor(d.winRate), fontWeight: 600 }}>{d.winRate}%</p>
-                          <p style={{ color: '#94a3b8', fontSize: 11 }}>{d.ciLower}% – {d.ciUpper}%</p>
+                        <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: isMobile ? '6px 8px' : '8px 12px' }}>
+                          <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4, fontSize: isMobile ? 11 : 14 }}>{d.label} {gamesLabel}</p>
+                          <p style={{ color: getWinRateColor(d.winRate), fontWeight: 600, fontSize: isMobile ? 11 : 14 }}>
+                            {d.winRate}%
+                            <span style={{ marginLeft: 4, fontSize: isMobile ? 10 : 12 }}>
+                              (<span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', lineHeight: '0.5', verticalAlign: 'middle', fontSize: isMobile ? 7 : 9 }}><span>+</span><span>−</span></span>{ci.toFixed(1)}%)
+                            </span>
+                          </p>
                         </div>
                       );
                     }}
