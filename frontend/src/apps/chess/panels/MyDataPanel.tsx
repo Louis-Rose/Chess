@@ -1,7 +1,7 @@
 // Chess analysis section components
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import { ChevronRight, Maximize2, Minimize2, Info } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 // import { fetchChessInsight } from '../hooks/api';
@@ -338,7 +338,7 @@ function aggregateDailyVolume(data: ApiResponse, period: TimePeriod): { stats: D
 }
 
 export function DailyVolumeSection({ data, standalone = false, period: controlledPeriod, onPeriodChange }: { data: ApiResponse; standalone?: boolean; period?: TimePeriod; onPeriodChange?: (p: TimePeriod) => void }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [internalPeriod, setInternalPeriod] = useState<TimePeriod>('ALL');
   const period = controlledPeriod ?? internalPeriod;
   const setPeriod = onPeriodChange ?? setInternalPeriod;
@@ -379,33 +379,44 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
           return { label: bucket.label, days, totalGames, winRate, ci };
         }).filter(b => b.totalGames > 0);
 
+        const infoTooltip = language === 'fr'
+          ? 'Le taux de victoire indique votre performance selon le nombre de parties jouées par jour.\n\nL\'intervalle de confiance (∓) représente la marge d\'erreur à 95%. Plus il est petit, plus le résultat est fiable.'
+          : 'Win rate shows your performance based on how many games you play per day.\n\nThe confidence interval (∓) represents the 95% margin of error. Smaller means more reliable.';
+
         const table = grouped.length > 0 ? (
-          <table className="w-full table-fixed border-collapse border border-slate-600">
-            <thead>
-              <tr className="border border-slate-600 bg-slate-800">
-                <th className="w-1/2 text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.gamesPerDay')}</th>
-                <th className="w-1/2 text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {grouped.map(b => (
-                <tr key={b.label} className="border border-slate-600">
-                  <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{b.label} {t('chess.gamesPerDay').toLowerCase()}</td>
-                  <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
-                    {b.totalGames >= MIN_GAMES ? (
-                      <>
-                        <span className={b.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{b.winRate.toFixed(1)}%</span>
-                        <span className={`ml-1 text-xs ${b.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>(±{b.ci.toFixed(1)}%)</span>
-                        <span className="text-slate-500 font-normal ml-1.5 text-xs">({b.days}d, {b.totalGames}g)</span>
-                      </>
-                    ) : (
-                      <span className="text-slate-500 text-xs">{t('chess.insufficientData')}</span>
-                    )}
-                  </td>
+          <div className="relative">
+            <span className="absolute top-2.5 left-2 z-10 group">
+              <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+              <div className="absolute top-full left-0 mt-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-20 w-64 text-left whitespace-pre-line after:content-[''] after:absolute after:bottom-full after:left-0 after:right-0 after:h-3">
+                {infoTooltip}
+              </div>
+            </span>
+            <table className="w-full table-fixed border-collapse border border-slate-600">
+              <thead>
+                <tr className="border border-slate-600 bg-slate-800">
+                  <th className="w-1/2 text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.gamesPerDay')}</th>
+                  <th className="w-1/2 text-center text-white text-sm font-semibold py-3 px-4 border border-slate-600">{t('chess.winRate')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {grouped.map(b => (
+                  <tr key={b.label} className="border border-slate-600">
+                    <td className="text-center text-white text-sm py-3 px-4 border border-slate-600">{b.label} {t('chess.gamesPerDay').toLowerCase()}</td>
+                    <td className="text-center text-sm font-semibold py-3 px-4 border border-slate-600">
+                      {b.totalGames >= MIN_GAMES ? (
+                        <>
+                          <span className={b.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>{b.winRate.toFixed(1)}%</span>
+                          <span className={`ml-1 text-xs ${b.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>(<span className="inline-flex flex-col items-center leading-[0.5] align-middle text-[9px]"><span>+</span><span>−</span></span>{b.ci.toFixed(1)}%)</span>
+                        </>
+                      ) : (
+                        <span className="text-slate-500 text-xs">{t('chess.insufficientData')}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <NotEnoughGames totalGames={data.total_games} />
         );
