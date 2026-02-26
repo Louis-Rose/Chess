@@ -186,7 +186,7 @@ export function BreaksPage() {
         ) : stats && stats.length > 0 ? (
           <>
             <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">
-              <h2 className="text-2xl font-bold text-slate-100 text-center select-text py-3">{t('chess.breaksCardTitle')}</h2>
+              <h2 className="text-lg font-bold text-slate-100 text-center select-text py-3">{t('chess.breaksCardTitle')}</h2>
               <BreaksChart stats={stats} />
             </div>
             <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">

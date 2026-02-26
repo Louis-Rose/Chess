@@ -131,7 +131,7 @@ export function BestHoursPage() {
           <div className="flex justify-center py-20"><Loader2 className="w-12 h-12 text-slate-400 animate-spin" /></div>
         ) : stats && stats.length > 0 ? (
           <div className="bg-slate-700 rounded-xl p-2 sm:p-5 select-text">
-            <h2 className="text-2xl font-bold text-slate-100 text-center select-text py-3">{t('chess.bestHoursTitle')}</h2>
+            <h2 className="text-lg font-bold text-slate-100 text-center select-text py-3">{t('chess.bestHoursTitle')}</h2>
             <HoursChart stats={stats} />
           </div>
         ) : (
