@@ -98,6 +98,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 'elo_by_week': {d['date']: {'elo': d['elo'], 'timestamp': 0} for d in cached.get('elo_history', [])},
                 'games_by_day': {},
                 'games_by_hour': {},  # Track win rate by hour of day
+                'games_by_dow': {},  # Track win rate by day of week
                 'openings_white': [],
                 'openings_black': [],
                 'total_games': cached.get('total_games', 0),
@@ -106,6 +107,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 'cached_daily_game_results': cached.get('daily_game_results', []),  # Preserve for time-period filtering
                 'cached_streak_stats': cached.get('streak_stats', []),  # Preserve for incremental updates
                 'cached_hourly_stats': cached.get('hourly_stats', []),  # Preserve for incremental updates
+                'cached_dow_stats': cached.get('dow_stats', []),  # Preserve for incremental updates
                 'cached_win_prediction': cached.get('win_prediction'),  # Preserve for incremental updates
             }
         else:
@@ -114,6 +116,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 'elo_by_week': {},
                 'games_by_day': {},
                 'games_by_hour': {},  # Track win rate by hour of day
+                'games_by_dow': {},  # Track win rate by day of week
                 'openings_white': [],
                 'openings_black': [],
                 'total_games': 0,
@@ -122,6 +125,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 'cached_daily_game_results': [],
                 'cached_streak_stats': [],
                 'cached_hourly_stats': [],
+                'cached_dow_stats': [],
                 'cached_win_prediction': None,
             }
 
@@ -224,6 +228,16 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 tcd['games_by_hour'][hour_group]['wins'] += 1
             elif game_result == 'draw':
                 tcd['games_by_hour'][hour_group]['draws'] += 1
+
+            # Day-of-week stats (0=Monday, 6=Sunday)
+            dow = game_date.weekday()
+            if dow not in tcd['games_by_dow']:
+                tcd['games_by_dow'][dow] = {'wins': 0, 'draws': 0, 'total': 0}
+            tcd['games_by_dow'][dow]['total'] += 1
+            if game_result == 'win':
+                tcd['games_by_dow'][dow]['wins'] += 1
+            elif game_result == 'draw':
+                tcd['games_by_dow'][dow]['draws'] += 1
 
             # Openings (last 12 months only)
             if archive_url in archives[-12:] and 'eco' in game:
@@ -491,7 +505,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
                 hourly_result.append({
                     'hour_group': hour_group,
                     'start_hour': start_hour,
-                    'end_hour': start_hour + 1,
+                    'end_hour': start_hour + 2,
                     'win_rate': round(win_rate, 1),
                     'sample_size': stats['total']
                 })
@@ -499,6 +513,25 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
         # For incremental updates, use cached stats if new is empty
         if not hourly_result and tcd.get('cached_hourly_stats'):
             hourly_result = tcd['cached_hourly_stats']
+
+        # Day-of-week stats (win rate by weekday)
+        dow_result = []
+        for day in range(7):  # 0=Monday, 6=Sunday
+            if day in tcd['games_by_dow']:
+                stats = tcd['games_by_dow'][day]
+                if stats['total'] > 0:
+                    win_rate = ((stats['wins'] + 0.5 * stats['draws']) / stats['total']) * 100
+                else:
+                    win_rate = 0
+                dow_result.append({
+                    'day': day,
+                    'win_rate': round(win_rate, 1),
+                    'sample_size': stats['total']
+                })
+
+        # For incremental updates, use cached stats if new is empty
+        if not dow_result and tcd.get('cached_dow_stats'):
+            dow_result = tcd['cached_dow_stats']
 
         # Openings
         openings = {
@@ -530,6 +563,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             'breaks_stats': breaks_stats,
             'today_stats': today_stats,
             'hourly_stats': hourly_result,
+            'dow_stats': dow_result,
             'win_prediction': win_prediction,
             'last_archive': last_archive_processed
         }

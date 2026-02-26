@@ -12,6 +12,8 @@ import { DailyVolumePage } from './panels/DailyVolumePage';
 import { GameNumberPage } from './panels/GameNumberPage';
 import { StreakPage } from './panels/StreakPage';
 import { BreaksPage } from './panels/BreaksPage';
+import { BestHoursPage } from './panels/BestHoursPage';
+import { BestDaysPage } from './panels/BestDaysPage';
 import { GoalPage } from './panels/GoalPage';
 import { ChessAdminPanel } from './panels/ChessAdminPanel';
 
@@ -32,6 +34,8 @@ export function ChessApp() {
         <Route path="game-number" element={<GameNumberPage />} />
         <Route path="streak" element={<StreakPage />} />
         <Route path="breaks" element={<BreaksPage />} />
+        <Route path="best-hours" element={<BestHoursPage />} />
+        <Route path="best-days" element={<BestDaysPage />} />
         <Route path="goal" element={<GoalPage />} />
         <Route path="win-prediction" element={<WinPredictionPanel />} />
         <Route path="openings" element={<OpeningsPanel />} />

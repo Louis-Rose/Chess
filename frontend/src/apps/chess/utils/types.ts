@@ -81,6 +81,12 @@ export interface HourlyStats {
   sample_size: number;
 }
 
+export interface DayOfWeekStats {
+  day: number;       // 0=Monday, 6=Sunday
+  win_rate: number;
+  sample_size: number;
+}
+
 export interface FatigueInsight {
   type: 'warning' | 'positive' | 'info';
   title: string;
@@ -178,6 +184,7 @@ export interface ApiResponse {
   breaks_stats?: BreaksStats[];
   today_stats?: TodayStats;
   hourly_stats: HourlyStats[];
+  dow_stats?: DayOfWeekStats[];
   win_prediction: WinPredictionAnalysis;
 }
 

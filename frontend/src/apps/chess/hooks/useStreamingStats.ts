@@ -119,6 +119,7 @@ export function useStreamingStats(username: string, timeClass: TimeClass) {
                 openings: { white: [], black: [] },
                 game_number_stats: [],
                 hourly_stats: [],
+                dow_stats: [],
                 win_prediction: {} as ApiResponse['win_prediction'],
               });
             }
