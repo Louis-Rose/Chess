@@ -178,7 +178,7 @@ export function GoalPage() {
 
         {/* Chart */}
         {hasGoal && chartData.length > 0 && (
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
+          <div className="bg-slate-700 rounded-xl p-5">
             {!editing && (
               <div className="flex justify-end mb-4">
                 <button
@@ -264,7 +264,7 @@ export function GoalPage() {
 
         {/* Inline editor */}
         {editing && currentElo && (
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
+          <div className="bg-slate-700 rounded-xl p-5 space-y-4">
             {/* Current elo */}
             <div className="flex items-center gap-3">
               <span className="text-sm text-slate-400">{t('chess.goalCard.actual')}:</span>
