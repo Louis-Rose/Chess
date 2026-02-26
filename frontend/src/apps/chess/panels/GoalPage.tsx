@@ -54,7 +54,7 @@ export function GoalPage() {
       return filteredEloHistory.map(e => ({
         date: e.date,
         ts: new Date(e.date).getTime(),
-        actual: e.elo,
+        actual: e.elo as number | undefined,
       }));
     }
 
