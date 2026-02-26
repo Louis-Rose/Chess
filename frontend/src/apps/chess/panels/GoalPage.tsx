@@ -315,20 +315,14 @@ export function GoalPage() {
                 </div>
               </div>
 
-              {/* Save / Cancel */}
-              <div className="flex justify-center gap-3 pt-2">
+              {/* Save */}
+              <div className="flex justify-center pt-2">
                 <button
                   onClick={handleSave}
                   disabled={draftGoal === null}
                   className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {t('chess.goalCard.save')}
-                </button>
-                <button
-                  onClick={() => setEditing(false)}
-                  className="px-4 py-2 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
-                >
-                  {t('chess.goalCard.cancel')}
                 </button>
               </div>
             </div>
