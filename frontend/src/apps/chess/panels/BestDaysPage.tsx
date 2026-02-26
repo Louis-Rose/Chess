@@ -59,7 +59,8 @@ function DaysChart({ stats }: { stats: DayOfWeekStats[] }) {
               tickFormatter={(v) => `${v}%`}
             />
             <Tooltip
-              content={({ active, payload }: { active?: boolean; payload?: Array<{ payload: typeof chartData[number] }> }) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              content={({ active, payload }: any) => {
                 if (!active || !payload?.length) return null;
                 const d = payload[0]?.payload;
                 if (!d) return null;
