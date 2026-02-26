@@ -31,14 +31,11 @@ export function StreakPage() {
           </button>
           <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} disabled={loading} />
         </div>
-        <div className="flex justify-center">
-          <TimePeriodToggle selected={period} onChange={setPeriod} />
-        </div>
         <div className="border-t border-slate-700" />
         {loading && !data ? (
           <div className="flex justify-center py-20"><Loader2 className="w-12 h-12 text-slate-400 animate-spin" /></div>
         ) : data ? (
-          <StreakSection data={data} standalone />
+          <StreakSection data={data} standalone action={<TimePeriodToggle selected={period} onChange={setPeriod} />} />
         ) : null}
       </div>
     </div>

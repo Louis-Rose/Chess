@@ -100,9 +100,10 @@ export function CollapsibleSection({ title, defaultExpanded = true, standalone =
   return card;
 }
 
-function StandaloneCard({ title, children }: { title: string; children: React.ReactNode }) {
+function StandaloneCard({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="bg-slate-700 rounded-xl px-3 sm:px-6 py-4 mx-4 select-text space-y-3">
+      {action && <div className="flex justify-end">{action}</div>}
       <h2 className="text-lg font-bold text-slate-100 text-center select-text">{title}</h2>
       {children}
     </div>
@@ -723,7 +724,7 @@ export function GameNumberSection({ data, standalone = false }: { data: ApiRespo
   );
 }
 
-export function StreakSection({ data, standalone = false }: { data: ApiResponse; standalone?: boolean }) {
+export function StreakSection({ data, standalone = false, action }: { data: ApiResponse; standalone?: boolean; action?: React.ReactNode }) {
   const { t } = useLanguage();
 
   const stats = data.streak_stats;
@@ -815,7 +816,7 @@ export function StreakSection({ data, standalone = false }: { data: ApiResponse;
 
         if (standalone) {
           return (
-            <StandaloneCard title={sectionTitle ?? ''}>
+            <StandaloneCard title={sectionTitle ?? ''} action={action}>
               {recommendation}
               {table}
             </StandaloneCard>

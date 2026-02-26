@@ -182,9 +182,6 @@ export function GoalPage() {
           </button>
           <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} disabled={loading} />
         </div>
-        <div className="flex justify-center">
-          <TimePeriodToggle selected={period} onChange={setPeriod} />
-        </div>
         <div className="border-t border-slate-700" />
 
         {/* No goal — prompt to set one */}
@@ -206,12 +203,15 @@ export function GoalPage() {
             <ChessCard
               title={t('chess.goalCard.title')}
               action={
-                <button
-                  onClick={openSetGoal}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
-                >
-                  {t('chess.goalCard.setGoal')}
-                </button>
+                <div className="flex items-center gap-2">
+                  <TimePeriodToggle selected={period} onChange={setPeriod} />
+                  <button
+                    onClick={openSetGoal}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
+                  >
+                    {t('chess.goalCard.setGoal')}
+                  </button>
+                </div>
               }
             >
               <div className="h-[300px]">
@@ -271,13 +271,16 @@ export function GoalPage() {
           <ChessCard
             title={t('chess.goalCard.title')}
             action={
-              <button
-                onClick={openEditor}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-                {t('chess.goalCard.updateGoal')}
-              </button>
+              <div className="flex items-center gap-2">
+                <TimePeriodToggle selected={period} onChange={setPeriod} />
+                <button
+                  onClick={openEditor}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  {t('chess.goalCard.updateGoal')}
+                </button>
+              </div>
             }
           >
             <div className="h-[300px]">
