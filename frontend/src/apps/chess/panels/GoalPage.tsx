@@ -264,7 +264,7 @@ export function GoalPage() {
         )}
 
         {/* Modal editor */}
-        {editing && currentElo && (
+        {editing && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditing(false)}>
             <div className="bg-slate-800 rounded-xl p-5 w-full max-w-md mx-4 space-y-4" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
@@ -275,12 +275,14 @@ export function GoalPage() {
               </div>
 
               {/* Current elo */}
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-slate-400">{t('chess.goalCard.actual')}:</span>
-                <span className="px-4 py-2 rounded-xl border-2 border-green-500 bg-green-500/10 text-white font-semibold">
-                  {currentElo}
-                </span>
-              </div>
+              {currentElo && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-slate-400">{t('chess.goalCard.actual')}:</span>
+                  <span className="px-4 py-2 rounded-xl border-2 border-green-500 bg-green-500/10 text-white font-semibold">
+                    {currentElo}
+                  </span>
+                </div>
+              )}
 
               {/* Goal picker */}
               <div>
