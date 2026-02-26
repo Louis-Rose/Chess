@@ -159,7 +159,6 @@ export function GoalPage() {
             <ArrowLeft className="w-5 h-5" />
             <span>Previous</span>
           </button>
-          <h1 className="text-lg font-bold text-slate-100">{t('chess.goalCard.title')}</h1>
         </div>
         <div className="border-t border-slate-700" />
 
@@ -180,7 +179,8 @@ export function GoalPage() {
         {hasGoal && chartData.length > 0 && (
           <div className="bg-slate-700 rounded-xl p-5">
             {!editing && (
-              <div className="flex justify-end mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-slate-100 select-text">{t('chess.goalCard.title')}</h2>
                 <button
                   onClick={openEditor}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
