@@ -1,15 +1,19 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { TimeClassToggle } from '../components/TimeClassToggle';
 import { AnalyzedGamesBanner } from '../components/AnalyzedGamesBanner';
+import { TimePeriodToggle } from '../components/TimePeriodToggle';
+import type { TimePeriod } from '../components/TimePeriodToggle';
 import { StreakSection } from './MyDataPanel';
 
 export function StreakPage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { data, loading, selectedTimeClass, handleTimeClassChange } = useChessData();
+  const [period, setPeriod] = useState<TimePeriod>('ALL');
 
   if (!data && !loading) return <p className="text-slate-400 text-center mt-16">{t('chess.noData')}</p>;
 
@@ -26,6 +30,9 @@ export function StreakPage() {
             <span>Previous</span>
           </button>
           <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} disabled={loading} />
+        </div>
+        <div className="flex justify-center">
+          <TimePeriodToggle selected={period} onChange={setPeriod} />
         </div>
         <div className="border-t border-slate-700" />
         {loading && !data ? (

@@ -10,15 +10,6 @@ import { EloGoalCard } from '../components/EloGoalCard';
 
 // Card definitions - titleKey/descriptionKey are i18n keys resolved at render time
 const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; iconBg: string; titleKey: string; descriptionKey: string | null }[] = [
-  // {
-  //   id: 'elo',
-  //   path: '/chess/elo',
-  //   icon: LineChart,
-  //   hoverBorder: 'hover:border-blue-500',
-  //   iconBg: 'bg-blue-600',
-  //   titleKey: 'chess.eloTitle',
-  //   descriptionKey: null,
-  // },
   {
     id: 'daily-volume',
     path: '/chess/daily-volume',
@@ -28,15 +19,6 @@ const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; 
     titleKey: 'chess.dailyVolumeTitle',
     descriptionKey: null,
   },
-  // {
-  //   id: 'game-number',
-  //   path: '/chess/game-number',
-  //   icon: Hash,
-  //   hoverBorder: 'hover:border-amber-500',
-  //   iconBg: 'bg-amber-600',
-  //   titleKey: 'chess.bestGamesCardTitle',
-  //   descriptionKey: null,
-  // },
   {
     id: 'streak',
     path: '/chess/streak',
@@ -64,24 +46,6 @@ const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; 
     titleKey: 'chess.bestDaysTitle',
     descriptionKey: null,
   },
-  // {
-  //   id: 'breaks',
-  //   path: '/chess/breaks',
-  //   icon: Coffee,
-  //   hoverBorder: 'hover:border-blue-500',
-  //   iconBg: 'bg-blue-600',
-  //   titleKey: 'chess.breaksCardTitle',
-  //   descriptionKey: null,
-  // },
-  // {
-  //   id: 'today',
-  //   path: '/chess/today',
-  //   icon: Target,
-  //   hoverBorder: 'hover:border-purple-500',
-  //   iconBg: 'bg-purple-600',
-  //   titleKey: 'chess.todayTitle',
-  //   descriptionKey: null,
-  // },
 ];
 
 function CardContent({ icon: Icon, iconBg, title, description }: {

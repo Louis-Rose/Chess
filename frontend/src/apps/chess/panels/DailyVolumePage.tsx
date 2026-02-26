@@ -6,7 +6,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { TimeClassToggle } from '../components/TimeClassToggle';
 import { AnalyzedGamesBanner } from '../components/AnalyzedGamesBanner';
 import { DailyVolumeSection, aggregateDailyVolume } from './MyDataPanel';
-import type { TimePeriod } from './MyDataPanel';
+import type { TimePeriod } from '../components/TimePeriodToggle';
 
 export function DailyVolumePage() {
   const navigate = useNavigate();

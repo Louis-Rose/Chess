@@ -4,18 +4,11 @@ import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ChessLayout } from './ChessLayout';
 import { WelcomePanel } from './panels/WelcomePanel';
-import { WinPredictionPanel } from './panels/WinPredictionPanel';
-import { OpeningsPanel } from './panels/OpeningsPanel';
-import { EloPage } from './panels/EloPage';
-import { TodayPage } from './panels/TodayPage';
 import { DailyVolumePage } from './panels/DailyVolumePage';
-import { GameNumberPage } from './panels/GameNumberPage';
 import { StreakPage } from './panels/StreakPage';
-import { BreaksPage } from './panels/BreaksPage';
 import { BestHoursPage } from './panels/BestHoursPage';
 import { BestDaysPage } from './panels/BestDaysPage';
 import { GoalPage } from './panels/GoalPage';
-import { ChessAdminPanel } from './panels/ChessAdminPanel';
 
 export function ChessApp() {
   useEffect(() => {
@@ -28,18 +21,11 @@ export function ChessApp() {
     <Routes>
       <Route element={<ChessLayout />}>
         <Route index element={<WelcomePanel />} />
-        <Route path="elo" element={<EloPage />} />
-        <Route path="today" element={<TodayPage />} />
         <Route path="daily-volume" element={<DailyVolumePage />} />
-        <Route path="game-number" element={<GameNumberPage />} />
         <Route path="streak" element={<StreakPage />} />
-        <Route path="breaks" element={<BreaksPage />} />
         <Route path="best-hours" element={<BestHoursPage />} />
         <Route path="best-days" element={<BestDaysPage />} />
         <Route path="goal" element={<GoalPage />} />
-        <Route path="win-prediction" element={<WinPredictionPanel />} />
-        <Route path="openings" element={<OpeningsPanel />} />
-        <Route path="admin" element={<ChessAdminPanel />} />
       </Route>
     </Routes>
   );

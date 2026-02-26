@@ -8,6 +8,8 @@ import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { TimeClassToggle } from '../components/TimeClassToggle';
 import { AnalyzedGamesBanner } from '../components/AnalyzedGamesBanner';
+import { TimePeriodToggle, getDateCutoff } from '../components/TimePeriodToggle';
+import type { TimePeriod } from '../components/TimePeriodToggle';
 import { getChessPrefs, saveChessPrefs } from '../utils/constants';
 import { ChessCard } from '../components/ChessCard';
 
@@ -19,6 +21,7 @@ export function GoalPage() {
   const [editing, setEditing] = useState(false);
   const [draftGoal, setDraftGoal] = useState<number | null>(null);
   const [draftMonths, setDraftMonths] = useState(3);
+  const [period, setPeriod] = useState<TimePeriod>('ALL');
 
   const prefs = getChessPrefs();
   const player = playerInfo ?? data?.player;
@@ -36,21 +39,45 @@ export function GoalPage() {
     return d;
   }, [elo_goal_start_date, elo_goal_months]);
 
+  // Filter elo_history by period
+  const filteredEloHistory = useMemo(() => {
+    const history = data?.elo_history ?? [];
+    const cutoff = getDateCutoff(period);
+    if (!cutoff) return history;
+    return history.filter(e => e.date >= cutoff);
+  }, [data?.elo_history, period]);
+
   const chartData = useMemo(() => {
-    if (!hasGoal || !elo_goal_start_date || !endDate) return [];
+    if (!hasGoal || !elo_goal_start_date || !endDate) {
+      // No goal — just show elo history
+      if (filteredEloHistory.length === 0) return [];
+      return filteredEloHistory.map(e => ({
+        date: e.date,
+        ts: new Date(e.date).getTime(),
+        actual: e.elo,
+      }));
+    }
 
     const startMs = new Date(elo_goal_start_date).getTime();
     const endMs = endDate.getTime();
+    const cutoff = getDateCutoff(period);
+    const cutoffMs = cutoff ? new Date(cutoff).getTime() : null;
+
+    // Determine visible range: either period cutoff or goal start, whichever is earlier
+    const rangeStartMs = cutoffMs ? Math.min(cutoffMs, startMs) : startMs;
 
     const points: Record<string, { date: string; ts: number; goal?: number; actual?: number }> = {};
-    // Both curves start at the exact elo when the goal was created/updated
-    points[elo_goal_start_date] = { date: elo_goal_start_date, ts: startMs, goal: elo_goal_start_elo!, actual: elo_goal_start_elo! };
+
+    // Goal line: start and end points (only if within visible range)
+    if (startMs >= rangeStartMs) {
+      points[elo_goal_start_date] = { date: elo_goal_start_date, ts: startMs, goal: elo_goal_start_elo!, actual: elo_goal_start_elo! };
+    }
     const endKey = endDate.toISOString().slice(0, 10);
     points[endKey] = { date: endKey, ts: endMs, goal: elo_goal! };
 
-    for (const entry of data?.elo_history ?? []) {
+    // Add all filtered elo history points
+    for (const entry of filteredEloHistory) {
       const ms = new Date(entry.date).getTime();
-      if (ms < startMs || ms > endMs + 7 * 86400000) continue;
       if (points[entry.date]) {
         points[entry.date].actual = entry.elo;
       } else {
@@ -59,24 +86,21 @@ export function GoalPage() {
     }
 
     return Object.values(points).sort((a, b) => a.ts - b.ts);
-  }, [hasGoal, elo_goal_start_date, elo_goal_start_elo, elo_goal, endDate, data, elo_goal_months]);
+  }, [hasGoal, elo_goal_start_date, elo_goal_start_elo, elo_goal, endDate, filteredEloHistory, period, elo_goal_months]);
 
   const { yDomain, yTicks } = useMemo(() => {
     if (!chartData.length) return { yDomain: [0, 100], yTicks: [0, 50, 100] };
     const values = chartData.flatMap(d => [d.goal, d.actual].filter((v): v is number => v != null));
     const min = Math.min(...values);
     const max = Math.max(...values);
-    // Round down/up to nearest 50 for clean ticks
     const lo = Math.floor(min / 50) * 50;
     const hi = Math.ceil(max / 50) * 50;
-    // Generate all ticks, then drop the lowest (below the data range)
     const allTicks: number[] = [];
     for (let v = lo; v <= hi; v += 50) allTicks.push(v);
     const ticks = allTicks.length > 2 ? allTicks.slice(1) : allTicks;
     return { yDomain: [lo, hi], yTicks: ticks };
   }, [chartData]);
 
-  // Generate x-axis tick dates: adapt density to screen width and timeline length
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
@@ -85,31 +109,27 @@ export function GoalPage() {
   }, []);
 
   const xTicks = useMemo(() => {
-    if (!elo_goal_start_date || !endDate) return [];
-    const start = new Date(elo_goal_start_date);
-    const totalDays = (endDate.getTime() - start.getTime()) / 86400000;
-    // Choose interval: mobile gets fewer ticks
+    if (!chartData.length) return [];
+    const startMs = chartData[0].ts;
+    const endMs = chartData[chartData.length - 1].ts;
+    const totalDays = (endMs - startMs) / 86400000;
     const maxTicks = isMobile ? 4 : 8;
     let intervalDays: number;
     if (totalDays <= 45) intervalDays = 7;
     else if (totalDays <= 90) intervalDays = 14;
-    else intervalDays = 30;
-    // Adjust if too many ticks
+    else if (totalDays <= 365) intervalDays = 30;
+    else intervalDays = 90;
     while (totalDays / intervalDays > maxTicks) intervalDays *= 2;
 
     const ticks: number[] = [];
-    const cursor = new Date(start);
-    while (cursor <= endDate) {
+    const cursor = new Date(startMs);
+    while (cursor.getTime() <= endMs) {
       ticks.push(cursor.getTime());
       cursor.setDate(cursor.getDate() + intervalDays);
     }
-    // Always include end date
-    const endMs = endDate.getTime();
     if (ticks[ticks.length - 1] !== endMs) ticks.push(endMs);
     return ticks;
-  }, [elo_goal_start_date, endDate, isMobile]);
-
-  const xTicksMs = xTicks;
+  }, [chartData, isMobile]);
 
   const formatDate = (dateStr: string) => {
     const [y, m, d] = dateStr.split('-').map(Number);
@@ -143,6 +163,8 @@ export function GoalPage() {
     setEditing(false);
   };
 
+  const showChart = chartData.length > 0;
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="max-w-4xl mx-auto mt-2 space-y-2">
@@ -158,10 +180,13 @@ export function GoalPage() {
           </button>
           <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} disabled={loading} />
         </div>
+        <div className="flex justify-center">
+          <TimePeriodToggle selected={period} onChange={setPeriod} />
+        </div>
         <div className="border-t border-slate-700" />
 
         {/* No goal — prompt to set one */}
-        {!hasGoal && !editing && (
+        {!hasGoal && !editing && !showChart && (
           <div className="text-center py-12 space-y-4">
             <p className="text-slate-400">{t('chess.goalCard.setGoalPrompt')}</p>
             <button
@@ -173,8 +198,74 @@ export function GoalPage() {
           </div>
         )}
 
-        {/* Chart */}
-        {hasGoal && chartData.length > 0 && (
+        {/* No goal but has elo history — show history + set goal button */}
+        {!hasGoal && !editing && showChart && (
+          <>
+            <ChessCard
+              title={t('chess.goalCard.title')}
+              action={
+                <button
+                  onClick={openSetGoal}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
+                >
+                  {t('chess.goalCard.setGoal')}
+                </button>
+              }
+            >
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                    <CartesianGrid stroke="#475569" vertical={false} />
+                    <XAxis
+                      dataKey="ts"
+                      type="number"
+                      domain={['dataMin', 'dataMax']}
+                      scale="time"
+                      ticks={xTicks}
+                      tickFormatter={(ts: number) => formatDate(new Date(ts).toISOString().slice(0, 10))}
+                      tick={{ fill: '#ffffff', fontSize: 14, fontWeight: 700 }}
+                      axisLine={false}
+                      tickLine={false}
+                      angle={isMobile ? -35 : 0}
+                      textAnchor={isMobile ? 'end' : 'middle'}
+                      height={isMobile ? 50 : 30}
+                    />
+                    <YAxis
+                      domain={yDomain}
+                      ticks={yTicks}
+                      tick={{ fill: '#ffffff', fontSize: 14, fontWeight: 700 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={45}
+                    />
+                    <Tooltip
+                      content={({ active, payload, label }: any) => {
+                        if (!active || !payload?.length) return null;
+                        const dateLabel = new Date(label as number).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                        const items = payload.filter((p: any) => p.value != null);
+                        if (!items.length) return null;
+                        return (
+                          <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
+                            <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{dateLabel}</p>
+                            {items.map((p: any) => (
+                              <p key={p.dataKey} style={{ color: p.color, margin: 0, fontSize: 13 }}>
+                                {p.dataKey === 'goal' ? t('chess.goalCard.goal') : t('chess.goalCard.actual')}: {p.value}
+                              </p>
+                            ))}
+                          </div>
+                        );
+                      }}
+                    />
+                    <Line dataKey="actual" stroke="#16a34a" strokeWidth={2} dot={false} connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </ChessCard>
+          </>
+        )}
+
+        {/* Chart with goal */}
+        {hasGoal && showChart && (
           <ChessCard
             title={t('chess.goalCard.title')}
             action={
@@ -196,7 +287,7 @@ export function GoalPage() {
                     type="number"
                     domain={['dataMin', 'dataMax']}
                     scale="time"
-                    ticks={xTicksMs}
+                    ticks={xTicks}
                     tickFormatter={(ts: number) => formatDate(new Date(ts).toISOString().slice(0, 10))}
                     tick={{ fill: '#ffffff', fontSize: 14, fontWeight: 700 }}
                     axisLine={false}
@@ -217,7 +308,6 @@ export function GoalPage() {
                     content={({ active, payload, label }: any) => {
                       if (!active || !payload?.length) return null;
                       const dateLabel = new Date(label as number).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-                      // Filter: only show goal on the end date, only show actual when present
                       const endMs = endDate!.getTime();
                       const items = payload.filter((p: any) => {
                         if (p.value == null) return false;
