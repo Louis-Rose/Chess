@@ -46,7 +46,8 @@ export function GoalPage() {
     const endMs = endDate.getTime();
 
     const points: Record<string, { date: string; ts: number; goal?: number; actual?: number }> = {};
-    points[elo_goal_start_date] = { date: elo_goal_start_date, ts: startMs, goal: elo_goal_start_elo! };
+    // Both curves start at the exact elo when the goal was created/updated
+    points[elo_goal_start_date] = { date: elo_goal_start_date, ts: startMs, goal: elo_goal_start_elo!, actual: elo_goal_start_elo! };
     const endKey = endDate.toISOString().slice(0, 10);
     points[endKey] = { date: endKey, ts: endMs, goal: elo_goal! };
 
