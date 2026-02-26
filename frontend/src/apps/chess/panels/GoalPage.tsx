@@ -7,6 +7,7 @@ import { ArrowLeft, Pencil } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getChessPrefs, saveChessPrefs } from '../utils/constants';
+import { ChessCard } from '../components/ChessCard';
 
 function generateEloGoals(currentElo: number): number[] {
   const base = Math.ceil(currentElo / 50) * 50;
@@ -177,19 +178,18 @@ export function GoalPage() {
 
         {/* Chart */}
         {hasGoal && chartData.length > 0 && (
-          <div className="bg-slate-700 rounded-xl p-5">
-            {!editing && (
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-slate-100 select-text">{t('chess.goalCard.title')}</h2>
-                <button
-                  onClick={openEditor}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  {t('chess.goalCard.updateGoal')}
-                </button>
-              </div>
-            )}
+          <ChessCard
+            title={!editing ? t('chess.goalCard.title') : undefined}
+            action={!editing ? (
+              <button
+                onClick={openEditor}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                {t('chess.goalCard.updateGoal')}
+              </button>
+            ) : undefined}
+          >
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -259,12 +259,13 @@ export function GoalPage() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </ChessCard>
         )}
 
         {/* Inline editor */}
         {editing && currentElo && (
-          <div className="bg-slate-700 rounded-xl p-5 space-y-4">
+          <ChessCard>
+            <div className="space-y-4">
             {/* Current elo */}
             <div className="flex items-center gap-3">
               <span className="text-sm text-slate-400">{t('chess.goalCard.actual')}:</span>
@@ -329,7 +330,8 @@ export function GoalPage() {
                 {t('chess.goalCard.cancel')}
               </button>
             </div>
-          </div>
+            </div>
+          </ChessCard>
         )}
       </div>
     </div>

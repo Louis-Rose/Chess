@@ -3,6 +3,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { TimeClassToggle } from '../components/TimeClassToggle';
+import { ChessCard } from '../components/ChessCard';
 import type { BreaksStats } from '../utils/types';
 import {
   Scatter, Line, XAxis, YAxis, CartesianGrid,
@@ -185,13 +186,12 @@ export function BreaksPage() {
           <div className="flex justify-center py-20"><Loader2 className="w-12 h-12 text-slate-400 animate-spin" /></div>
         ) : stats && stats.length > 0 ? (
           <>
-            <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">
-              <h2 className="text-lg font-bold text-slate-100 text-center select-text py-3">{t('chess.breaksCardTitle')}</h2>
+            <ChessCard title={t('chess.breaksCardTitle')}>
               <BreaksChart stats={stats} />
-            </div>
-            <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">
+            </ChessCard>
+            <ChessCard>
               <BreaksTable stats={stats} />
-            </div>
+            </ChessCard>
           </>
         ) : (
           data && <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>
