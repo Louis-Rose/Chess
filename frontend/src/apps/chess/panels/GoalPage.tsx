@@ -202,17 +202,15 @@ export function GoalPage() {
           <>
             <ChessCard
               title={t('chess.goalCard.title')}
-              action={
-                <div className="flex items-center gap-2">
-                  <TimePeriodToggle selected={period} onChange={setPeriod} />
-                  <button
-                    onClick={openSetGoal}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
-                  >
-                    {t('chess.goalCard.setGoal')}
-                  </button>
-                </div>
+              leftAction={
+                <button
+                  onClick={openSetGoal}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
+                >
+                  {t('chess.goalCard.setGoal')}
+                </button>
               }
+              action={<TimePeriodToggle selected={period} onChange={setPeriod} />}
             >
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -270,18 +268,16 @@ export function GoalPage() {
         {hasGoal && showChart && (
           <ChessCard
             title={t('chess.goalCard.title')}
-            action={
-              <div className="flex items-center gap-2">
-                <TimePeriodToggle selected={period} onChange={setPeriod} />
-                <button
-                  onClick={openEditor}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  {t('chess.goalCard.updateGoal')}
-                </button>
-              </div>
+            leftAction={
+              <button
+                onClick={openEditor}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                {t('chess.goalCard.updateGoal')}
+              </button>
             }
+            action={<TimePeriodToggle selected={period} onChange={setPeriod} />}
           >
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
