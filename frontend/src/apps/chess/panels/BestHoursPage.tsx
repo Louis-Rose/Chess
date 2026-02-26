@@ -48,14 +48,14 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
             <ReferenceLine y={baseline} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} strokeDasharray="6 3" />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 11, fill: '#f1f5f9', fontWeight: 700 }}
+              tick={{ fontSize: 14, fill: '#ffffff', fontWeight: 700 }}
               interval={0}
               angle={-45}
               textAnchor="end"
               height={50}
             />
             <YAxis
-              tick={{ fontSize: 14, fill: '#f1f5f9', fontWeight: 700 }}
+              tick={{ fontSize: 16, fill: '#ffffff', fontWeight: 700 }}
               domain={[
                 (min: number) => Math.max(0, Math.floor(min / 5) * 5 - 5),
                 (max: number) => Math.min(100, Math.ceil(max / 5) * 5 + 5),
@@ -130,7 +130,7 @@ export function BestHoursPage() {
         {loading && !data ? (
           <div className="flex justify-center py-20"><Loader2 className="w-12 h-12 text-slate-400 animate-spin" /></div>
         ) : stats && stats.length > 0 ? (
-          <div className="bg-slate-700 rounded-xl p-0.5 sm:p-4 select-text">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl p-2 sm:p-5 select-text">
             <h2 className="text-2xl font-bold text-slate-100 text-center select-text py-3">{t('chess.bestHoursTitle')}</h2>
             <HoursChart stats={stats} />
           </div>

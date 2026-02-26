@@ -44,10 +44,10 @@ export function GoalPage() {
     const startMs = new Date(elo_goal_start_date).getTime();
     const endMs = endDate.getTime();
 
-    const points: Record<string, { date: string; goal?: number; actual?: number }> = {};
-    points[elo_goal_start_date] = { date: elo_goal_start_date, goal: elo_goal_start_elo! };
+    const points: Record<string, { date: string; ts: number; goal?: number; actual?: number }> = {};
+    points[elo_goal_start_date] = { date: elo_goal_start_date, ts: startMs, goal: elo_goal_start_elo! };
     const endKey = endDate.toISOString().slice(0, 10);
-    points[endKey] = { date: endKey, goal: elo_goal! };
+    points[endKey] = { date: endKey, ts: endMs, goal: elo_goal! };
 
     for (const entry of data?.elo_history ?? []) {
       const ms = new Date(entry.date).getTime();
@@ -55,11 +55,11 @@ export function GoalPage() {
       if (points[entry.date]) {
         points[entry.date].actual = entry.elo;
       } else {
-        points[entry.date] = { date: entry.date, actual: entry.elo };
+        points[entry.date] = { date: entry.date, ts: ms, actual: entry.elo };
       }
     }
 
-    return Object.values(points).sort((a, b) => a.date.localeCompare(b.date));
+    return Object.values(points).sort((a, b) => a.ts - b.ts);
   }, [hasGoal, elo_goal_start_date, elo_goal_start_elo, elo_goal, endDate, data, elo_goal_months]);
 
   const { yDomain, yTicks } = useMemo(() => {
@@ -95,17 +95,19 @@ export function GoalPage() {
     // Adjust if too many ticks
     while (totalDays / intervalDays > maxTicks) intervalDays *= 2;
 
-    const ticks: string[] = [];
+    const ticks: number[] = [];
     const cursor = new Date(start);
     while (cursor <= endDate) {
-      ticks.push(cursor.toISOString().slice(0, 10));
+      ticks.push(cursor.getTime());
       cursor.setDate(cursor.getDate() + intervalDays);
     }
     // Always include end date
-    const endKey = endDate.toISOString().slice(0, 10);
-    if (ticks[ticks.length - 1] !== endKey) ticks.push(endKey);
+    const endMs = endDate.getTime();
+    if (ticks[ticks.length - 1] !== endMs) ticks.push(endMs);
     return ticks;
   }, [elo_goal_start_date, endDate, isMobile]);
+
+  const xTicksMs = xTicks;
 
   const formatDate = (dateStr: string) => {
     const [y, m, d] = dateStr.split('-').map(Number);
@@ -190,9 +192,12 @@ export function GoalPage() {
                 <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid stroke="#475569" vertical={false} />
                   <XAxis
-                    dataKey="date"
-                    ticks={xTicks}
-                    tickFormatter={formatDate}
+                    dataKey="ts"
+                    type="number"
+                    domain={['dataMin', 'dataMax']}
+                    scale="time"
+                    ticks={xTicksMs}
+                    tickFormatter={(ts: number) => formatDate(new Date(ts).toISOString().slice(0, 10))}
                     tick={{ fill: '#94a3b8', fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
@@ -211,13 +216,12 @@ export function GoalPage() {
                   <Tooltip
                     content={({ active, payload, label }: any) => {
                       if (!active || !payload?.length) return null;
-                      const [y, m, d] = (label as string).split('-').map(Number);
-                      const dateLabel = new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                      const dateLabel = new Date(label as number).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
                       // Filter: only show goal on the end date, only show actual when present
-                      const endKey = endDate!.toISOString().slice(0, 10);
+                      const endMs = endDate!.getTime();
                       const items = payload.filter((p: any) => {
                         if (p.value == null) return false;
-                        if (p.dataKey === 'goal' && label !== endKey) return false;
+                        if (p.dataKey === 'goal' && Math.abs((label as number) - endMs) > 86400000) return false;
                         return true;
                       });
                       if (!items.length) return null;
@@ -241,13 +245,13 @@ export function GoalPage() {
                   <Line dataKey="goal" stroke="#3b82f6" strokeWidth={2} strokeDasharray="6 3" dot={false} connectNulls />
                   <Line dataKey="actual" stroke="#16a34a" strokeWidth={2} dot={false} connectNulls />
                   {/* Start point */}
-                  <ReferenceDot x={elo_goal_start_date!} y={elo_goal_start_elo!} r={5} fill="#3b82f6" stroke="#1e293b" strokeWidth={2} />
+                  <ReferenceDot x={new Date(elo_goal_start_date!).getTime()} y={elo_goal_start_elo!} r={5} fill="#3b82f6" stroke="#1e293b" strokeWidth={2} />
                   {/* Goal point */}
-                  <ReferenceDot x={endDate!.toISOString().slice(0, 10)} y={elo_goal!} r={5} fill="#3b82f6" stroke="#1e293b" strokeWidth={2} />
+                  <ReferenceDot x={endDate!.getTime()} y={elo_goal!} r={5} fill="#3b82f6" stroke="#1e293b" strokeWidth={2} />
                   {/* Latest actual elo point */}
                   {(() => {
                     const last = [...chartData].reverse().find(d => d.actual != null);
-                    return last ? <ReferenceDot x={last.date} y={last.actual!} r={5} fill="#16a34a" stroke="#1e293b" strokeWidth={2} /> : null;
+                    return last ? <ReferenceDot x={last.ts} y={last.actual!} r={5} fill="#16a34a" stroke="#1e293b" strokeWidth={2} /> : null;
                   })()}
                 </LineChart>
               </ResponsiveContainer>
