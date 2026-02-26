@@ -67,10 +67,13 @@ export function GoalPage() {
     const values = chartData.flatMap(d => [d.goal, d.actual].filter((v): v is number => v != null));
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const lo = Math.floor((min - 25) / 50) * 50;
-    const hi = Math.ceil((max + 25) / 50) * 50;
-    const ticks: number[] = [];
-    for (let v = lo; v <= hi; v += 50) ticks.push(v);
+    // Round down/up to nearest 50 for clean ticks
+    const lo = Math.floor(min / 50) * 50;
+    const hi = Math.ceil(max / 50) * 50;
+    // Generate all ticks, then drop the lowest (below the data range)
+    const allTicks: number[] = [];
+    for (let v = lo; v <= hi; v += 50) allTicks.push(v);
+    const ticks = allTicks.length > 2 ? allTicks.slice(1) : allTicks;
     return { yDomain: [lo, hi], yTicks: ticks };
   }, [chartData]);
 
@@ -208,7 +211,7 @@ export function GoalPage() {
                   <YAxis
                     domain={yDomain}
                     ticks={yTicks}
-                    tick={{ fill: '#ffffff', fontSize: 16, fontWeight: 700 }}
+                    tick={{ fill: '#ffffff', fontSize: 14, fontWeight: 700 }}
                     axisLine={false}
                     tickLine={false}
                     width={45}
