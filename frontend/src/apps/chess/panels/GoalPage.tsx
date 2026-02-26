@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot,
 } from 'recharts';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { ArrowLeft, Pencil, X } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getChessPrefs, saveChessPrefs } from '../utils/constants';
@@ -180,8 +180,8 @@ export function GoalPage() {
         {/* Chart */}
         {hasGoal && chartData.length > 0 && (
           <ChessCard
-            title={!editing ? t('chess.goalCard.title') : undefined}
-            action={!editing ? (
+            title={t('chess.goalCard.title')}
+            action={
               <button
                 onClick={openEditor}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
@@ -189,7 +189,7 @@ export function GoalPage() {
                 <Pencil className="w-3.5 h-3.5" />
                 {t('chess.goalCard.updateGoal')}
               </button>
-            ) : undefined}
+            }
           >
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -263,76 +263,83 @@ export function GoalPage() {
           </ChessCard>
         )}
 
-        {/* Inline editor */}
+        {/* Modal editor */}
         {editing && currentElo && (
-          <ChessCard>
-            <div className="space-y-4">
-            {/* Current elo */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-400">{t('chess.goalCard.actual')}:</span>
-              <span className="px-4 py-2 rounded-xl border-2 border-green-500 bg-green-500/10 text-white font-semibold">
-                {currentElo}
-              </span>
-            </div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditing(false)}>
+            <div className="bg-slate-800 rounded-xl p-5 w-full max-w-md mx-4 space-y-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-slate-100">{t('chess.goalCard.updateGoal')}</h2>
+                <button onClick={() => setEditing(false)} className="text-slate-400 hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-            {/* Goal picker */}
-            <div>
-              <span className="text-sm text-slate-400 block mb-2">{t('chess.goalCard.goal')}:</span>
-              <div className="flex gap-2 flex-wrap">
-                {eloGoals.map(goal => (
-                  <button
-                    key={goal}
-                    onClick={() => setDraftGoal(goal)}
-                    className={`px-4 py-2 rounded-xl border-2 transition-all font-semibold ${
-                      draftGoal === goal
-                        ? 'border-blue-500 bg-blue-500/10 text-white'
-                        : 'border-slate-600 bg-slate-800 text-slate-400 hover:border-slate-500'
-                    }`}
-                  >
-                    {goal}
-                  </button>
-                ))}
+              {/* Current elo */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-slate-400">{t('chess.goalCard.actual')}:</span>
+                <span className="px-4 py-2 rounded-xl border-2 border-green-500 bg-green-500/10 text-white font-semibold">
+                  {currentElo}
+                </span>
+              </div>
+
+              {/* Goal picker */}
+              <div>
+                <span className="text-sm text-slate-400 block mb-2">{t('chess.goalCard.goal')}:</span>
+                <div className="flex gap-2 flex-wrap">
+                  {eloGoals.map(goal => (
+                    <button
+                      key={goal}
+                      onClick={() => setDraftGoal(goal)}
+                      className={`px-4 py-2 rounded-xl border-2 transition-all font-semibold ${
+                        draftGoal === goal
+                          ? 'border-blue-500 bg-blue-500/10 text-white'
+                          : 'border-slate-600 bg-slate-800 text-slate-400 hover:border-slate-500'
+                      }`}
+                    >
+                      {goal}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Month selector */}
+              <div>
+                <span className="text-sm text-slate-400 block mb-2">{t('chess.goalCard.timeline')}:</span>
+                <div className="flex gap-2 flex-wrap">
+                  {[1, 2, 3, 4, 5, 6].map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setDraftMonths(m)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                        draftMonths === m
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                      }`}
+                    >
+                      {t('chess.goalCard.months').replace('{n}', String(m))}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Save / Cancel */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleSave}
+                  disabled={draftGoal === null}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {t('chess.goalCard.save')}
+                </button>
+                <button
+                  onClick={() => setEditing(false)}
+                  className="px-4 py-2 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
+                >
+                  {t('chess.goalCard.cancel')}
+                </button>
               </div>
             </div>
-
-            {/* Month selector */}
-            <div>
-              <span className="text-sm text-slate-400 block mb-2">{t('chess.goalCard.timeline')}:</span>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5, 6].map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setDraftMonths(m)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                      draftMonths === m
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                    }`}
-                  >
-                    {t('chess.goalCard.months').replace('{n}', String(m))}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Save / Cancel */}
-            <div className="flex gap-3">
-              <button
-                onClick={handleSave}
-                disabled={draftGoal === null}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {t('chess.goalCard.save')}
-              </button>
-              <button
-                onClick={() => setEditing(false)}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
-              >
-                {t('chess.goalCard.cancel')}
-              </button>
-            </div>
-            </div>
-          </ChessCard>
+          </div>
         )}
       </div>
     </div>
