@@ -3,17 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot,
 } from 'recharts';
-import { ArrowLeft, Pencil, X } from 'lucide-react';
+import { ArrowLeft, Pencil, X, Minus, Plus } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getChessPrefs, saveChessPrefs } from '../utils/constants';
 import { ChessCard } from '../components/ChessCard';
-
-function generateEloGoals(currentElo: number): number[] {
-  const base = Math.ceil(currentElo / 50) * 50;
-  const start = base <= currentElo ? base + 50 : base;
-  return Array.from({ length: 5 }, (_, i) => start + i * 50);
-}
 
 export function GoalPage() {
   const navigate = useNavigate();
@@ -121,13 +115,13 @@ export function GoalPage() {
   };
 
   const openEditor = () => {
-    setDraftGoal(elo_goal);
+    setDraftGoal(elo_goal ?? (currentElo ? Math.ceil(currentElo / 50) * 50 + 50 : 1500));
     setDraftMonths(elo_goal_months);
     setEditing(true);
   };
 
   const openSetGoal = () => {
-    setDraftGoal(null);
+    setDraftGoal(currentElo ? Math.ceil(currentElo / 50) * 50 + 50 : 1500);
     setDraftMonths(3);
     setEditing(true);
   };
@@ -143,11 +137,6 @@ export function GoalPage() {
     forceUpdate();
     setEditing(false);
   };
-
-  const eloGoals = useMemo(
-    () => currentElo ? generateEloGoals(currentElo) : [],
-    [currentElo]
-  );
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -284,23 +273,25 @@ export function GoalPage() {
                 </div>
               )}
 
-              {/* Goal picker */}
+              {/* Goal picker — incrementer by 50 */}
               <div>
                 <span className="text-sm text-slate-400 block mb-2">{t('chess.goalCard.goal')}:</span>
-                <div className="flex gap-2 flex-wrap">
-                  {eloGoals.map(goal => (
-                    <button
-                      key={goal}
-                      onClick={() => setDraftGoal(goal)}
-                      className={`px-4 py-2 rounded-xl border-2 transition-all font-semibold ${
-                        draftGoal === goal
-                          ? 'border-blue-500 bg-blue-500/10 text-white'
-                          : 'border-slate-600 bg-slate-800 text-slate-400 hover:border-slate-500'
-                      }`}
-                    >
-                      {goal}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-center gap-4">
+                  <button
+                    onClick={() => setDraftGoal(g => (g ?? 1500) - 50)}
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors"
+                  >
+                    <Minus className="w-5 h-5" />
+                  </button>
+                  <span className="text-2xl font-bold text-white tabular-nums min-w-[80px] text-center">
+                    {draftGoal ?? 1500}
+                  </span>
+                  <button
+                    onClick={() => setDraftGoal(g => (g ?? 1500) + 50)}
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
 
@@ -325,7 +316,7 @@ export function GoalPage() {
               </div>
 
               {/* Save / Cancel */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex justify-center gap-3 pt-2">
                 <button
                   onClick={handleSave}
                   disabled={draftGoal === null}
