@@ -127,10 +127,12 @@ export function GoalPage() {
   };
 
   const handleSave = () => {
-    if (draftGoal === null || !currentElo) return;
+    if (draftGoal === null) return;
+    const startElo = currentElo ?? elo_goal_start_elo;
+    if (!startElo) return;
     saveChessPrefs({
       elo_goal: draftGoal,
-      elo_goal_start_elo: currentElo,
+      elo_goal_start_elo: startElo,
       elo_goal_start_date: new Date().toISOString().slice(0, 10),
       elo_goal_months: draftMonths,
     });
