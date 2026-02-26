@@ -6,7 +6,7 @@ import { getChessPrefs } from '../utils/constants';
 
 export function EloGoalCard() {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [, forceUpdate] = useReducer(x => x + 1, 0);
 
   useEffect(() => {
@@ -14,7 +14,20 @@ export function EloGoalCard() {
     return () => window.removeEventListener('chess-prefs-change', forceUpdate);
   }, [forceUpdate]);
 
-  const hasGoal = getChessPrefs().elo_goal !== null;
+  const prefs = getChessPrefs();
+  const hasGoal = prefs.elo_goal !== null;
+
+  let goalLabel = '';
+  if (hasGoal && prefs.elo_goal && prefs.elo_goal_start_date && prefs.elo_goal_months) {
+    const start = new Date(prefs.elo_goal_start_date);
+    const deadline = new Date(start);
+    deadline.setMonth(deadline.getMonth() + prefs.elo_goal_months);
+    const daysLeft = Math.max(0, Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+    const daysStr = language === 'fr'
+      ? `${prefs.elo_goal} elo ${daysLeft > 0 ? `en ${daysLeft} jour${daysLeft > 1 ? 's' : ''}` : ''}`
+      : `${prefs.elo_goal} elo ${daysLeft > 0 ? `in ${daysLeft} day${daysLeft > 1 ? 's' : ''}` : ''}`;
+    goalLabel = `${t('chess.goalCard.title')}: ${daysStr}`;
+  }
 
   return (
     <div
@@ -25,7 +38,7 @@ export function EloGoalCard() {
         <Target className="w-5 h-5 text-white" />
       </div>
       <h3 className="text-lg font-bold text-slate-100 text-center text-balance pl-12 pr-2 py-4">
-        {hasGoal ? t('chess.goalCard.title') : t('chess.goalCard.setGoal')}
+        {hasGoal ? goalLabel : t('chess.goalCard.setGoal')}
       </h3>
       <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
     </div>
