@@ -198,7 +198,7 @@ export function GoalPage() {
                     scale="time"
                     ticks={xTicksMs}
                     tickFormatter={(ts: number) => formatDate(new Date(ts).toISOString().slice(0, 10))}
-                    tick={{ fill: '#94a3b8', fontSize: 11 }}
+                    tick={{ fill: '#ffffff', fontSize: 14, fontWeight: 700 }}
                     axisLine={false}
                     tickLine={false}
                     angle={isMobile ? -35 : 0}
@@ -208,7 +208,7 @@ export function GoalPage() {
                   <YAxis
                     domain={yDomain}
                     ticks={yTicks}
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    tick={{ fill: '#ffffff', fontSize: 16, fontWeight: 700 }}
                     axisLine={false}
                     tickLine={false}
                     width={45}
