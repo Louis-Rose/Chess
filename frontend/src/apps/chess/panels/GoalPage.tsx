@@ -6,12 +6,14 @@ import {
 import { ArrowLeft, Pencil, X, Minus, Plus } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { TimeClassToggle } from '../components/TimeClassToggle';
+import { AnalyzedGamesBanner } from '../components/AnalyzedGamesBanner';
 import { getChessPrefs, saveChessPrefs } from '../utils/constants';
 import { ChessCard } from '../components/ChessCard';
 
 export function GoalPage() {
   const navigate = useNavigate();
-  const { data, selectedTimeClass, playerInfo } = useChessData();
+  const { data, loading, selectedTimeClass, handleTimeClassChange, playerInfo } = useChessData();
   const { t } = useLanguage();
   const [, forceUpdate] = useReducer(x => x + 1, 0);
   const [editing, setEditing] = useState(false);
@@ -19,9 +21,10 @@ export function GoalPage() {
   const [draftMonths, setDraftMonths] = useState(3);
 
   const prefs = getChessPrefs();
+  const player = playerInfo ?? data?.player;
   const currentElo = selectedTimeClass === 'blitz'
-    ? playerInfo?.blitz_rating
-    : playerInfo?.rapid_rating;
+    ? player?.blitz_rating
+    : player?.rapid_rating;
 
   const { elo_goal, elo_goal_start_elo, elo_goal_start_date, elo_goal_months } = prefs;
   const hasGoal = elo_goal !== null && elo_goal_start_elo !== null && elo_goal_start_date !== null;
@@ -143,6 +146,7 @@ export function GoalPage() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="max-w-4xl mx-auto mt-2 space-y-2">
+        <AnalyzedGamesBanner />
         {/* Header */}
         <div className="relative flex items-center justify-center">
           <button
@@ -152,6 +156,7 @@ export function GoalPage() {
             <ArrowLeft className="w-5 h-5" />
             <span>Previous</span>
           </button>
+          <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} disabled={loading} />
         </div>
         <div className="border-t border-slate-700" />
 

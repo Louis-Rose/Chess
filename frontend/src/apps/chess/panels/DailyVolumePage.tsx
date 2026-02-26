@@ -1,16 +1,17 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { TimeClassToggle } from '../components/TimeClassToggle';
+import { AnalyzedGamesBanner } from '../components/AnalyzedGamesBanner';
 import { DailyVolumeSection, aggregateDailyVolume } from './MyDataPanel';
 import type { TimePeriod } from './MyDataPanel';
 
 export function DailyVolumePage() {
   const navigate = useNavigate();
-  const { t, language } = useLanguage();
-  const { data, loading, selectedTimeClass, handleTimeClassChange, searchedUsername } = useChessData();
+  const { t } = useLanguage();
+  const { data, loading, selectedTimeClass, handleTimeClassChange } = useChessData();
   const [period, setPeriod] = useState<TimePeriod>('ALL');
 
   const filteredGames = useMemo(() => {
@@ -20,26 +21,10 @@ export function DailyVolumePage() {
 
   if (!data && !loading) return <p className="text-slate-400 text-center mt-16">{t('chess.noData')}</p>;
 
-  const count = filteredGames.toLocaleString();
-  const plural = filteredGames !== 1 ? 's' : '';
-  const usernameStr = searchedUsername ? (language === 'fr' ? ` de @${searchedUsername}` : ` of @${searchedUsername}`) : '';
-  const analyzedText = t('chess.analyzedGames').replace('{username}', usernameStr).replace('{count}', count).replace(/\{plural\}/g, plural);
-
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="max-w-4xl mx-auto mt-2 space-y-2">
-        {data && (
-          <>
-            <div className="border-t border-slate-700" />
-            <div className="flex items-center justify-center py-1">
-              <div className="relative flex items-center">
-                <CheckCircle2 className="w-4 h-4 text-green-500 absolute -left-6" />
-                <span className="text-slate-400 text-sm">{analyzedText}</span>
-              </div>
-            </div>
-            <div className="border-t border-slate-700" />
-          </>
-        )}
+        <AnalyzedGamesBanner totalGames={filteredGames} />
         <div className="relative flex items-center justify-center">
           <button
             onClick={() => navigate('/chess')}

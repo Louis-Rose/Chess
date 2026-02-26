@@ -3,6 +3,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { TimeClassToggle } from '../components/TimeClassToggle';
+import { AnalyzedGamesBanner } from '../components/AnalyzedGamesBanner';
 import { ChessCard } from '../components/ChessCard';
 import type { BreaksStats } from '../utils/types';
 import {
@@ -171,6 +172,7 @@ export function BreaksPage() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="max-w-4xl mx-auto mt-2 space-y-2">
+        <AnalyzedGamesBanner />
         <div className="relative flex items-center justify-center">
           <button
             onClick={() => navigate('/chess')}
