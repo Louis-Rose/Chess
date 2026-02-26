@@ -208,7 +208,8 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.goalCard.actual': 'Actual',
     'chess.goalCard.save': 'Save',
     'chess.goalCard.cancel': 'Cancel',
-    'chess.goalCard.months': '{n} mo',
+    'chess.goalCard.months': 'in {n} month',
+    'chess.goalCard.monthsPlural': 'in {n} months',
     'chess.goalCard.timeline': 'Timeline',
 
     // Tax Calculator
@@ -427,7 +428,8 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.goalCard.actual': 'Réel',
     'chess.goalCard.save': 'Enregistrer',
     'chess.goalCard.cancel': 'Annuler',
-    'chess.goalCard.months': '{n} mois',
+    'chess.goalCard.months': 'dans {n} mois',
+    'chess.goalCard.monthsPlural': 'dans {n} mois',
     'chess.goalCard.timeline': 'Durée',
 
     // Tax Calculator

@@ -256,26 +256,15 @@ export function GoalPage() {
         {editing && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditing(false)}>
             <div className="bg-slate-800 rounded-xl p-5 w-full max-w-md mx-4 space-y-4" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between">
+              <div className="relative flex items-center justify-center">
                 <h2 className="text-lg font-bold text-slate-100">{t('chess.goalCard.updateGoal')}</h2>
-                <button onClick={() => setEditing(false)} className="text-slate-400 hover:text-white transition-colors">
+                <button onClick={() => setEditing(false)} className="absolute right-0 text-slate-400 hover:text-white transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Current elo */}
-              {currentElo && (
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-slate-400">{t('chess.goalCard.actual')}:</span>
-                  <span className="px-4 py-2 rounded-xl border-2 border-green-500 bg-green-500/10 text-white font-semibold">
-                    {currentElo}
-                  </span>
-                </div>
-              )}
-
               {/* Goal picker — incrementer by 50 */}
               <div>
-                <span className="text-sm text-slate-400 block mb-2">{t('chess.goalCard.goal')}:</span>
                 <div className="flex items-center justify-center gap-4">
                   <button
                     onClick={() => setDraftGoal(g => (g ?? 1500) - 50)}
@@ -297,9 +286,8 @@ export function GoalPage() {
 
               {/* Month selector */}
               <div>
-                <span className="text-sm text-slate-400 block mb-2">{t('chess.goalCard.timeline')}:</span>
-                <div className="flex gap-2 flex-wrap">
-                  {[1, 2, 3, 4, 5, 6].map(m => (
+                <div className="flex gap-2 flex-wrap justify-center">
+                  {[1, 2, 3].map(m => (
                     <button
                       key={m}
                       onClick={() => setDraftMonths(m)}
@@ -309,7 +297,7 @@ export function GoalPage() {
                           : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                       }`}
                     >
-                      {t('chess.goalCard.months').replace('{n}', String(m))}
+                      {t(m === 1 ? 'chess.goalCard.months' : 'chess.goalCard.monthsPlural').replace('{n}', String(m))}
                     </button>
                   ))}
                 </div>
