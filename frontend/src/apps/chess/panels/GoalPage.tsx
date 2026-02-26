@@ -47,14 +47,16 @@ export function GoalPage() {
     return history.filter(e => e.date >= cutoff);
   }, [data?.elo_history, period]);
 
-  const chartData = useMemo(() => {
+  type ChartPoint = { date: string; ts: number; goal?: number; actual?: number };
+
+  const chartData = useMemo((): ChartPoint[] => {
     if (!hasGoal || !elo_goal_start_date || !endDate) {
       // No goal — just show elo history
       if (filteredEloHistory.length === 0) return [];
       return filteredEloHistory.map(e => ({
         date: e.date,
         ts: new Date(e.date).getTime(),
-        actual: e.elo as number | undefined,
+        actual: e.elo,
       }));
     }
 
