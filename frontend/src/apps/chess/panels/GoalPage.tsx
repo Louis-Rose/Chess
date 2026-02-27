@@ -99,9 +99,7 @@ export function GoalPage() {
     const hi = Math.ceil(max / 100) * 100 + 100;
     const ticks: number[] = [];
     for (let v = lo; v <= hi; v += 100) ticks.push(v);
-    // Hide first and last labels (they sit at the domain edge and get clipped)
-    const visibleTicks = ticks.slice(1, -1);
-    return { yDomain: [lo, hi], yTicks: visibleTicks };
+    return { yDomain: [lo, hi], yTicks: ticks };
   }, [chartData]);
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -243,7 +241,10 @@ export function GoalPage() {
                       domain={yDomain}
                       ticks={yTicks}
                       interval={0}
-                      tick={{ fill: '#ffffff', fontSize: 14, fontWeight: 700 }}
+                      tick={({ x, y, payload }: any) => {
+                        if (payload.value === yTicks[0] || payload.value === yTicks[yTicks.length - 1]) return null;
+                        return <text x={x} y={y} dy={4} textAnchor="end" fill="#ffffff" fontSize={14} fontWeight={700}>{payload.value}</text>;
+                      }}
                       axisLine={false}
                       tickLine={false}
                       width={45}
