@@ -165,7 +165,7 @@ export function ChessAdminPanel() {
 
   // Time spent chart data
   const timeSpentChartData = useMemo(() => {
-    const CHART_START_DATE = '2026-01-01';
+    const CHART_START_DATE = '2026-02-16';
     const startDate = new Date(CHART_START_DATE);
     const endDate = new Date();
 
@@ -204,6 +204,68 @@ export function ChessAdminPanel() {
     const maxMinutes = maxSeconds / 60;
     return (Math.ceil(maxMinutes / 30) * 30 + 30) * 60;
   }, [timeSpentChartData]);
+
+  // Users chart data (cumulative user count over time)
+  const usersChartData = useMemo(() => {
+    if (!users || users.length === 0) return [];
+    const CHART_START_DATE = '2026-02-16';
+
+    // Group users by created_at date
+    const usersByDate: Record<string, number> = {};
+    users.forEach(u => {
+      if (!u.created_at) return;
+      const date = u.created_at.split('T')[0].split(' ')[0];
+      usersByDate[date] = (usersByDate[date] || 0) + 1;
+    });
+
+    // Count users registered before chart start
+    let usersBeforeStart = 0;
+    Object.entries(usersByDate).forEach(([date, count]) => {
+      if (date < CHART_START_DATE) usersBeforeStart += count;
+    });
+
+    const startDate = new Date(CHART_START_DATE);
+    const endDate = new Date();
+    const allDates: string[] = [];
+    const cur = new Date(startDate);
+    while (cur <= endDate) {
+      allDates.push(cur.toISOString().split('T')[0]);
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    let cumulative = usersBeforeStart;
+    const dailyData = allDates.map(date => {
+      cumulative += usersByDate[date] || 0;
+      return { date, users: cumulative };
+    });
+
+    if (chartUnit === 'days') return dailyData;
+
+    const grouped: Record<string, { sum: number; count: number }> = {};
+    dailyData.forEach(({ date, users: u }) => {
+      const key = chartUnit === 'weeks' ? getWeekKey(date) : getMonthKey(date);
+      if (!grouped[key]) grouped[key] = { sum: 0, count: 0 };
+      grouped[key].sum += u;
+      grouped[key].count += 1;
+    });
+
+    return Object.entries(grouped)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, { sum, count }]) => ({ date: key, users: Math.round(sum / count) }));
+  }, [users, chartUnit]);
+
+  // Y-axis max for users chart
+  const usersYAxisMax = useMemo(() => {
+    const total = usersChartData.length > 0 ? usersChartData[usersChartData.length - 1].users : 0;
+    return Math.floor(total / 10) * 10 + 10;
+  }, [usersChartData]);
+
+  const usersYAxisTicks = useMemo(() => {
+    const step = Math.max(1, Math.ceil(usersYAxisMax / 5));
+    const ticks: number[] = [];
+    for (let v = 0; v <= usersYAxisMax; v += step) ticks.push(v);
+    return ticks;
+  }, [usersYAxisMax]);
 
   // Bar click handler
   const handleBarClick = async (data: { date: string }) => {
@@ -403,10 +465,37 @@ export function ChessAdminPanel() {
                 {users && <span className="text-slate-400 font-normal ml-2">({users.length})</span>}
               </h3>
             </button>
+            {isUsersExpanded && <TimeUnitToggle />}
           </div>
 
           {isUsersExpanded && (
             <>
+              {/* Users growth chart */}
+              {usersChartData.length > 0 && (
+                <div className="h-[200px] mb-6 select-none [&_svg]:outline-none [&_*]:outline-none">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={usersChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} accessibilityLayer={false}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                      <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={formatXTick} />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#94a3b8' }}
+                        allowDecimals={false}
+                        domain={[0, usersYAxisMax]}
+                        ticks={usersYAxisTicks}
+                      />
+                      <Tooltip
+                        cursor={false}
+                        contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}
+                        labelStyle={{ color: '#f1f5f9', fontWeight: 'bold' }}
+                        labelFormatter={formatLabel}
+                        formatter={(value) => [value]}
+                      />
+                      <Bar dataKey="users" fill="#f59e0b" radius={[4, 4, 0, 0]} activeBar={false} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
               {/* Table toggle */}
               <button
                 onClick={() => setIsUsersTableExpanded(!isUsersTableExpanded)}
