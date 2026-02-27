@@ -22,9 +22,9 @@ function formatHourRange(start: number, end: number): string {
 function HoursChart({ stats }: { stats: HourlyStats[] }) {
   const { t } = useLanguage();
 
-  const { chartData, baseline, best, worst } = useMemo(() => {
+  const { chartData, baseline } = useMemo(() => {
     const filtered = stats.filter(d => d.sample_size >= 5);
-    if (filtered.length === 0) return { chartData: [], baseline: 50, best: null, worst: null };
+    if (filtered.length === 0) return { chartData: [], baseline: 50 };
 
     const totalGames = filtered.reduce((s, d) => s + d.sample_size, 0);
     const weightedWr = filtered.reduce((s, d) => s + d.win_rate * d.sample_size, 0) / totalGames;
@@ -35,10 +35,7 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
       delta: d.win_rate - weightedWr,
     }));
 
-    const bestItem = data.reduce((a, b) => a.win_rate > b.win_rate ? a : b);
-    const worstItem = data.reduce((a, b) => a.win_rate < b.win_rate ? a : b);
-
-    return { chartData: data, baseline: Math.round(weightedWr * 10) / 10, best: bestItem, worst: worstItem };
+    return { chartData: data, baseline: Math.round(weightedWr * 10) / 10 };
   }, [stats]);
 
   if (chartData.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
@@ -89,21 +86,6 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <div className="text-center mt-2 text-sm text-slate-400">
-        Baseline: {baseline}%
-      </div>
-      {best && worst && best.hour_group !== worst.hour_group && (
-        <div className="flex flex-wrap justify-center gap-4 mt-3">
-          <div className="bg-green-900/30 border border-green-700/50 rounded-lg px-4 py-2 text-center">
-            <p className="text-green-400 font-bold text-lg">{best.label}</p>
-            <p className="text-green-300 text-sm">{best.win_rate}% ({best.sample_size} games)</p>
-          </div>
-          <div className="bg-red-900/30 border border-red-700/50 rounded-lg px-4 py-2 text-center">
-            <p className="text-red-400 font-bold text-lg">{worst.label}</p>
-            <p className="text-red-300 text-sm">{worst.win_rate}% ({worst.sample_size} games)</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
