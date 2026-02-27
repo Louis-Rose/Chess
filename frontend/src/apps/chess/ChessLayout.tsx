@@ -1,7 +1,7 @@
 // Chess app layout with sidebar and content area
 
 import { useState, useRef, useEffect } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { Calendar, TrendingUp, Home, Shield, LogOut, Trash2, Clock, CalendarDays } from 'lucide-react';
 import { ChessDataProvider } from './contexts/ChessDataContext';
 import { useChessData } from './contexts/ChessDataContext';
@@ -199,10 +199,12 @@ function LanguageToggle() {
 function MobilePlayerButton() {
   const { logout } = useAuth();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const { data, myPlayerData } = useChessData();
   const displayData = data || myPlayerData;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const isAdmin = displayData?.player?.username.toLowerCase() === 'akyrosu';
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -229,6 +231,15 @@ function MobilePlayerButton() {
             <p className="text-white text-sm font-medium">{displayData.player.name || displayData.player.username}</p>
             <p className="text-slate-400 text-xs">@{displayData.player.username}</p>
           </div>
+          {isAdmin && (
+            <button
+              onClick={() => { setOpen(false); navigate('/chess/admin'); }}
+              className="w-full px-3 py-2.5 text-left text-amber-400 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors border-b border-slate-700"
+            >
+              <Shield className="w-4 h-4" />
+              Admin
+            </button>
+          )}
           <button
             onClick={async () => {
               setOpen(false);
