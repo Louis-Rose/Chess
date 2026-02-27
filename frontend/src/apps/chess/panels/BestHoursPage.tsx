@@ -11,7 +11,7 @@ import { ChessCard } from '../components/ChessCard';
 import type { HourlyStats } from '../utils/types';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, Cell,
+  Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 
 function formatHourRange(start: number, end: number, lang: string): string {
@@ -49,7 +49,6 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
   const gamesLabel = language === 'fr' ? 'Parties jouées' : 'Games played';
   const hourLabel = language === 'fr' ? 'Heure' : 'Hour';
 
-  const getColor = (wr: number) => wr >= baseline ? '#16a34a' : '#dc2626';
   const getDotColor = (wr: number) => wr >= baseline ? '#4ade80' : '#f87171';
 
   return (
