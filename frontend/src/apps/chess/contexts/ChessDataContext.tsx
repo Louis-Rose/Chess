@@ -211,6 +211,9 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
 
   const error = statsError || '';
 
+  // Counter to re-trigger the fetch useEffect after async onboarding sync
+  const [fetchTrigger, setFetchTrigger] = useState(0);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (usernameInput.trim()) {
@@ -222,10 +225,10 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
       // Check server for onboarding status before deciding
       if (!getChessPrefs().onboarding_done) {
         await syncOnboardingFromServer(username);
+        // Bump trigger so the fetch useEffect re-runs with updated onboarding state
+        setFetchTrigger(n => n + 1);
       }
-      if (getChessPrefs().onboarding_done) {
-        fetchStats();
-      } else {
+      if (!getChessPrefs().onboarding_done) {
         fetchPlayerInfo(username);
       }
     }
@@ -239,18 +242,19 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
           // Server confirmed onboarding is done — restore state
           setUsernameInput(prefs.chess_username!);
           setSearchedUsername(prefs.chess_username!);
+          setFetchTrigger(n => n + 1);
         }
       });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Trigger full fetch when username changes (only after onboarding)
+  // Trigger full fetch when username changes or after onboarding sync (only after onboarding)
   // Time class changes are handled by useStreamingStats' internal useEffect (localStorage swap or SSE)
   useEffect(() => {
     if (searchedUsername && getChessPrefs().onboarding_done) {
       fetchStats();
     }
-  }, [searchedUsername]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchedUsername, fetchTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Save player with avatar after successful fetch
   useEffect(() => {
@@ -287,10 +291,9 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     (document.activeElement as HTMLElement)?.blur();
     if (!getChessPrefs().onboarding_done) {
       await syncOnboardingFromServer(player.username);
+      setFetchTrigger(n => n + 1);
     }
-    if (getChessPrefs().onboarding_done) {
-      fetchStats();
-    } else {
+    if (!getChessPrefs().onboarding_done) {
       fetchPlayerInfo(player.username);
     }
   };
