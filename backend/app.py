@@ -164,6 +164,7 @@ def get_chess_stats_stream():
     username = request.args.get('username')
     time_class = request.args.get('time_class', 'rapid')
     client_last_archive = request.args.get('client_last_archive')
+    user_tz = request.args.get('tz', 'Europe/Paris')
 
     if not username:
         return jsonify({"error": "Username required"}), 400
@@ -238,7 +239,7 @@ def get_chess_stats_stream():
             # Fetch stats for ALL time classes
             all_time_classes_data = None
             final_stats = None
-            for chunk in utils.fetch_all_time_classes_streaming(username, time_class, cached_stats_map, last_archive):
+            for chunk in utils.fetch_all_time_classes_streaming(username, time_class, cached_stats_map, last_archive, user_tz=user_tz):
                 yield chunk
                 # Parse the chunk to capture final data for caching
                 if chunk.startswith('data: '):

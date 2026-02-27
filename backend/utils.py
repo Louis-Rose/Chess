@@ -60,7 +60,7 @@ def fetch_stats_streaming(USERNAME, time_class='rapid', cached_stats=None, last_
         yield chunk
 
 
-def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cached_stats_map=None, last_archive=None, archives=None):
+def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cached_stats_map=None, last_archive=None, archives=None, user_tz=None):
     """
     Generator that fetches stats for ALL time classes (rapid, blitz) in a single pass.
     Yields SSE-formatted progress events and final data for the requested time class.
@@ -72,6 +72,14 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
     """
     TIME_CLASSES = ['rapid', 'blitz']
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
+
+    # Resolve user timezone (fallback to Paris)
+    tz = PARIS_TZ
+    if user_tz:
+        try:
+            tz = ZoneInfo(user_tz)
+        except Exception:
+            tz = PARIS_TZ
 
     # Step 1: Get archives list (use provided or fetch)
     if archives is None:
@@ -143,7 +151,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
     # Step 2: Process each archive (only new ones if incremental)
     # Pre-load per-month archive cache to avoid N+1 DB queries
     cached_archives = get_cached_archives(USERNAME)
-    current_month_suffix = datetime.datetime.now(tz=PARIS_TZ).strftime('/%Y/%m')
+    current_month_suffix = datetime.datetime.now(tz=tz).strftime('/%Y/%m')
 
     for idx, archive_url in enumerate(archives_to_fetch):
         parts = archive_url.split('/')
@@ -184,7 +192,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             if game_time_class not in TIME_CLASSES:
                 continue
 
-            game_date = datetime.datetime.fromtimestamp(end_time, tz=PARIS_TZ)
+            game_date = datetime.datetime.fromtimestamp(end_time, tz=tz)
             date_str = game_date.strftime('%Y-%m-%d')
 
             # Get data structure for this time class
@@ -470,7 +478,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             streak_stats = tcd['cached_streak_stats']
 
         # Today stats: games played today + current win/loss streak (ignoring draws)
-        today = datetime.datetime.now(tz=PARIS_TZ).date().isoformat()
+        today = datetime.datetime.now(tz=tz).date().isoformat()
         today_games = tcd['games_by_day'].get(today, [])
         games_today = len(today_games)
         # Compute current streak from today's games only (ignoring draws)
@@ -542,7 +550,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
 
         # Win prediction analysis (use cached if no new games processed)
         if tcd['games_by_day']:
-            win_prediction = compute_win_prediction_from_games(tcd['games_by_day'])
+            win_prediction = compute_win_prediction_from_games(tcd['games_by_day'], tz=tz)
         elif tcd.get('cached_win_prediction'):
             win_prediction = tcd['cached_win_prediction']
         else:
@@ -921,7 +929,7 @@ def group_opening_stats(games_list):
     filtered = [g for g in results_list if g["games"] >= MINIMUM_GAMES]
     return sorted(filtered, key=lambda x: x['games'], reverse=True)
 
-def compute_win_prediction_from_games(games_by_day):
+def compute_win_prediction_from_games(games_by_day, tz=None):
     """
     Compute win prediction analysis from already-collected games_by_day data.
     Uses logistic regression with four predictors:
@@ -953,7 +961,7 @@ def compute_win_prediction_from_games(games_by_day):
             # draws don't change balance
 
             # Extract hour group (2-hour spans: 0-1, 2-3, etc.)
-            game_hour = datetime.datetime.fromtimestamp(curr_timestamp).hour
+            game_hour = datetime.datetime.fromtimestamp(curr_timestamp, tz=tz or PARIS_TZ).hour
             hour_group = game_hour // 2  # 0-11 representing 2-hour blocks
 
             # Calculate minutes since last game

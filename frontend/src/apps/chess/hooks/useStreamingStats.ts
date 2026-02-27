@@ -88,7 +88,8 @@ export function useStreamingStats(username: string, timeClass: TimeClass) {
       setData(null);
     }
 
-    let url = `/api/stats-stream?username=${encodeURIComponent(username)}&time_class=${timeClass}`;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    let url = `/api/stats-stream?username=${encodeURIComponent(username)}&time_class=${timeClass}&tz=${encodeURIComponent(tz)}`;
     if (clientLastArchive) {
       url += `&client_last_archive=${encodeURIComponent(clientLastArchive)}`;
     }
