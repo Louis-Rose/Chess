@@ -95,11 +95,11 @@ export function GoalPage() {
     const values = chartData.flatMap(d => [d.goal, d.actual].filter((v): v is number => v != null));
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const lo = Math.floor(min / 100) * 100 - 50;
-    const hi = Math.ceil(max / 100) * 100 + 50;
+    const tickLo = Math.floor(min / 100) * 100;
+    const tickHi = Math.ceil(max / 100) * 100;
     const ticks: number[] = [];
-    for (let v = lo; v <= hi; v += 100) ticks.push(v);
-    return { yDomain: [lo, hi], yTicks: ticks };
+    for (let v = tickLo; v <= tickHi; v += 100) ticks.push(v);
+    return { yDomain: [tickLo - 50, tickHi + 50], yTicks: ticks };
   }, [chartData]);
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -241,10 +241,7 @@ export function GoalPage() {
                       domain={yDomain}
                       ticks={yTicks}
                       interval={0}
-                      tick={({ x, y, payload }: any) => {
-                        if (payload.value === yTicks[0] || payload.value === yTicks[yTicks.length - 1]) return null;
-                        return <text x={x} y={y} dy={4} textAnchor="end" fill="#ffffff" fontSize={14} fontWeight={700}>{payload.value}</text>;
-                      }}
+                      tick={{ fill: '#ffffff', fontSize: 14, fontWeight: 700 }}
                       axisLine={false}
                       tickLine={false}
                       width={45}
