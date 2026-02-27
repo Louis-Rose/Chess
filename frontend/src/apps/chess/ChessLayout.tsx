@@ -291,7 +291,9 @@ function ChessHeader() {
 }
 
 function ChessLayoutInner() {
-  const [onboardingDone, setOnboardingDone] = useState(getChessPrefs().onboarding_done);
+  // Onboarding requires both the flag AND a saved username — prevent stuck state
+  const prefs = getChessPrefs();
+  const [onboardingDone, setOnboardingDone] = useState(prefs.onboarding_done && !!prefs.chess_username);
   const [showOverlay, setShowOverlay] = useState(false);
   const { searchedUsername } = useChessData();
 
