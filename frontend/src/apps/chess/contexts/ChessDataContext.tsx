@@ -225,6 +225,10 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
       // Check server for onboarding status before deciding
       if (!getChessPrefs().onboarding_done) {
         await syncOnboardingFromServer(username);
+        const updated = getChessPrefs();
+        if (updated.preferred_time_class) {
+          setSelectedTimeClass(updated.preferred_time_class as TimeClass);
+        }
         // Bump trigger so the fetch useEffect re-runs with updated onboarding state
         setFetchTrigger(n => n + 1);
       }
@@ -234,15 +238,28 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     }
   };
 
-  // On mount: if we have a saved username but onboarding not done locally, check server
+  // On mount: sync prefs from server if needed
   useEffect(() => {
     if (prefs.chess_username && !prefs.onboarding_done) {
+      // Onboarding not done locally — check server
       syncOnboardingFromServer(prefs.chess_username).then(() => {
-        if (getChessPrefs().onboarding_done) {
+        const updated = getChessPrefs();
+        if (updated.onboarding_done) {
           // Server confirmed onboarding is done — restore state
           setUsernameInput(prefs.chess_username!);
           setSearchedUsername(prefs.chess_username!);
+          if (updated.preferred_time_class) {
+            setSelectedTimeClass(updated.preferred_time_class as TimeClass);
+          }
           setFetchTrigger(n => n + 1);
+        }
+      });
+    } else if (prefs.chess_username && prefs.onboarding_done && !prefs.preferred_time_class) {
+      // Already onboarded but missing time class (new feature) — sync from server
+      syncOnboardingFromServer(prefs.chess_username).then(() => {
+        const updated = getChessPrefs();
+        if (updated.preferred_time_class) {
+          setSelectedTimeClass(updated.preferred_time_class as TimeClass);
         }
       });
     }
@@ -291,6 +308,10 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     (document.activeElement as HTMLElement)?.blur();
     if (!getChessPrefs().onboarding_done) {
       await syncOnboardingFromServer(player.username);
+      const updated = getChessPrefs();
+      if (updated.preferred_time_class) {
+        setSelectedTimeClass(updated.preferred_time_class as TimeClass);
+      }
       setFetchTrigger(n => n + 1);
     }
     if (!getChessPrefs().onboarding_done) {

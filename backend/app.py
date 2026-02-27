@@ -1318,34 +1318,49 @@ def get_chess_onboarding():
     """Check if a chess username has completed onboarding."""
     username = (request.args.get('username') or '').strip().lower()
     if not username:
-        return jsonify({'onboarding_done': False})
+        return jsonify({'onboarding_done': False, 'preferred_time_class': None})
 
     with get_db() as conn:
         cursor = conn.execute(
-            'SELECT onboarding_done FROM chess_user_prefs WHERE username = ?',
+            'SELECT onboarding_done, preferred_time_class FROM chess_user_prefs WHERE username = ?',
             (username,)
         )
         row = cursor.fetchone()
 
-    return jsonify({'onboarding_done': bool(row and row['onboarding_done'])})
+    return jsonify({
+        'onboarding_done': bool(row and row['onboarding_done']),
+        'preferred_time_class': row['preferred_time_class'] if row else None,
+    })
 
 
 @app.route('/api/chess/onboarding', methods=['POST'])
 def save_chess_onboarding():
-    """Mark onboarding as done for a chess username."""
+    """Save onboarding status and preferences for a chess username."""
     data = request.get_json() or {}
     username = (data.get('username') or '').strip().lower()
     if not username:
         return jsonify({'error': 'username required'}), 400
 
+    preferred_time_class = data.get('preferred_time_class')
+
     with get_db() as conn:
-        conn.execute('''
-            INSERT INTO chess_user_prefs (username, onboarding_done, updated_at)
-            VALUES (?, 1, CURRENT_TIMESTAMP)
-            ON CONFLICT(username) DO UPDATE SET
-                onboarding_done = 1,
-                updated_at = CURRENT_TIMESTAMP
-        ''', (username,))
+        if preferred_time_class:
+            conn.execute('''
+                INSERT INTO chess_user_prefs (username, onboarding_done, preferred_time_class, updated_at)
+                VALUES (?, 1, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(username) DO UPDATE SET
+                    onboarding_done = 1,
+                    preferred_time_class = excluded.preferred_time_class,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (username, preferred_time_class))
+        else:
+            conn.execute('''
+                INSERT INTO chess_user_prefs (username, onboarding_done, updated_at)
+                VALUES (?, 1, CURRENT_TIMESTAMP)
+                ON CONFLICT(username) DO UPDATE SET
+                    onboarding_done = 1,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (username,))
 
     return jsonify({'success': True})
 

@@ -1,7 +1,7 @@
 // Chess app constants
 
 import type { ProPlayer, SavedPlayer } from './types';
-import { fetchChessGoal, saveChessGoal, fetchOnboardingDone, saveOnboardingDone } from '../hooks/api';
+import { fetchChessGoal, saveChessGoal, fetchChessUserPrefs, saveOnboardingDone } from '../hooks/api';
 import type { TimeClass } from './types';
 
 // localStorage helpers for chess preferences (username + time class)
@@ -49,7 +49,12 @@ export const saveChessPrefs = (prefs: Partial<ChessPrefs>) => {
 
     // Sync onboarding_done to server
     if ('onboarding_done' in prefs && prefs.onboarding_done && merged.chess_username) {
-      saveOnboardingDone(merged.chess_username).catch(() => {});
+      saveOnboardingDone(merged.chess_username, merged.preferred_time_class || undefined).catch(() => {});
+    }
+
+    // Sync preferred_time_class to server (if changed independently of onboarding)
+    if ('preferred_time_class' in prefs && merged.chess_username && merged.onboarding_done) {
+      saveOnboardingDone(merged.chess_username, merged.preferred_time_class || undefined).catch(() => {});
     }
   } catch {
     // Ignore localStorage errors
@@ -70,14 +75,19 @@ export const syncGoalFromServer = async (username: string, timeClass: TimeClass)
   }
 };
 
-/** Check server for onboarding status and merge into localStorage. */
+/** Check server for onboarding status and preferences, merge into localStorage. */
 export const syncOnboardingFromServer = async (username: string) => {
   try {
-    const done = await fetchOnboardingDone(username);
-    if (done) {
+    const serverPrefs = await fetchChessUserPrefs(username);
+    if (serverPrefs.onboarding_done) {
       const current = getChessPrefs();
-      if (!current.onboarding_done) {
-        localStorage.setItem(CHESS_PREFS_KEY, JSON.stringify({ ...current, onboarding_done: true }));
+      const updates: Partial<ChessPrefs> = {};
+      if (!current.onboarding_done) updates.onboarding_done = true;
+      if (serverPrefs.preferred_time_class && !current.preferred_time_class) {
+        updates.preferred_time_class = serverPrefs.preferred_time_class;
+      }
+      if (Object.keys(updates).length > 0) {
+        localStorage.setItem(CHESS_PREFS_KEY, JSON.stringify({ ...current, ...updates }));
         window.dispatchEvent(new Event('chess-prefs-change'));
       }
     }

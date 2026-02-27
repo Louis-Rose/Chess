@@ -26,13 +26,13 @@ export const saveChessGoal = async (
   await axios.post('/api/chess/goal', { username, time_class: timeClass, ...goal });
 };
 
-export const fetchOnboardingDone = async (username: string): Promise<boolean> => {
+export const fetchChessUserPrefs = async (username: string): Promise<{ onboarding_done: boolean; preferred_time_class: string | null }> => {
   const response = await axios.get(`/api/chess/onboarding?username=${encodeURIComponent(username)}`);
-  return response.data.onboarding_done;
+  return { onboarding_done: response.data.onboarding_done, preferred_time_class: response.data.preferred_time_class };
 };
 
-export const saveOnboardingDone = async (username: string) => {
-  await axios.post('/api/chess/onboarding', { username });
+export const saveOnboardingDone = async (username: string, preferred_time_class?: string) => {
+  await axios.post('/api/chess/onboarding', { username, preferred_time_class });
 };
 
 export const fetchChessInsight = async (
