@@ -10,7 +10,7 @@ import type { TimePeriod } from '../components/TimePeriodToggle';
 import { ChessCard } from '../components/ChessCard';
 import type { HourlyStats } from '../utils/types';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts';
 
@@ -46,16 +46,23 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const AXIS_PAD = isMobile ? 34 : 48;
   const winRateLabel = language === 'fr' ? 'Taux de victoire' : 'Win Rate';
+  const gamesLabel = language === 'fr' ? 'Parties' : 'Games';
   const hourLabel = language === 'fr' ? 'Heure' : 'Hour';
+
+  const getColor = (wr: number) => wr >= baseline ? '#16a34a' : '#dc2626';
+  const getDotColor = (wr: number) => wr >= baseline ? '#4ade80' : '#f87171';
 
   return (
     <div>
-      <p className="text-[12px] md:text-[14px] text-white font-semibold mb-1 whitespace-nowrap">{winRateLabel}</p>
+      <div className="flex justify-between items-center mb-1">
+        <p className="text-[12px] md:text-[14px] text-white font-semibold whitespace-nowrap">{winRateLabel}</p>
+        <p className="text-[12px] md:text-[14px] text-slate-400 font-semibold whitespace-nowrap">{gamesLabel}</p>
+      </div>
       <div className="h-[300px] sm:h-[350px] [&_svg]:overflow-visible">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 12, right: AXIS_PAD, left: 0, bottom: 30 }}>
+          <ComposedChart data={chartData} margin={{ top: 12, right: AXIS_PAD, left: 0, bottom: 30 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-            <ReferenceLine y={baseline} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} strokeDasharray="6 3" />
+            <ReferenceLine yAxisId="left" y={baseline} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} strokeDasharray="6 3" />
             <XAxis
               dataKey="label"
               tick={{ fontSize: isMobile ? 12 : 13, fill: '#f1f5f9', fontWeight: 600 }}
@@ -65,11 +72,21 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
               height={language === 'fr' ? 60 : 75}
               label={{ value: hourLabel, position: 'insideBottom', offset: -5, fill: '#f1f5f9', fontSize: isMobile ? 13 : 14, fontWeight: 600 }}
             />
+            {/* Left Y-axis: Win Rate */}
             <YAxis
+              yAxisId="left"
               tick={{ fontSize: isMobile ? 11 : 13, fill: '#f1f5f9', fontWeight: 600 }}
               domain={[20, 80]}
               ticks={[20, 30, 40, 50, 60, 70, 80]}
               tickFormatter={(v) => `${v}%`}
+              tickLine={false}
+              width={AXIS_PAD}
+            />
+            {/* Right Y-axis: Game count */}
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              tick={{ fontSize: isMobile ? 11 : 13, fill: '#94a3b8', fontWeight: 600 }}
               tickLine={false}
               width={AXIS_PAD}
             />
@@ -83,18 +100,52 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
                 return (
                   <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: isMobile ? '6px 8px' : '8px 12px' }}>
                     <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4, fontSize: isMobile ? 11 : 14 }}>{d.label}</p>
-                    <p style={{ color: d.win_rate >= baseline ? '#4ade80' : '#f87171', fontWeight: 600, fontSize: isMobile ? 11 : 14 }}>Win rate: {d.win_rate}%</p>
+                    <p style={{ color: getDotColor(d.win_rate), fontWeight: 600, fontSize: isMobile ? 11 : 14 }}>Win rate: {d.win_rate}%</p>
                     <p style={{ color: '#94a3b8', fontSize: isMobile ? 10 : 12 }}>{d.sample_size} games</p>
                   </div>
                 );
               }}
             />
-            <Bar dataKey="win_rate" radius={[4, 4, 0, 0]}>
+            {/* Volume bars on right axis */}
+            <Bar dataKey="sample_size" yAxisId="right" radius={[4, 4, 0, 0]} opacity={0.35}>
               {chartData.map((entry, i) => (
-                <Cell key={i} fill={entry.win_rate >= baseline ? '#16a34a' : '#dc2626'} />
+                <Cell key={i} fill={getColor(entry.win_rate)} />
               ))}
             </Bar>
-          </BarChart>
+            {/* Win rate line on left axis */}
+            <Line
+              type="monotone"
+              dataKey="win_rate"
+              yAxisId="left"
+              stroke="none"
+              dot={(props: any) => {
+                const { cx, cy, payload } = props;
+                return <circle key={`dot-${payload.label}`} cx={cx} cy={cy} r={5} fill={getDotColor(payload.win_rate)} stroke="none" />;
+              }}
+              activeDot={(props: any) => {
+                const { cx, cy, payload } = props;
+                return <circle key={`adot-${payload.label}`} cx={cx} cy={cy} r={7} fill={getDotColor(payload.win_rate)} stroke="none" />;
+              }}
+            />
+            {/* Colored line segments between dots */}
+            {chartData.map((d, i) => {
+              if (i === 0) return null;
+              const prev = chartData[i - 1];
+              const avgRate = (prev.win_rate + d.win_rate) / 2;
+              return (
+                <ReferenceLine
+                  key={`seg-${i}`}
+                  yAxisId="left"
+                  segment={[
+                    { x: prev.label, y: prev.win_rate },
+                    { x: d.label, y: d.win_rate },
+                  ]}
+                  stroke={getDotColor(avgRate)}
+                  strokeWidth={2.5}
+                />
+              );
+            })}
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
     </div>
