@@ -95,8 +95,8 @@ export function GoalPage() {
     const values = chartData.flatMap(d => [d.goal, d.actual].filter((v): v is number => v != null));
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const lo = Math.floor(min / 100) * 100 - 100;
-    const hi = Math.ceil(max / 100) * 100 + 100;
+    const lo = Math.floor(min / 100) * 100 - 50;
+    const hi = Math.ceil(max / 100) * 100 + 50;
     const ticks: number[] = [];
     for (let v = lo; v <= hi; v += 100) ticks.push(v);
     return { yDomain: [lo, hi], yTicks: ticks };
