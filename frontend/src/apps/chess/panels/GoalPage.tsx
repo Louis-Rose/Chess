@@ -91,15 +91,14 @@ export function GoalPage() {
   }, [hasGoal, elo_goal_start_date, elo_goal_start_elo, elo_goal, endDate, filteredEloHistory, period, elo_goal_months]);
 
   const { yDomain, yTicks } = useMemo(() => {
-    if (!chartData.length) return { yDomain: [0, 100], yTicks: [0, 50, 100] };
+    if (!chartData.length) return { yDomain: [0, 100], yTicks: [0, 100] };
     const values = chartData.flatMap(d => [d.goal, d.actual].filter((v): v is number => v != null));
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const lo = Math.floor(min / 50) * 50;
-    const hi = Math.ceil(max / 50) * 50;
-    const allTicks: number[] = [];
-    for (let v = lo; v <= hi; v += 50) allTicks.push(v);
-    const ticks = allTicks.length > 2 ? allTicks.slice(1) : allTicks;
+    const lo = Math.floor(min / 100) * 100;
+    const hi = Math.ceil(max / 100) * 100;
+    const ticks: number[] = [];
+    for (let v = lo; v <= hi; v += 100) ticks.push(v);
     return { yDomain: [lo, hi], yTicks: ticks };
   }, [chartData]);
 
@@ -205,7 +204,7 @@ export function GoalPage() {
               leftAction={
                 <button
                   onClick={openSetGoal}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white border border-white/60 hover:border-white rounded-lg transition-colors"
                 >
                   {t('chess.goalCard.setGoal')}
                 </button>
@@ -271,7 +270,7 @@ export function GoalPage() {
             leftAction={
               <button
                 onClick={openEditor}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white border border-white/60 hover:border-white rounded-lg transition-colors"
               >
                 <Pencil className="w-3.5 h-3.5" />
                 {t('chess.goalCard.updateGoal')}
