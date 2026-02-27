@@ -7,7 +7,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 // import { fetchChessInsight } from '../hooks/api';
 import type { ApiResponse, StreakStats, TodayStats, DailyVolumeStats } from '../utils/types';
 import {
-  ComposedChart, BarChart, Line, Bar, ReferenceLine,
+  ComposedChart, BarChart, Line, Bar, Area, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
@@ -431,20 +431,13 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
         );
 
         const significantGrouped = grouped.filter(b => b.totalGames >= MIN_GAMES);
-        const chartData = significantGrouped.map(b => {
-          const wr = Math.round(b.winRate * 10) / 10;
-          return {
-            label: b.label,
-            winRate: wr,
-            ciLower: Math.max(Math.round((b.winRate - b.ci) * 10) / 10, 0),
-            ciBand: Math.round(b.ci * 2 * 10) / 10, // height of CI band (stacked on ciLower)
-            ciUpper: Math.min(Math.round((b.winRate + b.ci) * 10) / 10, 100),
-            // Split bar at 50%: transparent base + green above / red below
-            barBase: Math.min(wr, 50),
-            barGreen: Math.max(0, wr - 50),
-            barRed: Math.max(0, 50 - wr),
-          };
-        });
+        const chartData = significantGrouped.map(b => ({
+          label: b.label,
+          winRate: Math.round(b.winRate * 10) / 10,
+          ciLower: Math.max(Math.round((b.winRate - b.ci) * 10) / 10, 0),
+          ciBand: Math.round(b.ci * 2 * 10) / 10, // height of CI band (stacked on ciLower)
+          ciUpper: Math.min(Math.round((b.winRate + b.ci) * 10) / 10, 100),
+        }));
 
         // Color helpers for chart: green/red with darker variants
         const getWinRateColor = (rate: number) => {
@@ -473,6 +466,12 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
             <div className="h-[280px] [&_svg]:overflow-visible">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 12, right: AXIS_PAD, left: 0, bottom: 30 }}>
+                  <defs>
+                    <linearGradient id="ciBandFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#4ade80" stopOpacity={0.25} />
+                      <stop offset="100%" stopColor="#f87171" stopOpacity={0.25} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
                   <ReferenceLine y={50} stroke="#94a3b8" strokeWidth={1.5} strokeOpacity={0.4} />
                   <XAxis
@@ -492,7 +491,6 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                     width={AXIS_PAD}
                   />
                   <Tooltip
-                    cursor={false}
                     content={({ active, payload }: any) => {
                       if (!active || !payload?.length) return null;
                       const d = payload[0]?.payload;
@@ -512,10 +510,54 @@ export function DailyVolumeSection({ data, standalone = false, period: controlle
                       );
                     }}
                   />
-                  {/* Split bars: transparent base + green above 50% / red below 50% */}
-                  <Bar dataKey="barBase" stackId="bar" fill="transparent" radius={0} isAnimationActive={false} />
-                  <Bar dataKey="barGreen" stackId="bar" fill="#16a34a" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="barRed" stackId="bar" fill="#dc2626" radius={[0, 0, 0, 0]} />
+                  {/* CI band: invisible base + colored band stacked on top */}
+                  <Area
+                    type="monotone"
+                    dataKey="ciLower"
+                    stackId="ci"
+                    fill="transparent"
+                    stroke="none"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="ciBand"
+                    stackId="ci"
+                    fill="url(#ciBandFill)"
+                    stroke="none"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="winRate"
+                    stroke="none"
+                    strokeWidth={2.5}
+                    dot={(props: any) => {
+                      const { cx, cy, payload } = props;
+                      const color = getWinRateColor(payload.winRate);
+                      return <circle key={`dot-${payload.label}`} cx={cx} cy={cy} r={5} fill={color} stroke="none" />;
+                    }}
+                    activeDot={(props: any) => {
+                      const { cx, cy, payload } = props;
+                      const color = getWinRateColor(payload.winRate);
+                      return <circle key={`adot-${payload.label}`} cx={cx} cy={cy} r={7} fill={color} stroke="none" />;
+                    }}
+                  />
+                  {/* Colored line segments between dots */}
+                  {chartData.map((d, i) => {
+                    if (i === 0) return null;
+                    const prev = chartData[i - 1];
+                    const avgRate = (prev.winRate + d.winRate) / 2;
+                    return (
+                      <ReferenceLine
+                        key={`seg-${i}`}
+                        segment={[
+                          { x: prev.label, y: prev.winRate },
+                          { x: d.label, y: d.winRate },
+                        ]}
+                        stroke={getWinRateColor(avgRate)}
+                        strokeWidth={2.5}
+                      />
+                    );
+                  })}
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
