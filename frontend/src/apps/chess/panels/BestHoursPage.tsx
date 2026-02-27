@@ -64,10 +64,8 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
             />
             <YAxis
               tick={{ fontSize: isMobile ? 11 : 13, fill: '#f1f5f9', fontWeight: 600 }}
-              domain={[
-                (min: number) => Math.max(0, Math.floor(min / 5) * 5 - 5),
-                (max: number) => Math.min(100, Math.ceil(max / 5) * 5 + 5),
-              ]}
+              domain={[20, 80]}
+              ticks={[20, 30, 40, 50, 60, 70, 80]}
               tickFormatter={(v) => `${v}%`}
               tickLine={false}
               width={AXIS_PAD}
