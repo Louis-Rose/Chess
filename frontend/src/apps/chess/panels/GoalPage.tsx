@@ -211,7 +211,7 @@ export function GoalPage() {
               }
               action={<TimePeriodToggle selected={period} onChange={setPeriod} />}
             >
-              <div className="h-[300px]">
+              <div className="h-[450px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                     <CartesianGrid stroke="#475569" vertical={false} />
@@ -232,6 +232,7 @@ export function GoalPage() {
                     <YAxis
                       domain={yDomain}
                       ticks={yTicks}
+                      interval={0}
                       tick={{ fill: '#ffffff', fontSize: 14, fontWeight: 700 }}
                       axisLine={false}
                       tickLine={false}
@@ -278,7 +279,7 @@ export function GoalPage() {
             }
             action={<TimePeriodToggle selected={period} onChange={setPeriod} />}
           >
-            <div className="h-[300px]">
+            <div className="h-[450px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid stroke="#475569" vertical={false} />
