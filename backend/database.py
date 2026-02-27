@@ -396,14 +396,13 @@ def init_db():
                 print("[Database] Created chess_user_prefs table")
 
             # Migration: Add preferred_time_class column to chess_user_prefs
-            try:
-                conn.execute("SELECT preferred_time_class FROM chess_user_prefs LIMIT 1")
-            except Exception:
-                try:
-                    conn.execute("ALTER TABLE chess_user_prefs ADD COLUMN preferred_time_class TEXT DEFAULT NULL")
-                    print("[Database] Added preferred_time_class column to chess_user_prefs")
-                except Exception:
-                    pass
+            conn.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'chess_user_prefs' AND column_name = 'preferred_time_class'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("ALTER TABLE chess_user_prefs ADD COLUMN preferred_time_class TEXT DEFAULT NULL")
+                print("[Database] Added preferred_time_class column to chess_user_prefs")
 
             # Migration: Create chess_goals table if not exists
             conn.execute("""
