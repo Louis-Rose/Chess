@@ -223,7 +223,9 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
       if (!getChessPrefs().onboarding_done) {
         await syncOnboardingFromServer(username);
       }
-      if (!getChessPrefs().onboarding_done) {
+      if (getChessPrefs().onboarding_done) {
+        fetchStats();
+      } else {
         fetchPlayerInfo(username);
       }
     }
@@ -286,7 +288,9 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     if (!getChessPrefs().onboarding_done) {
       await syncOnboardingFromServer(player.username);
     }
-    if (!getChessPrefs().onboarding_done) {
+    if (getChessPrefs().onboarding_done) {
+      fetchStats();
+    } else {
       fetchPlayerInfo(player.username);
     }
   };
