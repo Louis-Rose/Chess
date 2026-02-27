@@ -10,18 +10,32 @@ import { TimeClassToggle } from '../components/TimeClassToggle';
 import { AnalyzedGamesBanner } from '../components/AnalyzedGamesBanner';
 import { TimePeriodToggle, getDateCutoff } from '../components/TimePeriodToggle';
 import type { TimePeriod } from '../components/TimePeriodToggle';
-import { getChessPrefs, saveChessPrefs } from '../utils/constants';
+import { getChessPrefs, saveChessPrefs, syncGoalFromServer } from '../utils/constants';
+import type { TimeClass } from '../utils/types';
 import { ChessCard } from '../components/ChessCard';
 
 export function GoalPage() {
   const navigate = useNavigate();
-  const { data, loading, selectedTimeClass, handleTimeClassChange, playerInfo } = useChessData();
+  const { data, loading, selectedTimeClass, handleTimeClassChange, playerInfo, searchedUsername } = useChessData();
   const { t } = useLanguage();
   const [, forceUpdate] = useReducer(x => x + 1, 0);
   const [editing, setEditing] = useState(false);
   const [draftGoal, setDraftGoal] = useState<number | null>(null);
   const [draftMonths, setDraftMonths] = useState(3);
   const [period, setPeriod] = useState<TimePeriod>('ALL');
+
+  // Re-render when prefs change (goal synced from server)
+  useEffect(() => {
+    window.addEventListener('chess-prefs-change', forceUpdate);
+    return () => window.removeEventListener('chess-prefs-change', forceUpdate);
+  }, [forceUpdate]);
+
+  // Re-sync goal from server on mount
+  useEffect(() => {
+    if (searchedUsername) {
+      syncGoalFromServer(searchedUsername, (selectedTimeClass || 'rapid') as TimeClass);
+    }
+  }, [searchedUsername, selectedTimeClass]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const prefs = getChessPrefs();
   const player = playerInfo ?? data?.player;

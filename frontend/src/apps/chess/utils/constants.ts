@@ -62,13 +62,23 @@ export const saveChessPrefs = (prefs: Partial<ChessPrefs>) => {
   }
 };
 
-/** Load goal from server and merge into localStorage. Call on username search. */
+/** Load goal from server and merge into localStorage. Call on username search or page mount. */
 export const syncGoalFromServer = async (username: string, timeClass: TimeClass) => {
   try {
     const goal = await fetchChessGoal(username, timeClass);
+    const current = getChessPrefs();
     if (goal) {
-      const current = getChessPrefs();
       localStorage.setItem(CHESS_PREFS_KEY, JSON.stringify({ ...current, ...goal }));
+      window.dispatchEvent(new Event('chess-prefs-change'));
+    } else if (current.elo_goal !== null) {
+      // Server has no goal (deleted) — clear local goal
+      localStorage.setItem(CHESS_PREFS_KEY, JSON.stringify({
+        ...current,
+        elo_goal: null,
+        elo_goal_start_elo: null,
+        elo_goal_start_date: null,
+        elo_goal_months: 3,
+      }));
       window.dispatchEvent(new Event('chess-prefs-change'));
     }
   } catch {

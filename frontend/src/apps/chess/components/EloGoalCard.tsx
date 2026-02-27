@@ -2,17 +2,27 @@ import { useReducer, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Target, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { getChessPrefs } from '../utils/constants';
+import { useChessData } from '../contexts/ChessDataContext';
+import { getChessPrefs, syncGoalFromServer } from '../utils/constants';
+import type { TimeClass } from '../utils/types';
 
 export function EloGoalCard() {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
+  const { searchedUsername, selectedTimeClass } = useChessData();
   const [, forceUpdate] = useReducer(x => x + 1, 0);
 
   useEffect(() => {
     window.addEventListener('chess-prefs-change', forceUpdate);
     return () => window.removeEventListener('chess-prefs-change', forceUpdate);
   }, [forceUpdate]);
+
+  // Re-sync goal from server on mount
+  useEffect(() => {
+    if (searchedUsername) {
+      syncGoalFromServer(searchedUsername, (selectedTimeClass || 'rapid') as TimeClass);
+    }
+  }, [searchedUsername, selectedTimeClass]);
 
   const prefs = getChessPrefs();
   const hasGoal = prefs.elo_goal !== null;
