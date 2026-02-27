@@ -1,7 +1,7 @@
 // Chess app constants
 
 import type { ProPlayer, SavedPlayer } from './types';
-import { fetchChessGoal, saveChessGoal } from '../hooks/api';
+import { fetchChessGoal, saveChessGoal, fetchOnboardingDone, saveOnboardingDone } from '../hooks/api';
 import type { TimeClass } from './types';
 
 // localStorage helpers for chess preferences (username + time class)
@@ -46,6 +46,11 @@ export const saveChessPrefs = (prefs: Partial<ChessPrefs>) => {
         elo_goal_months: merged.elo_goal_months,
       }).catch(() => { /* silent — localStorage is the fallback */ });
     }
+
+    // Sync onboarding_done to server
+    if ('onboarding_done' in prefs && prefs.onboarding_done && merged.chess_username) {
+      saveOnboardingDone(merged.chess_username).catch(() => {});
+    }
   } catch {
     // Ignore localStorage errors
   }
@@ -62,6 +67,22 @@ export const syncGoalFromServer = async (username: string, timeClass: TimeClass)
     }
   } catch {
     // silent — use whatever localStorage has
+  }
+};
+
+/** Check server for onboarding status and merge into localStorage. */
+export const syncOnboardingFromServer = async (username: string) => {
+  try {
+    const done = await fetchOnboardingDone(username);
+    if (done) {
+      const current = getChessPrefs();
+      if (!current.onboarding_done) {
+        localStorage.setItem(CHESS_PREFS_KEY, JSON.stringify({ ...current, onboarding_done: true }));
+        window.dispatchEvent(new Event('chess-prefs-change'));
+      }
+    }
+  } catch {
+    // silent
   }
 };
 

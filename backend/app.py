@@ -1313,6 +1313,43 @@ def save_chess_goal():
     return jsonify({'success': True})
 
 
+@app.route('/api/chess/onboarding', methods=['GET'])
+def get_chess_onboarding():
+    """Check if a chess username has completed onboarding."""
+    username = (request.args.get('username') or '').strip().lower()
+    if not username:
+        return jsonify({'onboarding_done': False})
+
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT onboarding_done FROM chess_user_prefs WHERE username = ?',
+            (username,)
+        )
+        row = cursor.fetchone()
+
+    return jsonify({'onboarding_done': bool(row and row['onboarding_done'])})
+
+
+@app.route('/api/chess/onboarding', methods=['POST'])
+def save_chess_onboarding():
+    """Mark onboarding as done for a chess username."""
+    data = request.get_json() or {}
+    username = (data.get('username') or '').strip().lower()
+    if not username:
+        return jsonify({'error': 'username required'}), 400
+
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO chess_user_prefs (username, onboarding_done, updated_at)
+            VALUES (?, 1, CURRENT_TIMESTAMP)
+            ON CONFLICT(username) DO UPDATE SET
+                onboarding_done = 1,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (username,))
+
+    return jsonify({'success': True})
+
+
 @app.route('/api/chess/clear-cache', methods=['DELETE'])
 def chess_clear_cache():
     """Clear server-side cache for a chess username (admin/dev only)."""

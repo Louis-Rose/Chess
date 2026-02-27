@@ -332,6 +332,13 @@ CREATE TABLE IF NOT EXISTS first_visitor_reward (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Chess user preferences (keyed by chess username, no auth required)
+CREATE TABLE IF NOT EXISTS chess_user_prefs (
+    username TEXT PRIMARY KEY,
+    onboarding_done INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Chess goals (keyed by chess username, no auth required)
 CREATE TABLE IF NOT EXISTS chess_goals (
     username TEXT NOT NULL,

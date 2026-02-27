@@ -380,6 +380,21 @@ def init_db():
                 """)
                 print("[Database] Created alphawise_model_portfolio table")
 
+            # Migration: Create chess_user_prefs table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'chess_user_prefs'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE chess_user_prefs (
+                        username TEXT PRIMARY KEY,
+                        onboarding_done INTEGER NOT NULL DEFAULT 0,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                print("[Database] Created chess_user_prefs table")
+
             # Migration: Create chess_goals table if not exists
             conn.execute("""
                 SELECT table_name FROM information_schema.tables

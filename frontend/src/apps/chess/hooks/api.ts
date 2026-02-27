@@ -26,6 +26,15 @@ export const saveChessGoal = async (
   await axios.post('/api/chess/goal', { username, time_class: timeClass, ...goal });
 };
 
+export const fetchOnboardingDone = async (username: string): Promise<boolean> => {
+  const response = await axios.get(`/api/chess/onboarding?username=${encodeURIComponent(username)}`);
+  return response.data.onboarding_done;
+};
+
+export const saveOnboardingDone = async (username: string) => {
+  await axios.post('/api/chess/onboarding', { username });
+};
+
 export const fetchChessInsight = async (
   type: string,
   rows: { games_per_day: number; win_rate: number }[],

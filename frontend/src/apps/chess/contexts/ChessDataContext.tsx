@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useStreamingStats } from '../hooks/useStreamingStats';
 import { fetchYouTubeVideos, fetchFatigueAnalysis } from '../hooks/api';
 import posthog from 'posthog-js';
-import { getSavedPlayers, savePlayer, removePlayer, getChessPrefs, saveChessPrefs, syncGoalFromServer } from '../utils/constants';
+import { getSavedPlayers, savePlayer, removePlayer, getChessPrefs, saveChessPrefs, syncGoalFromServer, syncOnboardingFromServer } from '../utils/constants';
 
 const POSTHOG_EXCLUDED_CHESS_USERNAMES = ['akyrosu'];
 const checkPostHogExclusion = (username: string) => {
@@ -211,7 +211,7 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
 
   const error = statsError || '';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (usernameInput.trim()) {
       const username = usernameInput.trim();
@@ -219,12 +219,28 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
       setShowUsernameDropdown(false);
       (document.activeElement as HTMLElement)?.blur();
       window.scrollTo({ top: 0 });
-      // If onboarding not done, only fetch player info
+      // Check server for onboarding status before deciding
+      if (!getChessPrefs().onboarding_done) {
+        await syncOnboardingFromServer(username);
+      }
       if (!getChessPrefs().onboarding_done) {
         fetchPlayerInfo(username);
       }
     }
   };
+
+  // On mount: if we have a saved username but onboarding not done locally, check server
+  useEffect(() => {
+    if (prefs.chess_username && !prefs.onboarding_done) {
+      syncOnboardingFromServer(prefs.chess_username).then(() => {
+        if (getChessPrefs().onboarding_done) {
+          // Server confirmed onboarding is done — restore state
+          setUsernameInput(prefs.chess_username!);
+          setSearchedUsername(prefs.chess_username!);
+        }
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Trigger full fetch when username changes (only after onboarding)
   // Time class changes are handled by useStreamingStats' internal useEffect (localStorage swap or SSE)
@@ -262,11 +278,14 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
     }
   }, [data?.player, myPlayerData]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSelectSavedUsername = (player: SavedPlayer) => {
+  const handleSelectSavedUsername = async (player: SavedPlayer) => {
     setUsernameInput(player.username);
     setSearchedUsername(player.username);
     setShowUsernameDropdown(false);
     (document.activeElement as HTMLElement)?.blur();
+    if (!getChessPrefs().onboarding_done) {
+      await syncOnboardingFromServer(player.username);
+    }
     if (!getChessPrefs().onboarding_done) {
       fetchPlayerInfo(player.username);
     }
