@@ -222,7 +222,11 @@ export function GoalPage() {
               <div className="h-[450px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                    <CartesianGrid stroke="#475569" vertical={false} />
+                    <CartesianGrid stroke="#475569" vertical={false} horizontalCoordinatesGenerator={({ yAxis }: any) => {
+                      const ticks = yAxis?.ticks;
+                      if (!ticks || ticks.length < 3) return [];
+                      return ticks.slice(1, -1).map((t: any) => yAxis.scale(t));
+                    }} />
                     <XAxis
                       dataKey="ts"
                       type="number"
@@ -230,7 +234,10 @@ export function GoalPage() {
                       scale="time"
                       ticks={xTicks}
                       tickFormatter={(ts: number) => formatDate(new Date(ts).toISOString().slice(0, 10))}
-                      tick={{ fill: '#ffffff', fontSize: 14, fontWeight: 700 }}
+                      tick={({ x, y, payload, index, visibleTicksCount }: any) => {
+                        if (index === 0 || index === visibleTicksCount - 1) return <g />;
+                        return <text x={x} y={y} dy={4} textAnchor="end" fill="#ffffff" fontSize={14} fontWeight={700}>{payload.value}</text>;
+                      }}
                       axisLine={false}
                       tickLine={false}
                       angle={isMobile ? -35 : 0}
@@ -241,7 +248,10 @@ export function GoalPage() {
                       domain={yDomain}
                       ticks={yTicks}
                       interval={0}
-                      tick={{ fill: '#ffffff', fontSize: 14, fontWeight: 700 }}
+                      tick={({ x, y, payload, index, visibleTicksCount }: any) => {
+                        if (index === 0 || index === visibleTicksCount - 1) return <g />;
+                        return <text x={x} y={y} dy={4} textAnchor="end" fill="#ffffff" fontSize={14} fontWeight={700}>{payload.value}</text>;
+                      }}
                       axisLine={false}
                       tickLine={false}
                       width={45}
