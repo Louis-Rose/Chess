@@ -46,6 +46,10 @@ export const saveChessPrefs = (prefs: Partial<ChessPrefs>) => {
         elo_goal_start_date: merged.elo_goal_start_date,
         elo_goal_months: merged.elo_goal_months,
       }).catch(() => { /* silent — localStorage is the fallback */ });
+      // Also ensure onboarding_done is on the server (may have been cleared by "forget data" on another device)
+      if (merged.onboarding_done) {
+        saveOnboardingDone(merged.chess_username, timeClass).catch(() => {});
+      }
     }
 
     // Sync onboarding_done to server
