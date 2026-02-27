@@ -106,7 +106,7 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
               }}
             />
             {/* Volume bars on right axis */}
-            <Bar dataKey="sample_size" yAxisId="right" radius={[4, 4, 0, 0]} fill="#475569" opacity={0.4} />
+            <Bar dataKey="sample_size" yAxisId="right" radius={[4, 4, 0, 0]} fill="#64748b" opacity={0.5} stroke="#94a3b8" strokeWidth={1} />
             {/* Win rate line on left axis */}
             <Line
               type="monotone"
