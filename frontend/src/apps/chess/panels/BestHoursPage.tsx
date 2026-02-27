@@ -14,8 +14,15 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts';
 
-function formatHourRange(start: number, end: number): string {
-  const fmt = (h: number) => `${h.toString().padStart(2, '0')}:00`;
+function formatHourRange(start: number, end: number, lang: string): string {
+  if (lang === 'fr') {
+    return `${start}h-${end}h`;
+  }
+  const fmt = (h: number) => {
+    if (h === 0 || h === 24) return '12AM';
+    if (h === 12) return '12PM';
+    return h < 12 ? `${h}AM` : `${h - 12}PM`;
+  };
   return `${fmt(start)}-${fmt(end)}`;
 }
 
@@ -26,16 +33,12 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
     const filtered = stats.filter(d => d.sample_size >= 5);
     if (filtered.length === 0) return { chartData: [], baseline: 50 };
 
-    const totalGames = filtered.reduce((s, d) => s + d.sample_size, 0);
-    const weightedWr = filtered.reduce((s, d) => s + d.win_rate * d.sample_size, 0) / totalGames;
-
     const data = filtered.map(d => ({
       ...d,
-      label: formatHourRange(d.start_hour, d.end_hour),
-      delta: d.win_rate - weightedWr,
+      label: formatHourRange(d.start_hour, d.end_hour, language),
     }));
 
-    return { chartData: data, baseline: Math.round(weightedWr * 10) / 10 };
+    return { chartData: data, baseline: 50 };
   }, [stats]);
 
   if (chartData.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
@@ -59,8 +62,8 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
               interval={0}
               angle={-45}
               textAnchor="end"
-              height={50}
-              label={{ value: hourLabel, position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: isMobile ? 13 : 14, fontWeight: 600 }}
+              height={60}
+              label={{ value: hourLabel, position: 'insideBottom', offset: -5, fill: '#f1f5f9', fontSize: isMobile ? 13 : 14, fontWeight: 600 }}
             />
             <YAxis
               tick={{ fontSize: isMobile ? 11 : 13, fill: '#f1f5f9', fontWeight: 600 }}
