@@ -20,7 +20,7 @@ function formatHourRange(start: number, end: number): string {
 }
 
 function HoursChart({ stats }: { stats: HourlyStats[] }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const { chartData, baseline } = useMemo(() => {
     const filtered = stats.filter(d => d.sample_size >= 5);
@@ -40,28 +40,37 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
 
   if (chartData.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const AXIS_PAD = isMobile ? 34 : 48;
+  const winRateLabel = language === 'fr' ? 'Taux de victoire' : 'Win Rate';
+  const hourLabel = language === 'fr' ? 'Heure' : 'Hour';
+
   return (
     <div>
-      <div className="h-[300px] sm:h-[350px]">
+      <p className="text-[12px] md:text-[14px] text-white font-semibold mb-1 whitespace-nowrap">{winRateLabel}</p>
+      <div className="h-[300px] sm:h-[350px] [&_svg]:overflow-visible">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 30 }}>
+          <BarChart data={chartData} margin={{ top: 12, right: AXIS_PAD, left: 0, bottom: 30 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
             <ReferenceLine y={baseline} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} strokeDasharray="6 3" />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 14, fill: '#ffffff', fontWeight: 700 }}
+              tick={{ fontSize: isMobile ? 12 : 13, fill: '#f1f5f9', fontWeight: 600 }}
               interval={0}
               angle={-45}
               textAnchor="end"
               height={50}
+              label={{ value: hourLabel, position: 'insideBottom', offset: -15, fill: '#f1f5f9', fontSize: isMobile ? 13 : 14, fontWeight: 600 }}
             />
             <YAxis
-              tick={{ fontSize: 16, fill: '#ffffff', fontWeight: 700 }}
+              tick={{ fontSize: isMobile ? 11 : 13, fill: '#f1f5f9', fontWeight: 600 }}
               domain={[
                 (min: number) => Math.max(0, Math.floor(min / 5) * 5 - 5),
                 (max: number) => Math.min(100, Math.ceil(max / 5) * 5 + 5),
               ]}
               tickFormatter={(v) => `${v}%`}
+              tickLine={false}
+              width={AXIS_PAD}
             />
             <Tooltip
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,10 +79,10 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
                 const d = payload[0]?.payload;
                 if (!d) return null;
                 return (
-                  <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: '8px 12px' }}>
-                    <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{d.label}</p>
-                    <p style={{ color: d.win_rate >= baseline ? '#4ade80' : '#f87171' }}>Win rate: {d.win_rate}%</p>
-                    <p style={{ color: '#94a3b8', fontSize: 12 }}>{d.sample_size} games</p>
+                  <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: isMobile ? '6px 8px' : '8px 12px' }}>
+                    <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4, fontSize: isMobile ? 11 : 14 }}>{d.label}</p>
+                    <p style={{ color: d.win_rate >= baseline ? '#4ade80' : '#f87171', fontWeight: 600, fontSize: isMobile ? 11 : 14 }}>Win rate: {d.win_rate}%</p>
+                    <p style={{ color: '#94a3b8', fontSize: isMobile ? 10 : 12 }}>{d.sample_size} games</p>
                   </div>
                 );
               }}
