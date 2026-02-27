@@ -36,10 +36,11 @@ export const saveChessPrefs = (prefs: Partial<ChessPrefs>) => {
     localStorage.setItem(CHESS_PREFS_KEY, JSON.stringify(merged));
     window.dispatchEvent(new Event('chess-prefs-change'));
 
-    // Sync goal to server if goal fields changed and we have a username + time class
+    // Sync goal to server if goal fields changed and we have a username
     const goalChanged = 'elo_goal' in prefs || 'elo_goal_start_elo' in prefs || 'elo_goal_start_date' in prefs || 'elo_goal_months' in prefs;
-    if (goalChanged && merged.chess_username && merged.preferred_time_class && merged.elo_goal && merged.elo_goal_start_elo && merged.elo_goal_start_date) {
-      saveChessGoal(merged.chess_username, merged.preferred_time_class as TimeClass, {
+    const timeClass = (merged.preferred_time_class || 'rapid') as TimeClass;
+    if (goalChanged && merged.chess_username && merged.elo_goal && merged.elo_goal_start_elo && merged.elo_goal_start_date) {
+      saveChessGoal(merged.chess_username, timeClass, {
         elo_goal: merged.elo_goal,
         elo_goal_start_elo: merged.elo_goal_start_elo,
         elo_goal_start_date: merged.elo_goal_start_date,
@@ -49,12 +50,12 @@ export const saveChessPrefs = (prefs: Partial<ChessPrefs>) => {
 
     // Sync onboarding_done to server
     if ('onboarding_done' in prefs && prefs.onboarding_done && merged.chess_username) {
-      saveOnboardingDone(merged.chess_username, merged.preferred_time_class || undefined).catch(() => {});
+      saveOnboardingDone(merged.chess_username, timeClass).catch(() => {});
     }
 
     // Sync preferred_time_class to server (if changed independently of onboarding)
     if ('preferred_time_class' in prefs && merged.chess_username && merged.onboarding_done) {
-      saveOnboardingDone(merged.chess_username, merged.preferred_time_class || undefined).catch(() => {});
+      saveOnboardingDone(merged.chess_username, timeClass).catch(() => {});
     }
   } catch {
     // Ignore localStorage errors
