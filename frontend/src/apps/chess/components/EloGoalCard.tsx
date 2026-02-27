@@ -17,29 +17,33 @@ export function EloGoalCard() {
   const prefs = getChessPrefs();
   const hasGoal = prefs.elo_goal !== null;
 
-  let goalLabel = '';
+  let goalSubtitle = '';
   if (hasGoal && prefs.elo_goal && prefs.elo_goal_start_date && prefs.elo_goal_months) {
     const start = new Date(prefs.elo_goal_start_date);
     const deadline = new Date(start);
     deadline.setMonth(deadline.getMonth() + prefs.elo_goal_months);
     const daysLeft = Math.max(0, Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
-    const daysStr = language === 'fr'
+    goalSubtitle = language === 'fr'
       ? `${prefs.elo_goal} elo ${daysLeft > 0 ? `en ${daysLeft} jour${daysLeft > 1 ? 's' : ''}` : ''}`
       : `${prefs.elo_goal} elo ${daysLeft > 0 ? `in ${daysLeft} day${daysLeft > 1 ? 's' : ''}` : ''}`;
-    goalLabel = `${t('chess.goalCard.title')}: ${daysStr}`;
   }
 
   return (
     <div
       onClick={() => navigate('/chess/goal')}
-      className="relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[120px] flex items-center justify-center hover:border-blue-500 transition-colors cursor-pointer"
+      className="relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[120px] flex items-center hover:border-blue-500 transition-colors cursor-pointer"
     >
-      <div className="absolute top-5 left-5 w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+      <div className="w-10 h-10 shrink-0 bg-blue-600 rounded-lg flex items-center justify-center">
         <Target className="w-5 h-5 text-white" />
       </div>
-      <h3 className="text-lg font-bold text-slate-100 text-center text-balance pl-12 pr-2 py-4">
-        {hasGoal ? goalLabel : t('chess.goalCard.setGoal')}
-      </h3>
+      <div className="ml-4 min-w-0">
+        <h3 className="text-lg font-bold text-slate-100">
+          {hasGoal ? t('chess.goalCard.title') : t('chess.goalCard.setGoal')}
+        </h3>
+        {hasGoal && (
+          <p className="text-sm text-slate-400 mt-0.5">{goalSubtitle}</p>
+        )}
+      </div>
       <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
     </div>
   );
