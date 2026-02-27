@@ -1360,6 +1360,8 @@ def chess_clear_cache():
     with get_db() as conn:
         conn.execute('DELETE FROM player_stats_cache WHERE username = ?', (username,))
         conn.execute('DELETE FROM monthly_archive_cache WHERE username = ?', (username,))
+        conn.execute('DELETE FROM chess_user_prefs WHERE username = ?', (username,))
+        conn.execute('DELETE FROM chess_goals WHERE username = ?', (username,))
 
     return jsonify({'success': True})
 
