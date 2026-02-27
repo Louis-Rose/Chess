@@ -30,7 +30,7 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
   const { t, language } = useLanguage();
 
   const { chartData, baseline } = useMemo(() => {
-    const filtered = stats.filter(d => d.sample_size >= 5);
+    const filtered = stats.filter(d => d.sample_size >= 30);
     if (filtered.length === 0) return { chartData: [], baseline: 50 };
 
     const data = filtered.map(d => ({
@@ -46,7 +46,7 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const AXIS_PAD = isMobile ? 34 : 48;
   const winRateLabel = language === 'fr' ? 'Taux de victoire' : 'Win Rate';
-  const gamesLabel = language === 'fr' ? 'Parties' : 'Games';
+  const gamesLabel = language === 'fr' ? 'Parties jouées' : 'Games played';
   const hourLabel = language === 'fr' ? 'Heure' : 'Hour';
 
   const getColor = (wr: number) => wr >= baseline ? '#16a34a' : '#dc2626';
@@ -56,7 +56,7 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
     <div>
       <div className="flex justify-between items-center mb-1">
         <p className="text-[12px] md:text-[14px] text-white font-semibold whitespace-nowrap">{winRateLabel}</p>
-        <p className="text-[12px] md:text-[14px] text-slate-400 font-semibold whitespace-nowrap">{gamesLabel}</p>
+        <p className="text-[12px] md:text-[14px] text-slate-400 font-semibold whitespace-nowrap pr-6 md:pr-10">{gamesLabel}</p>
       </div>
       <div className="h-[300px] sm:h-[350px] [&_svg]:overflow-visible">
         <ResponsiveContainer width="100%" height="100%">
@@ -107,11 +107,7 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
               }}
             />
             {/* Volume bars on right axis */}
-            <Bar dataKey="sample_size" yAxisId="right" radius={[4, 4, 0, 0]} opacity={0.35}>
-              {chartData.map((entry, i) => (
-                <Cell key={i} fill={getColor(entry.win_rate)} />
-              ))}
-            </Bar>
+            <Bar dataKey="sample_size" yAxisId="right" radius={[4, 4, 0, 0]} fill="#475569" opacity={0.4} />
             {/* Win rate line on left axis */}
             <Line
               type="monotone"
