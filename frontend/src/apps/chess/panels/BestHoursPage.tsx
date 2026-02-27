@@ -62,7 +62,7 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
               interval={0}
               angle={-45}
               textAnchor="end"
-              height={60}
+              height={language === 'fr' ? 60 : 75}
               label={{ value: hourLabel, position: 'insideBottom', offset: -5, fill: '#f1f5f9', fontSize: isMobile ? 13 : 14, fontWeight: 600 }}
             />
             <YAxis
@@ -74,6 +74,7 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
               width={AXIS_PAD}
             />
             <Tooltip
+              cursor={false}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               content={({ active, payload }: any) => {
                 if (!active || !payload?.length) return null;
