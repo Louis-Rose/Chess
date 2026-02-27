@@ -39,7 +39,7 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
     }));
 
     return { chartData: data, baseline: 50 };
-  }, [stats]);
+  }, [stats, language]);
 
   if (chartData.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
