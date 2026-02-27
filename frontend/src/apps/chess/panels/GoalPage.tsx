@@ -90,7 +90,7 @@ export function GoalPage() {
     return Object.values(points).sort((a, b) => a.ts - b.ts);
   }, [hasGoal, elo_goal_start_date, elo_goal_start_elo, elo_goal, endDate, filteredEloHistory, period, elo_goal_months]);
 
-  const { yDomain, yTicks } = useMemo(() => {
+  const { yDomain, yTicks, chartHeight } = useMemo(() => {
     if (!chartData.length) return { yDomain: [0, 100], yTicks: [0, 100] };
     const values = chartData.flatMap(d => [d.goal, d.actual].filter((v): v is number => v != null));
     const min = Math.min(...values);
@@ -99,7 +99,8 @@ export function GoalPage() {
     const hi = Math.ceil(max / 100) * 100 + 100;
     const ticks: number[] = [];
     for (let v = lo; v <= hi; v += 100) ticks.push(v);
-    return { yDomain: [lo, hi], yTicks: ticks };
+    const chartHeight = Math.max(450, ticks.length * 40);
+    return { yDomain: [lo, hi], yTicks: ticks, chartHeight };
   }, [chartData]);
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -219,7 +220,7 @@ export function GoalPage() {
               }
               action={<TimePeriodToggle selected={period} onChange={setPeriod} />}
             >
-              <div className="h-[450px]">
+              <div style={{ height: chartHeight }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                     <CartesianGrid stroke="#475569" vertical={false} />
@@ -287,7 +288,7 @@ export function GoalPage() {
             }
             action={<TimePeriodToggle selected={period} onChange={setPeriod} />}
           >
-            <div className="h-[450px]">
+            <div style={{ height: chartHeight }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid stroke="#475569" vertical={false} />
