@@ -32,7 +32,9 @@ function useWordReveal(text: string, active: boolean) {
     return () => clearInterval(interval);
   }, [active, text]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { words, visibleCount, allVisible };
+  const skipToEnd = () => setVisibleCount(words.length);
+
+  return { words, visibleCount, allVisible, skipToEnd };
 }
 
 function WordByWord({ words, visibleCount }: { words: string[]; visibleCount: number }) {
@@ -234,7 +236,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
           const secondPart = splitIdx >= 0 ? slide0.words.slice(splitIdx + 1) : [];
           return (
           <div className="space-y-8">
-            <div className="space-y-4">
+            <div className="space-y-4 cursor-pointer" onClick={() => !slide0.allVisible && slide0.skipToEnd()}>
               <p className="text-2xl font-semibold text-slate-100 leading-relaxed">
                 <WordByWord words={firstPart} visibleCount={slide0.visibleCount} />
               </p>
@@ -259,7 +261,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
         {/* Slide 1 — What we look at */}
         {currentSlide === 1 && (
           <div className="space-y-8">
-            <p className="text-xl text-slate-200 leading-relaxed">
+            <p className="text-xl text-slate-200 leading-relaxed cursor-pointer" onClick={() => !slide1.allVisible && slide1.skipToEnd()}>
               <WordByWord words={slide1.words} visibleCount={slide1.visibleCount} />
             </p>
             <button
@@ -276,7 +278,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
         {/* Slide 2 — Time class preference */}
         {currentSlide === 2 && (
           <div className="space-y-8">
-            <p className="text-xl text-slate-200 leading-relaxed">
+            <p className="text-xl text-slate-200 leading-relaxed cursor-pointer" onClick={() => !slide2.allVisible && slide2.skipToEnd()}>
               <WordByWord words={slide2.words} visibleCount={slide2.visibleCount} />
             </p>
             <div
@@ -313,7 +315,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
         {/* Slide 3 — Current elo + goal selection */}
         {currentSlide === 3 && (
           <div className="space-y-6">
-            <p className="text-xl text-slate-200 leading-relaxed">
+            <p className="text-xl text-slate-200 leading-relaxed cursor-pointer" onClick={() => !slide3.allVisible && slide3.skipToEnd()}>
               <WordByWord words={slide3.words} visibleCount={slide3.visibleCount} />
             </p>
 
@@ -380,7 +382,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
         {/* Slide 4 — Conclusion */}
         {currentSlide === 4 && !slidesComplete && (
           <div className="space-y-8">
-            <p className="text-xl text-slate-200 leading-relaxed">
+            <p className="text-xl text-slate-200 leading-relaxed cursor-pointer" onClick={() => !slide4.allVisible && slide4.skipToEnd()}>
               <WordByWord words={slide4.words} visibleCount={slide4.visibleCount} />
             </p>
             <button
