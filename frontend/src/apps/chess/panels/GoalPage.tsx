@@ -132,9 +132,17 @@ export function GoalPage() {
     return ticks;
   }, [chartData, isMobile]);
 
+  const totalDays = chartData.length >= 2
+    ? (chartData[chartData.length - 1].ts - chartData[0].ts) / 86400000
+    : 0;
+
   const formatDate = (dateStr: string) => {
     const [y, m, d] = dateStr.split('-').map(Number);
     const date = new Date(y, m - 1, d);
+    if (totalDays > 365) {
+      // Multi-year: show "Nov '23"
+      return date.toLocaleDateString('en-US', { month: 'short' }) + " '" + String(y).slice(2);
+    }
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
