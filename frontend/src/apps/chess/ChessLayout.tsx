@@ -295,6 +295,17 @@ function ChessLayoutInner() {
   const [showOverlay, setShowOverlay] = useState(false);
   const { searchedUsername } = useChessData();
 
+  // React to server-side onboarding sync (returning user after logout)
+  useEffect(() => {
+    const handler = () => {
+      if (!onboardingDone && getChessPrefs().onboarding_done) {
+        setOnboardingDone(true);
+      }
+    };
+    window.addEventListener('chess-prefs-change', handler);
+    return () => window.removeEventListener('chess-prefs-change', handler);
+  }, [onboardingDone]);
+
   // Track chess-only visitors (no Google auth needed)
   useChessHeartbeat(onboardingDone ? searchedUsername : '');
 
