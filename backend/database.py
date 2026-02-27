@@ -380,6 +380,26 @@ def init_db():
                 """)
                 print("[Database] Created alphawise_model_portfolio table")
 
+            # Migration: Create chess_goals table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'chess_goals'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE chess_goals (
+                        username TEXT NOT NULL,
+                        time_class TEXT NOT NULL,
+                        elo_goal INTEGER NOT NULL,
+                        elo_goal_start_elo INTEGER NOT NULL,
+                        elo_goal_start_date TEXT NOT NULL,
+                        elo_goal_months INTEGER NOT NULL DEFAULT 3,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (username, time_class)
+                    )
+                """)
+                print("[Database] Created chess_goals table")
+
             # Migration: Create monthly_archive_cache table if not exists
             conn.execute("""
                 SELECT table_name FROM information_schema.tables

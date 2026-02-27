@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useStreamingStats } from '../hooks/useStreamingStats';
 import { fetchYouTubeVideos, fetchFatigueAnalysis } from '../hooks/api';
 import posthog from 'posthog-js';
-import { getSavedPlayers, savePlayer, removePlayer, getChessPrefs, saveChessPrefs } from '../utils/constants';
+import { getSavedPlayers, savePlayer, removePlayer, getChessPrefs, saveChessPrefs, syncGoalFromServer } from '../utils/constants';
 
 const POSTHOG_EXCLUDED_CHESS_USERNAMES = ['akyrosu'];
 const checkPostHogExclusion = (username: string) => {
@@ -256,8 +256,11 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
         checkPostHogExclusion(data.player.username);
         setMyPlayerData(data);
       }
+
+      // Sync goal from server (merges into localStorage if server has a goal)
+      syncGoalFromServer(data.player.username, selectedTimeClass);
     }
-  }, [data?.player, myPlayerData]);
+  }, [data?.player, myPlayerData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectSavedUsername = (player: SavedPlayer) => {
     setUsernameInput(player.username);
@@ -281,6 +284,10 @@ export function ChessDataProvider({ children }: ChessDataProviderProps) {
   const handleTimeClassChange = (newTimeClass: TimeClass) => {
     setSelectedTimeClass(newTimeClass);
     saveChessPrefs({ preferred_time_class: newTimeClass });
+    // Sync goal for the new time class
+    if (searchedUsername) {
+      syncGoalFromServer(searchedUsername, newTimeClass);
+    }
   };
 
   // Pre-process the history data to include the label directly

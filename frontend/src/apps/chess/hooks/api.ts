@@ -13,6 +13,19 @@ export const fetchFatigueAnalysis = async (username: string, timeClass: TimeClas
   return response.data;
 };
 
+export const fetchChessGoal = async (username: string, timeClass: TimeClass) => {
+  const response = await axios.get(`/api/chess/goal?username=${encodeURIComponent(username)}&time_class=${timeClass}`);
+  return response.data.goal as { elo_goal: number; elo_goal_start_elo: number; elo_goal_start_date: string; elo_goal_months: number } | null;
+};
+
+export const saveChessGoal = async (
+  username: string,
+  timeClass: TimeClass,
+  goal: { elo_goal: number; elo_goal_start_elo: number; elo_goal_start_date: string; elo_goal_months: number },
+) => {
+  await axios.post('/api/chess/goal', { username, time_class: timeClass, ...goal });
+};
+
 export const fetchChessInsight = async (
   type: string,
   rows: { games_per_day: number; win_rate: number }[],

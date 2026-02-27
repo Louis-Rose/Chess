@@ -1,6 +1,8 @@
 // Chess app constants
 
 import type { ProPlayer, SavedPlayer } from './types';
+import { fetchChessGoal, saveChessGoal } from '../hooks/api';
+import type { TimeClass } from './types';
 
 // localStorage helpers for chess preferences (username + time class)
 export const CHESS_PREFS_KEY = 'chess_preferences';
@@ -30,10 +32,36 @@ export const getChessPrefs = (): ChessPrefs => {
 export const saveChessPrefs = (prefs: Partial<ChessPrefs>) => {
   try {
     const current = getChessPrefs();
-    localStorage.setItem(CHESS_PREFS_KEY, JSON.stringify({ ...current, ...prefs }));
+    const merged = { ...current, ...prefs };
+    localStorage.setItem(CHESS_PREFS_KEY, JSON.stringify(merged));
     window.dispatchEvent(new Event('chess-prefs-change'));
+
+    // Sync goal to server if goal fields changed and we have a username + time class
+    const goalChanged = 'elo_goal' in prefs || 'elo_goal_start_elo' in prefs || 'elo_goal_start_date' in prefs || 'elo_goal_months' in prefs;
+    if (goalChanged && merged.chess_username && merged.preferred_time_class && merged.elo_goal && merged.elo_goal_start_elo && merged.elo_goal_start_date) {
+      saveChessGoal(merged.chess_username, merged.preferred_time_class as TimeClass, {
+        elo_goal: merged.elo_goal,
+        elo_goal_start_elo: merged.elo_goal_start_elo,
+        elo_goal_start_date: merged.elo_goal_start_date,
+        elo_goal_months: merged.elo_goal_months,
+      }).catch(() => { /* silent — localStorage is the fallback */ });
+    }
   } catch {
     // Ignore localStorage errors
+  }
+};
+
+/** Load goal from server and merge into localStorage. Call on username search. */
+export const syncGoalFromServer = async (username: string, timeClass: TimeClass) => {
+  try {
+    const goal = await fetchChessGoal(username, timeClass);
+    if (goal) {
+      const current = getChessPrefs();
+      localStorage.setItem(CHESS_PREFS_KEY, JSON.stringify({ ...current, ...goal }));
+      window.dispatchEvent(new Event('chess-prefs-change'));
+    }
+  } catch {
+    // silent — use whatever localStorage has
   }
 };
 

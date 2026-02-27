@@ -332,6 +332,18 @@ CREATE TABLE IF NOT EXISTS first_visitor_reward (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Chess goals (keyed by chess username, no auth required)
+CREATE TABLE IF NOT EXISTS chess_goals (
+    username TEXT NOT NULL,
+    time_class TEXT NOT NULL,
+    elo_goal INTEGER NOT NULL,
+    elo_goal_start_elo INTEGER NOT NULL,
+    elo_goal_start_date TEXT NOT NULL,
+    elo_goal_months INTEGER NOT NULL DEFAULT 3,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (username, time_class)
+);
+
 -- Per-month chess archive cache (completed months never change)
 CREATE TABLE IF NOT EXISTS monthly_archive_cache (
     username TEXT NOT NULL,

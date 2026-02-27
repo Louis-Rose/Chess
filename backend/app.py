@@ -1255,6 +1255,64 @@ def chess_heartbeat():
     return jsonify({'success': True})
 
 
+@app.route('/api/chess/goal', methods=['GET'])
+def get_chess_goal():
+    """Fetch saved elo goal for a chess username + time class."""
+    username = (request.args.get('username') or '').strip().lower()
+    time_class = request.args.get('time_class', 'rapid')
+    if not username:
+        return jsonify({'error': 'username required'}), 400
+
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT elo_goal, elo_goal_start_elo, elo_goal_start_date, elo_goal_months FROM chess_goals WHERE username = ? AND time_class = ?',
+            (username, time_class)
+        )
+        row = cursor.fetchone()
+
+    if not row:
+        return jsonify({'goal': None})
+
+    return jsonify({'goal': {
+        'elo_goal': row['elo_goal'],
+        'elo_goal_start_elo': row['elo_goal_start_elo'],
+        'elo_goal_start_date': row['elo_goal_start_date'],
+        'elo_goal_months': row['elo_goal_months'],
+    }})
+
+
+@app.route('/api/chess/goal', methods=['POST'])
+def save_chess_goal():
+    """Save or update elo goal for a chess username + time class."""
+    data = request.get_json() or {}
+    username = (data.get('username') or '').strip().lower()
+    time_class = data.get('time_class', 'rapid')
+    if not username:
+        return jsonify({'error': 'username required'}), 400
+
+    elo_goal = data.get('elo_goal')
+    elo_goal_start_elo = data.get('elo_goal_start_elo')
+    elo_goal_start_date = data.get('elo_goal_start_date')
+    elo_goal_months = data.get('elo_goal_months', 3)
+
+    if not all([elo_goal, elo_goal_start_elo, elo_goal_start_date]):
+        return jsonify({'error': 'elo_goal, elo_goal_start_elo, elo_goal_start_date required'}), 400
+
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO chess_goals (username, time_class, elo_goal, elo_goal_start_elo, elo_goal_start_date, elo_goal_months, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(username, time_class) DO UPDATE SET
+                elo_goal = excluded.elo_goal,
+                elo_goal_start_elo = excluded.elo_goal_start_elo,
+                elo_goal_start_date = excluded.elo_goal_start_date,
+                elo_goal_months = excluded.elo_goal_months,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (username, time_class, elo_goal, elo_goal_start_elo, elo_goal_start_date, elo_goal_months))
+
+    return jsonify({'success': True})
+
+
 @app.route('/api/chess/clear-cache', methods=['DELETE'])
 def chess_clear_cache():
     """Clear server-side cache for a chess username (admin/dev only)."""
