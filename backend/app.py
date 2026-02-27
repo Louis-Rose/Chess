@@ -1722,25 +1722,22 @@ EXCLUDED_CHESS_TESTERS = ('akyrosu', 'pingu-dav', 'remi75014', 'pengumasc', 'aug
 @admin_required
 def get_chess_users():
     """Get chess user statistics (admin only)."""
-    excluded_email = 'rose.louis.mail@gmail.com'
     placeholders = ','.join(['?' for _ in EXCLUDED_CHESS_TESTERS])
 
     with get_db() as conn:
         cursor = conn.execute(f'''
-            SELECT LOWER(up.chess_username) as chess_username,
+            SELECT LOWER(u.name) as chess_username,
                    COALESCE(SUM(a.seconds), 0) as total_seconds,
                    MAX(a.last_ping) as last_active,
-                   MAX(u.session_count) as session_count,
-                   MIN(u.created_at) as created_at
-            FROM user_preferences up
-            JOIN users u ON up.user_id = u.id
+                   u.session_count,
+                   u.created_at
+            FROM users u
             LEFT JOIN user_activity a ON u.id = a.user_id
-            WHERE up.chess_username IS NOT NULL
-              AND u.email != ?
-              AND LOWER(up.chess_username) NOT IN ({placeholders})
-            GROUP BY LOWER(up.chess_username)
+            WHERE u.google_id LIKE 'chess:%'
+              AND LOWER(u.name) NOT IN ({placeholders})
+            GROUP BY u.id, u.name, u.session_count, u.created_at
             ORDER BY total_seconds DESC
-        ''', (excluded_email, *EXCLUDED_CHESS_TESTERS))
+        ''', (*EXCLUDED_CHESS_TESTERS,))
         users = []
         for row in cursor.fetchall():
             user = dict(row)
@@ -1757,7 +1754,6 @@ def get_chess_users():
 @admin_required
 def get_chess_time_spent_stats():
     """Get daily time spent stats for chess users only (admin only)."""
-    excluded_email = 'rose.louis.mail@gmail.com'
     placeholders = ','.join(['?' for _ in EXCLUDED_CHESS_TESTERS])
 
     with get_db() as conn:
@@ -1765,13 +1761,11 @@ def get_chess_time_spent_stats():
             SELECT a.activity_date, SUM(a.seconds) as total_seconds
             FROM user_activity a
             JOIN users u ON a.user_id = u.id
-            JOIN user_preferences up ON u.id = up.user_id
-            WHERE u.email != ?
-              AND up.chess_username IS NOT NULL
-              AND LOWER(up.chess_username) NOT IN ({placeholders})
+            WHERE u.google_id LIKE 'chess:%'
+              AND LOWER(u.name) NOT IN ({placeholders})
             GROUP BY a.activity_date
             ORDER BY a.activity_date ASC
-        ''', (excluded_email, *EXCLUDED_CHESS_TESTERS))
+        ''', (*EXCLUDED_CHESS_TESTERS,))
         daily_stats = [dict(row) for row in cursor.fetchall()]
 
     return jsonify({'daily_stats': daily_stats})
@@ -1781,83 +1775,76 @@ def get_chess_time_spent_stats():
 @admin_required
 def get_chess_time_spent_details(period):
     """Get chess users' time spent for a specific period (admin only)."""
-    excluded_email = 'rose.louis.mail@gmail.com'
     tester_placeholders = ','.join(['?' for _ in EXCLUDED_CHESS_TESTERS])
-    chess_filter = f'AND up.chess_username IS NOT NULL AND LOWER(up.chess_username) NOT IN ({tester_placeholders})'
+    chess_filter = f"AND u.google_id LIKE 'chess:%' AND LOWER(u.name) NOT IN ({tester_placeholders})"
 
     with get_db() as conn:
         if '-W' in period:
             year, week = period.split('-W')
             if USE_POSTGRES:
                 cursor = conn.execute(f'''
-                    SELECT LOWER(up.chess_username) as name, SUM(a.seconds) as seconds
+                    SELECT LOWER(u.name) as name, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
-                    JOIN user_preferences up ON u.id = up.user_id
                     WHERE EXTRACT(YEAR FROM a.activity_date::date) = %s
                       AND EXTRACT(WEEK FROM a.activity_date::date) = %s
-                      AND u.email != %s {chess_filter}
-                    GROUP BY LOWER(up.chess_username)
+                      {chess_filter}
+                    GROUP BY LOWER(u.name)
                     ORDER BY seconds DESC
-                ''', (int(year), int(week), excluded_email, *EXCLUDED_CHESS_TESTERS))
+                ''', (int(year), int(week), *EXCLUDED_CHESS_TESTERS))
             else:
                 cursor = conn.execute(f'''
-                    SELECT LOWER(up.chess_username) as name, SUM(a.seconds) as seconds
+                    SELECT LOWER(u.name) as name, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
-                    JOIN user_preferences up ON u.id = up.user_id
                     WHERE strftime('%Y', a.activity_date) = ?
                       AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
-                      AND u.email != ? {chess_filter}
-                    GROUP BY LOWER(up.chess_username)
+                      {chess_filter}
+                    GROUP BY LOWER(u.name)
                     ORDER BY seconds DESC
-                ''', (year, int(week), excluded_email, *EXCLUDED_CHESS_TESTERS))
+                ''', (year, int(week), *EXCLUDED_CHESS_TESTERS))
         elif len(period) == 7:
             if USE_POSTGRES:
                 cursor = conn.execute(f'''
-                    SELECT LOWER(up.chess_username) as name, SUM(a.seconds) as seconds
+                    SELECT LOWER(u.name) as name, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
-                    JOIN user_preferences up ON u.id = up.user_id
                     WHERE to_char(a.activity_date::date, 'YYYY-MM') = %s
-                      AND u.email != %s {chess_filter}
-                    GROUP BY LOWER(up.chess_username)
+                      {chess_filter}
+                    GROUP BY LOWER(u.name)
                     ORDER BY seconds DESC
-                ''', (period, excluded_email, *EXCLUDED_CHESS_TESTERS))
+                ''', (period, *EXCLUDED_CHESS_TESTERS))
             else:
                 cursor = conn.execute(f'''
-                    SELECT LOWER(up.chess_username) as name, SUM(a.seconds) as seconds
+                    SELECT LOWER(u.name) as name, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
-                    JOIN user_preferences up ON u.id = up.user_id
                     WHERE strftime('%Y-%m', a.activity_date) = ?
-                      AND u.email != ? {chess_filter}
-                    GROUP BY LOWER(up.chess_username)
+                      {chess_filter}
+                    GROUP BY LOWER(u.name)
                     ORDER BY seconds DESC
-                ''', (period, excluded_email, *EXCLUDED_CHESS_TESTERS))
+                ''', (period, *EXCLUDED_CHESS_TESTERS))
         else:
             if USE_POSTGRES:
                 cursor = conn.execute(f'''
-                    SELECT LOWER(up.chess_username) as name, SUM(a.seconds) as seconds
+                    SELECT LOWER(u.name) as name, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
-                    JOIN user_preferences up ON u.id = up.user_id
                     WHERE a.activity_date = %s
-                      AND u.email != %s {chess_filter}
-                    GROUP BY LOWER(up.chess_username)
+                      {chess_filter}
+                    GROUP BY LOWER(u.name)
                     ORDER BY seconds DESC
-                ''', (period, excluded_email, *EXCLUDED_CHESS_TESTERS))
+                ''', (period, *EXCLUDED_CHESS_TESTERS))
             else:
                 cursor = conn.execute(f'''
-                    SELECT LOWER(up.chess_username) as name, SUM(a.seconds) as seconds
+                    SELECT LOWER(u.name) as name, SUM(a.seconds) as seconds
                     FROM user_activity a
                     JOIN users u ON a.user_id = u.id
-                    JOIN user_preferences up ON u.id = up.user_id
                     WHERE a.activity_date = ?
-                      AND u.email != ? {chess_filter}
-                    GROUP BY LOWER(up.chess_username)
+                      {chess_filter}
+                    GROUP BY LOWER(u.name)
                     ORDER BY seconds DESC
-                ''', (period, excluded_email, *EXCLUDED_CHESS_TESTERS))
+                ''', (period, *EXCLUDED_CHESS_TESTERS))
 
         users = [dict(row) for row in cursor.fetchall()]
 
@@ -1868,7 +1855,6 @@ def get_chess_time_spent_details(period):
 @admin_required
 def get_chess_page_breakdown():
     """Get aggregated time spent by page/section for chess users only (admin only)."""
-    excluded_email = 'rose.louis.mail@gmail.com'
     placeholders = ','.join(['?' for _ in EXCLUDED_CHESS_TESTERS])
 
     with get_db() as conn:
@@ -1876,12 +1862,11 @@ def get_chess_page_breakdown():
             SELECT p.page, SUM(p.seconds) as total_seconds
             FROM page_activity p
             JOIN users u ON p.user_id = u.id
-            JOIN user_preferences up ON u.id = up.user_id
-            WHERE u.google_id LIKE ? AND u.email != ?
-              AND LOWER(up.chess_username) NOT IN ({placeholders})
+            WHERE u.google_id LIKE 'chess:%'
+              AND LOWER(u.name) NOT IN ({placeholders})
             GROUP BY p.page
             ORDER BY total_seconds DESC
-        ''', ('chess:%', excluded_email, *EXCLUDED_CHESS_TESTERS))
+        ''', (*EXCLUDED_CHESS_TESTERS,))
 
         breakdown = [dict(row) for row in cursor.fetchall()]
         total = sum(item['total_seconds'] for item in breakdown)
