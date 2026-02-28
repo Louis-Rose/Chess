@@ -20,7 +20,7 @@ export function StreakPage() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="max-w-4xl mx-auto mt-2 space-y-2">
-        <h1 className="text-lg font-bold text-slate-100 text-center">{t('chess.welcomeTitle')}</h1>
+        <h1 className="text-lg font-bold text-slate-100 text-center -mt-1">{t('chess.welcomeTitle')}</h1>
         <AnalyzedGamesBanner />
         <div className="relative flex items-center justify-center">
           <button
