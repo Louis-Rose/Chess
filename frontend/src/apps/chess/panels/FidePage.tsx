@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Pencil, X, Plus, UserMinus } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Pencil, X, Plus, UserMinus, Download } from 'lucide-react';
+import { toPng } from 'html-to-image';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { ChessCard } from '../components/ChessCard';
@@ -146,6 +147,25 @@ export function FidePage() {
     setFriends(prev => prev.filter(f => f.fide_id !== friendFideId));
   };
 
+  const leaderboardRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!leaderboardRef.current) return;
+    setDownloading(true);
+    try {
+      const dataUrl = await toPng(leaderboardRef.current, { backgroundColor: '#334155' });
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `fide-leaderboard-${new Date().toISOString().split('T')[0]}.png`;
+      link.click();
+    } catch {
+      // silently fail
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const nr = t('chess.fide.unrated');
   const currentRating = fideData ? getRatingForTimeClass(fideData, selectedTimeClass || 'rapid') : null;
 
@@ -216,7 +236,7 @@ export function FidePage() {
           </div>
         </ChessCard>
       ) : (
-        <div className="flex flex-col gap-4">
+        <>
           <ChessCard
             title={t('chess.fide.title')}
             leftAction={
@@ -248,65 +268,78 @@ export function FidePage() {
           </ChessCard>
 
           {/* Leaderboard */}
-          <ChessCard
-            title={t('chess.fide.leaderboard')}
-            action={
-              <button
-                onClick={() => { setAddingFriend(true); setFriendInput(''); setFriendError(false); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white border border-white/60 hover:border-white rounded-lg transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                {t('chess.fide.addFriend')}
-              </button>
-            }
-          >
-            <div className="py-2">
-              {leaderboardRows.length === 0 ? (
-                <p className="text-slate-400 text-center py-4">{t('chess.fide.link')}</p>
-              ) : (
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-slate-400 text-sm border-b border-slate-600">
-                      <th className="text-left py-2 px-3 font-medium">{t('chess.fide.name')}</th>
-                      <th className="text-right py-2 px-3 font-medium">{t('chess.fide.elo')}</th>
-                      <th className="w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaderboardRows.map((row, i) => (
-                      <tr
-                        key={row.fide_id ?? `user-${i}`}
-                        className={`border-b border-slate-600/50 last:border-0 group ${row.isUser ? 'bg-slate-600/30' : ''}`}
-                      >
-                        <td className="py-2.5 px-3">
-                          <span className={`text-sm ${row.isUser ? 'font-bold text-cyan-400' : 'text-slate-200'}`}>
-                            {federationToFlag(row.federation)} {row.name}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-right">
-                          <span className={`text-sm font-mono ${row.rating != null ? (row.isUser ? 'text-cyan-400 font-bold' : 'text-slate-200') : 'text-slate-500'}`}>
-                            {row.rating ?? nr}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-1">
-                          {!row.isUser && (
-                            <button
-                              onClick={() => handleRemoveFriend(row.fide_id!)}
-                              className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 transition-all"
-                              title={t('chess.fide.removeFriend')}
-                            >
-                              <UserMinus className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </td>
+          <div className="mt-6">
+            <ChessCard
+              title={t('chess.fide.leaderboard')}
+              leftAction={
+                <button
+                  onClick={() => { setAddingFriend(true); setFriendInput(''); setFriendError(false); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white border border-white/60 hover:border-white rounded-lg transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {t('chess.fide.addFriend')}
+                </button>
+              }
+              action={
+                leaderboardRows.length > 0 ? (
+                  <button
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white border border-white/60 hover:border-white rounded-lg transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+                ) : undefined
+              }
+            >
+              <div ref={leaderboardRef} className="py-2">
+                {leaderboardRows.length === 0 ? (
+                  <p className="text-slate-400 text-center py-4">{t('chess.fide.link')}</p>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-slate-400 text-sm border-b border-slate-600">
+                        <th className="text-left py-2 px-3 font-medium">{t('chess.fide.name')}</th>
+                        <th className="text-right py-2 px-3 font-medium">{t('chess.fide.elo')}</th>
+                        <th className="w-10"></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </ChessCard>
-        </div>
+                    </thead>
+                    <tbody>
+                      {leaderboardRows.map((row, i) => (
+                        <tr
+                          key={row.fide_id ?? `user-${i}`}
+                          className="border-b border-slate-600/50 last:border-0 group"
+                        >
+                          <td className="py-2.5 px-3">
+                            <span className="text-sm text-slate-200">
+                              {federationToFlag(row.federation)} {row.name}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            <span className={`text-sm font-mono ${row.rating != null ? 'text-slate-200' : 'text-slate-500'}`}>
+                              {row.rating ?? nr}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-1">
+                            {!row.isUser && (
+                              <button
+                                onClick={() => handleRemoveFriend(row.fide_id!)}
+                                className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 transition-all"
+                                title={t('chess.fide.removeFriend')}
+                              >
+                                <UserMinus className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </ChessCard>
+          </div>
+        </>
       )}
 
       {/* Edit FIDE ID modal */}
