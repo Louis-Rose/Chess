@@ -298,7 +298,7 @@ export function FidePage() {
                   {leaderboardName || t('chess.fide.leaderboard')}
                   <button
                     onClick={() => { setRenamingLeaderboard(true); setRenameInput(leaderboardName || ''); }}
-                    className="text-white hover:text-slate-300 transition-colors"
+                    className="text-white hover:text-slate-300 transition-colors cursor-pointer"
                     title={t('chess.fide.renameLeaderboard')}
                   >
                     <Pencil className="w-4 h-4" />
@@ -319,7 +319,7 @@ export function FidePage() {
                   <button
                     onClick={handleDownload}
                     disabled={downloading}
-                    className="p-1.5 text-white hover:text-slate-300 transition-colors"
+                    className="p-1.5 text-white hover:text-slate-300 transition-colors cursor-pointer"
                   >
                     <Download className="w-5 h-5" />
                   </button>
@@ -340,7 +340,6 @@ export function FidePage() {
                         <th className="text-center py-2.5 px-2 font-medium w-12 border border-slate-500">{t('chess.fide.rank')}</th>
                         <th className="text-center py-2.5 px-3 font-medium border border-slate-500">{t('chess.fide.name')}</th>
                         <th className="text-center py-2.5 px-3 font-medium w-24 border border-slate-500">{t('chess.fide.elo')}</th>
-                        <th className="w-10 border border-slate-500"></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -353,30 +352,30 @@ export function FidePage() {
                             <span className="text-sm text-white font-mono">#{ranks[i]}</span>
                           </td>
                           <td className="py-2.5 px-3 text-center border border-slate-500">
-                            <a
-                              href={`https://ratings.fide.com/profile/${row.fide_id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-white hover:text-cyan-400 transition-colors"
-                            >
-                              {federationToFlag(row.federation)} {row.name}
-                            </a>
+                            <span className="inline-flex items-center gap-1.5">
+                              <a
+                                href={`https://ratings.fide.com/profile/${row.fide_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-white hover:text-cyan-400 transition-colors"
+                              >
+                                {federationToFlag(row.federation)} {row.name}
+                              </a>
+                              {!row.isUser && (
+                                <button
+                                  onClick={() => handleRemoveFriend(row.fide_id!)}
+                                  className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 transition-all cursor-pointer"
+                                  title={t('chess.fide.removeFriend')}
+                                >
+                                  <UserMinus className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </span>
                           </td>
                           <td className="py-2.5 px-3 text-center border border-slate-500">
                             <span className="text-sm font-mono text-white">
                               {row.rating ?? nr}
                             </span>
-                          </td>
-                          <td className="py-2.5 px-1 text-center border border-slate-500">
-                            {!row.isUser && (
-                              <button
-                                onClick={() => handleRemoveFriend(row.fide_id!)}
-                                className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-400 transition-all"
-                                title={t('chess.fide.removeFriend')}
-                              >
-                                <UserMinus className="w-3.5 h-3.5" />
-                              </button>
-                            )}
                           </td>
                         </tr>
                       ))}
