@@ -56,6 +56,27 @@ export const saveFideId = async (username: string, fideId: string) => {
   await axios.post('/api/chess/fide-id', { username, fide_id: fideId });
 };
 
+export const fetchFideFriends = async (username: string) => {
+  const response = await axios.get(`/api/chess/fide-friends?username=${encodeURIComponent(username)}`);
+  return response.data.friends as {
+    fide_id: string;
+    name: string | null;
+    federation: string | null;
+    fide_title: string | null;
+    classical_rating: number | null;
+    rapid_rating: number | null;
+    blitz_rating: number | null;
+  }[];
+};
+
+export const addFideFriend = async (username: string, fideId: string) => {
+  await axios.post('/api/chess/fide-friends', { username, fide_id: fideId });
+};
+
+export const removeFideFriend = async (username: string, fideId: string) => {
+  await axios.delete('/api/chess/fide-friends', { data: { username, fide_id: fideId } });
+};
+
 export const fetchChessInsight = async (
   type: string,
   rows: { games_per_day: number; win_rate: number }[],

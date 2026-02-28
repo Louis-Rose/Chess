@@ -433,6 +433,22 @@ def init_db():
                 """)
                 print("[Database] Created chess_goals table")
 
+            # Migration: Create chess_fide_friends table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'chess_fide_friends'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE chess_fide_friends (
+                        username TEXT NOT NULL,
+                        fide_id TEXT NOT NULL,
+                        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (username, fide_id)
+                    )
+                """)
+                print("[Database] Created chess_fide_friends table")
+
             # Migration: Create monthly_archive_cache table if not exists
             conn.execute("""
                 SELECT table_name FROM information_schema.tables

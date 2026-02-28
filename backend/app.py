@@ -1393,6 +1393,121 @@ def save_fide_id():
     return jsonify({'success': True})
 
 
+@app.route('/api/chess/fide-friends', methods=['GET'])
+def get_fide_friends():
+    """List FIDE friends for a chess username with their rating data."""
+    username = (request.args.get('username') or '').strip().lower()
+    if not username:
+        return jsonify({'friends': []})
+
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT fide_id FROM chess_fide_friends WHERE username = ?',
+            (username,)
+        )
+        rows = cursor.fetchall()
+
+    import time as _time
+    now = _time.time()
+    friends = []
+    for row in rows:
+        fid = row['fide_id']
+        # Reuse the FIDE cache
+        if fid in _fide_cache:
+            cached_data, cached_at = _fide_cache[fid]
+            if now - cached_at < FIDE_CACHE_TTL:
+                friends.append({'fide_id': fid, **cached_data})
+                continue
+        try:
+            resp = http_requests.get(
+                f'https://fide-api.vercel.app/player_info/?fide_id={fid}',
+                timeout=10
+            )
+            resp.raise_for_status()
+            raw = resp.json()
+            data = {
+                'name': raw.get('name'),
+                'federation': raw.get('federation'),
+                'fide_title': raw.get('fide_title'),
+                'classical_rating': raw.get('classical_rating'),
+                'rapid_rating': raw.get('rapid_rating'),
+                'blitz_rating': raw.get('blitz_rating'),
+            }
+            _fide_cache[fid] = (data, now)
+            friends.append({'fide_id': fid, **data})
+        except Exception:
+            friends.append({'fide_id': fid, 'name': None, 'federation': None, 'fide_title': None,
+                           'classical_rating': None, 'rapid_rating': None, 'blitz_rating': None})
+
+    return jsonify({'friends': friends})
+
+
+@app.route('/api/chess/fide-friends', methods=['POST'])
+def add_fide_friend():
+    """Add a FIDE friend."""
+    data = request.get_json() or {}
+    username = (data.get('username') or '').strip().lower()
+    fide_id = (data.get('fide_id') or '').strip()
+    if not username or not fide_id:
+        return jsonify({'error': 'username and fide_id required'}), 400
+
+    # Validate the FIDE ID by fetching data
+    import time as _time
+    now = _time.time()
+    try:
+        resp = http_requests.get(
+            f'https://fide-api.vercel.app/player_info/?fide_id={fide_id}',
+            timeout=10
+        )
+        resp.raise_for_status()
+        raw = resp.json()
+        if not raw.get('name'):
+            return jsonify({'error': 'Invalid FIDE ID'}), 400
+        fide_data = {
+            'name': raw.get('name'),
+            'federation': raw.get('federation'),
+            'fide_title': raw.get('fide_title'),
+            'classical_rating': raw.get('classical_rating'),
+            'rapid_rating': raw.get('rapid_rating'),
+            'blitz_rating': raw.get('blitz_rating'),
+        }
+        _fide_cache[fide_id] = (fide_data, now)
+    except Exception as e:
+        return jsonify({'error': f'Failed to validate FIDE ID: {str(e)}'}), 400
+
+    with get_db() as conn:
+        if USE_POSTGRES:
+            conn.execute(
+                'INSERT INTO chess_fide_friends (username, fide_id) VALUES (?, ?) ON CONFLICT DO NOTHING',
+                (username, fide_id)
+            )
+        else:
+            conn.execute(
+                'INSERT OR IGNORE INTO chess_fide_friends (username, fide_id) VALUES (?, ?)',
+                (username, fide_id)
+            )
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/chess/fide-friends', methods=['DELETE'])
+def remove_fide_friend():
+    """Remove a FIDE friend."""
+    data = request.get_json() or {}
+    username = (data.get('username') or '').strip().lower()
+    fide_id = (data.get('fide_id') or '').strip()
+    if not username or not fide_id:
+        return jsonify({'error': 'username and fide_id required'}), 400
+
+    with get_db() as conn:
+        conn.execute(
+            'DELETE FROM chess_fide_friends WHERE username = ? AND fide_id = ?',
+            (username, fide_id)
+        )
+
+    return jsonify({'success': True})
+
+
 @app.route('/api/chess/onboarding', methods=['GET'])
 def get_chess_onboarding():
     """Check if a chess username has completed onboarding."""

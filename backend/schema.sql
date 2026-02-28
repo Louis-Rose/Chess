@@ -353,6 +353,14 @@ CREATE TABLE IF NOT EXISTS chess_goals (
     PRIMARY KEY (username, time_class)
 );
 
+-- Chess FIDE friends (leaderboard)
+CREATE TABLE IF NOT EXISTS chess_fide_friends (
+    username TEXT NOT NULL,
+    fide_id TEXT NOT NULL,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (username, fide_id)
+);
+
 -- Per-month chess archive cache (completed months never change)
 CREATE TABLE IF NOT EXISTS monthly_archive_cache (
     username TEXT NOT NULL,
