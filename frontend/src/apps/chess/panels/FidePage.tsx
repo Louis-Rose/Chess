@@ -334,44 +334,44 @@ export function FidePage() {
                 ) : leaderboardRows.length === 0 ? (
                   <p className="text-slate-400 text-center py-4">{t('chess.fide.link')}</p>
                 ) : (
-                  <table className="w-full">
+                  <table className="w-full border-collapse border border-slate-500">
                     <thead>
-                      <tr className="text-slate-400 text-sm border-b border-slate-600">
-                        <th className="text-left py-2 px-2 font-medium w-10">{t('chess.fide.rank')}</th>
-                        <th className="text-left py-2 px-3 font-medium">{t('chess.fide.name')}</th>
-                        <th className="text-right py-2 px-3 font-medium">{t('chess.fide.elo')}</th>
-                        <th className="w-10"></th>
+                      <tr className="text-white text-sm bg-slate-600">
+                        <th className="text-center py-2.5 px-2 font-medium w-12 border border-slate-500">{t('chess.fide.rank')}</th>
+                        <th className="text-center py-2.5 px-3 font-medium border border-slate-500">{t('chess.fide.name')}</th>
+                        <th className="text-center py-2.5 px-3 font-medium w-24 border border-slate-500">{t('chess.fide.elo')}</th>
+                        <th className="w-10 border border-slate-500"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {leaderboardRows.map((row, i) => (
                         <tr
                           key={row.fide_id ?? `user-${i}`}
-                          className="border-b border-slate-600/50 last:border-0 group"
+                          className="group"
                         >
-                          <td className="py-2.5 px-2">
-                            <span className="text-sm text-slate-400 font-mono">#{ranks[i]}</span>
+                          <td className="py-2.5 px-2 text-center border border-slate-500">
+                            <span className="text-sm text-white font-mono">#{ranks[i]}</span>
                           </td>
-                          <td className="py-2.5 px-3">
+                          <td className="py-2.5 px-3 text-center border border-slate-500">
                             <a
                               href={`https://ratings.fide.com/profile/${row.fide_id}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-sm text-slate-200 hover:text-cyan-400 transition-colors"
+                              className="text-sm text-white hover:text-cyan-400 transition-colors"
                             >
                               {federationToFlag(row.federation)} {row.name}
                             </a>
                           </td>
-                          <td className="py-2.5 px-3 text-right">
-                            <span className={`text-sm font-mono ${row.rating != null ? 'text-slate-200' : 'text-slate-500'}`}>
+                          <td className="py-2.5 px-3 text-center border border-slate-500">
+                            <span className="text-sm font-mono text-white">
                               {row.rating ?? nr}
                             </span>
                           </td>
-                          <td className="py-2.5 px-1">
+                          <td className="py-2.5 px-1 text-center border border-slate-500">
                             {!row.isUser && (
                               <button
                                 onClick={() => handleRemoveFriend(row.fide_id!)}
-                                className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 transition-all"
+                                className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-400 transition-all"
                                 title={t('chess.fide.removeFriend')}
                               >
                                 <UserMinus className="w-3.5 h-3.5" />
