@@ -49,11 +49,12 @@ const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; 
   },
 ];
 
-function CardContent({ icon: Icon, iconBg, title, description }: {
+function CardContent({ icon: Icon, iconBg, title, description, tagline }: {
   icon: LucideIcon;
   iconBg: string;
   title: string;
   description: string | null;
+  tagline: string;
 }) {
   // Title-only card (like daily-volume) - icon absolute, title centered
   if (!description) {
@@ -62,7 +63,10 @@ function CardContent({ icon: Icon, iconBg, title, description }: {
         <div className={`absolute top-5 left-5 w-10 h-10 ${iconBg} rounded-lg flex items-center justify-center`}>
           <Icon className="w-5 h-5 text-white" />
         </div>
-        <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance pl-12 pr-2 py-4">{title}</h3>
+        <div className="pl-12 pr-2 text-center">
+          <h3 className="text-lg font-bold text-slate-100 select-text text-balance">{title}</h3>
+          <p className="text-xs text-slate-500 mt-0.5">{tagline}</p>
+        </div>
         <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
       </>
     );
@@ -146,6 +150,7 @@ export function WelcomePanel() {
                   iconBg={card.iconBg}
                   title={title}
                   description={description}
+                  tagline={t('chess.aiTagline')}
                 />
               </div>
             );
