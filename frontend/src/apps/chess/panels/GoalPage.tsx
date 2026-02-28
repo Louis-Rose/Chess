@@ -13,7 +13,7 @@ import type { TimeClass } from '../utils/types';
 import { ChessCard } from '../components/ChessCard';
 
 export function GoalPage() {
-  const { data, loading, selectedTimeClass, playerInfo, searchedUsername } = useChessData();
+  const { data, selectedTimeClass, playerInfo, searchedUsername } = useChessData();
   const { t } = useLanguage();
   const [, forceUpdate] = useReducer(x => x + 1, 0);
   const [editing, setEditing] = useState(false);
