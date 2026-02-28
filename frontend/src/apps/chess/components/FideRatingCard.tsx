@@ -31,7 +31,7 @@ export function FideRatingCard() {
       onClick={() => navigate('/chess/fide')}
       className="relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[120px] flex items-center justify-center hover:border-cyan-500 transition-colors cursor-pointer"
     >
-      <img src="/fide-logo.jpeg" alt="FIDE" className="w-10 h-10 rounded-lg object-cover" />
+      <img src="/fide-logo.png" alt="FIDE" className="w-10 h-10 rounded-lg object-cover" />
       <div className="ml-4 min-w-0 text-center">
         <h3 className="text-lg font-bold text-slate-100">{t('chess.fide.title')}</h3>
         {subtitle && (

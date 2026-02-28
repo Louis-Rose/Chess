@@ -117,7 +117,7 @@ export function FidePage() {
           /* No FIDE ID or error — prompt to link */
           <ChessCard title={t('chess.fide.title')}>
             <div className="flex flex-col items-center gap-4 py-8">
-              <img src="/fide-logo.jpeg" alt="FIDE" className="w-16 h-16 rounded-xl object-cover" />
+              <img src="/fide-logo.png" alt="FIDE" className="w-16 h-16 rounded-xl object-cover" />
               <p className="text-slate-400 text-center">{t('chess.fide.link')}</p>
               <div className="flex gap-2 w-full max-w-[280px]">
                 <input
