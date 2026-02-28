@@ -139,12 +139,13 @@ export function FidePage() {
       ) : (
         <ChessCard
           title={t('chess.fide.title')}
-          action={
+          leftAction={
             <button
               onClick={() => { setEditing(!editing); setInputValue(fideId || ''); }}
-              className="text-slate-400 hover:text-slate-200 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white border border-white/60 hover:border-white rounded-lg transition-colors"
             >
-              <Pencil className="w-4 h-4" />
+              <Pencil className="w-3.5 h-3.5" />
+              {t('chess.fide.updateId')}
             </button>
           }
         >
