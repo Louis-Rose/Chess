@@ -183,7 +183,7 @@ export function FidePage() {
                 </div>
               </div>
               <div className="bg-slate-600 rounded-xl p-3 flex items-center justify-center">
-                <p className="text-4xl font-bold text-cyan-400">{currentRating ?? nr}</p>
+                <p className="text-3xl font-bold text-cyan-400">{currentRating ?? nr}</p>
               </div>
             </div>
           </div>
