@@ -17,9 +17,9 @@ export function AnalyzedGamesBanner({ totalGames }: { totalGames?: number }) {
   return (
     <>
       <div className="border-t border-slate-700" />
-      <div className="flex items-center justify-center py-1">
+      <div className="flex items-center justify-center py-2">
         <div className="relative flex items-center">
-          <CheckCircle2 className="w-4 h-4 text-green-500 absolute -left-6" />
+          <CheckCircle2 className="w-5 h-5 text-green-500 absolute -left-7" />
           <span className="text-slate-400">{text}</span>
         </div>
       </div>
