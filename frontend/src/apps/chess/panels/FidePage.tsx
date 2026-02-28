@@ -171,20 +171,18 @@ export function FidePage() {
               </div>
             )}
 
-            {/* Player info */}
-            <div className="flex items-center gap-3 mb-6">
-              <span className="text-2xl">{federationToFlag(fideData.federation)}</span>
-              <div>
-                <p className="text-lg font-bold text-slate-100">
-                  {fideData.fide_title && fideData.fide_title !== 'None' ? `${fideData.fide_title} ` : ''}{fideData.name}
-                </p>
-                <p className="text-sm text-slate-400">{fideData.federation}</p>
+            {/* Player info + Rating side by side */}
+            <div className="flex gap-4">
+              <div className="flex-1 bg-slate-600 rounded-xl px-4 py-3 flex items-center gap-3">
+                <span className="text-2xl">{federationToFlag(fideData.federation)}</span>
+                <div>
+                  <p className="text-lg font-bold text-slate-100">
+                    {fideData.fide_title && fideData.fide_title !== 'None' ? `${fideData.fide_title} ` : ''}{fideData.name}
+                  </p>
+                  <p className="text-sm text-slate-400">{fideData.federation}</p>
+                </div>
               </div>
-            </div>
-
-            {/* Single rating for selected time class */}
-            <div className="max-w-xs mx-auto">
-              <div className="bg-slate-600 rounded-xl p-6 text-center">
+              <div className="flex-1 bg-slate-600 rounded-xl px-4 py-3 flex items-center justify-center">
                 <p className="text-4xl font-bold text-cyan-400">{currentRating ?? nr}</p>
               </div>
             </div>
