@@ -284,16 +284,20 @@ function MobilePlayerButton() {
 }
 
 function ChessHeader() {
+  const { t } = useLanguage();
   return (
     <div className="relative flex items-center justify-center px-2 py-3">
       {/* Mobile player avatar — left */}
       <div className="absolute left-2">
         <MobilePlayerButton />
       </div>
-      {/* LUMNA — text centered on screen, logo positioned to its left */}
-      <a href="/chess" className="relative flex items-center hover:opacity-80 transition-opacity">
-        <LumnaLogo className="w-9 h-9 absolute -left-11" />
-        <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
+      {/* LUMNA + subtitle — single clickable block */}
+      <a href="/chess" className="flex flex-col items-center hover:opacity-80 transition-opacity">
+        <div className="relative flex items-center">
+          <LumnaLogo className="w-9 h-9 absolute -left-11" />
+          <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
+        </div>
+        <span className="text-lg font-bold text-slate-100 mt-1">{t('chess.welcomeTitle')}</span>
       </a>
       {/* Language toggle — right */}
       <div className="absolute right-2">

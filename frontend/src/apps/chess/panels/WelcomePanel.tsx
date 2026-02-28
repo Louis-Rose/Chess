@@ -111,7 +111,6 @@ export function WelcomePanel() {
           </div>
         )}
 
-        <a href="/chess" className="text-lg font-bold text-slate-100 hover:opacity-80 transition-opacity">{t('chess.welcomeTitle')}</a>
       </div>
 
       {/* Loading / status */}
