@@ -1319,20 +1319,14 @@ _fide_cache = {}  # {fide_id: (data, timestamp)}
 FIDE_CACHE_TTL = 86400  # 24 hours
 
 
-@app.route('/api/chess/fide-rating', methods=['GET'])
-def get_fide_rating():
-    """Fetch FIDE ratings for a player by FIDE ID (cached 24h)."""
-    fide_id = (request.args.get('fide_id') or '').strip()
-    if not fide_id:
-        return jsonify({'error': 'fide_id required'}), 400
-
-    # Check cache
+def _fetch_fide_data(fide_id):
+    """Fetch FIDE player info + monthly delta (cached 24h). Returns data dict or None."""
     import time as _time
     now = _time.time()
     if fide_id in _fide_cache:
         cached_data, cached_at = _fide_cache[fide_id]
         if now - cached_at < FIDE_CACHE_TTL:
-            return jsonify(cached_data)
+            return cached_data
 
     try:
         resp = http_requests.get(
@@ -1348,11 +1342,51 @@ def get_fide_rating():
             'classical_rating': raw.get('classical_rating'),
             'rapid_rating': raw.get('rapid_rating'),
             'blitz_rating': raw.get('blitz_rating'),
+            'classical_delta': None,
+            'rapid_delta': None,
+            'blitz_delta': None,
         }
+
+        # Fetch history for monthly deltas
+        try:
+            hist_resp = http_requests.get(
+                f'https://fide-api.vercel.app/player_history/?fide_id={fide_id}',
+                timeout=10
+            )
+            hist_resp.raise_for_status()
+            history = hist_resp.json()
+            if isinstance(history, list) and len(history) >= 2:
+                curr, prev = history[0], history[1]
+                for tc in ('classical', 'rapid', 'blitz'):
+                    curr_r = curr.get(f'{tc}_rating') or 0
+                    prev_r = prev.get(f'{tc}_rating') or 0
+                    if curr_r > 0 and prev_r > 0:
+                        data[f'{tc}_delta'] = curr_r - prev_r
+                    elif curr_r > 0 and prev_r == 0:
+                        data[f'{tc}_delta'] = 'new'
+                    elif curr_r == 0 and prev_r > 0:
+                        data[f'{tc}_delta'] = -prev_r
+                    # else both 0 → stays None
+        except Exception:
+            pass  # deltas are best-effort
+
         _fide_cache[fide_id] = (data, now)
+        return data
+    except Exception:
+        return None
+
+
+@app.route('/api/chess/fide-rating', methods=['GET'])
+def get_fide_rating():
+    """Fetch FIDE ratings for a player by FIDE ID (cached 24h)."""
+    fide_id = (request.args.get('fide_id') or '').strip()
+    if not fide_id:
+        return jsonify({'error': 'fide_id required'}), 400
+
+    data = _fetch_fide_data(fide_id)
+    if data:
         return jsonify(data)
-    except Exception as e:
-        return jsonify({'error': f'Failed to fetch FIDE data: {str(e)}'}), 502
+    return jsonify({'error': 'Failed to fetch FIDE data'}), 502
 
 
 @app.route('/api/chess/fide-id', methods=['GET'])
@@ -1445,37 +1479,16 @@ def get_fide_friends():
         )
         rows = cursor.fetchall()
 
-    import time as _time
-    now = _time.time()
     friends = []
     for row in rows:
         fid = row['fide_id']
-        # Reuse the FIDE cache
-        if fid in _fide_cache:
-            cached_data, cached_at = _fide_cache[fid]
-            if now - cached_at < FIDE_CACHE_TTL:
-                friends.append({'fide_id': fid, **cached_data})
-                continue
-        try:
-            resp = http_requests.get(
-                f'https://fide-api.vercel.app/player_info/?fide_id={fid}',
-                timeout=10
-            )
-            resp.raise_for_status()
-            raw = resp.json()
-            data = {
-                'name': raw.get('name'),
-                'federation': raw.get('federation'),
-                'fide_title': raw.get('fide_title'),
-                'classical_rating': raw.get('classical_rating'),
-                'rapid_rating': raw.get('rapid_rating'),
-                'blitz_rating': raw.get('blitz_rating'),
-            }
-            _fide_cache[fid] = (data, now)
+        data = _fetch_fide_data(fid)
+        if data:
             friends.append({'fide_id': fid, **data})
-        except Exception:
+        else:
             friends.append({'fide_id': fid, 'name': None, 'federation': None, 'fide_title': None,
-                           'classical_rating': None, 'rapid_rating': None, 'blitz_rating': None})
+                           'classical_rating': None, 'rapid_rating': None, 'blitz_rating': None,
+                           'classical_delta': None, 'rapid_delta': None, 'blitz_delta': None})
 
     return jsonify({'friends': friends})
 
@@ -1490,28 +1503,9 @@ def add_fide_friend():
         return jsonify({'error': 'username and fide_id required'}), 400
 
     # Validate the FIDE ID by fetching data
-    import time as _time
-    now = _time.time()
-    try:
-        resp = http_requests.get(
-            f'https://fide-api.vercel.app/player_info/?fide_id={fide_id}',
-            timeout=10
-        )
-        resp.raise_for_status()
-        raw = resp.json()
-        if not raw.get('name'):
-            return jsonify({'error': 'Invalid FIDE ID'}), 400
-        fide_data = {
-            'name': raw.get('name'),
-            'federation': raw.get('federation'),
-            'fide_title': raw.get('fide_title'),
-            'classical_rating': raw.get('classical_rating'),
-            'rapid_rating': raw.get('rapid_rating'),
-            'blitz_rating': raw.get('blitz_rating'),
-        }
-        _fide_cache[fide_id] = (fide_data, now)
-    except Exception as e:
-        return jsonify({'error': f'Failed to validate FIDE ID: {str(e)}'}), 400
+    fide_data = _fetch_fide_data(fide_id)
+    if not fide_data or not fide_data.get('name'):
+        return jsonify({'error': 'Invalid FIDE ID'}), 400
 
     with get_db() as conn:
         if USE_POSTGRES:

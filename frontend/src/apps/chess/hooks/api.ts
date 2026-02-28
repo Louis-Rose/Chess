@@ -44,6 +44,9 @@ export const fetchFideRating = async (fideId: string) => {
     classical_rating: number | null;
     rapid_rating: number | null;
     blitz_rating: number | null;
+    classical_delta: number | string | null;
+    rapid_delta: number | string | null;
+    blitz_delta: number | string | null;
   };
 };
 
@@ -66,6 +69,9 @@ export const fetchFideFriends = async (username: string) => {
     classical_rating: number | null;
     rapid_rating: number | null;
     blitz_rating: number | null;
+    classical_delta: number | string | null;
+    rapid_delta: number | string | null;
+    blitz_delta: number | string | null;
   }[];
 };
 

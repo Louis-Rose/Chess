@@ -14,6 +14,9 @@ interface FideData {
   classical_rating: number | null;
   rapid_rating: number | null;
   blitz_rating: number | null;
+  classical_delta: number | string | null;
+  rapid_delta: number | string | null;
+  blitz_delta: number | string | null;
 }
 
 interface FideFriend extends FideData {
@@ -51,6 +54,26 @@ function getRatingForTimeClass(fideData: FideData, timeClass: string): number | 
     case 'bullet': return fideData.blitz_rating; // FIDE has no bullet, show blitz
     default: return fideData.classical_rating;
   }
+}
+
+function getDeltaForTimeClass(fideData: FideData, timeClass: string): number | string | null {
+  switch (timeClass) {
+    case 'rapid': return fideData.rapid_delta;
+    case 'blitz': return fideData.blitz_delta;
+    case 'bullet': return fideData.blitz_delta;
+    default: return fideData.classical_delta;
+  }
+}
+
+function formatDelta(delta: number | string | null): { text: string; color: string } | null {
+  if (delta === null || delta === undefined) return null;
+  if (delta === 'new') return { text: 'NEW', color: 'text-cyan-400' };
+  if (typeof delta === 'number') {
+    if (delta === 0) return null;
+    if (delta > 0) return { text: `+${delta}`, color: 'text-green-400' };
+    return { text: `${delta}`, color: 'text-red-400' };
+  }
+  return null;
 }
 
 
@@ -187,7 +210,7 @@ export function FidePage() {
 
   // Build sorted leaderboard: user + friends
   const timeClass = selectedTimeClass || 'rapid';
-  const leaderboardRows: { fide_id: string | null; name: string; federation: string | null; rating: number | null; isUser: boolean }[] = [];
+  const leaderboardRows: { fide_id: string | null; name: string; federation: string | null; rating: number | null; delta: number | string | null; isUser: boolean }[] = [];
 
   if (fideData && fideId) {
     leaderboardRows.push({
@@ -195,6 +218,7 @@ export function FidePage() {
       name: `${fideData.fide_title && fideData.fide_title !== 'None' ? fideData.fide_title + ' ' : ''}${fideData.name || ''}`,
       federation: fideData.federation,
       rating: getRatingForTimeClass(fideData, timeClass),
+      delta: getDeltaForTimeClass(fideData, timeClass),
       isUser: true,
     });
   }
@@ -206,6 +230,7 @@ export function FidePage() {
         name: `${f.fide_title && f.fide_title !== 'None' ? f.fide_title + ' ' : ''}${f.name}`,
         federation: f.federation,
         rating: getRatingForTimeClass(f, timeClass),
+        delta: getDeltaForTimeClass(f, timeClass),
         isUser: false,
       });
     }
@@ -375,6 +400,11 @@ export function FidePage() {
                           <td className="py-2.5 px-3 text-center border border-slate-500">
                             <span className="text-sm font-mono text-white">
                               {row.rating ?? nr}
+                              {(() => {
+                                const d = formatDelta(row.delta);
+                                if (!d) return null;
+                                return <span className={`ml-1.5 text-xs ${d.color}`}>({d.text})</span>;
+                              })()}
                             </span>
                           </td>
                         </tr>
