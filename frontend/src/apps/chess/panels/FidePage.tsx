@@ -4,6 +4,8 @@ import { ArrowLeft, Pencil } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { ChessCard } from '../components/ChessCard';
+import { TimeClassToggle } from '../components/TimeClassToggle';
+import { AnalyzedGamesBanner } from '../components/AnalyzedGamesBanner';
 import { fetchFideId, fetchFideRating, saveFideId } from '../hooks/api';
 
 interface FideData {
@@ -39,10 +41,28 @@ function federationToFlag(federation: string | null): string {
   return String.fromCodePoint(...[...iso.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
 }
 
+function getRatingForTimeClass(fideData: FideData, timeClass: string): number | null {
+  switch (timeClass) {
+    case 'rapid': return fideData.rapid_rating;
+    case 'blitz': return fideData.blitz_rating;
+    case 'bullet': return fideData.blitz_rating; // FIDE has no bullet, show blitz
+    default: return fideData.classical_rating;
+  }
+}
+
+function getTimeClassLabel(timeClass: string): string {
+  switch (timeClass) {
+    case 'rapid': return 'Rapid';
+    case 'blitz': return 'Blitz';
+    case 'bullet': return 'Blitz'; // FIDE has no bullet
+    default: return 'Classical';
+  }
+}
+
 export function FidePage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { searchedUsername } = useChessData();
+  const { searchedUsername, selectedTimeClass, handleTimeClassChange, loading: dataLoading } = useChessData();
 
   const [fideId, setFideId] = useState<string | null>(null);
   const [fideData, setFideData] = useState<FideData | null>(null);
@@ -93,11 +113,14 @@ export function FidePage() {
   };
 
   const nr = t('chess.fide.notRated');
+  const currentRating = fideData ? getRatingForTimeClass(fideData, selectedTimeClass || 'rapid') : null;
+  const currentLabel = getTimeClassLabel(selectedTimeClass || 'rapid');
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="max-w-4xl mx-auto mt-2 space-y-2">
-        {/* Header with back button */}
+        <AnalyzedGamesBanner />
+        {/* Header with back button + time class toggle */}
         <div className="relative flex items-center justify-center">
           <button
             onClick={() => navigate('/chess')}
@@ -106,6 +129,7 @@ export function FidePage() {
             <ArrowLeft className="w-5 h-5" />
             <span>Previous</span>
           </button>
+          <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} disabled={dataLoading} />
         </div>
         <div className="border-t border-slate-700" />
 
@@ -114,7 +138,6 @@ export function FidePage() {
             <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : !fideId || error || !fideData ? (
-          /* No FIDE ID or error — prompt to link */
           <ChessCard title={t('chess.fide.title')}>
             <div className="flex flex-col items-center gap-4 py-8">
               <img src="/fide-logo.png" alt="FIDE" className="w-16 h-16 rounded-xl object-cover" />
@@ -141,7 +164,6 @@ export function FidePage() {
             </div>
           </ChessCard>
         ) : (
-          /* FIDE data loaded — display ratings */
           <ChessCard
             title={t('chess.fide.title')}
             action={
@@ -181,25 +203,17 @@ export function FidePage() {
                 <span className="text-2xl">{federationToFlag(fideData.federation)}</span>
                 <div>
                   <p className="text-lg font-bold text-slate-100">
-                    {fideData.fide_title ? `${fideData.fide_title} ` : ''}{fideData.name}
+                    {fideData.fide_title && fideData.fide_title !== 'None' ? `${fideData.fide_title} ` : ''}{fideData.name}
                   </p>
                   <p className="text-sm text-slate-400">{fideData.federation}</p>
                 </div>
               </div>
 
-              {/* Ratings */}
-              <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
-                <div className="bg-slate-600 rounded-xl p-4 text-center">
-                  <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Rapid</p>
-                  <p className="text-2xl font-bold text-cyan-400">{fideData.rapid_rating ?? nr}</p>
-                </div>
-                <div className="bg-slate-600 rounded-xl p-4 text-center">
-                  <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Classical</p>
-                  <p className="text-2xl font-bold text-slate-100">{fideData.classical_rating ?? nr}</p>
-                </div>
-                <div className="bg-slate-600 rounded-xl p-4 text-center">
-                  <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Blitz</p>
-                  <p className="text-2xl font-bold text-slate-100">{fideData.blitz_rating ?? nr}</p>
+              {/* Single rating for selected time class */}
+              <div className="max-w-xs mx-auto">
+                <div className="bg-slate-600 rounded-xl p-6 text-center">
+                  <p className="text-sm text-slate-400 uppercase tracking-wider mb-2">{currentLabel}</p>
+                  <p className="text-4xl font-bold text-cyan-400">{currentRating ?? nr}</p>
                 </div>
               </div>
             </div>
