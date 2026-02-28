@@ -118,7 +118,7 @@ export function FidePage() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="max-w-4xl mx-auto mt-2 space-y-2">
+      <div className="max-w-4xl mx-auto -mt-1 space-y-2">
 
         <AnalyzedGamesBanner />
         {/* Header with back button + time class toggle */}
