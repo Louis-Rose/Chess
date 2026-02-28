@@ -363,9 +363,9 @@ export function FidePage() {
                     <thead>
                       <tr className="text-white text-sm bg-slate-600">
                         <th className="text-center py-2.5 px-2 font-medium w-12 border border-slate-500">{t('chess.fide.rank')}</th>
-                        <th className="text-center py-2.5 px-3 font-medium border border-slate-500">FIDE ID</th>
-                        <th className="text-center py-2.5 px-3 font-medium border border-slate-500">{t('chess.fide.name')}</th>
-                        <th className="text-center py-2.5 px-3 font-medium w-24 border border-slate-500">{t('chess.fide.elo')}</th>
+                        <th className="text-center py-2.5 px-3 font-medium border border-slate-500 w-1/3">FIDE ID</th>
+                        <th className="text-center py-2.5 px-3 font-medium border border-slate-500 w-1/3">{t('chess.fide.name')}</th>
+                        <th className="text-center py-2.5 px-3 font-medium border border-slate-500 w-1/3">{t('chess.fide.elo')}</th>
                       </tr>
                     </thead>
                     <tbody>
