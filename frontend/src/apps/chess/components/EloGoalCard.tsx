@@ -38,22 +38,20 @@ export function EloGoalCard() {
       : `${prefs.elo_goal} elo ${daysLeft > 0 ? `in ${daysLeft} day${daysLeft > 1 ? 's' : ''}` : ''}`;
   }
 
+  const title = hasGoal ? t('chess.goalCard.title') : t('chess.goalCard.setGoal');
+
   return (
     <div
       onClick={() => navigate('/chess/goal')}
-      className="relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[120px] flex items-center justify-center hover:border-blue-500 transition-colors cursor-pointer"
+      className="relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[120px] flex flex-col items-center justify-center hover:border-blue-500 transition-colors cursor-pointer"
     >
-      <div className="w-10 h-10 shrink-0 bg-blue-600 rounded-lg flex items-center justify-center">
+      <div className="absolute top-5 left-5 w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
         <Target className="w-5 h-5 text-white" />
       </div>
-      <div className="ml-4 min-w-0 text-center">
-        <h3 className="text-lg font-bold text-slate-100">
-          {hasGoal ? t('chess.goalCard.title') : t('chess.goalCard.setGoal')}
-        </h3>
-        {hasGoal && (
-          <p className="text-lg font-bold text-slate-100 mt-0.5">{goalSubtitle}</p>
-        )}
-      </div>
+      <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance pl-12 pr-2 py-4">{title}</h3>
+      {hasGoal && (
+        <p className="text-sm font-semibold text-slate-400 -mt-3">{goalSubtitle}</p>
+      )}
       <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
     </div>
   );

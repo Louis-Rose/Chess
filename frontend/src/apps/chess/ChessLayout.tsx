@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Calendar, TrendingUp, Home, Shield, LogOut, Trash2, Clock, CalendarDays, Award } from 'lucide-react';
+import { Calendar, TrendingUp, Home, Shield, LogOut, Trash2, Clock, CalendarDays, Award, Target } from 'lucide-react';
 import { ChessDataProvider } from './contexts/ChessDataContext';
 import { useChessData } from './contexts/ChessDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -15,11 +15,12 @@ import { useChessHeartbeat } from './hooks/useChessHeartbeat';
 
 const NAV_ITEMS = [
   { path: '/chess', labelKey: 'chess.navHome', icon: Home, end: true },
+  { path: '/chess/goal', labelKey: 'chess.navGoal', icon: Target },
+  { path: '/chess/fide', labelKey: 'chess.navFide', icon: Award },
   { path: '/chess/daily-volume', labelKey: 'chess.navDailyVolume', icon: Calendar },
   { path: '/chess/streak', labelKey: 'chess.navStreaks', icon: TrendingUp },
   { path: '/chess/best-hours', labelKey: 'chess.navBestHours', icon: Clock },
   { path: '/chess/best-days', labelKey: 'chess.navBestDays', icon: CalendarDays },
-  { path: '/chess/fide', labelKey: 'chess.navFide', icon: Award },
 ];
 
 function ChessNavSidebar() {
@@ -290,10 +291,10 @@ function ChessHeader() {
         <MobilePlayerButton />
       </div>
       {/* LUMNA — text centered on screen, logo positioned to its left */}
-      <div className="relative flex items-center">
+      <a href="/chess" className="relative flex items-center hover:opacity-80 transition-opacity">
         <LumnaLogo className="w-9 h-9 absolute -left-11" />
         <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
-      </div>
+      </a>
       {/* Language toggle — right */}
       <div className="absolute right-2">
         <LanguageToggle />
