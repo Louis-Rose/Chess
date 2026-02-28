@@ -1393,6 +1393,44 @@ def save_fide_id():
     return jsonify({'success': True})
 
 
+@app.route('/api/chess/leaderboard-name', methods=['GET'])
+def get_leaderboard_name():
+    """Fetch saved leaderboard name for a chess username."""
+    username = (request.args.get('username') or '').strip().lower()
+    if not username:
+        return jsonify({'name': None})
+
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT leaderboard_name FROM chess_user_prefs WHERE username = ?',
+            (username,)
+        )
+        row = cursor.fetchone()
+
+    return jsonify({'name': row['leaderboard_name'] if row else None})
+
+
+@app.route('/api/chess/leaderboard-name', methods=['POST'])
+def save_leaderboard_name():
+    """Save leaderboard name for a chess username."""
+    data = request.get_json() or {}
+    username = (data.get('username') or '').strip().lower()
+    name = (data.get('name') or '').strip()
+    if not username:
+        return jsonify({'error': 'username required'}), 400
+
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO chess_user_prefs (username, leaderboard_name, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(username) DO UPDATE SET
+                leaderboard_name = excluded.leaderboard_name,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (username, name or None))
+
+    return jsonify({'success': True})
+
+
 @app.route('/api/chess/fide-friends', methods=['GET'])
 def get_fide_friends():
     """List FIDE friends for a chess username with their rating data."""

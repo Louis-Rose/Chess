@@ -77,6 +77,15 @@ export const removeFideFriend = async (username: string, fideId: string) => {
   await axios.delete('/api/chess/fide-friends', { data: { username, fide_id: fideId } });
 };
 
+export const fetchLeaderboardName = async (username: string): Promise<string | null> => {
+  const response = await axios.get(`/api/chess/leaderboard-name?username=${encodeURIComponent(username)}`);
+  return response.data.name;
+};
+
+export const saveLeaderboardName = async (username: string, name: string) => {
+  await axios.post('/api/chess/leaderboard-name', { username, name });
+};
+
 export const fetchChessInsight = async (
   type: string,
   rows: { games_per_day: number; win_rate: number }[],

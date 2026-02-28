@@ -338,6 +338,7 @@ CREATE TABLE IF NOT EXISTS chess_user_prefs (
     onboarding_done INTEGER NOT NULL DEFAULT 0,
     preferred_time_class TEXT DEFAULT NULL,
     fide_id TEXT DEFAULT NULL,
+    leaderboard_name TEXT DEFAULT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -413,6 +413,15 @@ def init_db():
                 conn.execute("ALTER TABLE chess_user_prefs ADD COLUMN fide_id TEXT DEFAULT NULL")
                 print("[Database] Added fide_id column to chess_user_prefs")
 
+            # Migration: Add leaderboard_name column to chess_user_prefs
+            conn.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'chess_user_prefs' AND column_name = 'leaderboard_name'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("ALTER TABLE chess_user_prefs ADD COLUMN leaderboard_name TEXT DEFAULT NULL")
+                print("[Database] Added leaderboard_name column to chess_user_prefs")
+
             # Migration: Create chess_goals table if not exists
             conn.execute("""
                 SELECT table_name FROM information_schema.tables
@@ -520,7 +529,7 @@ def init_db():
                     conn.execute('DELETE FROM earnings_cache')
                     print("[Database] Added earnings_time column to earnings_cache and cleared cache")
 
-            # Migration: Add fide_id column to chess_user_prefs (SQLite)
+            # Migration: Add fide_id and leaderboard_name columns to chess_user_prefs (SQLite)
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='chess_user_prefs'")
             if cursor.fetchone():
                 cursor = conn.execute("PRAGMA table_info(chess_user_prefs)")
@@ -528,6 +537,9 @@ def init_db():
                 if 'fide_id' not in columns:
                     conn.execute('ALTER TABLE chess_user_prefs ADD COLUMN fide_id TEXT DEFAULT NULL')
                     print("[Database] Added fide_id column to chess_user_prefs")
+                if 'leaderboard_name' not in columns:
+                    conn.execute('ALTER TABLE chess_user_prefs ADD COLUMN leaderboard_name TEXT DEFAULT NULL')
+                    print("[Database] Added leaderboard_name column to chess_user_prefs")
 
             # Run full schema
             with open(schema_path, 'r') as f:

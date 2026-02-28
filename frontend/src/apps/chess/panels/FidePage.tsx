@@ -5,7 +5,7 @@ import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { ChessCard } from '../components/ChessCard';
 import { CardPageLayout } from '../components/CardPageLayout';
-import { fetchFideId, fetchFideRating, saveFideId, fetchFideFriends, addFideFriend, removeFideFriend } from '../hooks/api';
+import { fetchFideId, fetchFideRating, saveFideId, fetchFideFriends, addFideFriend, removeFideFriend, fetchLeaderboardName, saveLeaderboardName } from '../hooks/api';
 
 interface FideData {
   name: string | null;
@@ -71,6 +71,9 @@ export function FidePage() {
   const [friendInput, setFriendInput] = useState('');
   const [friendError, setFriendError] = useState(false);
   const [friendLoading, setFriendLoading] = useState(false);
+  const [leaderboardName, setLeaderboardName] = useState<string | null>(null);
+  const [renamingLeaderboard, setRenamingLeaderboard] = useState(false);
+  const [renameInput, setRenameInput] = useState('');
 
   const loadFriends = useCallback(async () => {
     if (!searchedUsername) return;
@@ -93,6 +96,7 @@ export function FidePage() {
       }
     });
     loadFriends();
+    fetchLeaderboardName(searchedUsername).then(setLeaderboardName);
   }, [searchedUsername, loadFriends]);
 
   const fetchRating = async (id: string) => {
@@ -145,6 +149,14 @@ export function FidePage() {
     if (!searchedUsername) return;
     await removeFideFriend(searchedUsername, friendFideId);
     setFriends(prev => prev.filter(f => f.fide_id !== friendFideId));
+  };
+
+  const handleRenameLeaderboard = async () => {
+    if (!searchedUsername) return;
+    const trimmed = renameInput.trim();
+    await saveLeaderboardName(searchedUsername, trimmed);
+    setLeaderboardName(trimmed || null);
+    setRenamingLeaderboard(false);
   };
 
   const leaderboardRef = useRef<HTMLDivElement>(null);
@@ -201,6 +213,13 @@ export function FidePage() {
     if (a.rating != null) return -1;
     if (b.rating != null) return 1;
     return 0;
+  });
+
+  // Compute ranks: sequential for rated, all unrated share the same rank
+  const ratedCount = leaderboardRows.filter(r => r.rating != null).length;
+  const ranks = leaderboardRows.map((row, i) => {
+    if (row.rating != null) return i + 1;
+    return ratedCount + 1; // all unrated share same rank
   });
 
   return (
@@ -270,7 +289,7 @@ export function FidePage() {
           {/* Leaderboard */}
           <div className="mt-6">
             <ChessCard
-              title={t('chess.fide.leaderboard')}
+              title={leaderboardName || t('chess.fide.leaderboard')}
               leftAction={
                 <button
                   onClick={() => { setAddingFriend(true); setFriendInput(''); setFriendError(false); }}
@@ -281,15 +300,24 @@ export function FidePage() {
                 </button>
               }
               action={
-                leaderboardRows.length > 0 ? (
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={handleDownload}
-                    disabled={downloading}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white border border-white/60 hover:border-white rounded-lg transition-colors"
+                    onClick={() => { setRenamingLeaderboard(true); setRenameInput(leaderboardName || ''); }}
+                    className="p-1.5 text-slate-400 hover:text-white transition-colors"
+                    title={t('chess.fide.renameLeaderboard')}
                   >
-                    <Download className="w-3.5 h-3.5" />
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
-                ) : undefined
+                  {leaderboardRows.length > 0 && (
+                    <button
+                      onClick={handleDownload}
+                      disabled={downloading}
+                      className="p-1.5 text-slate-400 hover:text-white transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               }
             >
               <div ref={leaderboardRef} className="py-2">
@@ -299,6 +327,7 @@ export function FidePage() {
                   <table className="w-full">
                     <thead>
                       <tr className="text-slate-400 text-sm border-b border-slate-600">
+                        <th className="text-left py-2 px-2 font-medium w-10">{t('chess.fide.rank')}</th>
                         <th className="text-left py-2 px-3 font-medium">{t('chess.fide.name')}</th>
                         <th className="text-right py-2 px-3 font-medium">{t('chess.fide.elo')}</th>
                         <th className="w-10"></th>
@@ -310,6 +339,9 @@ export function FidePage() {
                           key={row.fide_id ?? `user-${i}`}
                           className="border-b border-slate-600/50 last:border-0 group"
                         >
+                          <td className="py-2.5 px-2">
+                            <span className="text-sm text-slate-400 font-mono">#{ranks[i]}</span>
+                          </td>
                           <td className="py-2.5 px-3">
                             <span className="text-sm text-slate-200">
                               {federationToFlag(row.federation)} {row.name}
@@ -411,6 +443,38 @@ export function FidePage() {
                 ) : (
                   t('chess.fide.add')
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Rename leaderboard modal */}
+      {renamingLeaderboard && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setRenamingLeaderboard(false)}>
+          <div className="bg-slate-800 rounded-xl p-5 w-full max-w-md mx-4 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="relative flex items-center justify-center">
+              <h2 className="text-lg font-bold text-slate-100">{t('chess.fide.renameLeaderboard')}</h2>
+              <button onClick={() => setRenamingLeaderboard(false)} className="absolute right-0 text-slate-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex gap-2 justify-center">
+              <input
+                autoFocus
+                type="text"
+                value={renameInput}
+                onChange={e => setRenameInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleRenameLeaderboard()}
+                placeholder={t('chess.fide.leaderboard')}
+                className="bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 w-48"
+              />
+            </div>
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={handleRenameLeaderboard}
+                className="px-4 py-2 bg-cyan-600 text-white text-sm font-medium rounded-lg hover:bg-cyan-500 transition-colors"
+              >
+                {t('chess.fide.save')}
               </button>
             </div>
           </div>
