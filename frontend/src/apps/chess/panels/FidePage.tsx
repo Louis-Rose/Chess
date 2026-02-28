@@ -48,14 +48,6 @@ function getRatingForTimeClass(fideData: FideData, timeClass: string): number | 
   }
 }
 
-function getTimeClassLabel(timeClass: string): string {
-  switch (timeClass) {
-    case 'rapid': return 'Rapid';
-    case 'blitz': return 'Blitz';
-    case 'bullet': return 'Blitz'; // FIDE has no bullet
-    default: return 'Classical';
-  }
-}
 
 export function FidePage() {
   const { t } = useLanguage();
@@ -111,7 +103,6 @@ export function FidePage() {
 
   const nr = t('chess.fide.notRated');
   const currentRating = fideData ? getRatingForTimeClass(fideData, selectedTimeClass || 'rapid') : null;
-  const currentLabel = getTimeClassLabel(selectedTimeClass || 'rapid');
 
   return (
     <CardPageLayout>
@@ -181,7 +172,7 @@ export function FidePage() {
             )}
 
             {/* Player info */}
-            <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-6">
               <span className="text-2xl">{federationToFlag(fideData.federation)}</span>
               <div>
                 <p className="text-lg font-bold text-slate-100">
@@ -194,7 +185,6 @@ export function FidePage() {
             {/* Single rating for selected time class */}
             <div className="max-w-xs mx-auto">
               <div className="bg-slate-600 rounded-xl p-6 text-center">
-                <p className="text-sm text-slate-400 uppercase tracking-wider mb-2">{currentLabel}</p>
                 <p className="text-4xl font-bold text-cyan-400">{currentRating ?? nr}</p>
               </div>
             </div>
