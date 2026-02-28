@@ -67,6 +67,7 @@ export function FidePage() {
 
   // Leaderboard state
   const [friends, setFriends] = useState<FideFriend[]>([]);
+  const [friendsLoading, setFriendsLoading] = useState(true);
   const [addingFriend, setAddingFriend] = useState(false);
   const [friendInput, setFriendInput] = useState('');
   const [friendError, setFriendError] = useState(false);
@@ -77,11 +78,14 @@ export function FidePage() {
 
   const loadFriends = useCallback(async () => {
     if (!searchedUsername) return;
+    setFriendsLoading(true);
     try {
       const data = await fetchFideFriends(searchedUsername);
       setFriends(data);
     } catch {
       // silently fail
+    } finally {
+      setFriendsLoading(false);
     }
   }, [searchedUsername]);
 
@@ -289,7 +293,18 @@ export function FidePage() {
           {/* Leaderboard */}
           <div className="mt-6">
             <ChessCard
-              title={leaderboardName || t('chess.fide.leaderboard')}
+              title={
+                <span className="inline-flex items-center gap-2">
+                  {leaderboardName || t('chess.fide.leaderboard')}
+                  <button
+                    onClick={() => { setRenamingLeaderboard(true); setRenameInput(leaderboardName || ''); }}
+                    className="text-white hover:text-slate-300 transition-colors"
+                    title={t('chess.fide.renameLeaderboard')}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                </span>
+              }
               leftAction={
                 <button
                   onClick={() => { setAddingFriend(true); setFriendInput(''); setFriendError(false); }}
@@ -300,28 +315,23 @@ export function FidePage() {
                 </button>
               }
               action={
-                <div className="flex items-center gap-2">
+                leaderboardRows.length > 0 ? (
                   <button
-                    onClick={() => { setRenamingLeaderboard(true); setRenameInput(leaderboardName || ''); }}
-                    className="p-1.5 text-slate-400 hover:text-white transition-colors"
-                    title={t('chess.fide.renameLeaderboard')}
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    className="p-1.5 text-white hover:text-slate-300 transition-colors"
                   >
-                    <Pencil className="w-3.5 h-3.5" />
+                    <Download className="w-5 h-5" />
                   </button>
-                  {leaderboardRows.length > 0 && (
-                    <button
-                      onClick={handleDownload}
-                      disabled={downloading}
-                      className="p-1.5 text-slate-400 hover:text-white transition-colors"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
+                ) : undefined
               }
             >
               <div ref={leaderboardRef} className="py-2">
-                {leaderboardRows.length === 0 ? (
+                {friendsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="w-8 h-8 border-3 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : leaderboardRows.length === 0 ? (
                   <p className="text-slate-400 text-center py-4">{t('chess.fide.link')}</p>
                 ) : (
                   <table className="w-full">
@@ -343,9 +353,14 @@ export function FidePage() {
                             <span className="text-sm text-slate-400 font-mono">#{ranks[i]}</span>
                           </td>
                           <td className="py-2.5 px-3">
-                            <span className="text-sm text-slate-200">
+                            <a
+                              href={`https://ratings.fide.com/profile/${row.fide_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-slate-200 hover:text-cyan-400 transition-colors"
+                            >
                               {federationToFlag(row.federation)} {row.name}
-                            </span>
+                            </a>
                           </td>
                           <td className="py-2.5 px-3 text-right">
                             <span className={`text-sm font-mono ${row.rating != null ? 'text-slate-200' : 'text-slate-500'}`}>

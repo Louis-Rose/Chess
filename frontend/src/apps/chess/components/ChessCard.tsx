@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 export function ChessCard({ title, action, leftAction, children }: {
-  title?: string;
+  title?: ReactNode;
   action?: ReactNode;
   leftAction?: ReactNode;
   children: ReactNode;
