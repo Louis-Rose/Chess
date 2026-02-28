@@ -1,28 +1,25 @@
 import { useState, useMemo, useReducer, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot,
 } from 'recharts';
-import { ArrowLeft, Pencil, X, Minus, Plus } from 'lucide-react';
+import { Pencil, X, Minus, Plus } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { TimeClassToggle } from '../components/TimeClassToggle';
-import { AnalyzedGamesBanner } from '../components/AnalyzedGamesBanner';
-import { TimePeriodToggle, getDateCutoff } from '../components/TimePeriodToggle';
-import type { TimePeriod } from '../components/TimePeriodToggle';
+import { CardPageLayout } from '../components/CardPageLayout';
+import { useTimePeriod } from '../hooks/useTimePeriod';
+import { getDateCutoff } from '../components/TimePeriodToggle';
 import { getChessPrefs, saveChessPrefs, syncGoalFromServer } from '../utils/constants';
 import type { TimeClass } from '../utils/types';
 import { ChessCard } from '../components/ChessCard';
 
 export function GoalPage() {
-  const navigate = useNavigate();
-  const { data, loading, selectedTimeClass, handleTimeClassChange, playerInfo, searchedUsername } = useChessData();
+  const { data, loading, selectedTimeClass, playerInfo, searchedUsername } = useChessData();
   const { t } = useLanguage();
   const [, forceUpdate] = useReducer(x => x + 1, 0);
   const [editing, setEditing] = useState(false);
   const [draftGoal, setDraftGoal] = useState<number | null>(null);
   const [draftMonths, setDraftMonths] = useState(3);
-  const [period, setPeriod] = useState<TimePeriod>('ALL');
+  const { period, toggle } = useTimePeriod();
 
   // Re-render when prefs change (goal synced from server)
   useEffect(() => {
@@ -189,23 +186,7 @@ export function GoalPage() {
   const showChart = chartData.length > 0;
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="max-w-4xl mx-auto -mt-1 space-y-2">
-
-        <AnalyzedGamesBanner />
-        {/* Header */}
-        <div className="relative flex items-center justify-center">
-          <button
-            onClick={() => navigate('/chess')}
-            className="absolute left-2 md:left-4 flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Previous</span>
-          </button>
-          <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} disabled={loading} />
-        </div>
-        <div className="border-t border-slate-700" />
-
+    <CardPageLayout>
         {/* No goal — prompt to set one */}
         {!hasGoal && !editing && !showChart && (
           <div className="text-center py-12 space-y-4">
@@ -232,7 +213,7 @@ export function GoalPage() {
                   {t('chess.goalCard.setGoal')}
                 </button>
               }
-              action={<TimePeriodToggle selected={period} onChange={setPeriod} />}
+              action={toggle}
             >
               <div className="h-[450px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -310,7 +291,7 @@ export function GoalPage() {
                 {t('chess.goalCard.updateGoal')}
               </button>
             }
-            action={<TimePeriodToggle selected={period} onChange={setPeriod} />}
+            action={toggle}
           >
             <div className="h-[450px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -447,7 +428,6 @@ export function GoalPage() {
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </CardPageLayout>
   );
 }

@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { ChessCard } from '../components/ChessCard';
-import { TimeClassToggle } from '../components/TimeClassToggle';
-import { AnalyzedGamesBanner } from '../components/AnalyzedGamesBanner';
+import { CardPageLayout } from '../components/CardPageLayout';
 import { fetchFideId, fetchFideRating, saveFideId } from '../hooks/api';
 
 interface FideData {
@@ -60,9 +58,8 @@ function getTimeClassLabel(timeClass: string): string {
 }
 
 export function FidePage() {
-  const navigate = useNavigate();
   const { t } = useLanguage();
-  const { searchedUsername, selectedTimeClass, handleTimeClassChange, loading: dataLoading } = useChessData();
+  const { searchedUsername, selectedTimeClass } = useChessData();
 
   const [fideId, setFideId] = useState<string | null>(null);
   const [fideData, setFideData] = useState<FideData | null>(null);
@@ -117,33 +114,53 @@ export function FidePage() {
   const currentLabel = getTimeClassLabel(selectedTimeClass || 'rapid');
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="max-w-4xl mx-auto -mt-1 space-y-2">
-
-        <AnalyzedGamesBanner />
-        {/* Header with back button + time class toggle */}
-        <div className="relative flex items-center justify-center">
-          <button
-            onClick={() => navigate('/chess')}
-            className="absolute left-2 md:left-4 flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Previous</span>
-          </button>
-          <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} disabled={dataLoading} />
+    <CardPageLayout>
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
         </div>
-        <div className="border-t border-slate-700" />
-
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+      ) : !fideId || error || !fideData ? (
+        <ChessCard title={t('chess.fide.title')}>
+          <div className="flex flex-col items-center gap-4 py-8">
+            <img src="/fide-logo.png" alt="FIDE" className="w-16 h-16 rounded-xl object-cover" />
+            <p className="text-slate-400 text-center">{t('chess.fide.link')}</p>
+            <div className="flex gap-2 w-full max-w-[280px]">
+              <input
+                autoFocus
+                type="text"
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSave()}
+                placeholder={t('chess.fide.enterFideId')}
+                className="flex-1 bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500"
+              />
+              <button
+                onClick={handleSave}
+                disabled={!inputValue.trim()}
+                className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              >
+                {t('chess.fide.save')}
+              </button>
+            </div>
+            {error && <p className="text-sm text-red-400">Invalid FIDE ID — please try again</p>}
           </div>
-        ) : !fideId || error || !fideData ? (
-          <ChessCard title={t('chess.fide.title')}>
-            <div className="flex flex-col items-center gap-4 py-8">
-              <img src="/fide-logo.png" alt="FIDE" className="w-16 h-16 rounded-xl object-cover" />
-              <p className="text-slate-400 text-center">{t('chess.fide.link')}</p>
-              <div className="flex gap-2 w-full max-w-[280px]">
+        </ChessCard>
+      ) : (
+        <ChessCard
+          title={t('chess.fide.title')}
+          action={
+            <button
+              onClick={() => { setEditing(!editing); setInputValue(fideId || ''); }}
+              className="text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          }
+        >
+          <div className="py-4">
+            {/* Edit inline */}
+            {editing && (
+              <div className="flex gap-2 justify-center mb-6">
                 <input
                   autoFocus
                   type="text"
@@ -151,7 +168,7 @@ export function FidePage() {
                   onChange={e => setInputValue(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSave()}
                   placeholder={t('chess.fide.enterFideId')}
-                  className="flex-1 bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500"
+                  className="bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 w-48"
                 />
                 <button
                   onClick={handleSave}
@@ -161,66 +178,29 @@ export function FidePage() {
                   {t('chess.fide.save')}
                 </button>
               </div>
-              {error && <p className="text-sm text-red-400">Invalid FIDE ID — please try again</p>}
-            </div>
-          </ChessCard>
-        ) : (
-          <ChessCard
-            title={t('chess.fide.title')}
-            action={
-              <button
-                onClick={() => { setEditing(!editing); setInputValue(fideId || ''); }}
-                className="text-slate-400 hover:text-slate-200 transition-colors"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-            }
-          >
-            <div className="py-4">
-              {/* Edit inline */}
-              {editing && (
-                <div className="flex gap-2 justify-center mb-6">
-                  <input
-                    autoFocus
-                    type="text"
-                    value={inputValue}
-                    onChange={e => setInputValue(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleSave()}
-                    placeholder={t('chess.fide.enterFideId')}
-                    className="bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 w-48"
-                  />
-                  <button
-                    onClick={handleSave}
-                    disabled={!inputValue.trim()}
-                    className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-                  >
-                    {t('chess.fide.save')}
-                  </button>
-                </div>
-              )}
+            )}
 
-              {/* Player info */}
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <span className="text-2xl">{federationToFlag(fideData.federation)}</span>
-                <div>
-                  <p className="text-lg font-bold text-slate-100">
-                    {fideData.fide_title && fideData.fide_title !== 'None' ? `${fideData.fide_title} ` : ''}{fideData.name}
-                  </p>
-                  <p className="text-sm text-slate-400">{fideData.federation}</p>
-                </div>
-              </div>
-
-              {/* Single rating for selected time class */}
-              <div className="max-w-xs mx-auto">
-                <div className="bg-slate-600 rounded-xl p-6 text-center">
-                  <p className="text-sm text-slate-400 uppercase tracking-wider mb-2">{currentLabel}</p>
-                  <p className="text-4xl font-bold text-cyan-400">{currentRating ?? nr}</p>
-                </div>
+            {/* Player info */}
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <span className="text-2xl">{federationToFlag(fideData.federation)}</span>
+              <div>
+                <p className="text-lg font-bold text-slate-100">
+                  {fideData.fide_title && fideData.fide_title !== 'None' ? `${fideData.fide_title} ` : ''}{fideData.name}
+                </p>
+                <p className="text-sm text-slate-400">{fideData.federation}</p>
               </div>
             </div>
-          </ChessCard>
-        )}
-      </div>
-    </div>
+
+            {/* Single rating for selected time class */}
+            <div className="max-w-xs mx-auto">
+              <div className="bg-slate-600 rounded-xl p-6 text-center">
+                <p className="text-sm text-slate-400 uppercase tracking-wider mb-2">{currentLabel}</p>
+                <p className="text-4xl font-bold text-cyan-400">{currentRating ?? nr}</p>
+              </div>
+            </div>
+          </div>
+        </ChessCard>
+      )}
+    </CardPageLayout>
   );
 }

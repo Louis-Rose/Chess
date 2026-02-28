@@ -1,12 +1,9 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { useMemo } from 'react';
+import { Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { TimeClassToggle } from '../components/TimeClassToggle';
-import { AnalyzedGamesBanner } from '../components/AnalyzedGamesBanner';
-import { TimePeriodToggle } from '../components/TimePeriodToggle';
-import type { TimePeriod } from '../components/TimePeriodToggle';
+import { CardPageLayout } from '../components/CardPageLayout';
+import { useTimePeriod } from '../hooks/useTimePeriod';
 import { ChessCard } from '../components/ChessCard';
 import type { HourlyStats } from '../utils/types';
 import {
@@ -148,41 +145,25 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
 }
 
 export function BestHoursPage() {
-  const navigate = useNavigate();
   const { t } = useLanguage();
-  const { data, loading, selectedTimeClass, handleTimeClassChange } = useChessData();
-  const [period, setPeriod] = useState<TimePeriod>('ALL');
+  const { data, loading } = useChessData();
+  const { toggle } = useTimePeriod();
 
   if (!data && !loading) return <p className="text-slate-400 text-center mt-16">{t('chess.noData')}</p>;
 
   const stats = data?.hourly_stats;
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="max-w-4xl mx-auto -mt-1 space-y-2">
-
-        <AnalyzedGamesBanner />
-        <div className="relative flex items-center justify-center">
-          <button
-            onClick={() => navigate('/chess')}
-            className="absolute left-2 md:left-4 flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Previous</span>
-          </button>
-          <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} disabled={loading} />
-        </div>
-        <div className="border-t border-slate-700" />
-        {loading && !data ? (
-          <div className="flex justify-center py-20"><Loader2 className="w-12 h-12 text-slate-400 animate-spin" /></div>
-        ) : stats && stats.length > 0 ? (
-          <ChessCard title={t('chess.bestHoursTitle')} action={<TimePeriodToggle selected={period} onChange={setPeriod} />}>
-            <HoursChart stats={stats} />
-          </ChessCard>
-        ) : (
-          data && <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>
-        )}
-      </div>
-    </div>
+    <CardPageLayout>
+      {loading && !data ? (
+        <div className="flex justify-center py-20"><Loader2 className="w-12 h-12 text-slate-400 animate-spin" /></div>
+      ) : stats && stats.length > 0 ? (
+        <ChessCard title={t('chess.bestHoursTitle')} action={toggle}>
+          <HoursChart stats={stats} />
+        </ChessCard>
+      ) : (
+        data && <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>
+      )}
+    </CardPageLayout>
   );
 }
