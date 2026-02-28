@@ -34,7 +34,7 @@ export function FideRatingCard() {
       <div className="absolute top-5 left-5 w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
         <img src="/fide-logo.png" alt="FIDE" className="w-10 h-10 object-cover" />
       </div>
-      <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance pl-12 pr-2 py-4">{t('chess.fide.title')}</h3>
+      <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance px-12 py-4">{t('chess.fide.title')}</h3>
       {subtitle && (
         <p className="text-sm text-slate-400 -mt-3">{subtitle}</p>
       )}

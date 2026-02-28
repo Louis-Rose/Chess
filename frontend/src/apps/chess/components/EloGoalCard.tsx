@@ -48,7 +48,7 @@ export function EloGoalCard() {
       <div className="absolute top-5 left-5 w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
         <Target className="w-5 h-5 text-white" />
       </div>
-      <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance pl-12 pr-2 py-4">{title}</h3>
+      <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance px-12 py-4">{title}</h3>
       {hasGoal && (
         <p className="text-lg font-bold text-slate-100 -mt-3">{goalSubtitle}</p>
       )}
