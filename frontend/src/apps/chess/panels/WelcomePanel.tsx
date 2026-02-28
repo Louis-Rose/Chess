@@ -7,6 +7,7 @@ import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LoadingProgress } from '../../../components/shared/LoadingProgress';
 import { EloGoalCard } from '../components/EloGoalCard';
+import { FideRatingCard } from '../components/FideRatingCard';
 
 // Card definitions - titleKey/descriptionKey are i18n keys resolved at render time
 const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; iconBg: string; titleKey: string; descriptionKey: string | null }[] = [
@@ -126,6 +127,7 @@ export function WelcomePanel() {
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-[5%] md:mx-auto">
           <EloGoalCard />
+          <FideRatingCard />
           {CARDS.map((card) => {
             const title = t(card.titleKey);
             const description = card.descriptionKey ? t(card.descriptionKey) : null;

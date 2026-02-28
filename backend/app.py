@@ -1314,6 +1314,85 @@ def save_chess_goal():
     return jsonify({'success': True})
 
 
+# ---- FIDE Rating ----
+_fide_cache = {}  # {fide_id: (data, timestamp)}
+FIDE_CACHE_TTL = 86400  # 24 hours
+
+
+@app.route('/api/chess/fide-rating', methods=['GET'])
+def get_fide_rating():
+    """Fetch FIDE ratings for a player by FIDE ID (cached 24h)."""
+    fide_id = (request.args.get('fide_id') or '').strip()
+    if not fide_id:
+        return jsonify({'error': 'fide_id required'}), 400
+
+    # Check cache
+    import time as _time
+    now = _time.time()
+    if fide_id in _fide_cache:
+        cached_data, cached_at = _fide_cache[fide_id]
+        if now - cached_at < FIDE_CACHE_TTL:
+            return jsonify(cached_data)
+
+    try:
+        resp = http_requests.get(
+            f'https://fide-api.vercel.app/player_info/?fide_id={fide_id}',
+            timeout=10
+        )
+        resp.raise_for_status()
+        raw = resp.json()
+        data = {
+            'name': raw.get('name'),
+            'federation': raw.get('federation'),
+            'fide_title': raw.get('fide_title'),
+            'classical_rating': raw.get('classical_rating'),
+            'rapid_rating': raw.get('rapid_rating'),
+            'blitz_rating': raw.get('blitz_rating'),
+        }
+        _fide_cache[fide_id] = (data, now)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch FIDE data: {str(e)}'}), 502
+
+
+@app.route('/api/chess/fide-id', methods=['GET'])
+def get_fide_id():
+    """Fetch saved FIDE ID for a chess username."""
+    username = (request.args.get('username') or '').strip().lower()
+    if not username:
+        return jsonify({'fide_id': None})
+
+    with get_db() as conn:
+        cursor = conn.execute(
+            'SELECT fide_id FROM chess_user_prefs WHERE username = ?',
+            (username,)
+        )
+        row = cursor.fetchone()
+
+    return jsonify({'fide_id': row['fide_id'] if row else None})
+
+
+@app.route('/api/chess/fide-id', methods=['POST'])
+def save_fide_id():
+    """Save FIDE ID for a chess username."""
+    data = request.get_json() or {}
+    username = (data.get('username') or '').strip().lower()
+    fide_id = (data.get('fide_id') or '').strip()
+    if not username:
+        return jsonify({'error': 'username required'}), 400
+
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO chess_user_prefs (username, fide_id, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(username) DO UPDATE SET
+                fide_id = excluded.fide_id,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (username, fide_id or None))
+
+    return jsonify({'success': True})
+
+
 @app.route('/api/chess/onboarding', methods=['GET'])
 def get_chess_onboarding():
     """Check if a chess username has completed onboarding."""

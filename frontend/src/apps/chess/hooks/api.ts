@@ -35,6 +35,27 @@ export const saveOnboardingDone = async (username: string, preferred_time_class?
   await axios.post('/api/chess/onboarding', { username, preferred_time_class });
 };
 
+export const fetchFideRating = async (fideId: string) => {
+  const response = await axios.get(`/api/chess/fide-rating?fide_id=${encodeURIComponent(fideId)}`);
+  return response.data as {
+    name: string | null;
+    federation: string | null;
+    fide_title: string | null;
+    classical_rating: number | null;
+    rapid_rating: number | null;
+    blitz_rating: number | null;
+  };
+};
+
+export const fetchFideId = async (username: string): Promise<string | null> => {
+  const response = await axios.get(`/api/chess/fide-id?username=${encodeURIComponent(username)}`);
+  return response.data.fide_id;
+};
+
+export const saveFideId = async (username: string, fideId: string) => {
+  await axios.post('/api/chess/fide-id', { username, fide_id: fideId });
+};
+
 export const fetchChessInsight = async (
   type: string,
   rows: { games_per_day: number; win_rate: number }[],
