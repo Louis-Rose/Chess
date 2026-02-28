@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useChessData } from '../contexts/ChessDataContext';
 import { fetchFideId, fetchFideRating } from '../hooks/api';
@@ -26,15 +26,17 @@ export function FideRatingCard() {
   const { searchedUsername, selectedTimeClass } = useChessData();
 
   const [fideData, setFideData] = useState<FideData | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!searchedUsername) return;
+    setLoading(true);
     fetchFideId(searchedUsername).then(id => {
-      if (!id) return;
+      if (!id) { setLoading(false); return; }
       fetchFideRating(id).then(data => {
         setFideData(data);
-      }).catch(() => {});
-    });
+      }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => setLoading(false));
   }, [searchedUsername]);
 
   const rating = fideData ? getRatingForTimeClass(fideData, selectedTimeClass || 'rapid') : null;
@@ -49,7 +51,9 @@ export function FideRatingCard() {
         <img src="/fide-logo.png" alt="FIDE" className="w-10 h-10 object-cover" />
       </div>
       <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance px-12 py-4">{t('chess.fide.title')}</h3>
-      <p className="text-lg font-bold text-slate-100 -mt-3">{subtitle ?? '\u00A0'}</p>
+      <p className="text-lg font-bold text-slate-100 -mt-3">
+        {loading ? <Loader2 className="w-5 h-5 animate-spin text-slate-400 mx-auto" /> : (subtitle ?? '\u00A0')}
+      </p>
       <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
     </div>
   );
