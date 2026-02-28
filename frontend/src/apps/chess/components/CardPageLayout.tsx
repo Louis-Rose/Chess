@@ -16,7 +16,7 @@ export function CardPageLayout({ children, totalGames }: CardPageLayoutProps) {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="max-w-4xl mx-auto -mt-1">
+      <div className="max-w-4xl mx-auto">
         <AnalyzedGamesBanner totalGames={totalGames} />
         <div className="relative flex items-center justify-center pt-2">
           <button
