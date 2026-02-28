@@ -9,6 +9,7 @@ import { StreakPage } from './panels/StreakPage';
 import { BestHoursPage } from './panels/BestHoursPage';
 import { BestDaysPage } from './panels/BestDaysPage';
 import { GoalPage } from './panels/GoalPage';
+import { FidePage } from './panels/FidePage';
 import { ChessAdminPanel } from './panels/AdminPanel';
 
 export function ChessApp() {
@@ -27,6 +28,7 @@ export function ChessApp() {
         <Route path="best-hours" element={<BestHoursPage />} />
         <Route path="best-days" element={<BestDaysPage />} />
         <Route path="goal" element={<GoalPage />} />
+        <Route path="fide" element={<FidePage />} />
         <Route path="admin" element={<ChessAdminPanel />} />
       </Route>
     </Routes>
