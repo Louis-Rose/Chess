@@ -34,14 +34,10 @@ export function FideRatingCard() {
       <div className="absolute top-5 left-5 w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
         <img src="/fide-logo.png" alt="FIDE" className="w-10 h-10 object-cover" />
       </div>
-      <div className="pl-12 pr-2 text-center">
-        <h3 className="text-lg font-bold text-slate-100 select-text text-balance">{t('chess.fide.title')}</h3>
-        {subtitle ? (
-          <p className="text-sm text-slate-400 mt-0.5">{subtitle}</p>
-        ) : (
-          <p className="text-xs text-slate-500 mt-0.5">{t('chess.aiTagline')}</p>
-        )}
-      </div>
+      <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance pl-12 pr-2 py-4">{t('chess.fide.title')}</h3>
+      {subtitle && (
+        <p className="text-sm text-slate-400 -mt-3">{subtitle}</p>
+      )}
       <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
     </div>
   );

@@ -284,10 +284,11 @@ function MobilePlayerButton() {
 }
 
 function ChessHeader() {
+  const { t } = useLanguage();
   return (
-    <div className="relative flex items-center justify-center px-2 py-3">
+    <div className="relative flex flex-col items-center px-2 py-3">
       {/* Mobile player avatar — left */}
-      <div className="absolute left-2">
+      <div className="absolute left-2 top-3">
         <MobilePlayerButton />
       </div>
       {/* LUMNA — text centered on screen, logo positioned to its left */}
@@ -295,8 +296,9 @@ function ChessHeader() {
         <LumnaLogo className="w-9 h-9 absolute -left-11" />
         <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
       </a>
+      <p className="text-sm text-slate-400 mt-0.5">{t('chess.aiTagline')}</p>
       {/* Language toggle — right */}
-      <div className="absolute right-2">
+      <div className="absolute right-2 top-3">
         <LanguageToggle />
       </div>
     </div>

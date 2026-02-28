@@ -48,14 +48,10 @@ export function EloGoalCard() {
       <div className="absolute top-5 left-5 w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
         <Target className="w-5 h-5 text-white" />
       </div>
-      <div className="pl-12 pr-2 text-center">
-        <h3 className="text-lg font-bold text-slate-100 select-text text-balance">{title}</h3>
-        {hasGoal ? (
-          <p className="text-sm font-semibold text-slate-400 mt-0.5">{goalSubtitle}</p>
-        ) : (
-          <p className="text-xs text-slate-500 mt-0.5">{t('chess.aiTagline')}</p>
-        )}
-      </div>
+      <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance pl-12 pr-2 py-4">{title}</h3>
+      {hasGoal && (
+        <p className="text-sm font-semibold text-slate-400 -mt-3">{goalSubtitle}</p>
+      )}
       <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
     </div>
   );
