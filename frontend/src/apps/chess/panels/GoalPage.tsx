@@ -366,7 +366,7 @@ export function GoalPage() {
 
         {/* Modal editor */}
         {editing && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditing(false)}>
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditing(false)}>
             <div className="bg-slate-800 rounded-xl p-5 w-full max-w-md mx-4 space-y-4" onClick={e => e.stopPropagation()}>
               <div className="relative flex items-center justify-center">
                 <h2 className="text-lg font-bold text-slate-100">{t('chess.goalCard.updateGoal')}</h2>
