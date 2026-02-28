@@ -16,9 +16,9 @@ export function CardPageLayout({ children, totalGames }: CardPageLayoutProps) {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="max-w-4xl mx-auto -mt-1 space-y-2">
+      <div className="max-w-4xl mx-auto -mt-1">
         <AnalyzedGamesBanner totalGames={totalGames} />
-        <div className="relative flex items-center justify-center">
+        <div className="relative flex items-center justify-center pt-2">
           <button
             onClick={() => navigate('/chess')}
             className="absolute left-2 md:left-4 flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base"
@@ -28,7 +28,7 @@ export function CardPageLayout({ children, totalGames }: CardPageLayoutProps) {
           </button>
           <TimeClassToggle selected={selectedTimeClass} onChange={handleTimeClassChange} disabled={loading} />
         </div>
-        <div className="border-t border-slate-700" />
+        <div className="border-t border-slate-700 mt-2" />
         {children}
       </div>
     </div>
