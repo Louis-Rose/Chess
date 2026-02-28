@@ -216,7 +216,7 @@ export function FidePage() {
           </div>
         </ChessCard>
       ) : (
-        <>
+        <div className="flex flex-col gap-4">
           <ChessCard
             title={t('chess.fide.title')}
             leftAction={
@@ -306,7 +306,7 @@ export function FidePage() {
               )}
             </div>
           </ChessCard>
-        </>
+        </div>
       )}
 
       {/* Edit FIDE ID modal */}

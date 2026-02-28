@@ -211,7 +211,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.fide.save': 'Save',
     'chess.fide.updateId': 'Update FIDE ID',
     'chess.fide.leaderboard': 'Leaderboard',
-    'chess.fide.addFriend': 'Add friend',
+    'chess.fide.addFriend': 'Add a friend',
     'chess.fide.removeFriend': 'Remove',
     'chess.fide.enterFriendId': 'Enter FIDE ID',
     'chess.fide.add': 'Add',
