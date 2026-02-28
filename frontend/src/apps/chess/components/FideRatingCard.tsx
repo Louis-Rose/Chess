@@ -5,26 +5,40 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { useChessData } from '../contexts/ChessDataContext';
 import { fetchFideId, fetchFideRating } from '../hooks/api';
 
+interface FideData {
+  rapid_rating: number | null;
+  classical_rating: number | null;
+  blitz_rating: number | null;
+}
+
+function getRatingForTimeClass(data: FideData, timeClass: string): number | null {
+  switch (timeClass) {
+    case 'rapid': return data.rapid_rating;
+    case 'blitz': return data.blitz_rating;
+    case 'bullet': return data.blitz_rating;
+    default: return data.classical_rating;
+  }
+}
+
 export function FideRatingCard() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { searchedUsername } = useChessData();
+  const { searchedUsername, selectedTimeClass } = useChessData();
 
-  const [subtitle, setSubtitle] = useState<string | null>(null);
+  const [fideData, setFideData] = useState<FideData | null>(null);
 
   useEffect(() => {
     if (!searchedUsername) return;
     fetchFideId(searchedUsername).then(id => {
       if (!id) return;
       fetchFideRating(id).then(data => {
-        const parts: string[] = [];
-        if (data.rapid_rating) parts.push(`Rapid ${data.rapid_rating}`);
-        if (data.classical_rating) parts.push(`Classical ${data.classical_rating}`);
-        if (data.blitz_rating) parts.push(`Blitz ${data.blitz_rating}`);
-        if (parts.length > 0) setSubtitle(parts.join(' · '));
+        setFideData(data);
       }).catch(() => {});
     });
   }, [searchedUsername]);
+
+  const rating = fideData ? getRatingForTimeClass(fideData, selectedTimeClass || 'rapid') : null;
+  const subtitle = fideData ? (rating ? String(rating) : t('chess.fide.unrated')) : null;
 
   return (
     <div
@@ -36,7 +50,7 @@ export function FideRatingCard() {
       </div>
       <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance px-12 py-4">{t('chess.fide.title')}</h3>
       {subtitle && (
-        <p className="text-sm text-slate-400 -mt-3">{subtitle}</p>
+        <p className="text-lg font-bold text-slate-100 -mt-3">{subtitle}</p>
       )}
       <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
     </div>
