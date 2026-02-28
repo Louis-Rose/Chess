@@ -1367,6 +1367,12 @@ def _fetch_fide_data(fide_id):
                     elif curr_r == 0 and prev_r > 0:
                         data[f'{tc}_delta'] = -prev_r
                     # else both 0 → stays None
+            elif isinstance(history, list) and len(history) == 1:
+                # Only one month of history → newly rated
+                curr = history[0]
+                for tc in ('classical', 'rapid', 'blitz'):
+                    if (curr.get(f'{tc}_rating') or 0) > 0:
+                        data[f'{tc}_delta'] = 'new'
         except Exception:
             pass  # deltas are best-effort
 
