@@ -20,7 +20,7 @@ export function AnalyzedGamesBanner({ totalGames }: { totalGames?: number }) {
       <div className="flex items-center justify-center py-1">
         <div className="relative flex items-center">
           <CheckCircle2 className="w-4 h-4 text-green-500 absolute -left-6" />
-          <span className="text-slate-400 text-sm">{text}</span>
+          <span className="text-slate-400">{text}</span>
         </div>
       </div>
       <div className="border-t border-slate-700" />
