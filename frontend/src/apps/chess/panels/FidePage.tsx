@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Pencil } from 'lucide-react';
+import { Pencil, X } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { ChessCard } from '../components/ChessCard';
@@ -150,28 +150,6 @@ export function FidePage() {
           }
         >
           <div className="py-4">
-            {/* Edit inline */}
-            {editing && (
-              <div className="flex gap-2 justify-center mb-6">
-                <input
-                  autoFocus
-                  type="text"
-                  value={inputValue}
-                  onChange={e => setInputValue(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSave()}
-                  placeholder={t('chess.fide.enterFideId')}
-                  className="bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 w-48"
-                />
-                <button
-                  onClick={handleSave}
-                  disabled={!inputValue.trim()}
-                  className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-                >
-                  {t('chess.fide.save')}
-                </button>
-              </div>
-            )}
-
             {/* Player info + Rating side by side */}
             <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
               <div className="bg-slate-600 rounded-xl p-3 flex items-center justify-center gap-3">
@@ -189,6 +167,40 @@ export function FidePage() {
             </div>
           </div>
         </ChessCard>
+      )}
+
+      {/* Modal editor */}
+      {editing && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditing(false)}>
+          <div className="bg-slate-800 rounded-xl p-5 w-full max-w-md mx-4 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="relative flex items-center justify-center">
+              <h2 className="text-lg font-bold text-slate-100">{t('chess.fide.updateId')}</h2>
+              <button onClick={() => setEditing(false)} className="absolute right-0 text-slate-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex gap-2 justify-center">
+              <input
+                autoFocus
+                type="text"
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSave()}
+                placeholder={t('chess.fide.enterFideId')}
+                className="bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 w-48"
+              />
+            </div>
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={handleSave}
+                disabled={!inputValue.trim()}
+                className="px-4 py-2 bg-cyan-600 text-white text-sm font-medium rounded-lg hover:bg-cyan-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {t('chess.fide.save')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </CardPageLayout>
   );
