@@ -173,7 +173,7 @@ export function FidePage() {
 
             {/* Player info + Rating side by side */}
             <div className="flex gap-4">
-              <div className="flex-1 bg-slate-600 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="flex-1 bg-slate-600 rounded-xl p-3 flex items-center justify-center gap-3">
                 <span className="text-2xl">{federationToFlag(fideData.federation)}</span>
                 <div>
                   <p className="text-lg font-bold text-slate-100">
@@ -182,7 +182,7 @@ export function FidePage() {
                   <p className="text-sm text-slate-400">{fideData.federation}</p>
                 </div>
               </div>
-              <div className="flex-1 bg-slate-600 rounded-xl px-4 py-3 flex items-center justify-center">
+              <div className="flex-1 bg-slate-600 rounded-xl p-3 flex items-center justify-center">
                 <p className="text-4xl font-bold text-cyan-400">{currentRating ?? nr}</p>
               </div>
             </div>
