@@ -101,7 +101,7 @@ export function FidePage() {
     fetchRating(trimmed);
   };
 
-  const nr = t('chess.fide.notRated');
+  const nr = t('chess.fide.unrated');
   const currentRating = fideData ? getRatingForTimeClass(fideData, selectedTimeClass || 'rapid') : null;
 
   return (
