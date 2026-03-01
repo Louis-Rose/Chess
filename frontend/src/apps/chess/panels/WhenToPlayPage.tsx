@@ -158,8 +158,8 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
 
 /* ── Days chart ─────────────────────────────────────────────── */
 
-const DAY_NAMES_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const DAY_NAMES_FR = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const DAY_NAMES_EN = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_NAMES_FR = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 const MIN_SAMPLE = 30;
 
 function DaysChart({ stats }: { stats: DayOfWeekStats[] }) {
@@ -203,10 +203,12 @@ function DaysChart({ stats }: { stats: DayOfWeekStats[] }) {
             <ReferenceLine yAxisId="left" y={baseline} stroke="#f1f5f9" strokeWidth={2} strokeOpacity={0.5} strokeDasharray="6 3" />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: isMobile ? 13 : 15, fill: '#f1f5f9', fontWeight: 600 }}
+              tick={{ fontSize: isMobile ? 12 : 13, fill: '#f1f5f9', fontWeight: 600 }}
               interval={0}
+              angle={-45}
+              textAnchor="end"
+              height={75}
               label={{ value: dayLabel, position: 'insideBottom', offset: -5, fill: '#f1f5f9', fontSize: isMobile ? 13 : 14, fontWeight: 600 }}
-              height={50}
             />
             <YAxis
               yAxisId="left"
@@ -307,9 +309,12 @@ function getCellTextColor(winRate: number | null): string {
   return 'text-white';
 }
 
+const HEATMAP_DAYS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const HEATMAP_DAYS_FR = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
 function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
   const { t, language } = useLanguage();
-  const dayLabels = language === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
+  const dayLabels = language === 'fr' ? HEATMAP_DAYS_FR : HEATMAP_DAYS_EN;
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   // Build a lookup: cellMap[day][hour_group]
