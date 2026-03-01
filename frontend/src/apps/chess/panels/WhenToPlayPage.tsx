@@ -332,16 +332,12 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
     [language]
   );
 
+  const fullDayLabels = language === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
+
   return (
     <div className="overflow-x-auto">
       <div className={`grid gap-[2px] ${isMobile ? 'min-w-[480px]' : ''}`}
         style={{ gridTemplateColumns: `auto repeat(7, 1fr)` }}>
-        {/* Header row: empty corner + day names */}
-        <div />
-        {dayLabels.map(d => (
-          <div key={d} className="text-center text-[11px] md:text-xs font-semibold text-slate-300 py-1">{d}</div>
-        ))}
-
         {/* Data rows: hour label + 7 day cells */}
         {Array.from({ length: 12 }, (_, hg) => (
           <div key={hg} className="contents">
@@ -366,7 +362,7 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
                   {/* Tooltip on hover */}
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10 pointer-events-none">
                     <div className="bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 whitespace-nowrap shadow-lg">
-                      <p className="text-xs font-bold text-white">{dayLabels[day]} {hourLabels[hg]}</p>
+                      <p className="text-xs font-bold text-white">{fullDayLabels[day]} {hourLabels[hg]}</p>
                       {wr != null ? (
                         <p className={`text-xs font-semibold ${wr >= 50 ? 'text-green-400' : 'text-red-400'}`}>
                           {wr}%
@@ -380,6 +376,14 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
                 </div>
               );
             })}
+          </div>
+        ))}
+
+        {/* Bottom row: empty corner + angled full day names */}
+        <div />
+        {fullDayLabels.map(d => (
+          <div key={d} className="flex justify-center pt-1">
+            <span className="text-[11px] md:text-xs font-semibold text-slate-300 -rotate-45 origin-top whitespace-nowrap">{d}</span>
           </div>
         ))}
       </div>
