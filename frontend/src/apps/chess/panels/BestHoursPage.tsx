@@ -146,8 +146,8 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
                   key={`seg-${i}`}
                   yAxisId="left"
                   segment={[
-                    { x: prev.label, y: prev.win_rate },
-                    { x: d.label, y: d.win_rate },
+                    { x: prev.label, y: prev.win_rate as number },
+                    { x: d.label, y: d.win_rate as number },
                   ]}
                   stroke="#e2e8f0"
                   strokeWidth={2}
