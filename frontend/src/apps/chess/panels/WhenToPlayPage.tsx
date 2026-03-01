@@ -309,12 +309,8 @@ function getCellTextColor(winRate: number | null): string {
   return 'text-white';
 }
 
-const HEATMAP_DAYS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const HEATMAP_DAYS_FR = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-
 function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
   const { t, language } = useLanguage();
-  const dayLabels = language === 'fr' ? HEATMAP_DAYS_FR : HEATMAP_DAYS_EN;
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   // Build a lookup: cellMap[day][hour_group]
