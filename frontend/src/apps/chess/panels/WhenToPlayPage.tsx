@@ -405,8 +405,8 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
 type ViewMode = 'hour' | 'day' | 'both';
 
 const VIEW_LABELS: Record<ViewMode, { en: string; fr: string }> = {
-  hour: { en: 'Hour', fr: 'Heure' },
-  day: { en: 'Day', fr: 'Jour' },
+  hour: { en: 'Day', fr: 'Jour' },
+  day: { en: 'Week', fr: 'Semaine' },
   both: { en: 'Both', fr: 'Les deux' },
 };
 
