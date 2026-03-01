@@ -350,7 +350,7 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
               return (
                 <div
                   key={day}
-                  className={`relative group rounded-[3px] md:rounded ${getCellColor(wr)} flex items-center justify-center aspect-[1.6] md:aspect-[1.4] cursor-default`}
+                  className={`relative group rounded-[3px] md:rounded ${getCellColor(wr)} flex items-center justify-center h-[26px] md:h-[30px] cursor-default`}
                 >
                   {/* Desktop: show value inside cell */}
                   {!isMobile && (
