@@ -366,7 +366,7 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
                       ) : (
                         <p className="text-xs text-slate-500">{t('chess.insufficientData')}</p>
                       )}
-                      <p className="text-[10px] text-slate-400">{n} games</p>
+                      <p className="text-[10px] text-slate-400">{n} {n === 1 ? 'game' : 'games'}</p>
                     </div>
                   </div>
                 </div>
