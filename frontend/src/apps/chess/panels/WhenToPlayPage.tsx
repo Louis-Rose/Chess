@@ -459,28 +459,13 @@ export function WhenToPlayPage() {
         <div className="flex justify-center py-20"><Loader2 className="w-12 h-12 text-slate-400 animate-spin" /></div>
       ) : data ? (
         <ChessCard
-          title={t('chess.whenToPlayTitle')}
+          title={view === 'hour' ? t('chess.bestHoursTitle') : view === 'day' ? t('chess.bestDaysTitle') : t('chess.heatmapTitle')}
           action={toggle}
           leftAction={<ViewToggle selected={view} onChange={setView} language={language} />}
         >
-          {view === 'hour' && (
-            <>
-              <p className="text-sm font-semibold text-slate-300 mb-2">{t('chess.bestHoursTitle')}</p>
-              <HoursChart stats={hourlyStats ?? []} />
-            </>
-          )}
-          {view === 'day' && (
-            <>
-              <p className="text-sm font-semibold text-slate-300 mb-2">{t('chess.bestDaysTitle')}</p>
-              <DaysChart stats={dowStats ?? []} />
-            </>
-          )}
-          {view === 'both' && heatmapCells && (
-            <>
-              <p className="text-sm font-semibold text-slate-300 mb-2">{t('chess.heatmapTitle')}</p>
-              <HeatmapChart cells={heatmapCells} />
-            </>
-          )}
+          {view === 'hour' && <HoursChart stats={hourlyStats ?? []} />}
+          {view === 'day' && <DaysChart stats={dowStats ?? []} />}
+          {view === 'both' && heatmapCells && <HeatmapChart cells={heatmapCells} />}
         </ChessCard>
       ) : null}
     </CardPageLayout>
