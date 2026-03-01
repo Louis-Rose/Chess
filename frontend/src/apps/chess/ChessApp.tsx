@@ -6,8 +6,7 @@ import { ChessLayout } from './ChessLayout';
 import { WelcomePanel } from './panels/WelcomePanel';
 import { DailyVolumePage } from './panels/DailyVolumePage';
 import { StreakPage } from './panels/StreakPage';
-import { BestHoursPage } from './panels/BestHoursPage';
-import { BestDaysPage } from './panels/BestDaysPage';
+import { WhenToPlayPage } from './panels/WhenToPlayPage';
 import { GoalPage } from './panels/GoalPage';
 import { FidePage } from './panels/FidePage';
 import { ChessAdminPanel } from './panels/AdminPanel';
@@ -25,8 +24,7 @@ export function ChessApp() {
         <Route index element={<WelcomePanel />} />
         <Route path="daily-volume" element={<DailyVolumePage />} />
         <Route path="streak" element={<StreakPage />} />
-        <Route path="best-hours" element={<BestHoursPage />} />
-        <Route path="best-days" element={<BestDaysPage />} />
+        <Route path="when-to-play" element={<WhenToPlayPage />} />
         <Route path="goal" element={<GoalPage />} />
         <Route path="fide" element={<FidePage />} />
         <Route path="admin" element={<ChessAdminPanel />} />

@@ -1,7 +1,7 @@
 // Chess Welcome panel
 
 import { useNavigate } from 'react-router-dom';
-import { Calendar, TrendingUp, ChevronRight, Clock, CalendarDays } from 'lucide-react';
+import { Calendar, TrendingUp, ChevronRight, Clock } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -30,21 +30,12 @@ const CARDS: { id: string; path: string; icon: LucideIcon; hoverBorder: string; 
     descriptionKey: null,
   },
   {
-    id: 'best-hours',
-    path: '/chess/best-hours',
+    id: 'when-to-play',
+    path: '/chess/when-to-play',
     icon: Clock,
     hoverBorder: 'hover:border-amber-500',
     iconBg: 'bg-amber-600',
-    titleKey: 'chess.bestHoursTitle',
-    descriptionKey: null,
-  },
-  {
-    id: 'best-days',
-    path: '/chess/best-days',
-    icon: CalendarDays,
-    hoverBorder: 'hover:border-purple-500',
-    iconBg: 'bg-purple-600',
-    titleKey: 'chess.bestDaysTitle',
+    titleKey: 'chess.whenToPlayTitle',
     descriptionKey: null,
   },
 ];

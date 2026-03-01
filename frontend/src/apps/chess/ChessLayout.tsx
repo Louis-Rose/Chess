@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Calendar, TrendingUp, Home, Shield, LogOut, Trash2, Clock, CalendarDays, Award, Target } from 'lucide-react';
+import { Calendar, TrendingUp, Home, Shield, LogOut, Trash2, Clock, Award, Target } from 'lucide-react';
 import { ChessDataProvider } from './contexts/ChessDataContext';
 import { useChessData } from './contexts/ChessDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -19,8 +19,7 @@ const NAV_ITEMS = [
   { path: '/chess/fide', labelKey: 'chess.navFide', icon: Award },
   { path: '/chess/daily-volume', labelKey: 'chess.navDailyVolume', icon: Calendar },
   { path: '/chess/streak', labelKey: 'chess.navStreaks', icon: TrendingUp },
-  { path: '/chess/best-hours', labelKey: 'chess.navBestHours', icon: Clock },
-  { path: '/chess/best-days', labelKey: 'chess.navBestDays', icon: CalendarDays },
+  { path: '/chess/when-to-play', labelKey: 'chess.navWhenToPlay', icon: Clock },
 ];
 
 function ChessNavSidebar() {
