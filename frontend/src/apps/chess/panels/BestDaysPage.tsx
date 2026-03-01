@@ -6,6 +6,7 @@ import { CardPageLayout } from '../components/CardPageLayout';
 import { useTimePeriod } from '../hooks/useTimePeriod';
 import { ChessCard } from '../components/ChessCard';
 import type { DayOfWeekStats } from '../utils/types';
+import { filterGameLog, computeDowStats } from '../utils/helpers';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine, Cell,
@@ -104,11 +105,15 @@ function DaysChart({ stats }: { stats: DayOfWeekStats[] }) {
 export function BestDaysPage() {
   const { t } = useLanguage();
   const { data, loading } = useChessData();
-  const { toggle } = useTimePeriod();
+  const { period, toggle } = useTimePeriod();
+
+  const stats = useMemo(() => {
+    if (!data) return undefined;
+    if (period === 'ALL' || !data.game_log?.length) return data.dow_stats;
+    return computeDowStats(filterGameLog(data.game_log, period));
+  }, [data, period]);
 
   if (!data && !loading) return <p className="text-slate-400 text-center mt-16">{t('chess.noData')}</p>;
-
-  const stats = data?.dow_stats;
 
   return (
     <CardPageLayout>

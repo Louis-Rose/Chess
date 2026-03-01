@@ -270,6 +270,7 @@ export function TodaySection({ data, standalone = false }: { data: ApiResponse; 
 
 import { TimePeriodToggle, getDateCutoff } from '../components/TimePeriodToggle';
 import type { TimePeriod } from '../components/TimePeriodToggle';
+import { filterGameLog, computeStreakStats } from '../utils/helpers';
 
 function aggregateDailyVolume(data: ApiResponse, period: TimePeriod): { stats: DailyVolumeStats[]; filteredGames: number } {
   const raw = data.daily_game_results;
@@ -724,10 +725,13 @@ export function GameNumberSection({ data, standalone = false }: { data: ApiRespo
   );
 }
 
-export function StreakSection({ data, standalone = false, action }: { data: ApiResponse; standalone?: boolean; action?: React.ReactNode }) {
+export function StreakSection({ data, standalone = false, action, period }: { data: ApiResponse; standalone?: boolean; action?: React.ReactNode; period?: TimePeriod }) {
   const { t } = useLanguage();
 
-  const stats = data.streak_stats;
+  const stats = useMemo(() => {
+    if (!period || period === 'ALL' || !data.game_log?.length) return data.streak_stats;
+    return computeStreakStats(filterGameLog(data.game_log, period));
+  }, [data, period]);
 
   const formatLabel = (type: string, len: number) => {
     if (len === 1) return type === 'win' ? t('chess.after1Win') : t('chess.after1Loss');

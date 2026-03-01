@@ -556,6 +556,9 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
         else:
             win_prediction = {'error': 'No game data available', 'sample_size': 0}
 
+        # Compact game log for client-side period filtering: [[timestamp, "w"|"l"|"d"], ...]
+        game_log = [[ts, r[0]] for ts, r in all_games_chrono]
+
         all_time_classes_data[tc] = {
             'time_class': tc,
             'history': games_per_day_data,
@@ -573,6 +576,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             'hourly_stats': hourly_result,
             'dow_stats': dow_result,
             'win_prediction': win_prediction,
+            'game_log': game_log,
             'last_archive': last_archive_processed
         }
 

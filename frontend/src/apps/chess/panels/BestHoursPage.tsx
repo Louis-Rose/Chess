@@ -6,6 +6,7 @@ import { CardPageLayout } from '../components/CardPageLayout';
 import { useTimePeriod } from '../hooks/useTimePeriod';
 import { ChessCard } from '../components/ChessCard';
 import type { HourlyStats } from '../utils/types';
+import { filterGameLog, computeHourlyStats } from '../utils/helpers';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
@@ -146,11 +147,15 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
 export function BestHoursPage() {
   const { t } = useLanguage();
   const { data, loading } = useChessData();
-  const { toggle } = useTimePeriod();
+  const { period, toggle } = useTimePeriod();
+
+  const stats = useMemo(() => {
+    if (!data) return undefined;
+    if (period === 'ALL' || !data.game_log?.length) return data.hourly_stats;
+    return computeHourlyStats(filterGameLog(data.game_log, period));
+  }, [data, period]);
 
   if (!data && !loading) return <p className="text-slate-400 text-center mt-16">{t('chess.noData')}</p>;
-
-  const stats = data?.hourly_stats;
 
   return (
     <CardPageLayout>

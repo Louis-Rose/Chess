@@ -165,6 +165,9 @@ export interface TodayStats {
   current_streak_length: number;
 }
 
+// Compact game log entry: [unix_timestamp, "w"|"l"|"d"]
+export type GameLogEntry = [number, string];
+
 export interface ApiResponse {
   player: PlayerData;
   time_class: string;
@@ -186,6 +189,7 @@ export interface ApiResponse {
   hourly_stats: HourlyStats[];
   dow_stats?: DayOfWeekStats[];
   win_prediction: WinPredictionAnalysis;
+  game_log?: GameLogEntry[];
 }
 
 // SSE streaming types
