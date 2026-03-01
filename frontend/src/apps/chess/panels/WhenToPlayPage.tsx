@@ -378,8 +378,8 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
         {/* Bottom row: empty corner + angled full day names */}
         <div />
         {fullDayLabels.map(d => (
-          <div key={d} className="relative h-16 md:h-20">
-            <span className="absolute top-1 left-1/2 -translate-x-1/2 text-[11px] md:text-xs font-semibold text-slate-300 -rotate-45 whitespace-nowrap">{d}</span>
+          <div key={d} className="relative h-16 md:h-20 overflow-visible">
+            <span className="absolute top-1 left-1/2 text-[11px] md:text-xs font-semibold text-slate-300 whitespace-nowrap" style={{ transform: 'rotate(-45deg)', transformOrigin: 'top left' }}>{d}</span>
           </div>
         ))}
       </div>
