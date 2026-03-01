@@ -87,6 +87,13 @@ export interface DayOfWeekStats {
   sample_size: number;
 }
 
+export interface HeatmapCell {
+  day: number;        // 0-6 (Mon-Sun)
+  hour_group: number; // 0-11 (2-hour slots)
+  win_rate: number | null;
+  sample_size: number;
+}
+
 export interface FatigueInsight {
   type: 'warning' | 'positive' | 'info';
   title: string;

@@ -5,8 +5,8 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { CardPageLayout } from '../components/CardPageLayout';
 import { useTimePeriod } from '../hooks/useTimePeriod';
 import { ChessCard } from '../components/ChessCard';
-import type { HourlyStats, DayOfWeekStats } from '../utils/types';
-import { filterGameLog, computeHourlyStats, computeDowStats } from '../utils/helpers';
+import type { HourlyStats, DayOfWeekStats, HeatmapCell } from '../utils/types';
+import { filterGameLog, computeHourlyStats, computeDowStats, computeHeatmapStats } from '../utils/helpers';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
@@ -289,6 +289,117 @@ function DaysChart({ stats }: { stats: DayOfWeekStats[] }) {
   );
 }
 
+/* ── Heatmap chart ──────────────────────────────────────────── */
+
+function getCellColor(winRate: number | null): string {
+  if (winRate == null) return 'bg-slate-800';
+  if (winRate >= 60) return 'bg-green-500';
+  if (winRate >= 55) return 'bg-green-600';
+  if (winRate >= 52) return 'bg-green-700';
+  if (winRate >= 50) return 'bg-green-800';
+  if (winRate >= 48) return 'bg-red-900';
+  if (winRate >= 45) return 'bg-red-700';
+  return 'bg-red-600';
+}
+
+function getCellTextColor(winRate: number | null): string {
+  if (winRate == null) return 'text-slate-600';
+  return 'text-white';
+}
+
+function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
+  const { t, language } = useLanguage();
+  const dayLabels = language === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
+  // Build a lookup: cellMap[day][hour_group]
+  const cellMap = useMemo(() => {
+    const map: Record<number, Record<number, HeatmapCell>> = {};
+    for (const c of cells) {
+      if (!map[c.day]) map[c.day] = {};
+      map[c.day][c.hour_group] = c;
+    }
+    return map;
+  }, [cells]);
+
+  const hourLabels = useMemo(() =>
+    Array.from({ length: 12 }, (_, hg) => formatHourRange(hg * 2, hg * 2 + 2, language)),
+    [language]
+  );
+
+  return (
+    <div className="overflow-x-auto">
+      <div className={`grid gap-[2px] ${isMobile ? 'min-w-[480px]' : ''}`}
+        style={{ gridTemplateColumns: `auto repeat(7, 1fr)` }}>
+        {/* Header row: empty corner + day names */}
+        <div />
+        {dayLabels.map(d => (
+          <div key={d} className="text-center text-[11px] md:text-xs font-semibold text-slate-300 py-1">{d}</div>
+        ))}
+
+        {/* Data rows: hour label + 7 day cells */}
+        {Array.from({ length: 12 }, (_, hg) => (
+          <div key={hg} className="contents">
+            <div className="flex items-center text-[10px] md:text-xs text-slate-400 font-medium pr-1 md:pr-2 whitespace-nowrap justify-end">
+              {hourLabels[hg]}
+            </div>
+            {Array.from({ length: 7 }, (_, day) => {
+              const cell = cellMap[day]?.[hg];
+              const wr = cell?.win_rate ?? null;
+              const n = cell?.sample_size ?? 0;
+              return (
+                <div
+                  key={day}
+                  className={`relative group rounded-[3px] md:rounded ${getCellColor(wr)} flex items-center justify-center aspect-[1.6] md:aspect-[1.4] cursor-default`}
+                >
+                  {/* Desktop: show value inside cell */}
+                  {!isMobile && (
+                    <span className={`text-[11px] font-semibold ${getCellTextColor(wr)}`}>
+                      {wr != null ? `${wr}%` : ''}
+                    </span>
+                  )}
+                  {/* Tooltip on hover */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10 pointer-events-none">
+                    <div className="bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 whitespace-nowrap shadow-lg">
+                      <p className="text-xs font-bold text-white">{dayLabels[day]} {hourLabels[hg]}</p>
+                      {wr != null ? (
+                        <p className={`text-xs font-semibold ${wr >= 50 ? 'text-green-400' : 'text-red-400'}`}>
+                          {wr}%
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-500">{t('chess.insufficientData')}</p>
+                      )}
+                      <p className="text-[10px] text-slate-400">{n} games</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-1.5 mt-3 text-[10px] md:text-xs text-slate-400">
+        <span>{language === 'fr' ? 'Faible' : 'Low'}</span>
+        <div className="flex gap-[2px]">
+          <div className="w-4 h-3 rounded-sm bg-red-600" />
+          <div className="w-4 h-3 rounded-sm bg-red-700" />
+          <div className="w-4 h-3 rounded-sm bg-red-900" />
+          <div className="w-4 h-3 rounded-sm bg-green-800" />
+          <div className="w-4 h-3 rounded-sm bg-green-700" />
+          <div className="w-4 h-3 rounded-sm bg-green-600" />
+          <div className="w-4 h-3 rounded-sm bg-green-500" />
+        </div>
+        <span>{language === 'fr' ? 'Élevé' : 'High'}</span>
+        <span className="ml-2 text-slate-500">|</span>
+        <div className="w-4 h-3 rounded-sm bg-slate-800 ml-1" />
+        <span className="text-slate-500">&lt;30 games</span>
+      </div>
+    </div>
+  );
+}
+
 /* ── Combined page ──────────────────────────────────────────── */
 
 export function WhenToPlayPage() {
@@ -308,6 +419,11 @@ export function WhenToPlayPage() {
     return computeDowStats(filterGameLog(data.game_log, period));
   }, [data, period]);
 
+  const heatmapCells = useMemo(() => {
+    if (!data?.game_log?.length) return undefined;
+    return computeHeatmapStats(filterGameLog(data.game_log, period));
+  }, [data, period]);
+
   if (!data && !loading) return <p className="text-slate-400 text-center mt-16">{t('chess.noData')}</p>;
 
   return (
@@ -321,6 +437,13 @@ export function WhenToPlayPage() {
           <div className="border-t border-slate-700 my-6" />
           <p className="text-sm font-semibold text-slate-300 mb-2">{t('chess.bestDaysTitle')}</p>
           <DaysChart stats={dowStats ?? []} />
+          {heatmapCells && (
+            <>
+              <div className="border-t border-slate-700 my-6" />
+              <p className="text-sm font-semibold text-slate-300 mb-2">{t('chess.heatmapTitle')}</p>
+              <HeatmapChart cells={heatmapCells} />
+            </>
+          )}
         </ChessCard>
       ) : null}
     </CardPageLayout>

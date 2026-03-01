@@ -2,7 +2,7 @@
 
 import type { TimePeriod } from '../components/TimePeriodToggle';
 import { getDateCutoff } from '../components/TimePeriodToggle';
-import type { GameLogEntry, HourlyStats, DayOfWeekStats, StreakStats } from './types';
+import type { GameLogEntry, HourlyStats, DayOfWeekStats, StreakStats, HeatmapCell } from './types';
 
 /** Filter game_log entries by time period */
 export function filterGameLog(log: GameLogEntry[], period: TimePeriod): GameLogEntry[] {
@@ -64,6 +64,36 @@ export function computeDowStats(log: GameLogEntry[]): DayOfWeekStats[] {
     }
   }
   return result;
+}
+
+/** Compute day×hour heatmap stats from game log */
+export function computeHeatmapStats(log: GameLogEntry[]): HeatmapCell[] {
+  const buckets: Record<string, { wins: number; draws: number; total: number }> = {};
+  for (const [ts, r] of log) {
+    const d = new Date(ts * 1000);
+    const jsDay = d.getDay();
+    const dow = jsDay === 0 ? 6 : jsDay - 1; // Mon=0..Sun=6
+    const hg = Math.floor(d.getHours() / 2);
+    const key = `${dow}-${hg}`;
+    if (!buckets[key]) buckets[key] = { wins: 0, draws: 0, total: 0 };
+    buckets[key].total += 1;
+    if (r === 'w') buckets[key].wins += 1;
+    else if (r === 'd') buckets[key].draws += 1;
+  }
+  const cells: HeatmapCell[] = [];
+  for (let day = 0; day < 7; day++) {
+    for (let hg = 0; hg < 12; hg++) {
+      const b = buckets[`${day}-${hg}`];
+      const total = b?.total ?? 0;
+      cells.push({
+        day,
+        hour_group: hg,
+        win_rate: total >= 30 ? Math.round(((b.wins + 0.5 * b.draws) / total) * 1000) / 10 : null,
+        sample_size: total,
+      });
+    }
+  }
+  return cells;
 }
 
 /** Compute streak stats from game log (chronological order required) */
