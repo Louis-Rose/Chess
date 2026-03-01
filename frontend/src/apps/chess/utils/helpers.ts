@@ -88,7 +88,7 @@ export function computeHeatmapStats(log: GameLogEntry[]): HeatmapCell[] {
       cells.push({
         day,
         hour_group: hg,
-        win_rate: total >= 30 ? Math.round(((b.wins + 0.5 * b.draws) / total) * 1000) / 10 : null,
+        win_rate: total >= 20 ? Math.round(((b.wins + 0.5 * b.draws) / total) * 1000) / 10 : null,
         sample_size: total,
       });
     }

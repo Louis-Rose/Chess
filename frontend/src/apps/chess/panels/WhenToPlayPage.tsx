@@ -399,7 +399,7 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
         <span>{language === 'fr' ? 'Élevé' : 'High'}</span>
         <span className="ml-2 text-slate-500">|</span>
         <div className="w-4 h-3 rounded-sm bg-slate-800 ml-1" />
-        <span className="text-slate-500">&lt;30 games</span>
+        <span className="text-slate-500">&lt;20 games</span>
       </div>
     </div>
   );
