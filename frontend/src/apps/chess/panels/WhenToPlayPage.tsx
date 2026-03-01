@@ -8,7 +8,7 @@ import { ChessCard } from '../components/ChessCard';
 import type { HourlyStats, DayOfWeekStats, HeatmapCell } from '../utils/types';
 import { filterGameLog, computeHourlyStats, computeDowStats, computeHeatmapStats } from '../utils/helpers';
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
+  ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 
@@ -111,7 +111,11 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
                 );
               }}
             />
-            <Bar dataKey="sample_size" yAxisId="right" radius={[4, 4, 0, 0]} fill="#64748b" opacity={0.5} stroke="#94a3b8" strokeWidth={1} />
+            <Bar dataKey="sample_size" yAxisId="right" radius={[4, 4, 0, 0]} strokeWidth={1}>
+              {chartData.map((d, i) => (
+                <Cell key={i} fill={d.win_rate != null && d.win_rate >= 50 ? '#4ade80' : d.win_rate != null ? '#f87171' : '#64748b'} opacity={0.5} stroke={d.win_rate != null && d.win_rate >= 50 ? '#4ade80' : d.win_rate != null ? '#f87171' : '#94a3b8'} />
+              ))}
+            </Bar>
             <Line
               type="monotone"
               dataKey="win_rate"
@@ -246,7 +250,11 @@ function DaysChart({ stats }: { stats: DayOfWeekStats[] }) {
                 );
               }}
             />
-            <Bar dataKey="sample_size" yAxisId="right" radius={[4, 4, 0, 0]} fill="#64748b" opacity={0.5} stroke="#94a3b8" strokeWidth={1} />
+            <Bar dataKey="sample_size" yAxisId="right" radius={[4, 4, 0, 0]} strokeWidth={1}>
+              {chartData.map((d, i) => (
+                <Cell key={i} fill={d.win_rate != null && d.win_rate >= 50 ? '#4ade80' : d.win_rate != null ? '#f87171' : '#64748b'} opacity={0.5} stroke={d.win_rate != null && d.win_rate >= 50 ? '#4ade80' : d.win_rate != null ? '#f87171' : '#94a3b8'} />
+              ))}
+            </Bar>
             <Line
               type="monotone"
               dataKey="win_rate"
@@ -293,15 +301,17 @@ function DaysChart({ stats }: { stats: DayOfWeekStats[] }) {
 
 /* ── Heatmap chart ──────────────────────────────────────────── */
 
-function getCellColor(winRate: number | null): string {
+function getCellBg(winRate: number | null): string {
   if (winRate == null) return 'bg-slate-800';
-  if (winRate >= 60) return 'bg-green-500';
-  if (winRate >= 55) return 'bg-green-600';
-  if (winRate >= 52) return 'bg-green-700';
-  if (winRate >= 50) return 'bg-green-800';
-  if (winRate >= 48) return 'bg-red-900';
-  if (winRate >= 45) return 'bg-red-700';
-  return 'bg-red-600';
+  // Green shades using green-400 (#4ade80) as base
+  if (winRate >= 60) return 'bg-[#4ade80]';
+  if (winRate >= 55) return 'bg-[#3bc06e]';
+  if (winRate >= 52) return 'bg-[#2d9d59]';
+  if (winRate >= 50) return 'bg-[#227a45]';
+  // Red shades using red-400 (#f87171) as base
+  if (winRate >= 48) return 'bg-[#7a2222]';
+  if (winRate >= 45) return 'bg-[#c04040]';
+  return 'bg-[#f87171]';
 }
 
 function getCellTextColor(winRate: number | null): string {
@@ -355,7 +365,7 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
               return (
                 <div
                   key={day}
-                  className={`relative group rounded-[3px] md:rounded ${getCellColor(wr)} flex items-center justify-center h-[26px] md:h-[30px] cursor-default`}
+                  className={`relative group rounded-[3px] md:rounded ${getCellBg(wr)} flex items-center justify-center h-[26px] md:h-[30px] cursor-default`}
                 >
                   {/* Desktop: show value inside cell */}
                   {!isMobile && (
@@ -388,13 +398,13 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
       <div className="flex items-center justify-center gap-1.5 mt-3 text-[10px] md:text-xs text-slate-400">
         <span>{language === 'fr' ? 'Faible' : 'Low'}</span>
         <div className="flex gap-[2px]">
-          <div className="w-4 h-3 rounded-sm bg-red-600" />
-          <div className="w-4 h-3 rounded-sm bg-red-700" />
-          <div className="w-4 h-3 rounded-sm bg-red-900" />
-          <div className="w-4 h-3 rounded-sm bg-green-800" />
-          <div className="w-4 h-3 rounded-sm bg-green-700" />
-          <div className="w-4 h-3 rounded-sm bg-green-600" />
-          <div className="w-4 h-3 rounded-sm bg-green-500" />
+          <div className="w-4 h-3 rounded-sm bg-[#f87171]" />
+          <div className="w-4 h-3 rounded-sm bg-[#c04040]" />
+          <div className="w-4 h-3 rounded-sm bg-[#7a2222]" />
+          <div className="w-4 h-3 rounded-sm bg-[#227a45]" />
+          <div className="w-4 h-3 rounded-sm bg-[#2d9d59]" />
+          <div className="w-4 h-3 rounded-sm bg-[#3bc06e]" />
+          <div className="w-4 h-3 rounded-sm bg-[#4ade80]" />
         </div>
         <span>{language === 'fr' ? 'Élevé' : 'High'}</span>
         <span className="ml-2 text-slate-500">|</span>
