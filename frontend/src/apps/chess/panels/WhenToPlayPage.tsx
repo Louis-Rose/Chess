@@ -337,7 +337,7 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
         {/* Data rows: hour label + 7 day cells */}
         {Array.from({ length: 12 }, (_, hg) => (
           <div key={hg} className="contents">
-            <div className="flex items-center text-[10px] md:text-xs text-slate-400 font-medium pr-1 md:pr-2 whitespace-nowrap justify-end">
+            <div className="flex items-center text-[12px] md:text-[13px] text-white font-semibold pr-1 md:pr-2 whitespace-nowrap justify-end">
               {hourLabels[hg]}
             </div>
             {Array.from({ length: 7 }, (_, day) => {
@@ -379,7 +379,7 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
         <div />
         {fullDayLabels.map(d => (
           <div key={d} className="relative h-16 md:h-20 overflow-visible">
-            <span className="absolute top-1 text-[11px] md:text-xs font-semibold text-slate-300 whitespace-nowrap" style={{ right: '50%', transform: 'rotate(-45deg)', transformOrigin: 'top right' }}>{d}</span>
+            <span className="absolute top-1 text-[12px] md:text-[13px] font-semibold text-white whitespace-nowrap" style={{ right: '50%', transform: 'rotate(-45deg)', transformOrigin: 'top right' }}>{d}</span>
           </div>
         ))}
       </div>
