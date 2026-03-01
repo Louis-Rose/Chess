@@ -119,11 +119,10 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
                 return <circle key={`adot-${payload.label}`} cx={cx} cy={cy} r={7} fill={getDotColor(payload.win_rate)} stroke="none" />;
               }}
             />
-            {/* Colored line segments between dots */}
+            {/* Neutral line segments between dots */}
             {chartData.map((d, i) => {
               if (i === 0) return null;
               const prev = chartData[i - 1];
-              const avgRate = (prev.win_rate + d.win_rate) / 2;
               return (
                 <ReferenceLine
                   key={`seg-${i}`}
@@ -132,8 +131,8 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
                     { x: prev.label, y: prev.win_rate },
                     { x: d.label, y: d.win_rate },
                   ]}
-                  stroke={getDotColor(avgRate)}
-                  strokeWidth={2.5}
+                  stroke="#e2e8f0"
+                  strokeWidth={2}
                 />
               );
             })}
