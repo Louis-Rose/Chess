@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -402,10 +402,37 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
 
 /* ── Combined page ──────────────────────────────────────────── */
 
+type ViewMode = 'hour' | 'day' | 'both';
+
+const VIEW_LABELS: Record<ViewMode, { en: string; fr: string }> = {
+  hour: { en: 'Hour', fr: 'Heure' },
+  day: { en: 'Day', fr: 'Jour' },
+  both: { en: 'Both', fr: 'Les deux' },
+};
+
+function ViewToggle({ selected, onChange, language }: { selected: ViewMode; onChange: (v: ViewMode) => void; language: string }) {
+  return (
+    <div className="inline-flex bg-slate-800 rounded-lg p-0.5 gap-0.5">
+      {(['hour', 'day', 'both'] as ViewMode[]).map(v => (
+        <button
+          key={v}
+          onClick={() => onChange(v)}
+          className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+            selected === v ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-slate-300'
+          }`}
+        >
+          {language === 'fr' ? VIEW_LABELS[v].fr : VIEW_LABELS[v].en}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function WhenToPlayPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { data, loading } = useChessData();
   const { period, toggle } = useTimePeriod();
+  const [view, setView] = useState<ViewMode>('hour');
 
   const hourlyStats = useMemo(() => {
     if (!data) return undefined;
@@ -431,15 +458,25 @@ export function WhenToPlayPage() {
       {loading && !data ? (
         <div className="flex justify-center py-20"><Loader2 className="w-12 h-12 text-slate-400 animate-spin" /></div>
       ) : data ? (
-        <ChessCard title={t('chess.whenToPlayTitle')} action={toggle}>
-          <p className="text-sm font-semibold text-slate-300 mb-2">{t('chess.bestHoursTitle')}</p>
-          <HoursChart stats={hourlyStats ?? []} />
-          <div className="border-t border-slate-700 my-6" />
-          <p className="text-sm font-semibold text-slate-300 mb-2">{t('chess.bestDaysTitle')}</p>
-          <DaysChart stats={dowStats ?? []} />
-          {heatmapCells && (
+        <ChessCard
+          title={t('chess.whenToPlayTitle')}
+          action={toggle}
+          leftAction={<ViewToggle selected={view} onChange={setView} language={language} />}
+        >
+          {view === 'hour' && (
             <>
-              <div className="border-t border-slate-700 my-6" />
+              <p className="text-sm font-semibold text-slate-300 mb-2">{t('chess.bestHoursTitle')}</p>
+              <HoursChart stats={hourlyStats ?? []} />
+            </>
+          )}
+          {view === 'day' && (
+            <>
+              <p className="text-sm font-semibold text-slate-300 mb-2">{t('chess.bestDaysTitle')}</p>
+              <DaysChart stats={dowStats ?? []} />
+            </>
+          )}
+          {view === 'both' && heatmapCells && (
+            <>
               <p className="text-sm font-semibold text-slate-300 mb-2">{t('chess.heatmapTitle')}</p>
               <HeatmapChart cells={heatmapCells} />
             </>
