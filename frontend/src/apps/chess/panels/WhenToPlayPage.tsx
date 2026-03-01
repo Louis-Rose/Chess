@@ -295,13 +295,13 @@ function DaysChart({ stats }: { stats: DayOfWeekStats[] }) {
 
 function getCellColor(winRate: number | null): string {
   if (winRate == null) return 'bg-slate-800';
-  if (winRate >= 60) return 'bg-green-500';
-  if (winRate >= 55) return 'bg-green-600';
-  if (winRate >= 52) return 'bg-green-700';
-  if (winRate >= 50) return 'bg-green-800';
-  if (winRate >= 48) return 'bg-red-900';
+  if (winRate >= 60) return 'bg-green-800';
+  if (winRate >= 55) return 'bg-green-700';
+  if (winRate >= 52) return 'bg-green-600';
+  if (winRate >= 50) return 'bg-green-500';
+  if (winRate >= 48) return 'bg-red-600';
   if (winRate >= 45) return 'bg-red-700';
-  return 'bg-red-600';
+  return 'bg-red-900';
 }
 
 function getCellTextColor(winRate: number | null): string {
@@ -388,13 +388,13 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
       <div className="flex items-center justify-center gap-1.5 mt-3 text-[10px] md:text-xs text-slate-400">
         <span>{language === 'fr' ? 'Faible' : 'Low'}</span>
         <div className="flex gap-[2px]">
-          <div className="w-4 h-3 rounded-sm bg-red-600" />
-          <div className="w-4 h-3 rounded-sm bg-red-700" />
           <div className="w-4 h-3 rounded-sm bg-red-900" />
-          <div className="w-4 h-3 rounded-sm bg-green-800" />
-          <div className="w-4 h-3 rounded-sm bg-green-700" />
-          <div className="w-4 h-3 rounded-sm bg-green-600" />
+          <div className="w-4 h-3 rounded-sm bg-red-700" />
+          <div className="w-4 h-3 rounded-sm bg-red-600" />
           <div className="w-4 h-3 rounded-sm bg-green-500" />
+          <div className="w-4 h-3 rounded-sm bg-green-600" />
+          <div className="w-4 h-3 rounded-sm bg-green-700" />
+          <div className="w-4 h-3 rounded-sm bg-green-800" />
         </div>
         <span>{language === 'fr' ? 'Élevé' : 'High'}</span>
         <span className="ml-2 text-slate-500">|</span>
