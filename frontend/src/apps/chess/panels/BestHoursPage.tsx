@@ -28,18 +28,23 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
   const { t, language } = useLanguage();
 
   const { chartData, baseline } = useMemo(() => {
-    const filtered = stats.filter(d => d.sample_size >= 30);
-    if (filtered.length === 0) return { chartData: [], baseline: 50 };
-
-    const data = filtered.map(d => ({
-      ...d,
-      label: formatHourRange(d.start_hour, d.end_hour, language),
-    }));
+    const statsMap = new Map(stats.map(d => [d.hour_group, d]));
+    // Always show all 12 two-hour slots
+    const data = Array.from({ length: 12 }, (_, hg) => {
+      const d = statsMap.get(hg);
+      const sufficient = d && d.sample_size >= 30;
+      return {
+        hour_group: hg,
+        start_hour: hg * 2,
+        end_hour: hg * 2 + 2,
+        win_rate: sufficient ? d.win_rate : null,
+        sample_size: d?.sample_size ?? 0,
+        label: formatHourRange(hg * 2, hg * 2 + 2, language),
+      };
+    });
 
     return { chartData: data, baseline: 50 };
   }, [stats, language]);
-
-  if (chartData.length === 0) return <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>;
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const AXIS_PAD = isMobile ? 34 : 48;
@@ -97,7 +102,11 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
                 return (
                   <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', padding: isMobile ? '6px 8px' : '8px 12px' }}>
                     <p style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4, fontSize: isMobile ? 11 : 14 }}>{d.label}</p>
-                    <p style={{ color: getDotColor(d.win_rate), fontWeight: 600, fontSize: isMobile ? 11 : 14 }}>Win rate: {d.win_rate}%</p>
+                    {d.win_rate != null ? (
+                      <p style={{ color: getDotColor(d.win_rate), fontWeight: 600, fontSize: isMobile ? 11 : 14 }}>Win rate: {d.win_rate}%</p>
+                    ) : (
+                      <p style={{ color: '#64748b', fontSize: isMobile ? 11 : 14 }}>{t('chess.insufficientData')}</p>
+                    )}
                     <p style={{ color: '#94a3b8', fontSize: isMobile ? 10 : 12 }}>{d.sample_size} games</p>
                   </div>
                 );
@@ -111,19 +120,27 @@ function HoursChart({ stats }: { stats: HourlyStats[] }) {
               dataKey="win_rate"
               yAxisId="left"
               stroke="none"
+              connectNulls={false}
               dot={(props: any) => {
                 const { cx, cy, payload } = props;
+                if (payload.win_rate == null) return <g key={`dot-${payload.label}`} />;
                 return <circle key={`dot-${payload.label}`} cx={cx} cy={cy} r={5} fill={getDotColor(payload.win_rate)} stroke="none" />;
               }}
               activeDot={(props: any) => {
                 const { cx, cy, payload } = props;
+                if (payload.win_rate == null) return <g key={`adot-${payload.label}`} />;
                 return <circle key={`adot-${payload.label}`} cx={cx} cy={cy} r={7} fill={getDotColor(payload.win_rate)} stroke="none" />;
               }}
             />
-            {/* Neutral line segments between dots */}
+            {/* Neutral line segments between consecutive valid dots */}
             {chartData.map((d, i) => {
-              if (i === 0) return null;
-              const prev = chartData[i - 1];
+              if (i === 0 || d.win_rate == null) return null;
+              // Find the previous point with valid data
+              let prev = null;
+              for (let j = i - 1; j >= 0; j--) {
+                if (chartData[j].win_rate != null) { prev = chartData[j]; break; }
+              }
+              if (!prev) return null;
               return (
                 <ReferenceLine
                   key={`seg-${i}`}
@@ -161,13 +178,11 @@ export function BestHoursPage() {
     <CardPageLayout>
       {loading && !data ? (
         <div className="flex justify-center py-20"><Loader2 className="w-12 h-12 text-slate-400 animate-spin" /></div>
-      ) : stats && stats.length > 0 ? (
+      ) : data ? (
         <ChessCard title={t('chess.bestHoursTitle')} action={toggle}>
-          <HoursChart stats={stats} />
+          <HoursChart stats={stats ?? []} />
         </ChessCard>
-      ) : (
-        data && <p className="text-slate-500 text-center py-8">{t('chess.noData')}</p>
-      )}
+      ) : null}
     </CardPageLayout>
   );
 }
