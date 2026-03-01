@@ -378,7 +378,7 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
         {/* Bottom row: empty corner + angled full day names */}
         <div />
         {fullDayLabels.map(d => (
-          <div key={d} className="flex justify-center pt-1">
+          <div key={d} className="h-16 md:h-20 flex justify-center pt-2">
             <span className="text-[11px] md:text-xs font-semibold text-slate-300 -rotate-45 origin-top whitespace-nowrap">{d}</span>
           </div>
         ))}
@@ -399,7 +399,7 @@ function HeatmapChart({ cells }: { cells: HeatmapCell[] }) {
         <span>{language === 'fr' ? 'Élevé' : 'High'}</span>
         <span className="ml-2 text-slate-500">|</span>
         <div className="w-4 h-3 rounded-sm bg-slate-800 ml-1" />
-        <span className="text-slate-500">&lt;20 games</span>
+        <span className="text-slate-500">&lt;10 games</span>
       </div>
     </div>
   );
