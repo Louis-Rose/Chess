@@ -17,6 +17,8 @@ import { PortfolioComposition, type PortfolioCompositionHandle } from './portfol
 import { PerformanceChart, type PerformanceChartHandle } from './portfolio/PerformanceChart';
 import { QuarterlyResults } from './portfolio/QuarterlyResults';
 import type { QuarterlyResultsHandle } from './portfolio/QuarterlyResults';
+import { PortfolioFinancials } from './portfolio/PortfolioFinancials';
+import type { PortfolioFinancialsHandle } from './portfolio/PortfolioFinancials';
 import { formatEur, PRIVATE_COST_BASIS, addLumnaBranding } from './portfolio/utils';
 import { calculateSimpleReturn, calculateCAGR, calculateMWR, calculateTWRDetailed, type CashFlow, type ValuationPoint, type TWRSubPeriod } from '../utils/performanceUtils';
 import { STOCKS_DB } from '../../../data/stocksDb';
@@ -247,6 +249,9 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
   // Panel state: collapsed and order
   const [isHoldingsExpanded, setIsHoldingsExpanded] = useState(true);
   const [isPerformanceExpanded, setIsPerformanceExpanded] = useState(true);
+  const [isFinancialsExpanded, setIsFinancialsExpanded] = useState(true);
+  const financialsRef = useRef<PortfolioFinancialsHandle>(null);
+  const [isFinancialsDownloading, setIsFinancialsDownloading] = useState(false);
   const [isQuarterlyExpanded, setIsQuarterlyExpanded] = useState(true);
   const quarterlyRef = useRef<QuarterlyResultsHandle>(null);
   const [isQuarterlyDownloading, setIsQuarterlyDownloading] = useState(false);
@@ -353,6 +358,17 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
       if (selectedAccountIds.length > 0) params.set('account_ids', selectedAccountIds.join(','));
       const res = await axios.get(`${apiBasePath}/portfolio/stock-performance-3m?${params}`);
       return res.data as { stocks: { ticker: string; change_pct: number; pe_current: number | null; pe_past: number | null }[]; start_date: string };
+    },
+    enabled: isAuthenticated && selectedAccountIds.length > 0 && accountHasHoldings,
+  });
+
+  const { data: financialsData, isLoading: financialsLoading } = useQuery({
+    queryKey: ['portfolioFinancials', selectedAccountIds, apiBasePath],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedAccountIds.length > 0) params.set('account_ids', selectedAccountIds.join(','));
+      const res = await axios.get(`${apiBasePath}/portfolio/financials?${params}`);
+      return res.data;
     },
     enabled: isAuthenticated && selectedAccountIds.length > 0 && accountHasHoldings,
   });
@@ -1570,6 +1586,48 @@ export function PortfolioPanel({ apiBasePath = '/api/investing' }: PortfolioPane
             );
           }
         })}
+
+        {/* Portfolio Financials */}
+        {selectedAccountIds.length > 0 && accountHasHoldings && (
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl shadow-sm dark:shadow-none">
+            <div className="flex items-center p-4">
+              <button
+                onClick={() => setIsFinancialsExpanded(!isFinancialsExpanded)}
+                className="flex items-center gap-3 text-left flex-1"
+              >
+                <ChevronRight className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${isFinancialsExpanded ? 'rotate-90' : ''}`} />
+                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                  {language === 'fr' ? 'Financiers du portefeuille' : 'Portfolio Financials'}
+                </h3>
+              </button>
+              <button
+                onClick={async () => {
+                  setIsFinancialsDownloading(true);
+                  try {
+                    await financialsRef.current?.download();
+                  } finally {
+                    setIsFinancialsDownloading(false);
+                  }
+                }}
+                disabled={isFinancialsDownloading}
+                className="flex items-center gap-1.5 px-2 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors text-sm"
+                title={language === 'fr' ? 'Télécharger' : 'Download'}
+              >
+                {isFinancialsDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                <span>{language === 'fr' ? 'Télécharger' : 'Download'}</span>
+              </button>
+            </div>
+            {isFinancialsExpanded && (
+              <div className="px-4 pb-4">
+                <PortfolioFinancials
+                  ref={financialsRef}
+                  data={financialsData}
+                  isLoading={financialsLoading}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Quarterly Results */}
         {selectedAccountIds.length > 0 && accountHasHoldings && compositionData && (

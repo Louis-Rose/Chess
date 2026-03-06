@@ -4560,6 +4560,245 @@ def get_stock_history(ticker):
         return jsonify({'error': str(e)}), 500
 
 
+# =============================================================================
+# Portfolio Financials (aggregated quarterly metrics across holdings)
+# =============================================================================
+
+_quarterly_financials_cache = {}  # {ticker: (data_dict, timestamp)}
+QUARTERLY_FINANCIALS_TTL = 86400  # 24 hours
+
+PORTFOLIO_METRIC_MAP = {
+    'Revenue': ['Total Revenue', 'Revenue', 'Operating Revenue', 'Total Operating Income As Reported'],
+    'NetIncome': ['Net Income', 'Net Income Common Stockholders', 'Net Income From Continuing Operations',
+                  'Net Income From Continuing Operation Net Minority Interest', 'Net Income Including Noncontrolling Interests'],
+    'OperatingIncome': ['Operating Income', 'Operating Income Loss', 'EBIT', 'Operating Income/Loss'],
+    'FreeCashFlow': ['Free Cash Flow'],
+    'OperatingCashFlow': ['Operating Cash Flow', 'Cash Flow From Continuing Operating Activities'],
+}
+
+def _align_to_calendar_quarter(dt):
+    """Map a report date to nearest calendar quarter-end (max 45 days tolerance)."""
+    import datetime as _dt
+    quarter_ends = [
+        _dt.date(dt.year, 3, 31),
+        _dt.date(dt.year, 6, 30),
+        _dt.date(dt.year, 9, 30),
+        _dt.date(dt.year, 12, 31),
+        _dt.date(dt.year + 1, 3, 31),
+        _dt.date(dt.year - 1, 12, 31),
+    ]
+    d = dt.date() if hasattr(dt, 'date') else dt
+    best = min(quarter_ends, key=lambda q: abs((q - d).days))
+    if abs((best - d).days) > 45:
+        return None
+    return best
+
+def _fetch_ticker_quarterly(ticker):
+    """Fetch quarterly income_stmt and cashflow for a ticker (cached 24h)."""
+    import time as _time
+    import yfinance as yf
+    import pandas as pd
+    from investing_utils import get_yfinance_ticker
+
+    now = _time.time()
+    if ticker in _quarterly_financials_cache:
+        cached_data, cached_at = _quarterly_financials_cache[ticker]
+        if now - cached_at < QUARTERLY_FINANCIALS_TTL:
+            return cached_data
+
+    yf_ticker = get_yfinance_ticker(ticker)
+    stock = yf.Ticker(yf_ticker)
+    info = stock.info
+    currency = info.get('financialCurrency') or info.get('currency') or 'USD'
+
+    income = stock.quarterly_income_stmt
+    cashflow = stock.quarterly_cashflow
+
+    def find_metric(df, variations):
+        if df is None or df.empty:
+            return None
+        for var in variations:
+            if var in df.index:
+                return var
+            for idx in df.index:
+                if var.lower() == idx.lower():
+                    return idx
+        return None
+
+    metrics_data = {}
+    for metric_key, variations in PORTFOLIO_METRIC_MAP.items():
+        metrics_data[metric_key] = {}
+        source = cashflow if metric_key in ('FreeCashFlow', 'OperatingCashFlow') else income
+        actual = find_metric(source, variations)
+        if actual and source is not None:
+            for col in source.columns:
+                try:
+                    value = source.loc[actual, col]
+                    if pd.notna(value):
+                        dt = col.to_pydatetime()
+                        aligned = _align_to_calendar_quarter(dt)
+                        if aligned:
+                            q_label = f"Q{((aligned.month - 1) // 3) + 1} {aligned.year}"
+                            metrics_data[metric_key][q_label] = float(value)
+                except Exception:
+                    continue
+
+    result = {'metrics': metrics_data, 'currency': currency}
+    _quarterly_financials_cache[ticker] = (result, now)
+    return result
+
+
+def _compute_holdings_at_date(user_id, account_ids, date_str):
+    """Replay transactions up to date_str to get holdings quantities."""
+    with get_db() as conn:
+        if account_ids and len(account_ids) > 0:
+            placeholders = ','.join('?' for _ in account_ids)
+            cursor = conn.execute(
+                f'''SELECT stock_ticker, transaction_type, quantity
+                   FROM portfolio_transactions WHERE user_id = ? AND account_id IN ({placeholders})
+                   AND transaction_date <= ?
+                   ORDER BY transaction_date ASC, id ASC''',
+                (user_id, *account_ids, date_str)
+            )
+        else:
+            cursor = conn.execute(
+                '''SELECT stock_ticker, transaction_type, quantity
+                   FROM portfolio_transactions WHERE user_id = ? AND account_id IS NOT NULL
+                   AND transaction_date <= ?
+                   ORDER BY transaction_date ASC, id ASC''',
+                (user_id, date_str)
+            )
+        rows = cursor.fetchall()
+
+    holdings_map = {}
+    for row in rows:
+        ticker = row['stock_ticker']
+        qty = row['quantity']
+        if ticker not in holdings_map:
+            holdings_map[ticker] = 0
+        if row['transaction_type'] == 'BUY':
+            holdings_map[ticker] += qty
+        else:
+            holdings_map[ticker] -= qty
+
+    return {t: q for t, q in holdings_map.items() if q > 0}
+
+
+@app.route('/api/investing/portfolio/financials', methods=['GET'])
+@login_required
+def get_portfolio_financials():
+    """Get aggregated quarterly financial metrics across all portfolio holdings."""
+    import time as _time
+    from investing_utils import fetch_historical_prices_batch, get_stock_currency
+    from concurrent.futures import ThreadPoolExecutor
+
+    account_ids_str = request.args.get('account_ids')
+    if account_ids_str:
+        account_ids = [int(x) for x in account_ids_str.split(',') if x.strip()]
+    else:
+        account_ids = None
+
+    holdings = compute_holdings_from_transactions(request.user_id, account_ids)
+    if not holdings:
+        return jsonify({'quarters': [], 'tickers': [], 'weights_by_quarter': {}, 'metrics': {}, 'currencies': {}})
+
+    tickers = [h['stock_ticker'] for h in holdings]
+
+    # Fetch quarterly data for all tickers in parallel
+    ticker_data = {}
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(_fetch_ticker_quarterly, t): t for t in tickers}
+        for future in futures:
+            t = futures[future]
+            try:
+                ticker_data[t] = future.result(timeout=30)
+            except Exception as e:
+                print(f"[PortfolioFinancials] Error fetching {t}: {e}")
+                ticker_data[t] = {'metrics': {k: {} for k in PORTFOLIO_METRIC_MAP}, 'currency': 'USD'}
+
+    # Collect all unique quarters across all tickers
+    all_quarters = set()
+    for t, data in ticker_data.items():
+        for metric_key, qvals in data['metrics'].items():
+            all_quarters.update(qvals.keys())
+
+    if not all_quarters:
+        return jsonify({'quarters': [], 'tickers': tickers, 'weights_by_quarter': {}, 'metrics': {}, 'currencies': {}})
+
+    # Sort quarters chronologically
+    def quarter_sort_key(q):
+        parts = q.split()
+        return (int(parts[1]), int(parts[0][1]))
+    sorted_quarters = sorted(all_quarters, key=quarter_sort_key)
+
+    # Compute historical weights per quarter
+    quarter_end_dates = {}
+    for q in sorted_quarters:
+        parts = q.split()
+        year = int(parts[1])
+        qnum = int(parts[0][1])
+        month = qnum * 3
+        day = 30 if month in (6, 9) else 31
+        quarter_end_dates[q] = f"{year}-{month:02d}-{day:02d}"
+
+    weights_by_quarter = {}
+    for q, date_str in quarter_end_dates.items():
+        holdings_at = _compute_holdings_at_date(request.user_id, account_ids, date_str)
+        if not holdings_at:
+            continue
+
+        held_tickers = list(holdings_at.keys())
+        try:
+            prices = fetch_historical_prices_batch(held_tickers, date_str)
+        except Exception:
+            prices = {}
+
+        market_values = {}
+        total_mv = 0
+        for t, qty in holdings_at.items():
+            if t in prices and prices[t]:
+                mv = qty * prices[t]
+                market_values[t] = mv
+                total_mv += mv
+
+        if total_mv > 0:
+            weights_by_quarter[q] = {t: round(mv / total_mv, 4) for t, mv in market_values.items()}
+
+    # Build response with metrics and weighted totals
+    metrics_response = {}
+    for metric_key in PORTFOLIO_METRIC_MAP:
+        metric_data = {}
+        for t in tickers:
+            metric_data[t] = ticker_data[t]['metrics'].get(metric_key, {})
+
+        # Compute weighted total
+        total = {}
+        for q in sorted_quarters:
+            if q in weights_by_quarter:
+                weighted_sum = 0
+                has_any = False
+                for t in tickers:
+                    val = metric_data[t].get(q)
+                    weight = weights_by_quarter[q].get(t, 0)
+                    if val is not None and weight > 0:
+                        weighted_sum += val * weight
+                        has_any = True
+                if has_any:
+                    total[q] = round(weighted_sum, 2)
+        metric_data['total'] = total
+        metrics_response[metric_key] = metric_data
+
+    currencies = {t: ticker_data[t]['currency'] for t in tickers}
+
+    return jsonify({
+        'quarters': sorted_quarters,
+        'tickers': tickers,
+        'weights_by_quarter': weights_by_quarter,
+        'metrics': metrics_response,
+        'currencies': currencies,
+    })
+
+
 @app.route('/api/investing/financials-history/<ticker>', methods=['GET'])
 def get_financials_history(ticker):
     """Get historical financial data (quarterly income statement) for a stock."""
@@ -7572,6 +7811,89 @@ def get_demo_top_movers():
     losers = [m for m in movers if m['change_pct'] < 0][-5:][::-1]
 
     return jsonify({'gainers': gainers, 'losers': losers})
+
+
+@app.route('/api/demo/portfolio/financials', methods=['GET'])
+@login_required
+def get_demo_portfolio_financials():
+    """Get aggregated quarterly financial metrics across demo portfolio holdings."""
+    import time as _time
+    from investing_utils import fetch_historical_prices_batch, get_stock_currency
+    from concurrent.futures import ThreadPoolExecutor
+
+    account_ids_str = request.args.get('account_ids')
+    if account_ids_str:
+        account_ids = [int(x) for x in account_ids_str.split(',') if x.strip()]
+    else:
+        account_ids = None
+
+    holdings = compute_demo_holdings_from_transactions(request.user_id, account_ids)
+    if not holdings:
+        return jsonify({'quarters': [], 'tickers': [], 'weights_by_quarter': {}, 'metrics': {}, 'currencies': {}})
+
+    tickers = [h['stock_ticker'] for h in holdings]
+
+    ticker_data = {}
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(_fetch_ticker_quarterly, t): t for t in tickers}
+        for future in futures:
+            t = futures[future]
+            try:
+                ticker_data[t] = future.result(timeout=30)
+            except Exception as e:
+                print(f"[DemoPortfolioFinancials] Error fetching {t}: {e}")
+                ticker_data[t] = {'metrics': {k: {} for k in PORTFOLIO_METRIC_MAP}, 'currency': 'USD'}
+
+    all_quarters = set()
+    for t, data in ticker_data.items():
+        for metric_key, qvals in data['metrics'].items():
+            all_quarters.update(qvals.keys())
+
+    if not all_quarters:
+        return jsonify({'quarters': [], 'tickers': tickers, 'weights_by_quarter': {}, 'metrics': {}, 'currencies': {}})
+
+    def quarter_sort_key(q):
+        parts = q.split()
+        return (int(parts[1]), int(parts[0][1]))
+    sorted_quarters = sorted(all_quarters, key=quarter_sort_key)
+
+    # For demo, use equal weights (simpler since demo doesn't track full history)
+    equal_weight = round(1.0 / len(tickers), 4) if tickers else 0
+    weights_by_quarter = {}
+    for q in sorted_quarters:
+        weights_by_quarter[q] = {t: equal_weight for t in tickers}
+
+    metrics_response = {}
+    for metric_key in PORTFOLIO_METRIC_MAP:
+        metric_data = {}
+        for t in tickers:
+            metric_data[t] = ticker_data[t]['metrics'].get(metric_key, {})
+
+        total = {}
+        for q in sorted_quarters:
+            if q in weights_by_quarter:
+                weighted_sum = 0
+                has_any = False
+                for t in tickers:
+                    val = metric_data[t].get(q)
+                    weight = weights_by_quarter[q].get(t, 0)
+                    if val is not None and weight > 0:
+                        weighted_sum += val * weight
+                        has_any = True
+                if has_any:
+                    total[q] = round(weighted_sum, 2)
+        metric_data['total'] = total
+        metrics_response[metric_key] = metric_data
+
+    currencies = {t: ticker_data[t]['currency'] for t in tickers}
+
+    return jsonify({
+        'quarters': sorted_quarters,
+        'tickers': tickers,
+        'weights_by_quarter': weights_by_quarter,
+        'metrics': metrics_response,
+        'currencies': currencies,
+    })
 
 
 # Banks and account types endpoints (reuse from investing)
