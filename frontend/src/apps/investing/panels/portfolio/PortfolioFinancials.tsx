@@ -1,5 +1,6 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { toPng } from 'html-to-image';
+import { ChevronDown } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { addLumnaBranding } from './utils';
@@ -40,11 +41,32 @@ function formatLargeNumber(value: number): string {
   return value.toFixed(0);
 }
 
+function formatGrowth(current: number, previous: number): string {
+  if (previous === 0) return '—';
+  const pct = ((current - previous) / Math.abs(previous)) * 100;
+  const sign = pct >= 0 ? '+' : '';
+  return `${sign}${pct.toFixed(1)}%`;
+}
+
+function getComparisonQuarter(quarter: string, mode: 'qoq' | 'yoy'): string {
+  const parts = quarter.split(' ');
+  const qNum = parseInt(parts[0][1]);
+  const year = parseInt(parts[1]);
+  if (mode === 'yoy') {
+    return `Q${qNum} ${year - 1}`;
+  }
+  // QoQ: previous quarter
+  if (qNum === 1) return `Q4 ${year - 1}`;
+  return `Q${qNum - 1} ${year}`;
+}
+
 export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, PortfolioFinancialsProps>(
   ({ data, isLoading }, ref) => {
     const { language } = useLanguage();
     const { resolvedTheme } = useTheme();
     const [selectedTicker, setSelectedTicker] = useState<string>(PORTFOLIO_KEY);
+    const [selectedQuarter, setSelectedQuarter] = useState<string>('');
+    const [compareMode, setCompareMode] = useState<'qoq' | 'yoy'>('yoy');
     const [isDownloading, setIsDownloading] = useState(false);
     const tableRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +80,7 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
           const branded = await addLumnaBranding(dataUrl);
           const link = document.createElement('a');
           const name = selectedTicker === PORTFOLIO_KEY ? 'portfolio' : selectedTicker.toLowerCase();
-          link.download = `financials-${name}.png`;
+          link.download = `financials-${name}-${activeQuarter}.png`;
           link.href = branded;
           link.click();
         }
@@ -85,27 +107,20 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
       );
     }
 
+    // Default to most recent quarter
+    const activeQuarter = selectedQuarter && data.quarters.includes(selectedQuarter)
+      ? selectedQuarter
+      : data.quarters[data.quarters.length - 1];
+
+    const compQuarter = getComparisonQuarter(activeQuarter, compareMode);
     const isPortfolio = selectedTicker === PORTFOLIO_KEY;
 
-    // For a single ticker: get values from each metric for that ticker
-    // For portfolio: get weighted total from each metric
     const getMetricValue = (metricKey: string, quarter: string): number | undefined => {
       const metric = data.metrics[metricKey];
       if (!metric) return undefined;
-      if (isPortfolio) {
-        return metric['total']?.[quarter];
-      }
+      if (isPortfolio) return metric['total']?.[quarter];
       return metric[selectedTicker]?.[quarter];
     };
-
-    // Build rows (metrics) with values — fixed order
-    const rows = METRICS.map(m => {
-      const values: Record<string, number | undefined> = {};
-      for (const q of data.quarters) {
-        values[q] = getMetricValue(m.key, q);
-      }
-      return { ...m, values };
-    });
 
     const selectedLabel = isPortfolio
       ? (language === 'fr' ? 'Portefeuille complet' : 'Complete Portfolio')
@@ -142,10 +157,53 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
           </div>
         )}
 
+        {/* Controls row: quarter dropdown + QoQ/YoY toggle - hidden during download */}
+        {!isDownloading && (
+          <div className="flex items-center justify-center gap-4 mb-4">
+            {/* Quarter dropdown */}
+            <div className="relative">
+              <select
+                value={activeQuarter}
+                onChange={e => setSelectedQuarter(e.target.value)}
+                className="appearance-none bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg pl-3 pr-8 py-1.5 cursor-pointer hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {data.quarters.map(q => (
+                  <option key={q} value={q}>{q}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 pointer-events-none" />
+            </div>
+
+            {/* QoQ / YoY toggle */}
+            <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
+              <button
+                onClick={() => setCompareMode('qoq')}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  compareMode === 'qoq'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500'
+                }`}
+              >
+                Quarter over Quarter
+              </button>
+              <button
+                onClick={() => setCompareMode('yoy')}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  compareMode === 'yoy'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500'
+                }`}
+              >
+                Year over Year
+              </button>
+            </div>
+          </div>
+        )}
+
         <div ref={tableRef} className="pb-14">
           {isDownloading && (
             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
-              {language === 'fr' ? 'Financiers' : 'Financials'} — {selectedLabel}
+              {language === 'fr' ? 'Financiers' : 'Financials'} — {selectedLabel} — {activeQuarter} ({compareMode === 'yoy' ? 'YoY' : 'QoQ'})
             </h3>
           )}
 
@@ -156,11 +214,15 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                   <th className="py-2 px-3 text-left font-semibold text-slate-700 dark:text-slate-200 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10 min-w-[180px]">
                     {language === 'fr' ? 'Métrique' : 'Metric'}
                   </th>
-                  {data.quarters.map(q => (
-                    <th key={q} className="py-2 px-3 text-right font-semibold text-slate-700 dark:text-slate-200 min-w-[90px] whitespace-nowrap">
-                      {q}
-                    </th>
-                  ))}
+                  <th className="py-2 px-3 text-right font-semibold text-slate-500 dark:text-slate-400 min-w-[100px] whitespace-nowrap">
+                    {compQuarter}
+                  </th>
+                  <th className="py-2 px-3 text-right font-semibold text-slate-700 dark:text-slate-200 min-w-[100px] whitespace-nowrap">
+                    {activeQuarter}
+                  </th>
+                  <th className="py-2 px-3 text-right font-semibold text-slate-700 dark:text-slate-200 min-w-[90px] whitespace-nowrap">
+                    {language === 'fr' ? 'Croissance' : 'Growth'}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -170,37 +232,58 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                     <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10">
                       {language === 'fr' ? 'Poids du portefeuille' : 'Portfolio Weight'}
                     </td>
-                    {data.quarters.map(q => {
-                      const weight = data.weights_by_quarter[q]?.[selectedTicker];
-                      return (
-                        <td key={q} className="py-2 px-3 text-right tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400">
-                          {weight !== undefined ? `${(weight * 100).toFixed(1)}%` : '—'}
-                        </td>
-                      );
-                    })}
+                    <td className="py-2 px-3 text-right tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400">
+                      {data.weights_by_quarter[compQuarter]?.[selectedTicker] !== undefined
+                        ? `${(data.weights_by_quarter[compQuarter][selectedTicker] * 100).toFixed(1)}%`
+                        : '—'}
+                    </td>
+                    <td className="py-2 px-3 text-right tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400">
+                      {data.weights_by_quarter[activeQuarter]?.[selectedTicker] !== undefined
+                        ? `${(data.weights_by_quarter[activeQuarter][selectedTicker] * 100).toFixed(1)}%`
+                        : '—'}
+                    </td>
+                    <td className="py-2 px-3 text-right" />
                   </tr>
                 )}
-                {rows.map(m => (
-                  <tr key={m.key} className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
-                    <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10">
-                      {language === 'fr' ? m.labelFr : m.labelEn}
-                    </td>
-                    {data.quarters.map(q => {
-                      const val = m.values[q];
-                      return (
-                        <td key={q} className={`py-2 px-3 text-right tabular-nums whitespace-nowrap ${
-                          val !== undefined
-                            ? val >= 0
-                              ? 'text-green-600 dark:text-green-400'
-                              : 'text-red-600 dark:text-red-400'
-                            : 'text-slate-400'
-                        }`}>
-                          {val !== undefined ? formatLargeNumber(val) : '—'}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                {METRICS.map(m => {
+                  const currentVal = getMetricValue(m.key, activeQuarter);
+                  const prevVal = getMetricValue(m.key, compQuarter);
+                  const growth = currentVal !== undefined && prevVal !== undefined && prevVal !== 0
+                    ? formatGrowth(currentVal, prevVal)
+                    : '—';
+                  const growthNum = currentVal !== undefined && prevVal !== undefined && prevVal !== 0
+                    ? ((currentVal - prevVal) / Math.abs(prevVal)) * 100
+                    : null;
+
+                  return (
+                    <tr key={m.key} className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
+                      <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10">
+                        {language === 'fr' ? m.labelFr : m.labelEn}
+                      </td>
+                      <td className={`py-2 px-3 text-right tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400`}>
+                        {prevVal !== undefined ? formatLargeNumber(prevVal) : '—'}
+                      </td>
+                      <td className={`py-2 px-3 text-right tabular-nums whitespace-nowrap ${
+                        currentVal !== undefined
+                          ? currentVal >= 0
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-red-600 dark:text-red-400'
+                          : 'text-slate-400'
+                      }`}>
+                        {currentVal !== undefined ? formatLargeNumber(currentVal) : '—'}
+                      </td>
+                      <td className={`py-2 px-3 text-right tabular-nums whitespace-nowrap font-semibold ${
+                        growthNum !== null
+                          ? growthNum >= 0
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-red-600 dark:text-red-400'
+                          : 'text-slate-400'
+                      }`}>
+                        {growth}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
