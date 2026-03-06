@@ -334,9 +334,6 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                   const fxGrowth = currentRate !== undefined && prevRate !== undefined && prevRate !== 0
                     ? formatGrowth(currentRate, prevRate)
                     : '—';
-                  const fxGrowthNum = currentRate !== undefined && prevRate !== undefined && prevRate !== 0
-                    ? ((currentRate - prevRate) / Math.abs(prevRate)) * 100
-                    : null;
                   return (
                     <tr className="border-b border-slate-300 dark:border-slate-500 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
                       <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 border-r border-slate-300 dark:border-slate-500">
