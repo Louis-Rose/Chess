@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { toPng } from 'html-to-image';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
@@ -30,6 +30,8 @@ const METRICS = [
   { key: 'OperatingCashFlow', labelEn: 'Operating Cash Flow', labelFr: 'Cash flow opérationnel' },
 ];
 
+const PORTFOLIO_KEY = '__portfolio__';
+
 function formatLargeNumber(value: number): string {
   const abs = Math.abs(value);
   if (abs >= 1e12) return (value / 1e12).toFixed(1) + 'T';
@@ -43,20 +45,20 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
   ({ data, isLoading }, ref) => {
     const { language } = useLanguage();
     const { resolvedTheme } = useTheme();
-    const [selectedMetric, setSelectedMetric] = useState('Revenue');
+    const [selectedTicker, setSelectedTicker] = useState<string>(PORTFOLIO_KEY);
     const [isDownloading, setIsDownloading] = useState(false);
     const tableRef = useRef<HTMLDivElement>(null);
 
-    // Sorting: 'company' or a quarter string like 'Q4 2025'
-    const [sortColumn, setSortColumn] = useState<string>('company');
-    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    // Sorting by quarter columns
+    const [sortColumn, setSortColumn] = useState<string | null>(null);
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
     const handleSort = (column: string) => {
       if (sortColumn === column) {
         setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
       } else {
         setSortColumn(column);
-        setSortDirection(column === 'company' ? 'asc' : 'desc');
+        setSortDirection('desc');
       }
     };
 
@@ -74,7 +76,8 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
           const dataUrl = await toPng(tableRef.current, { backgroundColor: bgColor, pixelRatio: 2, skipFonts: true });
           const branded = await addLumnaBranding(dataUrl);
           const link = document.createElement('a');
-          link.download = `portfolio-financials-${selectedMetric.toLowerCase()}.png`;
+          const name = selectedTicker === PORTFOLIO_KEY ? 'portfolio' : selectedTicker.toLowerCase();
+          link.download = `financials-${name}.png`;
           link.href = branded;
           link.click();
         }
@@ -101,50 +104,77 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
       );
     }
 
-    const metricData = data.metrics[selectedMetric] || {};
-    const metricInfo = METRICS.find(m => m.key === selectedMetric)!;
+    const isPortfolio = selectedTicker === PORTFOLIO_KEY;
 
-    const sortedTickers = useMemo(() => {
-      const tickers = [...data.tickers];
-      tickers.sort((a, b) => {
-        let comparison: number;
-        if (sortColumn === 'company') {
-          comparison = a.localeCompare(b);
-        } else {
-          const valA = metricData[a]?.[sortColumn] ?? -Infinity;
-          const valB = metricData[b]?.[sortColumn] ?? -Infinity;
-          comparison = valA - valB;
-        }
-        return sortDirection === 'asc' ? comparison : -comparison;
-      });
-      return tickers;
-    }, [data.tickers, sortColumn, sortDirection, metricData]);
+    // For a single ticker: get values from each metric for that ticker
+    // For portfolio: get weighted total from each metric
+    const getMetricValue = (metricKey: string, quarter: string): number | undefined => {
+      const metric = data.metrics[metricKey];
+      if (!metric) return undefined;
+      if (isPortfolio) {
+        return metric['total']?.[quarter];
+      }
+      return metric[selectedTicker]?.[quarter];
+    };
+
+    // Build rows (metrics) with values for sorting
+    const rows = METRICS.map(m => {
+      const values: Record<string, number | undefined> = {};
+      for (const q of data.quarters) {
+        values[q] = getMetricValue(m.key, q);
+      }
+      return { ...m, values };
+    });
+
+    // Sort rows if a column is selected
+    const sortedRows = sortColumn
+      ? [...rows].sort((a, b) => {
+          const valA = a.values[sortColumn] ?? -Infinity;
+          const valB = b.values[sortColumn] ?? -Infinity;
+          const cmp = valA - valB;
+          return sortDirection === 'asc' ? cmp : -cmp;
+        })
+      : rows;
+
+    const selectedLabel = isPortfolio
+      ? (language === 'fr' ? 'Portefeuille complet' : 'Complete Portfolio')
+      : selectedTicker;
 
     return (
       <div>
-        {/* Metric tabs - hidden during download */}
+        {/* Company toggle buttons - hidden during download */}
         {!isDownloading && (
           <div className="flex flex-wrap gap-2 mb-4 justify-center">
-            {METRICS.map(m => (
+            {data.tickers.map(ticker => (
               <button
-                key={m.key}
-                onClick={() => setSelectedMetric(m.key)}
+                key={ticker}
+                onClick={() => setSelectedTicker(ticker)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  selectedMetric === m.key
+                  selectedTicker === ticker
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500'
                 }`}
               >
-                {language === 'fr' ? m.labelFr : m.labelEn}
+                {ticker}
               </button>
             ))}
+            <button
+              onClick={() => setSelectedTicker(PORTFOLIO_KEY)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                isPortfolio
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500'
+              }`}
+            >
+              {language === 'fr' ? 'Portefeuille' : 'Portfolio'}
+            </button>
           </div>
         )}
 
         <div ref={tableRef} className="pb-14">
           {isDownloading && (
             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-4">
-              {language === 'fr' ? 'Financiers du portefeuille' : 'Portfolio Financials'} — {language === 'fr' ? metricInfo.labelFr : metricInfo.labelEn}
+              {language === 'fr' ? 'Financiers' : 'Financials'} — {selectedLabel}
             </h3>
           )}
 
@@ -152,11 +182,8 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b-2 border-slate-300 dark:border-slate-500">
-                  <th className="py-2 px-3 text-left font-semibold text-slate-700 dark:text-slate-200 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10 min-w-[140px]">
-                    <button onClick={() => handleSort('company')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors">
-                      {language === 'fr' ? 'Entreprise' : 'Company'}
-                      <SortIndicator column="company" />
-                    </button>
+                  <th className="py-2 px-3 text-left font-semibold text-slate-700 dark:text-slate-200 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10 min-w-[180px]">
+                    {language === 'fr' ? 'Métrique' : 'Metric'}
                   </th>
                   {data.quarters.map(q => (
                     <th key={q} className="py-2 px-3 text-right font-semibold text-slate-700 dark:text-slate-200 min-w-[90px] whitespace-nowrap">
@@ -169,60 +196,27 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                 </tr>
               </thead>
               <tbody>
-                {sortedTickers.map(ticker => {
-                  const tickerVals = metricData[ticker] || {};
-                  const currency = data.currencies[ticker] || 'USD';
-                  return (
-                    <tr key={ticker} className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
-                      <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10">
-                        <span>{ticker}</span>
-                        <span className="ml-1 text-xs text-slate-400">{currency}</span>
-                      </td>
-                      {data.quarters.map(q => {
-                        const val = tickerVals[q];
-                        const weight = data.weights_by_quarter[q]?.[ticker];
-                        return (
-                          <td key={q} className="py-2 px-3 text-right tabular-nums whitespace-nowrap">
-                            <div className={val !== undefined
-                              ? val >= 0
-                                ? 'text-green-600 dark:text-green-400'
-                                : 'text-red-600 dark:text-red-400'
-                              : 'text-slate-400'
-                            }>
-                              {val !== undefined ? formatLargeNumber(val) : '—'}
-                            </div>
-                            {weight !== undefined && (
-                              <div className="text-[10px] text-slate-400 dark:text-slate-500">
-                                {(weight * 100).toFixed(1)}%
-                              </div>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-
-                {/* Weighted Total row */}
-                <tr className="border-t-2 border-slate-400 dark:border-slate-300 font-bold">
-                  <td className="py-2 px-3 text-slate-800 dark:text-slate-100 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10">
-                    {language === 'fr' ? 'Total pondéré' : 'Weighted Total'}
-                  </td>
-                  {data.quarters.map(q => {
-                    const val = metricData['total']?.[q];
-                    return (
-                      <td key={q} className={`py-2 px-3 text-right tabular-nums whitespace-nowrap ${
-                        val !== undefined
-                          ? val >= 0
-                            ? 'text-green-600 dark:text-green-400'
-                            : 'text-red-600 dark:text-red-400'
-                          : 'text-slate-400'
-                      }`}>
-                        {val !== undefined ? formatLargeNumber(val) : '—'}
-                      </td>
-                    );
-                  })}
-                </tr>
+                {sortedRows.map(m => (
+                  <tr key={m.key} className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
+                    <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10">
+                      {language === 'fr' ? m.labelFr : m.labelEn}
+                    </td>
+                    {data.quarters.map(q => {
+                      const val = m.values[q];
+                      return (
+                        <td key={q} className={`py-2 px-3 text-right tabular-nums whitespace-nowrap ${
+                          val !== undefined
+                            ? val >= 0
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-red-600 dark:text-red-400'
+                            : 'text-slate-400'
+                        }`}>
+                          {val !== undefined ? formatLargeNumber(val) : '—'}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
