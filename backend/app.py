@@ -4643,7 +4643,24 @@ def _fetch_ticker_quarterly(ticker):
                 except Exception:
                     continue
 
-    result = {'metrics': metrics_data, 'currency': currency}
+    # Also extract EPS separately for PE ratio computation
+    eps_data = {}
+    eps_variations = ['Diluted EPS', 'Basic EPS', 'Diluted Earnings Per Share', 'Basic Earnings Per Share']
+    actual_eps = find_metric(income, eps_variations)
+    if actual_eps and income is not None:
+        for col in income.columns:
+            try:
+                value = income.loc[actual_eps, col]
+                if pd.notna(value):
+                    dt = col.to_pydatetime()
+                    aligned = _align_to_calendar_quarter(dt)
+                    if aligned:
+                        q_label = f"Q{((aligned.month - 1) // 3) + 1} {aligned.year}"
+                        eps_data[q_label] = float(value)
+            except Exception:
+                continue
+
+    result = {'metrics': metrics_data, 'currency': currency, 'eps': eps_data}
     _quarterly_financials_cache[ticker] = (result, now)
     return result
 
@@ -4790,12 +4807,77 @@ def get_portfolio_financials():
 
     currencies = {t: ticker_data[t]['currency'] for t in tickers}
 
+    # Compute PE ratios per ticker per quarter
+    # PE = price_at_quarter_end / TTM_EPS (sum of last 4 quarters diluted EPS)
+    # We already have historical prices from the weights computation loop
+    # Refetch prices for all tickers across all quarters for PE
+    pe_ratios = {}
+    all_prices_by_quarter = {}
+    for q, date_str in quarter_end_dates.items():
+        try:
+            all_prices_by_quarter[q] = fetch_historical_prices_batch(tickers, date_str)
+        except Exception:
+            all_prices_by_quarter[q] = {}
+
+    for t in tickers:
+        pe_ratios[t] = {}
+        eps_data = ticker_data[t].get('eps', {})
+        for q in sorted_quarters:
+            price = all_prices_by_quarter.get(q, {}).get(t)
+            if not price:
+                continue
+            # Compute TTM EPS: sum of this quarter + 3 preceding quarters
+            q_parts = q.split()
+            q_year = int(q_parts[1])
+            q_num = int(q_parts[0][1])
+            ttm_eps = 0
+            ttm_count = 0
+            for offset in range(4):
+                oq_num = q_num - offset
+                oq_year = q_year
+                while oq_num <= 0:
+                    oq_num += 4
+                    oq_year -= 1
+                oq_label = f"Q{oq_num} {oq_year}"
+                if oq_label in eps_data:
+                    ttm_eps += eps_data[oq_label]
+                    ttm_count += 1
+            if ttm_count == 4 and ttm_eps > 0:
+                pe_ratios[t][q] = round(price / ttm_eps, 2)
+
+    # Weighted average PE for portfolio total
+    pe_total = {}
+    for q in sorted_quarters:
+        if q in weights_by_quarter:
+            weighted_pe = 0
+            total_weight = 0
+            for t in tickers:
+                pe = pe_ratios.get(t, {}).get(q)
+                weight = weights_by_quarter[q].get(t, 0)
+                if pe is not None and weight > 0:
+                    weighted_pe += pe * weight
+                    total_weight += weight
+            if total_weight > 0:
+                pe_total[q] = round(weighted_pe / total_weight, 2)
+    pe_ratios['total'] = pe_total
+
+    # EUR/USD rates per quarter
+    from investing_utils import fetch_eurusd_rate
+    eurusd_rates = {}
+    for q, date_str in quarter_end_dates.items():
+        try:
+            eurusd_rates[q] = round(fetch_eurusd_rate(date_str), 4)
+        except Exception:
+            pass
+
     return jsonify({
         'quarters': sorted_quarters,
         'tickers': tickers,
         'weights_by_quarter': weights_by_quarter,
         'metrics': metrics_response,
         'currencies': currencies,
+        'pe_ratios': pe_ratios,
+        'eurusd_rates': eurusd_rates,
     })
 
 
@@ -7887,12 +7969,82 @@ def get_demo_portfolio_financials():
 
     currencies = {t: ticker_data[t]['currency'] for t in tickers}
 
+    # Compute quarter end dates for PE and FX
+    quarter_end_dates = {}
+    for q in sorted_quarters:
+        parts = q.split()
+        year = int(parts[1])
+        qnum = int(parts[0][1])
+        month = qnum * 3
+        day = 30 if month in (6, 9) else 31
+        quarter_end_dates[q] = f"{year}-{month:02d}-{day:02d}"
+
+    # PE ratios
+    pe_ratios = {}
+    all_prices_by_quarter = {}
+    for q, date_str in quarter_end_dates.items():
+        try:
+            all_prices_by_quarter[q] = fetch_historical_prices_batch(tickers, date_str)
+        except Exception:
+            all_prices_by_quarter[q] = {}
+
+    for t in tickers:
+        pe_ratios[t] = {}
+        eps_data = ticker_data[t].get('eps', {})
+        for q in sorted_quarters:
+            price = all_prices_by_quarter.get(q, {}).get(t)
+            if not price:
+                continue
+            q_parts = q.split()
+            q_year = int(q_parts[1])
+            q_num = int(q_parts[0][1])
+            ttm_eps = 0
+            ttm_count = 0
+            for offset in range(4):
+                oq_num = q_num - offset
+                oq_year = q_year
+                while oq_num <= 0:
+                    oq_num += 4
+                    oq_year -= 1
+                oq_label = f"Q{oq_num} {oq_year}"
+                if oq_label in eps_data:
+                    ttm_eps += eps_data[oq_label]
+                    ttm_count += 1
+            if ttm_count == 4 and ttm_eps > 0:
+                pe_ratios[t][q] = round(price / ttm_eps, 2)
+
+    pe_total = {}
+    for q in sorted_quarters:
+        if q in weights_by_quarter:
+            weighted_pe = 0
+            total_weight = 0
+            for t in tickers:
+                pe = pe_ratios.get(t, {}).get(q)
+                weight = weights_by_quarter[q].get(t, 0)
+                if pe is not None and weight > 0:
+                    weighted_pe += pe * weight
+                    total_weight += weight
+            if total_weight > 0:
+                pe_total[q] = round(weighted_pe / total_weight, 2)
+    pe_ratios['total'] = pe_total
+
+    # EUR/USD rates
+    from investing_utils import fetch_eurusd_rate
+    eurusd_rates = {}
+    for q, date_str in quarter_end_dates.items():
+        try:
+            eurusd_rates[q] = round(fetch_eurusd_rate(date_str), 4)
+        except Exception:
+            pass
+
     return jsonify({
         'quarters': sorted_quarters,
         'tickers': tickers,
         'weights_by_quarter': weights_by_quarter,
         'metrics': metrics_response,
         'currencies': currencies,
+        'pe_ratios': pe_ratios,
+        'eurusd_rates': eurusd_rates,
     })
 
 

@@ -11,6 +11,8 @@ interface PortfolioFinancialsData {
   weights_by_quarter: Record<string, Record<string, number>>;
   metrics: Record<string, Record<string, Record<string, number>>>;
   currencies: Record<string, string>;
+  pe_ratios?: Record<string, Record<string, number>>;
+  eurusd_rates?: Record<string, number>;
 }
 
 interface PortfolioFinancialsProps {
@@ -282,6 +284,76 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                     </tr>
                   );
                 })}
+
+                {/* PE Ratio row */}
+                {(() => {
+                  const peSource = data.pe_ratios;
+                  if (!peSource) return null;
+                  const currentPe = isPortfolio ? peSource['total']?.[activeQuarter] : peSource[selectedTicker]?.[activeQuarter];
+                  const prevPe = isPortfolio ? peSource['total']?.[compQuarter] : peSource[selectedTicker]?.[compQuarter];
+                  const peGrowth = currentPe !== undefined && prevPe !== undefined && prevPe !== 0
+                    ? formatGrowth(currentPe, prevPe)
+                    : '—';
+                  const peGrowthNum = currentPe !== undefined && prevPe !== undefined && prevPe !== 0
+                    ? ((currentPe - prevPe) / Math.abs(prevPe)) * 100
+                    : null;
+                  return (
+                    <tr className="border-b border-slate-300 dark:border-slate-500 border-t-2 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
+                      <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 border-r border-slate-300 dark:border-slate-500">
+                        {language === 'fr' ? 'Ratio C/B' : 'PE Ratio'}
+                      </td>
+                      <td className="py-2 px-3 text-center tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400 border-r border-slate-300 dark:border-slate-500">
+                        {prevPe !== undefined ? prevPe.toFixed(1) : '—'}
+                      </td>
+                      <td className={`py-2 px-3 text-center tabular-nums whitespace-nowrap border-r border-slate-300 dark:border-slate-500 ${
+                        currentPe !== undefined && prevPe !== undefined
+                          ? currentPe < prevPe
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-green-600 dark:text-green-400'
+                          : 'text-slate-400'
+                      }`}>
+                        {currentPe !== undefined ? currentPe.toFixed(1) : '—'}
+                      </td>
+                      <td className={`py-2 px-3 text-center tabular-nums whitespace-nowrap font-semibold ${
+                        peGrowthNum !== null
+                          ? peGrowthNum < 0
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-green-600 dark:text-green-400'
+                          : 'text-slate-400'
+                      }`}>
+                        {peGrowth}
+                      </td>
+                    </tr>
+                  );
+                })()}
+
+                {/* EUR/USD Rate row */}
+                {data.eurusd_rates && (() => {
+                  const currentRate = data.eurusd_rates![activeQuarter];
+                  const prevRate = data.eurusd_rates![compQuarter];
+                  const fxGrowth = currentRate !== undefined && prevRate !== undefined && prevRate !== 0
+                    ? formatGrowth(currentRate, prevRate)
+                    : '—';
+                  const fxGrowthNum = currentRate !== undefined && prevRate !== undefined && prevRate !== 0
+                    ? ((currentRate - prevRate) / Math.abs(prevRate)) * 100
+                    : null;
+                  return (
+                    <tr className="border-b border-slate-300 dark:border-slate-500 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
+                      <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 border-r border-slate-300 dark:border-slate-500">
+                        EUR/USD
+                      </td>
+                      <td className="py-2 px-3 text-center tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400 border-r border-slate-300 dark:border-slate-500">
+                        {prevRate !== undefined ? prevRate.toFixed(4) : '—'}
+                      </td>
+                      <td className="py-2 px-3 text-center tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400 border-r border-slate-300 dark:border-slate-500">
+                        {currentRate !== undefined ? currentRate.toFixed(4) : '—'}
+                      </td>
+                      <td className="py-2 px-3 text-center tabular-nums whitespace-nowrap font-semibold text-slate-500 dark:text-slate-400">
+                        {fxGrowth !== '—' ? fxGrowth : '—'}
+                      </td>
+                    </tr>
+                  );
+                })()}
               </tbody>
             </table>
           </div>
