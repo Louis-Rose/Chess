@@ -24,10 +24,10 @@ export interface PortfolioFinancialsHandle {
 
 const METRICS = [
   { key: 'Revenue', labelEn: 'Revenue', labelFr: 'Chiffre d\'affaires' },
-  { key: 'NetIncome', labelEn: 'Net Income', labelFr: 'Résultat net' },
   { key: 'OperatingIncome', labelEn: 'Operating Income', labelFr: 'Résultat opérationnel' },
-  { key: 'FreeCashFlow', labelEn: 'Free Cash Flow', labelFr: 'Cash flow libre' },
+  { key: 'NetIncome', labelEn: 'Net Income', labelFr: 'Résultat net' },
   { key: 'OperatingCashFlow', labelEn: 'Operating Cash Flow', labelFr: 'Cash flow opérationnel' },
+  { key: 'FreeCashFlow', labelEn: 'Free Cash Flow', labelFr: 'Cash flow libre' },
 ];
 
 const PORTFOLIO_KEY = '__portfolio__';
