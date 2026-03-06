@@ -12,7 +12,7 @@ interface PortfolioFinancialsData {
   metrics: Record<string, Record<string, Record<string, number>>>;
   currencies: Record<string, string>;
   pe_ratios?: Record<string, Record<string, number>>;
-  eurusd_rates?: Record<string, number>;
+  usdeur_rates?: Record<string, number>;
 }
 
 interface PortfolioFinancialsProps {
@@ -327,26 +327,43 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                   );
                 })()}
 
-                {/* EUR/USD Rate row */}
-                {data.eurusd_rates && (() => {
-                  const currentRate = data.eurusd_rates![activeQuarter];
-                  const prevRate = data.eurusd_rates![compQuarter];
+                {/* USD/EUR Rate row */}
+                {data.usdeur_rates && (() => {
+                  const currentRate = data.usdeur_rates![activeQuarter];
+                  const prevRate = data.usdeur_rates![compQuarter];
                   const fxGrowth = currentRate !== undefined && prevRate !== undefined && prevRate !== 0
                     ? formatGrowth(currentRate, prevRate)
                     : '—';
+                  const fxGrowthNum = currentRate !== undefined && prevRate !== undefined && prevRate !== 0
+                    ? ((currentRate - prevRate) / Math.abs(prevRate)) * 100
+                    : null;
                   return (
                     <tr className="border-b border-slate-300 dark:border-slate-500 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
                       <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 border-r border-slate-300 dark:border-slate-500">
-                        EUR/USD
+                        USD/EUR
                       </td>
                       <td className="py-2 px-3 text-center tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400 border-r border-slate-300 dark:border-slate-500">
                         {prevRate !== undefined ? prevRate.toFixed(4) : '—'}
                       </td>
-                      <td className="py-2 px-3 text-center tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400 border-r border-slate-300 dark:border-slate-500">
+                      <td className={`py-2 px-3 text-center tabular-nums whitespace-nowrap border-r border-slate-300 dark:border-slate-500 ${
+                        currentRate !== undefined && prevRate !== undefined
+                          ? currentRate < prevRate
+                            ? 'text-red-600 dark:text-red-400'
+                            : currentRate > prevRate
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-slate-500 dark:text-slate-400'
+                          : 'text-slate-500 dark:text-slate-400'
+                      }`}>
                         {currentRate !== undefined ? currentRate.toFixed(4) : '—'}
                       </td>
-                      <td className="py-2 px-3 text-center tabular-nums whitespace-nowrap font-semibold text-slate-500 dark:text-slate-400">
-                        {fxGrowth !== '—' ? fxGrowth : '—'}
+                      <td className={`py-2 px-3 text-center tabular-nums whitespace-nowrap font-semibold ${
+                        fxGrowthNum !== null
+                          ? fxGrowthNum < 0
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-green-600 dark:text-green-400'
+                          : 'text-slate-400'
+                      }`}>
+                        {fxGrowth}
                       </td>
                     </tr>
                   );

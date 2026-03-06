@@ -4842,8 +4842,10 @@ def get_portfolio_financials():
                 if oq_label in eps_data:
                     ttm_eps += eps_data[oq_label]
                     ttm_count += 1
-            if ttm_count == 4 and ttm_eps > 0:
-                pe_ratios[t][q] = round(price / ttm_eps, 2)
+            if ttm_count > 0:
+                annualized_eps = ttm_eps * (4 / ttm_count)
+                if annualized_eps > 0:
+                    pe_ratios[t][q] = round(price / annualized_eps, 2)
 
     # Weighted average PE for portfolio total
     pe_total = {}
@@ -4861,12 +4863,14 @@ def get_portfolio_financials():
                 pe_total[q] = round(weighted_pe / total_weight, 2)
     pe_ratios['total'] = pe_total
 
-    # EUR/USD rates per quarter
+    # USD/EUR rates per quarter (inverted EUR/USD)
     from investing_utils import fetch_eurusd_rate
-    eurusd_rates = {}
+    usdeur_rates = {}
     for q, date_str in quarter_end_dates.items():
         try:
-            eurusd_rates[q] = round(fetch_eurusd_rate(date_str), 4)
+            eurusd = fetch_eurusd_rate(date_str)
+            if eurusd and eurusd > 0:
+                usdeur_rates[q] = round(1.0 / eurusd, 4)
         except Exception:
             pass
 
@@ -4877,7 +4881,7 @@ def get_portfolio_financials():
         'metrics': metrics_response,
         'currencies': currencies,
         'pe_ratios': pe_ratios,
-        'eurusd_rates': eurusd_rates,
+        'usdeur_rates': usdeur_rates,
     })
 
 
@@ -8010,8 +8014,10 @@ def get_demo_portfolio_financials():
                 if oq_label in eps_data:
                     ttm_eps += eps_data[oq_label]
                     ttm_count += 1
-            if ttm_count == 4 and ttm_eps > 0:
-                pe_ratios[t][q] = round(price / ttm_eps, 2)
+            if ttm_count > 0:
+                annualized_eps = ttm_eps * (4 / ttm_count)
+                if annualized_eps > 0:
+                    pe_ratios[t][q] = round(price / annualized_eps, 2)
 
     pe_total = {}
     for q in sorted_quarters:
@@ -8044,7 +8050,7 @@ def get_demo_portfolio_financials():
         'metrics': metrics_response,
         'currencies': currencies,
         'pe_ratios': pe_ratios,
-        'eurusd_rates': eurusd_rates,
+        'usdeur_rates': usdeur_rates,
     })
 
 
