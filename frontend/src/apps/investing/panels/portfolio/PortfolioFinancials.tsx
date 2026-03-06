@@ -128,40 +128,11 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
 
     return (
       <div>
-        {/* Company toggle buttons - hidden during download */}
+        {/* Controls: quarter dropdown | company buttons | QoQ/YoY toggle — single row */}
         {!isDownloading && (
-          <div className="flex flex-wrap gap-2 mb-4 justify-center">
-            {data.tickers.map(ticker => (
-              <button
-                key={ticker}
-                onClick={() => setSelectedTicker(ticker)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  selectedTicker === ticker
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500'
-                }`}
-              >
-                {ticker}
-              </button>
-            ))}
-            <button
-              onClick={() => setSelectedTicker(PORTFOLIO_KEY)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                isPortfolio
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500'
-              }`}
-            >
-              {language === 'fr' ? 'Portefeuille' : 'Portfolio'}
-            </button>
-          </div>
-        )}
-
-        {/* Controls row: quarter dropdown + QoQ/YoY toggle - hidden during download */}
-        {!isDownloading && (
-          <div className="flex items-center justify-center gap-4 mb-4">
+          <div className="flex items-center justify-between gap-3 mb-4">
             {/* Quarter dropdown */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <select
                 value={activeQuarter}
                 onChange={e => setSelectedQuarter(e.target.value)}
@@ -174,8 +145,35 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
               <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 pointer-events-none" />
             </div>
 
+            {/* Company buttons */}
+            <div className="flex flex-wrap gap-2 justify-center">
+              {data.tickers.map(ticker => (
+                <button
+                  key={ticker}
+                  onClick={() => setSelectedTicker(ticker)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    selectedTicker === ticker
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500'
+                  }`}
+                >
+                  {ticker}
+                </button>
+              ))}
+              <button
+                onClick={() => setSelectedTicker(PORTFOLIO_KEY)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  isPortfolio
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500'
+                }`}
+              >
+                {language === 'fr' ? 'Portefeuille' : 'Portfolio'}
+              </button>
+            </div>
+
             {/* QoQ / YoY toggle */}
-            <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500">
+            <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-slate-500 flex-shrink-0">
               <button
                 onClick={() => setCompareMode('qoq')}
                 className={`px-3 py-1.5 text-sm font-medium transition-colors ${
@@ -208,19 +206,19 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
           )}
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+            <table className="w-full text-sm border-collapse table-fixed border border-slate-300 dark:border-slate-500">
               <thead>
                 <tr className="border-b-2 border-slate-300 dark:border-slate-500">
-                  <th className="py-2 px-3 text-left font-semibold text-slate-700 dark:text-slate-200 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10 min-w-[180px]">
+                  <th className="w-1/4 py-2 px-3 text-left font-semibold text-slate-700 dark:text-slate-200 border-r border-slate-300 dark:border-slate-500">
                     {language === 'fr' ? 'Métrique' : 'Metric'}
                   </th>
-                  <th className="py-2 px-3 text-right font-semibold text-slate-500 dark:text-slate-400 min-w-[100px] whitespace-nowrap">
+                  <th className="w-1/4 py-2 px-3 text-center font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap border-r border-slate-300 dark:border-slate-500">
                     {compQuarter}
                   </th>
-                  <th className="py-2 px-3 text-right font-semibold text-slate-700 dark:text-slate-200 min-w-[100px] whitespace-nowrap">
+                  <th className="w-1/4 py-2 px-3 text-center font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap border-r border-slate-300 dark:border-slate-500">
                     {activeQuarter}
                   </th>
-                  <th className="py-2 px-3 text-right font-semibold text-slate-700 dark:text-slate-200 min-w-[90px] whitespace-nowrap">
+                  <th className="w-1/4 py-2 px-3 text-center font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap">
                     {language === 'fr' ? 'Croissance' : 'Growth'}
                   </th>
                 </tr>
@@ -229,20 +227,20 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                 {/* Portfolio weight row */}
                 {!isPortfolio && (
                   <tr className="border-b-2 border-slate-300 dark:border-slate-500">
-                    <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10">
+                    <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 border-r border-slate-300 dark:border-slate-500">
                       {language === 'fr' ? 'Poids du portefeuille' : 'Portfolio Weight'}
                     </td>
-                    <td className="py-2 px-3 text-right tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400">
+                    <td className="py-2 px-3 text-center tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400 border-r border-slate-300 dark:border-slate-500">
                       {data.weights_by_quarter[compQuarter]?.[selectedTicker] !== undefined
                         ? `${(data.weights_by_quarter[compQuarter][selectedTicker] * 100).toFixed(1)}%`
                         : '—'}
                     </td>
-                    <td className="py-2 px-3 text-right tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400">
+                    <td className="py-2 px-3 text-center tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400 border-r border-slate-300 dark:border-slate-500">
                       {data.weights_by_quarter[activeQuarter]?.[selectedTicker] !== undefined
                         ? `${(data.weights_by_quarter[activeQuarter][selectedTicker] * 100).toFixed(1)}%`
                         : '—'}
                     </td>
-                    <td className="py-2 px-3 text-right" />
+                    <td className="py-2 px-3 text-center" />
                   </tr>
                 )}
                 {METRICS.map(m => {
@@ -256,14 +254,14 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                     : null;
 
                   return (
-                    <tr key={m.key} className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
-                      <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10">
+                    <tr key={m.key} className="border-b border-slate-300 dark:border-slate-500 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
+                      <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 border-r border-slate-300 dark:border-slate-500">
                         {language === 'fr' ? m.labelFr : m.labelEn}
                       </td>
-                      <td className={`py-2 px-3 text-right tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400`}>
+                      <td className="py-2 px-3 text-center tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400 border-r border-slate-300 dark:border-slate-500">
                         {prevVal !== undefined ? formatLargeNumber(prevVal) : '—'}
                       </td>
-                      <td className={`py-2 px-3 text-right tabular-nums whitespace-nowrap ${
+                      <td className={`py-2 px-3 text-center tabular-nums whitespace-nowrap border-r border-slate-300 dark:border-slate-500 ${
                         currentVal !== undefined
                           ? currentVal >= 0
                             ? 'text-green-600 dark:text-green-400'
@@ -272,7 +270,7 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                       }`}>
                         {currentVal !== undefined ? formatLargeNumber(currentVal) : '—'}
                       </td>
-                      <td className={`py-2 px-3 text-right tabular-nums whitespace-nowrap font-semibold ${
+                      <td className={`py-2 px-3 text-center tabular-nums whitespace-nowrap font-semibold ${
                         growthNum !== null
                           ? growthNum >= 0
                             ? 'text-green-600 dark:text-green-400'
