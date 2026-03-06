@@ -1,5 +1,6 @@
-import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useState, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import { toPng } from 'html-to-image';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { addLumnaBranding } from './utils';
@@ -46,6 +47,24 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
     const [isDownloading, setIsDownloading] = useState(false);
     const tableRef = useRef<HTMLDivElement>(null);
 
+    // Sorting: 'company' or a quarter string like 'Q4 2025'
+    const [sortColumn, setSortColumn] = useState<string>('company');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+    const handleSort = (column: string) => {
+      if (sortColumn === column) {
+        setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      } else {
+        setSortColumn(column);
+        setSortDirection(column === 'company' ? 'asc' : 'desc');
+      }
+    };
+
+    const SortIndicator = ({ column }: { column: string }) => {
+      if (sortColumn !== column) return null;
+      return sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />;
+    };
+
     const handleDownload = async () => {
       setIsDownloading(true);
       await new Promise(r => setTimeout(r, 100));
@@ -85,6 +104,22 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
     const metricData = data.metrics[selectedMetric] || {};
     const metricInfo = METRICS.find(m => m.key === selectedMetric)!;
 
+    const sortedTickers = useMemo(() => {
+      const tickers = [...data.tickers];
+      tickers.sort((a, b) => {
+        let comparison: number;
+        if (sortColumn === 'company') {
+          comparison = a.localeCompare(b);
+        } else {
+          const valA = metricData[a]?.[sortColumn] ?? -Infinity;
+          const valB = metricData[b]?.[sortColumn] ?? -Infinity;
+          comparison = valA - valB;
+        }
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+      return tickers;
+    }, [data.tickers, sortColumn, sortDirection, metricData]);
+
     return (
       <div>
         {/* Metric tabs - hidden during download */}
@@ -118,17 +153,23 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
               <thead>
                 <tr className="border-b-2 border-slate-300 dark:border-slate-500">
                   <th className="py-2 px-3 text-left font-semibold text-slate-700 dark:text-slate-200 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10 min-w-[140px]">
-                    {language === 'fr' ? 'Entreprise' : 'Company'}
+                    <button onClick={() => handleSort('company')} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors">
+                      {language === 'fr' ? 'Entreprise' : 'Company'}
+                      <SortIndicator column="company" />
+                    </button>
                   </th>
                   {data.quarters.map(q => (
                     <th key={q} className="py-2 px-3 text-right font-semibold text-slate-700 dark:text-slate-200 min-w-[90px] whitespace-nowrap">
-                      {q}
+                      <button onClick={() => handleSort(q)} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors ml-auto">
+                        {q}
+                        <SortIndicator column={q} />
+                      </button>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {data.tickers.map(ticker => {
+                {sortedTickers.map(ticker => {
                   const tickerVals = metricData[ticker] || {};
                   const currency = data.currencies[ticker] || 'USD';
                   return (
