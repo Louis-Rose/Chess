@@ -4660,7 +4660,21 @@ def _fetch_ticker_quarterly(ticker):
             except Exception:
                 continue
 
-    result = {'metrics': metrics_data, 'currency': currency, 'eps': eps_data}
+    # Annual EPS from income_stmt (4 years) — used as TTM fallback for older quarters
+    annual_income = stock.income_stmt
+    annual_eps = {}  # {date_str: annual_eps_value}
+    actual_annual_eps = find_metric(annual_income, eps_variations)
+    if actual_annual_eps and annual_income is not None:
+        for col in annual_income.columns:
+            try:
+                value = annual_income.loc[actual_annual_eps, col]
+                if pd.notna(value):
+                    dt = col.to_pydatetime()
+                    annual_eps[dt.strftime('%Y-%m-%d')] = float(value)
+            except Exception:
+                continue
+
+    result = {'metrics': metrics_data, 'currency': currency, 'eps': eps_data, 'annual_eps': annual_eps}
     _quarterly_financials_cache[ticker] = (result, now)
     return result
 
@@ -4822,6 +4836,7 @@ def get_portfolio_financials():
     for t in tickers:
         pe_ratios[t] = {}
         eps_data = ticker_data[t].get('eps', {})
+        t_annual_eps = ticker_data[t].get('annual_eps', {})
         for q in sorted_quarters:
             price = all_prices_by_quarter.get(q, {}).get(t)
             if not price:
@@ -4842,10 +4857,27 @@ def get_portfolio_financials():
                 if oq_label in eps_data:
                     ttm_eps += eps_data[oq_label]
                     ttm_count += 1
-            if ttm_count > 0:
+            if ttm_count >= 3:
+                # 3-4 quarterly EPS available: annualize
                 annualized_eps = ttm_eps * (4 / ttm_count)
                 if annualized_eps > 0:
                     pe_ratios[t][q] = round(price / annualized_eps, 2)
+            elif t_annual_eps:
+                # Fallback: use most recent annual EPS reported before quarter-end
+                import datetime as _dt
+                q_date_str = quarter_end_dates[q]
+                q_date = _dt.datetime.strptime(q_date_str, '%Y-%m-%d').date()
+                best_annual = None
+                best_date = None
+                for date_str, annual_val in t_annual_eps.items():
+                    d = _dt.datetime.strptime(date_str, '%Y-%m-%d').date()
+                    # Use annual EPS if fiscal year ended within ~15 months before quarter-end
+                    if d <= q_date and (q_date - d).days <= 450:
+                        if best_date is None or d > best_date:
+                            best_date = d
+                            best_annual = annual_val
+                if best_annual and best_annual > 0:
+                    pe_ratios[t][q] = round(price / best_annual, 2)
 
     # Weighted average PE for portfolio total
     pe_total = {}
@@ -7995,6 +8027,7 @@ def get_demo_portfolio_financials():
     for t in tickers:
         pe_ratios[t] = {}
         eps_data = ticker_data[t].get('eps', {})
+        t_annual_eps = ticker_data[t].get('annual_eps', {})
         for q in sorted_quarters:
             price = all_prices_by_quarter.get(q, {}).get(t)
             if not price:
@@ -8014,10 +8047,24 @@ def get_demo_portfolio_financials():
                 if oq_label in eps_data:
                     ttm_eps += eps_data[oq_label]
                     ttm_count += 1
-            if ttm_count > 0:
+            if ttm_count >= 3:
                 annualized_eps = ttm_eps * (4 / ttm_count)
                 if annualized_eps > 0:
                     pe_ratios[t][q] = round(price / annualized_eps, 2)
+            elif t_annual_eps:
+                import datetime as _dt
+                q_date_str = quarter_end_dates[q]
+                q_date = _dt.datetime.strptime(q_date_str, '%Y-%m-%d').date()
+                best_annual = None
+                best_date = None
+                for date_str, annual_val in t_annual_eps.items():
+                    d = _dt.datetime.strptime(date_str, '%Y-%m-%d').date()
+                    if d <= q_date and (q_date - d).days <= 450:
+                        if best_date is None or d > best_date:
+                            best_date = d
+                            best_annual = annual_val
+                if best_annual and best_annual > 0:
+                    pe_ratios[t][q] = round(price / best_annual, 2)
 
     pe_total = {}
     for q in sorted_quarters:
