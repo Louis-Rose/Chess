@@ -84,8 +84,6 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
 
     const metricData = data.metrics[selectedMetric] || {};
     const metricInfo = METRICS.find(m => m.key === selectedMetric)!;
-    const latestQuarter = data.quarters[data.quarters.length - 1];
-    const latestWeights = data.weights_by_quarter[latestQuarter] || {};
 
     return (
       <div>
@@ -122,9 +120,6 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                   <th className="py-2 px-3 text-left font-semibold text-slate-700 dark:text-slate-200 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10 min-w-[140px]">
                     {language === 'fr' ? 'Entreprise' : 'Company'}
                   </th>
-                  <th className="py-2 px-2 text-center font-semibold text-slate-500 dark:text-slate-400 min-w-[50px]">
-                    %
-                  </th>
                   {data.quarters.map(q => (
                     <th key={q} className="py-2 px-3 text-right font-semibold text-slate-700 dark:text-slate-200 min-w-[90px] whitespace-nowrap">
                       {q}
@@ -135,7 +130,6 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
               <tbody>
                 {data.tickers.map(ticker => {
                   const tickerVals = metricData[ticker] || {};
-                  const weight = latestWeights[ticker];
                   const currency = data.currencies[ticker] || 'USD';
                   return (
                     <tr key={ticker} className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
@@ -143,20 +137,24 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                         <span>{ticker}</span>
                         <span className="ml-1 text-xs text-slate-400">{currency}</span>
                       </td>
-                      <td className="py-2 px-2 text-center text-xs text-slate-500 dark:text-slate-400">
-                        {weight !== undefined ? `${(weight * 100).toFixed(1)}` : '—'}
-                      </td>
                       {data.quarters.map(q => {
                         const val = tickerVals[q];
+                        const weight = data.weights_by_quarter[q]?.[ticker];
                         return (
-                          <td key={q} className={`py-2 px-3 text-right tabular-nums whitespace-nowrap ${
-                            val !== undefined
+                          <td key={q} className="py-2 px-3 text-right tabular-nums whitespace-nowrap">
+                            <div className={val !== undefined
                               ? val >= 0
                                 ? 'text-green-600 dark:text-green-400'
                                 : 'text-red-600 dark:text-red-400'
                               : 'text-slate-400'
-                          }`}>
-                            {val !== undefined ? formatLargeNumber(val) : '—'}
+                            }>
+                              {val !== undefined ? formatLargeNumber(val) : '—'}
+                            </div>
+                            {weight !== undefined && (
+                              <div className="text-[10px] text-slate-400 dark:text-slate-500">
+                                {(weight * 100).toFixed(1)}%
+                              </div>
+                            )}
                           </td>
                         );
                       })}
@@ -169,7 +167,6 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                   <td className="py-2 px-3 text-slate-800 dark:text-slate-100 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10">
                     {language === 'fr' ? 'Total pondéré' : 'Weighted Total'}
                   </td>
-                  <td className="py-2 px-2" />
                   {data.quarters.map(q => {
                     const val = metricData['total']?.[q];
                     return (
