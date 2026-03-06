@@ -1609,12 +1609,6 @@ export const PerformanceChart = forwardRef<PerformanceChartHandle, PerformanceCh
                   <div className="w-3 h-3 bg-red-500/30 border border-red-500"></div>
                   <span className="text-slate-600 dark:text-slate-300">{language === 'fr' ? 'Sous-perf.' : 'Underperf.'}</span>
                 </div>
-                {/* Click hint */}
-                {!pinnedTooltipData && (
-                  <div className="flex items-center gap-1 px-2 py-1 text-slate-500 dark:text-slate-400 text-xs italic">
-                    <span>{language === 'fr' ? '💡 Cliquez sur le graphique pour épingler' : '💡 Click on graph to pin tooltip'}</span>
-                  </div>
-                )}
               </div>
 
               {/* LUMNA branding - hidden during download since addLumnaBranding adds it */}
