@@ -164,6 +164,22 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                 </tr>
               </thead>
               <tbody>
+                {/* Portfolio weight row */}
+                {!isPortfolio && (
+                  <tr className="border-b-2 border-slate-300 dark:border-slate-500">
+                    <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10">
+                      {language === 'fr' ? 'Poids du portefeuille' : 'Portfolio Weight'}
+                    </td>
+                    {data.quarters.map(q => {
+                      const weight = data.weights_by_quarter[q]?.[selectedTicker];
+                      return (
+                        <td key={q} className="py-2 px-3 text-right tabular-nums whitespace-nowrap text-slate-500 dark:text-slate-400">
+                          {weight !== undefined ? `${(weight * 100).toFixed(1)}%` : '—'}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                )}
                 {rows.map(m => (
                   <tr key={m.key} className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
                     <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10">
