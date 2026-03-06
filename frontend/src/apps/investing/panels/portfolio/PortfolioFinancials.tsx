@@ -1,6 +1,5 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { toPng } from 'html-to-image';
-import { ChevronUp, ChevronDown } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { addLumnaBranding } from './utils';
@@ -48,24 +47,6 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
     const [selectedTicker, setSelectedTicker] = useState<string>(PORTFOLIO_KEY);
     const [isDownloading, setIsDownloading] = useState(false);
     const tableRef = useRef<HTMLDivElement>(null);
-
-    // Sorting by quarter columns
-    const [sortColumn, setSortColumn] = useState<string | null>(null);
-    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-
-    const handleSort = (column: string) => {
-      if (sortColumn === column) {
-        setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-      } else {
-        setSortColumn(column);
-        setSortDirection('desc');
-      }
-    };
-
-    const SortIndicator = ({ column }: { column: string }) => {
-      if (sortColumn !== column) return null;
-      return sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />;
-    };
 
     const handleDownload = async () => {
       setIsDownloading(true);
@@ -117,7 +98,7 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
       return metric[selectedTicker]?.[quarter];
     };
 
-    // Build rows (metrics) with values for sorting
+    // Build rows (metrics) with values — fixed order
     const rows = METRICS.map(m => {
       const values: Record<string, number | undefined> = {};
       for (const q of data.quarters) {
@@ -125,16 +106,6 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
       }
       return { ...m, values };
     });
-
-    // Sort rows if a column is selected
-    const sortedRows = sortColumn
-      ? [...rows].sort((a, b) => {
-          const valA = a.values[sortColumn] ?? -Infinity;
-          const valB = b.values[sortColumn] ?? -Infinity;
-          const cmp = valA - valB;
-          return sortDirection === 'asc' ? cmp : -cmp;
-        })
-      : rows;
 
     const selectedLabel = isPortfolio
       ? (language === 'fr' ? 'Portefeuille complet' : 'Complete Portfolio')
@@ -187,16 +158,13 @@ export const PortfolioFinancials = forwardRef<PortfolioFinancialsHandle, Portfol
                   </th>
                   {data.quarters.map(q => (
                     <th key={q} className="py-2 px-3 text-right font-semibold text-slate-700 dark:text-slate-200 min-w-[90px] whitespace-nowrap">
-                      <button onClick={() => handleSort(q)} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors ml-auto">
-                        {q}
-                        <SortIndicator column={q} />
-                      </button>
+                      {q}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {sortedRows.map(m => (
+                {rows.map(m => (
                   <tr key={m.key} className="border-b border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors">
                     <td className="py-2 px-3 font-medium text-slate-800 dark:text-slate-100 sticky left-0 bg-slate-50 dark:bg-slate-700 z-10">
                       {language === 'fr' ? m.labelFr : m.labelEn}
