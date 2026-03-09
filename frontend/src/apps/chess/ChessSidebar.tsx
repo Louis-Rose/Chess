@@ -154,8 +154,9 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
               Joined {new Date(playerInfo.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
             <div className="mt-3 pt-3 border-t border-slate-200 text-xs md:text-sm text-slate-600 space-y-1">
-              <p>Rapid: {playerInfo.rapid_rating && <><span className="font-semibold text-slate-800">{playerInfo.rapid_rating}</span> elo</>}</p>
+              <p>Bullet: {playerInfo.bullet_rating && <><span className="font-semibold text-slate-800">{playerInfo.bullet_rating}</span> elo</>}</p>
               <p>Blitz: {playerInfo.blitz_rating && <><span className="font-semibold text-slate-800">{playerInfo.blitz_rating}</span> elo</>}</p>
+              <p>Rapid: {playerInfo.rapid_rating && <><span className="font-semibold text-slate-800">{playerInfo.rapid_rating}</span> elo</>}</p>
             </div>
           </div>
         ) : (
@@ -167,8 +168,9 @@ export function ChessSidebar({ onComplete }: ChessSidebarProps) {
               <p className="text-slate-500 text-xs md:text-sm mt-1">-- followers</p>
               <p className="text-slate-500 text-xs md:text-sm">Joined --</p>
               <div className="mt-3 pt-3 border-t border-slate-600 text-xs md:text-sm text-slate-500 space-y-1">
-                <p>Rapid: <span className="font-semibold">--</span> elo · <span className="font-semibold">--</span> games</p>
+                <p>Bullet: <span className="font-semibold">--</span> elo · <span className="font-semibold">--</span> games</p>
                 <p>Blitz: <span className="font-semibold">--</span> elo · <span className="font-semibold">--</span> games</p>
+                <p>Rapid: <span className="font-semibold">--</span> elo · <span className="font-semibold">--</span> games</p>
               </div>
             </div>
             <div className="h-px bg-slate-700 mt-3" />

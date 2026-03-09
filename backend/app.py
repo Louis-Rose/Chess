@@ -90,6 +90,7 @@ def get_chess_stats():
                 "joined": player_data.get("joined"),
                 "rapid_rating": (player_data.get("chess_rapid") or {}).get("last", {}).get("rating"),
                 "blitz_rating": (player_data.get("chess_blitz") or {}).get("last", {}).get("rating"),
+                "bullet_rating": (player_data.get("chess_bullet") or {}).get("last", {}).get("rating"),
             },
             "time_class": time_class,
             "history": history,
@@ -140,6 +141,7 @@ def get_player_info():
                 'joined': player_data.get('joined'),
                 'rapid_rating': (player_data.get('chess_rapid') or {}).get('last', {}).get('rating'),
                 'blitz_rating': (player_data.get('chess_blitz') or {}).get('last', {}).get('rating'),
+                'bullet_rating': (player_data.get('chess_bullet') or {}).get('last', {}).get('rating'),
             }
         })
     except ValueError as e:
@@ -184,6 +186,7 @@ def get_chess_stats_stream():
                 'joined': player_data.get('joined'),
                 'rapid_rating': (player_data.get('chess_rapid') or {}).get('last', {}).get('rating'),
                 'blitz_rating': (player_data.get('chess_blitz') or {}).get('last', {}).get('rating'),
+                'bullet_rating': (player_data.get('chess_bullet') or {}).get('last', {}).get('rating'),
             }
             yield f"data: {json_module.dumps({'type': 'player', 'player': player_info})}\n\n"
 

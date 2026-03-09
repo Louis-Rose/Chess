@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useChessData } from '../contexts/ChessDataContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { saveChessPrefs } from '../utils/constants';
-import { Loader2, Clock, Zap } from 'lucide-react';
+import { Loader2, Clock, Zap, Crosshair } from 'lucide-react';
 
 const WORD_INTERVAL_MS = 60;
 
@@ -171,7 +171,9 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
   const [selectedGoal, setSelectedGoal] = useState<number | null>(null);
 
   // Derive current elo from playerInfo based on selected time class
-  const currentElo = selectedTimeClass === 'blitz'
+  const currentElo = selectedTimeClass === 'bullet'
+    ? playerInfo?.bullet_rating
+    : selectedTimeClass === 'blitz'
     ? playerInfo?.blitz_rating
     : playerInfo?.rapid_rating;
 
@@ -180,7 +182,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
     [currentElo]
   );
 
-  const timeClassLabel = selectedTimeClass === 'blitz' ? 'Blitz' : t('chess.rapid');
+  const timeClassLabel = selectedTimeClass === 'bullet' ? 'Bullet' : selectedTimeClass === 'blitz' ? 'Blitz' : t('chess.rapid');
 
   const slide3Text = currentElo
     ? t('chess.ob.currentElo').replace('{timeClass}', timeClassLabel)
@@ -294,11 +296,11 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
               }`}
             >
               <TimeClassCard
-                label="Rapid"
-                sublabel="10+ min"
-                icon={Clock}
-                selected={selectedTimeClass === 'rapid'}
-                onClick={() => handleTimeClassChange('rapid')}
+                label="Bullet"
+                sublabel="1-2 min"
+                icon={Crosshair}
+                selected={selectedTimeClass === 'bullet'}
+                onClick={() => handleTimeClassChange('bullet')}
               />
               <TimeClassCard
                 label="Blitz"
@@ -306,6 +308,13 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
                 icon={Zap}
                 selected={selectedTimeClass === 'blitz'}
                 onClick={() => handleTimeClassChange('blitz')}
+              />
+              <TimeClassCard
+                label="Rapid"
+                sublabel="10+ min"
+                icon={Clock}
+                selected={selectedTimeClass === 'rapid'}
+                onClick={() => handleTimeClassChange('rapid')}
               />
             </div>
             <button

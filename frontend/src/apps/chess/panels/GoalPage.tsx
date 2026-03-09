@@ -36,7 +36,9 @@ export function GoalPage() {
 
   const prefs = getChessPrefs();
   const player = playerInfo ?? data?.player;
-  const currentElo = selectedTimeClass === 'blitz'
+  const currentElo = selectedTimeClass === 'bullet'
+    ? player?.bullet_rating
+    : selectedTimeClass === 'blitz'
     ? player?.blitz_rating
     : player?.rapid_rating;
 

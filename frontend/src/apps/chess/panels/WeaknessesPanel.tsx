@@ -33,7 +33,7 @@ export function WeaknessesPanel() {
   if (data.total_games < 5) {
     const count = data.total_games;
     const timeClassLabel = language === 'fr'
-      ? (selectedTimeClass === 'rapid' ? 'rapide' : 'blitz')
+      ? (selectedTimeClass === 'rapid' ? 'rapide' : selectedTimeClass === 'blitz' ? 'blitz' : 'bullet')
       : selectedTimeClass;
     const gamesWord = count === 1
       ? (language === 'fr' ? 'partie' : 'game')

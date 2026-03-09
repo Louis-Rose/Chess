@@ -117,6 +117,7 @@ export function useStreamingStats(username: string, timeClass: TimeClass) {
                 total_games: 0,
                 total_rapid: 0,
                 total_blitz: 0,
+                total_bullet: 0,
                 openings: { white: [], black: [] },
                 game_number_stats: [],
                 hourly_stats: [],

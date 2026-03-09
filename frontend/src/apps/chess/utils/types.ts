@@ -2,7 +2,7 @@
 
 export type PanelType = 'welcome' | 'my-data' | 'win-prediction' | 'pros-tips' | 'weaknesses' | 'openings' | 'middle-game' | 'end-game';
 
-export type TimeClass = 'rapid' | 'blitz';
+export type TimeClass = 'rapid' | 'blitz' | 'bullet';
 
 export interface SavedPlayer {
   username: string;
@@ -17,6 +17,7 @@ export interface PlayerData {
   joined: number; // Unix timestamp
   rapid_rating?: number | null;
   blitz_rating?: number | null;
+  bullet_rating?: number | null;
 }
 
 export interface HistoryData {
@@ -183,6 +184,7 @@ export interface ApiResponse {
   total_games: number;
   total_rapid: number;
   total_blitz: number;
+  total_bullet: number;
   openings: {
     white: OpeningData[];
     black: OpeningData[];

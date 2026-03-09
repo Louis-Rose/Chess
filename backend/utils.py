@@ -70,7 +70,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
     cached_stats_map: dict of {time_class: stats_data} for incremental updates
     archives: optional pre-fetched archives list to avoid redundant API calls
     """
-    TIME_CLASSES = ['rapid', 'blitz']
+    TIME_CLASSES = ['rapid', 'blitz', 'bullet']
     headers = {'User-Agent': 'MyChessStatsApp/1.0 (contact@example.com)'}
 
     # Resolve user timezone (fallback to Paris)
@@ -140,12 +140,14 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
     # Track totals across all time classes
     total_rapid = 0
     total_blitz = 0
+    total_bullet = 0
     if cached_stats_map:
         # Get totals from any cached data (they're the same across time classes)
         for tc, cached in cached_stats_map.items():
             if cached:
                 total_rapid = cached.get('total_rapid', 0)
                 total_blitz = cached.get('total_blitz', 0)
+                total_bullet = cached.get('total_bullet', 0)
                 break
 
     # Step 2: Process each archive (only new ones if incremental)
@@ -182,11 +184,13 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             if not end_time:
                 continue
 
-            # Count all rapid and blitz games
+            # Count all rapid, blitz, and bullet games
             if game_time_class == 'rapid':
                 total_rapid += 1
             elif game_time_class == 'blitz':
                 total_blitz += 1
+            elif game_time_class == 'bullet':
+                total_bullet += 1
 
             # Skip if not a time class we track
             if game_time_class not in TIME_CLASSES:
@@ -566,6 +570,7 @@ def fetch_all_time_classes_streaming(USERNAME, requested_time_class='rapid', cac
             'total_games': tcd['total_games'],
             'total_rapid': total_rapid,
             'total_blitz': total_blitz,
+            'total_bullet': total_bullet,
             'openings': processed_openings,
             'game_number_stats': game_number_result,
             'daily_volume_stats': daily_volume_stats,

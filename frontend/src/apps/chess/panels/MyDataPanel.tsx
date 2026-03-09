@@ -15,7 +15,7 @@ function NotEnoughGames({ totalGames }: { totalGames: number }) {
   const { t, language } = useLanguage();
   const { selectedTimeClass } = useChessData();
   const timeClassLabel = language === 'fr'
-    ? (selectedTimeClass === 'rapid' ? 'rapide' : 'blitz')
+    ? (selectedTimeClass === 'rapid' ? 'rapide' : selectedTimeClass === 'blitz' ? 'blitz' : 'bullet')
     : selectedTimeClass;
   const gamesWord = totalGames === 1
     ? (language === 'fr' ? 'partie' : 'game')
@@ -911,10 +911,10 @@ export function EloSection({ data, standalone = false }: { data: ApiResponse; st
     <div className="grid grid-cols-2 gap-4">
       <div className="bg-slate-800 rounded-xl p-6 text-center">
         <p className="text-3xl font-bold text-slate-100">
-          {(selectedTimeClass === 'rapid' ? data.total_rapid : data.total_blitz)?.toLocaleString() || 0}
+          {(selectedTimeClass === 'rapid' ? data.total_rapid : selectedTimeClass === 'blitz' ? data.total_blitz : data.total_bullet)?.toLocaleString() || 0}
         </p>
         <p className="text-slate-400 text-sm">
-          {selectedTimeClass === 'rapid' ? 'Rapid' : 'Blitz'} Games
+          {selectedTimeClass === 'rapid' ? 'Rapid' : selectedTimeClass === 'blitz' ? 'Blitz' : 'Bullet'} Games
         </p>
       </div>
       <div className="bg-slate-800 rounded-xl p-6 text-center">
