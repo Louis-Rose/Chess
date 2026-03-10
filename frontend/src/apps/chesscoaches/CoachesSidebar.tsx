@@ -6,6 +6,30 @@ import { SidebarShell } from '../../components/SidebarShell';
 import { useCoachesData } from './contexts/CoachesDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
+function LanguageToggleInline() {
+  const { language, setLanguage } = useLanguage();
+  return (
+    <div className="relative flex bg-slate-700 rounded-md p-0.5">
+      <div
+        className="absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] bg-slate-500 rounded transition-transform duration-200"
+        style={{ transform: language === 'en' ? 'translateX(0)' : 'translateX(100%)' }}
+      />
+      <button
+        onClick={() => setLanguage('en')}
+        className={`relative z-10 px-2 py-1 text-xs font-medium rounded transition-colors ${language === 'en' ? 'text-white' : 'text-slate-400'}`}
+      >
+        EN
+      </button>
+      <button
+        onClick={() => setLanguage('fr')}
+        className={`relative z-10 px-2 py-1 text-xs font-medium rounded transition-colors ${language === 'fr' ? 'text-white' : 'text-slate-400'}`}
+      >
+        FR
+      </button>
+    </div>
+  );
+}
+
 const LumnaLogo = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 128 128" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="8" y="8" width="112" height="112" rx="20" fill="#16a34a"/>
@@ -87,10 +111,15 @@ export function CoachesSidebar({ onComplete }: CoachesSidebarProps) {
   return (
     <SidebarShell hideThemeToggle hideLanguageToggle fullWidth>
       <div ref={topRef} />
-      <a href="/coaches" className="flex items-center justify-center gap-3 px-2 pb-3 mb-2 hover:opacity-80 transition-opacity flex-shrink-0">
-        <LumnaLogo className="w-10 h-10 md:w-14 md:h-14 flex-shrink-0" />
-        <span className="text-xl md:text-3xl font-bold text-white tracking-wide">LUMNA</span>
-      </a>
+      <div className="relative flex items-center justify-center px-2 pb-3 mb-2">
+        <a href="/coaches" className="flex items-center gap-3 hover:opacity-80 transition-opacity flex-shrink-0">
+          <LumnaLogo className="w-10 h-10 md:w-14 md:h-14 flex-shrink-0" />
+          <span className="text-xl md:text-3xl font-bold text-white tracking-wide">LUMNA</span>
+        </a>
+        <div className="absolute right-0">
+          <LanguageToggleInline />
+        </div>
+      </div>
       <div className="h-px bg-slate-700 mx-3 mb-2" />
 
       {!cardLoaded && (
