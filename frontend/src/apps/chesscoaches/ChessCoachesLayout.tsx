@@ -83,11 +83,10 @@ function CoachesNavSidebar() {
 
         {/* Navigation */}
         <nav className="flex flex-col gap-0.5">
-          {NAV_ITEMS.map(({ path, labelKey, icon: Icon, end }) => (
+          {NAV_ITEMS.map(({ path, labelKey, icon: Icon }) => (
             <NavLink
               key={path}
               to={path}
-              end={end}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                   isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
