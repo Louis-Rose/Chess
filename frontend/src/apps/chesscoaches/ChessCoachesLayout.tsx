@@ -99,6 +99,8 @@ function CoachesNavSidebar() {
             </NavLink>
           ))}
         </nav>
+
+        <div className="h-px bg-slate-700" />
       </div>
     </div>
   );
