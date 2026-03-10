@@ -144,6 +144,13 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Auto-fetch player info on mount if onboarding already done
+  useEffect(() => {
+    if (prefs.onboarding_done && prefs.chess_username) {
+      fetchPlayerInfo(prefs.chess_username);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (usernameInput.trim()) {
