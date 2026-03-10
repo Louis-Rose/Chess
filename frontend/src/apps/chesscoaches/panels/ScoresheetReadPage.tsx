@@ -191,7 +191,7 @@ export function ScoresheetReadPage() {
       {showImageModal && preview && (
         <div
           onClick={closeModal}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-[2px] cursor-pointer"
         >
           <button
             onClick={closeModal}

@@ -5,7 +5,6 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { FileText, LogOut } from 'lucide-react';
 import { CoachesDataProvider, useCoachesData, getCoachesPrefs, saveCoachesPrefs } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
-import { FeedbackWidget } from '../../components/FeedbackWidget';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 const NAV_ITEMS = [
@@ -236,7 +235,6 @@ function CoachesLayoutInner() {
             <CoachesHeader />
             <Outlet />
           </main>
-          <FeedbackWidget language="en" mobileBottom="bottom-2" />
         </>
       )}
     </div>
