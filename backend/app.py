@@ -381,8 +381,10 @@ def read_scoresheet():
     logger.info(f"[Scoresheet] Image: {len(image_bytes)} bytes, {mime_type}")
 
     MODELS = [
-        {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash"},
-        {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro"},
+        {"id": "gemini-2.5-flash", "name": "2.5 Flash"},
+        {"id": "gemini-2.5-pro", "name": "2.5 Pro"},
+        {"id": "gemini-3.1-flash", "name": "3.1 Flash"},
+        {"id": "gemini-3.1-lite", "name": "3.1 Lite"},
     ]
 
     PROMPT = """You are analyzing a handwritten chess tournament scoresheet image.

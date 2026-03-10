@@ -1,6 +1,6 @@
-// Scoresheet reader page — runs 2 Gemini models in parallel
+// Scoresheet reader page — runs 4 Gemini models in parallel
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, Loader2, ImageIcon, Clock } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -46,6 +46,34 @@ export function ScoresheetReadPage() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [showImageModal, closeModal]);
+
+  // Build disagreement map: moveNumber -> { white: Set of values, black: Set of values }
+  const disagreements = useMemo(() => {
+    const results = Object.values(modelResults).filter(m => m.result);
+    if (results.length < 2) return new Map<number, { white: boolean; black: boolean }>();
+
+    const map = new Map<number, { white: boolean; black: boolean }>();
+    const maxMoves = Math.max(...results.map(m => m.result!.moves.length));
+
+    for (let i = 0; i < maxMoves; i++) {
+      const whites = new Set<string>();
+      const blacks = new Set<string>();
+      for (const m of results) {
+        const move = m.result!.moves[i];
+        if (move) {
+          whites.add(move.white);
+          blacks.add(move.black || '');
+        } else {
+          whites.add('');
+          blacks.add('');
+        }
+      }
+      if (whites.size > 1 || blacks.size > 1) {
+        map.set(i + 1, { white: whites.size > 1, black: blacks.size > 1 });
+      }
+    }
+    return map;
+  }, [modelResults]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,7 +124,7 @@ export function ScoresheetReadPage() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-[1600px] mx-auto">
         <div className="flex flex-col pt-2">
           <button
             onClick={() => navigate('/coach')}
@@ -161,13 +189,13 @@ export function ScoresheetReadPage() {
                 <p className="text-red-400 text-center py-4">{error}</p>
               )}
 
-              {/* Model results */}
+              {/* Model results — 4 columns on desktop */}
               {hasResults && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                   {models.map((m) => {
                     const mr = modelResults[m.id];
                     if (!mr) return null;
-                    return <ModelPanel key={m.id} model={mr} />;
+                    return <ModelPanel key={m.id} model={mr} disagreements={disagreements} />;
                   })}
                 </div>
               )}
@@ -194,28 +222,28 @@ export function ScoresheetReadPage() {
   );
 }
 
-function ModelPanel({ model }: { model: ModelResult }) {
+function ModelPanel({ model, disagreements }: { model: ModelResult; disagreements: Map<number, { white: boolean; black: boolean }> }) {
   const moves = model.result?.moves || [];
 
   return (
     <div className="bg-slate-700/50 rounded-xl overflow-hidden">
       {/* Model header */}
-      <div className="px-4 py-3 border-b border-slate-600 flex items-center justify-between">
-        <span className="text-slate-100 font-medium text-sm">{model.name}</span>
-        <div className="flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-slate-400 text-sm">{model.elapsed}s</span>
+      <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-between">
+        <span className="text-slate-100 font-medium text-xs">{model.name}</span>
+        <div className="flex items-center gap-1">
+          <Clock className="w-3 h-3 text-slate-400" />
+          <span className="text-slate-400 text-xs">{model.elapsed}s</span>
         </div>
       </div>
 
       {/* Error */}
       {model.error && (
-        <p className="text-red-400 text-center py-4 text-sm px-3">{model.error}</p>
+        <p className="text-red-400 text-center py-3 text-xs px-2">{model.error}</p>
       )}
 
       {/* Game info */}
       {model.result && (
-        <div className="px-4 py-2 border-b border-slate-600/50 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+        <div className="px-2 py-1.5 border-b border-slate-600/50 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px]">
           {model.result.white_player && (
             <div><span className="text-slate-400">W:</span> <span className="text-slate-200">{model.result.white_player}</span></div>
           )}
@@ -228,28 +256,29 @@ function ModelPanel({ model }: { model: ModelResult }) {
         </div>
       )}
 
-      {/* Moves table */}
+      {/* Moves table — no scroll, full height */}
       {moves.length > 0 && (
-        <div className="max-h-[500px] overflow-y-auto">
-          <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-slate-700">
-              <tr className="border-b border-slate-600">
-                <th className="px-3 py-2 text-slate-400 font-medium text-center w-10">#</th>
-                <th className="px-3 py-2 text-slate-400 font-medium text-left">White</th>
-                <th className="px-3 py-2 text-slate-400 font-medium text-left">Black</th>
-              </tr>
-            </thead>
-            <tbody>
-              {moves.map((move) => (
+        <table className="w-full text-[11px]">
+          <thead className="bg-slate-700">
+            <tr className="border-b border-slate-600">
+              <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6">#</th>
+              <th className="px-1.5 py-1 text-slate-400 font-medium text-left">W</th>
+              <th className="px-1.5 py-1 text-slate-400 font-medium text-left">B</th>
+            </tr>
+          </thead>
+          <tbody>
+            {moves.map((move) => {
+              const d = disagreements.get(move.number);
+              return (
                 <tr key={move.number} className="border-b border-slate-600/30 last:border-0">
-                  <td className="px-3 py-1 text-slate-500 text-center font-mono">{move.number}</td>
-                  <td className="px-3 py-1 text-slate-100 font-mono">{move.white}</td>
-                  <td className="px-3 py-1 text-slate-100 font-mono">{move.black || ''}</td>
+                  <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{move.number}</td>
+                  <td className={`px-1.5 py-0.5 font-mono ${d?.white ? 'bg-red-900/50 text-red-200' : 'text-slate-100'}`}>{move.white}</td>
+                  <td className={`px-1.5 py-0.5 font-mono ${d?.black ? 'bg-red-900/50 text-red-200' : 'text-slate-100'}`}>{move.black || ''}</td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              );
+            })}
+          </tbody>
+        </table>
       )}
     </div>
   );
