@@ -82,7 +82,8 @@ export function ScoresheetReadPage() {
             <ArrowLeft className="w-5 h-5" />
             <span>Previous</span>
           </button>
-          <h1 className="text-lg font-bold text-slate-100 text-center mt-1">{t('coaches.navScoresheets')}</h1>
+          <div className="border-t border-slate-700 mt-2" />
+          <h1 className="text-lg font-bold text-slate-100 text-center mt-2">{t('coaches.navScoresheets')}</h1>
         </div>
         <div className="border-t border-slate-700 mt-2 mb-6" />
 
