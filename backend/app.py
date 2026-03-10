@@ -355,13 +355,14 @@ No intro, no filler. Output ONLY the prefixed lines."""
 
 @app.route('/api/coaches/read-scoresheet', methods=['POST'])
 def read_scoresheet():
-    """SSE endpoint that streams scoresheet analysis from multiple Gemini models in parallel."""
-    import google.generativeai as genai
+    """Analyze a scoresheet image with multiple Gemini models in parallel."""
+    from google import genai
+    from google.genai import types
     import json as json_module
-    import re
-    import queue
     import threading
     import time as time_module
+
+    logger.info("[Scoresheet] Request received")
 
     if 'image' not in request.files:
         return jsonify({"error": "No image file provided"}), 400
@@ -372,13 +373,14 @@ def read_scoresheet():
 
     api_key = os.environ.get('GEMINI_API_KEY')
     if not api_key:
+        logger.error("[Scoresheet] GEMINI_API_KEY not configured")
         return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
 
     image_bytes = image_file.read()
     mime_type = image_file.content_type or 'image/jpeg'
+    logger.info(f"[Scoresheet] Image: {len(image_bytes)} bytes, {mime_type}")
 
     MODELS = [
-        {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash"},
         {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash"},
         {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro"},
     ]
@@ -409,48 +411,27 @@ Rules:
 
 Return ONLY the JSON object, no other text."""
 
-    event_queue = queue.Queue()
+    client = genai.Client(api_key=api_key)
+    results = {}
 
     def run_model(model_info):
         model_id = model_info["id"]
+        model_name = model_info["name"]
+        logger.info(f"[Scoresheet] Starting {model_name} ({model_id})")
         start = time_module.time()
         try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(model_id)
-            image_part = {"mime_type": mime_type, "data": image_bytes}
-
-            accumulated = ""
-            last_move_count = 0
-
-            gen_config = {"response_mime_type": "application/json"} if "lite" not in model_id else {}
-
-            response = model.generate_content(
-                [PROMPT, image_part],
-                stream=True,
-                generation_config=gen_config,
+            response = client.models.generate_content(
+                model=model_id,
+                contents=[
+                    types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                    PROMPT,
+                ],
+                config={"response_mime_type": "application/json"},
             )
-            for chunk in response:
-                if chunk.text:
-                    accumulated += chunk.text
-                    clean = accumulated.strip()
-                    if clean.startswith('```'):
-                        clean = clean.split('\n', 1)[1] if '\n' in clean else clean[3:]
-
-                    move_matches = re.findall(
-                        r'\{\s*"number"\s*:\s*(\d+)\s*,\s*"white"\s*:\s*"([^"]*)"(?:\s*,\s*"black"\s*:\s*"([^"]*)")?\s*\}',
-                        clean
-                    )
-                    if len(move_matches) > last_move_count:
-                        for m in move_matches[last_move_count:]:
-                            move_data = {"number": int(m[0]), "white": m[1]}
-                            if m[2]:
-                                move_data["black"] = m[2]
-                            event_queue.put({"type": "move", "model": model_id, "move": move_data})
-                        last_move_count = len(move_matches)
-
             elapsed = round(time_module.time() - start, 1)
+            logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s")
 
-            response_text = accumulated.strip()
+            response_text = response.text.strip()
             if response_text.startswith('```'):
                 response_text = response_text.split('\n', 1)[1]
                 if response_text.endswith('```'):
@@ -458,45 +439,26 @@ Return ONLY the JSON object, no other text."""
                 response_text = response_text.strip()
 
             result = json_module.loads(response_text)
-            event_queue.put({"type": "done", "model": model_id, "result": result, "elapsed": elapsed})
+            move_count = len(result.get("moves", []))
+            logger.info(f"[Scoresheet] {model_name}: {move_count} moves extracted")
+            results[model_id] = {"name": model_name, "result": result, "elapsed": elapsed}
 
         except Exception as e:
             elapsed = round(time_module.time() - start, 1)
-            logger.error(f"Scoresheet read error ({model_id}): {e}")
-            event_queue.put({"type": "error", "model": model_id, "error": str(e), "elapsed": elapsed})
+            logger.error(f"[Scoresheet] {model_name} failed after {elapsed}s: {e}")
+            results[model_id] = {"name": model_name, "error": str(e), "elapsed": elapsed}
 
-    def generate():
-        threads = []
-        for m in MODELS:
-            t = threading.Thread(target=run_model, args=(m,))
-            t.start()
-            threads.append(t)
+    threads = []
+    for m in MODELS:
+        t = threading.Thread(target=run_model, args=(m,))
+        t.start()
+        threads.append(t)
 
-        # Send model list to frontend
-        yield f"data: {json_module.dumps({'type': 'models', 'models': MODELS})}\n\n"
+    for t in threads:
+        t.join(timeout=300)
 
-        done_count = 0
-        while done_count < len(MODELS):
-            try:
-                event = event_queue.get(timeout=300)
-                yield f"data: {json_module.dumps(event)}\n\n"
-                if event["type"] in ("done", "error"):
-                    done_count += 1
-            except queue.Empty:
-                break
-
-        for t in threads:
-            t.join(timeout=1)
-
-    return Response(
-        generate(),
-        mimetype='text/event-stream',
-        headers={
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'X-Accel-Buffering': 'no'
-        }
-    )
+    logger.info(f"[Scoresheet] All models done. Results: {list(results.keys())}")
+    return jsonify({"models": MODELS, "results": results})
 
 
 @app.route('/api/win-prediction-stream', methods=['GET'])

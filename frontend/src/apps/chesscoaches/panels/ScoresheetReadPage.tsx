@@ -1,4 +1,4 @@
-// Scoresheet reader page — runs 3 Gemini models in parallel
+// Scoresheet reader page — runs 2 Gemini models in parallel
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -20,14 +20,11 @@ interface ScoresheetResult {
   moves: Move[];
 }
 
-interface ModelState {
-  id: string;
+interface ModelResult {
   name: string;
-  moves: Move[];
-  result: ScoresheetResult | null;
-  elapsed: number | null;
-  error: string | null;
-  loading: boolean;
+  result?: ScoresheetResult;
+  error?: string;
+  elapsed: number;
 }
 
 export function ScoresheetReadPage() {
@@ -37,7 +34,9 @@ export function ScoresheetReadPage() {
 
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [models, setModels] = useState<ModelState[]>([]);
+  const [error, setError] = useState('');
+  const [modelResults, setModelResults] = useState<Record<string, ModelResult>>({});
+  const [models, setModels] = useState<{ id: string; name: string }[]>([]);
   const [showImageModal, setShowImageModal] = useState(false);
 
   const closeModal = useCallback(() => setShowImageModal(false), []);
@@ -51,6 +50,8 @@ export function ScoresheetReadPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setError('');
+    setModelResults({});
     setModels([]);
 
     const reader = new FileReader();
@@ -62,6 +63,8 @@ export function ScoresheetReadPage() {
 
   const analyzeImage = async (file: File) => {
     setLoading(true);
+    setError('');
+    setModelResults({});
     setModels([]);
 
     try {
@@ -79,61 +82,21 @@ export function ScoresheetReadPage() {
         catch { throw new Error('Analysis failed'); }
       }
 
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error('Streaming not supported');
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const data = JSON.parse(line.slice(6));
-
-          if (data.type === 'models') {
-            setModels(data.models.map((m: { id: string; name: string }) => ({
-              id: m.id,
-              name: m.name,
-              moves: [],
-              result: null,
-              elapsed: null,
-              error: null,
-              loading: true,
-            })));
-          } else if (data.type === 'move') {
-            setModels(prev => prev.map(m =>
-              m.id === data.model ? { ...m, moves: [...m.moves, data.move] } : m
-            ));
-          } else if (data.type === 'done') {
-            setModels(prev => prev.map(m =>
-              m.id === data.model ? { ...m, result: data.result, elapsed: data.elapsed, loading: false } : m
-            ));
-          } else if (data.type === 'error') {
-            setModels(prev => prev.map(m =>
-              m.id === data.model ? { ...m, error: data.error, elapsed: data.elapsed, loading: false } : m
-            ));
-          }
-        }
-      }
+      const json = await res.json();
+      setModels(json.models);
+      setModelResults(json.results);
     } catch (e) {
-      console.error('Stream error:', e);
+      setError(e instanceof Error ? e.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
   };
 
-  const hasAnyResults = models.some(m => m.moves.length > 0 || m.result || m.error);
+  const hasResults = Object.keys(modelResults).length > 0;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="flex flex-col pt-2">
           <button
             onClick={() => navigate('/coach')}
@@ -177,7 +140,7 @@ export function ScoresheetReadPage() {
                   onClick={() => setShowImageModal(true)}
                 />
                 <button
-                  onClick={() => { setPreview(null); setModels([]); fileInputRef.current?.click(); }}
+                  onClick={() => { setPreview(null); setModelResults({}); setModels([]); setError(''); fileInputRef.current?.click(); }}
                   className="absolute top-2 right-2 bg-slate-800/80 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
                 >
                   <Upload className="w-4 h-4" />
@@ -185,20 +148,27 @@ export function ScoresheetReadPage() {
                 </button>
               </div>
 
-              {/* Loading before any results */}
-              {loading && !hasAnyResults && (
+              {/* Loading */}
+              {loading && (
                 <div className="flex items-center justify-center gap-3 py-8">
                   <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
                   <span className="text-slate-300">{t('coaches.analyzing')}</span>
                 </div>
               )}
 
-              {/* 3 model results */}
-              {hasAnyResults && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  {models.map((model) => (
-                    <ModelPanel key={model.id} model={model} />
-                  ))}
+              {/* Error */}
+              {error && (
+                <p className="text-red-400 text-center py-4">{error}</p>
+              )}
+
+              {/* Model results */}
+              {hasResults && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {models.map((m) => {
+                    const mr = modelResults[m.id];
+                    if (!mr) return null;
+                    return <ModelPanel key={m.id} model={mr} />;
+                  })}
                 </div>
               )}
             </div>
@@ -224,23 +194,18 @@ export function ScoresheetReadPage() {
   );
 }
 
-function ModelPanel({ model }: { model: ModelState }) {
-  const displayMoves = model.result ? model.result.moves : model.moves;
+function ModelPanel({ model }: { model: ModelResult }) {
+  const moves = model.result?.moves || [];
 
   return (
     <div className="bg-slate-700/50 rounded-xl overflow-hidden">
       {/* Model header */}
       <div className="px-4 py-3 border-b border-slate-600 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-100 font-medium text-sm">{model.name}</span>
-          {model.loading && <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />}
+        <span className="text-slate-100 font-medium text-sm">{model.name}</span>
+        <div className="flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5 text-slate-400" />
+          <span className="text-slate-400 text-sm">{model.elapsed}s</span>
         </div>
-        {model.elapsed !== null && (
-          <div className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-slate-400 text-sm">{model.elapsed}s</span>
-          </div>
-        )}
       </div>
 
       {/* Error */}
@@ -264,7 +229,7 @@ function ModelPanel({ model }: { model: ModelState }) {
       )}
 
       {/* Moves table */}
-      {displayMoves.length > 0 && (
+      {moves.length > 0 && (
         <div className="max-h-[500px] overflow-y-auto">
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-slate-700">
@@ -275,7 +240,7 @@ function ModelPanel({ model }: { model: ModelState }) {
               </tr>
             </thead>
             <tbody>
-              {displayMoves.map((move) => (
+              {moves.map((move) => (
                 <tr key={move.number} className="border-b border-slate-600/30 last:border-0">
                   <td className="px-3 py-1 text-slate-500 text-center font-mono">{move.number}</td>
                   <td className="px-3 py-1 text-slate-100 font-mono">{move.white}</td>
@@ -284,14 +249,6 @@ function ModelPanel({ model }: { model: ModelState }) {
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {/* Empty loading state */}
-      {model.loading && displayMoves.length === 0 && !model.error && (
-        <div className="flex items-center justify-center gap-2 py-8">
-          <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-          <span className="text-slate-400 text-sm">Processing...</span>
         </div>
       )}
     </div>
