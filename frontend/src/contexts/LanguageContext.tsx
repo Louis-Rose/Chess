@@ -239,6 +239,10 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.navScoresheets': 'Tournament Scoresheets',
     'coaches.onboardingInstruction': 'Enter your Chess.com username to get started.',
     'coaches.onboardingDescription': 'LUMNA Coaches helps you digitize and analyze tournament scoresheets from your over-the-board games.',
+    'coaches.uploadPrompt': 'Upload a scoresheet image',
+    'coaches.uploadHint': 'JPG, PNG — photo of a handwritten scoresheet',
+    'coaches.replaceImage': 'Replace',
+    'coaches.analyzing': 'Analyzing scoresheet...',
 
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
@@ -487,6 +491,10 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.navScoresheets': 'Feuilles de partie',
     'coaches.onboardingInstruction': 'Entrez votre nom d\'utilisateur Chess.com pour commencer.',
     'coaches.onboardingDescription': 'LUMNA Coaches vous aide à numériser et analyser les feuilles de partie de vos tournois en présentiel.',
+    'coaches.uploadPrompt': 'Importer une photo de feuille de partie',
+    'coaches.uploadHint': 'JPG, PNG — photo d\'une feuille de partie manuscrite',
+    'coaches.replaceImage': 'Remplacer',
+    'coaches.analyzing': 'Analyse en cours...',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',

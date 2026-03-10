@@ -353,6 +353,82 @@ No intro, no filler. Output ONLY the prefixed lines."""
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/coaches/read-scoresheet', methods=['POST'])
+def read_scoresheet():
+    """Analyze a chess tournament scoresheet image using Gemini Vision."""
+    import google.generativeai as genai
+    import json as json_module
+    import base64
+
+    if 'image' not in request.files:
+        return jsonify({"error": "No image file provided"}), 400
+
+    image_file = request.files['image']
+    if not image_file.filename:
+        return jsonify({"error": "Empty filename"}), 400
+
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
+
+    try:
+        image_bytes = image_file.read()
+        mime_type = image_file.content_type or 'image/jpeg'
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+
+        prompt = """You are analyzing a handwritten chess tournament scoresheet image.
+
+Extract ALL moves from the scoresheet and return them as a JSON object with this exact format:
+{
+  "white_player": "Name or empty string if unreadable",
+  "black_player": "Name or empty string if unreadable",
+  "event": "Tournament name or empty string if unreadable",
+  "date": "Date or empty string if unreadable",
+  "result": "1-0, 0-1, 1/2-1/2, or * if unreadable/ongoing",
+  "moves": [
+    {"number": 1, "white": "e4", "black": "e5"},
+    {"number": 2, "white": "Nf3", "black": "Nc6"}
+  ]
+}
+
+Rules:
+- Use standard algebraic notation (SAN) for moves
+- If a move is unreadable, use "?" as the move
+- If black's last move is missing (white won or game ended), omit the "black" field for that move
+- Include ALL moves you can read, even partially
+- Be careful with similar-looking pieces: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
+- Castling: O-O (kingside), O-O-O (queenside)
+- Captures use "x", checks use "+", checkmate uses "#"
+
+Return ONLY the JSON object, no other text."""
+
+        image_part = {
+            "mime_type": mime_type,
+            "data": image_bytes,
+        }
+
+        response = model.generate_content([prompt, image_part])
+        response_text = response.text.strip()
+
+        # Remove markdown code blocks if present
+        if response_text.startswith('```'):
+            response_text = response_text.split('\n', 1)[1]
+            if response_text.endswith('```'):
+                response_text = response_text.rsplit('```', 1)[0]
+            response_text = response_text.strip()
+
+        result = json_module.loads(response_text)
+        return jsonify(result)
+
+    except json_module.JSONDecodeError:
+        return jsonify({"error": "Failed to parse Gemini response as JSON"}), 500
+    except Exception as e:
+        logger.error(f"Scoresheet read error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/win-prediction-stream', methods=['GET'])
 def get_win_prediction_stream():
     """SSE endpoint that streams progress while analyzing win prediction patterns."""
