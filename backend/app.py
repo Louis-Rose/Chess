@@ -413,7 +413,11 @@ Return ONLY the JSON object, no other text."""
             accumulated = ""
             last_move_count = 0
 
-            response = model.generate_content([prompt, image_part], stream=True)
+            response = model.generate_content(
+                [prompt, image_part],
+                stream=True,
+                generation_config={"response_mime_type": "application/json"},
+            )
             for chunk in response:
                 if chunk.text:
                     accumulated += chunk.text
