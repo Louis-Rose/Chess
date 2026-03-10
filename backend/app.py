@@ -355,10 +355,13 @@ No intro, no filler. Output ONLY the prefixed lines."""
 
 @app.route('/api/coaches/read-scoresheet', methods=['POST'])
 def read_scoresheet():
-    """SSE endpoint that streams scoresheet analysis from Gemini Vision."""
+    """SSE endpoint that streams scoresheet analysis from multiple Gemini models in parallel."""
     import google.generativeai as genai
     import json as json_module
     import re
+    import queue
+    import threading
+    import time as time_module
 
     if 'image' not in request.files:
         return jsonify({"error": "No image file provided"}), 400
@@ -374,12 +377,13 @@ def read_scoresheet():
     image_bytes = image_file.read()
     mime_type = image_file.content_type or 'image/jpeg'
 
-    def generate():
-        try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-2.0-flash')
+    MODELS = [
+        {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro"},
+        {"id": "gemini-3-flash-preview", "name": "Gemini 3 Flash"},
+        {"id": "gemini-3.1-flash-lite-preview", "name": "Gemini 3.1 Flash-Lite"},
+    ]
 
-            prompt = """You are analyzing a handwritten chess tournament scoresheet image.
+    PROMPT = """You are analyzing a handwritten chess tournament scoresheet image.
 
 Extract ALL moves from the scoresheet and return them as a JSON object with this exact format:
 {
@@ -405,44 +409,47 @@ Rules:
 
 Return ONLY the JSON object, no other text."""
 
-            image_part = {
-                "mime_type": mime_type,
-                "data": image_bytes,
-            }
+    event_queue = queue.Queue()
+
+    def run_model(model_info):
+        model_id = model_info["id"]
+        start = time_module.time()
+        try:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(model_id)
+            image_part = {"mime_type": mime_type, "data": image_bytes}
 
             accumulated = ""
             last_move_count = 0
 
+            gen_config = {"response_mime_type": "application/json"} if "lite" not in model_id else {}
+
             response = model.generate_content(
-                [prompt, image_part],
+                [PROMPT, image_part],
                 stream=True,
-                generation_config={"response_mime_type": "application/json"},
+                generation_config=gen_config,
             )
             for chunk in response:
                 if chunk.text:
                     accumulated += chunk.text
-
-                    # Try to extract complete move objects so far
                     clean = accumulated.strip()
                     if clean.startswith('```'):
                         clean = clean.split('\n', 1)[1] if '\n' in clean else clean[3:]
 
-                    # Find all complete move objects using regex
                     move_matches = re.findall(
                         r'\{\s*"number"\s*:\s*(\d+)\s*,\s*"white"\s*:\s*"([^"]*)"(?:\s*,\s*"black"\s*:\s*"([^"]*)")?\s*\}',
                         clean
                     )
-
                     if len(move_matches) > last_move_count:
-                        new_moves = move_matches[last_move_count:]
-                        for m in new_moves:
+                        for m in move_matches[last_move_count:]:
                             move_data = {"number": int(m[0]), "white": m[1]}
                             if m[2]:
                                 move_data["black"] = m[2]
-                            yield f"data: {json_module.dumps({'type': 'move', 'move': move_data})}\n\n"
+                            event_queue.put({"type": "move", "model": model_id, "move": move_data})
                         last_move_count = len(move_matches)
 
-            # Parse the final complete JSON for metadata
+            elapsed = round(time_module.time() - start, 1)
+
             response_text = accumulated.strip()
             if response_text.startswith('```'):
                 response_text = response_text.split('\n', 1)[1]
@@ -451,11 +458,35 @@ Return ONLY the JSON object, no other text."""
                 response_text = response_text.strip()
 
             result = json_module.loads(response_text)
-            yield f"data: {json_module.dumps({'type': 'done', 'result': result})}\n\n"
+            event_queue.put({"type": "done", "model": model_id, "result": result, "elapsed": elapsed})
 
         except Exception as e:
-            logger.error(f"Scoresheet read error: {e}")
-            yield f"data: {json_module.dumps({'type': 'error', 'error': str(e)})}\n\n"
+            elapsed = round(time_module.time() - start, 1)
+            logger.error(f"Scoresheet read error ({model_id}): {e}")
+            event_queue.put({"type": "error", "model": model_id, "error": str(e), "elapsed": elapsed})
+
+    def generate():
+        threads = []
+        for m in MODELS:
+            t = threading.Thread(target=run_model, args=(m,))
+            t.start()
+            threads.append(t)
+
+        # Send model list to frontend
+        yield f"data: {json_module.dumps({'type': 'models', 'models': MODELS})}\n\n"
+
+        done_count = 0
+        while done_count < len(MODELS):
+            try:
+                event = event_queue.get(timeout=300)
+                yield f"data: {json_module.dumps(event)}\n\n"
+                if event["type"] in ("done", "error"):
+                    done_count += 1
+            except queue.Empty:
+                break
+
+        for t in threads:
+            t.join(timeout=1)
 
     return Response(
         generate(),
