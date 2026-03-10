@@ -60,7 +60,7 @@ export function ScoresheetReadPage() {
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const res = await fetch('/api/coach/read-scoresheet', { method: 'POST', body: formData });
+      const res = await fetch('/api/coaches/read-scoresheet', { method: 'POST', body: formData });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Analysis failed');
       setResult(json);
