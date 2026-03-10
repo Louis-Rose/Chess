@@ -5,7 +5,7 @@ import { FileText } from 'lucide-react';
 import { FeedbackWidget } from '../../components/FeedbackWidget';
 
 const NAV_ITEMS = [
-  { path: '/chesscoaches', labelKey: 'Tournament Scoresheets', icon: FileText, end: true },
+  { path: '/coaches', labelKey: 'Tournament Scoresheets', icon: FileText, end: true },
 ];
 
 function ChessCoachesNavSidebar() {
@@ -47,7 +47,7 @@ const LumnaLogo = ({ className }: { className?: string }) => (
 function ChessCoachesHeader() {
   return (
     <div className="relative flex items-center justify-center px-2 py-3">
-      <a href="/chesscoaches" className="flex flex-col items-center hover:opacity-80 transition-opacity">
+      <a href="/coaches" className="flex flex-col items-center hover:opacity-80 transition-opacity">
         <div className="relative flex items-center">
           <LumnaLogo className="w-9 h-9 absolute -left-11" />
           <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
