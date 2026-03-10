@@ -6,8 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LUMNA</title>
 
-    <!-- PWA manifest -->
+    <!-- PWA manifest — dynamic per app -->
     <link rel="manifest" href="/manifest.json" />
+    <script>
+      (function() {
+        var p = location.pathname;
+        var m = '/manifest.json';
+        if (p.startsWith('/coach')) m = '/manifest-coach.json';
+        else if (p.startsWith('/chess')) m = '/manifest-chess.json';
+        document.querySelector('link[rel="manifest"]').href = m;
+      })();
+    </script>
 
     <!-- Theme color for browser UI -->
     <meta name="theme-color" content="#16a34a" />
@@ -16,6 +25,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="LUMNA" />
+    <script>
+      (function() {
+        var p = location.pathname;
+        var t = 'LUMNA';
+        if (p.startsWith('/coach')) t = 'Coach';
+        else if (p.startsWith('/chess')) t = 'Chess';
+        document.querySelector('meta[name="apple-mobile-web-app-title"]').content = t;
+      })();
+    </script>
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   </head>
   <body>
