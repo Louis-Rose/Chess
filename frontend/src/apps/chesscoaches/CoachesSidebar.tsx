@@ -148,11 +148,13 @@ export function CoachesSidebar({ onComplete }: CoachesSidebarProps) {
             <p className="text-slate-400 text-xs md:text-sm">
               Joined {new Date(playerInfo.joined * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
-            <div className="mt-3 pt-3 border-t border-slate-200 text-xs md:text-sm text-slate-600 space-y-1">
-              <p>Bullet: {playerInfo.bullet_rating && <><span className="font-semibold text-slate-800">{playerInfo.bullet_rating}</span> elo</>}</p>
-              <p>Blitz: {playerInfo.blitz_rating && <><span className="font-semibold text-slate-800">{playerInfo.blitz_rating}</span> elo</>}</p>
-              <p>Rapid: {playerInfo.rapid_rating && <><span className="font-semibold text-slate-800">{playerInfo.rapid_rating}</span> elo</>}</p>
-            </div>
+            {(playerInfo.rapid_rating || playerInfo.blitz_rating || playerInfo.bullet_rating) && (
+              <div className="mt-3 pt-3 border-t border-slate-200 text-xs md:text-sm text-slate-600 space-y-1">
+                {playerInfo.rapid_rating && <p>Rapid: <span className="font-semibold text-slate-800">{playerInfo.rapid_rating}</span> elo</p>}
+                {playerInfo.blitz_rating && <p>Blitz: <span className="font-semibold text-slate-800">{playerInfo.blitz_rating}</span> elo</p>}
+                {playerInfo.bullet_rating && <p>Bullet: <span className="font-semibold text-slate-800">{playerInfo.bullet_rating}</span> elo</p>}
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -163,9 +165,9 @@ export function CoachesSidebar({ onComplete }: CoachesSidebarProps) {
               <p className="text-slate-500 text-xs md:text-sm mt-1">-- followers</p>
               <p className="text-slate-500 text-xs md:text-sm">Joined --</p>
               <div className="mt-3 pt-3 border-t border-slate-600 text-xs md:text-sm text-slate-500 space-y-1">
-                <p>Bullet: <span className="font-semibold">--</span> elo</p>
-                <p>Blitz: <span className="font-semibold">--</span> elo</p>
                 <p>Rapid: <span className="font-semibold">--</span> elo</p>
+                <p>Blitz: <span className="font-semibold">--</span> elo</p>
+                <p>Bullet: <span className="font-semibold">--</span> elo</p>
               </div>
             </div>
             <div className="h-px bg-slate-700 mt-3" />
