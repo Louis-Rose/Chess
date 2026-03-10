@@ -141,7 +141,7 @@ export function WelcomePanel() {
             );
           })}
         </div>
-        <div className="border-t border-slate-700 mt-4" />
+        <div className="border-t border-slate-700 mt-4 max-w-3xl mx-[5%] md:mx-auto" />
       </div>
     </>
   );
