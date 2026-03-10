@@ -8,7 +8,7 @@ import { CoachesSidebar } from './CoachesSidebar';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 const NAV_ITEMS = [
-  { path: '/coach', labelKey: 'coaches.navScoresheets', icon: FileText, end: true },
+  { path: '/coach/scoresheets', labelKey: 'coaches.navScoresheets', icon: FileText },
 ];
 
 function CoachesNavSidebar() {
