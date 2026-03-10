@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Loader2, ImageIcon, X } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, ImageIcon } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Move {
@@ -193,12 +193,6 @@ export function ScoresheetReadPage() {
           onClick={closeModal}
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[1.5px] cursor-pointer"
         >
-          <button
-            onClick={closeModal}
-            className="absolute top-4 right-4 text-slate-300 hover:text-white transition-colors"
-          >
-            <X className="w-8 h-8" />
-          </button>
           <img
             src={preview}
             alt="Scoresheet"
