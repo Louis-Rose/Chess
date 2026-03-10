@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Loader2, ImageIcon } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, ImageIcon, Clock } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Move {
@@ -29,7 +29,9 @@ export function ScoresheetReadPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ScoresheetResult | null>(null);
+  const [streamingMoves, setStreamingMoves] = useState<Move[]>([]);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [elapsed, setElapsed] = useState<number | null>(null);
 
   const closeModal = useCallback(() => setShowImageModal(false), []);
   useEffect(() => {
@@ -44,6 +46,8 @@ export function ScoresheetReadPage() {
     if (!file) return;
     setError('');
     setResult(null);
+    setStreamingMoves([]);
+    setElapsed(null);
 
     // Preview
     const reader = new FileReader();
@@ -57,19 +61,61 @@ export function ScoresheetReadPage() {
   const analyzeImage = async (file: File) => {
     setLoading(true);
     setError('');
+    setStreamingMoves([]);
+    setElapsed(null);
+    const startTime = Date.now();
+
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const res = await fetch('/api/coaches/read-scoresheet', { method: 'POST', body: formData });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Analysis failed');
-      setResult(json);
+
+      const res = await fetch('/api/coaches/read-scoresheet', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || 'Analysis failed');
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('Streaming not supported');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = JSON.parse(line.slice(6));
+
+          if (data.type === 'move') {
+            setStreamingMoves(prev => [...prev, data.move]);
+          } else if (data.type === 'done') {
+            setResult(data.result);
+            setElapsed(Math.round((Date.now() - startTime) / 100) / 10);
+          } else if (data.type === 'error') {
+            throw new Error(data.error);
+          }
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
   };
+
+  const displayMoves = result ? result.moves : streamingMoves;
+  const showTable = displayMoves.length > 0;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -117,7 +163,7 @@ export function ScoresheetReadPage() {
                   onClick={() => setShowImageModal(true)}
                 />
                 <button
-                  onClick={() => { setPreview(null); setResult(null); setError(''); fileInputRef.current?.click(); }}
+                  onClick={() => { setPreview(null); setResult(null); setStreamingMoves([]); setError(''); setElapsed(null); fileInputRef.current?.click(); }}
                   className="absolute top-2 right-2 bg-slate-800/80 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
                 >
                   <Upload className="w-4 h-4" />
@@ -126,7 +172,7 @@ export function ScoresheetReadPage() {
               </div>
 
               {/* Loading */}
-              {loading && (
+              {loading && !showTable && (
                 <div className="flex items-center justify-center gap-3 py-8">
                   <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
                   <span className="text-slate-300">{t('coaches.analyzing')}</span>
@@ -139,29 +185,43 @@ export function ScoresheetReadPage() {
               )}
 
               {/* Results */}
-              {result && (
+              {(result || showTable) && (
                 <div className="space-y-4">
                   {/* Game info */}
-                  <div className="bg-slate-700 rounded-xl p-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
-                    {result.white_player && (
-                      <div><span className="text-slate-400">White:</span> <span className="text-slate-100 font-medium">{result.white_player}</span></div>
-                    )}
-                    {result.black_player && (
-                      <div><span className="text-slate-400">Black:</span> <span className="text-slate-100 font-medium">{result.black_player}</span></div>
-                    )}
-                    {result.event && (
-                      <div><span className="text-slate-400">Event:</span> <span className="text-slate-100 font-medium">{result.event}</span></div>
-                    )}
-                    {result.date && (
-                      <div><span className="text-slate-400">Date:</span> <span className="text-slate-100 font-medium">{result.date}</span></div>
-                    )}
-                    {result.result && result.result !== '*' && (
-                      <div><span className="text-slate-400">Result:</span> <span className="text-slate-100 font-medium">{result.result}</span></div>
-                    )}
-                  </div>
+                  {result && (
+                    <div className="bg-slate-700 rounded-xl p-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+                      {result.white_player && (
+                        <div><span className="text-slate-400">White:</span> <span className="text-slate-100 font-medium">{result.white_player}</span></div>
+                      )}
+                      {result.black_player && (
+                        <div><span className="text-slate-400">Black:</span> <span className="text-slate-100 font-medium">{result.black_player}</span></div>
+                      )}
+                      {result.event && (
+                        <div><span className="text-slate-400">Event:</span> <span className="text-slate-100 font-medium">{result.event}</span></div>
+                      )}
+                      {result.date && (
+                        <div><span className="text-slate-400">Date:</span> <span className="text-slate-100 font-medium">{result.date}</span></div>
+                      )}
+                      {result.result && result.result !== '*' && (
+                        <div><span className="text-slate-400">Result:</span> <span className="text-slate-100 font-medium">{result.result}</span></div>
+                      )}
+                      {elapsed !== null && (
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="text-slate-400">{elapsed}s</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Moves table */}
                   <div className="bg-slate-700 rounded-xl overflow-hidden">
+                    {loading && showTable && (
+                      <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-600">
+                        <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                        <span className="text-slate-400 text-sm">{t('coaches.analyzing')}</span>
+                      </div>
+                    )}
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-slate-600">
@@ -171,7 +231,7 @@ export function ScoresheetReadPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {result.moves.map((move) => (
+                        {displayMoves.map((move) => (
                           <tr key={move.number} className="border-b border-slate-600/50 last:border-0">
                             <td className="px-4 py-2 text-slate-500 text-center font-mono">{move.number}</td>
                             <td className="px-4 py-2 text-slate-100 font-mono">{move.white}</td>

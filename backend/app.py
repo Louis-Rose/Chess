@@ -355,10 +355,10 @@ No intro, no filler. Output ONLY the prefixed lines."""
 
 @app.route('/api/coaches/read-scoresheet', methods=['POST'])
 def read_scoresheet():
-    """Analyze a chess tournament scoresheet image using Gemini Vision."""
+    """SSE endpoint that streams scoresheet analysis from Gemini Vision."""
     import google.generativeai as genai
     import json as json_module
-    import base64
+    import re
 
     if 'image' not in request.files:
         return jsonify({"error": "No image file provided"}), 400
@@ -371,14 +371,15 @@ def read_scoresheet():
     if not api_key:
         return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
 
-    try:
-        image_bytes = image_file.read()
-        mime_type = image_file.content_type or 'image/jpeg'
+    image_bytes = image_file.read()
+    mime_type = image_file.content_type or 'image/jpeg'
 
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+    def generate():
+        try:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-2.5-flash')
 
-        prompt = """You are analyzing a handwritten chess tournament scoresheet image.
+            prompt = """You are analyzing a handwritten chess tournament scoresheet image.
 
 Extract ALL moves from the scoresheet and return them as a JSON object with this exact format:
 {
@@ -404,29 +405,63 @@ Rules:
 
 Return ONLY the JSON object, no other text."""
 
-        image_part = {
-            "mime_type": mime_type,
-            "data": image_bytes,
+            image_part = {
+                "mime_type": mime_type,
+                "data": image_bytes,
+            }
+
+            accumulated = ""
+            last_move_count = 0
+
+            response = model.generate_content([prompt, image_part], stream=True)
+            for chunk in response:
+                if chunk.text:
+                    accumulated += chunk.text
+
+                    # Try to extract complete move objects so far
+                    clean = accumulated.strip()
+                    if clean.startswith('```'):
+                        clean = clean.split('\n', 1)[1] if '\n' in clean else clean[3:]
+
+                    # Find all complete move objects using regex
+                    move_matches = re.findall(
+                        r'\{\s*"number"\s*:\s*(\d+)\s*,\s*"white"\s*:\s*"([^"]*)"(?:\s*,\s*"black"\s*:\s*"([^"]*)")?\s*\}',
+                        clean
+                    )
+
+                    if len(move_matches) > last_move_count:
+                        new_moves = move_matches[last_move_count:]
+                        for m in new_moves:
+                            move_data = {"number": int(m[0]), "white": m[1]}
+                            if m[2]:
+                                move_data["black"] = m[2]
+                            yield f"data: {json_module.dumps({'type': 'move', 'move': move_data})}\n\n"
+                        last_move_count = len(move_matches)
+
+            # Parse the final complete JSON for metadata
+            response_text = accumulated.strip()
+            if response_text.startswith('```'):
+                response_text = response_text.split('\n', 1)[1]
+                if response_text.endswith('```'):
+                    response_text = response_text.rsplit('```', 1)[0]
+                response_text = response_text.strip()
+
+            result = json_module.loads(response_text)
+            yield f"data: {json_module.dumps({'type': 'done', 'result': result})}\n\n"
+
+        except Exception as e:
+            logger.error(f"Scoresheet read error: {e}")
+            yield f"data: {json_module.dumps({'type': 'error', 'error': str(e)})}\n\n"
+
+    return Response(
+        generate(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no'
         }
-
-        response = model.generate_content([prompt, image_part])
-        response_text = response.text.strip()
-
-        # Remove markdown code blocks if present
-        if response_text.startswith('```'):
-            response_text = response_text.split('\n', 1)[1]
-            if response_text.endswith('```'):
-                response_text = response_text.rsplit('```', 1)[0]
-            response_text = response_text.strip()
-
-        result = json_module.loads(response_text)
-        return jsonify(result)
-
-    except json_module.JSONDecodeError:
-        return jsonify({"error": "Failed to parse Gemini response as JSON"}), 500
-    except Exception as e:
-        logger.error(f"Scoresheet read error: {e}")
-        return jsonify({"error": str(e)}), 500
+    )
 
 
 @app.route('/api/win-prediction-stream', methods=['GET'])
