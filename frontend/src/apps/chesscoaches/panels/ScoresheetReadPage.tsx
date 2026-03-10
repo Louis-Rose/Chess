@@ -75,8 +75,9 @@ export function ScoresheetReadPage() {
       });
 
       if (!res.ok) {
-        const json = await res.json();
-        throw new Error(json.error || 'Analysis failed');
+        const text = await res.text();
+        try { const json = JSON.parse(text); throw new Error(json.error || 'Analysis failed'); }
+        catch { throw new Error('Analysis failed'); }
       }
 
       const reader = res.body?.getReader();

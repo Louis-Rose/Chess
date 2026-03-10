@@ -377,10 +377,7 @@ def read_scoresheet():
     def generate():
         try:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(
-                'gemini-2.5-flash',
-                generation_config=genai.GenerationConfig(thinking_config=genai.types.ThinkingConfig(thinking_budget=0))
-            )
+            model = genai.GenerativeModel('gemini-2.0-flash')
 
             prompt = """You are analyzing a handwritten chess tournament scoresheet image.
 
