@@ -20,7 +20,7 @@ function App() {
         <Route path="/cgu" element={<CGUPage />} />
         <Route path="/upload/:token" element={<MobileUpload />} />
         <Route path="/chess/*" element={<ChessApp />} />
-        <Route path="/coaches/*" element={<ChessCoachesApp />} />
+        <Route path="/coach/*" element={<ChessCoachesApp />} />
         <Route path="/investing/*" element={<InvestingApp />} />
         <Route path="/demo-alphawise/*" element={<DemoAlphawiseApp />} />
         <Route path="*" element={<Navigate to="/" replace />} />

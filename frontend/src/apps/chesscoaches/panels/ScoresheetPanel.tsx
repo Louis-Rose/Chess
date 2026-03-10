@@ -13,7 +13,7 @@ export function ScoresheetPanel() {
       <div className="border-t border-slate-700 mb-4 max-w-3xl mx-[5%] md:mx-auto" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-[5%] md:mx-auto">
         <div
-          onClick={() => navigate('/coaches/scoresheets')}
+          onClick={() => navigate('/coach/scoresheets')}
           className="relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[120px] flex items-center justify-center hover:border-blue-500 transition-colors cursor-pointer"
         >
           <div className="absolute top-5 left-5 w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">

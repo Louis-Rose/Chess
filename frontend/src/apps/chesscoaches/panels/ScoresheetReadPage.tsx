@@ -51,7 +51,7 @@ export function ScoresheetReadPage() {
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const res = await fetch('/api/coaches/read-scoresheet', { method: 'POST', body: formData });
+      const res = await fetch('/api/coach/read-scoresheet', { method: 'POST', body: formData });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Analysis failed');
       setResult(json);
@@ -67,7 +67,7 @@ export function ScoresheetReadPage() {
       <div className="max-w-4xl mx-auto">
         <div className="relative flex items-center justify-center pt-2">
           <button
-            onClick={() => navigate('/coaches')}
+            onClick={() => navigate('/coach')}
             className="absolute left-2 md:left-4 flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base"
           >
             <ArrowLeft className="w-5 h-5" />

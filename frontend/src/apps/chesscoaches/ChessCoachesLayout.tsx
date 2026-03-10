@@ -9,7 +9,7 @@ import { FeedbackWidget } from '../../components/FeedbackWidget';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 const NAV_ITEMS = [
-  { path: '/coaches', labelKey: 'coaches.navScoresheets', icon: FileText, end: true },
+  { path: '/coach', labelKey: 'coaches.navScoresheets', icon: FileText, end: true },
 ];
 
 function CoachesNavSidebar() {
@@ -58,7 +58,7 @@ function CoachesNavSidebar() {
                     setShowPlayerMenu(false);
                     localStorage.removeItem('coaches_preferences');
                     localStorage.removeItem('coaches_saved_players');
-                    window.location.href = '/coaches';
+                    window.location.href = '/coach';
                   }}
                   className="w-full px-3 py-2.5 text-left text-red-400 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors"
                 >
@@ -174,7 +174,7 @@ function MobilePlayerButton() {
               setOpen(false);
               localStorage.removeItem('coaches_preferences');
               localStorage.removeItem('coaches_saved_players');
-              window.location.href = '/coaches';
+              window.location.href = '/coach';
             }}
             className="w-full px-3 py-2.5 text-left text-red-400 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors"
           >
@@ -194,7 +194,7 @@ function CoachesHeader() {
       <div className="absolute left-2">
         <MobilePlayerButton />
       </div>
-      <a href="/coaches" className="flex flex-col items-center hover:opacity-80 transition-opacity">
+      <a href="/coach" className="flex flex-col items-center hover:opacity-80 transition-opacity">
         <div className="relative flex items-center">
           <LumnaLogo className="w-9 h-9 absolute -left-11" />
           <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>

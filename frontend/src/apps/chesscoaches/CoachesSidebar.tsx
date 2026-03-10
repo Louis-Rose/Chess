@@ -112,7 +112,7 @@ export function CoachesSidebar({ onComplete }: CoachesSidebarProps) {
     <SidebarShell hideThemeToggle hideLanguageToggle fullWidth>
       <div ref={topRef} />
       <div className="relative flex items-center justify-center px-2 pb-3 mb-2">
-        <a href="/coaches" className="flex items-center gap-3 hover:opacity-80 transition-opacity flex-shrink-0">
+        <a href="/coach" className="flex items-center gap-3 hover:opacity-80 transition-opacity flex-shrink-0">
           <LumnaLogo className="w-10 h-10 md:w-14 md:h-14 flex-shrink-0" />
           <span className="text-xl md:text-3xl font-bold text-white tracking-wide">LUMNA</span>
         </a>
