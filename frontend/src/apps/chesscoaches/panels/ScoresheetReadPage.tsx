@@ -1,8 +1,8 @@
 // Scoresheet reader page
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Loader2, ImageIcon } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, ImageIcon, X } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Move {
@@ -29,6 +29,15 @@ export function ScoresheetReadPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ScoresheetResult | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
+
+  const closeModal = useCallback(() => setShowImageModal(false), []);
+  useEffect(() => {
+    if (!showImageModal) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showImageModal, closeModal]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -100,7 +109,12 @@ export function ScoresheetReadPage() {
             <div className="space-y-4">
               {/* Preview + replace */}
               <div className="relative">
-                <img src={preview} alt="Scoresheet" className="rounded-xl max-h-80 mx-auto" />
+                <img
+                  src={preview}
+                  alt="Scoresheet"
+                  className="rounded-xl max-h-80 mx-auto cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => setShowImageModal(true)}
+                />
                 <button
                   onClick={() => { setPreview(null); setResult(null); setError(''); fileInputRef.current?.click(); }}
                   className="absolute top-2 right-2 bg-slate-800/80 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
@@ -172,6 +186,27 @@ export function ScoresheetReadPage() {
           )}
         </div>
       </div>
+
+      {/* Fullscreen image modal */}
+      {showImageModal && preview && (
+        <div
+          onClick={closeModal}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm cursor-pointer"
+        >
+          <button
+            onClick={closeModal}
+            className="absolute top-4 right-4 text-slate-300 hover:text-white transition-colors"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img
+            src={preview}
+            alt="Scoresheet"
+            className="max-w-[90vw] max-h-[90vh] rounded-xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
