@@ -6,6 +6,7 @@ import { LandingPage } from './pages/LandingPage';
 import { CGUPage } from './pages/CGUPage';
 import { MobileUpload } from './pages/MobileUpload';
 import { ChessApp } from './apps/chess/ChessApp';
+import { ChessCoachesApp } from './apps/chesscoaches/ChessCoachesApp';
 import { InvestingApp } from './apps/investing/InvestingApp';
 import { DemoAlphawiseApp } from './apps/demo_alphawise/DemoAlphawiseApp';
 
@@ -16,6 +17,7 @@ function App() {
       <Route path="/cgu" element={<CGUPage />} />
       <Route path="/upload/:token" element={<MobileUpload />} />
       <Route path="/chess/*" element={<ChessApp />} />
+      <Route path="/chesscoaches/*" element={<ChessCoachesApp />} />
       <Route path="/investing/*" element={<InvestingApp />} />
       <Route path="/demo-alphawise/*" element={<DemoAlphawiseApp />} />
       <Route path="*" element={<Navigate to="/" replace />} />
