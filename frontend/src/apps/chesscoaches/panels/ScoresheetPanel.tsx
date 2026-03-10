@@ -10,6 +10,7 @@ export function ScoresheetPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
+      <div className="border-t border-slate-700 mb-4 max-w-3xl mx-[5%] md:mx-auto" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-[5%] md:mx-auto">
         <div
           onClick={() => navigate('/coaches/scoresheets')}
@@ -24,7 +25,7 @@ export function ScoresheetPanel() {
           <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
         </div>
       </div>
-      <div className="border-t border-slate-700 mt-4" />
+      <div className="border-t border-slate-700 mt-4 max-w-3xl mx-[5%] md:mx-auto" />
     </div>
   );
 }
