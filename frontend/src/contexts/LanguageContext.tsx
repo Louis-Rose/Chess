@@ -234,6 +234,12 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.goalCard.monthsPlural': 'in {n} months',
     'chess.goalCard.timeline': 'Timeline',
 
+    // Coaches
+    'coaches.title': 'Chess Coaches',
+    'coaches.navScoresheets': 'Tournament Scoresheets',
+    'coaches.onboardingInstruction': 'Enter your Chess.com username to get started.',
+    'coaches.onboardingDescription': 'LUMNA Coaches helps you digitize and analyze tournament scoresheets from your over-the-board games.',
+
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
     'taxCalc.subtitle': 'CTO (31.4% on unrealized gains) vs Holding (IS 15% + flat tax 31.4%)',
@@ -475,6 +481,12 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.goalCard.months': 'dans {n} mois',
     'chess.goalCard.monthsPlural': 'dans {n} mois',
     'chess.goalCard.timeline': 'Durée',
+
+    // Coaches
+    'coaches.title': 'Chess Coaches',
+    'coaches.navScoresheets': 'Feuilles de partie',
+    'coaches.onboardingInstruction': 'Entrez votre nom d\'utilisateur Chess.com pour commencer.',
+    'coaches.onboardingDescription': 'LUMNA Coaches vous aide à numériser et analyser les feuilles de partie de vos tournois en présentiel.',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',
