@@ -211,7 +211,12 @@ export function ScoresheetReadPage() {
                   {models.map((m) => {
                     const mr = modelResults[m.id];
                     if (!mr) return <ModelPanelLoading key={m.id} name={m.name} />;
-                    return <ModelPanel key={m.id} model={mr} disagreements={disagreements} />;
+                    return <ModelPanel key={m.id} model={mr} disagreements={disagreements} onMovesUpdate={(moves) => {
+                      setModelResults(prev => ({
+                        ...prev,
+                        [m.id]: { ...prev[m.id], result: { ...prev[m.id].result!, moves } },
+                      }));
+                    }} />;
                   })}
                 </div>
               )}
@@ -257,8 +262,43 @@ const WARNING_LABELS: Record<string, string> = {
   unwrapped_array: 'Unwrapped array',
 };
 
-function ModelPanel({ model, disagreements }: { model: ModelResult; disagreements: Map<number, { white: boolean; black: boolean }> }) {
+function ModelPanel({ model, disagreements, onMovesUpdate }: {
+  model: ModelResult;
+  disagreements: Map<number, { white: boolean; black: boolean }>;
+  onMovesUpdate: (moves: Move[]) => void;
+}) {
   const moves = model.result?.moves || [];
+  const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing && inputRef.current) inputRef.current.focus();
+  }, [editing]);
+
+  const handleSave = async () => {
+    if (!editing || !model.result) return;
+    const updated = model.result.moves.map((m, i) =>
+      i === editing.moveIdx ? { ...m, [editing.color]: editing.value } : { ...m }
+    );
+    setEditing(null);
+    // Re-validate all moves
+    try {
+      const res = await fetch('/api/coaches/validate-moves', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moves: updated }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        onMovesUpdate(json.moves);
+      }
+    } catch { /* keep local update */ }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSave();
+    if (e.key === 'Escape') setEditing(null);
+  };
 
   return (
     <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start">
@@ -307,31 +347,87 @@ function ModelPanel({ model, disagreements }: { model: ModelResult; disagreement
             </tr>
           </thead>
           <tbody>
-            {moves.map((move) => {
+            {moves.map((move, idx) => {
               const d = disagreements.get(move.number);
               return (
                 <tr key={move.number} className="border-b border-slate-600/30 last:border-0">
                   <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{move.number}</td>
-                  <td className={`px-1.5 py-0.5 font-mono ${d?.white ? 'bg-red-900/50 text-red-200' : 'text-slate-100'}`}>
-                    <span className="inline-flex items-center gap-1">
-                      {move.white}
-                      {move.white_legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
-                      {move.white_legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
-                    </span>
-                  </td>
-                  <td className={`px-1.5 py-0.5 font-mono ${d?.black ? 'bg-red-900/50 text-red-200' : 'text-slate-100'}`}>
-                    <span className="inline-flex items-center gap-1">
-                      {move.black || ''}
-                      {move.black_legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
-                      {move.black_legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
-                    </span>
-                  </td>
+                  <MoveCell
+                    value={move.white}
+                    legal={move.white_legal}
+                    highlight={d?.white}
+                    onClick={() => setEditing({ moveIdx: idx, color: 'white', value: move.white })}
+                  />
+                  <MoveCell
+                    value={move.black || ''}
+                    legal={move.black_legal}
+                    highlight={d?.black}
+                    onClick={() => move.black !== undefined ? setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }) : undefined}
+                  />
                 </tr>
               );
             })}
           </tbody>
         </table>
       )}
+
+      {/* Edit modal */}
+      {editing && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[1.5px]"
+          onClick={() => setEditing(null)}
+        >
+          <div
+            className="bg-slate-800 rounded-xl p-4 min-w-[260px] shadow-xl border border-slate-600"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="text-slate-400 text-xs mb-2">
+              Move {moves[editing.moveIdx]?.number} · {editing.color === 'white' ? 'White' : 'Black'}
+            </div>
+            <input
+              ref={inputRef}
+              value={editing.value}
+              onChange={e => setEditing({ ...editing, value: e.target.value })}
+              onKeyDown={handleKeyDown}
+              className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
+            />
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleSave}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setEditing(null)}
+                className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-1.5 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function MoveCell({ value, legal, highlight, onClick }: {
+  value: string;
+  legal?: boolean;
+  highlight?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <td
+      className={`px-1.5 py-0.5 font-mono cursor-pointer hover:bg-slate-600/50 ${highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100'}`}
+      onClick={onClick}
+    >
+      <span className="inline-flex items-center gap-1">
+        {value}
+        {legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
+        {legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
+      </span>
+    </td>
   );
 }

@@ -353,6 +353,29 @@ No intro, no filler. Output ONLY the prefixed lines."""
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/coaches/validate-moves', methods=['POST'])
+def validate_moves():
+    """Re-validate a list of moves with python-chess and return legality flags."""
+    import chess
+    data = request.get_json()
+    moves = data.get('moves', [])
+
+    board = chess.Board()
+    for move in moves:
+        for color in ("white", "black"):
+            san = move.get(color)
+            if not san or san == "?":
+                move.pop(f"{color}_legal", None)
+                continue
+            try:
+                board.push_san(san)
+                move[f"{color}_legal"] = True
+            except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
+                move[f"{color}_legal"] = False
+
+    return jsonify({"moves": moves})
+
+
 @app.route('/api/coaches/read-scoresheet', methods=['POST'])
 def read_scoresheet():
     """Analyze a scoresheet image with multiple Gemini models in parallel, streaming results via SSE."""
