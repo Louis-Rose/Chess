@@ -443,6 +443,8 @@ Return ONLY the JSON object, no other text."""
                 response_text = response_text.strip()
 
             result = json_module.loads(response_text)
+            if isinstance(result, list):
+                result = result[0] if result else {}
             move_count = len(result.get("moves", []))
             logger.info(f"[Scoresheet] {model_name}: {move_count} moves extracted")
             result_queue.put({"model_id": model_id, "name": model_name, "result": result, "elapsed": elapsed})
