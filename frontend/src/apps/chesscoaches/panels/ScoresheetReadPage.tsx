@@ -33,7 +33,6 @@ export function ScoresheetReadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [preview, setPreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [modelResults, setModelResults] = useState<Record<string, ModelResult>>({});
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
@@ -90,7 +89,6 @@ export function ScoresheetReadPage() {
   };
 
   const analyzeImage = async (file: File) => {
-    setLoading(true);
     setError('');
     setModelResults({});
     setModels([]);
@@ -137,7 +135,6 @@ export function ScoresheetReadPage() {
               [model_id]: { name, result, error: err, elapsed },
             }));
           } else if (payload.type === 'done') {
-            setLoading(false);
           }
         }
       }
