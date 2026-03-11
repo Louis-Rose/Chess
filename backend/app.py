@@ -355,11 +355,12 @@ No intro, no filler. Output ONLY the prefixed lines."""
 
 @app.route('/api/coaches/read-scoresheet', methods=['POST'])
 def read_scoresheet():
-    """Analyze a scoresheet image with multiple Gemini models in parallel."""
+    """Analyze a scoresheet image with multiple Gemini models in parallel, streaming results via SSE."""
     from google import genai
     from google.genai import types
     import json as json_module
     import threading
+    import queue
     import time as time_module
 
     logger.info("[Scoresheet] Request received")
@@ -414,8 +415,8 @@ Rules:
 
 Return ONLY the JSON object, no other text."""
 
+    result_queue = queue.Queue()
     client = genai.Client(api_key=api_key)
-    results = {}
 
     def run_model(model_info):
         model_id = model_info["id"]
@@ -444,12 +445,12 @@ Return ONLY the JSON object, no other text."""
             result = json_module.loads(response_text)
             move_count = len(result.get("moves", []))
             logger.info(f"[Scoresheet] {model_name}: {move_count} moves extracted")
-            results[model_id] = {"name": model_name, "result": result, "elapsed": elapsed}
+            result_queue.put({"model_id": model_id, "name": model_name, "result": result, "elapsed": elapsed})
 
         except Exception as e:
             elapsed = round(time_module.time() - start, 1)
             logger.error(f"[Scoresheet] {model_name} failed after {elapsed}s: {e}")
-            results[model_id] = {"name": model_name, "error": str(e), "elapsed": elapsed}
+            result_queue.put({"model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
 
     threads = []
     for m in MODELS:
@@ -457,11 +458,30 @@ Return ONLY the JSON object, no other text."""
         t.start()
         threads.append(t)
 
-    for t in threads:
-        t.join(timeout=300)
+    def generate():
+        # First event: send model list so frontend knows the grid
+        yield f"data: {json_module.dumps({'type': 'models', 'models': MODELS})}\n\n"
 
-    logger.info(f"[Scoresheet] All models done. Results: {list(results.keys())}")
-    return jsonify({"models": MODELS, "results": results})
+        received = 0
+        total = len(MODELS)
+        while received < total:
+            try:
+                item = result_queue.get(timeout=300)
+                received += 1
+                yield f"data: {json_module.dumps({'type': 'result', **item})}\n\n"
+            except queue.Empty:
+                break
+
+        yield "data: {\"type\": \"done\"}\n\n"
+        logger.info(f"[Scoresheet] All models done. Streamed {received} results.")
+
+        for t in threads:
+            t.join(timeout=1)
+
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no',
+    })
 
 
 @app.route('/api/win-prediction-stream', methods=['GET'])

@@ -1,4 +1,4 @@
-// Scoresheet reader page — runs 4 Gemini models in parallel
+// Scoresheet reader page — runs 5 Gemini models in parallel, streams results via SSE
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -110,17 +110,43 @@ export function ScoresheetReadPage() {
         catch { throw new Error('Analysis failed'); }
       }
 
-      const json = await res.json();
-      setModels(json.models);
-      setModelResults(json.results);
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('Streaming not supported');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = JSON.parse(line.slice(6));
+
+          if (payload.type === 'models') {
+            setModels(payload.models);
+          } else if (payload.type === 'result') {
+            const { model_id, name, result, error: err, elapsed } = payload;
+            setModelResults(prev => ({
+              ...prev,
+              [model_id]: { name, result, error: err, elapsed },
+            }));
+          } else if (payload.type === 'done') {
+            setLoading(false);
+          }
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
   };
-
-  const hasResults = Object.keys(modelResults).length > 0;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -176,25 +202,17 @@ export function ScoresheetReadPage() {
                 </button>
               </div>
 
-              {/* Loading */}
-              {loading && (
-                <div className="flex items-center justify-center gap-3 py-8">
-                  <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
-                  <span className="text-slate-300">{t('coaches.analyzing')}</span>
-                </div>
-              )}
-
               {/* Error */}
               {error && (
                 <p className="text-red-400 text-center py-4">{error}</p>
               )}
 
-              {/* Model results — 5 columns on desktop */}
-              {hasResults && (
+              {/* Model results — 5 columns on desktop, show as they arrive */}
+              {models.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
                   {models.map((m) => {
                     const mr = modelResults[m.id];
-                    if (!mr) return null;
+                    if (!mr) return <ModelPanelLoading key={m.id} name={m.name} />;
                     return <ModelPanel key={m.id} model={mr} disagreements={disagreements} />;
                   })}
                 </div>
@@ -218,6 +236,20 @@ export function ScoresheetReadPage() {
           />
         </div>
       )}
+    </div>
+  );
+}
+
+function ModelPanelLoading({ name }: { name: string }) {
+  return (
+    <div className="bg-slate-700/50 rounded-xl overflow-hidden">
+      <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-between">
+        <span className="text-slate-100 font-medium text-xs">{name}</span>
+        <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />
+      </div>
+      <div className="flex items-center justify-center py-12">
+        <span className="text-slate-500 text-xs">Analyzing...</span>
+      </div>
     </div>
   );
 }
