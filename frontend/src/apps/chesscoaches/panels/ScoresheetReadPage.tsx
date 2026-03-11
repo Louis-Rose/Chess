@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Loader2, ImageIcon, Clock } from 'lucide-react';
+import { ArrowLeft, Upload, ImageIcon, Clock } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Move {
