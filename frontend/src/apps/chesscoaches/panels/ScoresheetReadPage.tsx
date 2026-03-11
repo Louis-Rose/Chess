@@ -281,18 +281,16 @@ function ModelPanel({ model, disagreements }: { model: ModelResult; disagreement
         <p className="text-red-400 text-center py-3 text-xs px-2">{model.error}</p>
       )}
 
-      {/* Game info */}
+      {/* Game info — always show two lines: players + result */}
       {model.result && (
-        <div className="px-2 py-1.5 border-b border-slate-600/50 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px]">
-          {model.result.white_player && (
-            <div><span className="text-slate-400">W:</span> <span className="text-slate-200">{model.result.white_player}</span></div>
-          )}
-          {model.result.black_player && (
-            <div><span className="text-slate-400">B:</span> <span className="text-slate-200">{model.result.black_player}</span></div>
-          )}
-          {model.result.result && model.result.result !== '*' && (
-            <div><span className="text-slate-400">Result:</span> <span className="text-slate-200">{model.result.result}</span></div>
-          )}
+        <div className="px-2 py-1.5 border-b border-slate-600/50 text-[10px]">
+          <div className="flex flex-wrap gap-x-3">
+            <div><span className="text-slate-400">W:</span> <span className="text-slate-200">{model.result.white_player || ''}</span></div>
+            <div><span className="text-slate-400">B:</span> <span className="text-slate-200">{model.result.black_player || ''}</span></div>
+          </div>
+          <div>
+            <span className="text-slate-400">Result:</span> <span className="text-slate-200">{model.result.result && model.result.result !== '*' ? model.result.result : ''}</span>
+          </div>
         </div>
       )}
 
