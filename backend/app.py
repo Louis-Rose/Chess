@@ -383,8 +383,9 @@ def read_scoresheet():
     MODELS = [
         {"id": "gemini-2.5-flash", "name": "2.5 Flash"},
         {"id": "gemini-2.5-pro", "name": "2.5 Pro"},
-        {"id": "gemini-3.1-flash", "name": "3.1 Flash"},
-        {"id": "gemini-3.1-lite", "name": "3.1 Lite"},
+        {"id": "gemini-3-flash-preview", "name": "3.0 Flash"},
+        {"id": "gemini-3.1-pro-preview", "name": "3.1 Pro"},
+        {"id": "gemini-3.1-flash-lite-preview", "name": "3.1 Flash Lite"},
     ]
 
     PROMPT = """You are analyzing a handwritten chess tournament scoresheet image.

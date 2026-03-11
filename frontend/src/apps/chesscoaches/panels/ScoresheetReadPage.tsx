@@ -189,9 +189,9 @@ export function ScoresheetReadPage() {
                 <p className="text-red-400 text-center py-4">{error}</p>
               )}
 
-              {/* Model results — 4 columns on desktop */}
+              {/* Model results — 5 columns on desktop */}
               {hasResults && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
                   {models.map((m) => {
                     const mr = modelResults[m.id];
                     if (!mr) return null;
