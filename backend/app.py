@@ -442,7 +442,12 @@ Return ONLY the JSON object, no other text."""
                     response_text = response_text.rsplit('```', 1)[0]
                 response_text = response_text.strip()
 
-            result = json_module.loads(response_text)
+            try:
+                result = json_module.loads(response_text)
+            except json_module.JSONDecodeError:
+                from json_repair import repair_json
+                logger.warning(f"[Scoresheet] {model_name}: repairing malformed JSON")
+                result = json_module.loads(repair_json(response_text))
             if isinstance(result, list):
                 result = result[0] if result else {}
             move_count = len(result.get("moves", []))
