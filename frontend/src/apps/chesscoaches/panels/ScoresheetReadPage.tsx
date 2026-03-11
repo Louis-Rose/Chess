@@ -9,6 +9,8 @@ interface Move {
   number: number;
   white: string;
   black?: string;
+  white_legal?: boolean;
+  black_legal?: boolean;
 }
 
 interface ScoresheetResult {
@@ -310,8 +312,20 @@ function ModelPanel({ model, disagreements }: { model: ModelResult; disagreement
               return (
                 <tr key={move.number} className="border-b border-slate-600/30 last:border-0">
                   <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{move.number}</td>
-                  <td className={`px-1.5 py-0.5 font-mono ${d?.white ? 'bg-red-900/50 text-red-200' : 'text-slate-100'}`}>{move.white}</td>
-                  <td className={`px-1.5 py-0.5 font-mono ${d?.black ? 'bg-red-900/50 text-red-200' : 'text-slate-100'}`}>{move.black || ''}</td>
+                  <td className={`px-1.5 py-0.5 font-mono ${d?.white ? 'bg-red-900/50 text-red-200' : 'text-slate-100'}`}>
+                    <span className="inline-flex items-center gap-1">
+                      {move.white}
+                      {move.white_legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
+                      {move.white_legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
+                    </span>
+                  </td>
+                  <td className={`px-1.5 py-0.5 font-mono ${d?.black ? 'bg-red-900/50 text-red-200' : 'text-slate-100'}`}>
+                    <span className="inline-flex items-center gap-1">
+                      {move.black || ''}
+                      {move.black_legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
+                      {move.black_legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
+                    </span>
+                  </td>
                 </tr>
               );
             })}

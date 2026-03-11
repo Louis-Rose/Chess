@@ -451,6 +451,20 @@ Return ONLY the JSON object, no other text."""
             if isinstance(result, list):
                 result = result[0] if result else {}
                 warnings.append("unwrapped_array")
+            # Validate moves with python-chess
+            import chess
+            board = chess.Board()
+            for move in result.get("moves", []):
+                for color in ("white", "black"):
+                    san = move.get(color)
+                    if not san or san == "?":
+                        continue
+                    try:
+                        board.push_san(san)
+                        move[f"{color}_legal"] = True
+                    except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
+                        move[f"{color}_legal"] = False
+
             move_count = len(result.get("moves", []))
             logger.info(f"[Scoresheet] {model_name}: {move_count} moves extracted")
             item = {"model_id": model_id, "name": model_name, "result": result, "elapsed": elapsed}
