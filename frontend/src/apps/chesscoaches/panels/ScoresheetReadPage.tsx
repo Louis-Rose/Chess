@@ -39,6 +39,7 @@ export function ScoresheetReadPage() {
   const [error, setError] = useState('');
   const [modelResults, setModelResults] = useState<Record<string, ModelResult>>({});
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
+  const [startTime, setStartTime] = useState<number | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
 
   const closeModal = useCallback(() => setShowImageModal(false), []);
@@ -131,6 +132,7 @@ export function ScoresheetReadPage() {
 
           if (payload.type === 'models') {
             setModels(payload.models);
+            setStartTime(Date.now());
           } else if (payload.type === 'result') {
             const { model_id, name, result, error: err, elapsed, warnings } = payload;
             setModelResults(prev => ({
@@ -210,7 +212,7 @@ export function ScoresheetReadPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start">
                   {models.map((m) => {
                     const mr = modelResults[m.id];
-                    if (!mr) return <ModelPanelLoading key={m.id} name={m.name} />;
+                    if (!mr) return <ModelPanelLoading key={m.id} name={m.name} startTime={startTime} />;
                     return <ModelPanel key={m.id} model={mr} disagreements={disagreements} onMovesUpdate={(moves) => {
                       setModelResults(prev => ({
                         ...prev,
@@ -243,12 +245,24 @@ export function ScoresheetReadPage() {
   );
 }
 
-function ModelPanelLoading({ name }: { name: string }) {
+function ModelPanelLoading({ name, startTime }: { name: string; startTime: number | null }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!startTime) return;
+    setElapsed(Math.round((Date.now() - startTime) / 1000));
+    const id = setInterval(() => setElapsed(Math.round((Date.now() - startTime) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [startTime]);
+
   return (
     <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start">
       <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-between">
         <span className="text-slate-100 font-medium text-xs">{name}</span>
-        <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />
+        <div className="flex items-center gap-1">
+          <Clock className="w-3 h-3 text-slate-400" />
+          <span className="text-slate-400 text-xs">{elapsed}s</span>
+        </div>
       </div>
       <div className="flex items-center justify-center py-12">
         <span className="text-slate-500 text-xs">Analyzing...</span>
