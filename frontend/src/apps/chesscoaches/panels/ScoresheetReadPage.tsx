@@ -271,12 +271,12 @@ function ModelPanel({ model, disagreements }: { model: ModelResult; disagreement
         </div>
       </div>
 
-      {/* Warnings */}
-      {model.warnings && model.warnings.length > 0 && (
-        <div className="px-2 py-1 border-b border-slate-600/50 text-[10px] text-amber-400">
-          {model.warnings.map(w => WARNING_LABELS[w] || w).join(' · ')}
-        </div>
-      )}
+      {/* Warnings — always rendered for vertical alignment */}
+      <div className="px-2 py-1 border-b border-slate-600/50 text-[10px] text-amber-400 min-h-[22px]">
+        {model.warnings && model.warnings.length > 0
+          ? model.warnings.map(w => WARNING_LABELS[w] || w).join(' · ')
+          : '\u00A0'}
+      </div>
 
       {/* Error */}
       {model.error && (
