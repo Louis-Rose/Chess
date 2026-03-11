@@ -205,7 +205,7 @@ export function ScoresheetReadPage() {
 
               {/* Model results — 5 columns on desktop, show as they arrive */}
               {models.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start">
                   {models.map((m) => {
                     const mr = modelResults[m.id];
                     if (!mr) return <ModelPanelLoading key={m.id} name={m.name} />;

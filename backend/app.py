@@ -382,8 +382,6 @@ def read_scoresheet():
     logger.info(f"[Scoresheet] Image: {len(image_bytes)} bytes, {mime_type}")
 
     MODELS = [
-        {"id": "gemini-2.5-flash", "name": "2.5 Flash"},
-        {"id": "gemini-2.5-pro", "name": "2.5 Pro"},
         {"id": "gemini-3-flash-preview", "name": "3.0 Flash"},
         {"id": "gemini-3.1-pro-preview", "name": "3.1 Pro"},
         {"id": "gemini-3.1-flash-lite-preview", "name": "3.1 Flash Lite"},
