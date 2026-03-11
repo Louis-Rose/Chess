@@ -25,6 +25,7 @@ interface ModelResult {
   result?: ScoresheetResult;
   error?: string;
   elapsed: number;
+  warnings?: string[];
 }
 
 export function ScoresheetReadPage() {
@@ -129,10 +130,10 @@ export function ScoresheetReadPage() {
           if (payload.type === 'models') {
             setModels(payload.models);
           } else if (payload.type === 'result') {
-            const { model_id, name, result, error: err, elapsed } = payload;
+            const { model_id, name, result, error: err, elapsed, warnings } = payload;
             setModelResults(prev => ({
               ...prev,
-              [model_id]: { name, result, error: err, elapsed },
+              [model_id]: { name, result, error: err, elapsed, warnings },
             }));
           } else if (payload.type === 'done') {
           }
@@ -204,7 +205,7 @@ export function ScoresheetReadPage() {
 
               {/* Model results — 5 columns on desktop, show as they arrive */}
               {models.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 items-start">
                   {models.map((m) => {
                     const mr = modelResults[m.id];
                     if (!mr) return <ModelPanelLoading key={m.id} name={m.name} />;
@@ -237,7 +238,7 @@ export function ScoresheetReadPage() {
 
 function ModelPanelLoading({ name }: { name: string }) {
   return (
-    <div className="bg-slate-700/50 rounded-xl overflow-hidden">
+    <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start">
       <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-between">
         <span className="text-slate-100 font-medium text-xs">{name}</span>
         <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />
@@ -249,11 +250,16 @@ function ModelPanelLoading({ name }: { name: string }) {
   );
 }
 
+const WARNING_LABELS: Record<string, string> = {
+  json_repaired: 'JSON repaired',
+  unwrapped_array: 'Unwrapped array',
+};
+
 function ModelPanel({ model, disagreements }: { model: ModelResult; disagreements: Map<number, { white: boolean; black: boolean }> }) {
   const moves = model.result?.moves || [];
 
   return (
-    <div className="bg-slate-700/50 rounded-xl overflow-hidden">
+    <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start">
       {/* Model header */}
       <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-between">
         <span className="text-slate-100 font-medium text-xs">{model.name}</span>
@@ -262,6 +268,13 @@ function ModelPanel({ model, disagreements }: { model: ModelResult; disagreement
           <span className="text-slate-400 text-xs">{model.elapsed}s</span>
         </div>
       </div>
+
+      {/* Warnings */}
+      {model.warnings && model.warnings.length > 0 && (
+        <div className="px-2 py-1 border-b border-slate-600/50 text-[10px] text-amber-400">
+          {model.warnings.map(w => WARNING_LABELS[w] || w).join(' · ')}
+        </div>
+      )}
 
       {/* Error */}
       {model.error && (

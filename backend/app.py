@@ -442,17 +442,23 @@ Return ONLY the JSON object, no other text."""
                     response_text = response_text.rsplit('```', 1)[0]
                 response_text = response_text.strip()
 
+            warnings = []
             try:
                 result = json_module.loads(response_text)
             except json_module.JSONDecodeError:
                 from json_repair import repair_json
                 logger.warning(f"[Scoresheet] {model_name}: repairing malformed JSON")
                 result = json_module.loads(repair_json(response_text))
+                warnings.append("json_repaired")
             if isinstance(result, list):
                 result = result[0] if result else {}
+                warnings.append("unwrapped_array")
             move_count = len(result.get("moves", []))
             logger.info(f"[Scoresheet] {model_name}: {move_count} moves extracted")
-            result_queue.put({"model_id": model_id, "name": model_name, "result": result, "elapsed": elapsed})
+            item = {"model_id": model_id, "name": model_name, "result": result, "elapsed": elapsed}
+            if warnings:
+                item["warnings"] = warnings
+            result_queue.put(item)
 
         except Exception as e:
             elapsed = round(time_module.time() - start)
