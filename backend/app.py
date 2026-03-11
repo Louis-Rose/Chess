@@ -432,7 +432,7 @@ Return ONLY the JSON object, no other text."""
                 ],
                 config={"response_mime_type": "application/json"},
             )
-            elapsed = round(time_module.time() - start, 1)
+            elapsed = round(time_module.time() - start)
             logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s")
 
             response_text = response.text.strip()
@@ -448,7 +448,7 @@ Return ONLY the JSON object, no other text."""
             result_queue.put({"model_id": model_id, "name": model_name, "result": result, "elapsed": elapsed})
 
         except Exception as e:
-            elapsed = round(time_module.time() - start, 1)
+            elapsed = round(time_module.time() - start)
             logger.error(f"[Scoresheet] {model_name} failed after {elapsed}s: {e}")
             result_queue.put({"model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
 
