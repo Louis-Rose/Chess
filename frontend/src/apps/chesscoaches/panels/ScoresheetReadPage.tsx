@@ -140,8 +140,6 @@ export function ScoresheetReadPage() {
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error');
-    } finally {
-      setLoading(false);
     }
   };
 
