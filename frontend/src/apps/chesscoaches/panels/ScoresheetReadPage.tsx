@@ -316,6 +316,21 @@ export function ScoresheetReadPage() {
 }
 
 function GroundTruthPanel({ groundTruth }: { groundTruth: { white_player: string; black_player: string; result: string; moves: Move[] } }) {
+  const [validatedMoves, setValidatedMoves] = useState<Move[]>(groundTruth.moves);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/coaches/validate-moves', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ moves: groundTruth.moves }),
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(json => { if (json && !cancelled) setValidatedMoves(json.moves); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [groundTruth.moves]);
+
   return (
     <div className="bg-emerald-900/30 border border-emerald-700/50 rounded-xl overflow-hidden self-start">
       <div className="px-2 py-2 border-b border-emerald-700/50 flex items-center gap-1.5">
@@ -346,11 +361,23 @@ function GroundTruthPanel({ groundTruth }: { groundTruth: { white_player: string
           </tr>
         </thead>
         <tbody>
-          {groundTruth.moves.map((move) => (
+          {validatedMoves.map((move) => (
             <tr key={move.number} className="border-b border-emerald-700/20 last:border-0">
               <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{move.number}</td>
-              <td className="px-1.5 py-0.5 font-mono text-slate-100">{move.white}</td>
-              <td className="px-1.5 py-0.5 font-mono text-slate-100">{move.black || ''}</td>
+              <td className="px-1.5 py-0.5 font-mono text-slate-100">
+                <span className="inline-flex items-center gap-1">
+                  {move.white}
+                  {move.white_legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
+                  {move.white_legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
+                </span>
+              </td>
+              <td className="px-1.5 py-0.5 font-mono text-slate-100">
+                <span className="inline-flex items-center gap-1">
+                  {move.black || ''}
+                  {move.black_legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
+                  {move.black_legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
+                </span>
+              </td>
             </tr>
           ))}
         </tbody>
