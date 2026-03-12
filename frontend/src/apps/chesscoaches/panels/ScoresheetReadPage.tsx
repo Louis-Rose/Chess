@@ -150,6 +150,7 @@ export function ScoresheetReadPage() {
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
 
   const groundTruth = useMemo(() => getGroundTruth(fileName), [fileName]);
 
@@ -227,6 +228,7 @@ export function ScoresheetReadPage() {
     setError('');
     setModelResults({});
     setModels([]);
+    setAnalyzing(true);
 
     try {
       const formData = new FormData();
@@ -276,6 +278,8 @@ export function ScoresheetReadPage() {
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error');
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -319,7 +323,7 @@ export function ScoresheetReadPage() {
               {/* Replace + preview */}
               <div className="flex justify-end">
                 <button
-                  onClick={() => { setPreview(null); setFileName(null); setModelResults({}); setModels([]); setError(''); fileInputRef.current?.click(); }}
+                  onClick={() => { setPreview(null); setFileName(null); setModelResults({}); setModels([]); setError(''); setAnalyzing(false); fileInputRef.current?.click(); }}
                   className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
                 >
                   <Upload className="w-4 h-4" />
@@ -336,6 +340,17 @@ export function ScoresheetReadPage() {
               {/* Error */}
               {error && (
                 <p className="text-red-400 text-center py-4">{error}</p>
+              )}
+
+              {/* Analyzing spinner — before models arrive */}
+              {analyzing && models.length === 0 && (
+                <div className="flex flex-col items-center gap-3 py-8">
+                  {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} />}
+                  <div className="flex items-center gap-2 text-slate-400 animate-pulse">
+                    <Clock className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Analyzing scoresheet...</span>
+                  </div>
+                </div>
               )}
 
               {/* Model results — columns on desktop, show as they arrive */}
