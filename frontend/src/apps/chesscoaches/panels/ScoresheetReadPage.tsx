@@ -418,8 +418,8 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
         {'\u00A0'}
       </div>
 
-      <div className="px-2 py-1.5 border-b border-emerald-700/30 text-[10px]">
-        <div className="flex flex-wrap gap-x-3">
+      <div className="px-2 py-1.5 border-b border-emerald-700/30 text-[10px] text-center">
+        <div className="flex flex-wrap gap-x-3 justify-center">
           <div><span className="text-slate-400">W:</span> <span className="text-slate-200">{groundTruth.white_player}</span></div>
           <div><span className="text-slate-400">B:</span> <span className="text-slate-200">{groundTruth.black_player}</span></div>
         </div>
@@ -613,8 +613,8 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
 
       {/* Game info — always show two lines: players + result */}
       {model.result && (
-        <div className="px-2 py-1.5 border-b border-slate-600/50 text-[10px]">
-          <div className="flex flex-wrap gap-x-3">
+        <div className="px-2 py-1.5 border-b border-slate-600/50 text-[10px] text-center">
+          <div className="flex flex-wrap gap-x-3 justify-center">
             <div><span className="text-slate-400">W:</span> <span className="text-slate-200">{model.result.white_player || ''}</span></div>
             <div><span className="text-slate-400">B:</span> <span className="text-slate-200">{model.result.black_player || ''}</span></div>
           </div>
