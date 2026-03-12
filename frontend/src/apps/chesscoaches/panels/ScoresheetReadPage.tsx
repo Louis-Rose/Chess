@@ -342,19 +342,16 @@ export function ScoresheetReadPage() {
                 <p className="text-red-400 text-center py-4">{error}</p>
               )}
 
-              {/* Analyzing spinner — before models arrive */}
-              {analyzing && models.length === 0 && (
-                <div className="flex flex-col items-center gap-3 py-4">
-                  <div className="flex items-center gap-2 text-slate-400 animate-pulse">
-                    <Clock className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Analyzing scoresheet...</span>
-                  </div>
-                  {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} />}
+              {/* Analyzing spinner — visible until all models have returned */}
+              {analyzing && (
+                <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse py-4">
+                  <Clock className="w-4 h-4 animate-spin" />
+                  <span className="text-sm">Analyzing scoresheet...</span>
                 </div>
               )}
 
               {/* Model results — columns on desktop, show as they arrive */}
-              {models.length > 0 && (
+              {(models.length > 0 || (analyzing && groundTruth)) && (
                 <div className={`grid grid-cols-2 md:grid-cols-2 ${groundTruth ? 'xl:grid-cols-4' : 'xl:grid-cols-3'} gap-3 items-start`}>
                   {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} />}
                   {models.map((m) => {
