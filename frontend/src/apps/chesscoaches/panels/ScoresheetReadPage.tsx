@@ -340,7 +340,7 @@ export function ScoresheetReadPage() {
 
               {/* Model results — columns on desktop, show as they arrive */}
               {models.length > 0 && (
-                <div className={`grid grid-cols-1 md:grid-cols-2 ${groundTruth ? 'xl:grid-cols-4' : 'xl:grid-cols-3'} gap-3 items-start`}>
+                <div className={`grid grid-cols-2 md:grid-cols-2 ${groundTruth ? 'xl:grid-cols-4' : 'xl:grid-cols-3'} gap-3 items-start`}>
                   {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} />}
                   {models.map((m) => {
                     const mr = modelResults[m.id];
@@ -413,26 +413,26 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
         </div>
       </div>
 
-      <table className="w-full text-[11px]">
+      <table className="w-full text-xs">
         <thead className="bg-emerald-900/40">
           <tr className="border-b border-emerald-700/50">
             <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6">#</th>
-            <th className="px-1.5 py-1 text-slate-400 font-medium text-left">W</th>
-            <th className="px-1.5 py-1 text-slate-400 font-medium text-left">B</th>
+            <th className="px-1.5 py-1 text-slate-400 font-medium text-center">W</th>
+            <th className="px-1.5 py-1 text-slate-400 font-medium text-center">B</th>
           </tr>
         </thead>
         <tbody>
           {validatedMoves.map((move) => (
             <tr key={move.number} className="border-b border-emerald-700/20 last:border-0">
               <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{move.number}</td>
-              <td className="px-1.5 py-0.5 font-mono text-slate-100">
+              <td className="px-1.5 py-0.5 font-mono text-slate-100 text-center">
                 <span className="inline-flex items-center gap-1">
                   {move.white}
                   {move.white_legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
                   {move.white_legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
                 </span>
               </td>
-              <td className="px-1.5 py-0.5 font-mono text-slate-100">
+              <td className="px-1.5 py-0.5 font-mono text-slate-100 text-center">
                 <span className="inline-flex items-center gap-1">
                   {move.black || ''}
                   {move.black_legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
@@ -611,12 +611,12 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
 
       {/* Moves table — no scroll, full height */}
       {moves.length > 0 && (
-        <table className="w-full text-[11px]">
+        <table className="w-full text-xs">
           <thead className="bg-slate-700">
             <tr className="border-b border-slate-600">
               <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6">#</th>
-              <th className="px-1.5 py-1 text-slate-400 font-medium text-left">W</th>
-              <th className="px-1.5 py-1 text-slate-400 font-medium text-left">B</th>
+              <th className="px-1.5 py-1 text-slate-400 font-medium text-center">W</th>
+              <th className="px-1.5 py-1 text-slate-400 font-medium text-center">B</th>
             </tr>
           </thead>
           <tbody>
@@ -725,10 +725,10 @@ function MoveCell({ value, legal, highlight, onClick }: {
 }) {
   return (
     <td
-      className={`px-1.5 py-0.5 font-mono cursor-pointer hover:bg-slate-600/50 ${highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100'}`}
+      className={`px-1.5 py-0.5 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100'}`}
       onClick={onClick}
     >
-      <span className="inline-flex items-center gap-1">
+      <span className="inline-flex items-center justify-center gap-1 w-full">
         {value}
         {legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
         {legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
