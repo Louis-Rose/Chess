@@ -76,7 +76,7 @@ function getGroundTruth(filename: string | null): typeof GROUND_TRUTHS[string] |
   return GROUND_TRUTHS[stem] || null;
 }
 
-function downloadPgn(moves: Move[], meta?: { white?: string; black?: string; result?: string }) {
+function downloadPgn(moves: Move[], sourceFileName?: string | null, meta?: { white?: string; black?: string; result?: string }) {
   const headers = [
     `[White "${meta?.white || '?'}"]`,
     `[Black "${meta?.black || '?'}"]`,
@@ -90,7 +90,7 @@ function downloadPgn(moves: Move[], meta?: { white?: string; black?: string; res
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${(meta?.white || 'white').replace(/\s+/g, '_')}_vs_${(meta?.black || 'black').replace(/\s+/g, '_')}.pgn`;
+  a.download = sourceFileName ? sourceFileName.replace(/\.[^.]+$/, '.pgn') : 'scoresheet.pgn';
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -337,11 +337,11 @@ export function ScoresheetReadPage() {
               {/* Model results — columns on desktop, show as they arrive */}
               {models.length > 0 && (
                 <div className={`grid grid-cols-1 md:grid-cols-2 ${groundTruth ? 'xl:grid-cols-4' : 'xl:grid-cols-3'} gap-3 items-start`}>
-                  {groundTruth && <GroundTruthPanel groundTruth={groundTruth} />}
+                  {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} />}
                   {models.map((m) => {
                     const mr = modelResults[m.id];
                     if (!mr) return <ModelPanelLoading key={m.id} name={m.name} startTime={startTime} />;
-                    return <ModelPanel key={m.id} model={mr} disagreements={disagreementsByModel.get(m.id) || new Map()} groundTruthMoves={groundTruth?.moves} onMovesUpdate={(moves) => {
+                    return <ModelPanel key={m.id} model={mr} disagreements={disagreementsByModel.get(m.id) || new Map()} groundTruthMoves={groundTruth?.moves} fileName={fileName} onMovesUpdate={(moves) => {
                       setModelResults(prev => ({
                         ...prev,
                         [m.id]: { ...prev[m.id], result: { ...prev[m.id].result!, moves } },
@@ -373,7 +373,7 @@ export function ScoresheetReadPage() {
   );
 }
 
-function GroundTruthPanel({ groundTruth }: { groundTruth: { white_player: string; black_player: string; result: string; moves: Move[] } }) {
+function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_player: string; black_player: string; result: string; moves: Move[] }; fileName?: string | null }) {
   const [validatedMoves, setValidatedMoves] = useState<Move[]>(groundTruth.moves);
 
   useEffect(() => {
@@ -448,7 +448,7 @@ function GroundTruthPanel({ groundTruth }: { groundTruth: { white_player: string
         <div className="text-[10px] text-emerald-400/40">{'\u00A0'}</div>
       </div>
       <button
-        onClick={() => downloadPgn(validatedMoves, { white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result })}
+        onClick={() => downloadPgn(validatedMoves, fileName, { white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result })}
         className="w-full px-2 py-1.5 border-t border-emerald-700/50 text-center text-xs text-emerald-400 hover:bg-emerald-800/30 transition-colors"
       >
         Download PGN
@@ -488,10 +488,11 @@ const WARNING_LABELS: Record<string, string> = {
   unwrapped_array: 'Unwrapped array',
 };
 
-function ModelPanel({ model, disagreements, groundTruthMoves, onMovesUpdate }: {
+function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesUpdate }: {
   model: ModelResult;
   disagreements: Map<number, { white: boolean; black: boolean }>;
   groundTruthMoves?: Move[];
+  fileName?: string | null;
   onMovesUpdate: (moves: Move[]) => void;
 }) {
   const moves = model.result?.moves || [];
@@ -618,7 +619,7 @@ function ModelPanel({ model, disagreements, groundTruthMoves, onMovesUpdate }: {
       })()}
       {moves.length > 0 && (
         <button
-          onClick={() => downloadPgn(moves, model.result ? { white: model.result.white_player, black: model.result.black_player, result: model.result.result } : undefined)}
+          onClick={() => downloadPgn(moves, fileName, model.result ? { white: model.result.white_player, black: model.result.black_player, result: model.result.result } : undefined)}
           className="w-full px-2 py-1.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors"
         >
           Download PGN
