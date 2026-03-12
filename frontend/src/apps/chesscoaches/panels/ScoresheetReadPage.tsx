@@ -415,7 +415,7 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
         {'\u00A0'}
       </div>
 
-      <div className="px-2 py-1.5 border-b border-emerald-700/30 text-[10px] text-center">
+      <div className="px-2 py-1.5 border-b border-emerald-700/30 text-xs text-center">
         <div className="flex flex-wrap gap-x-3 justify-center">
           <div><span className="text-slate-400">W:</span> <span className="text-slate-200">{groundTruth.white_player}</span></div>
           <div><span className="text-slate-400">B:</span> <span className="text-slate-200">{groundTruth.black_player}</span></div>
@@ -429,8 +429,8 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
         <thead className="bg-emerald-900/40">
           <tr className="border-b border-emerald-700/50">
             <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6">#</th>
-            <th className="px-1.5 py-1 text-slate-400 font-medium text-center">W</th>
-            <th className="px-1.5 py-1 text-slate-400 font-medium text-center">B</th>
+            <th className="px-1.5 py-1 text-slate-400 font-medium text-center">White</th>
+            <th className="px-1.5 py-1 text-slate-400 font-medium text-center">Black</th>
           </tr>
         </thead>
         <tbody>
@@ -612,7 +612,7 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
 
       {/* Game info — always show two lines: players + result */}
       {model.result && (
-        <div className="px-2 py-1.5 border-b border-slate-600/50 text-[10px] text-center">
+        <div className="px-2 py-1.5 border-b border-slate-600/50 text-xs text-center">
           <div className="flex flex-wrap gap-x-3 justify-center">
             <div><span className="text-slate-400">W:</span> <span className="text-slate-200">{model.result.white_player || ''}</span></div>
             <div><span className="text-slate-400">B:</span> <span className="text-slate-200">{model.result.black_player || ''}</span></div>
@@ -629,8 +629,8 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
           <thead className="bg-slate-700">
             <tr className="border-b border-slate-600">
               <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6">#</th>
-              <th className="px-1.5 py-1 text-slate-400 font-medium text-center">W</th>
-              <th className="px-1.5 py-1 text-slate-400 font-medium text-center">B</th>
+              <th className="px-1.5 py-1 text-slate-400 font-medium text-center">White</th>
+              <th className="px-1.5 py-1 text-slate-400 font-medium text-center">Black</th>
             </tr>
           </thead>
           <tbody>
