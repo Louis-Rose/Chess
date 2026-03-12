@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, ImageIcon, Clock, BookOpen, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Move {
@@ -453,9 +453,9 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
       </div>
       <button
         onClick={() => downloadPgn(validatedMoves, fileName, { white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result })}
-        className="w-full px-2 py-1.5 border-t border-emerald-700/50 text-center text-xs text-emerald-400 hover:bg-emerald-800/30 transition-colors"
+        className="w-full px-2 py-1.5 border-t border-emerald-700/50 text-center text-xs text-emerald-400 hover:bg-emerald-800/30 transition-colors flex items-center justify-center gap-1.5"
       >
-        Download PGN
+        <Download className="w-3 h-3" /> Download PGN
       </button>
       <CopyPgnButton
         moves={validatedMoves}
@@ -666,9 +666,9 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
       {moves.length > 0 && (<>
         <button
           onClick={() => downloadPgn(moves, fileName, model.result ? { white: model.result.white_player, black: model.result.black_player, result: model.result.result } : undefined)}
-          className="w-full px-2 py-1.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors"
+          className="w-full px-2 py-1.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
         >
-          Download PGN
+          <Download className="w-3 h-3" /> Download PGN
         </button>
         <CopyPgnButton
           moves={moves}
