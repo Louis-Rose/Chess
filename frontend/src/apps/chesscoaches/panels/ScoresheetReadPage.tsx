@@ -369,7 +369,6 @@ export function ScoresheetReadPage() {
             src={preview}
             alt="Scoresheet"
             className="max-w-[90vw] max-h-[90vh] rounded-xl object-contain"
-            onClick={(e) => e.stopPropagation()}
           />
         </div>
       )}
