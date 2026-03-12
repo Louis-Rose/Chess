@@ -308,7 +308,7 @@ export function ScoresheetReadPage() {
           {!preview ? (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full border-2 border-dashed border-slate-600 rounded-xl p-12 flex flex-col items-center gap-3 hover:border-blue-500 hover:bg-slate-750 transition-colors cursor-pointer"
+              className="w-full md:max-w-xl md:mx-auto border-2 border-dashed border-slate-600 rounded-xl p-12 flex flex-col items-center gap-3 hover:border-blue-500 hover:bg-slate-750 transition-colors cursor-pointer"
             >
               <ImageIcon className="w-12 h-12 text-slate-500" />
               <span className="text-slate-300 font-medium">{t('coaches.uploadPrompt')}</span>
