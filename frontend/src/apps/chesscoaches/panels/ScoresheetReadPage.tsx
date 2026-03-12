@@ -316,22 +316,22 @@ export function ScoresheetReadPage() {
             </button>
           ) : (
             <div className="space-y-4">
-              {/* Preview + replace */}
-              <div className="relative">
-                <img
-                  src={preview}
-                  alt="Scoresheet"
-                  className="rounded-xl max-h-80 mx-auto cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => setShowImageModal(true)}
-                />
+              {/* Replace + preview */}
+              <div className="flex justify-end">
                 <button
                   onClick={() => { setPreview(null); setFileName(null); setModelResults({}); setModels([]); setError(''); fileInputRef.current?.click(); }}
-                  className="absolute top-2 right-2 bg-slate-800/80 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
+                  className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
                 >
                   <Upload className="w-4 h-4" />
                   {t('coaches.replaceImage')}
                 </button>
               </div>
+              <img
+                src={preview}
+                alt="Scoresheet"
+                className="rounded-xl max-h-80 mx-auto cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => setShowImageModal(true)}
+              />
 
               {/* Error */}
               {error && (
