@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, ImageIcon, Clock, BookOpen } from 'lucide-react';
+import { ArrowLeft, Upload, ImageIcon, Clock, BookOpen, Copy, Check } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Move {
@@ -76,7 +76,7 @@ function getGroundTruth(filename: string | null): typeof GROUND_TRUTHS[string] |
   return GROUND_TRUTHS[stem] || null;
 }
 
-function downloadPgn(moves: Move[], sourceFileName?: string | null, meta?: { white?: string; black?: string; result?: string }) {
+function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result?: string }): string {
   const headers = [
     `[White "${meta?.white || '?'}"]`,
     `[Black "${meta?.black || '?'}"]`,
@@ -85,7 +85,11 @@ function downloadPgn(moves: Move[], sourceFileName?: string | null, meta?: { whi
   const moveText = moves.map(m =>
     `${m.number}. ${m.white}${m.black ? ' ' + m.black : ''}`
   ).join(' ');
-  const pgn = `${headers}\n\n${moveText} ${meta?.result || '*'}\n`;
+  return `${headers}\n\n${moveText} ${meta?.result || '*'}\n`;
+}
+
+function downloadPgn(moves: Move[], sourceFileName?: string | null, meta?: { white?: string; black?: string; result?: string }) {
+  const pgn = buildPgn(moves, meta);
   const blob = new Blob([pgn], { type: 'application/x-chess-pgn' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -453,7 +457,49 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
       >
         Download PGN
       </button>
+      <CopyPgnButton
+        moves={validatedMoves}
+        meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
+        variant="ground-truth"
+      />
     </div>
+  );
+}
+
+function CopyPgnButton({ moves, meta, variant }: {
+  moves: Move[];
+  meta?: { white?: string; black?: string; result?: string };
+  variant: 'ground-truth' | 'model';
+}) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    const pgn = buildPgn(moves, meta);
+    try {
+      await navigator.clipboard.writeText(pgn);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = pgn;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const isGt = variant === 'ground-truth';
+  return (
+    <button
+      onClick={handleCopy}
+      className={`w-full px-2 py-1.5 border-t text-center text-xs transition-colors flex items-center justify-center gap-1.5 ${
+        isGt
+          ? 'border-emerald-700/50 text-emerald-400 hover:bg-emerald-800/30'
+          : 'border-slate-600/50 text-slate-400 hover:bg-slate-600/40 hover:text-slate-200'
+      }`}
+    >
+      {copied ? <><Check className="w-3 h-3" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy PGN</>}
+    </button>
   );
 }
 
@@ -617,14 +663,19 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
           </div>
         );
       })()}
-      {moves.length > 0 && (
+      {moves.length > 0 && (<>
         <button
           onClick={() => downloadPgn(moves, fileName, model.result ? { white: model.result.white_player, black: model.result.black_player, result: model.result.result } : undefined)}
           className="w-full px-2 py-1.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors"
         >
           Download PGN
         </button>
-      )}
+        <CopyPgnButton
+          moves={moves}
+          meta={model.result ? { white: model.result.white_player, black: model.result.black_player, result: model.result.result } : undefined}
+          variant="model"
+        />
+      </>)}
 
       {/* Edit modal */}
       {editing && (
