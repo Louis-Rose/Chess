@@ -6,41 +6,6 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 type Platform = 'ios-safari' | 'ios-other' | 'android-chrome' | 'android-other' | 'desktop' | 'unknown';
 
-type NonPreferredBrowser = 'chrome' | 'firefox' | 'edge' | 'opera' | 'brave' | 'samsung' | 'unknown';
-
-function detectIOSBrowser(): NonPreferredBrowser {
-  const ua = navigator.userAgent;
-  if (/CriOS/.test(ua)) return 'chrome';
-  if (/FxiOS/.test(ua)) return 'firefox';
-  if (/EdgiOS/.test(ua)) return 'edge';
-  if (/OPiOS/.test(ua)) return 'opera';
-  if (/Brave/.test(ua)) return 'brave';
-  return 'unknown';
-}
-
-function detectAndroidBrowser(): NonPreferredBrowser {
-  const ua = navigator.userAgent;
-  if (/Firefox/.test(ua)) return 'firefox';
-  if (/Edg/.test(ua)) return 'edge';
-  if (/OPR/.test(ua)) return 'opera';
-  if (/Brave/.test(ua)) return 'brave';
-  if (/SamsungBrowser/.test(ua)) return 'samsung';
-  return 'unknown';
-}
-
-function getBrowserDisplayName(browser: NonPreferredBrowser, isFr: boolean): string {
-  const names: Record<NonPreferredBrowser, string> = {
-    chrome: 'Chrome',
-    firefox: 'Firefox',
-    edge: 'Edge',
-    opera: 'Opera',
-    brave: 'Brave',
-    samsung: 'Samsung Internet',
-    unknown: isFr ? 'ce navigateur' : 'this browser',
-  };
-  return names[browser];
-}
-
 function detectPlatform(): Platform {
   const ua = navigator.userAgent;
   const isIOS = /iPhone|iPad|iPod/.test(ua);
