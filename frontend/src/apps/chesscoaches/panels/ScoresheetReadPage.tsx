@@ -76,6 +76,16 @@ function getGroundTruth(filename: string | null): typeof GROUND_TRUTHS[string] |
   return GROUND_TRUTHS[stem] || null;
 }
 
+function computeAccuracy(moves: Move[]): number | null {
+  let total = 0;
+  let legal = 0;
+  for (const m of moves) {
+    if (m.white && m.white !== '?') { total++; if (m.white_legal === true) legal++; }
+    if (m.black && m.black !== '?') { total++; if (m.black_legal === true) legal++; }
+  }
+  return total > 0 ? Math.round((legal / total) * 100) : null;
+}
+
 export function ScoresheetReadPage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -382,6 +392,16 @@ function GroundTruthPanel({ groundTruth }: { groundTruth: { white_player: string
           ))}
         </tbody>
       </table>
+      {(() => {
+        const acc = computeAccuracy(validatedMoves);
+        return acc !== null ? (
+          <div className="px-2 py-1.5 border-t border-emerald-700/50 text-center">
+            <span className={`text-xs font-medium ${acc === 100 ? 'text-green-400' : acc >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
+              {acc}% accuracy
+            </span>
+          </div>
+        ) : null;
+      })()}
     </div>
   );
 }
@@ -525,6 +545,16 @@ function ModelPanel({ model, disagreements, onMovesUpdate }: {
           </tbody>
         </table>
       )}
+      {moves.length > 0 && (() => {
+        const acc = computeAccuracy(moves);
+        return acc !== null ? (
+          <div className="px-2 py-1.5 border-t border-slate-600/50 text-center">
+            <span className={`text-xs font-medium ${acc === 100 ? 'text-green-400' : acc >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
+              {acc}% accuracy
+            </span>
+          </div>
+        ) : null;
+      })()}
 
       {/* Edit modal */}
       {editing && (
