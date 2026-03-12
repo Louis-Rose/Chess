@@ -76,14 +76,17 @@ function getGroundTruth(filename: string | null): typeof GROUND_TRUTHS[string] |
   return GROUND_TRUTHS[stem] || null;
 }
 
-function computeAccuracy(moves: Move[]): number | null {
-  let total = 0;
-  let legal = 0;
-  for (const m of moves) {
-    if (m.white && m.white !== '?') { total++; if (m.white_legal === true) legal++; }
-    if (m.black && m.black !== '?') { total++; if (m.black_legal === true) legal++; }
+function computeAccuracy(modelMoves: Move[], gtMoves: Move[]): number | null {
+  const total = gtMoves.reduce((n, m) => n + 1 + (m.black ? 1 : 0), 0);
+  if (total === 0) return null;
+  let correct = 0;
+  for (let i = 0; i < gtMoves.length; i++) {
+    const gt = gtMoves[i];
+    const mm = modelMoves[i];
+    if (mm?.white === gt.white) correct++;
+    if (gt.black && mm?.black === gt.black) correct++;
   }
-  return total > 0 ? Math.round((legal / total) * 100) : null;
+  return Math.round((correct / total) * 100);
 }
 
 export function ScoresheetReadPage() {
@@ -293,7 +296,7 @@ export function ScoresheetReadPage() {
                   {models.map((m) => {
                     const mr = modelResults[m.id];
                     if (!mr) return <ModelPanelLoading key={m.id} name={m.name} startTime={startTime} />;
-                    return <ModelPanel key={m.id} model={mr} disagreements={disagreementsByModel.get(m.id) || new Map()} onMovesUpdate={(moves) => {
+                    return <ModelPanel key={m.id} model={mr} disagreements={disagreementsByModel.get(m.id) || new Map()} groundTruthMoves={groundTruth?.moves} onMovesUpdate={(moves) => {
                       setModelResults(prev => ({
                         ...prev,
                         [m.id]: { ...prev[m.id], result: { ...prev[m.id].result!, moves } },
@@ -392,16 +395,6 @@ function GroundTruthPanel({ groundTruth }: { groundTruth: { white_player: string
           ))}
         </tbody>
       </table>
-      {(() => {
-        const acc = computeAccuracy(validatedMoves);
-        return acc !== null ? (
-          <div className="px-2 py-1.5 border-t border-emerald-700/50 text-center">
-            <span className={`text-xs font-medium ${acc === 100 ? 'text-green-400' : acc >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
-              {acc}% accuracy
-            </span>
-          </div>
-        ) : null;
-      })()}
     </div>
   );
 }
@@ -437,9 +430,10 @@ const WARNING_LABELS: Record<string, string> = {
   unwrapped_array: 'Unwrapped array',
 };
 
-function ModelPanel({ model, disagreements, onMovesUpdate }: {
+function ModelPanel({ model, disagreements, groundTruthMoves, onMovesUpdate }: {
   model: ModelResult;
   disagreements: Map<number, { white: boolean; black: boolean }>;
+  groundTruthMoves?: Move[];
   onMovesUpdate: (moves: Move[]) => void;
 }) {
   const moves = model.result?.moves || [];
@@ -545,8 +539,8 @@ function ModelPanel({ model, disagreements, onMovesUpdate }: {
           </tbody>
         </table>
       )}
-      {moves.length > 0 && (() => {
-        const acc = computeAccuracy(moves);
+      {moves.length > 0 && groundTruthMoves && (() => {
+        const acc = computeAccuracy(moves, groundTruthMoves);
         return acc !== null ? (
           <div className="px-2 py-1.5 border-t border-slate-600/50 text-center">
             <span className={`text-xs font-medium ${acc === 100 ? 'text-green-400' : acc >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
