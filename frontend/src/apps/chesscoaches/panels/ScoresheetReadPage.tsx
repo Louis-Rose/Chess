@@ -76,6 +76,25 @@ function getGroundTruth(filename: string | null): typeof GROUND_TRUTHS[string] |
   return GROUND_TRUTHS[stem] || null;
 }
 
+function downloadPgn(moves: Move[], meta?: { white?: string; black?: string; result?: string }) {
+  const headers = [
+    `[White "${meta?.white || '?'}"]`,
+    `[Black "${meta?.black || '?'}"]`,
+    `[Result "${meta?.result || '*'}"]`,
+  ].join('\n');
+  const moveText = moves.map(m =>
+    `${m.number}. ${m.white}${m.black ? ' ' + m.black : ''}`
+  ).join(' ');
+  const pgn = `${headers}\n\n${moveText} ${meta?.result || '*'}\n`;
+  const blob = new Blob([pgn], { type: 'application/x-chess-pgn' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${(meta?.white || 'white').replace(/\s+/g, '_')}_vs_${(meta?.black || 'black').replace(/\s+/g, '_')}.pgn`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 interface AccuracyStats {
   accuracy: number;
   mistakesThatAreIllegal: number | null;  // % of reading mistakes that are also illegal
@@ -421,6 +440,14 @@ function GroundTruthPanel({ groundTruth }: { groundTruth: { white_player: string
           ))}
         </tbody>
       </table>
+      <div className="px-2 py-1.5 border-t border-emerald-700/50 text-center">
+        <button
+          onClick={() => downloadPgn(validatedMoves, { white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result })}
+          className="text-[10px] text-emerald-400 hover:text-emerald-300 transition-colors"
+        >
+          Download PGN
+        </button>
+      </div>
     </div>
   );
 }
@@ -588,6 +615,16 @@ function ModelPanel({ model, disagreements, groundTruthMoves, onMovesUpdate }: {
           </div>
         );
       })()}
+      {moves.length > 0 && (
+        <div className="px-2 py-1.5 border-t border-slate-600/50 text-center">
+          <button
+            onClick={() => downloadPgn(moves, model.result ? { white: model.result.white_player, black: model.result.black_player, result: model.result.result } : undefined)}
+            className="text-[10px] text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            Download PGN
+          </button>
+        </div>
+      )}
 
       {/* Edit modal */}
       {editing && (
