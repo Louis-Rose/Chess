@@ -103,33 +103,13 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
             {content.title}
           </h3>
 
-          {/* Non-preferred browser: show steps + copy URL button */}
-          {isNonPreferredBrowser && (
-            <button
-              onClick={handleCopyUrl}
-              className="flex items-center gap-2 my-3 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors w-full justify-center"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  {isFr ? 'Lien copié !' : 'Link copied!'}
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  {isFr ? `Copier le lien pour ${preferredBrowser}` : `Copy link for ${preferredBrowser}`}
-                </>
-              )}
-            </button>
-          )}
-
           <div className="text-sm text-green-800 dark:text-green-200 space-y-3">
             {content.steps.map((step, i) => (
               <div key={i}>
                 <p className="flex items-center justify-center gap-2">
-                  {step.icon && <><span className="font-medium">{i + 1}.</span><step.icon className="w-4 h-4 inline flex-shrink-0" /></>}
-                  {step.iconSrc && <img src={step.iconSrc} alt="" className="w-7 h-7 inline flex-shrink-0" />}
-                  {!step.icon && !step.iconSrc && <span className="font-medium">{i + 1}.</span>}
+                  {!isNonPreferredBrowser && step.icon && <><span className="font-medium">{i + 1}.</span><step.icon className="w-4 h-4 inline flex-shrink-0" /></>}
+                  {!isNonPreferredBrowser && step.iconSrc && <img src={step.iconSrc} alt="" className="w-7 h-7 inline flex-shrink-0" />}
+                  {!isNonPreferredBrowser && !step.icon && !step.iconSrc && <span className="font-medium">{i + 1}.</span>}
                   <span>{step.text}</span>
                 </p>
                 {content.screenshots?.[i] && (
@@ -144,6 +124,26 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
               </div>
             ))}
           </div>
+
+          {/* Non-preferred browser: copy URL button after steps */}
+          {isNonPreferredBrowser && (
+            <button
+              onClick={handleCopyUrl}
+              className="flex items-center gap-2 mt-3 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors w-full justify-center"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  {isFr ? 'Lien copié !' : 'Link copied!'}
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  {isFr ? `Copier le lien pour ${preferredBrowser}` : `Copy link for ${preferredBrowser}`}
+                </>
+              )}
+            </button>
+          )}
 
         </div>
       </div>
