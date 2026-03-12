@@ -127,32 +127,20 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
 
   return (
     <div className={`bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl p-4 relative overflow-hidden ${className}`}>
-      <div className="flex items-start gap-3">
+      <div className="flex flex-col items-center text-center gap-3">
         <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
           <Download className="w-5 h-5 text-white" />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="w-full">
           <h3 className="font-semibold text-green-900 dark:text-green-100 mb-1">
             {content.title}
           </h3>
 
-          {/* Show current browser warning for non-preferred browser users */}
-          {isNonPreferredBrowser && browserName && (
-            <div className="flex items-center gap-2 mb-3 p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
-              <span className="text-amber-800 dark:text-amber-200 text-sm">
-                {isFr
-                  ? `Vous utilisez ${browserName}. Ouvrez ${preferredBrowser} pour installer l'app :`
-                  : `You're using ${browserName}. Open ${preferredBrowser} to install the app:`
-                }
-              </span>
-            </div>
-          )}
-
-          {/* Copy URL button for non-preferred browser users */}
+          {/* Non-preferred browser: show steps + copy URL button */}
           {isNonPreferredBrowser && (
             <button
               onClick={handleCopyUrl}
-              className="flex items-center gap-2 mb-3 px-3 py-2 bg-[#006CFF] hover:bg-[#0055CC] text-white rounded-lg text-sm font-medium transition-colors w-full justify-center"
+              className="flex items-center gap-2 my-3 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors w-full justify-center"
             >
               {copied ? (
                 <>
@@ -171,7 +159,7 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
           <div className="text-sm text-green-800 dark:text-green-200 space-y-3">
             {content.steps.map((step, i) => (
               <div key={i}>
-                <p className="flex items-center gap-2">
+                <p className="flex items-center justify-center gap-2">
                   {step.icon && <><span className="font-medium">{i + 1}.</span><step.icon className="w-4 h-4 inline flex-shrink-0" /></>}
                   {step.iconSrc && <img src={step.iconSrc} alt="" className="w-7 h-7 inline flex-shrink-0" />}
                   {!step.icon && !step.iconSrc && <span className="font-medium">{i + 1}.</span>}
@@ -245,10 +233,6 @@ function getContent(platform: Platform, language: string): ContentData | null {
       return {
         title: isFr ? 'Installer Lumna sur votre iPhone' : 'Install Lumna on your iPhone',
         steps: [
-          {
-            text: isFr ? 'Copiez le lien et ouvrez-le dans Safari' : 'Copy the link and open it in Safari',
-            iconSrc: '/safari-logo.jpeg',
-          },
         ],
       };
 
@@ -269,11 +253,7 @@ function getContent(platform: Platform, language: string): ContentData | null {
     case 'android-other':
       return {
         title: isFr ? 'Installer Lumna sur votre téléphone' : 'Install Lumna on your phone',
-        steps: [
-          {
-            text: isFr ? 'Copiez le lien et ouvrez-le dans Chrome' : 'Copy the link and open it in Chrome',
-          },
-        ],
+        steps: [],
       };
 
     case 'desktop':

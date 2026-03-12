@@ -11,6 +11,7 @@ export function ScoresheetPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
+      <PWAInstallPrompt className="max-w-3xl mx-[5%] md:mx-auto mb-4" />
       <div className="border-t border-slate-700 mb-4 max-w-3xl mx-[5%] md:mx-auto" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-[5%] md:mx-auto">
         <div
@@ -27,7 +28,6 @@ export function ScoresheetPanel() {
         </div>
       </div>
       <div className="border-t border-slate-700 mt-4 max-w-3xl mx-[5%] md:mx-auto" />
-      <PWAInstallPrompt className="max-w-3xl mx-[5%] md:mx-auto mt-4" />
     </div>
   );
 }
