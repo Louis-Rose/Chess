@@ -458,7 +458,7 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
           ))}
         </tbody>
       </table>
-      <div className="px-2 py-1.5 border-t border-emerald-700/50 text-center space-y-0.5">
+      <div className="px-2 py-1.5 border-t border-emerald-700/50 text-center space-y-0.5 flex flex-col items-center justify-center">
         <div>
           <span className="text-xs font-medium text-green-400">100% accuracy</span>
         </div>
@@ -467,7 +467,7 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
       </div>
       <button
         onClick={() => downloadPgn(validatedMoves, fileName, { white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result })}
-        className="w-full px-2 py-1.5 border-t border-emerald-700/50 text-center text-xs text-emerald-400 hover:bg-emerald-800/30 transition-colors flex items-center justify-center gap-1.5"
+        className="w-full px-2 py-2.5 border-t border-emerald-700/50 text-center text-xs text-emerald-400 hover:bg-emerald-800/30 transition-colors flex items-center justify-center gap-1.5"
       >
         <Download className="w-3 h-3" /> Download PGN
       </button>
@@ -486,6 +486,7 @@ function CopyPgnButton({ moves, meta, variant }: {
   variant: 'ground-truth' | 'model';
 }) {
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const handleCopy = async () => {
     const pgn = buildPgn(moves, meta);
     try {
@@ -498,15 +499,16 @@ function CopyPgnButton({ moves, meta, variant }: {
       document.execCommand('copy');
       document.body.removeChild(ta);
     }
+    if (timerRef.current) clearTimeout(timerRef.current);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    timerRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   const isGt = variant === 'ground-truth';
   return (
     <button
       onClick={handleCopy}
-      className={`w-full px-2 py-1.5 border-t text-center text-xs transition-colors flex items-center justify-center gap-1.5 ${
+      className={`w-full px-2 py-2.5 border-t text-center text-xs transition-colors flex items-center justify-center gap-1.5 ${
         isGt
           ? 'border-emerald-700/50 text-emerald-400 hover:bg-emerald-800/30'
           : 'border-slate-600/50 text-slate-400 hover:bg-slate-600/40 hover:text-slate-200'
@@ -680,7 +682,7 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
       {moves.length > 0 && (<>
         <button
           onClick={() => downloadPgn(moves, fileName, model.result ? { white: model.result.white_player, black: model.result.black_player, result: model.result.result } : undefined)}
-          className="w-full px-2 py-1.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
+          className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
         >
           <Download className="w-3 h-3" /> Download PGN
         </button>
