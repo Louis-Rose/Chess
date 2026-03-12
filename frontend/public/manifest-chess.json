@@ -3,6 +3,7 @@
   "short_name": "Chess",
   "description": "Analyze your Chess.com games and track your progress",
   "start_url": "/chess",
+  "scope": "/chess",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#16a34a",

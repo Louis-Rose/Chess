@@ -1,5 +1,5 @@
 // Service Worker for LUMRA PWA
-const CACHE_NAME = 'lumra-v2';
+const CACHE_NAME = 'lumra-v3';
 const STATIC_ASSETS = [
   '/',
   '/investing',

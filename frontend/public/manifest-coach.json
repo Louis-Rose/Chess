@@ -3,6 +3,7 @@
   "short_name": "Coach",
   "description": "Digitize and analyze tournament scoresheets",
   "start_url": "/coach",
+  "scope": "/coach",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#16a34a",
