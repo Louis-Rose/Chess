@@ -3,6 +3,7 @@
 import { useNavigate } from 'react-router-dom';
 import { FileText, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 
 export function ScoresheetPanel() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export function ScoresheetPanel() {
         </div>
       </div>
       <div className="border-t border-slate-700 mt-4 max-w-3xl mx-[5%] md:mx-auto" />
+      <PWAInstallPrompt className="max-w-3xl mx-[5%] md:mx-auto mt-4" />
     </div>
   );
 }
