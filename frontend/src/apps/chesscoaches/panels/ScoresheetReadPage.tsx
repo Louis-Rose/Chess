@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, ImageIcon, Clock } from 'lucide-react';
+import { ArrowLeft, Upload, ImageIcon, Clock, BookOpen } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Move {
@@ -30,17 +30,66 @@ interface ModelResult {
   warnings?: string[];
 }
 
+// Ground truth for known scoresheets — keyed by filename stem (without extension)
+const GROUND_TRUTHS: Record<string, { white_player: string; black_player: string; result: string; moves: Move[] }> = {
+  '2024_WCC_DING_GUKESH_14': {
+    white_player: 'Ding Liren',
+    black_player: 'D. Gukesh',
+    result: '0-1',
+    moves: [
+      { number: 1, white: 'Nf3', black: 'd5' }, { number: 2, white: 'g3', black: 'c5' },
+      { number: 3, white: 'Bg2', black: 'Nc6' }, { number: 4, white: 'd4', black: 'e6' },
+      { number: 5, white: 'O-O', black: 'cxd4' }, { number: 6, white: 'Nxd4', black: 'Nge7' },
+      { number: 7, white: 'c4', black: 'Nxd4' }, { number: 8, white: 'Qxd4', black: 'Nc6' },
+      { number: 9, white: 'Qd1', black: 'd4' }, { number: 10, white: 'e3', black: 'Bc5' },
+      { number: 11, white: 'exd4', black: 'Bxd4' }, { number: 12, white: 'Nc3', black: 'O-O' },
+      { number: 13, white: 'Nb5', black: 'Bb6' }, { number: 14, white: 'b3', black: 'a6' },
+      { number: 15, white: 'Nc3', black: 'Bd4' }, { number: 16, white: 'Bb2', black: 'e5' },
+      { number: 17, white: 'Qd2', black: 'Be6' }, { number: 18, white: 'Nd5', black: 'b5' },
+      { number: 19, white: 'cxb5', black: 'axb5' }, { number: 20, white: 'Nf4', black: 'exf4' },
+      { number: 21, white: 'Bxc6', black: 'Bxb2' }, { number: 22, white: 'Qxb2', black: 'Rb8' },
+      { number: 23, white: 'Rfd1', black: 'Qb6' }, { number: 24, white: 'Bf3', black: 'fxg3' },
+      { number: 25, white: 'hxg3', black: 'b4' }, { number: 26, white: 'a4', black: 'bxa3' },
+      { number: 27, white: 'Rxa3', black: 'g6' }, { number: 28, white: 'Qd4', black: 'Qb5' },
+      { number: 29, white: 'b4', black: 'Qxb4' }, { number: 30, white: 'Qxb4', black: 'Rxb4' },
+      { number: 31, white: 'Ra8', black: 'Rxa8' }, { number: 32, white: 'Bxa8', black: 'g5' },
+      { number: 33, white: 'Bd5', black: 'Bf5' }, { number: 34, white: 'Rc1', black: 'Kg7' },
+      { number: 35, white: 'Rc7', black: 'Bg6' }, { number: 36, white: 'Rc4', black: 'Rb1+' },
+      { number: 37, white: 'Kg2', black: 'Re1' }, { number: 38, white: 'Rb4', black: 'h5' },
+      { number: 39, white: 'Ra4', black: 'Re5' }, { number: 40, white: 'Bf3', black: 'Kh6' },
+      { number: 41, white: 'Kg1', black: 'Re6' }, { number: 42, white: 'Rc4', black: 'g4' },
+      { number: 43, white: 'Bd5', black: 'Rd6' }, { number: 44, white: 'Bb7', black: 'Kg5' },
+      { number: 45, white: 'f3', black: 'f5' }, { number: 46, white: 'fxg4', black: 'hxg4' },
+      { number: 47, white: 'Rb4', black: 'Bf7' }, { number: 48, white: 'Kf2', black: 'Rd2+' },
+      { number: 49, white: 'Kg1', black: 'Kf6' }, { number: 50, white: 'Rb6+', black: 'Kg5' },
+      { number: 51, white: 'Rb4', black: 'Be6' }, { number: 52, white: 'Ra4', black: 'Rb2' },
+      { number: 53, white: 'Ba8', black: 'Kf6' }, { number: 54, white: 'Rf4', black: 'Ke5' },
+      { number: 55, white: 'Rf2', black: 'Rxf2' }, { number: 56, white: 'Kxf2', black: 'Bd5' },
+      { number: 57, white: 'Bxd5', black: 'Kxd5' }, { number: 58, white: 'Ke3', black: 'Ke5' },
+    ],
+  },
+};
+
+function getGroundTruth(filename: string | null): typeof GROUND_TRUTHS[string] | null {
+  if (!filename) return null;
+  const stem = filename.replace(/\.[^.]+$/, '');
+  return GROUND_TRUTHS[stem] || null;
+}
+
 export function ScoresheetReadPage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [preview, setPreview] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [modelResults, setModelResults] = useState<Record<string, ModelResult>>({});
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
+
+  const groundTruth = useMemo(() => getGroundTruth(fileName), [fileName]);
 
   const closeModal = useCallback(() => setShowImageModal(false), []);
   useEffect(() => {
@@ -50,33 +99,52 @@ export function ScoresheetReadPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [showImageModal, closeModal]);
 
-  // Build disagreement map: moveNumber -> { white: Set of values, black: Set of values }
-  const disagreements = useMemo(() => {
-    const results = Object.values(modelResults).filter(m => m.result);
-    if (results.length < 2) return new Map<number, { white: boolean; black: boolean }>();
+  // Build per-model disagreement maps against ground truth (or model-vs-model if no ground truth)
+  const disagreementsByModel = useMemo(() => {
+    const results = Object.entries(modelResults).filter(([, m]) => m.result);
+    if (results.length === 0) return new Map<string, Map<number, { white: boolean; black: boolean }>>();
 
-    const map = new Map<number, { white: boolean; black: boolean }>();
-    const maxMoves = Math.max(...results.map(m => m.result!.moves.length));
+    const perModel = new Map<string, Map<number, { white: boolean; black: boolean }>>();
 
-    for (let i = 0; i < maxMoves; i++) {
-      const whites = new Set<string>();
-      const blacks = new Set<string>();
-      for (const m of results) {
-        const move = m.result!.moves[i];
-        if (move) {
-          whites.add(move.white);
-          blacks.add(move.black || '');
-        } else {
-          whites.add('');
-          blacks.add('');
+    if (groundTruth) {
+      // Compare each model against ground truth
+      for (const [modelId, mr] of results) {
+        const map = new Map<number, { white: boolean; black: boolean }>();
+        const moves = mr.result!.moves;
+        const gtMoves = groundTruth.moves;
+        const maxLen = Math.max(moves.length, gtMoves.length);
+        for (let i = 0; i < maxLen; i++) {
+          const modelMove = moves[i];
+          const gtMove = gtMoves[i];
+          const whiteDiff = (modelMove?.white || '') !== (gtMove?.white || '');
+          const blackDiff = (modelMove?.black || '') !== (gtMove?.black || '');
+          if (whiteDiff || blackDiff) {
+            map.set(i + 1, { white: whiteDiff, black: blackDiff });
+          }
+        }
+        perModel.set(modelId, map);
+      }
+    } else {
+      // Model-vs-model comparison (original behavior)
+      if (results.length < 2) return perModel;
+      const sharedMap = new Map<number, { white: boolean; black: boolean }>();
+      const maxMoves = Math.max(...results.map(([, m]) => m.result!.moves.length));
+      for (let i = 0; i < maxMoves; i++) {
+        const whites = new Set<string>();
+        const blacks = new Set<string>();
+        for (const [, m] of results) {
+          const move = m.result!.moves[i];
+          if (move) { whites.add(move.white); blacks.add(move.black || ''); }
+          else { whites.add(''); blacks.add(''); }
+        }
+        if (whites.size > 1 || blacks.size > 1) {
+          sharedMap.set(i + 1, { white: whites.size > 1, black: blacks.size > 1 });
         }
       }
-      if (whites.size > 1 || blacks.size > 1) {
-        map.set(i + 1, { white: whites.size > 1, black: blacks.size > 1 });
-      }
+      for (const [modelId] of results) perModel.set(modelId, sharedMap);
     }
-    return map;
-  }, [modelResults]);
+    return perModel;
+  }, [modelResults, groundTruth]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -84,6 +152,7 @@ export function ScoresheetReadPage() {
     setError('');
     setModelResults({});
     setModels([]);
+    setFileName(file.name);
 
     const reader = new FileReader();
     reader.onload = () => setPreview(reader.result as string);
@@ -194,7 +263,7 @@ export function ScoresheetReadPage() {
                   onClick={() => setShowImageModal(true)}
                 />
                 <button
-                  onClick={() => { setPreview(null); setModelResults({}); setModels([]); setError(''); fileInputRef.current?.click(); }}
+                  onClick={() => { setPreview(null); setFileName(null); setModelResults({}); setModels([]); setError(''); fileInputRef.current?.click(); }}
                   className="absolute top-2 right-2 bg-slate-800/80 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
                 >
                   <Upload className="w-4 h-4" />
@@ -207,13 +276,14 @@ export function ScoresheetReadPage() {
                 <p className="text-red-400 text-center py-4">{error}</p>
               )}
 
-              {/* Model results — 5 columns on desktop, show as they arrive */}
+              {/* Model results — columns on desktop, show as they arrive */}
               {models.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start">
+                <div className={`grid grid-cols-1 md:grid-cols-2 ${groundTruth ? 'xl:grid-cols-4' : 'xl:grid-cols-3'} gap-3 items-start`}>
+                  {groundTruth && <GroundTruthPanel groundTruth={groundTruth} />}
                   {models.map((m) => {
                     const mr = modelResults[m.id];
                     if (!mr) return <ModelPanelLoading key={m.id} name={m.name} startTime={startTime} />;
-                    return <ModelPanel key={m.id} model={mr} disagreements={disagreements} onMovesUpdate={(moves) => {
+                    return <ModelPanel key={m.id} model={mr} disagreements={disagreementsByModel.get(m.id) || new Map()} onMovesUpdate={(moves) => {
                       setModelResults(prev => ({
                         ...prev,
                         [m.id]: { ...prev[m.id], result: { ...prev[m.id].result!, moves } },
@@ -241,6 +311,50 @@ export function ScoresheetReadPage() {
           />
         </div>
       )}
+    </div>
+  );
+}
+
+function GroundTruthPanel({ groundTruth }: { groundTruth: { white_player: string; black_player: string; result: string; moves: Move[] } }) {
+  return (
+    <div className="bg-emerald-900/30 border border-emerald-700/50 rounded-xl overflow-hidden self-start">
+      <div className="px-2 py-2 border-b border-emerald-700/50 flex items-center gap-1.5">
+        <BookOpen className="w-3 h-3 text-emerald-400" />
+        <span className="text-emerald-300 font-medium text-xs">Ground Truth</span>
+      </div>
+
+      <div className="px-2 py-1 border-b border-emerald-700/30 text-[10px] text-emerald-400/60 min-h-[22px]">
+        {'\u00A0'}
+      </div>
+
+      <div className="px-2 py-1.5 border-b border-emerald-700/30 text-[10px]">
+        <div className="flex flex-wrap gap-x-3">
+          <div><span className="text-slate-400">W:</span> <span className="text-slate-200">{groundTruth.white_player}</span></div>
+          <div><span className="text-slate-400">B:</span> <span className="text-slate-200">{groundTruth.black_player}</span></div>
+        </div>
+        <div>
+          <span className="text-slate-400">Result:</span> <span className="text-slate-200">{groundTruth.result}</span>
+        </div>
+      </div>
+
+      <table className="w-full text-[11px]">
+        <thead className="bg-emerald-900/40">
+          <tr className="border-b border-emerald-700/50">
+            <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6">#</th>
+            <th className="px-1.5 py-1 text-slate-400 font-medium text-left">W</th>
+            <th className="px-1.5 py-1 text-slate-400 font-medium text-left">B</th>
+          </tr>
+        </thead>
+        <tbody>
+          {groundTruth.moves.map((move) => (
+            <tr key={move.number} className="border-b border-emerald-700/20 last:border-0">
+              <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{move.number}</td>
+              <td className="px-1.5 py-0.5 font-mono text-slate-100">{move.white}</td>
+              <td className="px-1.5 py-0.5 font-mono text-slate-100">{move.black || ''}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
