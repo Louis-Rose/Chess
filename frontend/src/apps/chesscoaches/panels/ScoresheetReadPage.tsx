@@ -76,17 +76,43 @@ function getGroundTruth(filename: string | null): typeof GROUND_TRUTHS[string] |
   return GROUND_TRUTHS[stem] || null;
 }
 
-function computeAccuracy(modelMoves: Move[], gtMoves: Move[]): number | null {
+interface AccuracyStats {
+  accuracy: number;
+  mistakesThatAreIllegal: number | null;  // % of reading mistakes that are also illegal
+  illegalThatAreMistakes: number | null;   // % of illegal moves that are also reading mistakes
+}
+
+function computeStats(modelMoves: Move[], gtMoves: Move[]): AccuracyStats | null {
   const total = gtMoves.reduce((n, m) => n + 1 + (m.black ? 1 : 0), 0);
   if (total === 0) return null;
+
   let correct = 0;
+  let mistakes = 0;
+  let illegal = 0;
+  let mistakesAndIllegal = 0;
+
   for (let i = 0; i < gtMoves.length; i++) {
     const gt = gtMoves[i];
     const mm = modelMoves[i];
-    if (mm?.white === gt.white) correct++;
-    if (gt.black && mm?.black === gt.black) correct++;
+    for (const color of ['white', 'black'] as const) {
+      if (color === 'black' && !gt.black) continue;
+      const gtVal = gt[color] || '';
+      const mmVal = mm?.[color] || '';
+      const isMistake = mmVal !== gtVal;
+      const legalKey = `${color}_legal` as const;
+      const isIllegal = mm?.[legalKey] === false;
+      if (!isMistake) correct++;
+      if (isMistake) mistakes++;
+      if (isIllegal) illegal++;
+      if (isMistake && isIllegal) mistakesAndIllegal++;
+    }
   }
-  return Math.round((correct / total) * 100);
+
+  return {
+    accuracy: Math.round((correct / total) * 100),
+    mistakesThatAreIllegal: mistakes > 0 ? Math.round((mistakesAndIllegal / mistakes) * 100) : null,
+    illegalThatAreMistakes: illegal > 0 ? Math.round((mistakesAndIllegal / illegal) * 100) : null,
+  };
 }
 
 export function ScoresheetReadPage() {
@@ -540,14 +566,27 @@ function ModelPanel({ model, disagreements, groundTruthMoves, onMovesUpdate }: {
         </table>
       )}
       {moves.length > 0 && groundTruthMoves && (() => {
-        const acc = computeAccuracy(moves, groundTruthMoves);
-        return acc !== null ? (
-          <div className="px-2 py-1.5 border-t border-slate-600/50 text-center">
-            <span className={`text-xs font-medium ${acc === 100 ? 'text-green-400' : acc >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
-              {acc}% accuracy
-            </span>
+        const stats = computeStats(moves, groundTruthMoves);
+        if (!stats) return null;
+        return (
+          <div className="px-2 py-1.5 border-t border-slate-600/50 text-center space-y-0.5">
+            <div>
+              <span className={`text-xs font-medium ${stats.accuracy === 100 ? 'text-green-400' : stats.accuracy >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
+                {stats.accuracy}% accuracy
+              </span>
+            </div>
+            {stats.mistakesThatAreIllegal !== null && (
+              <div className="text-[10px] text-slate-400">
+                {stats.mistakesThatAreIllegal}% of mistakes are illegal
+              </div>
+            )}
+            {stats.illegalThatAreMistakes !== null && (
+              <div className="text-[10px] text-slate-400">
+                {stats.illegalThatAreMistakes}% of illegal are mistakes
+              </div>
+            )}
           </div>
-        ) : null;
+        );
       })()}
 
       {/* Edit modal */}
