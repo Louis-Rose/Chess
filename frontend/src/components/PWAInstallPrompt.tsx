@@ -1,7 +1,7 @@
 // PWA Install Prompt - shows device-specific instructions for installing the app
 
 import { useState } from 'react';
-import { Share, MoreVertical, Plus, Download, Copy, Check } from 'lucide-react';
+import { Share, MoreVertical, Plus, Download, Copy, Check, X } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 type Platform = 'ios-safari' | 'ios-other' | 'android-chrome' | 'android-other' | 'desktop' | 'unknown';
@@ -88,6 +88,12 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
 
   return (
     <div className={`bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl p-4 relative overflow-hidden ${className}`}>
+      <button
+        onClick={handleDismiss}
+        className="absolute top-2 right-2 p-1 text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 transition-colors"
+      >
+        <X className="w-4 h-4" />
+      </button>
       <div className="flex flex-col items-center text-center gap-3">
         <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
           <Download className="w-5 h-5 text-white" />
@@ -139,12 +145,6 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
             ))}
           </div>
 
-          <button
-            onClick={handleDismiss}
-            className="mt-3 text-xs text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 underline"
-          >
-            {isFr ? "J'ai déjà installé l'app" : "I've already installed the app"}
-          </button>
         </div>
       </div>
     </div>
@@ -169,7 +169,7 @@ function getContent(platform: Platform, language: string): ContentData | null {
   switch (platform) {
     case 'ios-safari':
       return {
-        title: isFr ? 'Installer Lumna sur votre iPhone' : 'Install Lumna on your iPhone',
+        title: isFr ? 'Comment installer Lumna sur iPhone' : 'How to install Lumna on iPhone',
         steps: [
           {
             text: isFr ? 'Appuyez sur "..." dans la barre d\'adresse' : 'Tap "..." in the address bar',
@@ -192,14 +192,17 @@ function getContent(platform: Platform, language: string): ContentData | null {
 
     case 'ios-other':
       return {
-        title: isFr ? 'Installer Lumna sur votre iPhone' : 'Install Lumna on your iPhone',
+        title: isFr ? 'Comment installer Lumna sur iPhone' : 'How to install Lumna on iPhone',
         steps: [
+          {
+            text: isFr ? 'Ouvrez d\'abord Lumna depuis le navigateur Safari' : 'First, you need to access Lumna from the Safari browser',
+          },
         ],
       };
 
     case 'android-chrome':
       return {
-        title: isFr ? 'Installer Lumna sur votre téléphone' : 'Install Lumna on your phone',
+        title: isFr ? 'Comment installer Lumna sur votre téléphone' : 'How to install Lumna on your phone',
         steps: [
           {
             text: isFr ? 'Appuyez sur le menu (⋮)' : 'Tap the menu (⋮)',
@@ -213,8 +216,12 @@ function getContent(platform: Platform, language: string): ContentData | null {
 
     case 'android-other':
       return {
-        title: isFr ? 'Installer Lumna sur votre téléphone' : 'Install Lumna on your phone',
-        steps: [],
+        title: isFr ? 'Comment installer Lumna sur votre téléphone' : 'How to install Lumna on your phone',
+        steps: [
+          {
+            text: isFr ? 'Ouvrez d\'abord Lumna depuis le navigateur Chrome' : 'First, you need to access Lumna from the Chrome browser',
+          },
+        ],
       };
 
     case 'desktop':
