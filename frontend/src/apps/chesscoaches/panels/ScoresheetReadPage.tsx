@@ -440,14 +440,19 @@ function GroundTruthPanel({ groundTruth }: { groundTruth: { white_player: string
           ))}
         </tbody>
       </table>
-      <div className="px-2 py-1.5 border-t border-emerald-700/50 text-center">
-        <button
-          onClick={() => downloadPgn(validatedMoves, { white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result })}
-          className="text-[10px] text-emerald-400 hover:text-emerald-300 transition-colors"
-        >
-          Download PGN
-        </button>
+      <div className="px-2 py-1.5 border-t border-emerald-700/50 text-center space-y-0.5">
+        <div>
+          <span className="text-xs font-medium text-green-400">100% accuracy</span>
+        </div>
+        <div className="text-[10px] text-emerald-400/40">{'\u00A0'}</div>
+        <div className="text-[10px] text-emerald-400/40">{'\u00A0'}</div>
       </div>
+      <button
+        onClick={() => downloadPgn(validatedMoves, { white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result })}
+        className="w-full px-2 py-1.5 border-t border-emerald-700/50 text-center text-xs text-emerald-400 hover:bg-emerald-800/30 transition-colors"
+      >
+        Download PGN
+      </button>
     </div>
   );
 }
@@ -602,28 +607,22 @@ function ModelPanel({ model, disagreements, groundTruthMoves, onMovesUpdate }: {
                 {stats.accuracy}% accuracy
               </span>
             </div>
-            {stats.mistakesThatAreIllegal !== null && (
-              <div className="text-[10px] text-slate-400">
-                {stats.mistakesThatAreIllegal}% of mistakes are illegal
-              </div>
-            )}
-            {stats.illegalThatAreMistakes !== null && (
-              <div className="text-[10px] text-slate-400">
-                {stats.illegalThatAreMistakes}% of illegal are mistakes
-              </div>
-            )}
+            <div className="text-[10px] text-slate-400">
+              {stats.mistakesThatAreIllegal !== null ? `${stats.mistakesThatAreIllegal}% of mistakes are illegal` : '\u00A0'}
+            </div>
+            <div className="text-[10px] text-slate-400">
+              {stats.illegalThatAreMistakes !== null ? `${stats.illegalThatAreMistakes}% of illegal are mistakes` : '\u00A0'}
+            </div>
           </div>
         );
       })()}
       {moves.length > 0 && (
-        <div className="px-2 py-1.5 border-t border-slate-600/50 text-center">
-          <button
-            onClick={() => downloadPgn(moves, model.result ? { white: model.result.white_player, black: model.result.black_player, result: model.result.result } : undefined)}
-            className="text-[10px] text-slate-400 hover:text-slate-200 transition-colors"
-          >
-            Download PGN
-          </button>
-        </div>
+        <button
+          onClick={() => downloadPgn(moves, model.result ? { white: model.result.white_player, black: model.result.black_player, result: model.result.result } : undefined)}
+          className="w-full px-2 py-1.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors"
+        >
+          Download PGN
+        </button>
       )}
 
       {/* Edit modal */}
