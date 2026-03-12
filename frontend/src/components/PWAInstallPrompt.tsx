@@ -61,14 +61,24 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
   };
 
   const handleCopyUrl = async () => {
+    // Include chess username in URL so it carries over to the other browser
+    let url = window.location.href;
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      const prefs = JSON.parse(localStorage.getItem('coaches_preferences') || '{}');
+      if (prefs.chess_username) {
+        const u = new URL(url);
+        u.searchParams.set('u', prefs.chess_username);
+        url = u.toString();
+      }
+    } catch {}
+    try {
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
-      textArea.value = window.location.href;
+      textArea.value = url;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');

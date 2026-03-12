@@ -100,8 +100,32 @@ export function useCoachesData() {
 
 export { getPrefs as getCoachesPrefs, savePrefs as saveCoachesPrefs };
 
+// Check URL for ?u= param (used to transfer username between browsers)
+function getUrlUsername(): string | null {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const u = params.get('u');
+    if (u) {
+      // Clean the URL param without reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete('u');
+      window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+      return u;
+    }
+  } catch {}
+  return null;
+}
+
 export function CoachesDataProvider({ children }: { children: ReactNode }) {
   const prefs = getPrefs();
+  const urlUsername = getUrlUsername();
+
+  // If we got a username from URL and don't have one saved, use it
+  if (urlUsername && !prefs.chess_username) {
+    prefs.chess_username = urlUsername;
+    prefs.onboarding_done = true;
+    savePrefs(prefs);
+  }
 
   const [usernameInput, setUsernameInput] = useState(prefs.onboarding_done ? (prefs.chess_username || '') : '');
   const [onboardingDone, setOnboardingDone] = useState(prefs.onboarding_done && !!prefs.chess_username);
