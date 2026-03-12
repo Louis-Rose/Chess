@@ -118,10 +118,6 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
   const content = getContent(platform, language);
   if (!content) return null;
 
-  const nonPreferredBrowser = platform === 'ios-other' ? detectIOSBrowser()
-    : platform === 'android-other' ? detectAndroidBrowser()
-    : null;
-  const browserName = nonPreferredBrowser ? getBrowserDisplayName(nonPreferredBrowser, isFr) : null;
   const isNonPreferredBrowser = platform === 'ios-other' || platform === 'android-other';
   const preferredBrowser = platform === 'ios-other' ? 'Safari' : 'Chrome';
 
