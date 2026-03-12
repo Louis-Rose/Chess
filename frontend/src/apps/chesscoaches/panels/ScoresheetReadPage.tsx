@@ -536,7 +536,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
         </div>
       </div>
       <div className="flex items-center justify-center py-12">
-        <span className="text-slate-500 text-xs">Analyzing...</span>
+        <span className="text-slate-500 text-xs">Analyzing scoresheet...</span>
       </div>
     </div>
   );
