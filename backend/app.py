@@ -477,7 +477,7 @@ def reread_scoresheet():
                     return jsonify({"error": f"Invalid confirmed move: {san} at move {move.get('number')}"}), 400
 
     fen = board.fen()
-    legal_sans = sorted(board.san(m) for m in board.legal_moves)
+    legal_sans = sorted(board.san(m).replace('x', '') for m in board.legal_moves)
 
     # Determine resume point
     if confirmed_moves:
