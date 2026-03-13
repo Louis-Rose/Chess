@@ -609,6 +609,11 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, el
       confirmed.push(m);
     }
 
+    // Immediately show truncated moves with the edit applied
+    if (onReread) {
+      onReread({ result: { moves: confirmed }, elapsed: 0 });
+    }
+
     // If we have the image and model, do a re-read from this position
     if (imageFile && modelId && onReread) {
       setRereading(true);
