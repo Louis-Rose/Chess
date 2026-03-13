@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download, Play, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download, Play, RotateCcw, Square } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Move {
@@ -166,6 +166,7 @@ export function ScoresheetReadPage() {
   const [modelResults, setModelResults] = useState<Record<string, ModelResult>>({});
   const [reReads, setReReads] = useState<Record<string, ReadEntry[]>>({});
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
+  const [autoRunning, setAutoRunning] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -272,6 +273,7 @@ export function ScoresheetReadPage() {
     if (!mistake) {
       // No mistakes found — done
       autoCorrectRef.current = false;
+      setAutoRunning(false);
       return;
     }
 
@@ -324,6 +326,7 @@ export function ScoresheetReadPage() {
           return { ...prev, [modelId]: reads };
         });
         autoCorrectRef.current = false;
+        setAutoRunning(false);
       }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -332,6 +335,7 @@ export function ScoresheetReadPage() {
   const startOneRead = () => {
     if (!imageFile) return;
     autoCorrectRef.current = false;
+    setAutoRunning(false);
     setModelResults({});
     setReReads({});
     setAzureResult(null);
@@ -342,13 +346,18 @@ export function ScoresheetReadPage() {
   const startMultipleReads = () => {
     if (!imageFile || !groundTruth) return;
     autoCorrectRef.current = true;
+    setAutoRunning(true);
     setModelResults({});
     setReReads({});
     setAzureResult(null);
-    // We need to know which model to auto-correct — set it when models arrive
     autoCorrectModelRef.current = null;
     analyzeImage(imageFile);
     analyzeAzure(imageFile);
+  };
+
+  const stopMultipleReads = () => {
+    autoCorrectRef.current = false;
+    setAutoRunning(false);
   };
 
   const analyzeAzure = async (file: File) => {
@@ -487,7 +496,7 @@ export function ScoresheetReadPage() {
               />
 
               {/* Run buttons */}
-              {!analyzing && models.length === 0 && (
+              {!analyzing && models.length === 0 && !autoRunning && (
                 <div className="flex items-center justify-center gap-3">
                   <button
                     onClick={startOneRead}
@@ -505,6 +514,17 @@ export function ScoresheetReadPage() {
                       Run multiple reads
                     </button>
                   )}
+                </div>
+              )}
+              {autoRunning && (
+                <div className="flex items-center justify-center">
+                  <button
+                    onClick={stopMultipleReads}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded-lg transition-colors"
+                  >
+                    <Square className="w-3.5 h-3.5 fill-current" />
+                    Stop
+                  </button>
                 </div>
               )}
 
