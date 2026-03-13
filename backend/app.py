@@ -381,6 +381,7 @@ def read_scoresheet():
     """Analyze a scoresheet image with multiple Gemini models in parallel, streaming results via SSE."""
     from google import genai
     from google.genai import types
+    import chess
     import json as json_module
     import threading
     import queue
@@ -436,6 +437,104 @@ Rules:
 
 Return ONLY the JSON object, no other text."""
 
+    THREAD_DONE = "THREAD_DONE"
+
+    def _validate_moves(moves):
+        """Validate moves with python-chess, adding legality flags."""
+        board = chess.Board()
+        for move in moves:
+            for color in ("white", "black"):
+                san = move.get(color)
+                if not san or san == "?":
+                    move.pop(f"{color}_legal", None)
+                    continue
+                try:
+                    board.push_san(san)
+                    move[f"{color}_legal"] = True
+                except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
+                    move[f"{color}_legal"] = False
+        return moves
+
+    def _find_first_illegal_halfmove(moves):
+        """Find half-move index (0-based) of first illegal move. -1 if all legal."""
+        h = 0
+        for move in moves:
+            if move.get('white_legal') is False:
+                return h
+            h += 1
+            black = move.get('black')
+            if black and black != '?':
+                if move.get('black_legal') is False:
+                    return h
+                h += 1
+        return -1
+
+    def _get_correction_context(moves, backtrack_halfmove):
+        """Replay to backtrack point. Returns (confirmed_moves, fen, legal_moves_san, resume_move_number, resume_color)."""
+        board = chess.Board()
+        confirmed = []
+        h = 0
+        for move in moves:
+            if h >= backtrack_halfmove:
+                break
+            white_san = move.get('white', '')
+            if not white_san or white_san == '?':
+                break
+            try:
+                board.push_san(white_san)
+            except Exception:
+                break
+            h += 1
+            if h >= backtrack_halfmove:
+                confirmed.append({'number': move['number'], 'white': white_san})
+                break
+            black_san = move.get('black', '')
+            if black_san and black_san != '?':
+                try:
+                    board.push_san(black_san)
+                except Exception:
+                    confirmed.append({'number': move['number'], 'white': white_san})
+                    break
+                h += 1
+                confirmed.append({'number': move['number'], 'white': white_san, 'black': black_san})
+            else:
+                confirmed.append({'number': move['number'], 'white': white_san})
+                break
+        fen = board.fen()
+        legal_sans = sorted(board.san(m) for m in board.legal_moves)
+        if confirmed:
+            last = confirmed[-1]
+            if 'black' in last and last['black']:
+                resume_number = last['number'] + 1
+                resume_color = 'white'
+            else:
+                resume_number = last['number']
+                resume_color = 'black'
+        else:
+            resume_number = 1
+            resume_color = 'white'
+        return confirmed, fen, legal_sans, resume_number, resume_color
+
+    def _parse_response(response_text):
+        """Parse Gemini response text into a dict, handling markdown fences and malformed JSON."""
+        text = response_text.strip()
+        if text.startswith('```'):
+            text = text.split('\n', 1)[1]
+            if text.endswith('```'):
+                text = text.rsplit('```', 1)[0]
+            text = text.strip()
+        warnings = []
+        try:
+            result = json_module.loads(text)
+        except json_module.JSONDecodeError:
+            from json_repair import repair_json
+            result = json_module.loads(repair_json(text))
+            warnings.append("json_repaired")
+        if isinstance(result, list):
+            result = result[0] if result else {}
+            warnings.append("unwrapped_array")
+        return result, warnings
+
     result_queue = queue.Queue()
     client = genai.Client(api_key=api_key)
 
@@ -456,49 +555,120 @@ Return ONLY the JSON object, no other text."""
             elapsed = round(time_module.time() - start)
             logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s")
 
-            response_text = response.text.strip()
-            if response_text.startswith('```'):
-                response_text = response_text.split('\n', 1)[1]
-                if response_text.endswith('```'):
-                    response_text = response_text.rsplit('```', 1)[0]
-                response_text = response_text.strip()
-
-            warnings = []
-            try:
-                result = json_module.loads(response_text)
-            except json_module.JSONDecodeError:
-                from json_repair import repair_json
-                logger.warning(f"[Scoresheet] {model_name}: repairing malformed JSON")
-                result = json_module.loads(repair_json(response_text))
-                warnings.append("json_repaired")
-            if isinstance(result, list):
-                result = result[0] if result else {}
-                warnings.append("unwrapped_array")
-            # Validate moves with python-chess
-            import chess
-            board = chess.Board()
-            for move in result.get("moves", []):
-                for color in ("white", "black"):
-                    san = move.get(color)
-                    if not san or san == "?":
-                        continue
-                    try:
-                        board.push_san(san)
-                        move[f"{color}_legal"] = True
-                    except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
-                        move[f"{color}_legal"] = False
+            result, warnings = _parse_response(response.text)
+            _validate_moves(result.get("moves", []))
 
             move_count = len(result.get("moves", []))
             logger.info(f"[Scoresheet] {model_name}: {move_count} moves extracted")
-            item = {"model_id": model_id, "name": model_name, "result": result, "elapsed": elapsed}
+            item = {"type": "result", "model_id": model_id, "name": model_name, "result": result, "elapsed": elapsed}
             if warnings:
                 item["warnings"] = warnings
             result_queue.put(item)
 
+            # --- Correction pass: back up 20 half-moves before first illegal ---
+            first_illegal_h = _find_first_illegal_halfmove(result.get("moves", []))
+            if first_illegal_h >= 0:
+                backtrack_h = max(0, first_illegal_h - 20)
+                confirmed, fen, legal_sans, resume_num, resume_color = _get_correction_context(
+                    result["moves"], backtrack_h
+                )
+                illegal_move_idx = first_illegal_h // 2
+                illegal_move_num = result["moves"][illegal_move_idx]["number"] if illegal_move_idx < len(result["moves"]) else 0
+                backtrack_move_num = confirmed[-1]["number"] if confirmed else 0
+                logger.info(f"[Scoresheet] {model_name}: correcting from move {resume_num} "
+                            f"(first illegal at move {illegal_move_num}, backtracked to {backtrack_move_num})")
+
+                result_queue.put({"type": "correcting", "model_id": model_id})
+
+                confirmed_text = " ".join(
+                    f"{m['number']}. {m['white']}" + (f" {m['black']}" if 'black' in m else "")
+                    for m in confirmed
+                ) if confirmed else "(none — re-read from the beginning)"
+                total_moves = len(result.get("moves", []))
+
+                correction_prompt = f"""You are re-reading a handwritten chess tournament scoresheet image.
+
+A previous attempt to read this scoresheet had errors starting around move {illegal_move_num}. The following moves have been verified as correct:
+{confirmed_text}
+
+The board position after these confirmed moves (FEN): {fen}
+Legal moves in this position: {', '.join(legal_sans)}
+
+Please re-read ALL remaining moves from the scoresheet starting from move {resume_num} ({'Black' if resume_color == 'black' else 'White'}'s move).
+The game has approximately {total_moves} moves total.
+
+IMPORTANT: Every move MUST be a legal chess move given the current position. If your reading of a move doesn't match any legal move in that position, pick the legal move that looks most similar to what's written on the scoresheet. Common handwriting misreadings include:
+- Captures: "Nxc3" vs "Nc3", "dxe5" vs "de5"
+- Piece disambiguation: "Nbd2" vs "Nd2"
+- Castling: "O-O" vs "O-O-O"
+- Check/mate symbols: moves ending in "+" or "#"
+- Similar letters: B (Bishop) vs b (pawn), N vs K
+
+Return ONLY a JSON object with the re-read moves:
+{{
+  "moves": [
+    {{"number": {resume_num}, {'"white": "...", "black": "..."' if resume_color == 'white' else '"black": "..."'}}},
+    ...
+  ]
+}}"""
+
+                corr_start = time_module.time()
+                try:
+                    corr_response = client.models.generate_content(
+                        model=model_id,
+                        contents=[
+                            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                            correction_prompt,
+                        ],
+                        config={"response_mime_type": "application/json"},
+                    )
+                    corr_elapsed = round(time_module.time() - corr_start)
+                    corr_result, corr_warnings = _parse_response(corr_response.text)
+                    corr_moves = corr_result.get("moves", [])
+
+                    # Merge confirmed + corrected
+                    merged = [dict(m) for m in confirmed]
+                    if corr_moves and merged:
+                        last_conf = merged[-1]
+                        first_corr = corr_moves[0]
+                        if (first_corr.get('number') == last_conf['number']
+                                and 'black' not in last_conf
+                                and resume_color == 'black'):
+                            merged[-1] = {**last_conf, 'black': first_corr.get('black', '')}
+                            corr_moves = corr_moves[1:]
+                    merged.extend(corr_moves)
+                    _validate_moves(merged)
+
+                    corrected_full = {
+                        "moves": merged,
+                        "white_player": result.get("white_player", ""),
+                        "black_player": result.get("black_player", ""),
+                        "event": result.get("event", ""),
+                        "date": result.get("date", ""),
+                        "result": result.get("result", ""),
+                    }
+                    corr_item = {
+                        "type": "correction", "model_id": model_id,
+                        "result": corrected_full, "elapsed": corr_elapsed,
+                        "backtrack_move": backtrack_move_num,
+                        "first_illegal_move": illegal_move_num,
+                    }
+                    if corr_warnings:
+                        corr_item["warnings"] = corr_warnings
+                    result_queue.put(corr_item)
+                    logger.info(f"[Scoresheet] {model_name}: correction done in {corr_elapsed}s")
+
+                except Exception as e:
+                    corr_elapsed = round(time_module.time() - corr_start)
+                    logger.error(f"[Scoresheet] {model_name} correction failed: {e}")
+                    result_queue.put({"type": "correction", "model_id": model_id, "error": str(e), "elapsed": corr_elapsed})
+
         except Exception as e:
             elapsed = round(time_module.time() - start)
             logger.error(f"[Scoresheet] {model_name} failed after {elapsed}s: {e}")
-            result_queue.put({"model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
+            result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
+        finally:
+            result_queue.put(THREAD_DONE)
 
     threads = []
     for m in MODELS:
@@ -507,21 +677,21 @@ Return ONLY the JSON object, no other text."""
         threads.append(t)
 
     def generate():
-        # First event: send model list so frontend knows the grid
         yield f"data: {json_module.dumps({'type': 'models', 'models': MODELS})}\n\n"
 
-        received = 0
-        total = len(MODELS)
-        while received < total:
+        threads_done = 0
+        while threads_done < len(MODELS):
             try:
                 item = result_queue.get(timeout=300)
-                received += 1
-                yield f"data: {json_module.dumps({'type': 'result', **item})}\n\n"
+                if item is THREAD_DONE:
+                    threads_done += 1
+                    continue
+                yield f"data: {json_module.dumps(item)}\n\n"
             except queue.Empty:
                 break
 
         yield "data: {\"type\": \"done\"}\n\n"
-        logger.info(f"[Scoresheet] All models done. Streamed {received} results.")
+        logger.info(f"[Scoresheet] All models done.")
 
         for t in threads:
             t.join(timeout=1)

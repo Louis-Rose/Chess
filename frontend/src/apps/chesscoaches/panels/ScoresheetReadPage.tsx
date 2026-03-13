@@ -22,12 +22,23 @@ interface ScoresheetResult {
   moves: Move[];
 }
 
+interface CorrectionInfo {
+  result?: ScoresheetResult;
+  error?: string;
+  elapsed: number;
+  warnings?: string[];
+  backtrackMove: number;
+  firstIllegalMove: number;
+}
+
 interface ModelResult {
   name: string;
   result?: ScoresheetResult;
   error?: string;
   elapsed: number;
   warnings?: string[];
+  correcting?: boolean;
+  correction?: CorrectionInfo;
 }
 
 // Ground truth for known scoresheets — keyed by filename stem (without extension)
@@ -170,10 +181,10 @@ export function ScoresheetReadPage() {
     const perModel = new Map<string, Map<number, { white: boolean; black: boolean }>>();
 
     if (groundTruth) {
-      // Compare each model against ground truth
+      // Compare each model against ground truth (use corrected moves if available)
       for (const [modelId, mr] of results) {
         const map = new Map<number, { white: boolean; black: boolean }>();
-        const moves = mr.result!.moves;
+        const moves = mr.correction?.result?.moves || mr.result!.moves;
         const gtMoves = groundTruth.moves;
         const maxLen = Math.max(moves.length, gtMoves.length);
         for (let i = 0; i < maxLen; i++) {
@@ -191,12 +202,13 @@ export function ScoresheetReadPage() {
       // Model-vs-model comparison (original behavior)
       if (results.length < 2) return perModel;
       const sharedMap = new Map<number, { white: boolean; black: boolean }>();
-      const maxMoves = Math.max(...results.map(([, m]) => m.result!.moves.length));
+      const allMoves = results.map(([, m]) => m.correction?.result?.moves || m.result!.moves);
+      const maxMoves = Math.max(...allMoves.map(moves => moves.length));
       for (let i = 0; i < maxMoves; i++) {
         const whites = new Set<string>();
         const blacks = new Set<string>();
-        for (const [, m] of results) {
-          const move = m.result!.moves[i];
+        for (const moves of allMoves) {
+          const move = moves[i];
           if (move) { whites.add(move.white); blacks.add(move.black || ''); }
           else { whites.add(''); blacks.add(''); }
         }
@@ -270,7 +282,25 @@ export function ScoresheetReadPage() {
             const { model_id, name, result, error: err, elapsed, warnings } = payload;
             setModelResults(prev => ({
               ...prev,
-              [model_id]: { name, result, error: err, elapsed, warnings },
+              [model_id]: { ...prev[model_id], name, result, error: err, elapsed, warnings },
+            }));
+          } else if (payload.type === 'correcting') {
+            setModelResults(prev => ({
+              ...prev,
+              [payload.model_id]: { ...prev[payload.model_id], correcting: true },
+            }));
+          } else if (payload.type === 'correction') {
+            const { model_id, result, error: err, elapsed, warnings, backtrack_move, first_illegal_move } = payload;
+            setModelResults(prev => ({
+              ...prev,
+              [model_id]: {
+                ...prev[model_id],
+                correcting: false,
+                correction: {
+                  result, error: err, elapsed, warnings,
+                  backtrackMove: backtrack_move, firstIllegalMove: first_illegal_move,
+                },
+              },
             }));
           } else if (payload.type === 'done') {
           }
@@ -358,10 +388,13 @@ export function ScoresheetReadPage() {
                     const mr = modelResults[m.id];
                     if (!mr) return <ModelPanelLoading key={m.id} name={m.name} startTime={startTime} />;
                     return <ModelPanel key={m.id} model={mr} disagreements={disagreementsByModel.get(m.id) || new Map()} groundTruthMoves={groundTruth?.moves} fileName={fileName} onMovesUpdate={(moves) => {
-                      setModelResults(prev => ({
-                        ...prev,
-                        [m.id]: { ...prev[m.id], result: { ...prev[m.id].result!, moves } },
-                      }));
+                      setModelResults(prev => {
+                        const existing = prev[m.id];
+                        if (existing.correction?.result) {
+                          return { ...prev, [m.id]: { ...existing, correction: { ...existing.correction, result: { ...existing.correction.result, moves } } } };
+                        }
+                        return { ...prev, [m.id]: { ...existing, result: { ...existing.result!, moves } } };
+                      });
                     }} />;
                   })}
                 </div>
@@ -554,7 +587,10 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
   fileName?: string | null;
   onMovesUpdate: (moves: Move[]) => void;
 }) {
-  const moves = model.result?.moves || [];
+  // Show corrected moves if available, otherwise pass 1
+  const displayResult = model.correction?.result || model.result;
+  const moves = displayResult?.moves || [];
+  const pass1Moves = model.result?.moves || [];
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -563,12 +599,11 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
   }, [editing]);
 
   const handleSave = async () => {
-    if (!editing || !model.result) return;
-    const updated = model.result.moves.map((m, i) =>
+    if (!editing || !displayResult) return;
+    const updated = moves.map((m, i) =>
       i === editing.moveIdx ? { ...m, [editing.color]: editing.value } : { ...m }
     );
     setEditing(null);
-    // Re-validate all moves
     try {
       const res = await fetch('/api/coaches/validate-moves', {
         method: 'POST',
@@ -587,6 +622,13 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
     if (e.key === 'Escape') setEditing(null);
   };
 
+  const pass1Stats = groundTruthMoves && pass1Moves.length > 0 ? computeStats(pass1Moves, groundTruthMoves) : null;
+  const pass2Stats = groundTruthMoves && model.correction?.result?.moves?.length
+    ? computeStats(model.correction.result.moves, groundTruthMoves)
+    : null;
+  const displayStats = pass2Stats || pass1Stats;
+  const meta = model.result ? { white: model.result.white_player, black: model.result.black_player, result: model.result.result } : undefined;
+
   return (
     <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start">
       {/* Model header */}
@@ -594,7 +636,10 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
         <span className="text-slate-100 font-medium text-xs">{model.name}</span>
         <div className="flex items-center gap-1">
           <Clock className="w-3 h-3 text-slate-400" />
-          <span className="text-slate-400 text-xs">{model.elapsed}s</span>
+          <span className="text-slate-400 text-xs">
+            {model.elapsed}s
+            {model.correction && !model.correction.error ? ` + ${model.correction.elapsed}s` : ''}
+          </span>
         </div>
       </div>
 
@@ -623,7 +668,15 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
         </div>
       )}
 
-      {/* Moves table — no scroll, full height */}
+      {/* Correcting indicator */}
+      {model.correcting && (
+        <div className="flex items-center justify-center gap-1.5 py-1.5 border-b border-slate-600/50 text-xs text-blue-400 animate-pulse">
+          <Clock className="w-3 h-3 animate-spin" />
+          <span>Correcting with legal moves...</span>
+        </div>
+      )}
+
+      {/* Moves table — shows corrected moves if available */}
       {moves.length > 0 && (
         <table className="w-full text-xs">
           <thead className="bg-slate-700">
@@ -657,37 +710,47 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
           </tbody>
         </table>
       )}
+      {/* Stats — show both passes when correction exists */}
       {moves.length > 0 && groundTruthMoves && (() => {
-        const stats = computeStats(moves, groundTruthMoves);
-        if (!stats) return null;
+        if (!displayStats) return null;
         return (
           <div className="px-2 py-1.5 border-t border-slate-600/50 text-center space-y-0.5">
+            {/* Pass 1 stats */}
+            {pass1Stats && pass2Stats && (
+              <div className="text-[10px] text-slate-500">
+                Pass 1: <span className={pass1Stats.accuracy === 100 ? 'text-green-400' : pass1Stats.accuracy >= 80 ? 'text-amber-400' : 'text-red-400'}>{pass1Stats.accuracy}%</span>
+                {pass1Stats.mistakesThatAreIllegal !== null && <span> · {pass1Stats.mistakesThatAreIllegal}% mistakes illegal</span>}
+              </div>
+            )}
+            {/* Main stats (pass 2 if available, otherwise pass 1) */}
             <div>
-              <span className={`text-xs font-medium ${stats.accuracy === 100 ? 'text-green-400' : stats.accuracy >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
-                {stats.accuracy}% accuracy
+              <span className={`text-xs font-medium ${displayStats.accuracy === 100 ? 'text-green-400' : displayStats.accuracy >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
+                {pass2Stats ? 'Pass 2: ' : ''}{displayStats.accuracy}% accuracy
               </span>
             </div>
             <div className="text-[10px] text-slate-400">
-              {stats.mistakesThatAreIllegal !== null ? `${stats.mistakesThatAreIllegal}% of mistakes are illegal` : '\u00A0'}
+              {displayStats.mistakesThatAreIllegal !== null ? `${displayStats.mistakesThatAreIllegal}% of mistakes are illegal` : '\u00A0'}
             </div>
             <div className="text-[10px] text-slate-400">
-              {stats.illegalThatAreMistakes !== null ? `${stats.illegalThatAreMistakes}% of illegal are mistakes` : '\u00A0'}
+              {displayStats.illegalThatAreMistakes !== null ? `${displayStats.illegalThatAreMistakes}% of illegal are mistakes` : '\u00A0'}
             </div>
+            {/* Correction info */}
+            {model.correction && !model.correction.error && (
+              <div className="text-[10px] text-blue-400/60">
+                Re-read from move {model.correction.backtrackMove + 1} (first illegal: {model.correction.firstIllegalMove})
+              </div>
+            )}
           </div>
         );
       })()}
       {moves.length > 0 && (<>
         <button
-          onClick={() => downloadPgn(moves, fileName, model.result ? { white: model.result.white_player, black: model.result.black_player, result: model.result.result } : undefined)}
+          onClick={() => downloadPgn(moves, fileName, meta)}
           className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
         >
           <Download className="w-3 h-3" /> Download PGN
         </button>
-        <CopyPgnButton
-          moves={moves}
-          meta={model.result ? { white: model.result.white_player, black: model.result.black_player, result: model.result.result } : undefined}
-          variant="model"
-        />
+        <CopyPgnButton moves={moves} meta={meta} variant="model" />
       </>)}
 
       {/* Edit modal */}
