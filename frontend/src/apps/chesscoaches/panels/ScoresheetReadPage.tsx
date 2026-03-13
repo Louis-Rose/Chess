@@ -27,8 +27,7 @@ interface CorrectionInfo {
   error?: string;
   elapsed: number;
   warnings?: string[];
-  backtrackMove: number;
-  firstIllegalMove: number;
+  numFixes?: number;
 }
 
 interface ModelResult {
@@ -173,53 +172,32 @@ export function ScoresheetReadPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [showImageModal, closeModal]);
 
-  // Build per-model disagreement maps against ground truth (or model-vs-model if no ground truth)
+  // Build per-model disagreement maps — compares a set of moves against ground truth
+  const buildDisagreementMap = useCallback((moves: Move[], gtMoves: Move[]) => {
+    const map = new Map<number, { white: boolean; black: boolean }>();
+    const maxLen = Math.max(moves.length, gtMoves.length);
+    for (let i = 0; i < maxLen; i++) {
+      const modelMove = moves[i];
+      const gtMove = gtMoves[i];
+      const whiteDiff = (modelMove?.white || '') !== (gtMove?.white || '');
+      const blackDiff = (modelMove?.black || '') !== (gtMove?.black || '');
+      if (whiteDiff || blackDiff) {
+        map.set(i + 1, { white: whiteDiff, black: blackDiff });
+      }
+    }
+    return map;
+  }, []);
+
+  // Pre-compute disagreement maps for pass 1 (used in the grid below)
   const disagreementsByModel = useMemo(() => {
-    const results = Object.entries(modelResults).filter(([, m]) => m.result);
-    if (results.length === 0) return new Map<string, Map<number, { white: boolean; black: boolean }>>();
-
+    if (!groundTruth) return new Map<string, Map<number, { white: boolean; black: boolean }>>();
     const perModel = new Map<string, Map<number, { white: boolean; black: boolean }>>();
-
-    if (groundTruth) {
-      // Compare each model against ground truth (use corrected moves if available)
-      for (const [modelId, mr] of results) {
-        const map = new Map<number, { white: boolean; black: boolean }>();
-        const moves = mr.correction?.result?.moves || mr.result!.moves;
-        const gtMoves = groundTruth.moves;
-        const maxLen = Math.max(moves.length, gtMoves.length);
-        for (let i = 0; i < maxLen; i++) {
-          const modelMove = moves[i];
-          const gtMove = gtMoves[i];
-          const whiteDiff = (modelMove?.white || '') !== (gtMove?.white || '');
-          const blackDiff = (modelMove?.black || '') !== (gtMove?.black || '');
-          if (whiteDiff || blackDiff) {
-            map.set(i + 1, { white: whiteDiff, black: blackDiff });
-          }
-        }
-        perModel.set(modelId, map);
-      }
-    } else {
-      // Model-vs-model comparison (original behavior)
-      if (results.length < 2) return perModel;
-      const sharedMap = new Map<number, { white: boolean; black: boolean }>();
-      const allMoves = results.map(([, m]) => m.correction?.result?.moves || m.result!.moves);
-      const maxMoves = Math.max(...allMoves.map(moves => moves.length));
-      for (let i = 0; i < maxMoves; i++) {
-        const whites = new Set<string>();
-        const blacks = new Set<string>();
-        for (const moves of allMoves) {
-          const move = moves[i];
-          if (move) { whites.add(move.white); blacks.add(move.black || ''); }
-          else { whites.add(''); blacks.add(''); }
-        }
-        if (whites.size > 1 || blacks.size > 1) {
-          sharedMap.set(i + 1, { white: whites.size > 1, black: blacks.size > 1 });
-        }
-      }
-      for (const [modelId] of results) perModel.set(modelId, sharedMap);
+    for (const [modelId, mr] of Object.entries(modelResults)) {
+      if (!mr.result) continue;
+      perModel.set(modelId, buildDisagreementMap(mr.result.moves, groundTruth.moves));
     }
     return perModel;
-  }, [modelResults, groundTruth]);
+  }, [modelResults, groundTruth, buildDisagreementMap]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -290,15 +268,14 @@ export function ScoresheetReadPage() {
               [payload.model_id]: { ...prev[payload.model_id], correcting: true },
             }));
           } else if (payload.type === 'correction') {
-            const { model_id, result, error: err, elapsed, warnings, backtrack_move, first_illegal_move } = payload;
+            const { model_id, result, error: err, elapsed, warnings, num_fixes } = payload;
             setModelResults(prev => ({
               ...prev,
               [model_id]: {
                 ...prev[model_id],
                 correcting: false,
                 correction: {
-                  result, error: err, elapsed, warnings,
-                  backtrackMove: backtrack_move, firstIllegalMove: first_illegal_move,
+                  result, error: err, elapsed, warnings, numFixes: num_fixes,
                 },
               },
             }));
@@ -382,20 +359,62 @@ export function ScoresheetReadPage() {
 
               {/* Model results — columns on desktop, show as they arrive */}
               {(models.length > 0 || (analyzing && groundTruth)) && (
-                <div className={`grid grid-cols-2 md:grid-cols-2 ${groundTruth ? 'xl:grid-cols-4' : 'xl:grid-cols-3'} gap-3 items-start`}>
-                  {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} />}
+                <div className="space-y-6">
                   {models.map((m) => {
                     const mr = modelResults[m.id];
-                    if (!mr) return <ModelPanelLoading key={m.id} name={m.name} startTime={startTime} />;
-                    return <ModelPanel key={m.id} model={mr} disagreements={disagreementsByModel.get(m.id) || new Map()} groundTruthMoves={groundTruth?.moves} fileName={fileName} onMovesUpdate={(moves) => {
-                      setModelResults(prev => {
-                        const existing = prev[m.id];
-                        if (existing.correction?.result) {
-                          return { ...prev, [m.id]: { ...existing, correction: { ...existing.correction, result: { ...existing.correction.result, moves } } } };
-                        }
-                        return { ...prev, [m.id]: { ...existing, result: { ...existing.result!, moves } } };
-                      });
-                    }} />;
+                    const hasCorrection = mr?.correction?.result;
+                    return (
+                      <div key={m.id}>
+                        <h2 className="text-sm font-medium text-slate-300 mb-2 px-1">{mr?.name || m.name}</h2>
+                        <div className={`grid gap-3 items-start ${groundTruth ? 'grid-cols-2 xl:grid-cols-3' : 'grid-cols-1 xl:grid-cols-2'}`}>
+                          {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} />}
+                          {!mr ? (
+                            <ModelPanelLoading name={m.name} startTime={startTime} />
+                          ) : (
+                            <>
+                              <MovesPanel
+                                label="Pass 1"
+                                moves={mr.result?.moves || []}
+                                groundTruthMoves={groundTruth?.moves}
+                                disagreements={disagreementsByModel.get(m.id) || new Map()}
+                                elapsed={mr.elapsed}
+                                warnings={mr.warnings}
+                                error={mr.error}
+                                meta={mr.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined}
+                                fileName={fileName}
+                                correcting={mr.correcting}
+                                onMovesUpdate={(moves) => {
+                                  setModelResults(prev => ({
+                                    ...prev,
+                                    [m.id]: { ...prev[m.id], result: { ...prev[m.id].result!, moves } },
+                                  }));
+                                }}
+                              />
+                              {hasCorrection && (
+                                <MovesPanel
+                                  label={`Pass 2 (${mr.correction!.numFixes} fixed)`}
+                                  moves={mr.correction!.result!.moves}
+                                  groundTruthMoves={groundTruth?.moves}
+                                  disagreements={groundTruth ? buildDisagreementMap(mr.correction!.result!.moves, groundTruth.moves) : new Map()}
+                                  elapsed={mr.correction!.elapsed}
+                                  elapsedUnit="ms"
+                                  warnings={mr.correction!.warnings}
+                                  error={mr.correction!.error}
+                                  meta={mr.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined}
+                                  fileName={fileName}
+                                  onMovesUpdate={(moves) => {
+                                    setModelResults(prev => ({
+                                      ...prev,
+                                      [m.id]: { ...prev[m.id], correction: { ...prev[m.id].correction!, result: { ...prev[m.id].correction!.result!, moves } } },
+                                    }));
+                                  }}
+                                />
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
                   })}
                 </div>
               )}
@@ -580,17 +599,20 @@ const WARNING_LABELS: Record<string, string> = {
   unwrapped_array: 'Unwrapped array',
 };
 
-function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesUpdate }: {
-  model: ModelResult;
-  disagreements: Map<number, { white: boolean; black: boolean }>;
+function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, elapsedUnit, warnings, error, meta, fileName, correcting, onMovesUpdate }: {
+  label: string;
+  moves: Move[];
   groundTruthMoves?: Move[];
+  disagreements: Map<number, { white: boolean; black: boolean }>;
+  elapsed: number;
+  elapsedUnit?: 'ms' | 's';
+  warnings?: string[];
+  error?: string;
+  meta?: { white?: string; black?: string; result?: string };
   fileName?: string | null;
+  correcting?: boolean;
   onMovesUpdate: (moves: Move[]) => void;
 }) {
-  // Show corrected moves if available, otherwise pass 1
-  const displayResult = model.correction?.result || model.result;
-  const moves = displayResult?.moves || [];
-  const pass1Moves = model.result?.moves || [];
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -599,7 +621,7 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
   }, [editing]);
 
   const handleSave = async () => {
-    if (!editing || !displayResult) return;
+    if (!editing) return;
     const updated = moves.map((m, i) =>
       i === editing.moveIdx ? { ...m, [editing.color]: editing.value } : { ...m }
     );
@@ -622,61 +644,51 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
     if (e.key === 'Escape') setEditing(null);
   };
 
-  const pass1Stats = groundTruthMoves && pass1Moves.length > 0 ? computeStats(pass1Moves, groundTruthMoves) : null;
-  const pass2Stats = groundTruthMoves && model.correction?.result?.moves?.length
-    ? computeStats(model.correction.result.moves, groundTruthMoves)
-    : null;
-  const displayStats = pass2Stats || pass1Stats;
-  const meta = model.result ? { white: model.result.white_player, black: model.result.black_player, result: model.result.result } : undefined;
+  const stats = groundTruthMoves && moves.length > 0 ? computeStats(moves, groundTruthMoves) : null;
+  const unit = elapsedUnit || 's';
 
   return (
     <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start">
-      {/* Model header */}
+      {/* Header */}
       <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
-        <span className="text-slate-100 font-medium text-xs">{model.name}</span>
+        <span className="text-slate-100 font-medium text-xs">{label}</span>
         <div className="flex items-center gap-1">
           <Clock className="w-3 h-3 text-slate-400" />
-          <span className="text-slate-400 text-xs">
-            {model.elapsed}s
-            {model.correction && !model.correction.error ? ` + ${model.correction.elapsed}s` : ''}
-          </span>
+          <span className="text-slate-400 text-xs">{elapsed}{unit}</span>
         </div>
       </div>
 
-      {/* Warnings — always rendered for vertical alignment */}
+      {/* Warnings */}
       <div className="px-2 py-1 border-b border-slate-600/50 text-[10px] text-amber-400 min-h-[22px] text-center">
-        {model.warnings && model.warnings.length > 0
-          ? model.warnings.map(w => WARNING_LABELS[w] || w).join(' · ')
+        {warnings && warnings.length > 0
+          ? warnings.map(w => WARNING_LABELS[w] || w).join(' · ')
           : '\u00A0'}
       </div>
 
-      {/* Error */}
-      {model.error && (
-        <p className="text-red-400 text-center py-3 text-xs px-2">{model.error}</p>
-      )}
+      {error && <p className="text-red-400 text-center py-3 text-xs px-2">{error}</p>}
 
-      {/* Game info — always show two lines: players + result */}
-      {model.result && (
+      {/* Game info */}
+      {meta && (
         <div className="px-2 py-1.5 border-b border-slate-600/50 text-xs text-center">
           <div className="flex flex-wrap gap-x-3 justify-center">
-            <div><span className="text-slate-400">W:</span> <span className="text-slate-200">{model.result.white_player || ''}</span></div>
-            <div><span className="text-slate-400">B:</span> <span className="text-slate-200">{model.result.black_player || ''}</span></div>
+            <div><span className="text-slate-400">W:</span> <span className="text-slate-200">{meta.white || ''}</span></div>
+            <div><span className="text-slate-400">B:</span> <span className="text-slate-200">{meta.black || ''}</span></div>
           </div>
           <div>
-            <span className="text-slate-400">Result:</span> <span className="text-slate-200">{model.result.result && model.result.result !== '*' ? model.result.result : ''}</span>
+            <span className="text-slate-400">Result:</span> <span className="text-slate-200">{meta.result && meta.result !== '*' ? meta.result : ''}</span>
           </div>
         </div>
       )}
 
       {/* Correcting indicator */}
-      {model.correcting && (
+      {correcting && (
         <div className="flex items-center justify-center gap-1.5 py-1.5 border-b border-slate-600/50 text-xs text-blue-400 animate-pulse">
           <Clock className="w-3 h-3 animate-spin" />
-          <span>Correcting with legal moves...</span>
+          <span>Fuzzy-correcting...</span>
         </div>
       )}
 
-      {/* Moves table — shows corrected moves if available */}
+      {/* Moves table */}
       {moves.length > 0 && (
         <table className="w-full text-xs">
           <thead className="bg-slate-700">
@@ -710,39 +722,22 @@ function ModelPanel({ model, disagreements, groundTruthMoves, fileName, onMovesU
           </tbody>
         </table>
       )}
-      {/* Stats — show both passes when correction exists */}
-      {moves.length > 0 && groundTruthMoves && (() => {
-        if (!displayStats) return null;
-        return (
-          <div className="px-2 py-1.5 border-t border-slate-600/50 text-center space-y-0.5">
-            {/* Pass 1 stats */}
-            {pass1Stats && pass2Stats && (
-              <div className="text-[10px] text-slate-500">
-                Pass 1: <span className={pass1Stats.accuracy === 100 ? 'text-green-400' : pass1Stats.accuracy >= 80 ? 'text-amber-400' : 'text-red-400'}>{pass1Stats.accuracy}%</span>
-                {pass1Stats.mistakesThatAreIllegal !== null && <span> · {pass1Stats.mistakesThatAreIllegal}% mistakes illegal</span>}
-              </div>
-            )}
-            {/* Main stats (pass 2 if available, otherwise pass 1) */}
-            <div>
-              <span className={`text-xs font-medium ${displayStats.accuracy === 100 ? 'text-green-400' : displayStats.accuracy >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
-                {pass2Stats ? 'Pass 2: ' : ''}{displayStats.accuracy}% accuracy
-              </span>
-            </div>
-            <div className="text-[10px] text-slate-400">
-              {displayStats.mistakesThatAreIllegal !== null ? `${displayStats.mistakesThatAreIllegal}% of mistakes are illegal` : '\u00A0'}
-            </div>
-            <div className="text-[10px] text-slate-400">
-              {displayStats.illegalThatAreMistakes !== null ? `${displayStats.illegalThatAreMistakes}% of illegal are mistakes` : '\u00A0'}
-            </div>
-            {/* Correction info */}
-            {model.correction && !model.correction.error && (
-              <div className="text-[10px] text-blue-400/60">
-                Re-read from move {model.correction.backtrackMove + 1} (first illegal: {model.correction.firstIllegalMove})
-              </div>
-            )}
+      {/* Stats */}
+      {stats && (
+        <div className="px-2 py-1.5 border-t border-slate-600/50 text-center space-y-0.5">
+          <div>
+            <span className={`text-xs font-medium ${stats.accuracy === 100 ? 'text-green-400' : stats.accuracy >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
+              {stats.accuracy}% accuracy
+            </span>
           </div>
-        );
-      })()}
+          <div className="text-[10px] text-slate-400">
+            {stats.mistakesThatAreIllegal !== null ? `${stats.mistakesThatAreIllegal}% of mistakes are illegal` : '\u00A0'}
+          </div>
+          <div className="text-[10px] text-slate-400">
+            {stats.illegalThatAreMistakes !== null ? `${stats.illegalThatAreMistakes}% of illegal are mistakes` : '\u00A0'}
+          </div>
+        </div>
+      )}
       {moves.length > 0 && (<>
         <button
           onClick={() => downloadPgn(moves, fileName, meta)}

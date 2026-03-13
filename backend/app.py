@@ -455,65 +455,65 @@ Return ONLY the JSON object, no other text."""
                     move[f"{color}_legal"] = False
         return moves
 
-    def _find_first_illegal_halfmove(moves):
-        """Find half-move index (0-based) of first illegal move. -1 if all legal."""
-        h = 0
-        for move in moves:
-            if move.get('white_legal') is False:
-                return h
-            h += 1
-            black = move.get('black')
-            if black and black != '?':
-                if move.get('black_legal') is False:
-                    return h
-                h += 1
-        return -1
+    def _normalize_san(san):
+        """Strip captures, checks, and mate symbols for fuzzy comparison."""
+        return san.replace('x', '').replace('+', '').replace('#', '')
 
-    def _get_correction_context(moves, backtrack_halfmove):
-        """Replay to backtrack point. Returns (confirmed_moves, fen, legal_moves_san, resume_move_number, resume_color)."""
+    def _fuzzy_match_move(read_san, legal_sans):
+        """Find the closest legal move to what Gemini read.
+        1. Exact match → return it
+        2. Normalized match (strip x+#) → return the legal move
+        3. Levenshtein-closest on normalized forms → return closest legal move
+        """
+        # 1. Exact match
+        if read_san in legal_sans:
+            return read_san
+
+        read_norm = _normalize_san(read_san)
+
+        # 2. Normalized exact match
+        for legal in legal_sans:
+            if _normalize_san(legal) == read_norm:
+                return legal
+
+        # 3. Levenshtein distance on normalized forms
+        from difflib import SequenceMatcher
+        best_score = 0.0
+        best_match = legal_sans[0] if legal_sans else read_san
+        for legal in legal_sans:
+            score = SequenceMatcher(None, read_norm, _normalize_san(legal)).ratio()
+            if score > best_score:
+                best_score = score
+                best_match = legal
+        return best_match
+
+    def _fuzzy_correct_moves(moves):
+        """Replay moves on a board, fuzzy-matching illegal moves to closest legal move.
+        Returns (corrected_moves, num_corrections)."""
         board = chess.Board()
-        confirmed = []
-        h = 0
+        corrected = []
+        num_corrections = 0
         for move in moves:
-            if h >= backtrack_halfmove:
-                break
-            white_san = move.get('white', '')
-            if not white_san or white_san == '?':
-                break
-            try:
-                board.push_san(white_san)
-            except Exception:
-                break
-            h += 1
-            if h >= backtrack_halfmove:
-                confirmed.append({'number': move['number'], 'white': white_san})
-                break
-            black_san = move.get('black', '')
-            if black_san and black_san != '?':
+            corrected_move = {'number': move['number']}
+            for color in ("white", "black"):
+                san = move.get(color)
+                if san is None:
+                    continue
+                if not san or san == "?":
+                    corrected_move[color] = san
+                    continue
+                legal_sans = [board.san(m) for m in board.legal_moves]
+                matched = _fuzzy_match_move(san, legal_sans)
+                corrected_move[color] = matched
+                if matched != san:
+                    num_corrections += 1
                 try:
-                    board.push_san(black_san)
-                except Exception:
-                    confirmed.append({'number': move['number'], 'white': white_san})
-                    break
-                h += 1
-                confirmed.append({'number': move['number'], 'white': white_san, 'black': black_san})
-            else:
-                confirmed.append({'number': move['number'], 'white': white_san})
-                break
-        fen = board.fen()
-        legal_sans = sorted(board.san(m) for m in board.legal_moves)
-        if confirmed:
-            last = confirmed[-1]
-            if 'black' in last and last['black']:
-                resume_number = last['number'] + 1
-                resume_color = 'white'
-            else:
-                resume_number = last['number']
-                resume_color = 'black'
-        else:
-            resume_number = 1
-            resume_color = 'white'
-        return confirmed, fen, legal_sans, resume_number, resume_color
+                    board.push_san(matched)
+                    corrected_move[f"{color}_legal"] = True
+                except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
+                    corrected_move[f"{color}_legal"] = False
+            corrected.append(corrected_move)
+        return corrected, num_corrections
 
     def _parse_response(response_text):
         """Parse Gemini response text into a dict, handling markdown fences and malformed JSON."""
@@ -565,103 +565,34 @@ Return ONLY the JSON object, no other text."""
                 item["warnings"] = warnings
             result_queue.put(item)
 
-            # --- Correction pass: back up 20 half-moves before first illegal ---
-            first_illegal_h = _find_first_illegal_halfmove(result.get("moves", []))
-            if first_illegal_h >= 0:
-                backtrack_h = max(0, first_illegal_h - 20)
-                confirmed, fen, legal_sans, resume_num, resume_color = _get_correction_context(
-                    result["moves"], backtrack_h
-                )
-                illegal_move_idx = first_illegal_h // 2
-                illegal_move_num = result["moves"][illegal_move_idx]["number"] if illegal_move_idx < len(result["moves"]) else 0
-                backtrack_move_num = confirmed[-1]["number"] if confirmed else 0
-                logger.info(f"[Scoresheet] {model_name}: correcting from move {resume_num} "
-                            f"(first illegal at move {illegal_move_num}, backtracked to {backtrack_move_num})")
-
+            # --- Correction pass: fuzzy-match illegal moves to closest legal move ---
+            has_illegal = any(
+                m.get('white_legal') is False or m.get('black_legal') is False
+                for m in result.get("moves", [])
+            )
+            if has_illegal:
                 result_queue.put({"type": "correcting", "model_id": model_id})
-
-                confirmed_text = " ".join(
-                    f"{m['number']}. {m['white']}" + (f" {m['black']}" if 'black' in m else "")
-                    for m in confirmed
-                ) if confirmed else "(none — re-read from the beginning)"
-                total_moves = len(result.get("moves", []))
-
-                correction_prompt = f"""You are re-reading a handwritten chess tournament scoresheet image.
-
-A previous attempt to read this scoresheet had errors starting around move {illegal_move_num}. The following moves have been verified as correct:
-{confirmed_text}
-
-The board position after these confirmed moves (FEN): {fen}
-Legal moves in this position: {', '.join(legal_sans)}
-
-Please re-read ALL remaining moves from the scoresheet starting from move {resume_num} ({'Black' if resume_color == 'black' else 'White'}'s move).
-The game has approximately {total_moves} moves total.
-
-IMPORTANT: Every move MUST be a legal chess move given the current position. If your reading of a move doesn't match any legal move in that position, pick the legal move that looks most similar to what's written on the scoresheet. Common handwriting misreadings include:
-- Captures: "Nxc3" vs "Nc3", "dxe5" vs "de5"
-- Piece disambiguation: "Nbd2" vs "Nd2"
-- Castling: "O-O" vs "O-O-O"
-- Check/mate symbols: moves ending in "+" or "#"
-- Similar letters: B (Bishop) vs b (pawn), N vs K
-
-Return ONLY a JSON object with the re-read moves:
-{{
-  "moves": [
-    {{"number": {resume_num}, {'"white": "...", "black": "..."' if resume_color == 'white' else '"black": "..."'}}},
-    ...
-  ]
-}}"""
-
                 corr_start = time_module.time()
                 try:
-                    corr_response = client.models.generate_content(
-                        model=model_id,
-                        contents=[
-                            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-                            correction_prompt,
-                        ],
-                        config={"response_mime_type": "application/json"},
-                    )
-                    corr_elapsed = round(time_module.time() - corr_start)
-                    corr_result, corr_warnings = _parse_response(corr_response.text)
-                    corr_moves = corr_result.get("moves", [])
-
-                    # Merge confirmed + corrected
-                    merged = [dict(m) for m in confirmed]
-                    if corr_moves and merged:
-                        last_conf = merged[-1]
-                        first_corr = corr_moves[0]
-                        if (first_corr.get('number') == last_conf['number']
-                                and 'black' not in last_conf
-                                and resume_color == 'black'):
-                            merged[-1] = {**last_conf, 'black': first_corr.get('black', '')}
-                            corr_moves = corr_moves[1:]
-                    merged.extend(corr_moves)
-                    _validate_moves(merged)
-
+                    corrected_moves, num_fixes = _fuzzy_correct_moves(result["moves"])
+                    corr_elapsed = round((time_module.time() - corr_start) * 1000)  # ms, since it's instant
                     corrected_full = {
-                        "moves": merged,
+                        "moves": corrected_moves,
                         "white_player": result.get("white_player", ""),
                         "black_player": result.get("black_player", ""),
                         "event": result.get("event", ""),
                         "date": result.get("date", ""),
                         "result": result.get("result", ""),
                     }
-                    corr_item = {
+                    result_queue.put({
                         "type": "correction", "model_id": model_id,
                         "result": corrected_full, "elapsed": corr_elapsed,
-                        "backtrack_move": backtrack_move_num,
-                        "first_illegal_move": illegal_move_num,
-                    }
-                    if corr_warnings:
-                        corr_item["warnings"] = corr_warnings
-                    result_queue.put(corr_item)
-                    logger.info(f"[Scoresheet] {model_name}: correction done in {corr_elapsed}s")
-
+                        "num_fixes": num_fixes,
+                    })
+                    logger.info(f"[Scoresheet] {model_name}: fuzzy-corrected {num_fixes} moves in {corr_elapsed}ms")
                 except Exception as e:
-                    corr_elapsed = round(time_module.time() - corr_start)
                     logger.error(f"[Scoresheet] {model_name} correction failed: {e}")
-                    result_queue.put({"type": "correction", "model_id": model_id, "error": str(e), "elapsed": corr_elapsed})
+                    result_queue.put({"type": "correction", "model_id": model_id, "error": str(e), "elapsed": 0})
 
         except Exception as e:
             elapsed = round(time_module.time() - start)
