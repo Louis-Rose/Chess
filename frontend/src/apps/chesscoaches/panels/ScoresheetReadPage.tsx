@@ -161,7 +161,7 @@ export function ScoresheetReadPage() {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [azureResult, setAzureResult] = useState<{ moves: Move[]; elapsed: number; loading: boolean; error?: string; rawLines?: string[] } | null>(null);
+  const [azureResult, setAzureResult] = useState<{ moves: Move[]; elapsed: number; loading: boolean; error?: string; rawLines?: string[]; rawTables?: { index: number; rowCount: number; columnCount: number; rows: string[][] }[] } | null>(null);
 
   const groundTruth = useMemo(() => getGroundTruth(fileName), [fileName]);
 
@@ -217,7 +217,7 @@ export function ScoresheetReadPage() {
       const res = await fetch('/api/coaches/read-scoresheet-azure', { method: 'POST', body: formData });
       if (res.ok) {
         const json = await res.json();
-        setAzureResult({ moves: json.moves, elapsed: json.elapsed, loading: false, rawLines: json.raw_lines });
+        setAzureResult({ moves: json.moves, elapsed: json.elapsed, loading: false, rawLines: json.raw_lines, rawTables: json.raw_tables });
       } else {
         const json = await res.json().catch(() => ({ error: 'Failed' }));
         setAzureResult({ moves: [], elapsed: 0, loading: false, error: json.error });
@@ -457,6 +457,35 @@ export function ScoresheetReadPage() {
                       />
                     </div>
                   )}
+                  {/* Raw tables from Azure DI */}
+                  {azureResult.rawTables && azureResult.rawTables.length > 0 && (
+                    <div className="mt-3 space-y-3">
+                      {azureResult.rawTables.map((t) => (
+                        <div key={t.index} className="px-1">
+                          <div className="text-[10px] text-slate-500 mb-1">
+                            Raw Table {t.index + 1}: {t.rowCount} rows x {t.columnCount} cols
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="text-[10px] border-collapse">
+                              <tbody>
+                                {t.rows.map((row, ri) => (
+                                  <tr key={ri}>
+                                    {row.map((cell, ci) => (
+                                      <td key={ci} className="border border-slate-600/50 px-1.5 py-0.5 text-slate-300 font-mono whitespace-nowrap">
+                                        {cell || <span className="text-slate-600">-</span>}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Raw OCR lines */}
                   {azureResult.rawLines && azureResult.rawLines.length > 0 && (
                     <details className="mt-2 px-1">
                       <summary className="text-[10px] text-slate-500 cursor-pointer hover:text-slate-400">Raw OCR lines ({azureResult.rawLines.length})</summary>

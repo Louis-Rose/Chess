@@ -709,6 +709,26 @@ def read_scoresheet_azure():
         for line in page.get('lines', []):
             raw_lines.append(line.get('content', ''))
 
+    # Build raw debug info: table grid + all tables metadata
+    raw_tables = []
+    for t_idx, t in enumerate(tables):
+        t_grid = {}
+        for cell in t.get('cells', []):
+            r, c = cell['rowIndex'], cell['columnIndex']
+            t_grid[(r, c)] = cell.get('content', '')
+        rows_data = []
+        for r in range(t.get('rowCount', 0)):
+            row_cells = []
+            for c in range(t.get('columnCount', 0)):
+                row_cells.append(t_grid.get((r, c), ''))
+            rows_data.append(row_cells)
+        raw_tables.append({
+            'index': t_idx,
+            'rowCount': t.get('rowCount', 0),
+            'columnCount': t.get('columnCount', 0),
+            'rows': rows_data,
+        })
+
     logger.info(f"[Scoresheet Azure DI] {len(moves)} moves, {len(tables)} tables, {col_count if tables else 0} cols, {elapsed}s")
 
     return jsonify({
@@ -716,6 +736,7 @@ def read_scoresheet_azure():
         "elapsed": elapsed,
         "tables_found": len(tables),
         "raw_lines": raw_lines,
+        "raw_tables": raw_tables,
     })
 
 
