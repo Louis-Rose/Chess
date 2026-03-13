@@ -215,14 +215,17 @@ export function ScoresheetReadPage() {
     reader.readAsDataURL(file);
   };
 
+  // AbortController for cancelling in-flight auto-correct re-reads
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // Helper: do a single re-read API call and return the result
-  const doReread = async (file: File, modelId: string, confirmedMoves: Move[]): Promise<{ moves: Move[]; elapsed: number; warnings?: string[] } | null> => {
+  const doReread = async (file: File, modelId: string, confirmedMoves: Move[], signal?: AbortSignal): Promise<{ moves: Move[]; elapsed: number; warnings?: string[] } | null> => {
     const formData = new FormData();
     formData.append('image', file);
     formData.append('confirmed_moves', JSON.stringify(confirmedMoves));
     formData.append('model_id', modelId);
     try {
-      const res = await fetch('/api/coaches/reread-scoresheet', { method: 'POST', body: formData });
+      const res = await fetch('/api/coaches/reread-scoresheet', { method: 'POST', body: formData, signal });
       if (res.ok) {
         const json = await res.json();
         return { moves: json.result.moves, elapsed: json.elapsed, warnings: json.warnings };
@@ -257,6 +260,10 @@ export function ScoresheetReadPage() {
   // After modelResults or reReads change, check if we should auto-correct each model
   useEffect(() => {
     if (!autoCorrectRef.current || !groundTruth || !imageFile) return;
+
+    // Create a fresh AbortController for this batch of re-reads
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     // Process each model independently
     for (const modelId of Object.keys(modelResults)) {
@@ -316,16 +323,9 @@ export function ScoresheetReadPage() {
       // Fire the re-read
       ((mid) => {
         (async () => {
-          const result = await doReread(imageFile, mid, confirmed);
-          // If stopped while waiting, just mark as done without triggering more
-          if (!autoCorrectRef.current) {
-            setReReads(prev => {
-              const reads = [...(prev[mid] || [])];
-              reads[reads.length - 1] = { ...reads[reads.length - 1], moves: result?.moves || reads[reads.length - 1].moves, elapsed: result?.elapsed || 0, warnings: result?.warnings, rereading: false };
-              return { ...prev, [mid]: reads };
-            });
-            return;
-          }
+          const result = await doReread(imageFile, mid, confirmed, controller.signal);
+          // If aborted/stopped, don't update state — stopMultipleReads already cleaned up
+          if (!autoCorrectRef.current) return;
           if (result) {
             setReReads(prev => {
               const reads = [...(prev[mid] || [])];
@@ -376,6 +376,19 @@ export function ScoresheetReadPage() {
   const stopMultipleReads = () => {
     autoCorrectRef.current = false;
     setAutoRunning(false);
+    // Abort any in-flight re-read fetches
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    // Remove any rereading (incomplete) entries from reReads
+    setReReads(prev => {
+      const cleaned: Record<string, ReadEntry[]> = {};
+      for (const [modelId, reads] of Object.entries(prev)) {
+        cleaned[modelId] = reads.filter(r => !r.rereading);
+      }
+      return cleaned;
+    });
   };
 
   const analyzeAzure = async (file: File) => {
