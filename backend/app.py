@@ -364,19 +364,32 @@ def validate_moves():
 
 ## --- Scoresheet helpers (shared between read & re-read endpoints) ---
 
+def _scoresheet_normalize_castling(san):
+    """Normalize common castling variants to standard O-O / O-O-O."""
+    import re
+    stripped = san.replace('-', '').replace(' ', '')
+    if re.fullmatch(r'[oO0]{3}', stripped):
+        return 'O-O-O'
+    if re.fullmatch(r'[oO0]{2}', stripped):
+        return 'O-O'
+    return san
+
+
 def _scoresheet_push_san(board, san):
-    """Try to push a SAN move, tolerating missing or extra 'x' for captures."""
+    """Try to push a SAN move, tolerating castling variants and missing/extra 'x'."""
     import chess
-    try:
-        board.push_san(san)
-        return True
-    except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
-        pass
+    # Normalize castling first
+    normalized = _scoresheet_normalize_castling(san)
+    for attempt in (san, normalized) if normalized != san else (san,):
+        try:
+            board.push_san(attempt)
+            return True
+        except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
+            pass
     # Try toggling 'x': add it if missing, remove it if present
     if 'x' in san:
         alt = san.replace('x', '')
     else:
-        # Insert 'x' before the destination square (lowercase letter)
         import re
         alt = re.sub(r'([A-Za-z\d])([a-h]\d)', r'\1x\2', san, count=1)
     if alt != san:
