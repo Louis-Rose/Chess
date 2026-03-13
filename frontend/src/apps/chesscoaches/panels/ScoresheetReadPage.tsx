@@ -444,53 +444,37 @@ export function ScoresheetReadPage() {
                     </div>
                   ) : azureResult.error ? (
                     <p className="text-red-400 text-center py-3 text-xs px-2">{azureResult.error}</p>
-                  ) : (
+                  ) : azureResult.rawTables && azureResult.rawTables.length > 0 ? (
                     <div className="flex gap-3 items-start overflow-x-auto pb-2">
                       {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} />}
-                      <MovesPanel
-                        label="Azure DI"
-                        moves={azureResult.moves}
-                        groundTruthMoves={groundTruth?.moves}
-                        disagreements={groundTruth ? buildDisagreementMap(azureResult.moves, groundTruth.moves) : new Map()}
-                        elapsed={azureResult.elapsed}
-                        fileName={fileName}
-                      />
-                    </div>
-                  )}
-                  {/* Raw tables from Azure DI */}
-                  {azureResult.rawTables && azureResult.rawTables.length > 0 && (
-                    <div className="mt-3 space-y-3">
                       {azureResult.rawTables.map((t) => (
-                        <div key={t.index} className="px-1">
-                          <div className="text-[10px] text-slate-500 mb-1">
-                            Raw Table {t.index + 1}: {t.rowCount} rows x {t.columnCount} cols
+                        <div key={t.index} className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[200px]">
+                          <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
+                            <span className="text-slate-100 font-medium text-xs">Raw Table {t.index + 1}</span>
+                            <span className="text-slate-400 text-xs">{t.rowCount}r x {t.columnCount}c</span>
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-slate-400" />
+                              <span className="text-slate-400 text-xs">{azureResult.elapsed}s</span>
+                            </div>
                           </div>
-                          <div className="overflow-x-auto">
-                            <table className="text-[10px] border-collapse">
-                              <tbody>
-                                {t.rows.map((row, ri) => (
-                                  <tr key={ri}>
-                                    {row.map((cell, ci) => (
-                                      <td key={ci} className="border border-slate-600/50 px-1.5 py-0.5 text-slate-300 font-mono whitespace-nowrap">
-                                        {cell || <span className="text-slate-600">-</span>}
-                                      </td>
-                                    ))}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                          <table className="w-full text-xs">
+                            <tbody>
+                              {t.rows.map((row, ri) => (
+                                <tr key={ri} className="border-b border-slate-600/30 last:border-0">
+                                  {row.map((cell, ci) => (
+                                    <td key={ci} className="px-1.5 py-0.5 font-mono text-slate-100 text-center">
+                                      {cell || <span className="text-slate-600">-</span>}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       ))}
                     </div>
-                  )}
-
-                  {/* Raw OCR lines */}
-                  {azureResult.rawLines && azureResult.rawLines.length > 0 && (
-                    <details className="mt-2 px-1">
-                      <summary className="text-[10px] text-slate-500 cursor-pointer hover:text-slate-400">Raw OCR lines ({azureResult.rawLines.length})</summary>
-                      <pre className="text-[10px] text-slate-500 mt-1 max-h-40 overflow-auto bg-slate-800/50 rounded p-2">{azureResult.rawLines.join('\n')}</pre>
-                    </details>
+                  ) : (
+                    <p className="text-slate-500 text-center py-3 text-xs">No tables detected</p>
                   )}
                 </>
               )}
