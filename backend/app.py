@@ -421,6 +421,11 @@ def _scoresheet_validate_moves(moves, stop_at_illegal=False):
             if not san or san == "?":
                 move.pop(f"{color}_legal", None)
                 continue
+            # Normalize castling and clean OCR artifacts in the output
+            cleaned = _scoresheet_clean_san(san)
+            normalized = _scoresheet_normalize_castling(cleaned)
+            if normalized != san:
+                move[color] = normalized
             if _scoresheet_push_san(board, san):
                 move[f"{color}_legal"] = True
             else:
