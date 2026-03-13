@@ -30,6 +30,14 @@ interface ModelResult {
   warnings?: string[];
 }
 
+interface ReadEntry {
+  moves: Move[];
+  elapsed: number;
+  warnings?: string[];
+  error?: string;
+  rereading?: boolean;
+}
+
 // Ground truth for known scoresheets — keyed by filename stem (without extension)
 const GROUND_TRUTHS: Record<string, { white_player: string; black_player: string; result: string; moves: Move[] }> = {
   '2024_WCC_DING_GUKESH_14': {
@@ -148,6 +156,7 @@ export function ScoresheetReadPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState('');
   const [modelResults, setModelResults] = useState<Record<string, ModelResult>>({});
+  const [reReads, setReReads] = useState<Record<string, ReadEntry[]>>({});
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
@@ -179,22 +188,13 @@ export function ScoresheetReadPage() {
     return map;
   }, []);
 
-  // Pre-compute disagreement maps for pass 1 (used in the grid below)
-  const disagreementsByModel = useMemo(() => {
-    if (!groundTruth) return new Map<string, Map<number, { white: boolean; black: boolean }>>();
-    const perModel = new Map<string, Map<number, { white: boolean; black: boolean }>>();
-    for (const [modelId, mr] of Object.entries(modelResults)) {
-      if (!mr.result) continue;
-      perModel.set(modelId, buildDisagreementMap(mr.result.moves, groundTruth.moves));
-    }
-    return perModel;
-  }, [modelResults, groundTruth, buildDisagreementMap]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setError('');
     setModelResults({});
+    setReReads({});
     setModels([]);
     setFileName(file.name);
     setImageFile(file);
@@ -209,6 +209,7 @@ export function ScoresheetReadPage() {
   const analyzeImage = async (file: File) => {
     setError('');
     setModelResults({});
+    setReReads({});
     setModels([]);
     setAnalyzing(true);
 
@@ -305,7 +306,7 @@ export function ScoresheetReadPage() {
               {/* Replace + preview */}
               <div className="flex justify-end">
                 <button
-                  onClick={() => { setPreview(null); setFileName(null); setImageFile(null); setModelResults({}); setModels([]); setError(''); setAnalyzing(false); fileInputRef.current?.click(); }}
+                  onClick={() => { setPreview(null); setFileName(null); setImageFile(null); setModelResults({}); setReReads({}); setModels([]); setError(''); setAnalyzing(false); fileInputRef.current?.click(); }}
                   className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
                 >
                   <Upload className="w-4 h-4" />
@@ -337,42 +338,68 @@ export function ScoresheetReadPage() {
                 <div className="space-y-6">
                   {models.map((m) => {
                     const mr = modelResults[m.id];
-                    const colCount = (groundTruth ? 1 : 0) + 1;
-                    const gridClass = colCount === 2 ? 'grid-cols-2' : 'grid-cols-1 max-w-lg';
+                    const extraReads = reReads[m.id] || [];
+                    const allReads: ReadEntry[] = mr?.result
+                      ? [{ moves: mr.result.moves, elapsed: mr.elapsed, warnings: mr.warnings, error: mr.error }, ...extraReads]
+                      : [];
+                    const meta = mr?.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined;
 
-                    const handleReread = (result: { result: { moves: Move[] }; elapsed: number }) => {
-                      setModelResults(prev => ({
+                    const handleEditSave = async (confirmed: Move[]) => {
+                      // Append a new read with truncated confirmed moves immediately
+                      setReReads(prev => ({
                         ...prev,
-                        [m.id]: {
-                          ...prev[m.id],
-                          result: { ...prev[m.id].result!, moves: result.result.moves },
-                          elapsed: result.elapsed,
-                        },
+                        [m.id]: [...(prev[m.id] || []), { moves: confirmed, elapsed: 0, rereading: true }],
                       }));
+
+                      if (!imageFile) return;
+                      try {
+                        const formData = new FormData();
+                        formData.append('image', imageFile);
+                        formData.append('confirmed_moves', JSON.stringify(confirmed));
+                        formData.append('model_id', m.id);
+
+                        const res = await fetch('/api/coaches/reread-scoresheet', { method: 'POST', body: formData });
+                        if (res.ok) {
+                          const json = await res.json();
+                          setReReads(prev => {
+                            const reads = [...(prev[m.id] || [])];
+                            reads[reads.length - 1] = { moves: json.result.moves, elapsed: json.elapsed, warnings: json.warnings };
+                            return { ...prev, [m.id]: reads };
+                          });
+                        }
+                      } catch {
+                        setReReads(prev => {
+                          const reads = [...(prev[m.id] || [])];
+                          reads[reads.length - 1] = { ...reads[reads.length - 1], rereading: false, error: 'Re-read failed' };
+                          return { ...prev, [m.id]: reads };
+                        });
+                      }
                     };
 
                     return (
                       <div key={m.id}>
                         <h2 className="text-sm font-medium text-slate-300 mb-2 px-1">{mr?.name || m.name}</h2>
-                        <div className={`grid gap-3 items-start ${gridClass}`}>
+                        <div className="flex gap-3 items-start overflow-x-auto pb-2">
                           {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} />}
                           {!mr ? (
                             <ModelPanelLoading name={m.name} startTime={startTime} />
                           ) : (
-                            <MovesPanel
-                              label="Gemini read"
-                              moves={mr.result?.moves || []}
-                              groundTruthMoves={groundTruth?.moves}
-                              disagreements={disagreementsByModel.get(m.id) || new Map()}
-                              elapsed={mr.elapsed}
-                              warnings={mr.warnings}
-                              error={mr.error}
-                              meta={mr.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined}
-                              fileName={fileName}
-                              imageFile={imageFile}
-                              modelId={m.id}
-                              onReread={handleReread}
-                            />
+                            allReads.map((read, readIdx) => (
+                              <MovesPanel
+                                key={readIdx}
+                                label={`Read ${readIdx + 1}`}
+                                moves={read.moves}
+                                groundTruthMoves={groundTruth?.moves}
+                                disagreements={groundTruth ? buildDisagreementMap(read.moves, groundTruth.moves) : new Map()}
+                                elapsed={read.elapsed}
+                                warnings={read.warnings}
+                                error={read.error}
+                                meta={meta}
+                                fileName={fileName}
+                                rereading={read.rereading}
+                                onEditSave={handleEditSave}
+                              />
+                            ))
                           )}
                         </div>
                       </div>
@@ -561,31 +588,28 @@ const WARNING_LABELS: Record<string, string> = {
   unwrapped_array: 'Unwrapped array',
 };
 
-function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, elapsedUnit, warnings, error, meta, fileName, imageFile, modelId, onReread }: {
+function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, warnings, error, meta, fileName, rereading, onEditSave }: {
   label: string;
   moves: Move[];
   groundTruthMoves?: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
   elapsed: number;
-  elapsedUnit?: 'ms' | 's';
   warnings?: string[];
   error?: string;
   meta?: { white?: string; black?: string; result?: string };
   fileName?: string | null;
-  imageFile?: File | null;
-  modelId?: string;
-  onReread?: (result: { result: { moves: Move[] }; elapsed: number }) => void;
+  rereading?: boolean;
+  onEditSave?: (confirmed: Move[]) => void;
 }) {
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
-  const [rereading, setRereading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editing && inputRef.current) inputRef.current.focus();
   }, [editing]);
 
-  const handleSave = async () => {
-    if (!editing) return;
+  const handleSave = () => {
+    if (!editing || !onEditSave) return;
     const editedMoveIdx = editing.moveIdx;
     const editedColor = editing.color;
     const editedValue = editing.value;
@@ -597,43 +621,17 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, el
       const m = { ...moves[i] };
       if (i === editedMoveIdx) {
         m[editedColor] = editedValue;
-        // If editing white, remove black (will be re-read)
         if (editedColor === 'white') {
           delete m.black;
           delete m.black_legal;
         }
       }
-      // Strip legality flags — backend will re-validate
       delete m.white_legal;
       delete m.black_legal;
       confirmed.push(m);
     }
 
-    // Immediately show truncated moves with the edit applied
-    if (onReread) {
-      onReread({ result: { moves: confirmed }, elapsed: 0 });
-    }
-
-    // If we have the image and model, do a re-read from this position
-    if (imageFile && modelId && onReread) {
-      setRereading(true);
-      try {
-        const formData = new FormData();
-        formData.append('image', imageFile);
-        formData.append('confirmed_moves', JSON.stringify(confirmed));
-        formData.append('model_id', modelId);
-
-        const res = await fetch('/api/coaches/reread-scoresheet', {
-          method: 'POST',
-          body: formData,
-        });
-        if (res.ok) {
-          const json = await res.json();
-          onReread(json);
-        }
-      } catch { /* ignore */ }
-      finally { setRereading(false); }
-    }
+    onEditSave(confirmed);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -642,16 +640,15 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, el
   };
 
   const stats = groundTruthMoves && moves.length > 0 ? computeStats(moves, groundTruthMoves) : null;
-  const unit = elapsedUnit || 's';
 
   return (
-    <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start">
+    <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[200px]">
       {/* Header */}
       <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
         <span className="text-slate-100 font-medium text-xs">{label}</span>
         <div className="flex items-center gap-1">
           <Clock className="w-3 h-3 text-slate-400" />
-          <span className="text-slate-400 text-xs">{elapsed}{unit}</span>
+          <span className="text-slate-400 text-xs">{elapsed}s</span>
         </div>
       </div>
 
