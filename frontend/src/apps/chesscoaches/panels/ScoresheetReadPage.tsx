@@ -36,6 +36,7 @@ interface ReadEntry {
   warnings?: string[];
   error?: string;
   rereading?: boolean;
+  corrections?: Set<string>;  // e.g. "11-black", "5-white" — cells the user manually edited
 }
 
 // Ground truth for known scoresheets — keyed by filename stem (without extension)
@@ -365,14 +366,20 @@ export function ScoresheetReadPage() {
                       : [];
                     const meta = mr?.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined;
 
-                    const handleEditSave = async (readIdx: number, confirmed: Move[]) => {
+                    const handleEditSave = async (readIdx: number, confirmed: Move[], correctionKey: string) => {
+                      // Collect all corrections from previous reads + this new one
+                      const prevCorrections = new Set<string>();
+                      for (let i = 0; i <= readIdx; i++) {
+                        const read = allReads[i];
+                        if (read?.corrections) read.corrections.forEach(c => prevCorrections.add(c));
+                      }
+                      prevCorrections.add(correctionKey);
+
                       // Discard all reads after the one being edited, then append new read
-                      // readIdx 0 = Read 1 (the initial SSE result stored in modelResults)
-                      // readIdx 1+ = reReads[0+]
                       const keepReReads = readIdx === 0 ? [] : (reReads[m.id] || []).slice(0, readIdx);
                       setReReads(prev => ({
                         ...prev,
-                        [m.id]: [...keepReReads, { moves: confirmed, elapsed: 0, rereading: true }],
+                        [m.id]: [...keepReReads, { moves: confirmed, elapsed: 0, rereading: true, corrections: prevCorrections }],
                       }));
 
                       if (!imageFile) return;
@@ -387,7 +394,7 @@ export function ScoresheetReadPage() {
                           const json = await res.json();
                           setReReads(prev => {
                             const reads = [...(prev[m.id] || [])];
-                            reads[reads.length - 1] = { moves: json.result.moves, elapsed: json.elapsed, warnings: json.warnings };
+                            reads[reads.length - 1] = { ...reads[reads.length - 1], moves: json.result.moves, elapsed: json.elapsed, warnings: json.warnings, rereading: false };
                             return { ...prev, [m.id]: reads };
                           });
                         }
@@ -421,7 +428,8 @@ export function ScoresheetReadPage() {
                                 meta={meta}
                                 fileName={fileName}
                                 rereading={read.rereading}
-                                onEditSave={(confirmed) => handleEditSave(readIdx, confirmed)}
+                                corrections={read.corrections}
+                                onEditSave={(confirmed, corrKey) => handleEditSave(readIdx, confirmed, corrKey)}
                               />
                             ))
                           )}
@@ -659,7 +667,7 @@ const WARNING_LABELS: Record<string, string> = {
   unwrapped_array: 'Unwrapped array',
 };
 
-function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, warnings, error, meta, fileName, rereading, onEditSave }: {
+function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, warnings, error, meta, fileName, rereading, corrections, onEditSave }: {
   label: string;
   moves: Move[];
   groundTruthMoves?: Move[];
@@ -670,7 +678,8 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
   meta?: { white?: string; black?: string; result?: string };
   fileName?: string | null;
   rereading?: boolean;
-  onEditSave?: (confirmed: Move[]) => void;
+  corrections?: Set<string>;
+  onEditSave?: (confirmed: Move[], correctionKey: string) => void;
 }) {
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
   const [liveElapsed, setLiveElapsed] = useState(0);
@@ -713,7 +722,8 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
       confirmed.push(m);
     }
 
-    onEditSave(confirmed);
+    const correctionKey = `${moves[editedMoveIdx].number}-${editedColor}`;
+    onEditSave(confirmed, correctionKey);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -776,11 +786,13 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
                     value={move.white}
                     legal={move.white_legal}
                     highlight={d?.white}
+                    corrected={corrections?.has(`${move.number}-white`)}
                     onClick={() => setEditing({ moveIdx: idx, color: 'white', value: move.white })}
                   />
                   <MoveCell
                     value={move.black || ''}
                     legal={move.black_legal}
+                    corrected={corrections?.has(`${move.number}-black`)}
                     highlight={d?.black}
                     onClick={() => move.black !== undefined ? setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }) : undefined}
                   />
@@ -862,15 +874,17 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
   );
 }
 
-function MoveCell({ value, legal, highlight, onClick }: {
+function MoveCell({ value, legal, highlight, corrected, onClick }: {
   value: string;
   legal?: boolean;
   highlight?: boolean;
+  corrected?: boolean;
   onClick: () => void;
 }) {
+  const bg = corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100';
   return (
     <td
-      className={`px-1.5 py-0.5 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100'}`}
+      className={`px-1.5 py-0.5 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}`}
       onClick={onClick}
     >
       <span className="inline-flex items-center justify-center gap-1 w-full">
