@@ -22,21 +22,12 @@ interface ScoresheetResult {
   moves: Move[];
 }
 
-interface CorrectionInfo {
-  result?: ScoresheetResult;
-  error?: string;
-  elapsed: number;
-  warnings?: string[];
-  numFixes?: number;
-}
-
 interface ModelResult {
   name: string;
   result?: ScoresheetResult;
   error?: string;
   elapsed: number;
   warnings?: string[];
-  correction?: CorrectionInfo;
 }
 
 // Ground truth for known scoresheets — keyed by filename stem (without extension)
@@ -263,18 +254,6 @@ export function ScoresheetReadPage() {
               ...prev,
               [model_id]: { ...prev[model_id], name, result, error: err, elapsed, warnings },
             }));
-          } else if (payload.type === 'correction') {
-            const { model_id, result, error: err, elapsed, warnings, num_fixes } = payload;
-            setModelResults(prev => ({
-              ...prev,
-              [model_id]: {
-                ...prev[model_id],
-                correcting: false,
-                correction: {
-                  result, error: err, elapsed, warnings, numFixes: num_fixes,
-                },
-              },
-            }));
           } else if (payload.type === 'done') {
           }
         }
@@ -358,18 +337,16 @@ export function ScoresheetReadPage() {
                 <div className="space-y-6">
                   {models.map((m) => {
                     const mr = modelResults[m.id];
-                    const hasCorrection = mr?.correction?.result;
-                    const colCount = (groundTruth ? 1 : 0) + 1 + (hasCorrection ? 1 : 0);
-                    const gridClass = colCount >= 3 ? 'grid-cols-2 xl:grid-cols-3' : colCount === 2 ? 'grid-cols-2' : 'grid-cols-1 max-w-lg';
+                    const colCount = (groundTruth ? 1 : 0) + 1;
+                    const gridClass = colCount === 2 ? 'grid-cols-2' : 'grid-cols-1 max-w-lg';
 
-                    const handleReread = (result: { result: { moves: Move[] }; correction: { moves: Move[]; num_fixes: number }; elapsed: number }) => {
+                    const handleReread = (result: { result: { moves: Move[] }; elapsed: number }) => {
                       setModelResults(prev => ({
                         ...prev,
                         [m.id]: {
                           ...prev[m.id],
                           result: { ...prev[m.id].result!, moves: result.result.moves },
                           elapsed: result.elapsed,
-                          correction: { result: { ...prev[m.id].result!, moves: result.correction.moves }, elapsed: 0, numFixes: result.correction.num_fixes },
                         },
                       }));
                     };
@@ -382,39 +359,20 @@ export function ScoresheetReadPage() {
                           {!mr ? (
                             <ModelPanelLoading name={m.name} startTime={startTime} />
                           ) : (
-                            <>
-                              <MovesPanel
-                                label={hasCorrection ? 'Gemini read' : 'Gemini read'}
-                                moves={mr.result?.moves || []}
-                                groundTruthMoves={groundTruth?.moves}
-                                disagreements={disagreementsByModel.get(m.id) || new Map()}
-                                elapsed={mr.elapsed}
-                                warnings={mr.warnings}
-                                error={mr.error}
-                                meta={mr.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined}
-                                fileName={fileName}
-                                imageFile={imageFile}
-                                modelId={m.id}
-                                onReread={handleReread}
-                              />
-                              {hasCorrection && (
-                                <MovesPanel
-                                  label={`Fuzzy corrected (${mr.correction!.numFixes} fixed)`}
-                                  moves={mr.correction!.result!.moves}
-                                  groundTruthMoves={groundTruth?.moves}
-                                  disagreements={groundTruth ? buildDisagreementMap(mr.correction!.result!.moves, groundTruth.moves) : new Map()}
-                                  elapsed={mr.correction!.elapsed}
-                                  elapsedUnit="ms"
-                                  warnings={mr.correction!.warnings}
-                                  error={mr.correction!.error}
-                                  meta={mr.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined}
-                                  fileName={fileName}
-                                  imageFile={imageFile}
-                                  modelId={m.id}
-                                  onReread={handleReread}
-                                />
-                              )}
-                            </>
+                            <MovesPanel
+                              label="Gemini read"
+                              moves={mr.result?.moves || []}
+                              groundTruthMoves={groundTruth?.moves}
+                              disagreements={disagreementsByModel.get(m.id) || new Map()}
+                              elapsed={mr.elapsed}
+                              warnings={mr.warnings}
+                              error={mr.error}
+                              meta={mr.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined}
+                              fileName={fileName}
+                              imageFile={imageFile}
+                              modelId={m.id}
+                              onReread={handleReread}
+                            />
                           )}
                         </div>
                       </div>
@@ -616,7 +574,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, el
   fileName?: string | null;
   imageFile?: File | null;
   modelId?: string;
-  onReread?: (result: { result: { moves: Move[] }; correction: { moves: Move[]; num_fixes: number }; elapsed: number }) => void;
+  onReread?: (result: { result: { moves: Move[] }; elapsed: number }) => void;
 }) {
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
   const [rereading, setRereading] = useState(false);

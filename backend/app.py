@@ -388,59 +388,6 @@ def _scoresheet_validate_moves(moves, stop_at_illegal=False):
     return moves
 
 
-def _scoresheet_normalize_san(san):
-    """Strip captures, checks, and mate symbols for fuzzy comparison."""
-    return san.replace('x', '').replace('+', '').replace('#', '')
-
-
-def _scoresheet_fuzzy_match(read_san, legal_sans):
-    """Find the closest legal move to what Gemini read."""
-    from difflib import SequenceMatcher
-    if read_san in legal_sans:
-        return read_san
-    read_norm = _scoresheet_normalize_san(read_san)
-    for legal in legal_sans:
-        if _scoresheet_normalize_san(legal) == read_norm:
-            return legal
-    best_score = 0.0
-    best_match = legal_sans[0] if legal_sans else read_san
-    for legal in legal_sans:
-        score = SequenceMatcher(None, read_norm, _scoresheet_normalize_san(legal)).ratio()
-        if score > best_score:
-            best_score = score
-            best_match = legal
-    return best_match
-
-
-def _scoresheet_fuzzy_correct(moves):
-    """Replay moves on a board, fuzzy-matching illegal moves to closest legal move.
-    Returns (corrected_moves, num_corrections)."""
-    import chess
-    board = chess.Board()
-    corrected = []
-    num_corrections = 0
-    for move in moves:
-        corrected_move = {'number': move['number']}
-        for color in ("white", "black"):
-            san = move.get(color)
-            if san is None:
-                continue
-            if not san or san == "?":
-                corrected_move[color] = san
-                continue
-            legal_sans = [board.san(m) for m in board.legal_moves]
-            matched = _scoresheet_fuzzy_match(san, legal_sans)
-            corrected_move[color] = matched
-            if matched != san:
-                num_corrections += 1
-            try:
-                board.push_san(matched)
-                corrected_move[f"{color}_legal"] = True
-            except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
-                corrected_move[f"{color}_legal"] = False
-        corrected.append(corrected_move)
-    return corrected, num_corrections
-
 
 def _scoresheet_parse_response(response_text):
     """Parse Gemini response text into a dict, handling markdown fences and malformed JSON."""
@@ -606,25 +553,10 @@ Return ONLY a JSON object:
     # Validate with stop at first illegal
     merged = _scoresheet_validate_moves(merged, stop_at_illegal=True)
 
-    # Also produce fuzzy-corrected version (from the FULL pre-truncation read)
-    full_merged = [dict(m) for m in confirmed_moves]
-    full_new = gemini_result.get("moves", [])
-    if full_new and full_merged:
-        last_c = full_merged[-1]
-        first_n = full_new[0]
-        if (first_n.get('number') == last_c['number']
-                and not last_c.get('black')
-                and resume_color == 'black'):
-            full_merged[-1] = {**last_c, 'black': first_n.get('black', '')}
-            full_new = full_new[1:]
-    full_merged.extend(full_new)
-    corrected, num_fixes = _scoresheet_fuzzy_correct(full_merged)
-
-    logger.info(f"[Scoresheet reread] {model_id}: {len(merged)} moves (stopped), {len(corrected)} corrected, {elapsed}s")
+    logger.info(f"[Scoresheet reread] {model_id}: {len(merged)} moves, {elapsed}s")
 
     return jsonify({
         "result": {"moves": merged},
-        "correction": {"moves": corrected, "num_fixes": num_fixes},
         "elapsed": elapsed,
         "warnings": warnings,
     })
