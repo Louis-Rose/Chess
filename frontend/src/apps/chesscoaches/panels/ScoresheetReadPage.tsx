@@ -962,7 +962,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
         </table>
       )}
       {/* Stats */}
-      {stats && (
+      {stats && !rereading && (
         <div className="px-2 py-1.5 border-t border-slate-600/50 text-center space-y-0.5">
           <div>
             <span className={`text-xs font-medium ${stats.accuracy === 100 ? 'text-green-400' : stats.accuracy >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
