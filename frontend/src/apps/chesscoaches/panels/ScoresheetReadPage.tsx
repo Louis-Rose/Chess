@@ -1,8 +1,8 @@
-// Scoresheet reader page — runs 5 Gemini models in parallel, streams results via SSE
+// Scoresheet reader page — reads scoresheets with Gemini, supports iterative correction
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download } from 'lucide-react';
+import { ArrowLeft, Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download, Play, RotateCcw } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Move {
@@ -205,9 +205,157 @@ export function ScoresheetReadPage() {
     const reader = new FileReader();
     reader.onload = () => setPreview(reader.result as string);
     reader.readAsDataURL(file);
+  };
 
-    analyzeImage(file);
+  // Helper: do a single re-read API call and return the result
+  const doReread = async (file: File, modelId: string, confirmedMoves: Move[]): Promise<{ moves: Move[]; elapsed: number; warnings?: string[] } | null> => {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('confirmed_moves', JSON.stringify(confirmedMoves));
+    formData.append('model_id', modelId);
+    try {
+      const res = await fetch('/api/coaches/reread-scoresheet', { method: 'POST', body: formData });
+      if (res.ok) {
+        const json = await res.json();
+        return { moves: json.result.moves, elapsed: json.elapsed, warnings: json.warnings };
+      }
+    } catch { /* ignore */ }
+    return null;
+  };
+
+  // Find first mistake compared to ground truth, return { moveIdx, color, correctValue } or null
+  const findFirstMistake = (moves: Move[], gtMoves: Move[]): { moveIdx: number; color: 'white' | 'black'; correctValue: string } | null => {
+    for (let i = 0; i < gtMoves.length; i++) {
+      const gt = gtMoves[i];
+      const mm = moves[i];
+      if (!mm) return null; // ran out of model moves — not a "mistake", just truncated
+      for (const color of ['white', 'black'] as const) {
+        if (color === 'black' && !gt.black) continue;
+        const gtVal = gt[color] || '';
+        const mmVal = mm[color] || '';
+        if (mmVal !== gtVal) {
+          return { moveIdx: i, color, correctValue: gtVal };
+        }
+      }
+    }
+    return null;
+  };
+
+  // Run multiple reads: read → find first mistake → correct → re-read → repeat
+  const runMultipleReads = async (file: File) => {
+    if (!groundTruth) return;
+
+    // First, do the initial read
+    await analyzeImage(file);
     analyzeAzure(file);
+
+    // We need to wait for the initial read to finish and get the result.
+    // Since analyzeImage is async and updates state, we can't easily chain.
+    // Instead, we'll use a flag and handle the loop after the initial read completes.
+  };
+
+  // This ref tracks whether we should auto-correct after each read
+  const autoCorrectRef = useRef(false);
+  const autoCorrectModelRef = useRef<string | null>(null);
+
+  // After modelResults or reReads change, check if we should auto-correct
+  useEffect(() => {
+    if (!autoCorrectRef.current || !groundTruth || !imageFile) return;
+    const modelId = autoCorrectModelRef.current;
+    if (!modelId) return;
+
+    const mr = modelResults[modelId];
+    if (!mr?.result) return;
+
+    // Get the latest read
+    const extraReads = reReads[modelId] || [];
+    const lastRead = extraReads.length > 0 ? extraReads[extraReads.length - 1] : { moves: mr.result.moves, elapsed: mr.elapsed };
+
+    // Skip if still re-reading
+    if ('rereading' in lastRead && lastRead.rereading) return;
+
+    const mistake = findFirstMistake(lastRead.moves, groundTruth.moves);
+    if (!mistake) {
+      // No mistakes found — done
+      autoCorrectRef.current = false;
+      return;
+    }
+
+    // Build confirmed moves up to the mistake, with the correction
+    const confirmed: Move[] = [];
+    const allCorrections = new Set<string>();
+    // Gather corrections from all previous reReads
+    for (const r of extraReads) {
+      if (r.corrections) r.corrections.forEach(c => allCorrections.add(c));
+    }
+
+    for (let i = 0; i <= mistake.moveIdx; i++) {
+      const m = { ...lastRead.moves[i] };
+      if (i === mistake.moveIdx) {
+        m[mistake.color] = mistake.correctValue;
+        if (mistake.color === 'white') {
+          delete m.black;
+          delete m.black_legal;
+        }
+      }
+      delete m.white_legal;
+      delete m.black_legal;
+      confirmed.push(m);
+    }
+
+    const correctionKey = `${lastRead.moves[mistake.moveIdx].number}-${mistake.color}`;
+    allCorrections.add(correctionKey);
+
+    // Discard nothing — always append
+    const readIdx = extraReads.length; // index in allReads (0 = initial)
+    const keepReReads = [...extraReads];
+
+    setReReads(prev => ({
+      ...prev,
+      [modelId]: [...keepReReads, { moves: confirmed, elapsed: 0, rereading: true, corrections: allCorrections }],
+    }));
+
+    // Fire the re-read
+    (async () => {
+      const result = await doReread(imageFile, modelId, confirmed);
+      if (result) {
+        setReReads(prev => {
+          const reads = [...(prev[modelId] || [])];
+          reads[reads.length - 1] = { ...reads[reads.length - 1], moves: result.moves, elapsed: result.elapsed, warnings: result.warnings, rereading: false };
+          return { ...prev, [modelId]: reads };
+        });
+      } else {
+        setReReads(prev => {
+          const reads = [...(prev[modelId] || [])];
+          reads[reads.length - 1] = { ...reads[reads.length - 1], rereading: false, error: 'Re-read failed' };
+          return { ...prev, [modelId]: reads };
+        });
+        autoCorrectRef.current = false;
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modelResults, reReads, groundTruth, imageFile]);
+
+  const startOneRead = () => {
+    if (!imageFile) return;
+    autoCorrectRef.current = false;
+    setModelResults({});
+    setReReads({});
+    setAzureResult(null);
+    analyzeImage(imageFile);
+    analyzeAzure(imageFile);
+  };
+
+  const startMultipleReads = () => {
+    if (!imageFile || !groundTruth) return;
+    autoCorrectRef.current = true;
+    setModelResults({});
+    setReReads({});
+    setAzureResult(null);
+    // We need to know which model to auto-correct — set it when models arrive
+    autoCorrectModelRef.current = null;
+    analyzeImage(imageFile);
+    analyzeAzure(imageFile);
   };
 
   const analyzeAzure = async (file: File) => {
@@ -271,6 +419,9 @@ export function ScoresheetReadPage() {
           if (payload.type === 'models') {
             setModels(payload.models);
             setStartTime(Date.now());
+            if (autoCorrectRef.current && payload.models.length > 0) {
+              autoCorrectModelRef.current = payload.models[0].id;
+            }
           } else if (payload.type === 'result') {
             const { model_id, name, result, error: err, elapsed, warnings } = payload;
             setModelResults(prev => ({
@@ -341,6 +492,28 @@ export function ScoresheetReadPage() {
                 className="rounded-xl max-h-80 mx-auto cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={() => setShowImageModal(true)}
               />
+
+              {/* Run buttons */}
+              {!analyzing && models.length === 0 && (
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    onClick={startOneRead}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors"
+                  >
+                    <Play className="w-3.5 h-3.5" />
+                    Run one read
+                  </button>
+                  {groundTruth && (
+                    <button
+                      onClick={startMultipleReads}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg transition-colors"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Run multiple reads
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Error */}
               {error && (
