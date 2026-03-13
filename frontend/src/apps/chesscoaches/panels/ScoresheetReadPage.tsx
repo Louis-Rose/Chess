@@ -241,19 +241,6 @@ export function ScoresheetReadPage() {
     return null;
   };
 
-  // Run multiple reads: read → find first mistake → correct → re-read → repeat
-  const runMultipleReads = async (file: File) => {
-    if (!groundTruth) return;
-
-    // First, do the initial read
-    await analyzeImage(file);
-    analyzeAzure(file);
-
-    // We need to wait for the initial read to finish and get the result.
-    // Since analyzeImage is async and updates state, we can't easily chain.
-    // Instead, we'll use a flag and handle the loop after the initial read completes.
-  };
-
   // This ref tracks whether we should auto-correct after each read
   const autoCorrectRef = useRef(false);
   const autoCorrectModelRef = useRef<string | null>(null);
@@ -307,7 +294,6 @@ export function ScoresheetReadPage() {
     allCorrections.add(correctionKey);
 
     // Discard nothing — always append
-    const readIdx = extraReads.length; // index in allReads (0 = initial)
     const keepReReads = [...extraReads];
 
     setReReads(prev => ({
