@@ -47,33 +47,33 @@ const GROUND_TRUTHS: Record<string, { white_player: string; black_player: string
     moves: [
       { number: 1, white: 'Nf3', black: 'd5' }, { number: 2, white: 'g3', black: 'c5' },
       { number: 3, white: 'Bg2', black: 'Nc6' }, { number: 4, white: 'd4', black: 'e6' },
-      { number: 5, white: 'O-O', black: 'cxd4' }, { number: 6, white: 'Nxd4', black: 'Nge7' },
-      { number: 7, white: 'c4', black: 'Nxd4' }, { number: 8, white: 'Qxd4', black: 'Nc6' },
+      { number: 5, white: 'O-O', black: 'cd4' }, { number: 6, white: 'Nd4', black: 'Nge7' },
+      { number: 7, white: 'c4', black: 'Nd4' }, { number: 8, white: 'Qd4', black: 'Nc6' },
       { number: 9, white: 'Qd1', black: 'd4' }, { number: 10, white: 'e3', black: 'Bc5' },
-      { number: 11, white: 'exd4', black: 'Bxd4' }, { number: 12, white: 'Nc3', black: 'O-O' },
+      { number: 11, white: 'ed4', black: 'Bd4' }, { number: 12, white: 'Nc3', black: 'O-O' },
       { number: 13, white: 'Nb5', black: 'Bb6' }, { number: 14, white: 'b3', black: 'a6' },
       { number: 15, white: 'Nc3', black: 'Bd4' }, { number: 16, white: 'Bb2', black: 'e5' },
       { number: 17, white: 'Qd2', black: 'Be6' }, { number: 18, white: 'Nd5', black: 'b5' },
-      { number: 19, white: 'cxb5', black: 'axb5' }, { number: 20, white: 'Nf4', black: 'exf4' },
-      { number: 21, white: 'Bxc6', black: 'Bxb2' }, { number: 22, white: 'Qxb2', black: 'Rb8' },
-      { number: 23, white: 'Rfd1', black: 'Qb6' }, { number: 24, white: 'Bf3', black: 'fxg3' },
-      { number: 25, white: 'hxg3', black: 'b4' }, { number: 26, white: 'a4', black: 'bxa3' },
-      { number: 27, white: 'Rxa3', black: 'g6' }, { number: 28, white: 'Qd4', black: 'Qb5' },
-      { number: 29, white: 'b4', black: 'Qxb4' }, { number: 30, white: 'Qxb4', black: 'Rxb4' },
-      { number: 31, white: 'Ra8', black: 'Rxa8' }, { number: 32, white: 'Bxa8', black: 'g5' },
+      { number: 19, white: 'cb5', black: 'ab5' }, { number: 20, white: 'Nf4', black: 'ef4' },
+      { number: 21, white: 'Bc6', black: 'Bb2' }, { number: 22, white: 'Qb2', black: 'Rb8' },
+      { number: 23, white: 'Rfd1', black: 'Qb6' }, { number: 24, white: 'Bf3', black: 'fg3' },
+      { number: 25, white: 'hg3', black: 'b4' }, { number: 26, white: 'a4', black: 'ba3' },
+      { number: 27, white: 'Ra3', black: 'g6' }, { number: 28, white: 'Qd4', black: 'Qb5' },
+      { number: 29, white: 'b4', black: 'Qb4' }, { number: 30, white: 'Qb4', black: 'Rb4' },
+      { number: 31, white: 'Ra8', black: 'Ra8' }, { number: 32, white: 'Ba8', black: 'g5' },
       { number: 33, white: 'Bd5', black: 'Bf5' }, { number: 34, white: 'Rc1', black: 'Kg7' },
       { number: 35, white: 'Rc7', black: 'Bg6' }, { number: 36, white: 'Rc4', black: 'Rb1+' },
       { number: 37, white: 'Kg2', black: 'Re1' }, { number: 38, white: 'Rb4', black: 'h5' },
       { number: 39, white: 'Ra4', black: 'Re5' }, { number: 40, white: 'Bf3', black: 'Kh6' },
       { number: 41, white: 'Kg1', black: 'Re6' }, { number: 42, white: 'Rc4', black: 'g4' },
       { number: 43, white: 'Bd5', black: 'Rd6' }, { number: 44, white: 'Bb7', black: 'Kg5' },
-      { number: 45, white: 'f3', black: 'f5' }, { number: 46, white: 'fxg4', black: 'hxg4' },
+      { number: 45, white: 'f3', black: 'f5' }, { number: 46, white: 'fg4', black: 'hg4' },
       { number: 47, white: 'Rb4', black: 'Bf7' }, { number: 48, white: 'Kf2', black: 'Rd2+' },
       { number: 49, white: 'Kg1', black: 'Kf6' }, { number: 50, white: 'Rb6+', black: 'Kg5' },
       { number: 51, white: 'Rb4', black: 'Be6' }, { number: 52, white: 'Ra4', black: 'Rb2' },
       { number: 53, white: 'Ba8', black: 'Kf6' }, { number: 54, white: 'Rf4', black: 'Ke5' },
-      { number: 55, white: 'Rf2', black: 'Rxf2' }, { number: 56, white: 'Kxf2', black: 'Bd5' },
-      { number: 57, white: 'Bxd5', black: 'Kxd5' }, { number: 58, white: 'Ke3', black: 'Ke5' },
+      { number: 55, white: 'Rf2', black: 'Rf2' }, { number: 56, white: 'Kf2', black: 'Bd5' },
+      { number: 57, white: 'Bd5', black: 'Kd5' }, { number: 58, white: 'Ke3', black: 'Ke5' },
     ],
   },
 };
@@ -344,11 +344,14 @@ export function ScoresheetReadPage() {
                       : [];
                     const meta = mr?.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined;
 
-                    const handleEditSave = async (confirmed: Move[]) => {
-                      // Append a new read with truncated confirmed moves immediately
+                    const handleEditSave = async (readIdx: number, confirmed: Move[]) => {
+                      // Discard all reads after the one being edited, then append new read
+                      // readIdx 0 = Read 1 (the initial SSE result stored in modelResults)
+                      // readIdx 1+ = reReads[0+]
+                      const keepReReads = readIdx === 0 ? [] : (reReads[m.id] || []).slice(0, readIdx);
                       setReReads(prev => ({
                         ...prev,
-                        [m.id]: [...(prev[m.id] || []), { moves: confirmed, elapsed: 0, rereading: true }],
+                        [m.id]: [...keepReReads, { moves: confirmed, elapsed: 0, rereading: true }],
                       }));
 
                       if (!imageFile) return;
@@ -397,7 +400,7 @@ export function ScoresheetReadPage() {
                                 meta={meta}
                                 fileName={fileName}
                                 rereading={read.rereading}
-                                onEditSave={handleEditSave}
+                                onEditSave={(confirmed) => handleEditSave(readIdx, confirmed)}
                               />
                             ))
                           )}
