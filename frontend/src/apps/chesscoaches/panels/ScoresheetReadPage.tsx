@@ -624,7 +624,7 @@ export function ScoresheetReadPage() {
                     return (
                       <div key={m.id}>
                         <h2 className="text-sm font-medium text-slate-300 mb-2 px-1">{mr?.name || m.name}</h2>
-                        <div className="flex gap-3 items-start overflow-x-auto pb-2">
+                        <div className="flex flex-wrap gap-3 items-start">
                           {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} />}
                           {!mr ? (
                             <ModelPanelLoading name={m.name} startTime={startTime} />
@@ -667,7 +667,7 @@ export function ScoresheetReadPage() {
                   ) : azureResult.error ? (
                     <p className="text-red-400 text-center py-3 text-xs px-2">{azureResult.error}</p>
                   ) : azureResult.rawTables && azureResult.rawTables.length > 0 ? (
-                    <div className="flex gap-3 items-start overflow-x-auto pb-2">
+                    <div className="flex flex-wrap gap-3 items-start">
                       {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} />}
                       {azureResult.rawTables.map((t) => (
                         <div key={t.index} className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[200px]">
