@@ -364,6 +364,13 @@ def validate_moves():
 
 ## --- Scoresheet helpers (shared between read & re-read endpoints) ---
 
+def _scoresheet_clean_san(san):
+    """Clean up common OCR artifacts from a SAN move."""
+    # Strip trailing/leading dots, commas, spaces
+    san = san.strip(' .,;:')
+    return san
+
+
 def _scoresheet_normalize_castling(san):
     """Normalize common castling variants to standard O-O / O-O-O."""
     import re
@@ -376,9 +383,11 @@ def _scoresheet_normalize_castling(san):
 
 
 def _scoresheet_push_san(board, san):
-    """Try to push a SAN move, tolerating castling variants and missing/extra 'x'."""
+    """Try to push a SAN move, tolerating castling variants, missing/extra 'x', and OCR artifacts."""
     import chess
-    # Normalize castling first
+    # Clean OCR artifacts first
+    san = _scoresheet_clean_san(san)
+    # Normalize castling
     normalized = _scoresheet_normalize_castling(san)
     for attempt in (san, normalized) if normalized != san else (san,):
         try:
