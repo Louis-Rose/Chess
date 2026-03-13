@@ -325,7 +325,7 @@ export function ScoresheetReadPage() {
           ) : (
             <div className="space-y-4">
               {/* Replace + preview */}
-              <div className="flex justify-end">
+              <div className="flex justify-center">
                 <button
                   onClick={() => { setPreview(null); setFileName(null); setImageFile(null); setModelResults({}); setReReads({}); setModels([]); setError(''); setAnalyzing(false); setAzureResult(null); fileInputRef.current?.click(); }}
                   className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
