@@ -251,84 +251,102 @@ export function ScoresheetReadPage() {
 
   // This ref tracks whether we should auto-correct after each read
   const autoCorrectRef = useRef(false);
-  const autoCorrectModelRef = useRef<string | null>(null);
+  // Track which models are done (no more mistakes or errored out)
+  const autoCorrectDoneRef = useRef<Set<string>>(new Set());
 
-  // After modelResults or reReads change, check if we should auto-correct
+  // After modelResults or reReads change, check if we should auto-correct each model
   useEffect(() => {
     if (!autoCorrectRef.current || !groundTruth || !imageFile) return;
-    const modelId = autoCorrectModelRef.current;
-    if (!modelId) return;
 
-    const mr = modelResults[modelId];
-    if (!mr?.result) return;
+    // Process each model independently
+    for (const modelId of Object.keys(modelResults)) {
+      if (autoCorrectDoneRef.current.has(modelId)) continue;
 
-    // Get the latest read
-    const extraReads = reReads[modelId] || [];
-    const lastRead = extraReads.length > 0 ? extraReads[extraReads.length - 1] : { moves: mr.result.moves, elapsed: mr.elapsed };
+      const mr = modelResults[modelId];
+      if (!mr?.result) continue;
 
-    // Skip if still re-reading
-    if ('rereading' in lastRead && lastRead.rereading) return;
+      const extraReads = reReads[modelId] || [];
+      const lastRead = extraReads.length > 0 ? extraReads[extraReads.length - 1] : { moves: mr.result.moves, elapsed: mr.elapsed };
 
-    const mistake = findFirstMistake(lastRead.moves, groundTruth.moves);
-    if (!mistake) {
-      // No mistakes found — done
-      autoCorrectRef.current = false;
-      setAutoRunning(false);
-      return;
-    }
+      // Skip if still re-reading
+      if ('rereading' in lastRead && lastRead.rereading) continue;
 
-    // Build confirmed moves up to the mistake, with the correction
-    const confirmed: Move[] = [];
-    const allCorrections = new Set<string>();
-    // Gather corrections from all previous reReads
-    for (const r of extraReads) {
-      if (r.corrections) r.corrections.forEach(c => allCorrections.add(c));
-    }
-
-    for (let i = 0; i <= mistake.moveIdx; i++) {
-      const m = { ...lastRead.moves[i] };
-      if (i === mistake.moveIdx) {
-        m[mistake.color] = mistake.correctValue;
-        if (mistake.color === 'white') {
-          delete m.black;
-          delete m.black_legal;
+      const mistake = findFirstMistake(lastRead.moves, groundTruth.moves);
+      if (!mistake) {
+        autoCorrectDoneRef.current.add(modelId);
+        // Check if all models are done
+        if (Object.keys(modelResults).every(id => autoCorrectDoneRef.current.has(id))) {
+          autoCorrectRef.current = false;
+          setAutoRunning(false);
         }
+        continue;
       }
-      delete m.white_legal;
-      delete m.black_legal;
-      confirmed.push(m);
+
+      // Build confirmed moves up to the mistake, with the correction
+      const confirmed: Move[] = [];
+      const allCorrections = new Set<string>();
+      for (const r of extraReads) {
+        if (r.corrections) r.corrections.forEach(c => allCorrections.add(c));
+      }
+
+      for (let i = 0; i <= mistake.moveIdx; i++) {
+        const m = { ...lastRead.moves[i] };
+        if (i === mistake.moveIdx) {
+          m[mistake.color] = mistake.correctValue;
+          if (mistake.color === 'white') {
+            delete m.black;
+            delete m.black_legal;
+          }
+        }
+        delete m.white_legal;
+        delete m.black_legal;
+        confirmed.push(m);
+      }
+
+      const correctionKey = `${lastRead.moves[mistake.moveIdx].number}-${mistake.color}`;
+      allCorrections.add(correctionKey);
+
+      const keepReReads = [...extraReads];
+
+      setReReads(prev => ({
+        ...prev,
+        [modelId]: [...keepReReads, { moves: confirmed, elapsed: 0, rereading: true, corrections: allCorrections }],
+      }));
+
+      // Fire the re-read
+      ((mid) => {
+        (async () => {
+          const result = await doReread(imageFile, mid, confirmed);
+          // If stopped while waiting, just mark as done without triggering more
+          if (!autoCorrectRef.current) {
+            setReReads(prev => {
+              const reads = [...(prev[mid] || [])];
+              reads[reads.length - 1] = { ...reads[reads.length - 1], moves: result?.moves || reads[reads.length - 1].moves, elapsed: result?.elapsed || 0, warnings: result?.warnings, rereading: false };
+              return { ...prev, [mid]: reads };
+            });
+            return;
+          }
+          if (result) {
+            setReReads(prev => {
+              const reads = [...(prev[mid] || [])];
+              reads[reads.length - 1] = { ...reads[reads.length - 1], moves: result.moves, elapsed: result.elapsed, warnings: result.warnings, rereading: false };
+              return { ...prev, [mid]: reads };
+            });
+          } else {
+            setReReads(prev => {
+              const reads = [...(prev[mid] || [])];
+              reads[reads.length - 1] = { ...reads[reads.length - 1], rereading: false, error: 'Re-read failed' };
+              return { ...prev, [mid]: reads };
+            });
+            autoCorrectDoneRef.current.add(mid);
+            if (Object.keys(modelResults).every(id => autoCorrectDoneRef.current.has(id))) {
+              autoCorrectRef.current = false;
+              setAutoRunning(false);
+            }
+          }
+        })();
+      })(modelId);
     }
-
-    const correctionKey = `${lastRead.moves[mistake.moveIdx].number}-${mistake.color}`;
-    allCorrections.add(correctionKey);
-
-    // Discard nothing — always append
-    const keepReReads = [...extraReads];
-
-    setReReads(prev => ({
-      ...prev,
-      [modelId]: [...keepReReads, { moves: confirmed, elapsed: 0, rereading: true, corrections: allCorrections }],
-    }));
-
-    // Fire the re-read
-    (async () => {
-      const result = await doReread(imageFile, modelId, confirmed);
-      if (result) {
-        setReReads(prev => {
-          const reads = [...(prev[modelId] || [])];
-          reads[reads.length - 1] = { ...reads[reads.length - 1], moves: result.moves, elapsed: result.elapsed, warnings: result.warnings, rereading: false };
-          return { ...prev, [modelId]: reads };
-        });
-      } else {
-        setReReads(prev => {
-          const reads = [...(prev[modelId] || [])];
-          reads[reads.length - 1] = { ...reads[reads.length - 1], rereading: false, error: 'Re-read failed' };
-          return { ...prev, [modelId]: reads };
-        });
-        autoCorrectRef.current = false;
-        setAutoRunning(false);
-      }
-    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelResults, reReads, groundTruth, imageFile]);
 
@@ -346,11 +364,11 @@ export function ScoresheetReadPage() {
   const startMultipleReads = () => {
     if (!imageFile || !groundTruth) return;
     autoCorrectRef.current = true;
+    autoCorrectDoneRef.current = new Set();
     setAutoRunning(true);
     setModelResults({});
     setReReads({});
     setAzureResult(null);
-    autoCorrectModelRef.current = null;
     analyzeImage(imageFile);
     analyzeAzure(imageFile);
   };
@@ -421,9 +439,6 @@ export function ScoresheetReadPage() {
           if (payload.type === 'models') {
             setModels(payload.models);
             setStartTime(Date.now());
-            if (autoCorrectRef.current && payload.models.length > 0) {
-              autoCorrectModelRef.current = payload.models[0].id;
-            }
           } else if (payload.type === 'result') {
             const { model_id, name, result, error: err, elapsed, warnings } = payload;
             setModelResults(prev => ({
