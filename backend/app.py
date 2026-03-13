@@ -693,32 +693,6 @@ def read_scoresheet():
                 item["warnings"] = warnings
             result_queue.put(item)
 
-            # --- Correction pass: fuzzy-correct the FULL Gemini output ---
-            result_queue.put({"type": "correcting", "model_id": model_id})
-            corr_start = time_module.time()
-            try:
-                # Re-parse to get full untruncated moves for fuzzy correction
-                full_result, _ = _scoresheet_parse_response(response.text)
-                corrected_moves, num_fixes = _scoresheet_fuzzy_correct(full_result.get("moves", []))
-                corr_elapsed = round((time_module.time() - corr_start) * 1000)
-                corrected_full = {
-                    "moves": corrected_moves,
-                    "white_player": result.get("white_player", ""),
-                    "black_player": result.get("black_player", ""),
-                    "event": result.get("event", ""),
-                    "date": result.get("date", ""),
-                    "result": result.get("result", ""),
-                }
-                result_queue.put({
-                    "type": "correction", "model_id": model_id,
-                    "result": corrected_full, "elapsed": corr_elapsed,
-                    "num_fixes": num_fixes,
-                })
-                logger.info(f"[Scoresheet] {model_name}: fuzzy-corrected {num_fixes} moves in {corr_elapsed}ms")
-            except Exception as e:
-                logger.error(f"[Scoresheet] {model_name} correction failed: {e}")
-                result_queue.put({"type": "correction", "model_id": model_id, "error": str(e), "elapsed": 0})
-
         except Exception as e:
             elapsed = round(time_module.time() - start)
             logger.error(f"[Scoresheet] {model_name} failed after {elapsed}s: {e}")
