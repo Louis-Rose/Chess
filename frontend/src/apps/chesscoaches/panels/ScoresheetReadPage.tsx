@@ -155,6 +155,7 @@ export function ScoresheetReadPage() {
 
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState('');
   const [modelResults, setModelResults] = useState<Record<string, ModelResult>>({});
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
@@ -206,6 +207,7 @@ export function ScoresheetReadPage() {
     setModelResults({});
     setModels([]);
     setFileName(file.name);
+    setImageFile(file);
 
     const reader = new FileReader();
     reader.onload = () => setPreview(reader.result as string);
@@ -330,7 +332,7 @@ export function ScoresheetReadPage() {
               {/* Replace + preview */}
               <div className="flex justify-end">
                 <button
-                  onClick={() => { setPreview(null); setFileName(null); setModelResults({}); setModels([]); setError(''); setAnalyzing(false); fileInputRef.current?.click(); }}
+                  onClick={() => { setPreview(null); setFileName(null); setImageFile(null); setModelResults({}); setModels([]); setError(''); setAnalyzing(false); fileInputRef.current?.click(); }}
                   className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
                 >
                   <Upload className="w-4 h-4" />
@@ -383,10 +385,16 @@ export function ScoresheetReadPage() {
                                 meta={mr.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined}
                                 fileName={fileName}
                                 correcting={mr.correcting}
-                                onMovesUpdate={(moves) => {
+                                imageFile={imageFile}
+                                modelId={m.id}
+                                onReread={(result) => {
                                   setModelResults(prev => ({
                                     ...prev,
-                                    [m.id]: { ...prev[m.id], result: { ...prev[m.id].result!, moves } },
+                                    [m.id]: {
+                                      ...prev[m.id],
+                                      result: { ...prev[m.id].result!, moves: result.result.moves },
+                                      correction: { result: { ...prev[m.id].result!, moves: result.correction.moves }, elapsed: 0, numFixes: result.correction.num_fixes },
+                                    },
                                   }));
                                 }}
                               />
@@ -402,10 +410,16 @@ export function ScoresheetReadPage() {
                                   error={mr.correction!.error}
                                   meta={mr.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined}
                                   fileName={fileName}
-                                  onMovesUpdate={(moves) => {
+                                  imageFile={imageFile}
+                                  modelId={m.id}
+                                  onReread={(result) => {
                                     setModelResults(prev => ({
                                       ...prev,
-                                      [m.id]: { ...prev[m.id], correction: { ...prev[m.id].correction!, result: { ...prev[m.id].correction!.result!, moves } } },
+                                      [m.id]: {
+                                        ...prev[m.id],
+                                        result: { ...prev[m.id].result!, moves: result.result.moves },
+                                        correction: { result: { ...prev[m.id].result!, moves: result.correction.moves }, elapsed: 0, numFixes: result.correction.num_fixes },
+                                      },
                                     }));
                                   }}
                                 />
@@ -599,7 +613,7 @@ const WARNING_LABELS: Record<string, string> = {
   unwrapped_array: 'Unwrapped array',
 };
 
-function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, elapsedUnit, warnings, error, meta, fileName, correcting, onMovesUpdate }: {
+function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, elapsedUnit, warnings, error, meta, fileName, correcting, imageFile, modelId, onReread }: {
   label: string;
   moves: Move[];
   groundTruthMoves?: Move[];
@@ -611,9 +625,12 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, el
   meta?: { white?: string; black?: string; result?: string };
   fileName?: string | null;
   correcting?: boolean;
-  onMovesUpdate: (moves: Move[]) => void;
+  imageFile?: File | null;
+  modelId?: string;
+  onReread?: (result: { result: { moves: Move[] }; correction: { moves: Move[]; num_fixes: number }; elapsed: number }) => void;
 }) {
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
+  const [rereading, setRereading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -622,21 +639,49 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, el
 
   const handleSave = async () => {
     if (!editing) return;
-    const updated = moves.map((m, i) =>
-      i === editing.moveIdx ? { ...m, [editing.color]: editing.value } : { ...m }
-    );
+    const editedMoveIdx = editing.moveIdx;
+    const editedColor = editing.color;
+    const editedValue = editing.value;
     setEditing(null);
-    try {
-      const res = await fetch('/api/coaches/validate-moves', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ moves: updated }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        onMovesUpdate(json.moves);
+
+    // Build confirmed moves: all moves up to and including the edited one
+    const confirmed: Move[] = [];
+    for (let i = 0; i <= editedMoveIdx; i++) {
+      const m = { ...moves[i] };
+      if (i === editedMoveIdx) {
+        m[editedColor] = editedValue;
+        // If editing white, remove black (will be re-read)
+        if (editedColor === 'white') {
+          delete m.black;
+          delete m.black_legal;
+        }
       }
-    } catch { /* keep local update */ }
+      // Strip legality flags — backend will re-validate
+      delete m.white_legal;
+      delete m.black_legal;
+      confirmed.push(m);
+    }
+
+    // If we have the image and model, do a re-read from this position
+    if (imageFile && modelId && onReread) {
+      setRereading(true);
+      try {
+        const formData = new FormData();
+        formData.append('image', imageFile);
+        formData.append('confirmed_moves', JSON.stringify(confirmed));
+        formData.append('model_id', modelId);
+
+        const res = await fetch('/api/coaches/reread-scoresheet', {
+          method: 'POST',
+          body: formData,
+        });
+        if (res.ok) {
+          const json = await res.json();
+          onReread(json);
+        }
+      } catch { /* ignore */ }
+      finally { setRereading(false); }
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -680,11 +725,11 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, el
         </div>
       )}
 
-      {/* Correcting indicator */}
-      {correcting && (
+      {/* Correcting / re-reading indicator */}
+      {(correcting || rereading) && (
         <div className="flex items-center justify-center gap-1.5 py-1.5 border-b border-slate-600/50 text-xs text-blue-400 animate-pulse">
           <Clock className="w-3 h-3 animate-spin" />
-          <span>Fuzzy-correcting...</span>
+          <span>{rereading ? 'Re-reading from edit...' : 'Fuzzy-correcting...'}</span>
         </div>
       )}
 

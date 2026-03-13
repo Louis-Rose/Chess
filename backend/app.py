@@ -356,12 +356,20 @@ No intro, no filler. Output ONLY the prefixed lines."""
 @app.route('/api/coaches/validate-moves', methods=['POST'])
 def validate_moves():
     """Re-validate a list of moves with python-chess and return legality flags."""
-    import chess
     data = request.get_json()
     moves = data.get('moves', [])
+    _scoresheet_validate_moves(moves)
+    return jsonify({"moves": moves})
 
+
+## --- Scoresheet helpers (shared between read & re-read endpoints) ---
+
+def _scoresheet_validate_moves(moves, stop_at_illegal=False):
+    """Validate moves with python-chess, adding legality flags.
+    If stop_at_illegal, truncate after the first illegal move."""
+    import chess
     board = chess.Board()
-    for move in moves:
+    for i, move in enumerate(moves):
         for color in ("white", "black"):
             san = move.get(color)
             if not san or san == "?":
@@ -372,46 +380,97 @@ def validate_moves():
                 move[f"{color}_legal"] = True
             except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
                 move[f"{color}_legal"] = False
+                if stop_at_illegal:
+                    if color == "white":
+                        move.pop("black", None)
+                        move.pop("black_legal", None)
+                    return moves[:i + 1]
+    return moves
 
-    return jsonify({"moves": moves})
+
+def _scoresheet_normalize_san(san):
+    """Strip captures, checks, and mate symbols for fuzzy comparison."""
+    return san.replace('x', '').replace('+', '').replace('#', '')
 
 
-@app.route('/api/coaches/read-scoresheet', methods=['POST'])
-def read_scoresheet():
-    """Analyze a scoresheet image with multiple Gemini models in parallel, streaming results via SSE."""
-    from google import genai
-    from google.genai import types
+def _scoresheet_fuzzy_match(read_san, legal_sans):
+    """Find the closest legal move to what Gemini read."""
+    from difflib import SequenceMatcher
+    if read_san in legal_sans:
+        return read_san
+    read_norm = _scoresheet_normalize_san(read_san)
+    for legal in legal_sans:
+        if _scoresheet_normalize_san(legal) == read_norm:
+            return legal
+    best_score = 0.0
+    best_match = legal_sans[0] if legal_sans else read_san
+    for legal in legal_sans:
+        score = SequenceMatcher(None, read_norm, _scoresheet_normalize_san(legal)).ratio()
+        if score > best_score:
+            best_score = score
+            best_match = legal
+    return best_match
+
+
+def _scoresheet_fuzzy_correct(moves):
+    """Replay moves on a board, fuzzy-matching illegal moves to closest legal move.
+    Returns (corrected_moves, num_corrections)."""
     import chess
+    board = chess.Board()
+    corrected = []
+    num_corrections = 0
+    for move in moves:
+        corrected_move = {'number': move['number']}
+        for color in ("white", "black"):
+            san = move.get(color)
+            if san is None:
+                continue
+            if not san or san == "?":
+                corrected_move[color] = san
+                continue
+            legal_sans = [board.san(m) for m in board.legal_moves]
+            matched = _scoresheet_fuzzy_match(san, legal_sans)
+            corrected_move[color] = matched
+            if matched != san:
+                num_corrections += 1
+            try:
+                board.push_san(matched)
+                corrected_move[f"{color}_legal"] = True
+            except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
+                corrected_move[f"{color}_legal"] = False
+        corrected.append(corrected_move)
+    return corrected, num_corrections
+
+
+def _scoresheet_parse_response(response_text):
+    """Parse Gemini response text into a dict, handling markdown fences and malformed JSON."""
     import json as json_module
-    import threading
-    import queue
-    import time as time_module
+    text = response_text.strip()
+    if text.startswith('```'):
+        text = text.split('\n', 1)[1]
+        if text.endswith('```'):
+            text = text.rsplit('```', 1)[0]
+        text = text.strip()
+    warnings = []
+    try:
+        result = json_module.loads(text)
+    except json_module.JSONDecodeError:
+        from json_repair import repair_json
+        result = json_module.loads(repair_json(text))
+        warnings.append("json_repaired")
+    if isinstance(result, list):
+        result = result[0] if result else {}
+        warnings.append("unwrapped_array")
+    return result, warnings
 
-    logger.info("[Scoresheet] Request received")
 
-    if 'image' not in request.files:
-        return jsonify({"error": "No image file provided"}), 400
+SCORESHEET_MODELS = [
+    {"id": "gemini-3-flash-preview", "name": "3.0 Flash"},
+    {"id": "gemini-3.1-pro-preview", "name": "3.1 Pro"},
+    {"id": "gemini-3.1-flash-lite-preview", "name": "3.1 Flash Lite"},
+]
 
-    image_file = request.files['image']
-    if not image_file.filename:
-        return jsonify({"error": "Empty filename"}), 400
-
-    api_key = os.environ.get('GEMINI_API_KEY')
-    if not api_key:
-        logger.error("[Scoresheet] GEMINI_API_KEY not configured")
-        return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
-
-    image_bytes = image_file.read()
-    mime_type = image_file.content_type or 'image/jpeg'
-    logger.info(f"[Scoresheet] Image: {len(image_bytes)} bytes, {mime_type}")
-
-    MODELS = [
-        {"id": "gemini-3-flash-preview", "name": "3.0 Flash"},
-        {"id": "gemini-3.1-pro-preview", "name": "3.1 Pro"},
-        {"id": "gemini-3.1-flash-lite-preview", "name": "3.1 Flash Lite"},
-    ]
-
-    PROMPT = """You are analyzing a handwritten chess tournament scoresheet image.
+SCORESHEET_READ_PROMPT = """You are analyzing a handwritten chess tournament scoresheet image.
 
 Extract ALL moves from the scoresheet and return them as a JSON object with this exact format:
 {
@@ -437,103 +496,171 @@ Rules:
 
 Return ONLY the JSON object, no other text."""
 
-    THREAD_DONE = "THREAD_DONE"
 
-    def _validate_moves(moves):
-        """Validate moves with python-chess, adding legality flags."""
-        board = chess.Board()
-        for move in moves:
-            for color in ("white", "black"):
-                san = move.get(color)
-                if not san or san == "?":
-                    move.pop(f"{color}_legal", None)
-                    continue
+@app.route('/api/coaches/reread-scoresheet', methods=['POST'])
+def reread_scoresheet():
+    """Re-read a scoresheet from a given position after user confirms moves."""
+    from google import genai
+    from google.genai import types
+    import chess
+    import json as json_module
+    import time as time_module
+
+    if 'image' not in request.files:
+        return jsonify({"error": "No image file provided"}), 400
+
+    image_file = request.files['image']
+    image_bytes = image_file.read()
+    mime_type = image_file.content_type or 'image/jpeg'
+
+    confirmed_moves = json_module.loads(request.form.get('confirmed_moves', '[]'))
+    model_id = request.form.get('model_id', 'gemini-3-flash-preview')
+
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
+
+    # Replay confirmed moves to get board position
+    board = chess.Board()
+    for move in confirmed_moves:
+        for color in ("white", "black"):
+            san = move.get(color)
+            if san and san != "?":
                 try:
                     board.push_san(san)
-                    move[f"{color}_legal"] = True
                 except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
-                    move[f"{color}_legal"] = False
-        return moves
+                    return jsonify({"error": f"Invalid confirmed move: {san} at move {move.get('number')}"}), 400
 
-    def _normalize_san(san):
-        """Strip captures, checks, and mate symbols for fuzzy comparison."""
-        return san.replace('x', '').replace('+', '').replace('#', '')
+    fen = board.fen()
+    legal_sans = sorted(board.san(m) for m in board.legal_moves)
 
-    def _fuzzy_match_move(read_san, legal_sans):
-        """Find the closest legal move to what Gemini read.
-        1. Exact match → return it
-        2. Normalized match (strip x+#) → return the legal move
-        3. Levenshtein-closest on normalized forms → return closest legal move
-        """
-        # 1. Exact match
-        if read_san in legal_sans:
-            return read_san
+    # Determine resume point
+    if confirmed_moves:
+        last = confirmed_moves[-1]
+        if last.get('black') and last['black'] != '?':
+            resume_num = last['number'] + 1
+            resume_color = 'white'
+        else:
+            resume_num = last['number']
+            resume_color = 'black'
+    else:
+        resume_num = 1
+        resume_color = 'white'
 
-        read_norm = _normalize_san(read_san)
+    confirmed_text = " ".join(
+        f"{m['number']}. {m['white']}" + (f" {m['black']}" if m.get('black') else "")
+        for m in confirmed_moves
+    )
 
-        # 2. Normalized exact match
-        for legal in legal_sans:
-            if _normalize_san(legal) == read_norm:
-                return legal
+    prompt = f"""You are analyzing a handwritten chess tournament scoresheet image.
 
-        # 3. Levenshtein distance on normalized forms
-        from difflib import SequenceMatcher
-        best_score = 0.0
-        best_match = legal_sans[0] if legal_sans else read_san
-        for legal in legal_sans:
-            score = SequenceMatcher(None, read_norm, _normalize_san(legal)).ratio()
-            if score > best_score:
-                best_score = score
-                best_match = legal
-        return best_match
+{f"The following moves have been confirmed as correct:{chr(10)}{confirmed_text}{chr(10)}" if confirmed_text else ""}The board position after these moves (FEN): {fen}
+Legal moves in this position: {', '.join(legal_sans)}
 
-    def _fuzzy_correct_moves(moves):
-        """Replay moves on a board, fuzzy-matching illegal moves to closest legal move.
-        Returns (corrected_moves, num_corrections)."""
-        board = chess.Board()
-        corrected = []
-        num_corrections = 0
-        for move in moves:
-            corrected_move = {'number': move['number']}
-            for color in ("white", "black"):
-                san = move.get(color)
-                if san is None:
-                    continue
-                if not san or san == "?":
-                    corrected_move[color] = san
-                    continue
-                legal_sans = [board.san(m) for m in board.legal_moves]
-                matched = _fuzzy_match_move(san, legal_sans)
-                corrected_move[color] = matched
-                if matched != san:
-                    num_corrections += 1
-                try:
-                    board.push_san(matched)
-                    corrected_move[f"{color}_legal"] = True
-                except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
-                    corrected_move[f"{color}_legal"] = False
-            corrected.append(corrected_move)
-        return corrected, num_corrections
+Read ALL remaining moves from the scoresheet starting from move {resume_num} ({'Black' if resume_color == 'black' else 'White'}'s move).
 
-    def _parse_response(response_text):
-        """Parse Gemini response text into a dict, handling markdown fences and malformed JSON."""
-        text = response_text.strip()
-        if text.startswith('```'):
-            text = text.split('\n', 1)[1]
-            if text.endswith('```'):
-                text = text.rsplit('```', 1)[0]
-            text = text.strip()
-        warnings = []
-        try:
-            result = json_module.loads(text)
-        except json_module.JSONDecodeError:
-            from json_repair import repair_json
-            result = json_module.loads(repair_json(text))
-            warnings.append("json_repaired")
-        if isinstance(result, list):
-            result = result[0] if result else {}
-            warnings.append("unwrapped_array")
-        return result, warnings
+Rules:
+- Use standard algebraic notation (SAN) for moves
+- If a move is unreadable, use "?"
+- Be careful with similar-looking pieces: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
+- Castling: O-O (kingside), O-O-O (queenside)
+- Captures use "x", checks use "+", checkmate uses "#"
+
+Return ONLY a JSON object:
+{{
+  "moves": [
+    {{"number": {resume_num}, {'"white": "...", "black": "..."' if resume_color == 'white' else '"black": "..."'}}},
+    ...
+  ]
+}}"""
+
+    client = genai.Client(api_key=api_key)
+    start = time_module.time()
+    try:
+        response = client.models.generate_content(
+            model=model_id,
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                prompt,
+            ],
+            config={"response_mime_type": "application/json"},
+        )
+    except Exception as e:
+        logger.error(f"[Scoresheet reread] {model_id} failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+    elapsed = round(time_module.time() - start)
+    gemini_result, warnings = _scoresheet_parse_response(response.text)
+    new_moves = gemini_result.get("moves", [])
+
+    # Merge: confirmed + newly read
+    merged = [dict(m) for m in confirmed_moves]
+    if new_moves and merged:
+        last_conf = merged[-1]
+        first_new = new_moves[0]
+        if (first_new.get('number') == last_conf['number']
+                and not last_conf.get('black')
+                and resume_color == 'black'):
+            merged[-1] = {**last_conf, 'black': first_new.get('black', '')}
+            new_moves = new_moves[1:]
+    merged.extend(new_moves)
+
+    # Validate with stop at first illegal
+    merged = _scoresheet_validate_moves(merged, stop_at_illegal=True)
+
+    # Also produce fuzzy-corrected version (from the FULL pre-truncation read)
+    full_merged = [dict(m) for m in confirmed_moves]
+    full_new = gemini_result.get("moves", [])
+    if full_new and full_merged:
+        last_c = full_merged[-1]
+        first_n = full_new[0]
+        if (first_n.get('number') == last_c['number']
+                and not last_c.get('black')
+                and resume_color == 'black'):
+            full_merged[-1] = {**last_c, 'black': first_n.get('black', '')}
+            full_new = full_new[1:]
+    full_merged.extend(full_new)
+    corrected, num_fixes = _scoresheet_fuzzy_correct(full_merged)
+
+    logger.info(f"[Scoresheet reread] {model_id}: {len(merged)} moves (stopped), {len(corrected)} corrected, {elapsed}s")
+
+    return jsonify({
+        "result": {"moves": merged},
+        "correction": {"moves": corrected, "num_fixes": num_fixes},
+        "elapsed": elapsed,
+        "warnings": warnings,
+    })
+
+
+@app.route('/api/coaches/read-scoresheet', methods=['POST'])
+def read_scoresheet():
+    """Analyze a scoresheet image with multiple Gemini models in parallel, streaming results via SSE."""
+    from google import genai
+    from google.genai import types
+    import json as json_module
+    import threading
+    import queue
+    import time as time_module
+
+    logger.info("[Scoresheet] Request received")
+
+    if 'image' not in request.files:
+        return jsonify({"error": "No image file provided"}), 400
+
+    image_file = request.files['image']
+    if not image_file.filename:
+        return jsonify({"error": "Empty filename"}), 400
+
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        logger.error("[Scoresheet] GEMINI_API_KEY not configured")
+        return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
+
+    image_bytes = image_file.read()
+    mime_type = image_file.content_type or 'image/jpeg'
+    logger.info(f"[Scoresheet] Image: {len(image_bytes)} bytes, {mime_type}")
+
+    THREAD_DONE = "THREAD_DONE"
 
     result_queue = queue.Queue()
     client = genai.Client(api_key=api_key)
@@ -548,51 +675,49 @@ Return ONLY the JSON object, no other text."""
                 model=model_id,
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-                    PROMPT,
+                    SCORESHEET_READ_PROMPT,
                 ],
                 config={"response_mime_type": "application/json"},
             )
             elapsed = round(time_module.time() - start)
             logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s")
 
-            result, warnings = _parse_response(response.text)
-            _validate_moves(result.get("moves", []))
+            result, warnings = _scoresheet_parse_response(response.text)
+            # Pass 1: validate and stop at first illegal
+            result["moves"] = _scoresheet_validate_moves(result.get("moves", []), stop_at_illegal=True)
 
             move_count = len(result.get("moves", []))
-            logger.info(f"[Scoresheet] {model_name}: {move_count} moves extracted")
+            logger.info(f"[Scoresheet] {model_name}: {move_count} moves (stopped at first illegal)")
             item = {"type": "result", "model_id": model_id, "name": model_name, "result": result, "elapsed": elapsed}
             if warnings:
                 item["warnings"] = warnings
             result_queue.put(item)
 
-            # --- Correction pass: fuzzy-match illegal moves to closest legal move ---
-            has_illegal = any(
-                m.get('white_legal') is False or m.get('black_legal') is False
-                for m in result.get("moves", [])
-            )
-            if has_illegal:
-                result_queue.put({"type": "correcting", "model_id": model_id})
-                corr_start = time_module.time()
-                try:
-                    corrected_moves, num_fixes = _fuzzy_correct_moves(result["moves"])
-                    corr_elapsed = round((time_module.time() - corr_start) * 1000)  # ms, since it's instant
-                    corrected_full = {
-                        "moves": corrected_moves,
-                        "white_player": result.get("white_player", ""),
-                        "black_player": result.get("black_player", ""),
-                        "event": result.get("event", ""),
-                        "date": result.get("date", ""),
-                        "result": result.get("result", ""),
-                    }
-                    result_queue.put({
-                        "type": "correction", "model_id": model_id,
-                        "result": corrected_full, "elapsed": corr_elapsed,
-                        "num_fixes": num_fixes,
-                    })
-                    logger.info(f"[Scoresheet] {model_name}: fuzzy-corrected {num_fixes} moves in {corr_elapsed}ms")
-                except Exception as e:
-                    logger.error(f"[Scoresheet] {model_name} correction failed: {e}")
-                    result_queue.put({"type": "correction", "model_id": model_id, "error": str(e), "elapsed": 0})
+            # --- Correction pass: fuzzy-correct the FULL Gemini output ---
+            result_queue.put({"type": "correcting", "model_id": model_id})
+            corr_start = time_module.time()
+            try:
+                # Re-parse to get full untruncated moves for fuzzy correction
+                full_result, _ = _scoresheet_parse_response(response.text)
+                corrected_moves, num_fixes = _scoresheet_fuzzy_correct(full_result.get("moves", []))
+                corr_elapsed = round((time_module.time() - corr_start) * 1000)
+                corrected_full = {
+                    "moves": corrected_moves,
+                    "white_player": result.get("white_player", ""),
+                    "black_player": result.get("black_player", ""),
+                    "event": result.get("event", ""),
+                    "date": result.get("date", ""),
+                    "result": result.get("result", ""),
+                }
+                result_queue.put({
+                    "type": "correction", "model_id": model_id,
+                    "result": corrected_full, "elapsed": corr_elapsed,
+                    "num_fixes": num_fixes,
+                })
+                logger.info(f"[Scoresheet] {model_name}: fuzzy-corrected {num_fixes} moves in {corr_elapsed}ms")
+            except Exception as e:
+                logger.error(f"[Scoresheet] {model_name} correction failed: {e}")
+                result_queue.put({"type": "correction", "model_id": model_id, "error": str(e), "elapsed": 0})
 
         except Exception as e:
             elapsed = round(time_module.time() - start)
@@ -602,16 +727,16 @@ Return ONLY the JSON object, no other text."""
             result_queue.put(THREAD_DONE)
 
     threads = []
-    for m in MODELS:
+    for m in SCORESHEET_MODELS:
         t = threading.Thread(target=run_model, args=(m,))
         t.start()
         threads.append(t)
 
     def generate():
-        yield f"data: {json_module.dumps({'type': 'models', 'models': MODELS})}\n\n"
+        yield f"data: {json_module.dumps({'type': 'models', 'models': SCORESHEET_MODELS})}\n\n"
 
         threads_done = 0
-        while threads_done < len(MODELS):
+        while threads_done < len(SCORESHEET_MODELS):
             try:
                 item = result_queue.get(timeout=300)
                 if item is THREAD_DONE:
