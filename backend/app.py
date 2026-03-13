@@ -364,6 +364,30 @@ def validate_moves():
 
 ## --- Scoresheet helpers (shared between read & re-read endpoints) ---
 
+def _scoresheet_push_san(board, san):
+    """Try to push a SAN move, tolerating missing or extra 'x' for captures."""
+    import chess
+    try:
+        board.push_san(san)
+        return True
+    except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
+        pass
+    # Try toggling 'x': add it if missing, remove it if present
+    if 'x' in san:
+        alt = san.replace('x', '')
+    else:
+        # Insert 'x' before the destination square (lowercase letter)
+        import re
+        alt = re.sub(r'([A-Za-z\d])([a-h]\d)', r'\1x\2', san, count=1)
+    if alt != san:
+        try:
+            board.push_san(alt)
+            return True
+        except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
+            pass
+    return False
+
+
 def _scoresheet_validate_moves(moves, stop_at_illegal=False):
     """Validate moves with python-chess, adding legality flags.
     If stop_at_illegal, truncate after the first illegal move."""
@@ -375,10 +399,9 @@ def _scoresheet_validate_moves(moves, stop_at_illegal=False):
             if not san or san == "?":
                 move.pop(f"{color}_legal", None)
                 continue
-            try:
-                board.push_san(san)
+            if _scoresheet_push_san(board, san):
                 move[f"{color}_legal"] = True
-            except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
+            else:
                 move[f"{color}_legal"] = False
                 if stop_at_illegal:
                     if color == "white":
@@ -431,13 +454,13 @@ Extract ALL moves from the scoresheet and return them as a JSON object with this
 }
 
 Rules:
-- Use standard algebraic notation (SAN) for moves
+- Transcribe EXACTLY what is written on the sheet — do not add or remove symbols
+- Some players write captures with "x" (e.g. Nxd4) and some without (e.g. Nd4). Read what is actually written.
 - If a move is unreadable, use "?" as the move
 - If black's last move is missing (white won or game ended), omit the "black" field for that move
 - Include ALL moves you can read, even partially
 - Be careful with similar-looking pieces: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
 - Castling: O-O (kingside), O-O-O (queenside)
-- Captures use "x", checks use "+", checkmate uses "#"
 
 Return ONLY the JSON object, no other text."""
 
@@ -471,13 +494,11 @@ def reread_scoresheet():
         for color in ("white", "black"):
             san = move.get(color)
             if san and san != "?":
-                try:
-                    board.push_san(san)
-                except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
+                if not _scoresheet_push_san(board, san):
                     return jsonify({"error": f"Invalid confirmed move: {san} at move {move.get('number')}"}), 400
 
     fen = board.fen()
-    legal_sans = sorted(board.san(m).replace('x', '') for m in board.legal_moves)
+    legal_sans = sorted(board.san(m) for m in board.legal_moves)
 
     # Determine resume point
     if confirmed_moves:
@@ -505,11 +526,11 @@ Legal moves in this position: {', '.join(legal_sans)}
 Read ALL remaining moves from the scoresheet starting from move {resume_num} ({'Black' if resume_color == 'black' else 'White'}'s move).
 
 Rules:
-- Use standard algebraic notation (SAN) for moves
+- Transcribe EXACTLY what is written on the sheet — do not add or remove symbols
+- Some players write captures with "x" (e.g. Nxd4) and some without (e.g. Nd4). Read what is actually written.
 - If a move is unreadable, use "?"
 - Be careful with similar-looking pieces: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
 - Castling: O-O (kingside), O-O-O (queenside)
-- Captures use "x", checks use "+", checkmate uses "#"
 
 Return ONLY a JSON object:
 {{
