@@ -756,14 +756,6 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
         </div>
       )}
 
-      {/* Re-reading indicator */}
-      {rereading && (
-        <div className="flex items-center justify-center gap-1.5 py-1.5 border-b border-slate-600/50 text-xs text-blue-400 animate-pulse">
-          <Clock className="w-3 h-3 animate-spin" />
-          <span>Re-reading from edit...</span>
-        </div>
-      )}
-
       {/* Moves table */}
       {moves.length > 0 && (
         <table className="w-full text-xs">
@@ -814,7 +806,12 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
           </div>
         </div>
       )}
-      {moves.length > 0 && (<>
+      {rereading ? (
+        <div className="flex items-center justify-center gap-1.5 py-2.5 border-t border-slate-600/50 text-xs text-blue-400 animate-pulse">
+          <Clock className="w-3 h-3 animate-spin" />
+          <span>Re-reading from edit...</span>
+        </div>
+      ) : moves.length > 0 && (<>
         <button
           onClick={() => downloadPgn(moves, fileName, meta)}
           className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
