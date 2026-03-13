@@ -161,6 +161,7 @@ export function ScoresheetReadPage() {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [azureResult, setAzureResult] = useState<{ moves: Move[]; elapsed: number; loading: boolean; error?: string; rawLines?: string[] } | null>(null);
 
   const groundTruth = useMemo(() => getGroundTruth(fileName), [fileName]);
 
@@ -196,6 +197,7 @@ export function ScoresheetReadPage() {
     setModelResults({});
     setReReads({});
     setModels([]);
+    setAzureResult(null);
     setFileName(file.name);
     setImageFile(file);
 
@@ -204,6 +206,25 @@ export function ScoresheetReadPage() {
     reader.readAsDataURL(file);
 
     analyzeImage(file);
+    analyzeAzure(file);
+  };
+
+  const analyzeAzure = async (file: File) => {
+    setAzureResult({ moves: [], elapsed: 0, loading: true });
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await fetch('/api/coaches/read-scoresheet-azure', { method: 'POST', body: formData });
+      if (res.ok) {
+        const json = await res.json();
+        setAzureResult({ moves: json.moves, elapsed: json.elapsed, loading: false, rawLines: json.raw_lines });
+      } else {
+        const json = await res.json().catch(() => ({ error: 'Failed' }));
+        setAzureResult({ moves: [], elapsed: 0, loading: false, error: json.error });
+      }
+    } catch (e) {
+      setAzureResult({ moves: [], elapsed: 0, loading: false, error: e instanceof Error ? e.message : 'Unknown error' });
+    }
   };
 
   const analyzeImage = async (file: File) => {
@@ -306,7 +327,7 @@ export function ScoresheetReadPage() {
               {/* Replace + preview */}
               <div className="flex justify-end">
                 <button
-                  onClick={() => { setPreview(null); setFileName(null); setImageFile(null); setModelResults({}); setReReads({}); setModels([]); setError(''); setAnalyzing(false); fileInputRef.current?.click(); }}
+                  onClick={() => { setPreview(null); setFileName(null); setImageFile(null); setModelResults({}); setReReads({}); setModels([]); setError(''); setAnalyzing(false); setAzureResult(null); fileInputRef.current?.click(); }}
                   className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
                 >
                   <Upload className="w-4 h-4" />
@@ -409,6 +430,40 @@ export function ScoresheetReadPage() {
                     );
                   })}
                 </div>
+              )}
+
+              {/* Azure Document Intelligence section */}
+              {azureResult && (
+                <>
+                  <div className="border-t border-slate-600 my-4" />
+                  <h2 className="text-sm font-medium text-slate-300 mb-2 px-1">Azure Document Intelligence</h2>
+                  {azureResult.loading ? (
+                    <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse py-4">
+                      <Clock className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">Analyzing with Azure DI...</span>
+                    </div>
+                  ) : azureResult.error ? (
+                    <p className="text-red-400 text-center py-3 text-xs px-2">{azureResult.error}</p>
+                  ) : (
+                    <div className="flex gap-3 items-start overflow-x-auto pb-2">
+                      {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} />}
+                      <MovesPanel
+                        label="Azure DI"
+                        moves={azureResult.moves}
+                        groundTruthMoves={groundTruth?.moves}
+                        disagreements={groundTruth ? buildDisagreementMap(azureResult.moves, groundTruth.moves) : new Map()}
+                        elapsed={azureResult.elapsed}
+                        fileName={fileName}
+                      />
+                    </div>
+                  )}
+                  {azureResult.rawLines && azureResult.rawLines.length > 0 && (
+                    <details className="mt-2 px-1">
+                      <summary className="text-[10px] text-slate-500 cursor-pointer hover:text-slate-400">Raw OCR lines ({azureResult.rawLines.length})</summary>
+                      <pre className="text-[10px] text-slate-500 mt-1 max-h-40 overflow-auto bg-slate-800/50 rounded p-2">{azureResult.rawLines.join('\n')}</pre>
+                    </details>
+                  )}
+                </>
               )}
             </div>
           )}

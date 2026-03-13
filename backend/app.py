@@ -583,6 +583,129 @@ Return ONLY a JSON object:
     })
 
 
+@app.route('/api/coaches/read-scoresheet-azure', methods=['POST'])
+def read_scoresheet_azure():
+    """Read scoresheet using Azure Document Intelligence (layout model with table detection)."""
+    import time as time_module
+
+    if 'image' not in request.files:
+        return jsonify({"error": "No image file provided"}), 400
+
+    image_file = request.files['image']
+    image_bytes = image_file.read()
+    mime_type = image_file.content_type or 'image/jpeg'
+
+    endpoint = os.environ.get('AZURE_DI_ENDPOINT', '').rstrip('/')
+    key = os.environ.get('AZURE_DI_KEY')
+    if not endpoint or not key:
+        return jsonify({"error": "Azure Document Intelligence not configured"}), 500
+
+    # Submit for analysis using prebuilt-layout (detects tables)
+    analyze_url = f"{endpoint}/documentintelligence/documentModels/prebuilt-layout:analyze?api-version=2024-11-30"
+    headers = {
+        'Ocp-Apim-Subscription-Key': key,
+        'Content-Type': mime_type,
+    }
+
+    start = time_module.time()
+    try:
+        resp = http_requests.post(analyze_url, headers=headers, data=image_bytes, timeout=30)
+    except Exception as e:
+        return jsonify({"error": f"Azure DI request failed: {e}"}), 500
+
+    if resp.status_code != 202:
+        return jsonify({"error": f"Azure DI submit failed: {resp.status_code}"}), 500
+
+    result_url = resp.headers.get('Operation-Location')
+    if not result_url:
+        return jsonify({"error": "No Operation-Location header in response"}), 500
+
+    # Poll for results
+    poll_headers = {'Ocp-Apim-Subscription-Key': key}
+    result_json = None
+    for _ in range(60):
+        time_module.sleep(1)
+        try:
+            result_resp = http_requests.get(result_url, headers=poll_headers, timeout=10)
+            result_json = result_resp.json()
+        except Exception as e:
+            return jsonify({"error": f"Polling failed: {e}"}), 500
+        status = result_json.get('status')
+        if status == 'succeeded':
+            break
+        if status == 'failed':
+            return jsonify({"error": "Azure DI analysis failed"}), 500
+    else:
+        return jsonify({"error": "Azure DI timed out"}), 500
+
+    elapsed = round(time_module.time() - start)
+
+    analyze_result = result_json.get('analyzeResult', {})
+    tables = analyze_result.get('tables', [])
+    pages = analyze_result.get('pages', [])
+
+    moves = []
+    if tables:
+        # Find the largest table (most likely the scoresheet)
+        table = max(tables, key=lambda t: t.get('rowCount', 0) * t.get('columnCount', 0))
+        col_count = table.get('columnCount', 0)
+        max_row = table.get('rowCount', 0)
+
+        # Build grid from cells
+        grid = {}
+        for cell in table.get('cells', []):
+            row = cell['rowIndex']
+            col = cell['columnIndex']
+            content = cell.get('content', '').strip()
+            grid[(row, col)] = content
+
+        def parse_move_columns(g, rows, num_col, white_col, black_col):
+            """Extract moves from specific columns of the grid."""
+            result = []
+            for row in range(rows):
+                num_str = g.get((row, num_col), '').strip().replace('.', '')
+                try:
+                    num = int(num_str)
+                except ValueError:
+                    continue
+                white = g.get((row, white_col), '').strip()
+                black = g.get((row, black_col), '').strip()
+                move = {'number': num}
+                if white:
+                    move['white'] = white
+                if black:
+                    move['black'] = black
+                if white or black:
+                    result.append(move)
+            return result
+
+        if col_count >= 6:
+            # Two sets of columns side by side: #, W, B, #, W, B
+            left = parse_move_columns(grid, max_row, 0, 1, 2)
+            right = parse_move_columns(grid, max_row, 3, 4, 5)
+            moves = sorted(left + right, key=lambda m: m['number'])
+        elif col_count >= 3:
+            moves = parse_move_columns(grid, max_row, 0, 1, 2)
+
+    # Validate moves with legality checks
+    moves = _scoresheet_validate_moves(moves)
+
+    # Also return raw text lines for debugging
+    raw_lines = []
+    for page in pages:
+        for line in page.get('lines', []):
+            raw_lines.append(line.get('content', ''))
+
+    logger.info(f"[Scoresheet Azure DI] {len(moves)} moves, {len(tables)} tables, {col_count if tables else 0} cols, {elapsed}s")
+
+    return jsonify({
+        "moves": moves,
+        "elapsed": elapsed,
+        "tables_found": len(tables),
+        "raw_lines": raw_lines,
+    })
+
+
 @app.route('/api/coaches/read-scoresheet', methods=['POST'])
 def read_scoresheet():
     """Analyze a scoresheet image with multiple Gemini models in parallel, streaming results via SSE."""
