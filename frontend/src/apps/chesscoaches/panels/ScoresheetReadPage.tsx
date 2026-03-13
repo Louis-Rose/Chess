@@ -114,6 +114,13 @@ interface AccuracyStats {
   illegalThatAreMistakes: number | null;   // % of illegal moves that are also reading mistakes
 }
 
+/** Compare two SAN moves tolerating capture 'x' differences (Bxc6 ≡ Bc6). */
+function movesMatch(a: string, b: string): boolean {
+  if (a === b) return true;
+  // Strip all 'x' and compare
+  return a.replace(/x/g, '') === b.replace(/x/g, '');
+}
+
 function computeStats(modelMoves: Move[], gtMoves: Move[]): AccuracyStats | null {
   const total = gtMoves.reduce((n, m) => n + 1 + (m.black ? 1 : 0), 0);
   if (total === 0) return null;
@@ -130,7 +137,7 @@ function computeStats(modelMoves: Move[], gtMoves: Move[]): AccuracyStats | null
       if (color === 'black' && !gt.black) continue;
       const gtVal = gt[color] || '';
       const mmVal = mm?.[color] || '';
-      const isMistake = mmVal !== gtVal;
+      const isMistake = !movesMatch(mmVal, gtVal);
       const legalKey = `${color}_legal` as const;
       const isIllegal = mm?.[legalKey] === false;
       if (!isMistake) correct++;
@@ -181,8 +188,8 @@ export function ScoresheetReadPage() {
     for (let i = 0; i < maxLen; i++) {
       const modelMove = moves[i];
       const gtMove = gtMoves[i];
-      const whiteDiff = (modelMove?.white || '') !== (gtMove?.white || '');
-      const blackDiff = (modelMove?.black || '') !== (gtMove?.black || '');
+      const whiteDiff = !movesMatch(modelMove?.white || '', gtMove?.white || '');
+      const blackDiff = !movesMatch(modelMove?.black || '', gtMove?.black || '');
       if (whiteDiff || blackDiff) {
         map.set(i + 1, { white: whiteDiff, black: blackDiff });
       }
@@ -233,7 +240,7 @@ export function ScoresheetReadPage() {
         if (color === 'black' && !gt.black) continue;
         const gtVal = gt[color] || '';
         const mmVal = mm[color] || '';
-        if (mmVal !== gtVal) {
+        if (!movesMatch(mmVal, gtVal)) {
           return { moveIdx: i, color, correctValue: gtVal };
         }
       }
