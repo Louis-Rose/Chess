@@ -1,6 +1,6 @@
 // Interactive chessboard — renders a position from FEN, with move navigation
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Chess } from 'chess.js';
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -95,6 +95,47 @@ export function buildPositions(pgn: string): { fens: string[]; sans: string[] } 
   }
 }
 
+/* ── Move sound via Web Audio API ── */
+
+let audioCtx: AudioContext | null = null;
+
+function getAudioCtx(): AudioContext {
+  if (!audioCtx) audioCtx = new AudioContext();
+  return audioCtx;
+}
+
+function playMoveSound(isCapture: boolean) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (isCapture) {
+      // Capture: lower pitch, slightly longer
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(300, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.1);
+    } else {
+      // Normal move: short wooden tap
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.04);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.06);
+    }
+  } catch {
+    // Audio not available — silently ignore
+  }
+}
+
 /* ── Board colors ── */
 
 const LIGHT = '#f0d9b5';
@@ -121,6 +162,19 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const goPrev = useCallback(() => setPly(p => Math.max(0, p - 1)), []);
   const goNext = useCallback(() => setPly(p => Math.min(maxPly, p + 1)), [maxPly]);
   const goLast = useCallback(() => setPly(maxPly), [maxPly]);
+
+  // Play sound on ply change (skip initial render)
+  const isInitialRender = useRef(true);
+  useEffect(() => {
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      return;
+    }
+    if (ply > 0 && ply <= sans.length) {
+      const san = sans[ply - 1];
+      playMoveSound(san.includes('x'));
+    }
+  }, [ply, sans]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
