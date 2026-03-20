@@ -104,16 +104,27 @@ function getAudioCtx(): AudioContext {
   return audioCtx;
 }
 
-type SoundStyle = 'wood' | 'snap' | 'glass' | 'click' | 'thud' | 'none';
+type SoundStyle = 'felt' | 'marble' | 'plastic' | 'hardwood' | 'tournament' | 'none';
 
 const SOUND_LABELS: Record<SoundStyle, string> = {
-  wood: 'Wood',
-  snap: 'Snap',
-  glass: 'Glass',
-  click: 'Click',
-  thud: 'Thud',
+  felt: 'Felt',
+  marble: 'Marble',
+  plastic: 'Plastic',
+  hardwood: 'Hardwood',
+  tournament: 'Tournament',
   none: 'None',
 };
+
+// Helper: create a noise buffer source
+function noiseSource(ctx: AudioContext, durationSec: number): AudioBufferSourceNode {
+  const len = Math.ceil(ctx.sampleRate * durationSec);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  return src;
+}
 
 function playMoveSound(style: SoundStyle, isCapture: boolean) {
   if (style === 'none') return;
@@ -121,85 +132,123 @@ function playMoveSound(style: SoundStyle, isCapture: boolean) {
     const ctx = getAudioCtx();
     const t = ctx.currentTime;
 
-    if (style === 'wood') {
+    if (style === 'felt') {
+      // Soft piece on felt mat — bandpass-filtered noise, gentle
+      const src = noiseSource(ctx, 0.08);
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.setValueAtTime(isCapture ? 600 : 900, t);
+      bp.Q.setValueAtTime(2, t);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(isCapture ? 0.12 : 0.07, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + (isCapture ? 0.07 : 0.05));
+      src.connect(bp);
+      bp.connect(gain);
+      gain.connect(ctx.destination);
+      src.start(t); src.stop(t + 0.08);
+    } else if (style === 'marble') {
+      // Hard stone click — sharp high-pass noise + resonant ping
+      const src = noiseSource(ctx, 0.04);
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.setValueAtTime(3000, t);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(isCapture ? 0.15 : 0.1, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+      src.connect(hp);
+      hp.connect(gain);
+      gain.connect(ctx.destination);
+      src.start(t); src.stop(t + 0.04);
+      // Resonant body
       const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      if (isCapture) {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(300, t);
-        osc.frequency.exponentialRampToValueAtTime(120, t + 0.08);
-        gain.gain.setValueAtTime(0.15, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-        osc.start(t); osc.stop(t + 0.1);
-      } else {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, t);
-        osc.frequency.exponentialRampToValueAtTime(300, t + 0.04);
-        gain.gain.setValueAtTime(0.12, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
-        osc.start(t); osc.stop(t + 0.06);
-      }
-    } else if (style === 'snap') {
-      // Sharp noise burst
-      const bufSize = isCapture ? 2400 : 1200;
-      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-      const data = buf.getChannelData(0);
-      for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 8);
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(isCapture ? 0.2 : 0.12, t);
-      src.connect(gain);
-      gain.connect(ctx.destination);
-      src.start(t);
-    } else if (style === 'glass') {
-      // High crystalline ping
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+      const g2 = ctx.createGain();
       osc.type = 'sine';
-      const freq = isCapture ? 1800 : 2400;
-      osc.frequency.setValueAtTime(freq, t);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.7, t + 0.12);
-      gain.gain.setValueAtTime(0.08, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + (isCapture ? 0.15 : 0.1));
-      osc.start(t); osc.stop(t + 0.15);
-      // Add harmonic
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(freq * 2.5, t);
-      gain2.gain.setValueAtTime(0.03, t);
-      gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-      osc2.start(t); osc2.stop(t + 0.08);
-    } else if (style === 'click') {
-      // Minimal digital click
-      const osc = ctx.createOscillator();
+      osc.frequency.setValueAtTime(isCapture ? 1200 : 1600, t);
+      osc.frequency.exponentialRampToValueAtTime(800, t + 0.06);
+      g2.gain.setValueAtTime(0.04, t);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+      osc.connect(g2);
+      g2.connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.06);
+    } else if (style === 'plastic') {
+      // Cheap plastic set — mid-range bandpass noise, slightly hollow
+      const src = noiseSource(ctx, 0.06);
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.setValueAtTime(isCapture ? 1200 : 1800, t);
+      bp.Q.setValueAtTime(4, t);
       const gain = ctx.createGain();
-      osc.connect(gain);
+      gain.gain.setValueAtTime(isCapture ? 0.18 : 0.1, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+      src.connect(bp);
+      bp.connect(gain);
       gain.connect(ctx.destination);
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(isCapture ? 600 : 1000, t);
-      gain.gain.setValueAtTime(0.06, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + (isCapture ? 0.04 : 0.02));
+      src.start(t); src.stop(t + 0.06);
+      // Hollow resonance
+      const osc = ctx.createOscillator();
+      const g2 = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(isCapture ? 500 : 700, t);
+      osc.frequency.exponentialRampToValueAtTime(200, t + 0.04);
+      g2.gain.setValueAtTime(0.03, t);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      osc.connect(g2);
+      g2.connect(ctx.destination);
       osc.start(t); osc.stop(t + 0.04);
-    } else if (style === 'thud') {
-      // Deep bass thump
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(isCapture ? 120 : 180, t);
-      osc.frequency.exponentialRampToValueAtTime(40, t + 0.12);
-      gain.gain.setValueAtTime(isCapture ? 0.25 : 0.18, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-      osc.start(t); osc.stop(t + 0.15);
+    } else if (style === 'hardwood') {
+      // Weighted piece on thick wooden board — layered noise + low resonance
+      // Impact transient (short bright noise)
+      const src1 = noiseSource(ctx, 0.03);
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.setValueAtTime(2000, t);
+      const g1 = ctx.createGain();
+      g1.gain.setValueAtTime(isCapture ? 0.14 : 0.09, t);
+      g1.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+      src1.connect(hp);
+      hp.connect(g1);
+      g1.connect(ctx.destination);
+      src1.start(t); src1.stop(t + 0.03);
+      // Wood body (low bandpass noise)
+      const src2 = noiseSource(ctx, 0.12);
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.setValueAtTime(isCapture ? 250 : 400, t);
+      bp.Q.setValueAtTime(3, t);
+      const g2 = ctx.createGain();
+      g2.gain.setValueAtTime(isCapture ? 0.18 : 0.12, t);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      src2.connect(bp);
+      bp.connect(g2);
+      g2.connect(ctx.destination);
+      src2.start(t); src2.stop(t + 0.12);
+    } else if (style === 'tournament') {
+      // DGT-style — sharp transient + muted board thump
+      // Click transient
+      const src1 = noiseSource(ctx, 0.015);
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.setValueAtTime(4000, t);
+      const g1 = ctx.createGain();
+      g1.gain.setValueAtTime(isCapture ? 0.16 : 0.11, t);
+      g1.gain.exponentialRampToValueAtTime(0.001, t + 0.012);
+      src1.connect(hp);
+      hp.connect(g1);
+      g1.connect(ctx.destination);
+      src1.start(t); src1.stop(t + 0.015);
+      // Board resonance (lowpass noise)
+      const src2 = noiseSource(ctx, 0.08);
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(isCapture ? 350 : 500, t);
+      lp.Q.setValueAtTime(1.5, t);
+      const g2 = ctx.createGain();
+      g2.gain.setValueAtTime(isCapture ? 0.2 : 0.13, t);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+      src2.connect(lp);
+      lp.connect(g2);
+      g2.connect(ctx.destination);
+      src2.start(t); src2.stop(t + 0.08);
     }
   } catch {
     // Audio not available
@@ -223,7 +272,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const maxPly = fens.length - 1;
 
   const [ply, setPly] = useState(initialPly ?? maxPly);
-  const [soundStyle, setSoundStyle] = useState<SoundStyle>('wood');
+  const [soundStyle, setSoundStyle] = useState<SoundStyle>('hardwood');
 
   useEffect(() => {
     setPly(initialPly ?? fens.length - 1);
