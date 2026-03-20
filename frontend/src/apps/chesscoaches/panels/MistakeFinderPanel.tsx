@@ -284,7 +284,7 @@ export function MistakeFinderPanel() {
 
           {/* Analysis selection */}
           {!mistakes && (
-            <div className="space-y-4">
+            <div className="space-y-4 max-w-sm mx-auto">
               {/* Category A: Time Management */}
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-2">
@@ -294,19 +294,21 @@ export function MistakeFinderPanel() {
                 <div className="space-y-2">
                   <button
                     onClick={handleAnalyze}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 transition-colors text-left"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 transition-colors text-left text-sm"
                   >
-                    <Search className="w-5 h-5 flex-shrink-0" />
+                    <Search className="w-4 h-4 flex-shrink-0" />
                     <span>{t('coaches.mistakes.a1')}</span>
                   </button>
-                  <button
-                    disabled
-                    className="w-full bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 cursor-not-allowed text-left"
-                  >
-                    <Lock className="w-5 h-5 flex-shrink-0" />
-                    <span>{t('coaches.mistakes.a2')}</span>
-                    <span className="ml-auto text-xs text-slate-600">{t('coaches.mistakes.comingSoon')}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      disabled
+                      className="flex-1 bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 cursor-not-allowed text-left text-sm"
+                    >
+                      <Lock className="w-4 h-4 flex-shrink-0" />
+                      <span>{t('coaches.mistakes.a2')}</span>
+                    </button>
+                    <span className="text-xs text-slate-600 italic flex-shrink-0">{t('coaches.mistakes.comingSoon')}</span>
+                  </div>
                 </div>
               </div>
 
@@ -316,14 +318,16 @@ export function MistakeFinderPanel() {
                   {t('coaches.mistakes.categoryTbd')}
                 </h3>
                 <div className="space-y-2">
-                  <button
-                    disabled
-                    className="w-full bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 cursor-not-allowed text-left"
-                  >
-                    <Lock className="w-5 h-5 flex-shrink-0" />
-                    <span>{t('coaches.mistakes.b1')}</span>
-                    <span className="ml-auto text-xs text-slate-600">{t('coaches.mistakes.comingSoon')}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      disabled
+                      className="flex-1 bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 cursor-not-allowed text-left text-sm"
+                    >
+                      <Lock className="w-4 h-4 flex-shrink-0" />
+                      <span>{t('coaches.mistakes.b1')}</span>
+                    </button>
+                    <span className="text-xs text-slate-600 italic flex-shrink-0">{t('coaches.mistakes.comingSoon')}</span>
+                  </div>
                 </div>
               </div>
             </div>

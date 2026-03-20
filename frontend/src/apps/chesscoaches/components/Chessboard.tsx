@@ -434,38 +434,46 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
       </div>
 
       {/* Move list — right of board */}
-      <div className="hidden md:flex flex-col w-[160px] absolute left-full top-0 bottom-0 ml-3">
-        <div className="grid grid-cols-[auto_1fr_1fr] gap-x-1 text-xs font-mono font-bold text-slate-400 px-1 pb-1 border-b border-slate-600 mb-1">
-          <span></span>
-          <span>White</span>
-          <span>Black</span>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <div className="grid grid-cols-[auto_1fr_1fr] gap-x-1 gap-y-0.5 text-sm font-mono px-1">
-            {moveList.map(({ num, white, black, whitePly, blackPly }) => (
-              <div key={num} className="contents">
-                <span className="text-slate-500 text-right pr-1">{num}.</span>
-                <button
-                  onClick={() => setPly(whitePly)}
-                  className={`text-left px-1 rounded hover:bg-slate-600 transition-colors ${
-                    ply === whitePly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
-                  }`}
-                >
-                  {white}
-                </button>
-                {black ? (
-                  <button
-                    onClick={() => setPly(blackPly!)}
-                    className={`text-left px-1 rounded hover:bg-slate-600 transition-colors ${
-                      ply === blackPly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
-                    }`}
-                  >
-                    {black}
-                  </button>
-                ) : <span />}
-              </div>
-            ))}
-          </div>
+      <div className="hidden md:flex flex-col w-[180px] absolute left-full top-0 bottom-0 ml-3">
+        <div className="flex-1 overflow-y-auto border border-slate-600 rounded-lg">
+          <table className="w-full text-sm font-mono">
+            <thead>
+              <tr className="border-b border-slate-600 bg-slate-700/50">
+                <th className="text-slate-400 font-bold text-xs px-2 py-1.5 text-right w-8"></th>
+                <th className="text-slate-400 font-bold text-xs px-2 py-1.5 text-left">White</th>
+                <th className="text-slate-400 font-bold text-xs px-2 py-1.5 text-left">Black</th>
+              </tr>
+            </thead>
+            <tbody>
+              {moveList.map(({ num, white, black, whitePly, blackPly }) => (
+                <tr key={num} className="border-b border-slate-700/50 last:border-b-0">
+                  <td className="text-slate-500 text-right px-2 py-0.5">{num}.</td>
+                  <td className="px-1 py-0.5">
+                    <button
+                      onClick={() => setPly(whitePly)}
+                      className={`w-full text-left px-1 rounded hover:bg-slate-600 transition-colors ${
+                        ply === whitePly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
+                      }`}
+                    >
+                      {white}
+                    </button>
+                  </td>
+                  <td className="px-1 py-0.5">
+                    {black ? (
+                      <button
+                        onClick={() => setPly(blackPly!)}
+                        className={`w-full text-left px-1 rounded hover:bg-slate-600 transition-colors ${
+                          ply === blackPly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
+                        }`}
+                      >
+                        {black}
+                      </button>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
       </div>
@@ -487,32 +495,45 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
       </div>
 
       {/* Move list — mobile fallback (below board) */}
-      <div className="md:hidden w-full max-w-[560px] max-h-[160px] overflow-y-auto bg-slate-700/30 rounded-lg p-2">
-        <div className="grid grid-cols-[auto_1fr_1fr] gap-x-2 gap-y-0.5 text-sm font-mono">
-          {moveList.map(({ num, white, black, whitePly, blackPly }) => (
-            <div key={num} className="contents">
-              <span className="text-slate-500 text-right pr-1">{num}.</span>
-              <button
-                onClick={() => setPly(whitePly)}
-                className={`text-left px-1 rounded hover:bg-slate-600 transition-colors ${
-                  ply === whitePly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
-                }`}
-              >
-                {white}
-              </button>
-              {black ? (
-                <button
-                  onClick={() => setPly(blackPly!)}
-                  className={`text-left px-1 rounded hover:bg-slate-600 transition-colors ${
-                    ply === blackPly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
-                  }`}
-                >
-                  {black}
-                </button>
-              ) : <span />}
-            </div>
-          ))}
-        </div>
+      <div className="md:hidden w-full max-w-[560px] max-h-[160px] overflow-y-auto border border-slate-600 rounded-lg">
+        <table className="w-full text-sm font-mono">
+          <thead>
+            <tr className="border-b border-slate-600 bg-slate-700/50 sticky top-0">
+              <th className="text-slate-400 font-bold text-xs px-2 py-1.5 text-right w-8"></th>
+              <th className="text-slate-400 font-bold text-xs px-2 py-1.5 text-left">White</th>
+              <th className="text-slate-400 font-bold text-xs px-2 py-1.5 text-left">Black</th>
+            </tr>
+          </thead>
+          <tbody>
+            {moveList.map(({ num, white, black, whitePly, blackPly }) => (
+              <tr key={num} className="border-b border-slate-700/50 last:border-b-0">
+                <td className="text-slate-500 text-right px-2 py-0.5">{num}.</td>
+                <td className="px-1 py-0.5">
+                  <button
+                    onClick={() => setPly(whitePly)}
+                    className={`w-full text-left px-1 rounded hover:bg-slate-600 transition-colors ${
+                      ply === whitePly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
+                    }`}
+                  >
+                    {white}
+                  </button>
+                </td>
+                <td className="px-1 py-0.5">
+                  {black ? (
+                    <button
+                      onClick={() => setPly(blackPly!)}
+                      className={`w-full text-left px-1 rounded hover:bg-slate-600 transition-colors ${
+                        ply === blackPly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
+                      }`}
+                    >
+                      {black}
+                    </button>
+                  ) : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
