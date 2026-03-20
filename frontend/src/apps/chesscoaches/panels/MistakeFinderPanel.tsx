@@ -240,14 +240,14 @@ export function MistakeFinderPanel() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
       <PanelHeader title={t('coaches.navMistakes')} />
 
-      <div className="max-w-[620px] mx-[5%] md:mx-auto">
+      <div className="mx-[5%] md:mx-auto">
       {/* Upload area */}
       {!pgnText ? (
         <div
           onDrop={handleDrop}
           onDragOver={e => e.preventDefault()}
           onClick={() => fileRef.current?.click()}
-          className="border-2 border-dashed border-slate-600 rounded-xl p-10 flex flex-col items-center gap-3 cursor-pointer hover:border-blue-500 transition-colors"
+          className="border-2 border-dashed border-slate-600 rounded-xl p-10 flex flex-col items-center gap-3 cursor-pointer hover:border-blue-500 transition-colors max-w-lg mx-auto"
         >
           <Upload className="w-10 h-10 text-slate-400" />
           <p className="text-slate-300 font-medium">{t('coaches.mistakes.uploadPrompt')}</p>
@@ -340,7 +340,7 @@ export function MistakeFinderPanel() {
 
           {/* Results */}
           {mistakes && gameHeaders && (
-            <div className="space-y-4">
+            <div className="space-y-4 max-w-lg mx-auto">
               {/* Game info */}
               <div className="bg-slate-700/30 rounded-lg px-4 py-3 space-y-1">
                 <p className="text-white font-medium">

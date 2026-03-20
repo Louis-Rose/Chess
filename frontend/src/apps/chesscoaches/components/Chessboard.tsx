@@ -310,12 +310,12 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
         <ClockDisplay time={topClock} isBlack={topIsBlack} />
       </div>
 
-      {/* Board row: flip button + board */}
-      <div className="flex items-center gap-2">
+      {/* Board row: board with absolutely positioned flip button */}
+      <div className="relative">
       {/* Flip button */}
       <button
         onClick={() => setFlipped(f => !f)}
-        className="p-2.5 rounded-lg bg-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors flex-shrink-0 border border-slate-600"
+        className="absolute -left-12 top-1/2 -translate-y-1/2 p-2.5 rounded-lg bg-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors flex-shrink-0 border border-slate-600 hidden md:block"
         title="Flip board"
       >
         <ArrowUpDown className="w-5 h-5" />
@@ -488,6 +488,13 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
         </button>
         <button onClick={goNext} disabled={ply === maxPly} className="p-2 rounded-lg text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-default transition-colors">
           <ChevronRight className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => setFlipped(f => !f)}
+          className="md:hidden p-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors"
+          title="Flip board"
+        >
+          <ArrowUpDown className="w-5 h-5" />
         </button>
         <button onClick={goLast} disabled={ply === maxPly} className="p-2 rounded-lg text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-default transition-colors">
           <ChevronLast className="w-5 h-5" />
