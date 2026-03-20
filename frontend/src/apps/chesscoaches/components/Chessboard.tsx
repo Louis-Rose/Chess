@@ -104,26 +104,7 @@ function getAudioCtx(): AudioContext {
   return audioCtx;
 }
 
-type SoundStyle = 'vol1' | 'vol2' | 'vol3' | 'vol4' | 'vol5' | 'none';
-
-const SOUND_LABELS: Record<SoundStyle, string> = {
-  vol1: '1',
-  vol2: '2',
-  vol3: '3',
-  vol4: '4',
-  vol5: '5',
-  none: 'Off',
-};
-
-// Volume multipliers — vol3 = current 1.5x whisper baseline
-const VOL_MULTIPLIERS: Record<SoundStyle, number> = {
-  vol1: 0.5,
-  vol2: 0.75,
-  vol3: 1,
-  vol4: 1.5,
-  vol5: 2,
-  none: 0,
-};
+const SOUND_VOL = 0.75; // volume multiplier (level 2)
 
 // Helper: create a noise buffer source
 function noiseSource(ctx: AudioContext, durationSec: number): AudioBufferSourceNode {
@@ -138,21 +119,15 @@ function noiseSource(ctx: AudioContext, durationSec: number): AudioBufferSourceN
 
 // All variations: sharp transient click + board body resonance
 // Tuned around the Tournament baseline with different balances
-function playMoveSound(style: SoundStyle, isCapture: boolean) {
-  if (style === 'none') return;
+function playMoveSound(isCapture: boolean) {
   try {
     const ctx = getAudioCtx();
     const t = ctx.currentTime;
 
-    // Parameters per style (transientHz, transientDur, transientVol, bodyHz, bodyQ, bodyDur, bodyVol)
-    let tHz: number, tDur: number, tVol: number;
-    let bHz: number, bQ: number, bDur: number, bVol: number;
-    let bType: BiquadFilterType;
-
-    // Whisper base values, scaled by volume level
-    const v = VOL_MULTIPLIERS[style];
-    tHz = 3000; tDur = 0.005; tVol = (isCapture ? 0.053 : 0.03) * v;
-    bType = 'bandpass'; bHz = isCapture ? 400 : 600; bQ = 1; bDur = 0.06; bVol = (isCapture ? 0.12 : 0.075) * v;
+    const v = SOUND_VOL;
+    const tHz = 3000, tDur = 0.005, tVol = (isCapture ? 0.053 : 0.03) * v;
+    const bType: BiquadFilterType = 'bandpass';
+    const bHz = isCapture ? 400 : 600, bQ = 1, bDur = 0.06, bVol = (isCapture ? 0.12 : 0.075) * v;
 
     // Transient click (highpass noise)
     const src1 = noiseSource(ctx, tDur);
@@ -202,7 +177,6 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const maxPly = fens.length - 1;
 
   const [ply, setPly] = useState(initialPly ?? maxPly);
-  const [soundStyle, setSoundStyle] = useState<SoundStyle>('vol3');
 
   useEffect(() => {
     setPly(initialPly ?? fens.length - 1);
@@ -222,7 +196,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
     }
     if (ply > 0 && ply <= sans.length) {
       const san = sans[ply - 1];
-      playMoveSound(soundStyle, san.includes('x'));
+      playMoveSound(san.includes('x'));
     }
   }, [ply, sans]);
 
@@ -255,8 +229,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      {/* Board + sound selector */}
-      <div className="flex items-start gap-3 w-full justify-center">
+      {/* Board */}
       <div className="w-full max-w-[560px] aspect-square">
         <svg viewBox="0 0 800 800" className="w-full h-full rounded-lg overflow-hidden shadow-lg">
           {/* Highlight last move (render behind pieces) */}
@@ -345,24 +318,6 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
             })
           )}
         </svg>
-      </div>
-
-      {/* Sound style selector */}
-      <div className="hidden md:flex flex-col gap-1.5 pt-1">
-        {(Object.keys(SOUND_LABELS) as SoundStyle[]).map(s => (
-          <button
-            key={s}
-            onClick={() => { setSoundStyle(s); if (s !== 'none') playMoveSound(s, false); }}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
-              soundStyle === s
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-            }`}
-          >
-            {SOUND_LABELS[s]}
-          </button>
-        ))}
-      </div>
       </div>
 
       {/* Navigation controls */}
