@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Chess } from 'chess.js';
-import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 
 /* ── Piece SVG paths — filled style for both colors ── */
 
@@ -201,6 +201,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const maxPly = fens.length - 1;
 
   const [ply, setPly] = useState(initialPly ?? maxPly);
+  const [flipped, setFlipped] = useState(false);
 
   useEffect(() => {
     setPly(initialPly ?? fens.length - 1);
@@ -237,6 +238,19 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
 
   const board = fenToBoard(fens[ply]);
 
+  // Current clocks for each side
+  const currentClocks = useMemo(() => {
+    let whiteClock: string | null = null;
+    let blackClock: string | null = null;
+    for (let i = ply - 1; i >= 0; i--) {
+      const isWhiteMove = i % 2 === 0;
+      if (isWhiteMove && !whiteClock && clocks[i]) whiteClock = clocks[i];
+      if (!isWhiteMove && !blackClock && clocks[i]) blackClock = clocks[i];
+      if (whiteClock && blackClock) break;
+    }
+    return { whiteClock, blackClock };
+  }, [ply, clocks]);
+
   const moveList = useMemo(() => {
     const pairs: { num: number; white: string; black?: string; whitePly: number; blackPly?: number; whiteClk?: string | null; blackClk?: string | null }[] = [];
     for (let i = 0; i < sans.length; i += 2) {
@@ -253,10 +267,46 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
     return pairs;
   }, [sans]);
 
+  // Clock component
+  const ClockDisplay = ({ time, isBlack }: { time: string | null; isBlack: boolean }) => {
+    if (!time) return <div className="h-8" />;
+    return (
+      <div className={`font-mono font-bold text-base px-3 py-1 rounded shadow inline-block ${
+        isBlack
+          ? 'bg-slate-900 text-white border border-slate-600'
+          : 'bg-white text-slate-900'
+      }`}>
+        {time}
+      </div>
+    );
+  };
+
+  // Top clock = black side when normal, white side when flipped
+  const topClock = flipped ? currentClocks.whiteClock : currentClocks.blackClock;
+  const bottomClock = flipped ? currentClocks.blackClock : currentClocks.whiteClock;
+  const topIsBlack = !flipped;
+  const bottomIsBlack = flipped;
+
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-2">
       {/* Board + move list */}
       <div className="relative w-full max-w-[560px]">
+
+      {/* Top clock */}
+      <div className="flex justify-end mb-1 min-h-[32px]">
+        <ClockDisplay time={topClock} isBlack={topIsBlack} />
+      </div>
+
+      {/* Board row: flip button + board */}
+      <div className="flex items-center gap-2">
+      {/* Flip button */}
+      <button
+        onClick={() => setFlipped(f => !f)}
+        className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors flex-shrink-0"
+        title="Flip board"
+      >
+        <ArrowUpDown className="w-5 h-5" />
+      </button>
       <div className="w-full aspect-square relative">
         <svg viewBox="0 0 800 800" className="w-full h-full rounded-lg overflow-hidden shadow-lg">
           {/* Highlight last move (render behind pieces) */}
@@ -271,16 +321,17 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
               const toR = 7 - (parseInt(move.to[1]) - 1);
               return (
                 <g>
-                  {/* Draw all squares first */}
                   {board.map((row, r) =>
                     row.map((_, c) => {
                       const isLight = (r + c) % 2 === 0;
                       const isFrom = r === fromR && c === fromC;
                       const isTo = r === toR && c === toC;
+                      const dr = flipped ? 7 - r : r;
+                      const dc = flipped ? 7 - c : c;
                       return (
                         <rect
                           key={`bg-${r}-${c}`}
-                          x={c * 100} y={r * 100} width={100} height={100}
+                          x={dc * 100} y={dr * 100} width={100} height={100}
                           fill={isFrom || isTo ? (isLight ? '#f7ec5a' : '#dac934') : (isLight ? LIGHT : DARK)}
                         />
                       );
@@ -289,43 +340,57 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                 </g>
               );
             } catch {
-              // Fallback: draw squares without highlight
               return (
                 <g>
                   {board.map((row, r) =>
-                    row.map((_, c) => (
-                      <rect key={`bg-${r}-${c}`} x={c * 100} y={r * 100} width={100} height={100} fill={(r + c) % 2 === 0 ? LIGHT : DARK} />
-                    ))
+                    row.map((_, c) => {
+                      const dr = flipped ? 7 - r : r;
+                      const dc = flipped ? 7 - c : c;
+                      return (
+                        <rect key={`bg-${r}-${c}`} x={dc * 100} y={dr * 100} width={100} height={100} fill={(r + c) % 2 === 0 ? LIGHT : DARK} />
+                      );
+                    })
                   )}
                 </g>
               );
             }
           })()}
-          {/* Squares without highlight (when at start position) */}
           {ply === 0 && board.map((row, r) =>
-            row.map((_, c) => (
-              <rect key={`bg-${r}-${c}`} x={c * 100} y={r * 100} width={100} height={100} fill={(r + c) % 2 === 0 ? LIGHT : DARK} />
-            ))
+            row.map((_, c) => {
+              const dr = flipped ? 7 - r : r;
+              const dc = flipped ? 7 - c : c;
+              return (
+                <rect key={`bg-${r}-${c}`} x={dc * 100} y={dr * 100} width={100} height={100} fill={(r + c) % 2 === 0 ? LIGHT : DARK} />
+              );
+            })
           )}
           {/* Coordinate labels */}
-          {Array.from({ length: 8 }).map((_, c) => (
-            <text key={`file-${c}`} x={c * 100 + 90} y={796} fontSize="18" fontWeight="700" fill={(7 + c) % 2 === 0 ? DARK : LIGHT} textAnchor="end" fontFamily="system-ui">
-              {'abcdefgh'[c]}
-            </text>
-          ))}
-          {Array.from({ length: 8 }).map((_, r) => (
-            <text key={`rank-${r}`} x={6} y={r * 100 + 20} fontSize="18" fontWeight="700" fill={(r) % 2 === 0 ? DARK : LIGHT} fontFamily="system-ui">
-              {8 - r}
-            </text>
-          ))}
+          {Array.from({ length: 8 }).map((_, i) => {
+            const c = flipped ? 7 - i : i;
+            return (
+              <text key={`file-${i}`} x={i * 100 + 90} y={796} fontSize="18" fontWeight="700" fill={(7 + i) % 2 === 0 ? DARK : LIGHT} textAnchor="end" fontFamily="system-ui">
+                {'abcdefgh'[c]}
+              </text>
+            );
+          })}
+          {Array.from({ length: 8 }).map((_, i) => {
+            const r = flipped ? i : 7 - i;
+            return (
+              <text key={`rank-${i}`} x={6} y={i * 100 + 20} fontSize="18" fontWeight="700" fill={(i) % 2 === 0 ? DARK : LIGHT} fontFamily="system-ui">
+                {r + 1}
+              </text>
+            );
+          })}
           {/* Pieces */}
           {board.map((row, r) =>
             row.map((piece, c) => {
               if (!piece) return null;
-              const x = c * 100 + 50;
+              const dr = flipped ? 7 - r : r;
+              const dc = flipped ? 7 - c : c;
+              const x = dc * 100 + 50;
               const pawn = isPawn(piece);
               const fontSize = pawn ? 58 : 80;
-              const y = r * 100 + (pawn ? 56 : 58);
+              const y = dr * 100 + (pawn ? 56 : 58);
               const white = isWhitePiece(piece);
               return (
                 <text
@@ -347,33 +412,12 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
             })
           )}
         </svg>
-        {/* Clock overlay — top right of board */}
-        {clocks.length > 0 && ply > 0 && (() => {
-          // Find most recent clock for each side at current ply
-          let whiteClock: string | null = null;
-          let blackClock: string | null = null;
-          for (let i = ply - 1; i >= 0; i--) {
-            const isWhiteMove = i % 2 === 0;
-            if (isWhiteMove && !whiteClock && clocks[i]) whiteClock = clocks[i];
-            if (!isWhiteMove && !blackClock && clocks[i]) blackClock = clocks[i];
-            if (whiteClock && blackClock) break;
-          }
-          if (!whiteClock && !blackClock) return null;
-          return (
-            <div className="absolute top-2 right-2 flex flex-col gap-1">
-              {whiteClock && (
-                <div className="bg-white text-slate-900 text-xs font-mono font-bold px-2 py-1 rounded shadow">
-                  {whiteClock}
-                </div>
-              )}
-              {blackClock && (
-                <div className="bg-slate-900 text-white text-xs font-mono font-bold px-2 py-1 rounded shadow border border-slate-600">
-                  {blackClock}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+      </div>
+      </div>
+
+      {/* Bottom clock */}
+      <div className="flex justify-end mt-1 min-h-[32px]">
+        <ClockDisplay time={bottomClock} isBlack={bottomIsBlack} />
       </div>
 
       {/* Move list — right of board */}
