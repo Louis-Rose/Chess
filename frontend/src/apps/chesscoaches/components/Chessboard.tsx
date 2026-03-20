@@ -104,15 +104,11 @@ function getAudioCtx(): AudioContext {
   return audioCtx;
 }
 
-type SoundStyle = 'soft-muted' | 'soft-velvet' | 'soft' | 'soft-cushion' | 'soft-whisper' | 'none';
+type SoundStyle = 'on' | 'none';
 
 const SOUND_LABELS: Record<SoundStyle, string> = {
-  'soft-muted': 'Muted',
-  'soft-velvet': 'Velvet',
-  soft: 'Soft',
-  'soft-cushion': 'Cushion',
-  'soft-whisper': 'Whisper',
-  none: 'None',
+  on: 'On',
+  none: 'Off',
 };
 
 // Helper: create a noise buffer source
@@ -139,27 +135,9 @@ function playMoveSound(style: SoundStyle, isCapture: boolean) {
     let bHz: number, bQ: number, bDur: number, bVol: number;
     let bType: BiquadFilterType;
 
-    if (style === 'soft-muted') {
-      // Very quiet transient, narrow low body — barely there, like distant room
-      tHz = 2000; tDur = 0.008; tVol = isCapture ? 0.05 : 0.03;
-      bType = 'bandpass'; bHz = isCapture ? 250 : 350; bQ = 1.2; bDur = 0.07; bVol = isCapture ? 0.12 : 0.08;
-    } else if (style === 'soft-velvet') {
-      // No sharp transient, all warm body — smooth and lush
-      tHz = 1800; tDur = 0.006; tVol = isCapture ? 0.04 : 0.02;
-      bType = 'bandpass'; bHz = isCapture ? 350 : 500; bQ = 2.2; bDur = 0.11; bVol = isCapture ? 0.2 : 0.14;
-    } else if (style === 'soft') {
-      // Gentle transient, warm sustained body — felt-bottomed pieces
-      tHz = 2500; tDur = 0.012; tVol = isCapture ? 0.08 : 0.05;
-      bType = 'bandpass'; bHz = isCapture ? 300 : 450; bQ = 1.8; bDur = 0.09; bVol = isCapture ? 0.18 : 0.12;
-    } else if (style === 'soft-cushion') {
-      // Slightly fuller transient, broader warm body — padded board feel
-      tHz = 2200; tDur = 0.014; tVol = isCapture ? 0.07 : 0.045;
-      bType = 'lowpass'; bHz = isCapture ? 400 : 550; bQ = 1.5; bDur = 0.1; bVol = isCapture ? 0.2 : 0.15;
-    } else { // soft-whisper
-      // Extremely subtle — just a hint of contact, almost ASMR
-      tHz = 3000; tDur = 0.005; tVol = isCapture ? 0.035 : 0.02;
-      bType = 'bandpass'; bHz = isCapture ? 400 : 600; bQ = 1; bDur = 0.06; bVol = isCapture ? 0.08 : 0.05;
-    }
+    // Whisper — subtle hint of contact, slightly boosted
+    tHz = 3000; tDur = 0.005; tVol = isCapture ? 0.053 : 0.03;
+    bType = 'bandpass'; bHz = isCapture ? 400 : 600; bQ = 1; bDur = 0.06; bVol = isCapture ? 0.12 : 0.075;
 
     // Transient click (highpass noise)
     const src1 = noiseSource(ctx, tDur);
@@ -209,7 +187,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const maxPly = fens.length - 1;
 
   const [ply, setPly] = useState(initialPly ?? maxPly);
-  const [soundStyle, setSoundStyle] = useState<SoundStyle>('soft');
+  const [soundStyle, setSoundStyle] = useState<SoundStyle>('on');
 
   useEffect(() => {
     setPly(initialPly ?? fens.length - 1);
