@@ -1,8 +1,8 @@
 // Scoresheet reader page — reads scoresheets with Gemini, supports iterative correction
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download, Play, RotateCcw, Square } from 'lucide-react';
+import { Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download, Play, RotateCcw, Square } from 'lucide-react';
+import { PanelHeader } from '../components/PanelHeader';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Move {
@@ -155,7 +155,6 @@ function computeStats(modelMoves: Move[], gtMoves: Move[]): AccuracyStats | null
 }
 
 export function ScoresheetReadPage() {
-  const navigate = useNavigate();
   const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -472,18 +471,7 @@ export function ScoresheetReadPage() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="max-w-[1600px] mx-auto">
-        <div className="flex flex-col pt-2">
-          <button
-            onClick={() => navigate('/coach')}
-            className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base px-2 md:px-4"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Previous</span>
-          </button>
-          <div className="border-t border-slate-700 mt-2" />
-          <h1 className="text-lg font-bold text-slate-100 text-center mt-2">{t('coaches.navScoresheets')}</h1>
-        </div>
-        <div className="border-t border-slate-700 mt-2 mb-6" />
+        <PanelHeader title={t('coaches.navScoresheets')} />
 
         {/* Upload area */}
         <div className="px-2">
