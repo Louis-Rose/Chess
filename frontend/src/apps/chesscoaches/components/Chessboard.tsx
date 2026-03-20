@@ -6,15 +6,18 @@ import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-rea
 
 /* ── Piece SVG paths — filled style for both colors ── */
 
-// All pieces use the filled (black) unicode glyphs for consistent style.
-// White pieces get white fill + dark stroke, black pieces get dark fill + dark stroke.
+// White pieces use outline glyphs (♔♕♖♗♘♙), black use filled (♚♛♜♝♞♟)
 const PIECE_CHAR: Record<string, string> = {
-  K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟',
+  K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙',
   k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟',
 };
 
 function isWhitePiece(piece: string): boolean {
   return piece === piece.toUpperCase();
+}
+
+function isPawn(piece: string): boolean {
+  return piece === 'P' || piece === 'p';
 }
 
 /* ── FEN parsing ── */
@@ -296,14 +299,16 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
             row.map((piece, c) => {
               if (!piece) return null;
               const x = c * 100 + 50;
-              const y = r * 100 + 58;
+              const pawn = isPawn(piece);
+              const fontSize = pawn ? 58 : 80;
+              const y = r * 100 + (pawn ? 56 : 58);
               const white = isWhitePiece(piece);
               return (
                 <text
                   key={`piece-${r}-${c}`}
                   x={x}
                   y={y}
-                  fontSize="72"
+                  fontSize={fontSize}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill={white ? '#fff' : '#1e1e1e'}
