@@ -5,6 +5,7 @@ import { Routes, Route } from 'react-router-dom';
 import { ChessCoachesLayout } from './ChessCoachesLayout';
 import { ScoresheetPanel } from './panels/ScoresheetPanel';
 import { ScoresheetReadPage } from './panels/ScoresheetReadPage';
+import { MistakeFinderPanel } from './panels/MistakeFinderPanel';
 
 export function ChessCoachesApp() {
   useEffect(() => {
@@ -18,6 +19,7 @@ export function ChessCoachesApp() {
       <Route element={<ChessCoachesLayout />}>
         <Route index element={<ScoresheetPanel />} />
         <Route path="scoresheets" element={<ScoresheetReadPage />} />
+        <Route path="mistakes" element={<MistakeFinderPanel />} />
       </Route>
     </Routes>
   );
