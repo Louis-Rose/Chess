@@ -233,8 +233,9 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      {/* Board */}
-      <div className="w-full max-w-[560px] aspect-square">
+      {/* Board + move list side by side */}
+      <div className="flex items-start gap-3 w-full justify-center">
+      <div className="w-full max-w-[560px] aspect-square flex-shrink-0">
         <svg viewBox="0 0 800 800" className="w-full h-full rounded-lg overflow-hidden shadow-lg">
           {/* Highlight last move (render behind pieces) */}
           {ply > 0 && (() => {
@@ -326,6 +327,43 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
         </svg>
       </div>
 
+      {/* Move list — right of board */}
+      <div className="hidden md:flex flex-col min-w-[160px] max-w-[200px] h-[560px]">
+        <div className="grid grid-cols-[auto_1fr_1fr] gap-x-1 text-xs font-mono font-bold text-slate-400 px-1 pb-1 border-b border-slate-600 mb-1">
+          <span></span>
+          <span>White</span>
+          <span>Black</span>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="grid grid-cols-[auto_1fr_1fr] gap-x-1 gap-y-0.5 text-sm font-mono px-1">
+            {moveList.map(({ num, white, black, whitePly, blackPly }) => (
+              <div key={num} className="contents">
+                <span className="text-slate-500 text-right pr-1">{num}.</span>
+                <button
+                  onClick={() => setPly(whitePly)}
+                  className={`text-left px-1 rounded hover:bg-slate-600 transition-colors ${
+                    ply === whitePly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
+                  }`}
+                >
+                  {white}
+                </button>
+                {black ? (
+                  <button
+                    onClick={() => setPly(blackPly!)}
+                    className={`text-left px-1 rounded hover:bg-slate-600 transition-colors ${
+                      ply === blackPly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
+                    }`}
+                  >
+                    {black}
+                  </button>
+                ) : <span />}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      </div>
+
       {/* Navigation controls */}
       <div className="flex items-center gap-1">
         <button onClick={goFirst} disabled={ply === 0} className="p-2 rounded-lg text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-default transition-colors">
@@ -342,8 +380,8 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
         </button>
       </div>
 
-      {/* Move list */}
-      <div className="w-full max-w-[560px] max-h-[160px] overflow-y-auto bg-slate-700/30 rounded-lg p-2">
+      {/* Move list — mobile fallback (below board) */}
+      <div className="md:hidden w-full max-w-[560px] max-h-[160px] overflow-y-auto bg-slate-700/30 rounded-lg p-2">
         <div className="grid grid-cols-[auto_1fr_1fr] gap-x-2 gap-y-0.5 text-sm font-mono">
           {moveList.map(({ num, white, black, whitePly, blackPly }) => (
             <div key={num} className="contents">
