@@ -61,6 +61,25 @@ export function extractSans(pgn: string): string[] {
   return sans;
 }
 
+/* ── Extract clock annotations from PGN ── */
+
+function extractClocks(pgn: string): (string | null)[] {
+  const clocks: (string | null)[] = [];
+  const movetext = pgn
+    .split('\n')
+    .filter(l => !l.startsWith('[') && l.trim())
+    .join(' ');
+
+  // Match each SAN move followed (possibly) by a clock comment
+  // Walk through tokens: SAN, then optional {[%clk h:mm:ss]}
+  const regex = /([A-Ka-kNBRQO][a-h1-8x+#=NBRQ]*|O-O(?:-O)?)\s*(?:\{[^}]*?\[%clk\s+(\d+:\d+:\d+)(?:\.\d+)?\][^}]*?\})?/g;
+  let m;
+  while ((m = regex.exec(movetext)) !== null) {
+    clocks.push(m[2] || null);
+  }
+  return clocks;
+}
+
 /* ── Build position history using chess.js ── */
 
 export function buildPositions(pgn: string): { fens: string[]; sans: string[] } {
@@ -178,6 +197,7 @@ interface ChessboardProps {
 
 export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const { fens, sans } = useMemo(() => buildPositions(pgn), [pgn]);
+  const clocks = useMemo(() => extractClocks(pgn), [pgn]);
   const maxPly = fens.length - 1;
 
   const [ply, setPly] = useState(initialPly ?? maxPly);
@@ -218,7 +238,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const board = fenToBoard(fens[ply]);
 
   const moveList = useMemo(() => {
-    const pairs: { num: number; white: string; black?: string; whitePly: number; blackPly?: number }[] = [];
+    const pairs: { num: number; white: string; black?: string; whitePly: number; blackPly?: number; whiteClk?: string | null; blackClk?: string | null }[] = [];
     for (let i = 0; i < sans.length; i += 2) {
       pairs.push({
         num: Math.floor(i / 2) + 1,
@@ -226,6 +246,8 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
         black: sans[i + 1],
         whitePly: i + 1,
         blackPly: sans[i + 1] ? i + 2 : undefined,
+        whiteClk: clocks[i] || null,
+        blackClk: clocks[i + 1] || null,
       });
     }
     return pairs;
@@ -328,7 +350,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
       </div>
 
       {/* Move list — right of board */}
-      <div className="hidden md:flex flex-col w-[160px] absolute left-full top-0 bottom-0 ml-3">
+      <div className="hidden md:flex flex-col w-[200px] absolute left-full top-0 bottom-0 ml-3">
         <div className="grid grid-cols-[auto_1fr_1fr] gap-x-1 text-xs font-mono font-bold text-slate-400 px-1 pb-1 border-b border-slate-600 mb-1">
           <span></span>
           <span>White</span>
@@ -336,7 +358,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
         </div>
         <div className="flex-1 overflow-y-auto">
           <div className="grid grid-cols-[auto_1fr_1fr] gap-x-1 gap-y-0.5 text-sm font-mono px-1">
-            {moveList.map(({ num, white, black, whitePly, blackPly }) => (
+            {moveList.map(({ num, white, black, whitePly, blackPly, whiteClk, blackClk }) => (
               <div key={num} className="contents">
                 <span className="text-slate-500 text-right pr-1">{num}.</span>
                 <button
@@ -345,7 +367,8 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                     ply === whitePly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
                   }`}
                 >
-                  {white}
+                  <span>{white}</span>
+                  {whiteClk && <span className="text-slate-500 text-[10px] ml-1">{whiteClk}</span>}
                 </button>
                 {black ? (
                   <button
@@ -354,7 +377,8 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                       ply === blackPly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
                     }`}
                   >
-                    {black}
+                    <span>{black}</span>
+                    {blackClk && <span className="text-slate-500 text-[10px] ml-1">{blackClk}</span>}
                   </button>
                 ) : <span />}
               </div>
