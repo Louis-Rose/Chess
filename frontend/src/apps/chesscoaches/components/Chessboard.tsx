@@ -313,7 +313,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill={white ? '#fff' : '#1e1e1e'}
-                  stroke={white ? '#1e1e1e' : '#fff'}
+                  stroke={pawn ? (white ? '#fff' : '#1e1e1e') : (white ? '#1e1e1e' : '#fff')}
                   strokeWidth={pawn ? 7 : (white ? 3 : 1)}
                   style={{ userSelect: 'none' }}
                   paintOrder="stroke"
