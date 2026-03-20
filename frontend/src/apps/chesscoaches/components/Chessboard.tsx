@@ -104,14 +104,14 @@ function getAudioCtx(): AudioContext {
   return audioCtx;
 }
 
-type SoundStyle = 'felt' | 'marble' | 'plastic' | 'hardwood' | 'tournament' | 'none';
+type SoundStyle = 'dgt-crisp' | 'dgt-warm' | 'tournament' | 'dgt-soft' | 'dgt-heavy' | 'none';
 
 const SOUND_LABELS: Record<SoundStyle, string> = {
-  felt: 'Felt',
-  marble: 'Marble',
-  plastic: 'Plastic',
-  hardwood: 'Hardwood',
+  'dgt-crisp': 'Crisp',
+  'dgt-warm': 'Warm',
   tournament: 'Tournament',
+  'dgt-soft': 'Soft',
+  'dgt-heavy': 'Heavy',
   none: 'None',
 };
 
@@ -126,130 +126,67 @@ function noiseSource(ctx: AudioContext, durationSec: number): AudioBufferSourceN
   return src;
 }
 
+// All variations: sharp transient click + board body resonance
+// Tuned around the Tournament baseline with different balances
 function playMoveSound(style: SoundStyle, isCapture: boolean) {
   if (style === 'none') return;
   try {
     const ctx = getAudioCtx();
     const t = ctx.currentTime;
 
-    if (style === 'felt') {
-      // Soft piece on felt mat — bandpass-filtered noise, gentle
-      const src = noiseSource(ctx, 0.08);
-      const bp = ctx.createBiquadFilter();
-      bp.type = 'bandpass';
-      bp.frequency.setValueAtTime(isCapture ? 600 : 900, t);
-      bp.Q.setValueAtTime(2, t);
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(isCapture ? 0.12 : 0.07, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + (isCapture ? 0.07 : 0.05));
-      src.connect(bp);
-      bp.connect(gain);
-      gain.connect(ctx.destination);
-      src.start(t); src.stop(t + 0.08);
-    } else if (style === 'marble') {
-      // Hard stone click — sharp high-pass noise + resonant ping
-      const src = noiseSource(ctx, 0.04);
-      const hp = ctx.createBiquadFilter();
-      hp.type = 'highpass';
-      hp.frequency.setValueAtTime(3000, t);
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(isCapture ? 0.15 : 0.1, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
-      src.connect(hp);
-      hp.connect(gain);
-      gain.connect(ctx.destination);
-      src.start(t); src.stop(t + 0.04);
-      // Resonant body
-      const osc = ctx.createOscillator();
-      const g2 = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(isCapture ? 1200 : 1600, t);
-      osc.frequency.exponentialRampToValueAtTime(800, t + 0.06);
-      g2.gain.setValueAtTime(0.04, t);
-      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
-      osc.connect(g2);
-      g2.connect(ctx.destination);
-      osc.start(t); osc.stop(t + 0.06);
-    } else if (style === 'plastic') {
-      // Cheap plastic set — mid-range bandpass noise, slightly hollow
-      const src = noiseSource(ctx, 0.06);
-      const bp = ctx.createBiquadFilter();
-      bp.type = 'bandpass';
-      bp.frequency.setValueAtTime(isCapture ? 1200 : 1800, t);
-      bp.Q.setValueAtTime(4, t);
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(isCapture ? 0.18 : 0.1, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
-      src.connect(bp);
-      bp.connect(gain);
-      gain.connect(ctx.destination);
-      src.start(t); src.stop(t + 0.06);
-      // Hollow resonance
-      const osc = ctx.createOscillator();
-      const g2 = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(isCapture ? 500 : 700, t);
-      osc.frequency.exponentialRampToValueAtTime(200, t + 0.04);
-      g2.gain.setValueAtTime(0.03, t);
-      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-      osc.connect(g2);
-      g2.connect(ctx.destination);
-      osc.start(t); osc.stop(t + 0.04);
-    } else if (style === 'hardwood') {
-      // Weighted piece on thick wooden board — layered noise + low resonance
-      // Impact transient (short bright noise)
-      const src1 = noiseSource(ctx, 0.03);
-      const hp = ctx.createBiquadFilter();
-      hp.type = 'highpass';
-      hp.frequency.setValueAtTime(2000, t);
-      const g1 = ctx.createGain();
-      g1.gain.setValueAtTime(isCapture ? 0.14 : 0.09, t);
-      g1.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
-      src1.connect(hp);
-      hp.connect(g1);
-      g1.connect(ctx.destination);
-      src1.start(t); src1.stop(t + 0.03);
-      // Wood body (low bandpass noise)
-      const src2 = noiseSource(ctx, 0.12);
-      const bp = ctx.createBiquadFilter();
-      bp.type = 'bandpass';
-      bp.frequency.setValueAtTime(isCapture ? 250 : 400, t);
-      bp.Q.setValueAtTime(3, t);
-      const g2 = ctx.createGain();
-      g2.gain.setValueAtTime(isCapture ? 0.18 : 0.12, t);
-      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-      src2.connect(bp);
-      bp.connect(g2);
-      g2.connect(ctx.destination);
-      src2.start(t); src2.stop(t + 0.12);
+    // Parameters per style (transientHz, transientDur, transientVol, bodyHz, bodyQ, bodyDur, bodyVol)
+    let tHz: number, tDur: number, tVol: number;
+    let bHz: number, bQ: number, bDur: number, bVol: number;
+    let bType: BiquadFilterType;
+
+    if (style === 'dgt-crisp') {
+      // Extra bright transient, tight body — very snappy
+      tHz = 5000; tDur = 0.01; tVol = isCapture ? 0.18 : 0.13;
+      bType = 'lowpass'; bHz = isCapture ? 400 : 600; bQ = 2; bDur = 0.05; bVol = isCapture ? 0.1 : 0.06;
+    } else if (style === 'dgt-warm') {
+      // Softer transient, more board resonance — rounder
+      tHz = 3000; tDur = 0.018; tVol = isCapture ? 0.1 : 0.07;
+      bType = 'bandpass'; bHz = isCapture ? 280 : 380; bQ = 2.5; bDur = 0.1; bVol = isCapture ? 0.22 : 0.16;
     } else if (style === 'tournament') {
-      // DGT-style — sharp transient + muted board thump
-      // Click transient
-      const src1 = noiseSource(ctx, 0.015);
-      const hp = ctx.createBiquadFilter();
-      hp.type = 'highpass';
-      hp.frequency.setValueAtTime(4000, t);
-      const g1 = ctx.createGain();
-      g1.gain.setValueAtTime(isCapture ? 0.16 : 0.11, t);
-      g1.gain.exponentialRampToValueAtTime(0.001, t + 0.012);
-      src1.connect(hp);
-      hp.connect(g1);
-      g1.connect(ctx.destination);
-      src1.start(t); src1.stop(t + 0.015);
-      // Board resonance (lowpass noise)
-      const src2 = noiseSource(ctx, 0.08);
-      const lp = ctx.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.setValueAtTime(isCapture ? 350 : 500, t);
-      lp.Q.setValueAtTime(1.5, t);
-      const g2 = ctx.createGain();
-      g2.gain.setValueAtTime(isCapture ? 0.2 : 0.13, t);
-      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
-      src2.connect(lp);
-      lp.connect(g2);
-      g2.connect(ctx.destination);
-      src2.start(t); src2.stop(t + 0.08);
+      // Balanced — sharp click + muted thump
+      tHz = 4000; tDur = 0.015; tVol = isCapture ? 0.16 : 0.11;
+      bType = 'lowpass'; bHz = isCapture ? 350 : 500; bQ = 1.5; bDur = 0.07; bVol = isCapture ? 0.2 : 0.13;
+    } else if (style === 'dgt-soft') {
+      // Gentle transient, warm sustained body — like felt-bottomed pieces
+      tHz = 2500; tDur = 0.012; tVol = isCapture ? 0.08 : 0.05;
+      bType = 'bandpass'; bHz = isCapture ? 300 : 450; bQ = 1.8; bDur = 0.09; bVol = isCapture ? 0.18 : 0.12;
+    } else { // dgt-heavy
+      // Pronounced transient + deep extended body — heavy weighted pieces
+      tHz = 3500; tDur = 0.02; tVol = isCapture ? 0.17 : 0.12;
+      bType = 'lowpass'; bHz = isCapture ? 200 : 300; bQ = 3; bDur = 0.13; bVol = isCapture ? 0.25 : 0.18;
     }
+
+    // Transient click (highpass noise)
+    const src1 = noiseSource(ctx, tDur);
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.setValueAtTime(tHz, t);
+    const g1 = ctx.createGain();
+    g1.gain.setValueAtTime(tVol, t);
+    g1.gain.exponentialRampToValueAtTime(0.001, t + tDur * 0.9);
+    src1.connect(hp);
+    hp.connect(g1);
+    g1.connect(ctx.destination);
+    src1.start(t); src1.stop(t + tDur);
+
+    // Board body resonance
+    const src2 = noiseSource(ctx, bDur + 0.02);
+    const bf = ctx.createBiquadFilter();
+    bf.type = bType;
+    bf.frequency.setValueAtTime(bHz, t);
+    bf.Q.setValueAtTime(bQ, t);
+    const g2 = ctx.createGain();
+    g2.gain.setValueAtTime(bVol, t);
+    g2.gain.exponentialRampToValueAtTime(0.001, t + bDur);
+    src2.connect(bf);
+    bf.connect(g2);
+    g2.connect(ctx.destination);
+    src2.start(t); src2.stop(t + bDur + 0.02);
   } catch {
     // Audio not available
   }
@@ -272,7 +209,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const maxPly = fens.length - 1;
 
   const [ply, setPly] = useState(initialPly ?? maxPly);
-  const [soundStyle, setSoundStyle] = useState<SoundStyle>('hardwood');
+  const [soundStyle, setSoundStyle] = useState<SoundStyle>('tournament');
 
   useEffect(() => {
     setPly(initialPly ?? fens.length - 1);
