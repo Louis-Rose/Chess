@@ -1,7 +1,7 @@
 // Mistake Finder panel — upload PGN, find time-management mistakes
 
 import { useState, useCallback, useRef } from 'react';
-import { Upload, Search, Clock, AlertTriangle, ChevronDown, ChevronUp, X, Lock } from 'lucide-react';
+import { Upload, Clock, AlertTriangle, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Chessboard } from '../components/Chessboard';
 import { PanelHeader } from '../components/PanelHeader';
@@ -284,7 +284,7 @@ export function MistakeFinderPanel() {
 
           {/* Analysis selection */}
           {!mistakes && (
-            <div className="space-y-4 max-w-sm mx-auto">
+            <div className="space-y-4 max-w-xs mx-auto">
               {/* Category A: Time Management */}
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-2">
@@ -295,20 +295,18 @@ export function MistakeFinderPanel() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleAnalyze}
-                      className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 transition-colors text-left text-sm"
+                      className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-lg text-center transition-colors text-sm"
                     >
-                      <Search className="w-4 h-4 flex-shrink-0" />
-                      <span>{t('coaches.mistakes.a1')}</span>
+                      {t('coaches.mistakes.a1')}
                     </button>
-                    <span className="text-xs text-transparent flex-shrink-0">{t('coaches.mistakes.comingSoon')}</span>
+                    <span className="text-xs text-transparent italic flex-shrink-0">{t('coaches.mistakes.comingSoon')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       disabled
-                      className="flex-1 bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 cursor-not-allowed text-left text-sm"
+                      className="flex-1 bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg text-center cursor-not-allowed text-sm"
                     >
-                      <Lock className="w-4 h-4 flex-shrink-0" />
-                      <span>{t('coaches.mistakes.a2')}</span>
+                      {t('coaches.mistakes.a2')}
                     </button>
                     <span className="text-xs text-slate-600 italic flex-shrink-0">{t('coaches.mistakes.comingSoon')}</span>
                   </div>
@@ -324,10 +322,9 @@ export function MistakeFinderPanel() {
                   <div className="flex items-center gap-2">
                     <button
                       disabled
-                      className="flex-1 bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 cursor-not-allowed text-left text-sm"
+                      className="flex-1 bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg text-center cursor-not-allowed text-sm"
                     >
-                      <Lock className="w-4 h-4 flex-shrink-0" />
-                      <span>{t('coaches.mistakes.b1')}</span>
+                      {t('coaches.mistakes.b1')}
                     </button>
                     <span className="text-xs text-slate-600 italic flex-shrink-0">{t('coaches.mistakes.comingSoon')}</span>
                   </div>
