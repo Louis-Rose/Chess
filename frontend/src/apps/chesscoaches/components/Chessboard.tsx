@@ -9,8 +9,8 @@ import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-rea
 // All pieces use filled glyphs for consistent look.
 // White: white fill + dark stroke. Black: dark fill + lighter stroke.
 const PIECE_CHAR: Record<string, string> = {
-  K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟',
-  k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟',
+  K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♙',
+  k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♙',
 };
 
 function isWhitePiece(piece: string): boolean {
