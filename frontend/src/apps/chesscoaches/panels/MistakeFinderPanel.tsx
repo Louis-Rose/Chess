@@ -282,26 +282,23 @@ export function MistakeFinderPanel() {
 
           {/* Analysis selection */}
           {!mistakes && (
-            <div className="space-y-4 max-w-xs mx-auto">
+            <div className="space-y-4 flex flex-col items-center">
               {/* Category A: Time Management */}
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-center gap-2">
-                  <Clock className="w-3.5 h-3.5" />
+              <div className="flex flex-col items-center">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 text-center">
                   {t('coaches.mistakes.categoryTime')}
                 </h3>
-                <div className="space-y-2">
-                  <div className="relative">
-                    <button
-                      onClick={handleAnalyze}
-                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-lg text-center transition-colors text-sm"
-                    >
-                      {t('coaches.mistakes.a1.line1')}<br />{t('coaches.mistakes.a1.line2')}
-                    </button>
-                  </div>
+                <div className="space-y-2 flex flex-col items-center">
+                  <button
+                    onClick={handleAnalyze}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-8 rounded-lg text-center transition-colors text-sm"
+                  >
+                    {t('coaches.mistakes.a1.line1')}<br />{t('coaches.mistakes.a1.line2')}
+                  </button>
                   <div className="relative">
                     <button
                       disabled
-                      className="w-full bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg text-center cursor-not-allowed text-sm"
+                      className="bg-slate-700/50 text-slate-500 font-medium py-2.5 px-8 rounded-lg text-center cursor-not-allowed text-sm"
                     >
                       {t('coaches.mistakes.a2.line1')}<br />{t('coaches.mistakes.a2.line2')}
                     </button>
@@ -311,15 +308,15 @@ export function MistakeFinderPanel() {
               </div>
 
               {/* Category B: TBD */}
-              <div>
+              <div className="flex flex-col items-center">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 text-center">
                   {t('coaches.mistakes.categoryTbd')}
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-2 flex flex-col items-center">
                   <div className="relative">
                     <button
                       disabled
-                      className="w-full bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg text-center cursor-not-allowed text-sm"
+                      className="bg-slate-700/50 text-slate-500 font-medium py-2.5 px-8 rounded-lg text-center cursor-not-allowed text-sm"
                     >
                       {t('coaches.mistakes.b1.line1')}<br />{t('coaches.mistakes.b1.line2')}
                     </button>
