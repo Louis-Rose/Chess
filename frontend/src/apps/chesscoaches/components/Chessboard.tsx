@@ -6,9 +6,10 @@ import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-rea
 
 /* ── Piece SVG paths — filled style for both colors ── */
 
-// White pieces use outline glyphs (♔♕♖♗♘♙), black use filled (♚♛♜♝♞♟)
+// All pieces use filled glyphs for consistent look.
+// White: white fill + dark stroke. Black: dark fill + lighter stroke.
 const PIECE_CHAR: Record<string, string> = {
-  K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙',
+  K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟',
   k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟',
 };
 
@@ -312,10 +313,10 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill={white ? '#fff' : '#1e1e1e'}
-                  stroke={white ? '#1e1e1e' : '#1e1e1e'}
-                  strokeWidth={white ? 1.5 : 0}
+                  stroke={white ? '#1e1e1e' : '#fff'}
+                  strokeWidth={white ? 3 : 1}
                   style={{ userSelect: 'none' }}
-                  paintOrder={white ? 'stroke' : undefined}
+                  paintOrder="stroke"
                 >
                   {PIECE_CHAR[piece]}
                 </text>
