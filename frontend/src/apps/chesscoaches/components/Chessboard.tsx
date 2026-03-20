@@ -314,7 +314,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                   dominantBaseline="middle"
                   fill={white ? '#fff' : '#1e1e1e'}
                   stroke={white ? '#1e1e1e' : '#fff'}
-                  strokeWidth={white ? 3 : 1}
+                  strokeWidth={white ? (pawn ? 5 : 3) : (pawn ? 3 : 1)}
                   style={{ userSelect: 'none' }}
                   paintOrder="stroke"
                 >
