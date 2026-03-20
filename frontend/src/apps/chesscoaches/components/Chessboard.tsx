@@ -233,9 +233,9 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      {/* Board + move list side by side */}
-      <div className="flex items-start gap-3 w-full justify-center">
-      <div className="w-full max-w-[560px] aspect-square flex-shrink-0">
+      {/* Board + move list */}
+      <div className="relative w-full max-w-[560px]">
+      <div className="w-full aspect-square">
         <svg viewBox="0 0 800 800" className="w-full h-full rounded-lg overflow-hidden shadow-lg">
           {/* Highlight last move (render behind pieces) */}
           {ply > 0 && (() => {
@@ -328,7 +328,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
       </div>
 
       {/* Move list — right of board */}
-      <div className="hidden md:flex flex-col min-w-[160px] max-w-[200px] h-[560px]">
+      <div className="hidden md:flex flex-col w-[160px] absolute left-full top-0 bottom-0 ml-3">
         <div className="grid grid-cols-[auto_1fr_1fr] gap-x-1 text-xs font-mono font-bold text-slate-400 px-1 pb-1 border-b border-slate-600 mb-1">
           <span></span>
           <span>White</span>
