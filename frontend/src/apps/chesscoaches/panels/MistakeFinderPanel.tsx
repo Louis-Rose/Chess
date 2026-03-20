@@ -240,7 +240,7 @@ export function MistakeFinderPanel() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
       <PanelHeader title={t('coaches.navMistakes')} />
 
-      <div className="max-w-3xl mx-[5%] md:mx-auto">
+      <div className="max-w-[620px] mx-[5%] md:mx-auto">
       {/* Upload area */}
       {!pgnText ? (
         <div
