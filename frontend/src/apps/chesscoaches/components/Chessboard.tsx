@@ -257,7 +257,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
     <div className="flex flex-col items-center gap-3">
       {/* Board + move list */}
       <div className="relative w-full max-w-[560px]">
-      <div className="w-full aspect-square">
+      <div className="w-full aspect-square relative">
         <svg viewBox="0 0 800 800" className="w-full h-full rounded-lg overflow-hidden shadow-lg">
           {/* Highlight last move (render behind pieces) */}
           {ply > 0 && (() => {
@@ -347,10 +347,37 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
             })
           )}
         </svg>
+        {/* Clock overlay — top right of board */}
+        {clocks.length > 0 && ply > 0 && (() => {
+          // Find most recent clock for each side at current ply
+          let whiteClock: string | null = null;
+          let blackClock: string | null = null;
+          for (let i = ply - 1; i >= 0; i--) {
+            const isWhiteMove = i % 2 === 0;
+            if (isWhiteMove && !whiteClock && clocks[i]) whiteClock = clocks[i];
+            if (!isWhiteMove && !blackClock && clocks[i]) blackClock = clocks[i];
+            if (whiteClock && blackClock) break;
+          }
+          if (!whiteClock && !blackClock) return null;
+          return (
+            <div className="absolute top-2 right-2 flex flex-col gap-1">
+              {whiteClock && (
+                <div className="bg-white text-slate-900 text-xs font-mono font-bold px-2 py-1 rounded shadow">
+                  {whiteClock}
+                </div>
+              )}
+              {blackClock && (
+                <div className="bg-slate-900 text-white text-xs font-mono font-bold px-2 py-1 rounded shadow border border-slate-600">
+                  {blackClock}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Move list — right of board */}
-      <div className="hidden md:flex flex-col w-[200px] absolute left-full top-0 bottom-0 ml-3">
+      <div className="hidden md:flex flex-col w-[160px] absolute left-full top-0 bottom-0 ml-3">
         <div className="grid grid-cols-[auto_1fr_1fr] gap-x-1 text-xs font-mono font-bold text-slate-400 px-1 pb-1 border-b border-slate-600 mb-1">
           <span></span>
           <span>White</span>
@@ -358,7 +385,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
         </div>
         <div className="flex-1 overflow-y-auto">
           <div className="grid grid-cols-[auto_1fr_1fr] gap-x-1 gap-y-0.5 text-sm font-mono px-1">
-            {moveList.map(({ num, white, black, whitePly, blackPly, whiteClk, blackClk }) => (
+            {moveList.map(({ num, white, black, whitePly, blackPly }) => (
               <div key={num} className="contents">
                 <span className="text-slate-500 text-right pr-1">{num}.</span>
                 <button
@@ -367,8 +394,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                     ply === whitePly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
                   }`}
                 >
-                  <span>{white}</span>
-                  {whiteClk && <span className="text-slate-500 text-[10px] ml-1">{whiteClk}</span>}
+                  {white}
                 </button>
                 {black ? (
                   <button
@@ -377,8 +403,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                       ply === blackPly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
                     }`}
                   >
-                    <span>{black}</span>
-                    {blackClk && <span className="text-slate-500 text-[10px] ml-1">{blackClk}</span>}
+                    {black}
                   </button>
                 ) : <span />}
               </div>
