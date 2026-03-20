@@ -301,7 +301,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const bottomIsBlack = flipped;
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-1">
       {/* Board + move list */}
       <div className="relative w-full max-w-[560px]">
 
