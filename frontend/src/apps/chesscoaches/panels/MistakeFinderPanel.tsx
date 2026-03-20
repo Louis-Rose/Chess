@@ -297,7 +297,7 @@ export function MistakeFinderPanel() {
                       onClick={handleAnalyze}
                       className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-lg text-center transition-colors text-sm"
                     >
-                      {t('coaches.mistakes.a1')}
+                      {t('coaches.mistakes.a1.line1')}<br />{t('coaches.mistakes.a1.line2')}
                     </button>
                     <span className="text-xs text-transparent italic flex-shrink-0">{t('coaches.mistakes.comingSoon')}</span>
                   </div>
@@ -306,7 +306,7 @@ export function MistakeFinderPanel() {
                       disabled
                       className="flex-1 bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg text-center cursor-not-allowed text-sm"
                     >
-                      {t('coaches.mistakes.a2')}
+                      {t('coaches.mistakes.a2.line1')}<br />{t('coaches.mistakes.a2.line2')}
                     </button>
                     <span className="text-xs text-slate-600 italic flex-shrink-0">{t('coaches.mistakes.comingSoon')}</span>
                   </div>
@@ -324,7 +324,7 @@ export function MistakeFinderPanel() {
                       disabled
                       className="flex-1 bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg text-center cursor-not-allowed text-sm"
                     >
-                      {t('coaches.mistakes.b1')}
+                      {t('coaches.mistakes.b1.line1')}<br />{t('coaches.mistakes.b1.line2')}
                     </button>
                     <span className="text-xs text-slate-600 italic flex-shrink-0">{t('coaches.mistakes.comingSoon')}</span>
                   </div>
