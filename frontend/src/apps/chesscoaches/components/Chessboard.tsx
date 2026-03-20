@@ -104,11 +104,25 @@ function getAudioCtx(): AudioContext {
   return audioCtx;
 }
 
-type SoundStyle = 'on' | 'none';
+type SoundStyle = 'vol1' | 'vol2' | 'vol3' | 'vol4' | 'vol5' | 'none';
 
 const SOUND_LABELS: Record<SoundStyle, string> = {
-  on: 'On',
+  vol1: '1',
+  vol2: '2',
+  vol3: '3',
+  vol4: '4',
+  vol5: '5',
   none: 'Off',
+};
+
+// Volume multipliers — vol3 = current 1.5x whisper baseline
+const VOL_MULTIPLIERS: Record<SoundStyle, number> = {
+  vol1: 0.5,
+  vol2: 0.75,
+  vol3: 1,
+  vol4: 1.5,
+  vol5: 2,
+  none: 0,
 };
 
 // Helper: create a noise buffer source
@@ -135,9 +149,10 @@ function playMoveSound(style: SoundStyle, isCapture: boolean) {
     let bHz: number, bQ: number, bDur: number, bVol: number;
     let bType: BiquadFilterType;
 
-    // Whisper — subtle hint of contact, slightly boosted
-    tHz = 3000; tDur = 0.005; tVol = isCapture ? 0.053 : 0.03;
-    bType = 'bandpass'; bHz = isCapture ? 400 : 600; bQ = 1; bDur = 0.06; bVol = isCapture ? 0.12 : 0.075;
+    // Whisper base values, scaled by volume level
+    const v = VOL_MULTIPLIERS[style];
+    tHz = 3000; tDur = 0.005; tVol = (isCapture ? 0.053 : 0.03) * v;
+    bType = 'bandpass'; bHz = isCapture ? 400 : 600; bQ = 1; bDur = 0.06; bVol = (isCapture ? 0.12 : 0.075) * v;
 
     // Transient click (highpass noise)
     const src1 = noiseSource(ctx, tDur);
@@ -187,7 +202,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const maxPly = fens.length - 1;
 
   const [ply, setPly] = useState(initialPly ?? maxPly);
-  const [soundStyle, setSoundStyle] = useState<SoundStyle>('on');
+  const [soundStyle, setSoundStyle] = useState<SoundStyle>('vol3');
 
   useEffect(() => {
     setPly(initialPly ?? fens.length - 1);
