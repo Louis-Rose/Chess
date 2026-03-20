@@ -4,12 +4,18 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Chess } from 'chess.js';
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
 
-/* ── Piece SVG paths (standard chess unicode → inline SVG) ── */
+/* ── Piece SVG paths — filled style for both colors ── */
 
-const PIECE_UNICODE: Record<string, string> = {
-  K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙',
+// All pieces use the filled (black) unicode glyphs for consistent style.
+// White pieces get white fill + dark stroke, black pieces get dark fill + dark stroke.
+const PIECE_CHAR: Record<string, string> = {
+  K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟',
   k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟',
 };
+
+function isWhitePiece(piece: string): boolean {
+  return piece === piece.toUpperCase();
+}
 
 /* ── FEN parsing ── */
 
@@ -31,25 +37,19 @@ function fenToBoard(fen: string): (string | null)[][] {
 /* ── Extract SANs from raw PGN text ── */
 
 export function extractSans(pgn: string): string[] {
-  // Get movetext (everything after headers)
   const movetext = pgn
     .split('\n')
     .filter(l => !l.startsWith('[') && l.trim())
     .join(' ')
-    // Remove comments but keep content for parsing
     .replace(/\{[^}]*\}/g, '')
-    // Remove NAGs
     .replace(/\$\d+/g, '')
-    // Remove variations
     .replace(/\([^)]*\)/g, '');
 
   const sans: string[] = [];
-  // Match SAN moves (piece moves, pawn moves, castling)
   const tokens = movetext.match(/[A-Ka-kNBRQO][a-h1-8x+#=NBRQ]*|O-O-O|O-O/g);
   if (!tokens) return sans;
 
   for (const token of tokens) {
-    // Skip result tokens
     if (['O', 'K', 'Q', 'R', 'B', 'N'].includes(token)) continue;
     sans.push(token);
   }
@@ -62,16 +62,13 @@ export function extractSans(pgn: string): string[] {
 export function buildPositions(pgn: string): { fens: string[]; sans: string[] } {
   const chess = new Chess();
 
-  // Try loading the full PGN first (chess.js handles standard PGN)
   try {
-    // Strip comments that aren't standard for chess.js
     const cleaned = pgn
       .replace(/\{[^}]*\}/g, '')
       .replace(/\$\d+/g, '');
     chess.loadPgn(cleaned);
     const history = chess.history();
 
-    // Rebuild to get FENs at each position
     const fens: string[] = [];
     const chess2 = new Chess();
     fens.push(chess2.fen());
@@ -81,7 +78,6 @@ export function buildPositions(pgn: string): { fens: string[]; sans: string[] } 
     }
     return { fens, sans: history };
   } catch {
-    // Fallback: extract SANs manually
     const sans = extractSans(pgn);
     const chess2 = new Chess();
     const fens: string[] = [chess2.fen()];
@@ -92,7 +88,7 @@ export function buildPositions(pgn: string): { fens: string[]; sans: string[] } 
         fens.push(chess2.fen());
         validSans.push(san);
       } catch {
-        break; // Stop at first illegal move
+        break;
       }
     }
     return { fens, sans: validSans };
@@ -108,7 +104,7 @@ const DARK = '#b58863';
 
 interface ChessboardProps {
   pgn: string;
-  initialPly?: number; // which ply to show initially (default: last)
+  initialPly?: number;
 }
 
 export function Chessboard({ pgn, initialPly }: ChessboardProps) {
@@ -117,7 +113,6 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
 
   const [ply, setPly] = useState(initialPly ?? maxPly);
 
-  // Reset to last position when pgn changes
   useEffect(() => {
     setPly(initialPly ?? fens.length - 1);
   }, [pgn, fens.length, initialPly]);
@@ -127,7 +122,6 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const goNext = useCallback(() => setPly(p => Math.min(maxPly, p + 1)), [maxPly]);
   const goLast = useCallback(() => setPly(maxPly), [maxPly]);
 
-  // Keyboard navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
@@ -141,7 +135,6 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
 
   const board = fenToBoard(fens[ply]);
 
-  // Build move list for display
   const moveList = useMemo(() => {
     const pairs: { num: number; white: string; black?: string; whitePly: number; blackPly?: number }[] = [];
     for (let i = 0; i < sans.length; i += 2) {
@@ -159,49 +152,9 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   return (
     <div className="flex flex-col items-center gap-3">
       {/* Board */}
-      <div className="w-full max-w-[400px] aspect-square">
+      <div className="w-full max-w-[560px] aspect-square">
         <svg viewBox="0 0 800 800" className="w-full h-full rounded-lg overflow-hidden shadow-lg">
-          {/* Squares and pieces */}
-          {board.map((row, r) =>
-            row.map((piece, c) => {
-              const isLight = (r + c) % 2 === 0;
-              const x = c * 100;
-              const y = r * 100;
-              return (
-                <g key={`${r}-${c}`}>
-                  <rect x={x} y={y} width={100} height={100} fill={isLight ? LIGHT : DARK} />
-                  {/* Coordinate labels */}
-                  {r === 7 && (
-                    <text x={x + 92} y={y + 96} fontSize="14" fontWeight="600" fill={isLight ? DARK : LIGHT} textAnchor="end" fontFamily="system-ui">
-                      {'abcdefgh'[c]}
-                    </text>
-                  )}
-                  {c === 0 && (
-                    <text x={x + 4} y={y + 16} fontSize="14" fontWeight="600" fill={isLight ? DARK : LIGHT} fontFamily="system-ui">
-                      {8 - r}
-                    </text>
-                  )}
-                  {/* Piece */}
-                  {piece && (
-                    <text
-                      x={x + 50}
-                      y={y + 62}
-                      fontSize="64"
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      style={{
-                        filter: piece === piece.toUpperCase() ? 'none' : 'none',
-                        userSelect: 'none',
-                      }}
-                    >
-                      {PIECE_UNICODE[piece]}
-                    </text>
-                  )}
-                </g>
-              );
-            })
-          )}
-          {/* Highlight last move */}
+          {/* Highlight last move (render behind pieces) */}
           {ply > 0 && (() => {
             try {
               const chess = new Chess(fens[ply - 1]);
@@ -212,13 +165,80 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
               const toC = move.to.charCodeAt(0) - 97;
               const toR = 7 - (parseInt(move.to[1]) - 1);
               return (
-                <>
-                  <rect x={fromC * 100} y={fromR * 100} width={100} height={100} fill="rgba(255,255,50,0.3)" />
-                  <rect x={toC * 100} y={toR * 100} width={100} height={100} fill="rgba(255,255,50,0.3)" />
-                </>
+                <g>
+                  {/* Draw all squares first */}
+                  {board.map((row, r) =>
+                    row.map((_, c) => {
+                      const isLight = (r + c) % 2 === 0;
+                      const isFrom = r === fromR && c === fromC;
+                      const isTo = r === toR && c === toC;
+                      return (
+                        <rect
+                          key={`bg-${r}-${c}`}
+                          x={c * 100} y={r * 100} width={100} height={100}
+                          fill={isFrom || isTo ? (isLight ? '#f7ec5a' : '#dac934') : (isLight ? LIGHT : DARK)}
+                        />
+                      );
+                    })
+                  )}
+                </g>
               );
-            } catch { return null; }
+            } catch {
+              // Fallback: draw squares without highlight
+              return (
+                <g>
+                  {board.map((row, r) =>
+                    row.map((_, c) => (
+                      <rect key={`bg-${r}-${c}`} x={c * 100} y={r * 100} width={100} height={100} fill={(r + c) % 2 === 0 ? LIGHT : DARK} />
+                    ))
+                  )}
+                </g>
+              );
+            }
           })()}
+          {/* Squares without highlight (when at start position) */}
+          {ply === 0 && board.map((row, r) =>
+            row.map((_, c) => (
+              <rect key={`bg-${r}-${c}`} x={c * 100} y={r * 100} width={100} height={100} fill={(r + c) % 2 === 0 ? LIGHT : DARK} />
+            ))
+          )}
+          {/* Coordinate labels */}
+          {Array.from({ length: 8 }).map((_, c) => (
+            <text key={`file-${c}`} x={c * 100 + 90} y={796} fontSize="18" fontWeight="700" fill={(7 + c) % 2 === 0 ? DARK : LIGHT} textAnchor="end" fontFamily="system-ui">
+              {'abcdefgh'[c]}
+            </text>
+          ))}
+          {Array.from({ length: 8 }).map((_, r) => (
+            <text key={`rank-${r}`} x={6} y={r * 100 + 20} fontSize="18" fontWeight="700" fill={(r) % 2 === 0 ? DARK : LIGHT} fontFamily="system-ui">
+              {8 - r}
+            </text>
+          ))}
+          {/* Pieces */}
+          {board.map((row, r) =>
+            row.map((piece, c) => {
+              if (!piece) return null;
+              const x = c * 100 + 50;
+              const y = r * 100 + 58;
+              const white = isWhitePiece(piece);
+              return (
+                <text
+                  key={`piece-${r}-${c}`}
+                  x={x}
+                  y={y}
+                  fontSize="72"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fill={white ? '#fff' : '#1e1e1e'}
+                  stroke={white ? '#1e1e1e' : '#1e1e1e'}
+                  strokeWidth={white ? 1.5 : 0}
+                  style={{ userSelect: 'none' }}
+                  paintOrder={white ? 'stroke' : undefined}
+                >
+                  {PIECE_CHAR[piece]}
+                </text>
+              );
+            })
+          )}
         </svg>
       </div>
 
@@ -230,9 +250,6 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
         <button onClick={goPrev} disabled={ply === 0} className="p-2 rounded-lg text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-default transition-colors">
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <span className="text-slate-400 text-sm font-mono px-3 min-w-[80px] text-center">
-          {ply === 0 ? 'Start' : `${Math.ceil(ply / 2)}.${ply % 2 === 1 ? '' : '..'} ${sans[ply - 1]}`}
-        </span>
         <button onClick={goNext} disabled={ply === maxPly} className="p-2 rounded-lg text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-default transition-colors">
           <ChevronRight className="w-5 h-5" />
         </button>
@@ -242,7 +259,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
       </div>
 
       {/* Move list */}
-      <div className="w-full max-w-[400px] max-h-[160px] overflow-y-auto bg-slate-700/30 rounded-lg p-2">
+      <div className="w-full max-w-[560px] max-h-[160px] overflow-y-auto bg-slate-700/30 rounded-lg p-2">
         <div className="grid grid-cols-[auto_1fr_1fr] gap-x-2 gap-y-0.5 text-sm font-mono">
           {moveList.map(({ num, white, black, whitePly, blackPly }) => (
             <div key={num} className="contents">

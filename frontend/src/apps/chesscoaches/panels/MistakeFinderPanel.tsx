@@ -1,7 +1,8 @@
 // Mistake Finder panel — upload PGN, find time-management mistakes
 
 import { useState, useCallback, useRef } from 'react';
-import { Upload, Search, Clock, AlertTriangle, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Upload, Search, Clock, AlertTriangle, ChevronDown, ChevronUp, X, ArrowLeft } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Chessboard } from '../components/Chessboard';
 
@@ -171,6 +172,7 @@ const THRESHOLD = 0.20;
 
 export function MistakeFinderPanel() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [pgnText, setPgnText] = useState('');
@@ -237,6 +239,19 @@ export function MistakeFinderPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 max-w-3xl mx-[5%] md:mx-auto">
+      <div className="flex flex-col pt-2">
+        <button
+          onClick={() => navigate('/coach')}
+          className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base px-2 md:px-4"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>Previous</span>
+        </button>
+        <div className="border-t border-slate-700 mt-2" />
+        <h1 className="text-lg font-bold text-slate-100 text-center mt-2">{t('coaches.navMistakes')}</h1>
+      </div>
+      <div className="border-t border-slate-700 mt-2 mb-6" />
+
       {/* Upload area */}
       {!pgnText ? (
         <div
