@@ -95,7 +95,7 @@ export function buildPositions(pgn: string): { fens: string[]; sans: string[] } 
   }
 }
 
-/* ── Move sound via Web Audio API ── */
+/* ── Move sounds via Web Audio API ── */
 
 let audioCtx: AudioContext | null = null;
 
@@ -104,35 +104,105 @@ function getAudioCtx(): AudioContext {
   return audioCtx;
 }
 
-function playMoveSound(isCapture: boolean) {
+type SoundStyle = 'wood' | 'snap' | 'glass' | 'click' | 'thud' | 'none';
+
+const SOUND_LABELS: Record<SoundStyle, string> = {
+  wood: 'Wood',
+  snap: 'Snap',
+  glass: 'Glass',
+  click: 'Click',
+  thud: 'Thud',
+  none: 'None',
+};
+
+function playMoveSound(style: SoundStyle, isCapture: boolean) {
+  if (style === 'none') return;
   try {
     const ctx = getAudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+    const t = ctx.currentTime;
 
-    if (isCapture) {
-      // Capture: lower pitch, slightly longer
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(300, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.1);
-    } else {
-      // Normal move: short wooden tap
+    if (style === 'wood') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      if (isCapture) {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, t);
+        osc.frequency.exponentialRampToValueAtTime(120, t + 0.08);
+        gain.gain.setValueAtTime(0.15, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+        osc.start(t); osc.stop(t + 0.1);
+      } else {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, t);
+        osc.frequency.exponentialRampToValueAtTime(300, t + 0.04);
+        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+        osc.start(t); osc.stop(t + 0.06);
+      }
+    } else if (style === 'snap') {
+      // Sharp noise burst
+      const bufSize = isCapture ? 2400 : 1200;
+      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 8);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(isCapture ? 0.2 : 0.12, t);
+      src.connect(gain);
+      gain.connect(ctx.destination);
+      src.start(t);
+    } else if (style === 'glass') {
+      // High crystalline ping
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(800, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.04);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.06);
+      const freq = isCapture ? 1800 : 2400;
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.7, t + 0.12);
+      gain.gain.setValueAtTime(0.08, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + (isCapture ? 0.15 : 0.1));
+      osc.start(t); osc.stop(t + 0.15);
+      // Add harmonic
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(freq * 2.5, t);
+      gain2.gain.setValueAtTime(0.03, t);
+      gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      osc2.start(t); osc2.stop(t + 0.08);
+    } else if (style === 'click') {
+      // Minimal digital click
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(isCapture ? 600 : 1000, t);
+      gain.gain.setValueAtTime(0.06, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + (isCapture ? 0.04 : 0.02));
+      osc.start(t); osc.stop(t + 0.04);
+    } else if (style === 'thud') {
+      // Deep bass thump
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(isCapture ? 120 : 180, t);
+      osc.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+      gain.gain.setValueAtTime(isCapture ? 0.25 : 0.18, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      osc.start(t); osc.stop(t + 0.15);
     }
   } catch {
-    // Audio not available — silently ignore
+    // Audio not available
   }
 }
 
@@ -153,6 +223,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const maxPly = fens.length - 1;
 
   const [ply, setPly] = useState(initialPly ?? maxPly);
+  const [soundStyle, setSoundStyle] = useState<SoundStyle>('wood');
 
   useEffect(() => {
     setPly(initialPly ?? fens.length - 1);
@@ -172,7 +243,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
     }
     if (ply > 0 && ply <= sans.length) {
       const san = sans[ply - 1];
-      playMoveSound(san.includes('x'));
+      playMoveSound(soundStyle, san.includes('x'));
     }
   }, [ply, sans]);
 
@@ -205,7 +276,8 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      {/* Board */}
+      {/* Board + sound selector */}
+      <div className="flex items-start gap-3 w-full justify-center">
       <div className="w-full max-w-[560px] aspect-square">
         <svg viewBox="0 0 800 800" className="w-full h-full rounded-lg overflow-hidden shadow-lg">
           {/* Highlight last move (render behind pieces) */}
@@ -294,6 +366,24 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
             })
           )}
         </svg>
+      </div>
+
+      {/* Sound style selector */}
+      <div className="hidden md:flex flex-col gap-1.5 pt-1">
+        {(Object.keys(SOUND_LABELS) as SoundStyle[]).map(s => (
+          <button
+            key={s}
+            onClick={() => { setSoundStyle(s); if (s !== 'none') playMoveSound(s, false); }}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
+              soundStyle === s
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+            }`}
+          >
+            {SOUND_LABELS[s]}
+          </button>
+        ))}
+      </div>
       </div>
 
       {/* Navigation controls */}
