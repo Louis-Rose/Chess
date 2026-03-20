@@ -104,14 +104,14 @@ function getAudioCtx(): AudioContext {
   return audioCtx;
 }
 
-type SoundStyle = 'dgt-crisp' | 'dgt-warm' | 'tournament' | 'dgt-soft' | 'dgt-heavy' | 'none';
+type SoundStyle = 'soft-muted' | 'soft-velvet' | 'soft' | 'soft-cushion' | 'soft-whisper' | 'none';
 
 const SOUND_LABELS: Record<SoundStyle, string> = {
-  'dgt-crisp': 'Crisp',
-  'dgt-warm': 'Warm',
-  tournament: 'Tournament',
-  'dgt-soft': 'Soft',
-  'dgt-heavy': 'Heavy',
+  'soft-muted': 'Muted',
+  'soft-velvet': 'Velvet',
+  soft: 'Soft',
+  'soft-cushion': 'Cushion',
+  'soft-whisper': 'Whisper',
   none: 'None',
 };
 
@@ -139,26 +139,26 @@ function playMoveSound(style: SoundStyle, isCapture: boolean) {
     let bHz: number, bQ: number, bDur: number, bVol: number;
     let bType: BiquadFilterType;
 
-    if (style === 'dgt-crisp') {
-      // Extra bright transient, tight body — very snappy
-      tHz = 5000; tDur = 0.01; tVol = isCapture ? 0.18 : 0.13;
-      bType = 'lowpass'; bHz = isCapture ? 400 : 600; bQ = 2; bDur = 0.05; bVol = isCapture ? 0.1 : 0.06;
-    } else if (style === 'dgt-warm') {
-      // Softer transient, more board resonance — rounder
-      tHz = 3000; tDur = 0.018; tVol = isCapture ? 0.1 : 0.07;
-      bType = 'bandpass'; bHz = isCapture ? 280 : 380; bQ = 2.5; bDur = 0.1; bVol = isCapture ? 0.22 : 0.16;
-    } else if (style === 'tournament') {
-      // Balanced — sharp click + muted thump
-      tHz = 4000; tDur = 0.015; tVol = isCapture ? 0.16 : 0.11;
-      bType = 'lowpass'; bHz = isCapture ? 350 : 500; bQ = 1.5; bDur = 0.07; bVol = isCapture ? 0.2 : 0.13;
-    } else if (style === 'dgt-soft') {
-      // Gentle transient, warm sustained body — like felt-bottomed pieces
+    if (style === 'soft-muted') {
+      // Very quiet transient, narrow low body — barely there, like distant room
+      tHz = 2000; tDur = 0.008; tVol = isCapture ? 0.05 : 0.03;
+      bType = 'bandpass'; bHz = isCapture ? 250 : 350; bQ = 1.2; bDur = 0.07; bVol = isCapture ? 0.12 : 0.08;
+    } else if (style === 'soft-velvet') {
+      // No sharp transient, all warm body — smooth and lush
+      tHz = 1800; tDur = 0.006; tVol = isCapture ? 0.04 : 0.02;
+      bType = 'bandpass'; bHz = isCapture ? 350 : 500; bQ = 2.2; bDur = 0.11; bVol = isCapture ? 0.2 : 0.14;
+    } else if (style === 'soft') {
+      // Gentle transient, warm sustained body — felt-bottomed pieces
       tHz = 2500; tDur = 0.012; tVol = isCapture ? 0.08 : 0.05;
       bType = 'bandpass'; bHz = isCapture ? 300 : 450; bQ = 1.8; bDur = 0.09; bVol = isCapture ? 0.18 : 0.12;
-    } else { // dgt-heavy
-      // Pronounced transient + deep extended body — heavy weighted pieces
-      tHz = 3500; tDur = 0.02; tVol = isCapture ? 0.17 : 0.12;
-      bType = 'lowpass'; bHz = isCapture ? 200 : 300; bQ = 3; bDur = 0.13; bVol = isCapture ? 0.25 : 0.18;
+    } else if (style === 'soft-cushion') {
+      // Slightly fuller transient, broader warm body — padded board feel
+      tHz = 2200; tDur = 0.014; tVol = isCapture ? 0.07 : 0.045;
+      bType = 'lowpass'; bHz = isCapture ? 400 : 550; bQ = 1.5; bDur = 0.1; bVol = isCapture ? 0.2 : 0.15;
+    } else { // soft-whisper
+      // Extremely subtle — just a hint of contact, almost ASMR
+      tHz = 3000; tDur = 0.005; tVol = isCapture ? 0.035 : 0.02;
+      bType = 'bandpass'; bHz = isCapture ? 400 : 600; bQ = 1; bDur = 0.06; bVol = isCapture ? 0.08 : 0.05;
     }
 
     // Transient click (highpass noise)
@@ -209,7 +209,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const maxPly = fens.length - 1;
 
   const [ply, setPly] = useState(initialPly ?? maxPly);
-  const [soundStyle, setSoundStyle] = useState<SoundStyle>('tournament');
+  const [soundStyle, setSoundStyle] = useState<SoundStyle>('soft');
 
   useEffect(() => {
     setPly(initialPly ?? fens.length - 1);
