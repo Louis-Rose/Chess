@@ -285,46 +285,45 @@ export function MistakeFinderPanel() {
             <div className="space-y-4 max-w-xs mx-auto">
               {/* Category A: Time Management */}
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-center gap-2">
                   <Clock className="w-3.5 h-3.5" />
                   {t('coaches.mistakes.categoryTime')}
                 </h3>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
+                  <div className="relative">
                     <button
                       onClick={handleAnalyze}
-                      className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-lg text-center transition-colors text-sm"
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-lg text-center transition-colors text-sm"
                     >
                       {t('coaches.mistakes.a1.line1')}<br />{t('coaches.mistakes.a1.line2')}
                     </button>
-                    <span className="text-xs text-transparent italic flex-shrink-0">{t('coaches.mistakes.comingSoon')}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="relative">
                     <button
                       disabled
-                      className="flex-1 bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg text-center cursor-not-allowed text-sm"
+                      className="w-full bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg text-center cursor-not-allowed text-sm"
                     >
                       {t('coaches.mistakes.a2.line1')}<br />{t('coaches.mistakes.a2.line2')}
                     </button>
-                    <span className="text-xs text-slate-600 italic flex-shrink-0">{t('coaches.mistakes.comingSoon')}</span>
+                    <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 text-xs text-slate-600 italic whitespace-nowrap">{t('coaches.mistakes.comingSoon')}</span>
                   </div>
                 </div>
               </div>
 
               {/* Category B: TBD */}
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 text-center">
                   {t('coaches.mistakes.categoryTbd')}
                 </h3>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
+                  <div className="relative">
                     <button
                       disabled
-                      className="flex-1 bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg text-center cursor-not-allowed text-sm"
+                      className="w-full bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg text-center cursor-not-allowed text-sm"
                     >
                       {t('coaches.mistakes.b1.line1')}<br />{t('coaches.mistakes.b1.line2')}
                     </button>
-                    <span className="text-xs text-slate-600 italic flex-shrink-0">{t('coaches.mistakes.comingSoon')}</span>
+                    <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 text-xs text-slate-600 italic whitespace-nowrap">{t('coaches.mistakes.comingSoon')}</span>
                   </div>
                 </div>
               </div>
