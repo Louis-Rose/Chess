@@ -181,7 +181,6 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const maxPly = fens.length - 1;
 
   const [ply, setPly] = useState(initialPly ?? maxPly);
-  const [pawnStroke, setPawnStroke] = useState(7);
 
   useEffect(() => {
     setPly(initialPly ?? fens.length - 1);
@@ -234,8 +233,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      {/* Board + pawn stroke selector */}
-      <div className="flex items-start gap-3 w-full justify-center">
+      {/* Board */}
       <div className="w-full max-w-[560px] aspect-square">
         <svg viewBox="0 0 800 800" className="w-full h-full rounded-lg overflow-hidden shadow-lg">
           {/* Highlight last move (render behind pieces) */}
@@ -316,7 +314,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                   dominantBaseline="middle"
                   fill={white ? '#fff' : '#1e1e1e'}
                   stroke={pawn ? (white ? '#fff' : '#1e1e1e') : (white ? '#1e1e1e' : '#fff')}
-                  strokeWidth={pawn ? pawnStroke : (white ? 3 : 1)}
+                  strokeWidth={pawn ? (white ? 3 : 4) : (white ? 3 : 1)}
                   style={{ userSelect: 'none' }}
                   paintOrder="stroke"
                 >
@@ -326,22 +324,6 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
             })
           )}
         </svg>
-      </div>
-      <div className="hidden md:flex flex-col gap-1.5 pt-1">
-        {[2, 3, 4, 5, 6, 7].map(w => (
-          <button
-            key={w}
-            onClick={() => setPawnStroke(w)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              pawnStroke === w
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-            }`}
-          >
-            {w}
-          </button>
-        ))}
-      </div>
       </div>
 
       {/* Navigation controls */}
