@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Upload, Search, Clock, AlertTriangle, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { Chessboard } from '../components/Chessboard';
 
 /* ── Types ── */
 
@@ -273,6 +274,9 @@ export function MistakeFinderPanel() {
               <X className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Chessboard */}
+          <Chessboard pgn={pgnText} />
 
           {/* Analyze button */}
           {!mistakes && (
