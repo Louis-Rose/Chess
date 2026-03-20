@@ -266,16 +266,16 @@ export function MistakeFinderPanel() {
       ) : (
         <div className="space-y-4">
           {/* File loaded banner */}
-          <div className="flex items-center justify-between bg-slate-700/50 rounded-lg px-4 py-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <Upload className="w-5 h-5 text-blue-400 flex-shrink-0" />
-              <span className="text-slate-200 text-sm truncate">{fileName}</span>
+          <div className="flex items-center justify-between bg-slate-700/50 rounded-lg px-3 py-2 max-w-xs mx-auto">
+            <div className="flex items-center gap-2 min-w-0">
+              <Upload className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <span className="text-slate-200 text-xs truncate">{fileName}</span>
             </div>
             <button
               onClick={handleClear}
-              className="text-slate-400 hover:text-slate-200 transition-colors ml-3 flex-shrink-0"
+              className="text-slate-400 hover:text-slate-200 transition-colors ml-2 flex-shrink-0"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
 
