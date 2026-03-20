@@ -63,6 +63,16 @@ export function extractSans(pgn: string): string[] {
 
 /* ── Extract clock annotations from PGN ── */
 
+function extractStartTime(pgn: string): string | null {
+  const m = pgn.match(/\[TimeControl\s+"(\d+)/);
+  if (!m) return null;
+  const secs = parseInt(m[1]);
+  const h = Math.floor(secs / 3600);
+  const min = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return `${h}:${String(min).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 function extractClocks(pgn: string): (string | null)[] {
   const clocks: (string | null)[] = [];
   const movetext = pgn
@@ -198,6 +208,7 @@ interface ChessboardProps {
 export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const { fens, sans } = useMemo(() => buildPositions(pgn), [pgn]);
   const clocks = useMemo(() => extractClocks(pgn), [pgn]);
+  const startTime = useMemo(() => extractStartTime(pgn), [pgn]);
   const maxPly = fens.length - 1;
 
   const [ply, setPly] = useState(initialPly ?? maxPly);
@@ -238,7 +249,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
 
   const board = fenToBoard(fens[ply]);
 
-  // Current clocks for each side
+  // Current clocks for each side — fall back to starting time
   const currentClocks = useMemo(() => {
     let whiteClock: string | null = null;
     let blackClock: string | null = null;
@@ -248,8 +259,10 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
       if (!isWhiteMove && !blackClock && clocks[i]) blackClock = clocks[i];
       if (whiteClock && blackClock) break;
     }
+    if (!whiteClock && startTime) whiteClock = startTime;
+    if (!blackClock && startTime) blackClock = startTime;
     return { whiteClock, blackClock };
-  }, [ply, clocks]);
+  }, [ply, clocks, startTime]);
 
   const moveList = useMemo(() => {
     const pairs: { num: number; white: string; black?: string; whitePly: number; blackPly?: number; whiteClk?: string | null; blackClk?: string | null }[] = [];
@@ -302,7 +315,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
       {/* Flip button */}
       <button
         onClick={() => setFlipped(f => !f)}
-        className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors flex-shrink-0"
+        className="p-2.5 rounded-lg bg-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors flex-shrink-0 border border-slate-600"
         title="Flip board"
       >
         <ArrowUpDown className="w-5 h-5" />
