@@ -278,7 +278,7 @@ export function MistakeFinderPanel() {
           {!mistakes && (
             <button
               onClick={handleAnalyze}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
+              className="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-6 rounded-lg flex items-center gap-2 transition-colors mx-auto"
             >
               <Search className="w-5 h-5" />
               {t('coaches.mistakes.findButton')}
