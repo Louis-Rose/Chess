@@ -292,13 +292,16 @@ export function MistakeFinderPanel() {
                   {t('coaches.mistakes.categoryTime')}
                 </h3>
                 <div className="space-y-2">
-                  <button
-                    onClick={handleAnalyze}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 transition-colors text-left text-sm"
-                  >
-                    <Search className="w-4 h-4 flex-shrink-0" />
-                    <span>{t('coaches.mistakes.a1')}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleAnalyze}
+                      className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 transition-colors text-left text-sm"
+                    >
+                      <Search className="w-4 h-4 flex-shrink-0" />
+                      <span>{t('coaches.mistakes.a1')}</span>
+                    </button>
+                    <span className="text-xs text-transparent flex-shrink-0">{t('coaches.mistakes.comingSoon')}</span>
+                  </div>
                   <div className="flex items-center gap-2">
                     <button
                       disabled
