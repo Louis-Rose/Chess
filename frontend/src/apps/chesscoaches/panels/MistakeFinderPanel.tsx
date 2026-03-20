@@ -1,7 +1,7 @@
 // Mistake Finder panel — upload PGN, find time-management mistakes
 
 import { useState, useCallback, useRef } from 'react';
-import { Upload, Search, Clock, AlertTriangle, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Upload, Search, Clock, AlertTriangle, ChevronDown, ChevronUp, X, Lock } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Chessboard } from '../components/Chessboard';
 import { PanelHeader } from '../components/PanelHeader';
@@ -282,15 +282,51 @@ export function MistakeFinderPanel() {
           {/* Chessboard */}
           <Chessboard pgn={pgnText} />
 
-          {/* Analyze button */}
+          {/* Analysis selection */}
           {!mistakes && (
-            <button
-              onClick={handleAnalyze}
-              className="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-6 rounded-lg flex items-center gap-2 transition-colors mx-auto"
-            >
-              <Search className="w-5 h-5" />
-              {t('coaches.mistakes.findButton')}
-            </button>
+            <div className="space-y-4">
+              {/* Category A: Time Management */}
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5" />
+                  {t('coaches.mistakes.categoryTime')}
+                </h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={handleAnalyze}
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 transition-colors text-left"
+                  >
+                    <Search className="w-5 h-5 flex-shrink-0" />
+                    <span>{t('coaches.mistakes.a1')}</span>
+                  </button>
+                  <button
+                    disabled
+                    className="w-full bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 cursor-not-allowed text-left"
+                  >
+                    <Lock className="w-5 h-5 flex-shrink-0" />
+                    <span>{t('coaches.mistakes.a2')}</span>
+                    <span className="ml-auto text-xs text-slate-600">{t('coaches.mistakes.comingSoon')}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Category B: TBD */}
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  {t('coaches.mistakes.categoryTbd')}
+                </h3>
+                <div className="space-y-2">
+                  <button
+                    disabled
+                    className="w-full bg-slate-700/50 text-slate-500 font-medium py-2.5 px-4 rounded-lg flex items-center gap-3 cursor-not-allowed text-left"
+                  >
+                    <Lock className="w-5 h-5 flex-shrink-0" />
+                    <span>{t('coaches.mistakes.b1')}</span>
+                    <span className="ml-auto text-xs text-slate-600">{t('coaches.mistakes.comingSoon')}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Error */}

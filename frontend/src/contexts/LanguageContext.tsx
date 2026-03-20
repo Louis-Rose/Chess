@@ -257,6 +257,13 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.mistakes.timeSpent': 'Time spent',
     'coaches.mistakes.clockAfter': 'Clock after',
     'coaches.mistakes.analyzeAnother': 'Analyze another game',
+    'coaches.mistakes.categoryTime': 'Time Management',
+    'coaches.mistakes.categoryTbd': 'To Be Determined',
+    'coaches.mistakes.a1': 'Underthinking a critical moment',
+    'coaches.mistakes.a2': 'Over-calculating equal alternatives',
+    'coaches.mistakes.b1': 'Over-extending a winning position',
+    'coaches.mistakes.comingSoon': 'Coming soon',
+    'coaches.mistakes.selectAnalysis': 'Select an analysis',
 
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
@@ -523,6 +530,13 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.mistakes.timeSpent': 'Temps passé',
     'coaches.mistakes.clockAfter': 'Horloge après',
     'coaches.mistakes.analyzeAnother': 'Analyser une autre partie',
+    'coaches.mistakes.categoryTime': 'Gestion du temps',
+    'coaches.mistakes.categoryTbd': 'À déterminer',
+    'coaches.mistakes.a1': 'Sous-réfléchir un moment critique',
+    'coaches.mistakes.a2': 'Sur-calculer des alternatives égales',
+    'coaches.mistakes.b1': 'Sur-jouer une position gagnante',
+    'coaches.mistakes.comingSoon': 'Bientôt disponible',
+    'coaches.mistakes.selectAnalysis': 'Sélectionnez une analyse',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',
