@@ -967,6 +967,54 @@ def read_scoresheet():
 
 # ── Coach Students Management ──
 
+@app.route('/api/coaches/students/seed', methods=['POST'])
+def seed_coach_students():
+    """Seed 5 fake students for testing."""
+    data = request.get_json()
+    coach = (data.get('coach_username') or '').strip()
+    if not coach:
+        return jsonify({'error': 'coach_username required'}), 400
+
+    seeds = [
+        {'student_name': 'Emma Fischer', 'student_chess_username': 'emmaf2005', 'student_lichess_username': 'emmafish',
+         'email': 'emma.fischer@gmail.com', 'timezone': 'Europe/Berlin', 'preferred_platform': 'zoom',
+         'platform_link': 'https://zoom.us/j/123456', 'rate_amount': 40, 'rate_currency': 'EUR',
+         'payment_status': 'paid', 'is_minor': 1, 'parent_name': 'Hans Fischer', 'parent_email': 'hans.fischer@gmail.com', 'phone': '+49 170 1234567'},
+        {'student_name': 'James Wilson', 'student_chess_username': 'jwilson_chess', 'student_lichess_username': None,
+         'email': 'james.w@outlook.com', 'timezone': 'America/New_York', 'preferred_platform': 'google_meet',
+         'platform_link': 'https://meet.google.com/abc-defg-hij', 'rate_amount': 50, 'rate_currency': 'USD',
+         'payment_status': 'overdue', 'is_minor': 0, 'phone': '+1 555 234 5678'},
+        {'student_name': 'Yuki Tanaka', 'student_chess_username': 'yuki_t', 'student_lichess_username': 'yukitanaka',
+         'email': 'yuki.tanaka@mail.jp', 'timezone': 'Asia/Tokyo', 'preferred_platform': 'discord',
+         'platform_link': None, 'rate_amount': 6000, 'rate_currency': 'JPY',
+         'payment_status': 'paid', 'is_minor': 0, 'phone': '+81 90 1234 5678'},
+        {'student_name': 'Lucas Martin', 'student_chess_username': None, 'student_lichess_username': 'lucasmartin33',
+         'email': 'lucas.martin@free.fr', 'timezone': 'Europe/Paris', 'preferred_platform': 'otb',
+         'platform_link': None, 'rate_amount': 35, 'rate_currency': 'EUR',
+         'payment_status': 'pending', 'is_minor': 1, 'parent_name': 'Sophie Martin', 'parent_email': 'sophie.m@free.fr', 'parent_phone': '+33 6 12 34 56 78', 'phone': '+33 7 98 76 54 32'},
+        {'student_name': 'Aisha Patel', 'student_chess_username': 'aisha_chess', 'student_lichess_username': None,
+         'email': 'aisha.p@gmail.com', 'timezone': 'Asia/Kolkata', 'preferred_platform': 'zoom',
+         'platform_link': 'https://zoom.us/j/987654', 'rate_amount': 1500, 'rate_currency': 'INR',
+         'payment_status': 'paid', 'is_minor': 0, 'phone': '+91 98765 43210'},
+    ]
+
+    with get_db() as conn:
+        for s in seeds:
+            conn.execute(
+                '''INSERT INTO coach_students
+                   (coach_username, student_name, student_chess_username, student_lichess_username,
+                    email, phone, parent_name, parent_email, parent_phone, is_minor,
+                    timezone, preferred_platform, platform_link, rate_amount, rate_currency, payment_status)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                (coach, s['student_name'], s.get('student_chess_username'), s.get('student_lichess_username'),
+                 s.get('email'), s.get('phone'), s.get('parent_name'), s.get('parent_email'), s.get('parent_phone'),
+                 1 if s.get('is_minor') else 0,
+                 s.get('timezone', 'UTC'), s.get('preferred_platform'), s.get('platform_link'),
+                 s.get('rate_amount'), s.get('rate_currency', 'EUR'), s.get('payment_status', 'paid'))
+            )
+    return jsonify({'message': f'Seeded 5 students for {coach}'}), 201
+
+
 @app.route('/api/coaches/students', methods=['GET'])
 def get_coach_students():
     """List all students for a coach (identified by chess username)."""

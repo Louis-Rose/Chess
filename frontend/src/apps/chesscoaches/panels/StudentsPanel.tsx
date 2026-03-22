@@ -78,7 +78,6 @@ interface Lesson {
 }
 
 type SortKey = 'name' | 'next_lesson' | 'payment';
-type FilterTab = 'all' | 'active' | 'archived';
 
 // ── Common timezones ──
 
@@ -213,11 +212,12 @@ const EMPTY_FORM: StudentFormData = {
   payment_status: 'paid', notes: '',
 };
 
-function StudentForm({ initial, onSave, onCancel, saving }: {
+function StudentForm({ initial, onSave, onCancel, saving, isEditing }: {
   initial: StudentFormData;
   onSave: (data: StudentFormData) => void;
   onCancel: () => void;
   saving: boolean;
+  isEditing?: boolean;
 }) {
   const { t } = useLanguage();
   const [form, setForm] = useState(initial);
@@ -294,23 +294,25 @@ function StudentForm({ initial, onSave, onCancel, saving }: {
         </div>
       </div>
 
-      {/* Payment status */}
-      <div>
-        <div className={label}>{t('coaches.students.paymentStatus')}</div>
-        <div className="flex gap-2">
-          {(['paid', 'pending', 'overdue'] as const).map(s => (
-            <button
-              key={s}
-              onClick={() => set('payment_status', s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                form.payment_status === s ? getPaymentColor(s) : 'border-slate-600 text-slate-500 hover:border-slate-500'
-              }`}
-            >
-              {t(`coaches.students.${s}`)}
-            </button>
-          ))}
+      {/* Payment status — only shown when editing */}
+      {isEditing && (
+        <div>
+          <div className={label}>{t('coaches.students.paymentStatus')}</div>
+          <div className="flex gap-2">
+            {(['paid', 'pending', 'overdue'] as const).map(s => (
+              <button
+                key={s}
+                onClick={() => set('payment_status', s)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  form.payment_status === s ? getPaymentColor(s) : 'border-slate-600 text-slate-500 hover:border-slate-500'
+                }`}
+              >
+                {t(`coaches.students.${s}`)}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Minor toggle + parent info */}
       <div>
@@ -346,11 +348,13 @@ function StudentForm({ initial, onSave, onCancel, saving }: {
         )}
       </div>
 
-      {/* Notes */}
-      <div>
-        <div className={label}>{t('coaches.students.notes')}</div>
-        <textarea className={`${input} resize-none h-20`} value={form.notes} onChange={e => set('notes', e.target.value)} />
-      </div>
+      {/* Notes — only shown when editing */}
+      {isEditing && (
+        <div>
+          <div className={label}>{t('coaches.students.notes')}</div>
+          <textarea className={`${input} resize-none h-20`} value={form.notes} onChange={e => set('notes', e.target.value)} />
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex items-center gap-3 pt-1">
@@ -632,6 +636,7 @@ function StudentCard({ student, coachTz, onRefresh }: {
         onSave={handleUpdate}
         onCancel={() => setEditing(false)}
         saving={saving}
+        isEditing
       />
     );
   }
@@ -938,7 +943,6 @@ export function StudentsPanel() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
-  const [filterTab, setFilterTab] = useState<FilterTab>('active');
   const [sortKey, setSortKey] = useState<SortKey>('name');
 
   const fetchStudents = useCallback(async () => {
@@ -975,8 +979,6 @@ export function StudentsPanel() {
 
   // Filter & sort
   const filtered = students.filter(s => {
-    if (filterTab === 'active' && !s.is_active) return false;
-    if (filterTab === 'archived' && s.is_active) return false;
     if (search) {
       const q = search.toLowerCase();
       return s.student_name.toLowerCase().includes(q) ||
@@ -1000,9 +1002,6 @@ export function StudentsPanel() {
     return 0;
   });
 
-  const activeCount = students.filter(s => s.is_active).length;
-  const archivedCount = students.filter(s => !s.is_active).length;
-
   return (
     <PanelShell title={t('coaches.students.title')}>
       <div className="max-w-3xl mx-auto space-y-4">
@@ -1017,25 +1016,6 @@ export function StudentsPanel() {
               placeholder={t('coaches.students.search')}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
             />
-          </div>
-
-          {/* Filter tabs */}
-          <div className="flex gap-1 bg-slate-800 rounded-lg p-1 border border-slate-700">
-            {([
-              ['active', `${t('coaches.students.active')} (${activeCount})`],
-              ['all', t('coaches.students.allStudents')],
-              ['archived', `${t('coaches.students.archived')} (${archivedCount})`],
-            ] as const).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setFilterTab(key as FilterTab)}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                  filterTab === key ? 'bg-slate-700 text-slate-100' : 'text-slate-500 hover:text-slate-300'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
           </div>
 
           {/* Sort */}
