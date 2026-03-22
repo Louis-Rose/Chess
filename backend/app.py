@@ -967,64 +967,15 @@ def read_scoresheet():
 
 # ── Coach Students Management ──
 
-@app.route('/api/coaches/students/seed', methods=['POST'])
-def seed_coach_students():
-    """Seed 5 fake students for testing."""
-    data = request.get_json()
-    coach = (data.get('coach_username') or '').strip()
-    if not coach:
-        return jsonify({'error': 'coach_username required'}), 400
-
-    seeds = [
-        {'student_name': 'Emma Fischer', 'student_chess_username': 'emmaf2005', 'student_lichess_username': 'emmafish',
-         'email': 'emma.fischer@gmail.com', 'timezone': 'Europe/Berlin', 'preferred_platform': 'zoom',
-         'platform_link': 'https://zoom.us/j/123456', 'rate_amount': 40, 'rate_currency': 'EUR',
-         'payment_status': 'paid', 'is_minor': 1, 'parent_name': 'Hans Fischer', 'parent_email': 'hans.fischer@gmail.com', 'phone': '+49 170 1234567'},
-        {'student_name': 'James Wilson', 'student_chess_username': 'jwilson_chess', 'student_lichess_username': None,
-         'email': 'james.w@outlook.com', 'timezone': 'America/New_York', 'preferred_platform': 'google_meet',
-         'platform_link': 'https://meet.google.com/abc-defg-hij', 'rate_amount': 50, 'rate_currency': 'USD',
-         'payment_status': 'overdue', 'is_minor': 0, 'phone': '+1 555 234 5678'},
-        {'student_name': 'Yuki Tanaka', 'student_chess_username': 'yuki_t', 'student_lichess_username': 'yukitanaka',
-         'email': 'yuki.tanaka@mail.jp', 'timezone': 'Asia/Tokyo', 'preferred_platform': 'discord',
-         'platform_link': None, 'rate_amount': 6000, 'rate_currency': 'JPY',
-         'payment_status': 'paid', 'is_minor': 0, 'phone': '+81 90 1234 5678'},
-        {'student_name': 'Lucas Martin', 'student_chess_username': None, 'student_lichess_username': 'lucasmartin33',
-         'email': 'lucas.martin@free.fr', 'timezone': 'Europe/Paris', 'preferred_platform': 'otb',
-         'platform_link': None, 'rate_amount': 35, 'rate_currency': 'EUR',
-         'payment_status': 'pending', 'is_minor': 1, 'parent_name': 'Sophie Martin', 'parent_email': 'sophie.m@free.fr', 'parent_phone': '+33 6 12 34 56 78', 'phone': '+33 7 98 76 54 32'},
-        {'student_name': 'Aisha Patel', 'student_chess_username': 'aisha_chess', 'student_lichess_username': None,
-         'email': 'aisha.p@gmail.com', 'timezone': 'Asia/Kolkata', 'preferred_platform': 'zoom',
-         'platform_link': 'https://zoom.us/j/987654', 'rate_amount': 1500, 'rate_currency': 'INR',
-         'payment_status': 'paid', 'is_minor': 0, 'phone': '+91 98765 43210'},
-    ]
-
-    with get_db() as conn:
-        for s in seeds:
-            conn.execute(
-                '''INSERT INTO coach_students
-                   (coach_username, student_name, student_chess_username, student_lichess_username,
-                    email, phone, parent_name, parent_email, parent_phone, is_minor,
-                    timezone, preferred_platform, platform_link, rate_amount, rate_currency, payment_status)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                (coach, s['student_name'], s.get('student_chess_username'), s.get('student_lichess_username'),
-                 s.get('email'), s.get('phone'), s.get('parent_name'), s.get('parent_email'), s.get('parent_phone'),
-                 1 if s.get('is_minor') else 0,
-                 s.get('timezone', 'UTC'), s.get('preferred_platform'), s.get('platform_link'),
-                 s.get('rate_amount'), s.get('rate_currency', 'EUR'), s.get('payment_status', 'paid'))
-            )
-    return jsonify({'message': f'Seeded 5 students for {coach}'}), 201
-
-
 @app.route('/api/coaches/students', methods=['GET'])
+@login_required
 def get_coach_students():
-    """List all students for a coach (identified by chess username)."""
-    coach = request.args.get('coach', '').strip()
-    if not coach:
-        return jsonify({'error': 'coach username required'}), 400
+    """List all students for the authenticated coach."""
+    user_id = request.user_id
     with get_db() as conn:
         rows = conn.execute(
-            'SELECT * FROM coach_students WHERE coach_username = ? ORDER BY is_active DESC, student_name ASC',
-            (coach,)
+            'SELECT * FROM coach_students WHERE coach_user_id = ? ORDER BY is_active DESC, student_name ASC',
+            (user_id,)
         ).fetchall()
         students = []
         for r in rows:
@@ -1064,36 +1015,26 @@ def get_coach_students():
 
 
 @app.route('/api/coaches/students', methods=['POST'])
+@login_required
 def add_coach_student():
-    """Add a new student for a coach."""
+    """Add a new student for the authenticated coach."""
     data = request.get_json()
-    coach = (data.get('coach_username') or '').strip()
     name = (data.get('student_name') or '').strip()
-    if not coach or not name:
-        return jsonify({'error': 'coach_username and student_name required'}), 400
+    if not name:
+        return jsonify({'error': 'student_name required'}), 400
 
     with get_db() as conn:
         cursor = conn.execute(
             '''INSERT INTO coach_students
-               (coach_username, student_name, student_chess_username, student_lichess_username,
-                email, phone, parent_name, parent_email, parent_phone, is_minor,
-                timezone, preferred_platform, platform_link, rate_amount, rate_currency,
-                payment_status, notes)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-            (coach, name,
+               (coach_user_id, student_name, student_chess_username, student_lichess_username,
+                email, phone, timezone, payment_status, notes)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            (request.user_id, name,
              (data.get('student_chess_username') or '').strip() or None,
              (data.get('student_lichess_username') or '').strip() or None,
              (data.get('email') or '').strip() or None,
              (data.get('phone') or '').strip() or None,
-             (data.get('parent_name') or '').strip() or None,
-             (data.get('parent_email') or '').strip() or None,
-             (data.get('parent_phone') or '').strip() or None,
-             1 if data.get('is_minor') else 0,
              data.get('timezone', 'UTC'),
-             data.get('preferred_platform'),
-             (data.get('platform_link') or '').strip() or None,
-             data.get('rate_amount'),
-             data.get('rate_currency', 'EUR'),
              data.get('payment_status', 'paid'),
              (data.get('notes') or '').strip() or None)
         )
@@ -1107,27 +1048,21 @@ def add_coach_student():
 
 
 @app.route('/api/coaches/students/<int:student_id>', methods=['PUT'])
+@login_required
 def update_coach_student(student_id):
     """Update a student's details."""
     data = request.get_json()
-    coach = (data.get('coach_username') or '').strip()
-    if not coach:
-        return jsonify({'error': 'coach_username required'}), 400
 
     allowed = [
         'student_name', 'student_chess_username', 'student_lichess_username',
-        'email', 'phone', 'parent_name', 'parent_email', 'parent_phone', 'is_minor',
-        'timezone', 'preferred_platform', 'platform_link', 'rate_amount', 'rate_currency',
-        'payment_status', 'notes', 'is_active', 'last_contact_at',
+        'email', 'phone', 'timezone', 'payment_status', 'notes', 'is_active', 'last_contact_at',
     ]
     sets = []
     vals = []
     for field in allowed:
         if field in data:
             val = data[field]
-            if field == 'is_minor':
-                val = 1 if val else 0
-            elif isinstance(val, str):
+            if isinstance(val, str):
                 val = val.strip() or None
             sets.append(f'{field} = ?')
             vals.append(val)
@@ -1136,31 +1071,30 @@ def update_coach_student(student_id):
         return jsonify({'error': 'No fields to update'}), 400
 
     sets.append('updated_at = CURRENT_TIMESTAMP')
-    vals.extend([coach, student_id])
+    vals.extend([request.user_id, student_id])
 
     with get_db() as conn:
         conn.execute(
-            f'UPDATE coach_students SET {", ".join(sets)} WHERE coach_username = ? AND id = ?',
+            f'UPDATE coach_students SET {", ".join(sets)} WHERE coach_user_id = ? AND id = ?',
             tuple(vals)
         )
     return jsonify({'message': 'Student updated'})
 
 
 @app.route('/api/coaches/students/<int:student_id>', methods=['DELETE'])
+@login_required
 def delete_coach_student(student_id):
     """Delete a student (and cascade lessons/bundles)."""
-    coach = request.args.get('coach', '').strip()
-    if not coach:
-        return jsonify({'error': 'coach username required'}), 400
     with get_db() as conn:
         conn.execute(
-            'DELETE FROM coach_students WHERE id = ? AND coach_username = ?',
-            (student_id, coach)
+            'DELETE FROM coach_students WHERE id = ? AND coach_user_id = ?',
+            (student_id, request.user_id)
         )
     return jsonify({'message': 'Student deleted'})
 
 
 @app.route('/api/coaches/students/<int:student_id>/bundles', methods=['POST'])
+@login_required
 def add_lesson_bundle(student_id):
     """Create a new lesson bundle for a student."""
     data = request.get_json()
@@ -1169,8 +1103,8 @@ def add_lesson_bundle(student_id):
         return jsonify({'error': 'total_lessons required (>= 1)'}), 400
 
     with get_db() as conn:
-        # Verify student exists
-        student = conn.execute('SELECT id FROM coach_students WHERE id = ?', (student_id,)).fetchone()
+        # Verify student belongs to this coach
+        student = conn.execute('SELECT id FROM coach_students WHERE id = ? AND coach_user_id = ?', (student_id, request.user_id)).fetchone()
         if not student:
             return jsonify({'error': 'Student not found'}), 404
         conn.execute(
@@ -1182,6 +1116,7 @@ def add_lesson_bundle(student_id):
 
 
 @app.route('/api/coaches/students/<int:student_id>/bundles', methods=['GET'])
+@login_required
 def get_lesson_bundles(student_id):
     """List all bundles for a student."""
     with get_db() as conn:
@@ -1193,6 +1128,7 @@ def get_lesson_bundles(student_id):
 
 
 @app.route('/api/coaches/students/<int:student_id>/lessons', methods=['POST'])
+@login_required
 def add_coach_lesson(student_id):
     """Log a lesson for a student."""
     data = request.get_json()
@@ -1228,6 +1164,7 @@ def add_coach_lesson(student_id):
 
 
 @app.route('/api/coaches/students/<int:student_id>/lessons', methods=['GET'])
+@login_required
 def get_coach_lessons(student_id):
     """List lessons for a student."""
     with get_db() as conn:
@@ -1239,6 +1176,7 @@ def get_coach_lessons(student_id):
 
 
 @app.route('/api/coaches/lessons/<int:lesson_id>', methods=['PUT'])
+@login_required
 def update_coach_lesson(lesson_id):
     """Update a lesson's status/details."""
     data = request.get_json()

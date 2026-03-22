@@ -4,9 +4,10 @@ import { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { Users, FileText, LogOut, Clock, Grid3X3, Home } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { CoachesDataProvider, useCoachesData, getCoachesPrefs, saveCoachesPrefs } from './contexts/CoachesDataContext';
+import { CoachesDataProvider } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { LumnaBrand } from './components/LumnaBrand';
 
 export interface NavItem {
@@ -26,7 +27,7 @@ export const NAV_ITEMS: NavItem[] = [
 
 function CoachesNavSidebar() {
   const { t } = useLanguage();
-  const { playerInfo } = useCoachesData();
+  const { user, logout } = useAuth();
   const [showPlayerMenu, setShowPlayerMenu] = useState(false);
   const playerMenuRef = useRef<HTMLDivElement>(null);
 
@@ -42,35 +43,33 @@ function CoachesNavSidebar() {
   return (
     <div className="hidden md:flex w-64 bg-slate-900 h-screen flex-col flex-shrink-0">
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-        {/* Player card */}
-        {playerInfo ? (
+        {/* User card */}
+        {user ? (
           <div ref={playerMenuRef} className="relative mb-1">
             <button
               onClick={() => setShowPlayerMenu(!showPlayerMenu)}
               className="w-full bg-slate-800 rounded-lg p-3 hover:bg-slate-750 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                {playerInfo.avatar ? (
-                  <img src={playerInfo.avatar} alt="" className="w-10 h-10 rounded-full" />
+                {user.picture ? (
+                  <img src={user.picture} alt="" className="w-10 h-10 rounded-full" />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-slate-300 font-bold">
-                    {playerInfo.username.charAt(0).toUpperCase()}
+                    {(user.name || user.email).charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div className="text-left min-w-0">
-                  <p className="text-white font-medium text-sm truncate">{playerInfo.name || playerInfo.username}</p>
-                  <p className="text-slate-400 text-xs truncate">@{playerInfo.username}</p>
+                  <p className="text-white font-medium text-sm truncate">{user.name}</p>
+                  <p className="text-slate-400 text-xs truncate">{user.email}</p>
                 </div>
               </div>
             </button>
             {showPlayerMenu && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     setShowPlayerMenu(false);
-                    localStorage.removeItem('coaches_preferences');
-                    localStorage.removeItem('coaches_saved_players');
-                    window.location.href = '/coach';
+                    await logout();
                   }}
                   className="w-full px-3 py-2.5 text-left text-red-400 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors"
                 >
@@ -130,7 +129,6 @@ function CoachesNavSidebar() {
   );
 }
 
-
 function LanguageToggle() {
   const { language, setLanguage } = useLanguage();
   return (
@@ -157,7 +155,7 @@ function LanguageToggle() {
 
 function MobilePlayerButton() {
   const { t } = useLanguage();
-  const { playerInfo } = useCoachesData();
+  const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -169,29 +167,27 @@ function MobilePlayerButton() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (!playerInfo) return null;
+  if (!user) return null;
 
   return (
     <div ref={ref} className="md:hidden relative z-50">
       <button onClick={() => setOpen(!open)} className="rounded-full overflow-hidden w-9 h-9 bg-slate-700 flex items-center justify-center">
-        {playerInfo.avatar ? (
-          <img src={playerInfo.avatar} alt="" className="w-9 h-9 rounded-full" />
+        {user.picture ? (
+          <img src={user.picture} alt="" className="w-9 h-9 rounded-full" />
         ) : (
-          <span className="text-slate-300 font-bold text-sm">{playerInfo.username.charAt(0).toUpperCase()}</span>
+          <span className="text-slate-300 font-bold text-sm">{(user.name || user.email).charAt(0).toUpperCase()}</span>
         )}
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg overflow-hidden whitespace-nowrap">
           <div className="px-3 py-2 border-b border-slate-700">
-            <p className="text-white text-sm font-medium">{playerInfo.name || playerInfo.username}</p>
-            <p className="text-slate-400 text-xs">@{playerInfo.username}</p>
+            <p className="text-white text-sm font-medium">{user.name}</p>
+            <p className="text-slate-400 text-xs">{user.email}</p>
           </div>
           <button
-            onClick={() => {
+            onClick={async () => {
               setOpen(false);
-              localStorage.removeItem('coaches_preferences');
-              localStorage.removeItem('coaches_saved_players');
-              window.location.href = '/coach';
+              await logout();
             }}
             className="w-full px-3 py-2.5 text-left text-red-400 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors"
           >
@@ -219,26 +215,20 @@ function CoachesHeader() {
 }
 
 function CoachesLayoutInner() {
-  const prefs = getCoachesPrefs();
-  const [onboardingDone, setOnboardingDone] = useState(prefs.onboarding_done && !!prefs.chess_username);
+  const { isAuthenticated, isLoading } = useAuth();
 
-  useEffect(() => {
-    const handler = () => {
-      if (!onboardingDone && getCoachesPrefs().onboarding_done) setOnboardingDone(true);
-    };
-    window.addEventListener('coaches-prefs-change', handler);
-    return () => window.removeEventListener('coaches-prefs-change', handler);
-  }, [onboardingDone]);
-
-  const handleOnboardingComplete = () => {
-    saveCoachesPrefs({ onboarding_done: true });
-    setOnboardingDone(true);
-  };
+  if (isLoading) {
+    return (
+      <div className="h-dvh bg-slate-800 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-slate-600 border-t-purple-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-dvh bg-slate-800 font-sans text-slate-100 flex overflow-hidden">
-      {!onboardingDone ? (
-        <CoachesSidebar onComplete={handleOnboardingComplete} />
+      {!isAuthenticated ? (
+        <CoachesSidebar />
       ) : (
         <>
           <CoachesNavSidebar />

@@ -374,7 +374,8 @@ CREATE TABLE IF NOT EXISTS monthly_archive_cache (
 -- Coach students table (keyed by coach chess username)
 CREATE TABLE IF NOT EXISTS coach_students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    coach_username TEXT NOT NULL,             -- Coach's Chess.com username
+    coach_user_id INTEGER NOT NULL,           -- Coach's user ID (Google OAuth)
+    coach_username TEXT,                      -- Legacy, kept for migration
     student_name TEXT NOT NULL,               -- Display name
     student_chess_username TEXT,              -- Chess.com username (optional)
     student_lichess_username TEXT,            -- Lichess username (optional)
@@ -461,8 +462,8 @@ CREATE INDEX IF NOT EXISTS idx_language_usage_user_id ON language_usage(user_id)
 CREATE INDEX IF NOT EXISTS idx_device_usage_user_id ON device_usage(user_id);
 
 -- Coach students indexes
-CREATE INDEX IF NOT EXISTS idx_coach_students_coach ON coach_students(coach_username);
-CREATE INDEX IF NOT EXISTS idx_coach_students_active ON coach_students(coach_username, is_active);
+CREATE INDEX IF NOT EXISTS idx_coach_students_coach ON coach_students(coach_user_id);
+CREATE INDEX IF NOT EXISTS idx_coach_students_active ON coach_students(coach_user_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_coach_lesson_bundles_student ON coach_lesson_bundles(student_id);
 CREATE INDEX IF NOT EXISTS idx_coach_lessons_student ON coach_lessons(student_id);
 CREATE INDEX IF NOT EXISTS idx_coach_lessons_scheduled ON coach_lessons(scheduled_at);

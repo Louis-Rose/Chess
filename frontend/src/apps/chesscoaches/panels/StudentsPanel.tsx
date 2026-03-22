@@ -6,7 +6,7 @@ import {
   AlertTriangle, Archive, RotateCcw, X, Calendar, BookOpen, Send, Users,
 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { useCoachesData, getCoachesPrefs, saveCoachesPrefs } from '../contexts/CoachesDataContext';
+import { getCoachesPrefs, saveCoachesPrefs } from '../contexts/CoachesDataContext';
 import { PanelShell } from '../components/PanelShell';
 
 // ── Types ──
@@ -95,6 +95,11 @@ const COMMON_TIMEZONES = [
 ];
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'AUD', 'INR', 'BRL', 'RUB', 'CNY', 'JPY', 'KRW', 'SGD', 'AED', 'ZAR'] as const;
+
+// Authenticated fetch wrapper
+function authFetch(url: string, opts: RequestInit = {}) {
+  return fetch(url, { ...opts, credentials: 'include' });
+}
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   EUR: '\u20AC', USD: '$', GBP: '\u00A3', CHF: 'CHF', CAD: 'CA$', AUD: 'A$',
@@ -317,7 +322,7 @@ function LessonForm({ studentId, bundleId, onSaved, onCancel }: {
     if (!scheduledAt) return;
     setSaving(true);
     try {
-      await fetch(`/api/coaches/students/${studentId}/lessons`, {
+      await authFetch(`/api/coaches/students/${studentId}/lessons`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -392,7 +397,7 @@ function BundleForm({ studentId, currency, onSaved, onCancel }: {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await fetch(`/api/coaches/students/${studentId}/bundles`, {
+      await authFetch(`/api/coaches/students/${studentId}/bundles`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -468,7 +473,7 @@ function StudentCard({ student, coachRate, coachCurrency, onRefresh }: {
   const loadLessons = useCallback(async () => {
     setLessonsLoading(true);
     try {
-      const res = await fetch(`/api/coaches/students/${student.id}/lessons`);
+      const res = await authFetch(`/api/coaches/students/${student.id}/lessons`);
       const json = await res.json();
       setLessons(json.lessons || []);
     } finally {
@@ -477,17 +482,17 @@ function StudentCard({ student, coachRate, coachCurrency, onRefresh }: {
   }, [student.id]);
 
   const handleDelete = async () => {
-    await fetch(`/api/coaches/students/${student.id}?coach=${encodeURIComponent(student.coach_username)}`, { method: 'DELETE' });
+    await authFetch(`/api/coaches/students/${student.id}`, { method: 'DELETE', credentials: 'include' });
     onRefresh();
   };
 
   const handleUpdate = async (form: StudentFormData) => {
     setSaving(true);
     try {
-      await fetch(`/api/coaches/students/${student.id}`, {
+      await authFetch(`/api/coaches/students/${student.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, coach_username: student.coach_username }),
+        body: JSON.stringify(form),
       });
       setEditing(false);
       onRefresh();
@@ -497,10 +502,10 @@ function StudentCard({ student, coachRate, coachCurrency, onRefresh }: {
   };
 
   const handleArchiveToggle = async () => {
-    await fetch(`/api/coaches/students/${student.id}`, {
+    await authFetch(`/api/coaches/students/${student.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ coach_username: student.coach_username, is_active: student.is_active ? 0 : 1 }),
+      body: JSON.stringify({ is_active: student.is_active ? 0 : 1 }),
     });
     onRefresh();
   };
@@ -524,7 +529,7 @@ function StudentCard({ student, coachRate, coachCurrency, onRefresh }: {
 
   // Lesson status update
   const handleLessonStatusChange = async (lessonId: number, newStatus: string) => {
-    await fetch(`/api/coaches/lessons/${lessonId}`, {
+    await authFetch(`/api/coaches/lessons/${lessonId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
@@ -804,9 +809,6 @@ function StudentCard({ student, coachRate, coachCurrency, onRefresh }: {
 
 export function StudentsPanel() {
   const { t } = useLanguage();
-  const { playerInfo } = useCoachesData();
-  const coachUsername = playerInfo?.username || '';
-
 
   const prefs = getCoachesPrefs();
   const [coachRate, setCoachRate] = useState<number | null>(prefs.lesson_rate);
@@ -831,28 +833,24 @@ export function StudentsPanel() {
   };
 
   const fetchStudents = useCallback(async () => {
-    if (!coachUsername) return;
     try {
-      const res = await fetch(`/api/coaches/students?coach=${encodeURIComponent(coachUsername)}`);
+      const res = await authFetch('/api/coaches/students');
       const json = await res.json();
       setStudents(json.students || []);
     } finally {
       setLoading(false);
     }
-  }, [coachUsername]);
+  }, []);
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
   const handleAddStudent = async (form: StudentFormData) => {
     setSaving(true);
     try {
-      await fetch('/api/coaches/students', {
+      await authFetch('/api/coaches/students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          coach_username: coachUsername,
-          ...form,
-        }),
+        body: JSON.stringify(form),
       });
       setShowAddForm(false);
       fetchStudents();

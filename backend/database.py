@@ -484,7 +484,8 @@ def init_db():
                 conn.execute("""
                     CREATE TABLE coach_students (
                         id SERIAL PRIMARY KEY,
-                        coach_username TEXT NOT NULL,
+                        coach_user_id INTEGER NOT NULL,
+                        coach_username TEXT,
                         student_name TEXT NOT NULL,
                         student_chess_username TEXT,
                         student_lichess_username TEXT,
@@ -508,8 +509,8 @@ def init_db():
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
-                conn.execute("CREATE INDEX idx_coach_students_coach ON coach_students(coach_username)")
-                conn.execute("CREATE INDEX idx_coach_students_active ON coach_students(coach_username, is_active)")
+                conn.execute("CREATE INDEX idx_coach_students_coach ON coach_students(coach_user_id)")
+                conn.execute("CREATE INDEX idx_coach_students_active ON coach_students(coach_user_id, is_active)")
                 print("[Database] Created coach_students table")
 
             # Migration: Create coach_lesson_bundles table if not exists
@@ -557,7 +558,18 @@ def init_db():
                 conn.execute("CREATE INDEX idx_coach_lessons_bundle ON coach_lessons(bundle_id)")
                 print("[Database] Created coach_lessons table")
 
-            # Seed: Add test students for akyrosu if coach_students is empty
+            # Migration: Add coach_user_id column to coach_students if missing
+            conn.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'coach_students' AND column_name = 'coach_user_id'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("ALTER TABLE coach_students ADD COLUMN coach_user_id INTEGER")
+                conn.execute("CREATE INDEX idx_coach_students_coach ON coach_students(coach_user_id)")
+                conn.execute("CREATE INDEX idx_coach_students_active ON coach_students(coach_user_id, is_active)")
+                print("[Database] Added coach_user_id column to coach_students")
+
+            # Seed: Add test students if coach_students is empty
             conn.execute("SELECT COUNT(*) as cnt FROM coach_students")
             row = conn._cursor.fetchone()
             if row and row['cnt'] == 0:
@@ -630,12 +642,24 @@ def init_db():
                     conn.execute('ALTER TABLE chess_user_prefs ADD COLUMN leaderboard_name TEXT DEFAULT NULL')
                     print("[Database] Added leaderboard_name column to chess_user_prefs")
 
+            # Migration: Recreate coach_students with coach_user_id if missing
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='coach_students'")
+            if cursor.fetchone():
+                cursor = conn.execute("PRAGMA table_info(coach_students)")
+                columns = [row['name'] for row in cursor.fetchall()]
+                if 'coach_user_id' not in columns:
+                    # Drop old table and let schema.sql recreate it with new columns
+                    conn.execute('DROP TABLE IF EXISTS coach_lessons')
+                    conn.execute('DROP TABLE IF EXISTS coach_lesson_bundles')
+                    conn.execute('DROP TABLE IF EXISTS coach_students')
+                    print("[Database] Recreated coach_students with coach_user_id column")
+
             # Run full schema
             with open(schema_path, 'r') as f:
                 conn.executescript(f.read())
             conn.commit()
 
-            # Seed: Add test students for akyrosu if coach_students is empty
+            # Seed: Add test students if coach_students is empty
             cnt = conn.execute("SELECT COUNT(*) as cnt FROM coach_students").fetchone()
             if cnt and cnt['cnt'] == 0:
                 _seed_test_students(conn)
@@ -647,24 +671,30 @@ def init_db():
 
 
 def _seed_test_students(conn):
-    """Seed 5 test students for akyrosu."""
+    """Seed 5 test students. Tries to find akyrosu's user_id, falls back to user_id=1."""
+    # Try to find akyrosu's user_id
+    try:
+        row = conn.execute("SELECT id FROM users WHERE email LIKE '%akyrosu%' OR name LIKE '%Louis%' ORDER BY id LIMIT 1").fetchone()
+        user_id = row['id'] if row else 1
+    except Exception:
+        user_id = 1
+
     seeds = [
-        ('akyrosu', 'Emma Fischer', 'emmaf2005', 'emmafish', 'emma.fischer@gmail.com', '+49 170 1234567', 'Hans Fischer', 'hans.fischer@gmail.com', None, 1, 'Europe/Berlin', 'zoom', 'https://zoom.us/j/123456', 40, 'EUR', 'paid'),
-        ('akyrosu', 'James Wilson', 'jwilson_chess', None, 'james.w@outlook.com', '+1 555 234 5678', None, None, None, 0, 'America/New_York', 'google_meet', 'https://meet.google.com/abc-defg-hij', 50, 'USD', 'overdue'),
-        ('akyrosu', 'Yuki Tanaka', 'yuki_t', 'yukitanaka', 'yuki.tanaka@mail.jp', '+81 90 1234 5678', None, None, None, 0, 'Asia/Tokyo', 'discord', None, 6000, 'JPY', 'paid'),
-        ('akyrosu', 'Lucas Martin', None, 'lucasmartin33', 'lucas.martin@free.fr', '+33 7 98 76 54 32', 'Sophie Martin', 'sophie.m@free.fr', '+33 6 12 34 56 78', 1, 'Europe/Paris', 'otb', None, 35, 'EUR', 'pending'),
-        ('akyrosu', 'Aisha Patel', 'aisha_chess', None, 'aisha.p@gmail.com', '+91 98765 43210', None, None, None, 0, 'Asia/Kolkata', 'zoom', 'https://zoom.us/j/987654', 1500, 'INR', 'paid'),
+        (user_id, 'Emma Fischer', 'emmaf2005', 'emmafish', 'emma.fischer@gmail.com', '+49 170 1234567', 'Europe/Berlin', 40, 'EUR', 'paid'),
+        (user_id, 'James Wilson', 'jwilson_chess', None, 'james.w@outlook.com', '+1 555 234 5678', 'America/New_York', 50, 'USD', 'overdue'),
+        (user_id, 'Yuki Tanaka', 'yuki_t', 'yukitanaka', 'yuki.tanaka@mail.jp', '+81 90 1234 5678', 'Asia/Tokyo', 6000, 'JPY', 'paid'),
+        (user_id, 'Lucas Martin', None, 'lucasmartin33', 'lucas.martin@free.fr', '+33 7 98 76 54 32', 'Europe/Paris', 35, 'EUR', 'pending'),
+        (user_id, 'Aisha Patel', 'aisha_chess', None, 'aisha.p@gmail.com', '+91 98765 43210', 'Asia/Kolkata', 1500, 'INR', 'paid'),
     ]
     for s in seeds:
         conn.execute(
             '''INSERT INTO coach_students
-               (coach_username, student_name, student_chess_username, student_lichess_username,
-                email, phone, parent_name, parent_email, parent_phone, is_minor,
-                timezone, preferred_platform, platform_link, rate_amount, rate_currency, payment_status)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+               (coach_user_id, student_name, student_chess_username, student_lichess_username,
+                email, phone, timezone, rate_amount, rate_currency, payment_status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
             s
         )
-    print("[Database] Seeded 5 test students for akyrosu")
+    print(f"[Database] Seeded 5 test students for user_id={user_id}")
 
 
 # ============= CACHE FUNCTIONS =============
