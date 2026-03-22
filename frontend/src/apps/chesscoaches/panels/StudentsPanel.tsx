@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Plus, Search, ChevronDown, ChevronUp, Trash2, Pencil, Clock, ExternalLink,
+  Plus, Search, ChevronDown, ChevronUp, Trash2, Pencil, Clock,
   AlertTriangle, Archive, RotateCcw, X, Calendar, BookOpen, Send, Users,
 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -159,16 +159,6 @@ function getPaymentColor(status: string) {
   if (status === 'paid') return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
   if (status === 'pending') return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
   return 'bg-red-500/20 text-red-400 border-red-500/30';
-}
-
-function getPlatformLabel(platform: string, t: (k: string) => string) {
-  const map: Record<string, string> = {
-    zoom: t('coaches.students.zoom'),
-    google_meet: t('coaches.students.googleMeet'),
-    discord: t('coaches.students.discord'),
-    otb: t('coaches.students.otb'),
-  };
-  return map[platform] || platform;
 }
 
 // ── Live Clock Hook ──
@@ -677,46 +667,6 @@ function StudentCard({ student, coachTz, coachRate, coachCurrency, onRefresh }: 
             {t(`coaches.students.${student.payment_status}`)}
           </span>
 
-          {/* Platform link */}
-          {student.platform_link && (
-            <a
-              href={student.platform_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              className="text-slate-400 hover:text-purple-400 transition-colors"
-              title={getPlatformLabel(student.preferred_platform || '', t)}
-            >
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          )}
-
-          {/* Chess profile links */}
-          {student.student_chess_username && (
-            <a
-              href={`https://www.chess.com/member/${student.student_chess_username}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              className="text-xs text-slate-500 hover:text-green-400 transition-colors"
-              title="Chess.com"
-            >
-              C
-            </a>
-          )}
-          {student.student_lichess_username && (
-            <a
-              href={`https://lichess.org/@/${student.student_lichess_username}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              className="text-xs text-slate-500 hover:text-orange-400 transition-colors"
-              title="Lichess"
-            >
-              L
-            </a>
-          )}
-
           <div className="text-slate-500">
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
@@ -756,6 +706,18 @@ function StudentCard({ student, coachTz, coachRate, coachCurrency, onRefresh }: 
                 <span className="text-slate-300">{student.parent_name}</span>
                 {student.parent_email && <span className="text-slate-500">({student.parent_email})</span>}
               </div>
+            )}
+            {student.student_chess_username && (
+              <a href={`https://www.chess.com/member/${student.student_chess_username}`} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-slate-500 hover:text-green-400 transition-colors">
+                Chess.com
+              </a>
+            )}
+            {student.student_lichess_username && (
+              <a href={`https://lichess.org/@/${student.student_lichess_username}`} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-slate-500 hover:text-orange-400 transition-colors">
+                Lichess
+              </a>
             )}
           </div>
 
