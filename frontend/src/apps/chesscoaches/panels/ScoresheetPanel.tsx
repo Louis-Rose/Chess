@@ -39,18 +39,6 @@ export function ScoresheetPanel() {
           <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
         </div>
         <div
-          onClick={() => navigate('/coach/mistakes')}
-          className="relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[120px] flex items-center justify-center hover:border-amber-500 transition-colors cursor-pointer"
-        >
-          <div className="absolute top-5 left-5 w-10 h-10 bg-amber-600 rounded-lg flex items-center justify-center">
-            <Clock className="w-5 h-5 text-white" />
-          </div>
-          <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance px-12 py-4">
-            {t('coaches.navMistakes')}
-          </h3>
-          <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
-        </div>
-        <div
           onClick={() => navigate('/coach/diagram')}
           className="relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[120px] flex items-center justify-center hover:border-emerald-500 transition-colors cursor-pointer"
         >
@@ -59,6 +47,18 @@ export function ScoresheetPanel() {
           </div>
           <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance px-12 py-4">
             {t('coaches.navDiagram')}
+          </h3>
+          <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
+        </div>
+        <div
+          onClick={() => navigate('/coach/mistakes')}
+          className="relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[120px] flex items-center justify-center hover:border-amber-500 transition-colors cursor-pointer"
+        >
+          <div className="absolute top-5 left-5 w-10 h-10 bg-amber-600 rounded-lg flex items-center justify-center">
+            <Clock className="w-5 h-5 text-white" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance px-12 py-4">
+            {t('coaches.navMistakes')}
           </h3>
           <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
         </div>

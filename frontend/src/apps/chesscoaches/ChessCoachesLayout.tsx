@@ -10,8 +10,8 @@ import { useLanguage } from '../../contexts/LanguageContext';
 const NAV_ITEMS = [
   { path: '/coach/students', labelKey: 'coaches.navStudents', icon: Users },
   { path: '/coach/scoresheets', labelKey: 'coaches.navScoresheets', icon: FileText },
-  { path: '/coach/mistakes', labelKey: 'coaches.navMistakes', icon: Clock },
   { path: '/coach/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3 },
+  { path: '/coach/mistakes', labelKey: 'coaches.navMistakes', icon: Clock },
 ];
 
 function CoachesNavSidebar() {
