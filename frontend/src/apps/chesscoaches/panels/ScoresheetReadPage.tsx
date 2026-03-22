@@ -5,7 +5,7 @@ import { Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download, Play, Rotate
 import { PanelHeader } from '../components/PanelHeader';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useCoachesData } from '../contexts/CoachesDataContext';
-import type { ScoresheetMove as Move, ScoresheetModelResult as ModelResult, ScoresheetReadEntry as ReadEntry } from '../contexts/CoachesDataContext';
+import type { ScoresheetMove as Move, ScoresheetReadEntry as ReadEntry } from '../contexts/CoachesDataContext';
 
 // Ground truth for known scoresheets — keyed by filename stem (without extension)
 const GROUND_TRUTHS: Record<string, { white_player: string; black_player: string; result: string; moves: Move[] }> = {
