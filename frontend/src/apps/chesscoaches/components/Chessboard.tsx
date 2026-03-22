@@ -303,99 +303,75 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
       >
         <ArrowUpDown className="w-5 h-5" />
       </button>
-      <div className="w-full aspect-square relative">
-        <svg viewBox="0 0 800 800" className="w-full h-full rounded-lg overflow-hidden shadow-lg">
-          {/* Highlight last move (render behind pieces) */}
-          {ply > 0 && (() => {
-            try {
-              const chess = new Chess(fens[ply - 1]);
-              const move = chess.move(sans[ply - 1]);
-              if (!move) return null;
-              const fromC = move.from.charCodeAt(0) - 97;
-              const fromR = 7 - (parseInt(move.from[1]) - 1);
-              const toC = move.to.charCodeAt(0) - 97;
-              const toR = 7 - (parseInt(move.to[1]) - 1);
-              return (
-                <g>
-                  {board.map((row, r) =>
-                    row.map((_, c) => {
-                      const isLight = (r + c) % 2 === 0;
-                      const isFrom = r === fromR && c === fromC;
-                      const isTo = r === toR && c === toC;
-                      const dr = flipped ? 7 - r : r;
-                      const dc = flipped ? 7 - c : c;
-                      return (
-                        <rect
-                          key={`bg-${r}-${c}`}
-                          x={dc * 100} y={dr * 100} width={100} height={100}
-                          fill={isFrom || isTo ? (isLight ? '#f7ec5a' : '#dac934') : (isLight ? LIGHT : DARK)}
-                        />
-                      );
-                    })
-                  )}
-                </g>
-              );
-            } catch {
-              return (
-                <g>
-                  {board.map((row, r) =>
-                    row.map((_, c) => {
-                      const dr = flipped ? 7 - r : r;
-                      const dc = flipped ? 7 - c : c;
-                      return (
-                        <rect key={`bg-${r}-${c}`} x={dc * 100} y={dr * 100} width={100} height={100} fill={(r + c) % 2 === 0 ? LIGHT : DARK} />
-                      );
-                    })
-                  )}
-                </g>
-              );
+      <div className="w-full aspect-square relative rounded-lg overflow-hidden shadow-lg">
+        {/* HTML grid board */}
+        <div className="grid grid-cols-8 grid-rows-8 w-full h-full">
+          {(() => {
+            // Compute highlight squares
+            let fromR = -1, fromC = -1, toR = -1, toC = -1;
+            if (ply > 0) {
+              try {
+                const chess = new Chess(fens[ply - 1]);
+                const move = chess.move(sans[ply - 1]);
+                if (move) {
+                  fromC = move.from.charCodeAt(0) - 97;
+                  fromR = 7 - (parseInt(move.from[1]) - 1);
+                  toC = move.to.charCodeAt(0) - 97;
+                  toR = 7 - (parseInt(move.to[1]) - 1);
+                }
+              } catch {}
             }
+
+            const squares = [];
+            for (let di = 0; di < 8; di++) {
+              for (let dj = 0; dj < 8; dj++) {
+                const r = flipped ? 7 - di : di;
+                const c = flipped ? 7 - dj : dj;
+                const isLight = (r + c) % 2 === 0;
+                const isHighlight = (r === fromR && c === fromC) || (r === toR && c === toC);
+                const bg = isHighlight
+                  ? (isLight ? '#f7ec5a' : '#dac934')
+                  : (isLight ? LIGHT : DARK);
+                const piece = board[r]?.[c];
+
+                squares.push(
+                  <div
+                    key={`${r}-${c}`}
+                    className="relative select-none"
+                    style={{ backgroundColor: bg }}
+                  >
+                    {/* Coordinate labels */}
+                    {dj === 0 && (
+                      <span
+                        className="absolute top-0.5 left-0.5 text-[0.6rem] font-bold leading-none pointer-events-none"
+                        style={{ color: isLight ? DARK : LIGHT }}
+                      >
+                        {flipped ? di + 1 : 8 - di}
+                      </span>
+                    )}
+                    {di === 7 && (
+                      <span
+                        className="absolute bottom-0.5 right-1 text-[0.6rem] font-bold leading-none pointer-events-none"
+                        style={{ color: isLight ? DARK : LIGHT }}
+                      >
+                        {'abcdefgh'[c]}
+                      </span>
+                    )}
+                    {piece && (
+                      <img
+                        src={pieceImageUrl(piece)}
+                        alt=""
+                        className="absolute inset-[5%] w-[90%] h-[90%] pointer-events-none"
+                        draggable={false}
+                      />
+                    )}
+                  </div>
+                );
+              }
+            }
+            return squares;
           })()}
-          {ply === 0 && board.map((row, r) =>
-            row.map((_, c) => {
-              const dr = flipped ? 7 - r : r;
-              const dc = flipped ? 7 - c : c;
-              return (
-                <rect key={`bg-${r}-${c}`} x={dc * 100} y={dr * 100} width={100} height={100} fill={(r + c) % 2 === 0 ? LIGHT : DARK} />
-              );
-            })
-          )}
-          {/* Coordinate labels */}
-          {Array.from({ length: 8 }).map((_, i) => {
-            const c = flipped ? 7 - i : i;
-            return (
-              <text key={`file-${i}`} x={i * 100 + 90} y={796} fontSize="18" fontWeight="700" fill={(7 + i) % 2 === 0 ? DARK : LIGHT} textAnchor="end" fontFamily="system-ui">
-                {'abcdefgh'[c]}
-              </text>
-            );
-          })}
-          {Array.from({ length: 8 }).map((_, i) => {
-            const r = flipped ? i : 7 - i;
-            return (
-              <text key={`rank-${i}`} x={6} y={i * 100 + 20} fontSize="18" fontWeight="700" fill={(i) % 2 === 0 ? DARK : LIGHT} fontFamily="system-ui">
-                {r + 1}
-              </text>
-            );
-          })}
-          {/* Pieces */}
-          {board.map((row, r) =>
-            row.map((piece, c) => {
-              if (!piece) return null;
-              const dr = flipped ? 7 - r : r;
-              const dc = flipped ? 7 - c : c;
-              return (
-                <image
-                  key={`piece-${r}-${c}`}
-                  href={pieceImageUrl(piece)}
-                  x={dc * 100 + 5}
-                  y={dr * 100 + 5}
-                  width={90}
-                  height={90}
-                />
-              );
-            })
-          )}
-        </svg>
+        </div>
       </div>
       </div>
 

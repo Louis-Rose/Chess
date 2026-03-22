@@ -201,38 +201,40 @@ function StaticBoard({ fen }: { fen: string }) {
   });
 
   return (
-    <div className="mx-auto" style={{ maxWidth: 400 }}>
-      <svg viewBox="0 0 800 800" className="w-full h-full rounded-lg overflow-hidden shadow-lg">
+    <div className="mx-auto rounded-lg overflow-hidden shadow-lg" style={{ maxWidth: 400 }}>
+      <div className="grid grid-cols-8 grid-rows-8 aspect-square">
         {board.map((row, r) =>
           row.map((piece, c) => {
             const isLight = (r + c) % 2 === 0;
             return (
-              <g key={`${r}-${c}`}>
-                <rect x={c * 100} y={r * 100} width={100} height={100} fill={isLight ? LIGHT : DARK} />
+              <div
+                key={`${r}-${c}`}
+                className="relative select-none"
+                style={{ backgroundColor: isLight ? LIGHT : DARK }}
+              >
+                {c === 0 && (
+                  <span className="absolute top-0.5 left-0.5 text-[0.6rem] font-bold leading-none pointer-events-none" style={{ color: isLight ? DARK : LIGHT }}>
+                    {8 - r}
+                  </span>
+                )}
+                {r === 7 && (
+                  <span className="absolute bottom-0.5 right-1 text-[0.6rem] font-bold leading-none pointer-events-none" style={{ color: isLight ? DARK : LIGHT }}>
+                    {'abcdefgh'[c]}
+                  </span>
+                )}
                 {piece && (
-                  <image
-                    href={pieceImageUrl(piece)}
-                    x={c * 100 + 5}
-                    y={r * 100 + 5}
-                    width={90}
-                    height={90}
+                  <img
+                    src={pieceImageUrl(piece)}
+                    alt=""
+                    className="absolute inset-[5%] w-[90%] h-[90%] pointer-events-none"
+                    draggable={false}
                   />
                 )}
-              </g>
+              </div>
             );
           })
         )}
-        {Array.from({ length: 8 }).map((_, i) => (
-          <text key={`f-${i}`} x={i * 100 + 90} y={796} fontSize="18" fontWeight="700" fill={(7 + i) % 2 === 0 ? DARK : LIGHT} textAnchor="end" fontFamily="system-ui">
-            {'abcdefgh'[i]}
-          </text>
-        ))}
-        {Array.from({ length: 8 }).map((_, i) => (
-          <text key={`r-${i}`} x={6} y={i * 100 + 20} fontSize="18" fontWeight="700" fill={i % 2 === 0 ? DARK : LIGHT} fontFamily="system-ui">
-            {8 - i}
-          </text>
-        ))}
-      </svg>
+      </div>
     </div>
   );
 }
