@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { FileText, LogOut, Clock } from 'lucide-react';
+import { FileText, LogOut, Clock, Grid3X3 } from 'lucide-react';
 import { CoachesDataProvider, useCoachesData, getCoachesPrefs, saveCoachesPrefs } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -10,6 +10,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 const NAV_ITEMS = [
   { path: '/coach/scoresheets', labelKey: 'coaches.navScoresheets', icon: FileText },
   { path: '/coach/mistakes', labelKey: 'coaches.navMistakes', icon: Clock },
+  { path: '/coach/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3 },
 ];
 
 function CoachesNavSidebar() {

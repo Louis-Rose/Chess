@@ -756,6 +756,115 @@ def read_scoresheet_azure():
     })
 
 
+DIAGRAM_READ_PROMPT = """You are analyzing a chess diagram image (screenshot, photo, or printed diagram).
+
+Extract the position and return ONLY the FEN string (Forsyth-Edwards Notation).
+
+Rules:
+- Return ONLY the FEN string, nothing else — no explanation, no markdown, no quotes
+- Include all 6 FEN fields: piece placement, active color, castling, en passant, halfmove clock, fullmove number
+- If you cannot determine active color, castling rights, or en passant, use reasonable defaults: "w KQkq - 0 1"
+- Be careful distinguishing pieces: K (King), Q (Queen), R (Rook), B (Bishop), N (Knight), P (pawn)
+- White pieces are uppercase (KQRBNP), black pieces are lowercase (kqrbnp)
+- Read the board from rank 8 (top) to rank 1 (bottom), file a (left) to file h (right)
+- Empty squares are represented by digits (1-8) counting consecutive empties
+
+Example output:
+rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"""
+
+
+@app.route('/api/coaches/read-diagram', methods=['POST'])
+def read_diagram():
+    """Analyze a chess diagram image with multiple Gemini models in parallel, streaming results via SSE."""
+    from google import genai
+    from google.genai import types
+    import json as json_module
+    import threading
+    import queue
+    import time as time_module
+
+    logger.info("[Diagram] Request received")
+
+    if 'image' not in request.files:
+        return jsonify({"error": "No image file provided"}), 400
+
+    image_file = request.files['image']
+    if not image_file.filename:
+        return jsonify({"error": "Empty filename"}), 400
+
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        logger.error("[Diagram] GEMINI_API_KEY not configured")
+        return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
+
+    image_bytes = image_file.read()
+    mime_type = image_file.content_type or 'image/jpeg'
+    logger.info(f"[Diagram] Image: {len(image_bytes)} bytes, {mime_type}")
+
+    THREAD_DONE = "THREAD_DONE"
+
+    result_queue = queue.Queue()
+    client = genai.Client(api_key=api_key)
+
+    def run_model(model_info):
+        model_id = model_info["id"]
+        model_name = model_info["name"]
+        logger.info(f"[Diagram] Starting {model_name} ({model_id})")
+        start = time_module.time()
+        try:
+            response = client.models.generate_content(
+                model=model_id,
+                contents=[
+                    types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                    DIAGRAM_READ_PROMPT,
+                ],
+            )
+            elapsed = round(time_module.time() - start)
+            fen = response.text.strip().strip('`').strip()
+            # Remove markdown code block if present
+            if fen.startswith('fen\n'):
+                fen = fen[4:].strip()
+            logger.info(f"[Diagram] {model_name} responded in {elapsed}s: {fen[:80]}")
+            result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "fen": fen, "elapsed": elapsed})
+        except Exception as e:
+            elapsed = round(time_module.time() - start)
+            logger.error(f"[Diagram] {model_name} failed after {elapsed}s: {e}")
+            result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
+        finally:
+            result_queue.put(THREAD_DONE)
+
+    threads = []
+    for m in SCORESHEET_MODELS:
+        t = threading.Thread(target=run_model, args=(m,))
+        t.start()
+        threads.append(t)
+
+    def generate():
+        yield f"data: {json_module.dumps({'type': 'models', 'models': SCORESHEET_MODELS})}\n\n"
+
+        threads_done = 0
+        while threads_done < len(SCORESHEET_MODELS):
+            try:
+                item = result_queue.get(timeout=300)
+                if item is THREAD_DONE:
+                    threads_done += 1
+                    continue
+                yield f"data: {json_module.dumps(item)}\n\n"
+            except queue.Empty:
+                break
+
+        yield "data: {\"type\": \"done\"}\n\n"
+        logger.info("[Diagram] All models done.")
+
+        for t in threads:
+            t.join(timeout=1)
+
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no',
+    })
+
+
 @app.route('/api/coaches/read-scoresheet', methods=['POST'])
 def read_scoresheet():
     """Analyze a scoresheet image with multiple Gemini models in parallel, streaming results via SSE."""
