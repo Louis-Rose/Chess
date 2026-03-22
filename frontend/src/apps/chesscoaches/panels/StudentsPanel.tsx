@@ -94,7 +94,6 @@ const COMMON_TIMEZONES = [
   'UTC',
 ];
 
-const PLATFORMS = ['zoom', 'google_meet', 'discord', 'otb'] as const;
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'AUD', 'INR', 'BRL', 'RUB', 'CNY', 'JPY', 'KRW', 'SGD', 'AED', 'ZAR'] as const;
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
