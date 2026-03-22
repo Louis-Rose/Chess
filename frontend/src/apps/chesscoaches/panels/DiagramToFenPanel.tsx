@@ -179,7 +179,7 @@ export function DiagramToFenPanel() {
 
               {/* Results */}
               {models.length > 0 && (
-                <div className="flex flex-wrap gap-4 justify-center">
+                <div className="flex flex-col gap-4 items-center max-w-md mx-auto">
                   {models.map((m) => {
                     const mr = modelResults[m.id];
                     return (
