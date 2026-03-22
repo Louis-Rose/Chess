@@ -11,7 +11,7 @@ export function ScoresheetPanel() {
   const { t } = useLanguage();
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 flex flex-col min-h-[calc(100dvh-80px)]">
       <PWAInstallPrompt className="max-w-3xl mx-[5%] md:mx-auto mb-4" />
       <div className="border-t border-slate-700 mb-4 max-w-3xl mx-[5%] md:mx-auto" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-[5%] md:mx-auto">
@@ -32,7 +32,8 @@ export function ScoresheetPanel() {
         ))}
       </div>
       <div className="border-t border-slate-700 mt-4 max-w-3xl mx-[5%] md:mx-auto" />
-      <div className="max-w-4xl mx-[5%] md:mx-auto mt-3">
+      <div className="flex-1" />
+      <div className="text-center pb-4">
         <button
           onClick={() => navigate('/coach/about')}
           className="text-xs text-slate-500 hover:text-slate-400 transition-colors"
