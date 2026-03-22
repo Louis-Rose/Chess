@@ -107,7 +107,6 @@ export function DiagramToFenPanel() {
               )}
             </div>
           )}
-      </div>
 
       {showImageModal && preview && (
         <div

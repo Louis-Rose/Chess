@@ -357,8 +357,6 @@ export function ScoresheetReadPage() {
               )}
             </div>
           )}
-        </div>
-      </div>
 
       {/* Fullscreen image modal */}
       {showImageModal && preview && (
