@@ -112,11 +112,13 @@ export function CoachesSidebar({ onComplete }: CoachesSidebarProps) {
     <SidebarShell hideThemeToggle hideLanguageToggle fullWidth>
       <div ref={topRef} />
       <div className="relative flex flex-col items-center px-2 pb-3 mb-2">
-        <a href="/coach" className="flex items-center gap-3 hover:opacity-80 transition-opacity flex-shrink-0">
-          <LumnaLogo className="w-10 h-10 md:w-14 md:h-14 flex-shrink-0" />
-          <span className="text-xl md:text-3xl font-bold text-white tracking-wide">LUMNA</span>
+        <a href="/coach" className="flex flex-col items-center hover:opacity-80 transition-opacity">
+          <div className="relative flex items-center">
+            <LumnaLogo className="w-10 h-10 md:w-14 md:h-14 absolute -left-12 md:-left-16" />
+            <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
+          </div>
+          <span className="text-lg font-bold text-slate-100 mt-1">{t('coaches.title')}</span>
         </a>
-        <span className="text-sm md:text-lg font-bold text-slate-100 mt-1">{t('coaches.title')}</span>
         <div className="absolute right-0 top-0">
           <LanguageToggleInline />
         </div>
