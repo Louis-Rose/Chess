@@ -5,6 +5,7 @@ import { Routes, Route } from 'react-router-dom';
 import { ChessCoachesLayout } from './ChessCoachesLayout';
 import { ScoresheetPanel } from './panels/ScoresheetPanel';
 import { ScoresheetReadPage } from './panels/ScoresheetReadPage';
+import { StudentsPanel } from './panels/StudentsPanel';
 import { MistakeFinderPanel } from './panels/MistakeFinderPanel';
 import { DiagramToFenPanel } from './panels/DiagramToFenPanel';
 
@@ -19,6 +20,7 @@ export function ChessCoachesApp() {
     <Routes>
       <Route element={<ChessCoachesLayout />}>
         <Route index element={<ScoresheetPanel />} />
+        <Route path="students" element={<StudentsPanel />} />
         <Route path="scoresheets" element={<ScoresheetReadPage />} />
         <Route path="mistakes" element={<MistakeFinderPanel />} />
         <Route path="diagram" element={<DiagramToFenPanel />} />
