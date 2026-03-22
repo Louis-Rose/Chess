@@ -5,6 +5,7 @@ import { Loader2, Search, ArrowRight, Check, X } from 'lucide-react';
 import { SidebarShell } from '../../components/SidebarShell';
 import { useCoachesData } from './contexts/CoachesDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { LumnaBrand } from './components/LumnaBrand';
 
 function LanguageToggleInline() {
   const { language, setLanguage } = useLanguage();
@@ -30,14 +31,6 @@ function LanguageToggleInline() {
   );
 }
 
-const LumnaLogo = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 128 128" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="8" y="8" width="112" height="112" rx="20" fill="#16a34a"/>
-    <rect x="32" y="64" width="16" height="40" rx="2" fill="white"/>
-    <rect x="56" y="48" width="16" height="56" rx="2" fill="white"/>
-    <rect x="80" y="32" width="16" height="72" rx="2" fill="white"/>
-  </svg>
-);
 
 interface CheckResult {
   status: 'idle' | 'checking' | 'exists' | 'not_found';
@@ -112,13 +105,7 @@ export function CoachesSidebar({ onComplete }: CoachesSidebarProps) {
     <SidebarShell hideThemeToggle hideLanguageToggle fullWidth>
       <div ref={topRef} />
       <div className="relative flex flex-col items-center px-2 pb-3 mb-2">
-        <a href="/coach" className="flex flex-col items-center hover:opacity-80 transition-opacity">
-          <div className="relative flex items-center">
-            <LumnaLogo className="w-10 h-10 md:w-14 md:h-14 absolute -left-12 md:-left-16" />
-            <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
-          </div>
-          <span className="text-lg font-bold text-slate-100 mt-1">{t('coaches.title')}</span>
-        </a>
+        <LumnaBrand />
         <div className="absolute right-0 top-0">
           <LanguageToggleInline />
         </div>
