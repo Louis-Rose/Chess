@@ -3,15 +3,24 @@
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { Users, FileText, LogOut, Clock, Grid3X3 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { CoachesDataProvider, useCoachesData, getCoachesPrefs, saveCoachesPrefs } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-const NAV_ITEMS = [
-  { path: '/coach/students', labelKey: 'coaches.navStudents', icon: Users },
-  { path: '/coach/scoresheets', labelKey: 'coaches.navScoresheets', icon: FileText },
-  { path: '/coach/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3 },
-  { path: '/coach/mistakes', labelKey: 'coaches.navMistakes', icon: Clock },
+export interface NavItem {
+  path: string;
+  labelKey: string;
+  icon: LucideIcon;
+  hoverColor: string;   // tailwind border-* color for card hover
+  bgColor: string;       // tailwind bg-* color for card icon badge
+}
+
+export const NAV_ITEMS: NavItem[] = [
+  { path: '/coach/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600' },
+  { path: '/coach/scoresheets', labelKey: 'coaches.navScoresheets', icon: FileText, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
+  { path: '/coach/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600' },
+  { path: '/coach/mistakes', labelKey: 'coaches.navMistakes', icon: Clock, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600' },
 ];
 
 function CoachesNavSidebar() {
