@@ -5,7 +5,6 @@ import { Upload, ImageIcon, Clock, Copy, Check, X } from 'lucide-react';
 import { Chess } from 'chess.js';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelHeader } from '../components/PanelHeader';
-import { Chessboard } from '../components/Chessboard';
 
 interface ModelResult {
   name: string;
@@ -237,12 +236,8 @@ function FenResultCard({ name, fen, error, elapsed, loading }: {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Try to validate the FEN
   const validFen = fen && (() => {
-    try {
-      new Chess(fen);
-      return true;
-    } catch { return false; }
+    try { new Chess(fen); return true; } catch { return false; }
   })();
 
   return (
@@ -272,11 +267,7 @@ function FenResultCard({ name, fen, error, elapsed, loading }: {
           </div>
 
           {/* Board preview */}
-          {validFen && (
-            <div className="max-w-[260px] mx-auto">
-              <Chessboard pgn={`[FEN "${fen}"]\n[SetUp "1"]\n*`} initialPly={0} />
-            </div>
-          )}
+          {validFen && <StaticBoard fen={fen} />}
 
           {/* Copy button */}
           <button
@@ -287,6 +278,74 @@ function FenResultCard({ name, fen, error, elapsed, loading }: {
           </button>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+const LIGHT = '#f0d9b5';
+const DARK = '#b58863';
+const PIECE_CHAR: Record<string, string> = {
+  K: '\u265A', Q: '\u265B', R: '\u265C', B: '\u265D', N: '\u265E', P: '\u2659',
+  k: '\u265A', q: '\u265B', r: '\u265C', b: '\u265D', n: '\u265E', p: '\u2659',
+};
+
+function StaticBoard({ fen }: { fen: string }) {
+  const rows = fen.split(' ')[0].split('/');
+  const board: (string | null)[][] = rows.map(row => {
+    const squares: (string | null)[] = [];
+    for (const ch of row) {
+      if (ch >= '1' && ch <= '8') for (let i = 0; i < parseInt(ch); i++) squares.push(null);
+      else squares.push(ch);
+    }
+    return squares;
+  });
+
+  return (
+    <div className="mx-auto" style={{ maxWidth: 400 }}>
+      <svg viewBox="0 0 800 800" className="w-full h-full rounded-lg overflow-hidden shadow-lg">
+        {board.map((row, r) =>
+          row.map((piece, c) => {
+            const isLight = (r + c) % 2 === 0;
+            return (
+              <g key={`${r}-${c}`}>
+                <rect x={c * 100} y={r * 100} width={100} height={100} fill={isLight ? LIGHT : DARK} />
+                {piece && (() => {
+                  const isWhite = piece === piece.toUpperCase();
+                  const isPawn = piece === 'P' || piece === 'p';
+                  return (
+                    <text
+                      x={c * 100 + 50}
+                      y={r * 100 + (isPawn ? 56 : 58)}
+                      fontSize={isPawn ? 58 : 80}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill={isWhite ? '#fff' : '#1e1e1e'}
+                      stroke={isPawn ? (isWhite ? '#fff' : '#1e1e1e') : (isWhite ? '#1e1e1e' : '#fff')}
+                      strokeWidth={isPawn ? (isWhite ? 3 : 4) : (isWhite ? 3 : 1)}
+                      style={{ userSelect: 'none' }}
+                      paintOrder="stroke"
+                    >
+                      {PIECE_CHAR[piece]}
+                    </text>
+                  );
+                })()}
+              </g>
+            );
+          })
+        )}
+        {/* File labels */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <text key={`f-${i}`} x={i * 100 + 90} y={796} fontSize="18" fontWeight="700" fill={(7 + i) % 2 === 0 ? DARK : LIGHT} textAnchor="end" fontFamily="system-ui">
+            {'abcdefgh'[i]}
+          </text>
+        ))}
+        {/* Rank labels */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <text key={`r-${i}`} x={6} y={i * 100 + 20} fontSize="18" fontWeight="700" fill={i % 2 === 0 ? DARK : LIGHT} fontFamily="system-ui">
+            {8 - i}
+          </text>
+        ))}
+      </svg>
     </div>
   );
 }
