@@ -189,10 +189,11 @@ function FenResultCard({ name, fen, error, elapsed, loading }: DiagramModelResul
 
 const LIGHT = '#f0d9b5';
 const DARK = '#b58863';
-const PIECE_CHAR: Record<string, string> = {
-  K: '\u265A', Q: '\u265B', R: '\u265C', B: '\u265D', N: '\u265E', P: '\u2659',
-  k: '\u265A', q: '\u265B', r: '\u265C', b: '\u265D', n: '\u265E', p: '\u2659',
-};
+
+function pieceImageUrl(piece: string): string {
+  const color = piece === piece.toUpperCase() ? 'w' : 'b';
+  return `/pieces/${color}${piece.toUpperCase()}.svg`;
+}
 
 function StaticBoard({ fen }: { fen: string }) {
   const rows = fen.split(' ')[0].split('/');
@@ -214,26 +215,15 @@ function StaticBoard({ fen }: { fen: string }) {
             return (
               <g key={`${r}-${c}`}>
                 <rect x={c * 100} y={r * 100} width={100} height={100} fill={isLight ? LIGHT : DARK} />
-                {piece && (() => {
-                  const isWhite = piece === piece.toUpperCase();
-                  const isPawn = piece === 'P' || piece === 'p';
-                  return (
-                    <text
-                      x={c * 100 + 50}
-                      y={r * 100 + (isPawn ? 56 : 58)}
-                      fontSize={isPawn ? 58 : 80}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill={isWhite ? '#fff' : '#1e1e1e'}
-                      stroke={isPawn ? (isWhite ? '#fff' : '#1e1e1e') : (isWhite ? '#1e1e1e' : '#fff')}
-                      strokeWidth={isPawn ? (isWhite ? 3 : 4) : (isWhite ? 3 : 1)}
-                      style={{ userSelect: 'none' }}
-                      paintOrder="stroke"
-                    >
-                      {PIECE_CHAR[piece]}
-                    </text>
-                  );
-                })()}
+                {piece && (
+                  <image
+                    href={pieceImageUrl(piece)}
+                    x={c * 100 + 5}
+                    y={r * 100 + 5}
+                    width={90}
+                    height={90}
+                  />
+                )}
               </g>
             );
           })

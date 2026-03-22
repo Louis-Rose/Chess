@@ -4,21 +4,11 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Chess } from 'chess.js';
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 
-/* ── Piece SVG paths — filled style for both colors ── */
+/* ── Piece images (CBurnett/Merida from Lichess, CC BY-SA 3.0) ── */
 
-// All pieces use filled glyphs for consistent look.
-// White: white fill + dark stroke. Black: dark fill + lighter stroke.
-const PIECE_CHAR: Record<string, string> = {
-  K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♙',
-  k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♙',
-};
-
-function isWhitePiece(piece: string): boolean {
-  return piece === piece.toUpperCase();
-}
-
-function isPawn(piece: string): boolean {
-  return piece === 'P' || piece === 'p';
+function pieceImageUrl(piece: string): string {
+  const color = piece === piece.toUpperCase() ? 'w' : 'b';
+  return `/pieces/${color}${piece.toUpperCase()}.svg`;
 }
 
 /* ── FEN parsing ── */
@@ -400,27 +390,15 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
               if (!piece) return null;
               const dr = flipped ? 7 - r : r;
               const dc = flipped ? 7 - c : c;
-              const x = dc * 100 + 50;
-              const pawn = isPawn(piece);
-              const fontSize = pawn ? 58 : 80;
-              const y = dr * 100 + (pawn ? 56 : 58);
-              const white = isWhitePiece(piece);
               return (
-                <text
+                <image
                   key={`piece-${r}-${c}`}
-                  x={x}
-                  y={y}
-                  fontSize={fontSize}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fill={white ? '#fff' : '#1e1e1e'}
-                  stroke={pawn ? (white ? '#fff' : '#1e1e1e') : (white ? '#1e1e1e' : '#fff')}
-                  strokeWidth={pawn ? (white ? 3 : 4) : (white ? 3 : 1)}
-                  style={{ userSelect: 'none' }}
-                  paintOrder="stroke"
-                >
-                  {PIECE_CHAR[piece]}
-                </text>
+                  href={pieceImageUrl(piece)}
+                  x={dc * 100 + 5}
+                  y={dr * 100 + 5}
+                  width={90}
+                  height={90}
+                />
               );
             })
           )}
