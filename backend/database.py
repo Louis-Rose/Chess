@@ -565,6 +565,8 @@ def init_db():
             """)
             if not conn._cursor.fetchone():
                 conn.execute("ALTER TABLE coach_students ADD COLUMN coach_user_id INTEGER")
+                conn.execute("DROP INDEX IF EXISTS idx_coach_students_coach")
+                conn.execute("DROP INDEX IF EXISTS idx_coach_students_active")
                 conn.execute("CREATE INDEX idx_coach_students_coach ON coach_students(coach_user_id)")
                 conn.execute("CREATE INDEX idx_coach_students_active ON coach_students(coach_user_id, is_active)")
                 print("[Database] Added coach_user_id column to coach_students")
