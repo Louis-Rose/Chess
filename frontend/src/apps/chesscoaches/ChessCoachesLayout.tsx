@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { Users, FileText, LogOut, Clock, Grid3X3, Info } from 'lucide-react';
+import { Users, FileText, LogOut, Clock, Grid3X3 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { CoachesDataProvider, useCoachesData, getCoachesPrefs, saveCoachesPrefs } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
@@ -113,16 +113,17 @@ function CoachesNavSidebar() {
 
         <div className="h-px bg-slate-700" />
 
+        <div className="flex-1" />
+
         {/* About */}
         <NavLink
           to="/coach/about"
           className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-              isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+            `px-3 py-1.5 text-xs transition-colors ${
+              isActive ? 'text-slate-300' : 'text-slate-500 hover:text-slate-400'
             }`
           }
         >
-          <Info className="w-4 h-4 flex-shrink-0" />
           {t('coaches.navAbout')}
         </NavLink>
       </div>
