@@ -435,9 +435,8 @@ function BundleForm({ studentId, currency, onSaved, onCancel }: {
 
 // ── Student Card ──
 
-function StudentCard({ student, coachTz, coachRate, coachCurrency, onRefresh }: {
+function StudentCard({ student, coachRate, coachCurrency, onRefresh }: {
   student: Student;
-  coachTz: string;
   coachRate: number | null;
   coachCurrency: string;
   onRefresh: () => void;
@@ -807,7 +806,7 @@ export function StudentsPanel() {
   const { t } = useLanguage();
   const { playerInfo } = useCoachesData();
   const coachUsername = playerInfo?.username || '';
-  const coachTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
 
   const prefs = getCoachesPrefs();
   const [coachRate, setCoachRate] = useState<number | null>(prefs.lesson_rate);
@@ -986,7 +985,7 @@ export function StudentsPanel() {
         ) : (
           <div className="space-y-2">
             {sorted.map(s => (
-              <StudentCard key={s.id} student={s} coachTz={coachTz} coachRate={coachRate} coachCurrency={coachCurrency} onRefresh={fetchStudents} />
+              <StudentCard key={s.id} student={s} coachRate={coachRate} coachCurrency={coachCurrency} onRefresh={fetchStudents} />
             ))}
           </div>
         )}
