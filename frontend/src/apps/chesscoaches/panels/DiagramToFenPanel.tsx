@@ -179,7 +179,7 @@ export function DiagramToFenPanel() {
 
               {/* Results */}
               {models.length > 0 && (
-                <div className="flex flex-col gap-4 items-center max-w-md mx-auto">
+                <div className="flex flex-col gap-4 items-center max-w-xl mx-auto">
                   {models.map((m) => {
                     const mr = modelResults[m.id];
                     return (
@@ -246,7 +246,7 @@ function FenResultCard({ name, fen, error, elapsed, loading }: {
   })();
 
   return (
-    <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[240px] max-w-[320px]">
+    <div className="bg-slate-700/50 rounded-xl overflow-hidden w-full">
       <div className="px-3 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
         <span className="text-slate-100 font-medium text-xs">{name}</span>
         {elapsed !== undefined && (
