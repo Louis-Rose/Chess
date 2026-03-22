@@ -236,7 +236,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Coaches
     'coaches.title': 'Chess Coaches',
-    'coaches.navScoresheets': 'Tournament Scoresheets',
+    'coaches.navScoresheets': 'Scoresheet → PGN',
     'coaches.onboardingInstruction': 'Enter your Chess.com username to get started.',
     'coaches.onboardingDescription': 'LUMNA Coaches helps you digitize and analyze tournament scoresheets from your over-the-board games.',
     'coaches.uploadPrompt': 'Upload a scoresheet image',
@@ -512,7 +512,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Coaches
     'coaches.title': 'Chess Coaches',
-    'coaches.navScoresheets': 'Feuilles de partie',
+    'coaches.navScoresheets': 'Feuille de partie → PGN',
     'coaches.onboardingInstruction': 'Entrez votre nom d\'utilisateur Chess.com pour commencer.',
     'coaches.onboardingDescription': 'LUMNA Coaches vous aide à numériser et analyser les feuilles de partie de vos tournois en présentiel.',
     'coaches.uploadPrompt': 'Importer une photo de feuille de partie',
