@@ -19,7 +19,6 @@ export function DiagramToFenPanel() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [preview, setPreview] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
   const [modelResults, setModelResults] = useState<Record<string, ModelResult>>({});
@@ -33,7 +32,6 @@ export function DiagramToFenPanel() {
     setError('');
     setModelResults({});
     setModels([]);
-    setFileName(file.name);
     setImageFile(file);
 
     const reader = new FileReader();
@@ -100,7 +98,6 @@ export function DiagramToFenPanel() {
 
   const handleClear = () => {
     setPreview(null);
-    setFileName(null);
     setImageFile(null);
     setModelResults({});
     setModels([]);
