@@ -205,7 +205,6 @@ function MobilePlayerButton() {
 }
 
 function CoachesHeader() {
-  const { t } = useLanguage();
   return (
     <div className="relative flex items-center justify-center px-2 py-3">
       <div className="absolute left-2">
