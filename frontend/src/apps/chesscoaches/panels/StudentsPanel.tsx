@@ -180,22 +180,14 @@ interface StudentFormData {
   student_lichess_username: string;
   email: string;
   phone: string;
-  is_minor: boolean;
-  parent_name: string;
-  parent_email: string;
-  parent_phone: string;
   timezone: string;
-  preferred_platform: string;
-  platform_link: string;
   payment_status: string;
   notes: string;
 }
 
 const EMPTY_FORM: StudentFormData = {
   student_name: '', student_chess_username: '', student_lichess_username: '',
-  email: '', phone: '', is_minor: false, parent_name: '', parent_email: '',
-  parent_phone: '', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-  preferred_platform: '', platform_link: '',
+  email: '', phone: '', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
   payment_status: 'paid', notes: '',
 };
 
@@ -275,40 +267,6 @@ function StudentForm({ initial, onSave, onCancel, saving, isEditing }: {
           </div>
         </div>
       )}
-
-      {/* Minor toggle + parent info */}
-      <div>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={form.is_minor}
-            onChange={e => set('is_minor', e.target.checked)}
-            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-purple-500 focus:ring-purple-500"
-          />
-          <span className="text-sm text-slate-300">{t('coaches.students.minor')}</span>
-        </label>
-        {form.is_minor && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 pl-6 border-l-2 border-purple-500/30">
-            <div>
-              <div className={label}>{t('coaches.students.parentName')}</div>
-              <input className={input} value={form.parent_name} onChange={e => set('parent_name', e.target.value)} />
-            </div>
-            <div>
-              <div className={label}>{t('coaches.students.parentEmail')}</div>
-              <input className={input} type="email" value={form.parent_email} onChange={e => set('parent_email', e.target.value)} />
-            </div>
-            <div>
-              <div className={label}>{t('coaches.students.parentPhone')}</div>
-              <div className="relative">
-                {getPhonePrefix(form.timezone) && (
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none">{getPhonePrefix(form.timezone)}</span>
-                )}
-                <input className={`${input} ${getPhonePrefix(form.timezone) ? 'pl-12' : ''}`} type="tel" value={form.parent_phone} onChange={e => set('parent_phone', e.target.value)} />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Notes — only shown when editing */}
       {isEditing && (
@@ -549,8 +507,8 @@ function StudentCard({ student, coachTz, coachRate, coachCurrency, onRefresh }: 
   };
 
   const handlePing = () => {
-    const name = student.is_minor && student.parent_email ? student.parent_name || 'Parent' : student.student_name;
-    const email = student.is_minor && student.parent_email ? student.parent_email : student.email;
+    const name = student.student_name;
+    const email = student.email;
     const subject = encodeURIComponent(`Chess Lesson Reminder`);
     const body = encodeURIComponent(
       `Hi ${name},\n\nThis is a reminder about ${student.student_name}'s chess lessons.\n\n` +
@@ -585,10 +543,6 @@ function StudentCard({ student, coachTz, coachRate, coachCurrency, onRefresh }: 
           student_lichess_username: student.student_lichess_username || '',
           email: student.email || '',
           phone: student.phone || '',
-          is_minor: !!student.is_minor,
-          parent_name: student.parent_name || '',
-          parent_email: student.parent_email || '',
-          parent_phone: student.parent_phone || '',
           timezone: student.timezone,
           preferred_platform: student.preferred_platform || '',
           platform_link: student.platform_link || '',
@@ -624,9 +578,6 @@ function StudentCard({ student, coachTz, coachRate, coachCurrency, onRefresh }: 
             {!student.is_active && (
               <span className="text-xs px-1.5 py-0.5 bg-slate-600 text-slate-400 rounded">{t('coaches.students.archived')}</span>
             )}
-            {student.is_minor ? (
-              <span className="text-xs px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded">&lt;18</span>
-            ) : null}
           </div>
           <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
             {/* Timezone clocks */}
@@ -700,23 +651,16 @@ function StudentCard({ student, coachTz, coachRate, coachCurrency, onRefresh }: 
                 <span className="text-amber-400">{student.lesson_stats.rescheduled}</span>
               </div>
             )}
-            {student.is_minor && student.parent_name && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-slate-500">{t('coaches.students.parentContact')}:</span>
-                <span className="text-slate-300">{student.parent_name}</span>
-                {student.parent_email && <span className="text-slate-500">({student.parent_email})</span>}
-              </div>
-            )}
             {student.student_chess_username && (
               <a href={`https://www.chess.com/member/${student.student_chess_username}`} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-slate-500 hover:text-green-400 transition-colors">
-                Chess.com
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20 text-xs font-medium transition-colors">
+                Chess.com <span className="text-green-500/60">@{student.student_chess_username}</span>
               </a>
             )}
             {student.student_lichess_username && (
               <a href={`https://lichess.org/@/${student.student_lichess_username}`} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-slate-500 hover:text-orange-400 transition-colors">
-                Lichess
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-orange-500/30 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 text-xs font-medium transition-colors">
+                Lichess <span className="text-orange-500/60">@{student.student_lichess_username}</span>
               </a>
             )}
           </div>
@@ -828,7 +772,7 @@ function StudentCard({ student, coachTz, coachRate, coachCurrency, onRefresh }: 
             <button onClick={() => { setShowLessons(!showLessons); if (!showLessons) loadLessons(); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-slate-300 hover:bg-slate-600 rounded-lg text-xs font-medium transition-colors">
               <Clock className="w-3.5 h-3.5" />{t('coaches.students.lessonHistory')}
             </button>
-            {(student.email || (student.is_minor && student.parent_email)) && (
+            {student.email && (
               <button onClick={handlePing} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-slate-300 hover:bg-slate-600 rounded-lg text-xs font-medium transition-colors">
                 <Send className="w-3.5 h-3.5" />{t('coaches.students.pingReminder')}
               </button>
