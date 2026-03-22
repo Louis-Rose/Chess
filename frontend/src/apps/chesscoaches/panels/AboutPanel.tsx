@@ -1,15 +1,14 @@
 // About page — credits and licenses
 
-import { PanelHeader } from '../components/PanelHeader';
+import { PanelShell } from '../components/PanelShell';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 export function AboutPanel() {
   const { t } = useLanguage();
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <PanelHeader title={t('coaches.navAbout')} />
-      <div className="max-w-xl mx-auto px-4 space-y-6">
+    <PanelShell title={t('coaches.navAbout')}>
+      <div className="max-w-xl mx-auto space-y-6">
         <section>
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-2">LUMNA Chess Coaches</h2>
           <p className="text-slate-300 text-sm leading-relaxed">
@@ -44,6 +43,6 @@ export function AboutPanel() {
           </div>
         </section>
       </div>
-    </div>
+    </PanelShell>
   );
 }

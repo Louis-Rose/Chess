@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download, Play, RotateCcw, Square } from 'lucide-react';
-import { PanelHeader } from '../components/PanelHeader';
+import { PanelShell } from '../components/PanelShell';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useCoachesData } from '../contexts/CoachesDataContext';
 import type { ScoresheetMove as Move, ScoresheetReadEntry as ReadEntry } from '../contexts/CoachesDataContext';
@@ -172,12 +172,7 @@ export function ScoresheetReadPage() {
   const stopMultipleReads = scoresheetStopMultipleReads;
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="max-w-[1600px] mx-auto">
-        <PanelHeader title={t('coaches.navScoresheets')} />
-
-        {/* Upload area */}
-        <div className="px-2">
+    <PanelShell title={t('coaches.navScoresheets')}>
           <input
             ref={fileInputRef}
             type="file"
@@ -378,7 +373,7 @@ export function ScoresheetReadPage() {
           />
         </div>
       )}
-    </div>
+    </PanelShell>
   );
 }
 

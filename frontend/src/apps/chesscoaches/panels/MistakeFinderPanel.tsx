@@ -4,7 +4,7 @@ import { useCallback, useRef } from 'react';
 import { Upload, Clock, AlertTriangle, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Chessboard } from '../components/Chessboard';
-import { PanelHeader } from '../components/PanelHeader';
+import { PanelShell } from '../components/PanelShell';
 import { useCoachesData } from '../contexts/CoachesDataContext';
 import type { ParsedMove, Mistake, GameHeader } from '../contexts/CoachesDataContext';
 
@@ -172,10 +172,7 @@ export function MistakeFinderPanel() {
   const setExpandedMistake = mistakesSetExpanded;
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
-      <PanelHeader title={t('coaches.navMistakes')} />
-
-      <div className="mx-[5%] md:mx-auto">
+    <PanelShell title={t('coaches.navMistakes')}>
       {/* Upload area */}
       {!pgnText ? (
         <div
@@ -369,7 +366,6 @@ export function MistakeFinderPanel() {
           )}
         </div>
       )}
-      </div>
-    </div>
+    </PanelShell>
   );
 }

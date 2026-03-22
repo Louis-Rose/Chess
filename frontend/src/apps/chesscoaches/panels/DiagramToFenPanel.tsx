@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { Upload, ImageIcon, Clock, Copy, Check, X } from 'lucide-react';
 import { Chess } from 'chess.js';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { PanelHeader } from '../components/PanelHeader';
+import { PanelShell } from '../components/PanelShell';
 import { useCoachesData } from '../contexts/CoachesDataContext';
 import type { DiagramModelResult } from '../contexts/CoachesDataContext';
 
@@ -24,10 +24,7 @@ export function DiagramToFenPanel() {
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
-      <PanelHeader title={t('coaches.navDiagram')} />
-
-      <div className="mx-[5%] md:mx-auto">
+    <PanelShell title={t('coaches.navDiagram')}>
           <input
             ref={fileRef}
             type="file"
@@ -120,7 +117,7 @@ export function DiagramToFenPanel() {
           <img src={preview} alt="Diagram" className="max-w-[90vw] max-h-[90vh] rounded-xl object-contain" />
         </div>
       )}
-    </div>
+    </PanelShell>
   );
 }
 
