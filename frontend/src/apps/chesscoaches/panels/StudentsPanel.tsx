@@ -104,6 +104,25 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   KRW: '\u20A9', SGD: 'S$', AED: 'AED', ZAR: 'R',
 };
 
+// ── Timezone → phone prefix mapping ──
+
+const TZ_PHONE_PREFIX: Record<string, string> = {
+  'America/New_York': '+1', 'America/Chicago': '+1', 'America/Denver': '+1', 'America/Los_Angeles': '+1',
+  'America/Toronto': '+1', 'America/Sao_Paulo': '+55', 'America/Mexico_City': '+52',
+  'Europe/London': '+44', 'Europe/Paris': '+33', 'Europe/Berlin': '+49', 'Europe/Madrid': '+34',
+  'Europe/Rome': '+39', 'Europe/Amsterdam': '+31', 'Europe/Brussels': '+32', 'Europe/Moscow': '+7',
+  'Asia/Dubai': '+971', 'Asia/Kolkata': '+91', 'Asia/Shanghai': '+86', 'Asia/Tokyo': '+81',
+  'Asia/Seoul': '+82', 'Asia/Singapore': '+65', 'Asia/Hong_Kong': '+852',
+  'Australia/Sydney': '+61', 'Australia/Melbourne': '+61',
+  'Africa/Cairo': '+20', 'Africa/Johannesburg': '+27',
+  'Pacific/Auckland': '+64',
+  'UTC': '',
+};
+
+function getPhonePrefix(tz: string): string {
+  return TZ_PHONE_PREFIX[tz] || '';
+}
+
 // ── Helpers ──
 
 function formatLocalTime(tz: string): string {
@@ -233,7 +252,12 @@ function StudentForm({ initial, onSave, onCancel, saving }: {
         </div>
         <div>
           <div className={label}>{t('coaches.students.phone')}</div>
-          <input className={input} type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} />
+          <div className="relative">
+            {getPhonePrefix(form.timezone) && (
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none">{getPhonePrefix(form.timezone)}</span>
+            )}
+            <input className={`${input} ${getPhonePrefix(form.timezone) ? 'pl-12' : ''}`} type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} />
+          </div>
         </div>
         <div>
           <div className={label}>{t('coaches.students.timezone')}</div>
@@ -311,7 +335,12 @@ function StudentForm({ initial, onSave, onCancel, saving }: {
             </div>
             <div>
               <div className={label}>{t('coaches.students.parentPhone')}</div>
-              <input className={input} type="tel" value={form.parent_phone} onChange={e => set('parent_phone', e.target.value)} />
+              <div className="relative">
+                {getPhonePrefix(form.timezone) && (
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none">{getPhonePrefix(form.timezone)}</span>
+                )}
+                <input className={`${input} ${getPhonePrefix(form.timezone) ? 'pl-12' : ''}`} type="tel" value={form.parent_phone} onChange={e => set('parent_phone', e.target.value)} />
+              </div>
             </div>
           </div>
         )}
