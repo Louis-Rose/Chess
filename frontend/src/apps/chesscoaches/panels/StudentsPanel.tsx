@@ -242,11 +242,15 @@ function StudentForm({ initial, onSave, onCancel, saving, isEditing }: {
         </div>
       </div>
 
-      {/* Row 2: Contact */}
+      {/* Row 2: Timezone, Contact */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
-          <div className={label}>{t('coaches.students.email')}</div>
-          <input className={input} type="email" value={form.email} onChange={e => set('email', e.target.value)} />
+          <div className={label}>{t('coaches.students.timezone')}</div>
+          <select className={input} value={form.timezone} onChange={e => set('timezone', e.target.value)}>
+            {COMMON_TIMEZONES.map(tz => (
+              <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
+            ))}
+          </select>
         </div>
         <div>
           <div className={label}>{t('coaches.students.phone')}</div>
@@ -258,27 +262,8 @@ function StudentForm({ initial, onSave, onCancel, saving, isEditing }: {
           </div>
         </div>
         <div>
-          <div className={label}>{t('coaches.students.timezone')}</div>
-          <select className={input} value={form.timezone} onChange={e => set('timezone', e.target.value)}>
-            {COMMON_TIMEZONES.map(tz => (
-              <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Row 3: Platform */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <div className={label}>{t('coaches.students.platform')}</div>
-          <select className={input} value={form.preferred_platform} onChange={e => set('preferred_platform', e.target.value)}>
-            <option value="">--</option>
-            {PLATFORMS.map(p => <option key={p} value={p}>{getPlatformLabel(p, t)}</option>)}
-          </select>
-        </div>
-        <div>
-          <div className={label}>{t('coaches.students.platformLink')}</div>
-          <input className={input} value={form.platform_link} onChange={e => set('platform_link', e.target.value)} placeholder="https://..." />
+          <div className={label}>{t('coaches.students.email')}</div>
+          <input className={input} type="email" value={form.email} onChange={e => set('email', e.target.value)} />
         </div>
       </div>
 
