@@ -1,107 +1,26 @@
-// Diagram → FEN panel — upload a chess diagram image, extract FEN with Gemini
+// Diagram → FEN panel — thin view, state lives in CoachesDataContext
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { Upload, ImageIcon, Clock, Copy, Check, X } from 'lucide-react';
 import { Chess } from 'chess.js';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelHeader } from '../components/PanelHeader';
-
-interface ModelResult {
-  name: string;
-  fen?: string;
-  error?: string;
-  elapsed: number;
-}
+import { useCoachesData } from '../contexts/CoachesDataContext';
+import type { DiagramModelResult } from '../contexts/CoachesDataContext';
 
 export function DiagramToFenPanel() {
   const { t } = useLanguage();
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const [preview, setPreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [models, setModels] = useState<{ id: string; name: string }[]>([]);
-  const [modelResults, setModelResults] = useState<Record<string, ModelResult>>({});
-  const [analyzing, setAnalyzing] = useState(false);
-  const [error, setError] = useState('');
+  const { diagram, diagramSetImage, diagramAnalyze, diagramClear } = useCoachesData();
+  const { preview, models, modelResults, analyzing, error } = diagram;
   const [showImageModal, setShowImageModal] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setError('');
-    setModelResults({});
-    setModels([]);
-    setImageFile(file);
-
     const reader = new FileReader();
-    reader.onload = () => setPreview(reader.result as string);
+    reader.onload = () => diagramSetImage(file, reader.result as string);
     reader.readAsDataURL(file);
-  };
-
-  const analyze = useCallback(async (file: File) => {
-    setError('');
-    setModelResults({});
-    setModels([]);
-    setAnalyzing(true);
-
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-
-      const res = await fetch('/api/coaches/read-diagram', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        try { const json = JSON.parse(text); throw new Error(json.error || 'Analysis failed'); }
-        catch { throw new Error('Analysis failed'); }
-      }
-
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error('Streaming not supported');
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const payload = JSON.parse(line.slice(6));
-
-          if (payload.type === 'models') {
-            setModels(payload.models);
-          } else if (payload.type === 'result') {
-            const { model_id, name, fen, error: err, elapsed } = payload;
-            setModelResults(prev => ({
-              ...prev,
-              [model_id]: { name, fen, error: err, elapsed },
-            }));
-          }
-        }
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
-    } finally {
-      setAnalyzing(false);
-    }
-  }, []);
-
-  const handleClear = () => {
-    setPreview(null);
-    setImageFile(null);
-    setModelResults({});
-    setModels([]);
-    setError('');
-    setAnalyzing(false);
   };
 
   return (
@@ -129,10 +48,9 @@ export function DiagramToFenPanel() {
             </button>
           ) : (
             <div className="space-y-4">
-              {/* Replace + preview */}
               <div className="flex justify-center gap-2">
                 <button
-                  onClick={() => { handleClear(); fileRef.current?.click(); }}
+                  onClick={() => { diagramClear(); fileRef.current?.click(); }}
                   className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
                 >
                   <Upload className="w-4 h-4" />
@@ -140,7 +58,7 @@ export function DiagramToFenPanel() {
                 </button>
                 {(models.length > 0 || analyzing) && (
                   <button
-                    onClick={handleClear}
+                    onClick={diagramClear}
                     className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
                   >
                     <X className="w-4 h-4" />
@@ -154,11 +72,10 @@ export function DiagramToFenPanel() {
                 onClick={() => setShowImageModal(true)}
               />
 
-              {/* Analyze button */}
               {!analyzing && models.length === 0 && (
                 <div className="flex justify-center">
                   <button
-                    onClick={() => imageFile && analyze(imageFile)}
+                    onClick={diagramAnalyze}
                     className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors"
                   >
                     {t('coaches.diagram.analyze')}
@@ -166,7 +83,6 @@ export function DiagramToFenPanel() {
                 </div>
               )}
 
-              {/* Analyzing spinner */}
               {analyzing && (
                 <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse py-4">
                   <Clock className="w-4 h-4 animate-spin" />
@@ -176,7 +92,6 @@ export function DiagramToFenPanel() {
 
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
-              {/* Results */}
               {models.length > 0 && (
                 <div className="flex flex-col gap-4 items-center max-w-xl mx-auto">
                   {models.map((m) => {
@@ -199,7 +114,6 @@ export function DiagramToFenPanel() {
         </div>
       </div>
 
-      {/* Fullscreen image modal */}
       {showImageModal && preview && (
         <div
           onClick={() => setShowImageModal(false)}
@@ -212,13 +126,7 @@ export function DiagramToFenPanel() {
   );
 }
 
-function FenResultCard({ name, fen, error, elapsed, loading }: {
-  name: string;
-  fen?: string;
-  error?: string;
-  elapsed?: number;
-  loading: boolean;
-}) {
+function FenResultCard({ name, fen, error, elapsed, loading }: DiagramModelResult & { loading: boolean }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -260,16 +168,13 @@ function FenResultCard({ name, fen, error, elapsed, loading }: {
         <p className="text-red-400 text-center py-4 px-3 text-xs">{error}</p>
       ) : fen ? (
         <div className="p-3 space-y-3">
-          {/* FEN string */}
           <div className="bg-slate-800 rounded-lg px-3 py-2">
             <p className="text-slate-400 text-[10px] mb-1">FEN</p>
             <p className="text-slate-100 font-mono text-xs break-all select-all">{fen}</p>
           </div>
 
-          {/* Board preview */}
           {validFen && <StaticBoard fen={fen} />}
 
-          {/* Copy button */}
           <button
             onClick={handleCopy}
             className="w-full px-2 py-2 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5 rounded-lg"
@@ -333,13 +238,11 @@ function StaticBoard({ fen }: { fen: string }) {
             );
           })
         )}
-        {/* File labels */}
         {Array.from({ length: 8 }).map((_, i) => (
           <text key={`f-${i}`} x={i * 100 + 90} y={796} fontSize="18" fontWeight="700" fill={(7 + i) % 2 === 0 ? DARK : LIGHT} textAnchor="end" fontFamily="system-ui">
             {'abcdefgh'[i]}
           </text>
         ))}
-        {/* Rank labels */}
         {Array.from({ length: 8 }).map((_, i) => (
           <text key={`r-${i}`} x={6} y={i * 100 + 20} fontSize="18" fontWeight="700" fill={i % 2 === 0 ? DARK : LIGHT} fontFamily="system-ui">
             {8 - i}

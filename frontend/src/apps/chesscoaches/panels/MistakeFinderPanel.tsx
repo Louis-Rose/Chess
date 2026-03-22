@@ -1,36 +1,12 @@
 // Mistake Finder panel — upload PGN, find time-management mistakes
 
-import { useState, useCallback, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { Upload, Clock, AlertTriangle, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Chessboard } from '../components/Chessboard';
 import { PanelHeader } from '../components/PanelHeader';
-
-/* ── Types ── */
-
-interface ParsedMove {
-  number: number;
-  side: 'white' | 'black';
-  san: string;
-  clk: number; // remaining seconds after this move
-  timeSpent: number; // seconds spent on this move
-  remainingBefore: number; // clock before this move
-  fractionSpent: number; // timeSpent / remainingBefore
-}
-
-interface Mistake {
-  move: ParsedMove;
-  percentSpent: number;
-}
-
-interface GameHeader {
-  white: string;
-  black: string;
-  event: string;
-  date: string;
-  result: string;
-  timeControl: string;
-}
+import { useCoachesData } from '../contexts/CoachesDataContext';
+import type { ParsedMove, Mistake, GameHeader } from '../contexts/CoachesDataContext';
 
 /* ── PGN parsing ── */
 
@@ -168,34 +144,19 @@ function formatTime(seconds: number): string {
 
 /* ── Component ── */
 
-const THRESHOLD = 0.20;
-
 export function MistakeFinderPanel() {
   const { t } = useLanguage();
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const [pgnText, setPgnText] = useState('');
-  const [fileName, setFileName] = useState('');
-  const [mistakes, setMistakes] = useState<Mistake[] | null>(null);
-  const [gameHeaders, setGameHeaders] = useState<GameHeader | null>(null);
-  const [allMoves, setAllMoves] = useState<ParsedMove[]>([]);
-  const [error, setError] = useState('');
-  const [expandedMistake, setExpandedMistake] = useState<number | null>(null);
+  const { mistakes: state, mistakesSetFile, mistakesAnalyze, mistakesClear, mistakesSetExpanded } = useCoachesData();
+  const { pgnText, fileName, mistakes, gameHeaders, allMoves, error, expandedMistake } = state;
 
   const handleFile = useCallback((file: File) => {
-    setError('');
-    setMistakes(null);
-    setGameHeaders(null);
-    setAllMoves([]);
-    setFileName(file.name);
-
     const reader = new FileReader();
     reader.onload = (e) => {
-      const text = e.target?.result as string;
-      setPgnText(text);
+      mistakesSetFile(e.target?.result as string, file.name);
     };
     reader.readAsText(file);
-  }, []);
+  }, [mistakesSetFile]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -204,37 +165,11 @@ export function MistakeFinderPanel() {
   }, [handleFile]);
 
   const handleAnalyze = () => {
-    setError('');
-    setMistakes(null);
-    setExpandedMistake(null);
-
-    const result = parsePgn(pgnText);
-    if (!result || result.moves.length === 0) {
-      setError(t('coaches.mistakes.noClockData'));
-      return;
-    }
-
-    // Check that we actually have clock data
-    const hasClocks = result.moves.some(m => m.clk > 0);
-    if (!hasClocks) {
-      setError(t('coaches.mistakes.noClockData'));
-      return;
-    }
-
-    setGameHeaders(result.headers);
-    setAllMoves(result.moves);
-    setMistakes(findMistakes(result.moves, THRESHOLD));
+    mistakesAnalyze(parsePgn, findMistakes, t('coaches.mistakes.noClockData'));
   };
 
-  const handleClear = () => {
-    setPgnText('');
-    setFileName('');
-    setMistakes(null);
-    setGameHeaders(null);
-    setAllMoves([]);
-    setError('');
-    setExpandedMistake(null);
-  };
+  const handleClear = mistakesClear;
+  const setExpandedMistake = mistakesSetExpanded;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
