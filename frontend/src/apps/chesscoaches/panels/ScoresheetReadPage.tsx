@@ -4,40 +4,8 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download, Play, RotateCcw, Square } from 'lucide-react';
 import { PanelHeader } from '../components/PanelHeader';
 import { useLanguage } from '../../../contexts/LanguageContext';
-
-interface Move {
-  number: number;
-  white: string;
-  black?: string;
-  white_legal?: boolean;
-  black_legal?: boolean;
-}
-
-interface ScoresheetResult {
-  white_player: string;
-  black_player: string;
-  event: string;
-  date: string;
-  result: string;
-  moves: Move[];
-}
-
-interface ModelResult {
-  name: string;
-  result?: ScoresheetResult;
-  error?: string;
-  elapsed: number;
-  warnings?: string[];
-}
-
-interface ReadEntry {
-  moves: Move[];
-  elapsed: number;
-  warnings?: string[];
-  error?: string;
-  rereading?: boolean;
-  corrections?: Set<string>;  // e.g. "11-black", "5-white" — cells the user manually edited
-}
+import { useCoachesData } from '../contexts/CoachesDataContext';
+import type { ScoresheetMove as Move, ScoresheetModelResult as ModelResult, ScoresheetReadEntry as ReadEntry } from '../contexts/CoachesDataContext';
 
 // Ground truth for known scoresheets — keyed by filename stem (without extension)
 const GROUND_TRUTHS: Record<string, { white_player: string; black_player: string; result: string; moves: Move[] }> = {
@@ -157,22 +125,17 @@ function computeStats(modelMoves: Move[], gtMoves: Move[]): AccuracyStats | null
 export function ScoresheetReadPage() {
   const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const {
+    scoresheet, scoresheetSetImage, scoresheetStartOneRead,
+    scoresheetStartMultipleReads, scoresheetStopMultipleReads,
+    scoresheetHandleEditSave, scoresheetClear,
+  } = useCoachesData();
 
-  const [preview, setPreview] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [error, setError] = useState('');
-  const [modelResults, setModelResults] = useState<Record<string, ModelResult>>({});
-  const [reReads, setReReads] = useState<Record<string, ReadEntry[]>>({});
-  const [models, setModels] = useState<{ id: string; name: string }[]>([]);
-  const [autoRunning, setAutoRunning] = useState(false);
-  const [startTime, setStartTime] = useState<number | null>(null);
-  const [showImageModal, setShowImageModal] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [azureResult, setAzureResult] = useState<{ moves: Move[]; elapsed: number; loading: boolean; error?: string; rawLines?: string[]; rawTables?: { index: number; rowCount: number; columnCount: number; rows: string[][] }[] } | null>(null);
+  const { preview, fileName, error, modelResults, reReads, models, autoRunning, startTime, analyzing, azureResult } = scoresheet;
 
   const groundTruth = useMemo(() => getGroundTruth(fileName), [fileName]);
 
+  const [showImageModal, setShowImageModal] = useState(false);
   const closeModal = useCallback(() => setShowImageModal(false), []);
   useEffect(() => {
     if (!showImageModal) return;
@@ -181,7 +144,6 @@ export function ScoresheetReadPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [showImageModal, closeModal]);
 
-  // Build per-model disagreement maps — compares a set of moves against ground truth
   const buildDisagreementMap = useCallback((moves: Move[], gtMoves: Move[]) => {
     const map = new Map<number, { white: boolean; black: boolean }>();
     const maxLen = Math.max(moves.length, gtMoves.length);
@@ -197,276 +159,17 @@ export function ScoresheetReadPage() {
     return map;
   }, []);
 
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setError('');
-    setModelResults({});
-    setReReads({});
-    setModels([]);
-    setAzureResult(null);
-    setFileName(file.name);
-    setImageFile(file);
-
     const reader = new FileReader();
-    reader.onload = () => setPreview(reader.result as string);
+    reader.onload = () => scoresheetSetImage(file, reader.result as string, file.name);
     reader.readAsDataURL(file);
   };
 
-  // AbortController for cancelling in-flight auto-correct re-reads
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  // Helper: do a single re-read API call and return the result
-  const doReread = async (file: File, modelId: string, confirmedMoves: Move[], signal?: AbortSignal): Promise<{ moves: Move[]; elapsed: number; warnings?: string[] } | null> => {
-    const formData = new FormData();
-    formData.append('image', file);
-    formData.append('confirmed_moves', JSON.stringify(confirmedMoves));
-    formData.append('model_id', modelId);
-    try {
-      const res = await fetch('/api/coaches/reread-scoresheet', { method: 'POST', body: formData, signal });
-      if (res.ok) {
-        const json = await res.json();
-        return { moves: json.result.moves, elapsed: json.elapsed, warnings: json.warnings };
-      }
-    } catch { /* ignore */ }
-    return null;
-  };
-
-  // Find first mistake compared to ground truth, return { moveIdx, color, correctValue } or null
-  const findFirstMistake = (moves: Move[], gtMoves: Move[]): { moveIdx: number; color: 'white' | 'black'; correctValue: string } | null => {
-    for (let i = 0; i < gtMoves.length; i++) {
-      const gt = gtMoves[i];
-      const mm = moves[i];
-      if (!mm) return null; // ran out of model moves — not a "mistake", just truncated
-      for (const color of ['white', 'black'] as const) {
-        if (color === 'black' && !gt.black) continue;
-        const gtVal = gt[color] || '';
-        const mmVal = mm[color] || '';
-        if (!movesMatch(mmVal, gtVal)) {
-          return { moveIdx: i, color, correctValue: gtVal };
-        }
-      }
-    }
-    return null;
-  };
-
-  // This ref tracks whether we should auto-correct after each read
-  const autoCorrectRef = useRef(false);
-  // Track which models are done (no more mistakes or errored out)
-  const autoCorrectDoneRef = useRef<Set<string>>(new Set());
-
-  // After modelResults or reReads change, check if we should auto-correct each model
-  useEffect(() => {
-    if (!autoCorrectRef.current || !groundTruth || !imageFile) return;
-
-    // Create a fresh AbortController for this batch of re-reads
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    // Process each model independently
-    for (const modelId of Object.keys(modelResults)) {
-      if (autoCorrectDoneRef.current.has(modelId)) continue;
-
-      const mr = modelResults[modelId];
-      if (!mr?.result) continue;
-
-      const extraReads = reReads[modelId] || [];
-      const lastRead = extraReads.length > 0 ? extraReads[extraReads.length - 1] : { moves: mr.result.moves, elapsed: mr.elapsed };
-
-      // Skip if still re-reading
-      if ('rereading' in lastRead && lastRead.rereading) continue;
-
-      const mistake = findFirstMistake(lastRead.moves, groundTruth.moves);
-      if (!mistake) {
-        autoCorrectDoneRef.current.add(modelId);
-        // Check if all models are done
-        if (Object.keys(modelResults).every(id => autoCorrectDoneRef.current.has(id))) {
-          autoCorrectRef.current = false;
-          setAutoRunning(false);
-        }
-        continue;
-      }
-
-      // Build confirmed moves up to the mistake, with the correction
-      const confirmed: Move[] = [];
-      const allCorrections = new Set<string>();
-      for (const r of extraReads) {
-        if (r.corrections) r.corrections.forEach(c => allCorrections.add(c));
-      }
-
-      for (let i = 0; i <= mistake.moveIdx; i++) {
-        const m = { ...lastRead.moves[i] };
-        if (i === mistake.moveIdx) {
-          m[mistake.color] = mistake.correctValue;
-          if (mistake.color === 'white') {
-            delete m.black;
-            delete m.black_legal;
-          }
-        }
-        delete m.white_legal;
-        delete m.black_legal;
-        confirmed.push(m);
-      }
-
-      const correctionKey = `${lastRead.moves[mistake.moveIdx].number}-${mistake.color}`;
-      allCorrections.add(correctionKey);
-
-      const keepReReads = [...extraReads];
-
-      setReReads(prev => ({
-        ...prev,
-        [modelId]: [...keepReReads, { moves: confirmed, elapsed: 0, rereading: true, corrections: allCorrections }],
-      }));
-
-      // Fire the re-read
-      ((mid) => {
-        (async () => {
-          const result = await doReread(imageFile, mid, confirmed, controller.signal);
-          // If aborted/stopped, don't update state — stopMultipleReads already cleaned up
-          if (!autoCorrectRef.current) return;
-          if (result) {
-            setReReads(prev => {
-              const reads = [...(prev[mid] || [])];
-              reads[reads.length - 1] = { ...reads[reads.length - 1], moves: result.moves, elapsed: result.elapsed, warnings: result.warnings, rereading: false };
-              return { ...prev, [mid]: reads };
-            });
-          } else {
-            setReReads(prev => {
-              const reads = [...(prev[mid] || [])];
-              reads[reads.length - 1] = { ...reads[reads.length - 1], rereading: false, error: 'Re-read failed' };
-              return { ...prev, [mid]: reads };
-            });
-            autoCorrectDoneRef.current.add(mid);
-            if (Object.keys(modelResults).every(id => autoCorrectDoneRef.current.has(id))) {
-              autoCorrectRef.current = false;
-              setAutoRunning(false);
-            }
-          }
-        })();
-      })(modelId);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modelResults, reReads, groundTruth, imageFile]);
-
-  const startOneRead = () => {
-    if (!imageFile) return;
-    autoCorrectRef.current = false;
-    setAutoRunning(false);
-    setModelResults({});
-    setReReads({});
-    setAzureResult(null);
-    analyzeImage(imageFile);
-    analyzeAzure(imageFile);
-  };
-
-  const startMultipleReads = () => {
-    if (!imageFile || !groundTruth) return;
-    autoCorrectRef.current = true;
-    autoCorrectDoneRef.current = new Set();
-    setAutoRunning(true);
-    setModelResults({});
-    setReReads({});
-    setAzureResult(null);
-    analyzeImage(imageFile);
-    analyzeAzure(imageFile);
-  };
-
-  const stopMultipleReads = () => {
-    autoCorrectRef.current = false;
-    setAutoRunning(false);
-    // Abort any in-flight re-read fetches
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    // Remove any rereading (incomplete) entries from reReads
-    setReReads(prev => {
-      const cleaned: Record<string, ReadEntry[]> = {};
-      for (const [modelId, reads] of Object.entries(prev)) {
-        cleaned[modelId] = reads.filter(r => !r.rereading);
-      }
-      return cleaned;
-    });
-  };
-
-  const analyzeAzure = async (file: File) => {
-    setAzureResult({ moves: [], elapsed: 0, loading: true });
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      const res = await fetch('/api/coaches/read-scoresheet-azure', { method: 'POST', body: formData });
-      if (res.ok) {
-        const json = await res.json();
-        setAzureResult({ moves: json.moves, elapsed: json.elapsed, loading: false, rawLines: json.raw_lines, rawTables: json.raw_tables });
-      } else {
-        const json = await res.json().catch(() => ({ error: 'Failed' }));
-        setAzureResult({ moves: [], elapsed: 0, loading: false, error: json.error });
-      }
-    } catch (e) {
-      setAzureResult({ moves: [], elapsed: 0, loading: false, error: e instanceof Error ? e.message : 'Unknown error' });
-    }
-  };
-
-  const analyzeImage = async (file: File) => {
-    setError('');
-    setModelResults({});
-    setReReads({});
-    setModels([]);
-    setAnalyzing(true);
-
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-
-      const res = await fetch('/api/coaches/read-scoresheet', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        try { const json = JSON.parse(text); throw new Error(json.error || 'Analysis failed'); }
-        catch { throw new Error('Analysis failed'); }
-      }
-
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error('Streaming not supported');
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const payload = JSON.parse(line.slice(6));
-
-          if (payload.type === 'models') {
-            setModels(payload.models);
-            setStartTime(Date.now());
-          } else if (payload.type === 'result') {
-            const { model_id, name, result, error: err, elapsed, warnings } = payload;
-            setModelResults(prev => ({
-              ...prev,
-              [model_id]: { ...prev[model_id], name, result, error: err, elapsed, warnings },
-            }));
-          } else if (payload.type === 'done') {
-          }
-        }
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
-    } finally {
-      setAnalyzing(false);
-    }
-  };
+  const startOneRead = scoresheetStartOneRead;
+  const startMultipleReads = () => groundTruth && scoresheetStartMultipleReads(groundTruth.moves);
+  const stopMultipleReads = scoresheetStopMultipleReads;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -497,7 +200,7 @@ export function ScoresheetReadPage() {
               {/* Replace + preview */}
               <div className="flex justify-center">
                 <button
-                  onClick={() => { setPreview(null); setFileName(null); setImageFile(null); setModelResults({}); setReReads({}); setModels([]); setError(''); setAnalyzing(false); setAzureResult(null); fileInputRef.current?.click(); }}
+                  onClick={() => { scoresheetClear(); fileInputRef.current?.click(); }}
                   className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
                 >
                   <Upload className="w-4 h-4" />
@@ -568,45 +271,8 @@ export function ScoresheetReadPage() {
                       : [];
                     const meta = mr?.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined;
 
-                    const handleEditSave = async (readIdx: number, confirmed: Move[], correctionKey: string) => {
-                      // Collect all corrections from previous reads + this new one
-                      const prevCorrections = new Set<string>();
-                      for (let i = 0; i <= readIdx; i++) {
-                        const read = allReads[i];
-                        if (read?.corrections) read.corrections.forEach(c => prevCorrections.add(c));
-                      }
-                      prevCorrections.add(correctionKey);
-
-                      // Discard all reads after the one being edited, then append new read
-                      const keepReReads = readIdx === 0 ? [] : (reReads[m.id] || []).slice(0, readIdx);
-                      setReReads(prev => ({
-                        ...prev,
-                        [m.id]: [...keepReReads, { moves: confirmed, elapsed: 0, rereading: true, corrections: prevCorrections }],
-                      }));
-
-                      if (!imageFile) return;
-                      try {
-                        const formData = new FormData();
-                        formData.append('image', imageFile);
-                        formData.append('confirmed_moves', JSON.stringify(confirmed));
-                        formData.append('model_id', m.id);
-
-                        const res = await fetch('/api/coaches/reread-scoresheet', { method: 'POST', body: formData });
-                        if (res.ok) {
-                          const json = await res.json();
-                          setReReads(prev => {
-                            const reads = [...(prev[m.id] || [])];
-                            reads[reads.length - 1] = { ...reads[reads.length - 1], moves: json.result.moves, elapsed: json.elapsed, warnings: json.warnings, rereading: false };
-                            return { ...prev, [m.id]: reads };
-                          });
-                        }
-                      } catch {
-                        setReReads(prev => {
-                          const reads = [...(prev[m.id] || [])];
-                          reads[reads.length - 1] = { ...reads[reads.length - 1], rereading: false, error: 'Re-read failed' };
-                          return { ...prev, [m.id]: reads };
-                        });
-                      }
+                    const handleEditSave = (readIdx: number, confirmed: Move[], correctionKey: string) => {
+                      scoresheetHandleEditSave(m.id, readIdx, confirmed, correctionKey);
                     };
 
                     return (
