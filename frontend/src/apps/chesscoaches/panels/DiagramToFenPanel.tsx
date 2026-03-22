@@ -24,11 +24,10 @@ export function DiagramToFenPanel() {
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="max-w-[1600px] mx-auto">
-        <PanelHeader title={t('coaches.navDiagram')} />
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
+      <PanelHeader title={t('coaches.navDiagram')} />
 
-        <div className="px-2">
+      <div className="mx-[5%] md:mx-auto">
           <input
             ref={fileRef}
             type="file"
@@ -40,9 +39,9 @@ export function DiagramToFenPanel() {
           {!preview ? (
             <button
               onClick={() => fileRef.current?.click()}
-              className="w-full md:max-w-xl md:mx-auto border-2 border-dashed border-slate-600 rounded-xl p-12 flex flex-col items-center gap-3 hover:border-blue-500 hover:bg-slate-750 transition-colors cursor-pointer"
+              className="border-2 border-dashed border-slate-600 rounded-xl p-10 flex flex-col items-center gap-3 cursor-pointer hover:border-blue-500 transition-colors max-w-lg mx-auto"
             >
-              <ImageIcon className="w-12 h-12 text-slate-500" />
+              <ImageIcon className="w-10 h-10 text-slate-400" />
               <span className="text-slate-300 font-medium">{t('coaches.diagram.uploadPrompt')}</span>
               <span className="text-slate-500 text-sm">{t('coaches.diagram.uploadHint')}</span>
             </button>
@@ -111,7 +110,6 @@ export function DiagramToFenPanel() {
               )}
             </div>
           )}
-        </div>
       </div>
 
       {showImageModal && preview && (
