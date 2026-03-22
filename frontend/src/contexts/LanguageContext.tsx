@@ -272,6 +272,11 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.mistakes.b1.line1': 'Over-extending',
     'coaches.mistakes.b1.line2': 'a winning position',
     'coaches.mistakes.comingSoon': 'Coming soon',
+    'coaches.navAbout': 'About',
+    'coaches.about.description': 'Tools for chess coaches: digitize scoresheets, analyze diagrams, and review time management from your over-the-board games.',
+    'coaches.about.credits': 'Credits & Licenses',
+    'coaches.about.chesscomApi': 'Player profiles and game data',
+    'coaches.about.gemini': 'Scoresheet and diagram recognition',
     'coaches.mistakes.selectAnalysis': 'Select an analysis',
 
     // Tax Calculator
@@ -554,6 +559,11 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.mistakes.b1.line1': 'Sur-jouer',
     'coaches.mistakes.b1.line2': 'une position gagnante',
     'coaches.mistakes.comingSoon': 'Bientôt disponible',
+    'coaches.navAbout': 'À propos',
+    'coaches.about.description': 'Outils pour entraîneurs d\'échecs : numériser des feuilles de partie, analyser des diagrammes et examiner la gestion du temps de vos parties en présentiel.',
+    'coaches.about.credits': 'Crédits & Licences',
+    'coaches.about.chesscomApi': 'Profils de joueurs et données de parties',
+    'coaches.about.gemini': 'Reconnaissance de feuilles de partie et diagrammes',
     'coaches.mistakes.selectAnalysis': 'Sélectionnez une analyse',
 
     // Tax Calculator

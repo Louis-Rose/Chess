@@ -187,13 +187,7 @@ function FenResultCard({ name, fen, error, elapsed, loading }: DiagramModelResul
   );
 }
 
-const LIGHT = '#f0d9b5';
-const DARK = '#b58863';
-
-function pieceImageUrl(piece: string): string {
-  const color = piece === piece.toUpperCase() ? 'w' : 'b';
-  return `/pieces/${color}${piece.toUpperCase()}.svg`;
-}
+import { pieceImageUrl, BOARD_LIGHT as LIGHT, BOARD_DARK as DARK } from '../utils/pieces';
 
 function StaticBoard({ fen }: { fen: string }) {
   const rows = fen.split(' ')[0].split('/');

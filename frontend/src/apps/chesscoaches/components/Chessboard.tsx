@@ -3,13 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Chess } from 'chess.js';
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
-
-/* ── Piece images (CBurnett/Merida from Lichess, CC BY-SA 3.0) ── */
-
-function pieceImageUrl(piece: string): string {
-  const color = piece === piece.toUpperCase() ? 'w' : 'b';
-  return `/pieces/${color}${piece.toUpperCase()}.svg`;
-}
+import { pieceImageUrl, BOARD_LIGHT as LIGHT, BOARD_DARK as DARK } from '../utils/pieces';
 
 /* ── FEN parsing ── */
 
@@ -185,8 +179,7 @@ function playMoveSound(isCapture: boolean) {
 
 /* ── Board colors ── */
 
-const LIGHT = '#f0d9b5';
-const DARK = '#b58863';
+/* Board colors imported from utils/pieces */
 
 /* ── Component ── */
 
