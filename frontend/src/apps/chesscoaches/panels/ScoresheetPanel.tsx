@@ -32,6 +32,14 @@ export function ScoresheetPanel() {
         ))}
       </div>
       <div className="border-t border-slate-700 mt-4 max-w-3xl mx-[5%] md:mx-auto" />
+      <div className="max-w-4xl mx-[5%] md:mx-auto mt-3">
+        <button
+          onClick={() => navigate('/coach/about')}
+          className="text-xs text-slate-500 hover:text-slate-400 transition-colors"
+        >
+          {t('coaches.navAbout')}
+        </button>
+      </div>
     </div>
   );
 }

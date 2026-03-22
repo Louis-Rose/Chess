@@ -112,20 +112,6 @@ function CoachesNavSidebar() {
         </nav>
 
         <div className="h-px bg-slate-700" />
-
-        <div className="flex-1" />
-
-        {/* About */}
-        <NavLink
-          to="/coach/about"
-          className={({ isActive }) =>
-            `px-3 py-1.5 text-xs transition-colors ${
-              isActive ? 'text-slate-300' : 'text-slate-500 hover:text-slate-400'
-            }`
-          }
-        >
-          {t('coaches.navAbout')}
-        </NavLink>
       </div>
     </div>
   );
