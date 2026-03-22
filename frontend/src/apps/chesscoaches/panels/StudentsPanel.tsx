@@ -464,7 +464,7 @@ function StudentCard({ student, coachTz, coachRate, coachCurrency, onRefresh }: 
   const isGhosting = ghostDays !== null && ghostDays >= 14;
 
   const studentLocalTime = formatLocalTime(student.timezone);
-  const coachLocalTime = formatLocalTime(coachTz);
+
 
   const loadLessons = useCallback(async () => {
     setLessonsLoading(true);
@@ -544,8 +544,6 @@ function StudentCard({ student, coachTz, coachRate, coachCurrency, onRefresh }: 
           email: student.email || '',
           phone: student.phone || '',
           timezone: student.timezone,
-          preferred_platform: student.preferred_platform || '',
-          platform_link: student.platform_link || '',
           payment_status: student.payment_status,
           notes: student.notes || '',
         }}
