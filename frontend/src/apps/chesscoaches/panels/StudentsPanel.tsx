@@ -1,6 +1,6 @@
 // My Students panel — student roster, bundles, timezone clocks, payment status
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, ChevronDown, ChevronUp, Trash2, Pencil, Clock, ExternalLink,
   AlertTriangle, Archive, RotateCcw, X, Calendar, BookOpen, Send, Users,
@@ -345,10 +345,9 @@ function StudentForm({ initial, onSave, onCancel, saving }: {
 
 // ── Lesson Form (inline) ──
 
-function LessonForm({ studentId, bundleId, coachUsername, onSaved, onCancel }: {
+function LessonForm({ studentId, bundleId, onSaved, onCancel }: {
   studentId: number;
   bundleId: number | null;
-  coachUsername: string;
   onSaved: () => void;
   onCancel: () => void;
 }) {
@@ -806,7 +805,6 @@ function StudentCard({ student, coachTz, onRefresh }: {
             <LessonForm
               studentId={student.id}
               bundleId={bundle?.id || null}
-              coachUsername={student.coach_username}
               onSaved={() => { setShowLessonForm(false); onRefresh(); if (showLessons) loadLessons(); }}
               onCancel={() => setShowLessonForm(false)}
             />
