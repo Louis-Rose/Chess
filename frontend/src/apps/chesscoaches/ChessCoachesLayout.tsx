@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { Users, FileText, LogOut, Clock, Grid3X3 } from 'lucide-react';
+import { Users, FileText, LogOut, Clock, Grid3X3, Home } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { CoachesDataProvider, useCoachesData, getCoachesPrefs, saveCoachesPrefs } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
@@ -95,6 +95,18 @@ function CoachesNavSidebar() {
 
         {/* Navigation */}
         <nav className="flex flex-col gap-0.5">
+          <NavLink
+            to="/coach"
+            end
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+              }`
+            }
+          >
+            <Home className="w-4 h-4 flex-shrink-0" />
+            {t('coaches.navHome')}
+          </NavLink>
           {NAV_ITEMS.map(({ path, labelKey, icon: Icon }) => (
             <NavLink
               key={path}

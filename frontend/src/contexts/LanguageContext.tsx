@@ -236,6 +236,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Coaches
     'coaches.title': 'Chess Coaches',
+    'coaches.navHome': 'Home',
     'coaches.navStudents': 'My Students',
     'coaches.navScoresheets': 'Scoresheet → PGN',
     'coaches.onboardingInstruction': 'Enter your Chess.com username to get started.',
@@ -523,6 +524,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Coaches
     'coaches.title': 'Chess Coaches',
+    'coaches.navHome': 'Accueil',
     'coaches.navStudents': 'Mes élèves',
     'coaches.navScoresheets': 'Feuille de partie → PGN',
     'coaches.onboardingInstruction': 'Entrez votre nom d\'utilisateur Chess.com pour commencer.',
