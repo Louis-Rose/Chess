@@ -557,6 +557,12 @@ def init_db():
                 conn.execute("CREATE INDEX idx_coach_lessons_bundle ON coach_lessons(bundle_id)")
                 print("[Database] Created coach_lessons table")
 
+            # Seed: Add test students for akyrosu if coach_students is empty
+            conn.execute("SELECT COUNT(*) as cnt FROM coach_students")
+            row = conn._cursor.fetchone()
+            if row and row['cnt'] == 0:
+                _seed_test_students(conn)
+
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
@@ -628,9 +634,37 @@ def init_db():
             with open(schema_path, 'r') as f:
                 conn.executescript(f.read())
             conn.commit()
+
+            # Seed: Add test students for akyrosu if coach_students is empty
+            cnt = conn.execute("SELECT COUNT(*) as cnt FROM coach_students").fetchone()
+            if cnt and cnt['cnt'] == 0:
+                _seed_test_students(conn)
+                conn.commit()
+
             print("[Database] SQLite schema initialized")
         finally:
             conn.close()
+
+
+def _seed_test_students(conn):
+    """Seed 5 test students for akyrosu."""
+    seeds = [
+        ('akyrosu', 'Emma Fischer', 'emmaf2005', 'emmafish', 'emma.fischer@gmail.com', '+49 170 1234567', 'Hans Fischer', 'hans.fischer@gmail.com', None, 1, 'Europe/Berlin', 'zoom', 'https://zoom.us/j/123456', 40, 'EUR', 'paid'),
+        ('akyrosu', 'James Wilson', 'jwilson_chess', None, 'james.w@outlook.com', '+1 555 234 5678', None, None, None, 0, 'America/New_York', 'google_meet', 'https://meet.google.com/abc-defg-hij', 50, 'USD', 'overdue'),
+        ('akyrosu', 'Yuki Tanaka', 'yuki_t', 'yukitanaka', 'yuki.tanaka@mail.jp', '+81 90 1234 5678', None, None, None, 0, 'Asia/Tokyo', 'discord', None, 6000, 'JPY', 'paid'),
+        ('akyrosu', 'Lucas Martin', None, 'lucasmartin33', 'lucas.martin@free.fr', '+33 7 98 76 54 32', 'Sophie Martin', 'sophie.m@free.fr', '+33 6 12 34 56 78', 1, 'Europe/Paris', 'otb', None, 35, 'EUR', 'pending'),
+        ('akyrosu', 'Aisha Patel', 'aisha_chess', None, 'aisha.p@gmail.com', '+91 98765 43210', None, None, None, 0, 'Asia/Kolkata', 'zoom', 'https://zoom.us/j/987654', 1500, 'INR', 'paid'),
+    ]
+    for s in seeds:
+        conn.execute(
+            '''INSERT INTO coach_students
+               (coach_username, student_name, student_chess_username, student_lichess_username,
+                email, phone, parent_name, parent_email, parent_phone, is_minor,
+                timezone, preferred_platform, platform_link, rate_amount, rate_currency, payment_status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            s
+        )
+    print("[Database] Seeded 5 test students for akyrosu")
 
 
 # ============= CACHE FUNCTIONS =============
