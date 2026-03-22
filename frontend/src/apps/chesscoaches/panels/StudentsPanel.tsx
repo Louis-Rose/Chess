@@ -672,11 +672,6 @@ function StudentCard({ student, coachTz, coachRate, coachCurrency, onRefresh }: 
               <span className="text-slate-200 font-mono">{studentLocalTime}</span>
               <span className="text-slate-600 ml-1">({student.timezone.replace(/_/g, ' ')})</span>
             </div>
-            <div className="text-slate-600">|</div>
-            <div>
-              <span className="text-slate-500">{t('coaches.students.yourTime')}: </span>
-              <span className="text-slate-200 font-mono">{coachLocalTime}</span>
-            </div>
           </div>
 
           {/* Notes */}
