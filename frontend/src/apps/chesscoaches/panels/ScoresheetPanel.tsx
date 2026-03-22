@@ -24,7 +24,7 @@ export function ScoresheetPanel() {
             <div className={`absolute top-5 left-5 w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center`}>
               <Icon className="w-5 h-5 text-white" />
             </div>
-            <h3 className="text-lg font-bold text-slate-100 select-text text-center text-balance px-12 py-4">
+            <h3 className="text-lg font-bold text-slate-100 select-text text-center px-12 py-4">
               {t(labelKey)}
             </h3>
             <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
