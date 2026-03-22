@@ -474,6 +474,89 @@ def init_db():
                     )
                 """)
                 print("[Database] Created monthly_archive_cache table")
+
+            # Migration: Create coach_students table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'coach_students'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE coach_students (
+                        id SERIAL PRIMARY KEY,
+                        coach_username TEXT NOT NULL,
+                        student_name TEXT NOT NULL,
+                        student_chess_username TEXT,
+                        student_lichess_username TEXT,
+                        email TEXT,
+                        phone TEXT,
+                        parent_name TEXT,
+                        parent_email TEXT,
+                        parent_phone TEXT,
+                        is_minor INTEGER DEFAULT 0,
+                        timezone TEXT DEFAULT 'UTC',
+                        preferred_platform TEXT,
+                        platform_link TEXT,
+                        rate_amount REAL,
+                        rate_currency TEXT DEFAULT 'EUR',
+                        payment_status TEXT DEFAULT 'paid',
+                        notes TEXT,
+                        is_active INTEGER DEFAULT 1,
+                        last_lesson_at TIMESTAMP,
+                        last_contact_at TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                conn.execute("CREATE INDEX idx_coach_students_coach ON coach_students(coach_username)")
+                conn.execute("CREATE INDEX idx_coach_students_active ON coach_students(coach_username, is_active)")
+                print("[Database] Created coach_students table")
+
+            # Migration: Create coach_lesson_bundles table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'coach_lesson_bundles'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE coach_lesson_bundles (
+                        id SERIAL PRIMARY KEY,
+                        student_id INTEGER NOT NULL REFERENCES coach_students(id) ON DELETE CASCADE,
+                        total_lessons INTEGER NOT NULL,
+                        used_lessons INTEGER DEFAULT 0,
+                        price_total REAL,
+                        price_currency TEXT DEFAULT 'EUR',
+                        purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        expires_at TIMESTAMP
+                    )
+                """)
+                conn.execute("CREATE INDEX idx_coach_lesson_bundles_student ON coach_lesson_bundles(student_id)")
+                print("[Database] Created coach_lesson_bundles table")
+
+            # Migration: Create coach_lessons table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'coach_lessons'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE coach_lessons (
+                        id SERIAL PRIMARY KEY,
+                        student_id INTEGER NOT NULL REFERENCES coach_students(id) ON DELETE CASCADE,
+                        bundle_id INTEGER REFERENCES coach_lesson_bundles(id) ON DELETE SET NULL,
+                        scheduled_at TIMESTAMP NOT NULL,
+                        duration_minutes INTEGER DEFAULT 60,
+                        status TEXT DEFAULT 'scheduled',
+                        topic TEXT,
+                        notes TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                conn.execute("CREATE INDEX idx_coach_lessons_student ON coach_lessons(student_id)")
+                conn.execute("CREATE INDEX idx_coach_lessons_scheduled ON coach_lessons(scheduled_at)")
+                conn.execute("CREATE INDEX idx_coach_lessons_bundle ON coach_lessons(bundle_id)")
+                print("[Database] Created coach_lessons table")
+
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
