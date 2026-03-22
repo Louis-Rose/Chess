@@ -156,9 +156,11 @@ const PLAYERS_KEY = 'coaches_saved_players';
 interface CoachesPrefs {
   chess_username: string | null;
   onboarding_done: boolean;
+  lesson_rate: number | null;
+  lesson_currency: string;
 }
 
-const DEFAULT_PREFS: CoachesPrefs = { chess_username: null, onboarding_done: false };
+const DEFAULT_PREFS: CoachesPrefs = { chess_username: null, onboarding_done: false, lesson_rate: null, lesson_currency: 'EUR' };
 
 const getPrefs = (): CoachesPrefs => {
   try {

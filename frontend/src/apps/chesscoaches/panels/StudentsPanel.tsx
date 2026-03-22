@@ -6,7 +6,7 @@ import {
   AlertTriangle, Archive, RotateCcw, X, Calendar, BookOpen, Send, Users,
 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { useCoachesData } from '../contexts/CoachesDataContext';
+import { useCoachesData, getCoachesPrefs, saveCoachesPrefs } from '../contexts/CoachesDataContext';
 import { PanelShell } from '../components/PanelShell';
 
 // ── Types ──
@@ -198,8 +198,6 @@ interface StudentFormData {
   timezone: string;
   preferred_platform: string;
   platform_link: string;
-  rate_amount: string;
-  rate_currency: string;
   payment_status: string;
   notes: string;
 }
@@ -208,7 +206,7 @@ const EMPTY_FORM: StudentFormData = {
   student_name: '', student_chess_username: '', student_lichess_username: '',
   email: '', phone: '', is_minor: false, parent_name: '', parent_email: '',
   parent_phone: '', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-  preferred_platform: '', platform_link: '', rate_amount: '', rate_currency: 'EUR',
+  preferred_platform: '', platform_link: '',
   payment_status: 'paid', notes: '',
 };
 
@@ -269,8 +267,8 @@ function StudentForm({ initial, onSave, onCancel, saving, isEditing }: {
         </div>
       </div>
 
-      {/* Row 3: Platform + Rate */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      {/* Row 3: Platform */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <div className={label}>{t('coaches.students.platform')}</div>
           <select className={input} value={form.preferred_platform} onChange={e => set('preferred_platform', e.target.value)}>
@@ -281,16 +279,6 @@ function StudentForm({ initial, onSave, onCancel, saving, isEditing }: {
         <div>
           <div className={label}>{t('coaches.students.platformLink')}</div>
           <input className={input} value={form.platform_link} onChange={e => set('platform_link', e.target.value)} placeholder="https://..." />
-        </div>
-        <div>
-          <div className={label}>{t('coaches.students.rate')}</div>
-          <input className={input} type="number" min="0" step="0.01" value={form.rate_amount} onChange={e => set('rate_amount', e.target.value)} />
-        </div>
-        <div>
-          <div className={label}>{t('coaches.students.currency')}</div>
-          <select className={input} value={form.rate_currency} onChange={e => set('rate_currency', e.target.value)}>
-            {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
         </div>
       </div>
 
@@ -515,9 +503,11 @@ function BundleForm({ studentId, currency, onSaved, onCancel }: {
 
 // ── Student Card ──
 
-function StudentCard({ student, coachTz, onRefresh }: {
+function StudentCard({ student, coachTz, coachRate, coachCurrency, onRefresh }: {
   student: Student;
   coachTz: string;
+  coachRate: number | null;
+  coachCurrency: string;
   onRefresh: () => void;
 }) {
   const { t } = useLanguage();
@@ -566,7 +556,7 @@ function StudentCard({ student, coachTz, onRefresh }: {
       await fetch(`/api/coaches/students/${student.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, coach_username: student.coach_username, rate_amount: form.rate_amount ? parseFloat(form.rate_amount) : null }),
+        body: JSON.stringify({ ...form, coach_username: student.coach_username }),
       });
       setEditing(false);
       onRefresh();
@@ -628,8 +618,6 @@ function StudentCard({ student, coachTz, onRefresh }: {
           timezone: student.timezone,
           preferred_platform: student.preferred_platform || '',
           platform_link: student.platform_link || '',
-          rate_amount: student.rate_amount?.toString() || '',
-          rate_currency: student.rate_currency,
           payment_status: student.payment_status,
           notes: student.notes || '',
         }}
@@ -673,8 +661,8 @@ function StudentCard({ student, coachTz, onRefresh }: {
               {studentLocalTime}
               <span className="text-slate-600">({student.timezone.split('/').pop()?.replace(/_/g, ' ')})</span>
             </span>
-            {student.rate_amount ? (
-              <span>{CURRENCY_SYMBOLS[student.rate_currency] || student.rate_currency}{student.rate_amount}{t('coaches.students.perLesson')}</span>
+            {coachRate ? (
+              <span>{CURRENCY_SYMBOLS[coachCurrency] || coachCurrency}{coachRate}{t('coaches.students.perLesson')}</span>
             ) : null}
           </div>
         </div>
@@ -828,7 +816,7 @@ function StudentCard({ student, coachTz, onRefresh }: {
           {showBundleForm && (
             <BundleForm
               studentId={student.id}
-              currency={student.rate_currency}
+              currency={coachCurrency}
               onSaved={() => { setShowBundleForm(false); onRefresh(); }}
               onCancel={() => setShowBundleForm(false)}
             />
@@ -938,12 +926,27 @@ export function StudentsPanel() {
   const coachUsername = playerInfo?.username || '';
   const coachTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
+  const prefs = getCoachesPrefs();
+  const [coachRate, setCoachRate] = useState<number | null>(prefs.lesson_rate);
+  const [coachCurrency, setCoachCurrency] = useState(prefs.lesson_currency);
+  const [showRateForm, setShowRateForm] = useState(false);
+  const [rateInput, setRateInput] = useState(prefs.lesson_rate?.toString() || '');
+  const [currencyInput, setCurrencyInput] = useState(prefs.lesson_currency);
+
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('name');
+
+  const saveRate = () => {
+    const rate = rateInput ? parseFloat(rateInput) : null;
+    saveCoachesPrefs({ lesson_rate: rate, lesson_currency: currencyInput });
+    setCoachRate(rate);
+    setCoachCurrency(currencyInput);
+    setShowRateForm(false);
+  };
 
   const fetchStudents = useCallback(async () => {
     if (!coachUsername) return;
@@ -967,7 +970,6 @@ export function StudentsPanel() {
         body: JSON.stringify({
           coach_username: coachUsername,
           ...form,
-          rate_amount: form.rate_amount ? parseFloat(form.rate_amount) : null,
         }),
       });
       setShowAddForm(false);
@@ -1039,6 +1041,33 @@ export function StudentsPanel() {
           </button>
         </div>
 
+        {/* Lesson rate setting */}
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-slate-500">{t('coaches.students.rate')}:</span>
+          {showRateForm ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="number" min="0" step="0.01" value={rateInput}
+                onChange={e => setRateInput(e.target.value)}
+                className="w-24 bg-slate-700 border border-slate-600 rounded-lg px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-purple-500"
+              />
+              <select
+                value={currencyInput}
+                onChange={e => setCurrencyInput(e.target.value)}
+                className="bg-slate-700 border border-slate-600 rounded-lg px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-purple-500"
+              >
+                {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <button onClick={saveRate} className="text-purple-400 hover:text-purple-300 text-xs font-medium">{t('coaches.students.save')}</button>
+              <button onClick={() => setShowRateForm(false)} className="text-slate-500 hover:text-slate-300 text-xs">{t('coaches.students.cancel')}</button>
+            </div>
+          ) : (
+            <button onClick={() => setShowRateForm(true)} className="text-slate-300 hover:text-purple-400 transition-colors">
+              {coachRate ? `${CURRENCY_SYMBOLS[coachCurrency] || coachCurrency}${coachRate}${t('coaches.students.perLesson')}` : t('coaches.students.setRate')}
+            </button>
+          )}
+        </div>
+
         {/* Add student form */}
         {showAddForm && (
           <StudentForm
@@ -1074,7 +1103,7 @@ export function StudentsPanel() {
         ) : (
           <div className="space-y-2">
             {sorted.map(s => (
-              <StudentCard key={s.id} student={s} coachTz={coachTz} onRefresh={fetchStudents} />
+              <StudentCard key={s.id} student={s} coachTz={coachTz} coachRate={coachRate} coachCurrency={coachCurrency} onRefresh={fetchStudents} />
             ))}
           </div>
         )}
