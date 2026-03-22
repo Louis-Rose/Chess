@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { Upload, ImageIcon, Clock, Copy, Check, X } from 'lucide-react';
+import { UploadBox } from '../components/UploadBox';
 import { Chess } from 'chess.js';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
@@ -34,14 +35,12 @@ export function DiagramToFenPanel() {
           />
 
           {!preview ? (
-            <button
+            <UploadBox
               onClick={() => fileRef.current?.click()}
-              className="border-2 border-dashed border-slate-600 rounded-xl p-10 flex flex-col items-center gap-3 cursor-pointer hover:border-blue-500 transition-colors max-w-lg mx-auto"
-            >
-              <ImageIcon className="w-10 h-10 text-slate-400" />
-              <span className="text-slate-300 font-medium">{t('coaches.diagram.uploadPrompt')}</span>
-              <span className="text-slate-500 text-sm">{t('coaches.diagram.uploadHint')}</span>
-            </button>
+              icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
+              title={t('coaches.diagram.uploadPrompt')}
+              hint={t('coaches.diagram.uploadHint')}
+            />
           ) : (
             <div className="space-y-4">
               <div className="flex justify-center gap-2">

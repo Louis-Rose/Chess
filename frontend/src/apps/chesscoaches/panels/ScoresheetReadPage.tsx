@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download, Play, RotateCcw, Square } from 'lucide-react';
 import { PanelShell } from '../components/PanelShell';
+import { UploadBox } from '../components/UploadBox';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useCoachesData } from '../contexts/CoachesDataContext';
 import type { ScoresheetMove as Move, ScoresheetReadEntry as ReadEntry } from '../contexts/CoachesDataContext';
@@ -182,14 +183,12 @@ export function ScoresheetReadPage() {
           />
 
           {!preview ? (
-            <button
+            <UploadBox
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-600 rounded-xl p-10 flex flex-col items-center gap-3 cursor-pointer hover:border-blue-500 transition-colors max-w-lg mx-auto"
-            >
-              <ImageIcon className="w-12 h-12 text-slate-500" />
-              <span className="text-slate-300 font-medium">{t('coaches.uploadPrompt')}</span>
-              <span className="text-slate-500 text-sm">{t('coaches.uploadHint')}</span>
-            </button>
+              icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
+              title={t('coaches.uploadPrompt')}
+              hint={t('coaches.uploadHint')}
+            />
           ) : (
             <div className="space-y-4">
               {/* Replace + preview */}

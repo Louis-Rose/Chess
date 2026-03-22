@@ -2,6 +2,7 @@
 
 import { useCallback, useRef } from 'react';
 import { Upload, Clock, AlertTriangle, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { UploadBox } from '../components/UploadBox';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Chessboard } from '../components/Chessboard';
 import { PanelShell } from '../components/PanelShell';
@@ -175,16 +176,15 @@ export function MistakeFinderPanel() {
     <PanelShell title={t('coaches.navMistakes')}>
       {/* Upload area */}
       {!pgnText ? (
-        <div
-          onDrop={handleDrop}
-          onDragOver={e => e.preventDefault()}
+        <>
+        <UploadBox
           onClick={() => fileRef.current?.click()}
-          className="border-2 border-dashed border-slate-600 rounded-xl p-10 flex flex-col items-center gap-3 cursor-pointer hover:border-blue-500 transition-colors max-w-lg mx-auto"
-        >
-          <Upload className="w-10 h-10 text-slate-400" />
-          <p className="text-slate-300 font-medium">{t('coaches.mistakes.uploadPrompt')}</p>
-          <p className="text-slate-500 text-sm">{t('coaches.mistakes.uploadHint')}</p>
-          <input
+          onDrop={handleDrop}
+          icon={<Upload className="w-10 h-10 text-slate-400" />}
+          title={t('coaches.mistakes.uploadPrompt')}
+          hint={t('coaches.mistakes.uploadHint')}
+        />
+        <input
             ref={fileRef}
             type="file"
             accept=".pgn,.txt"
@@ -194,7 +194,7 @@ export function MistakeFinderPanel() {
               if (file) handleFile(file);
             }}
           />
-        </div>
+        </>
       ) : (
         <div className="space-y-4">
           {/* File loaded banner */}
