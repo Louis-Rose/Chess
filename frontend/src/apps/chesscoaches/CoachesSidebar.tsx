@@ -56,6 +56,8 @@ export function CoachesSidebar() {
         <span className="text-slate-400 text-sm">{t('coaches.onboardingInstruction')}</span>
         <LoginButton />
       </div>
+
+      <div className="h-px bg-slate-700 mx-3 mt-6" />
     </SidebarShell>
   );
 }
