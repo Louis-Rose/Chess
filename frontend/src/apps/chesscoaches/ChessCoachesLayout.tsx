@@ -146,7 +146,7 @@ function CoachesNavSidebar() {
               {items.length > 0 && (
                 <>
                   {idx > 0 && <div className="h-px bg-slate-700 my-1.5" />}
-                  <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-3 pt-2 pb-1">
+                  <div className="text-xs font-bold text-slate-300 uppercase tracking-wider px-3 pt-2 pb-1 text-center">
                     {t(titleKey)}
                   </div>
                   {items.map(({ path, labelKey, icon: Icon }) => (
