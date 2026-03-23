@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Loader2, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
+import { Shield, Loader2, RefreshCw, ChevronUp, ChevronDown, Clock } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { PanelShell } from '../components/PanelShell';
 
@@ -24,6 +25,11 @@ interface AdminUser {
 interface AdminUsersResponse {
   users: AdminUser[];
   total: number;
+}
+
+interface TimeSpentDay {
+  activity_date: string;
+  total_seconds: number;
 }
 
 type SortColumn = 'name' | 'created_at' | 'last_active' | 'total_seconds' | 'session_count';
@@ -63,7 +69,7 @@ export function AdminPanel() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['admin-users'],
+    queryKey: ['admin-coach-users'],
     queryFn: async (): Promise<AdminUsersResponse> => {
       const response = await axios.get('/api/admin/coach-users');
       return response.data;
@@ -71,9 +77,21 @@ export function AdminPanel() {
     enabled: !!user?.is_admin,
   });
 
+  const { data: timeSpentData } = useQuery({
+    queryKey: ['admin-coach-time-spent'],
+    queryFn: async (): Promise<TimeSpentDay[]> => {
+      const response = await axios.get('/api/admin/coach-time-spent');
+      return response.data.daily_stats;
+    },
+    enabled: !!user?.is_admin,
+  });
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['admin-coach-users'] }),
+      queryClient.invalidateQueries({ queryKey: ['admin-coach-time-spent'] }),
+    ]);
     setIsRefreshing(false);
   };
 
@@ -101,6 +119,31 @@ export function AdminPanel() {
     });
   }, [data?.users, sortColumn, sortDirection]);
 
+  // Fill in missing dates so the chart has no gaps
+  const chartData = useMemo(() => {
+    if (!timeSpentData || timeSpentData.length === 0) return [];
+    const LAUNCH = '2026-03-23';
+    const today = new Date().toISOString().split('T')[0];
+    const start = new Date(LAUNCH);
+    const end = new Date(today);
+    const byDate: Record<string, number> = {};
+    timeSpentData.forEach(d => { byDate[d.activity_date] = d.total_seconds; });
+
+    const result: { date: string; label: string; minutes: number }[] = [];
+    const cur = new Date(start);
+    while (cur <= end) {
+      const key = cur.toISOString().split('T')[0];
+      const seconds = byDate[key] || 0;
+      result.push({
+        date: key,
+        label: cur.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+        minutes: Math.round(seconds / 60),
+      });
+      cur.setDate(cur.getDate() + 1);
+    }
+    return result;
+  }, [timeSpentData]);
+
   if (!authLoading && (!user || !user.is_admin)) {
     return <Navigate to="/" replace />;
   }
@@ -124,8 +167,8 @@ export function AdminPanel() {
 
   return (
     <PanelShell title="Admin">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-amber-500" />
             <span className="text-slate-400 text-sm">{data?.total ?? 0} user{(data?.total ?? 0) !== 1 ? 's' : ''}</span>
@@ -139,6 +182,30 @@ export function AdminPanel() {
           </button>
         </div>
 
+        {/* Time Spent Chart */}
+        {chartData.length > 0 && (
+          <div className="bg-slate-700/30 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-4 h-4 text-slate-400" />
+              <h3 className="text-sm font-medium text-slate-300">Daily Time Spent (minutes)</h3>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+                  labelStyle={{ color: '#e2e8f0' }}
+                  formatter={(value: number) => [`${value} min`, 'Time']}
+                />
+                <Bar dataKey="minutes" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Users Table */}
         {error ? (
           <p className="text-red-400 text-center py-8">Failed to load users</p>
         ) : (

@@ -2870,6 +2870,25 @@ def list_coach_users():
     return jsonify({'users': users, 'total': len(users)})
 
 
+@app.route('/api/admin/coach-time-spent', methods=['GET'])
+@admin_required
+def get_coach_time_spent():
+    """Get daily time spent stats for coaches app users only (from launch date)."""
+    COACHES_LAUNCH_DATE = '2026-03-23'
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT a.activity_date, SUM(a.seconds) as total_seconds
+            FROM user_activity a
+            JOIN users u ON a.user_id = u.id
+            WHERE u.registered_app = 'coaches' AND a.activity_date >= ?
+            GROUP BY a.activity_date
+            ORDER BY a.activity_date ASC
+        ''', (COACHES_LAUNCH_DATE,))
+        daily_stats = [dict(row) for row in cursor.fetchall()]
+
+    return jsonify({'daily_stats': daily_stats})
+
+
 EXCLUDED_CHESS_TESTERS = ('akyrosu', 'pingu-dav', 'remi75014', 'pengumasc', 'augustincbs', 'lau_tiny')
 
 @app.route('/api/admin/chess-users', methods=['GET'])
