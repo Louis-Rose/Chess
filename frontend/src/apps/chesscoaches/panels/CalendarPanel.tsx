@@ -20,9 +20,6 @@ interface Lesson {
 
 // ── Constants ──
 
-const DAY_NAMES_EN = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const DAY_NAMES_FR = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-
 // ── Helpers ──
 
 function authFetch(url: string, opts: RequestInit = {}) {
