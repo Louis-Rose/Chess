@@ -2,7 +2,7 @@
 // TODO: Add analytics tracking for route changes
 
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 
 const ChessCoachesApp = lazy(() => import('./apps/chesscoaches/ChessCoachesApp').then(m => ({ default: m.ChessCoachesApp })));
 
