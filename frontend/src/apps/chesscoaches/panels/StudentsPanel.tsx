@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Plus, Search, Trash2, Pencil, Clock, X, Calendar, ChevronDown, ChevronUp,
+  Plus, Trash2, Pencil, Clock, X, Calendar, ChevronDown, ChevronUp,
   AlertTriangle, Users,
 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -462,8 +462,6 @@ export function StudentsPanel() {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [search, setSearch] = useState('');
-
   const fetchStudents = useCallback(async () => {
     try {
       const res = await authFetch('/api/coaches/students');
@@ -489,33 +487,16 @@ export function StudentsPanel() {
     } finally { setSaving(false); }
   };
 
-  const filtered = students.filter(s => {
-    if (!search) return true;
-    return s.student_name.toLowerCase().includes(search.toLowerCase());
-  });
-
   return (
     <PanelShell title={t('coaches.students.title')}>
       <div className="max-w-3xl mx-auto space-y-4">
-        {/* Toolbar */}
-        <div className="flex flex-col md:flex-row md:items-center gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={t('coaches.students.search')}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
-            />
-          </div>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            {t('coaches.students.addStudent')}
-          </button>
-        </div>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          {t('coaches.students.addStudent')}
+        </button>
 
         {/* Add form */}
         {showAddForm && (
@@ -543,7 +524,7 @@ export function StudentsPanel() {
               </div>
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : students.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-purple-600/10 flex items-center justify-center mb-4">
               <Users className="w-8 h-8 text-purple-400" />
@@ -552,7 +533,7 @@ export function StudentsPanel() {
           </div>
         ) : (
           <div className="space-y-2">
-            {filtered
+            {students
               .sort((a, b) => a.student_name.localeCompare(b.student_name))
               .map(s => (
                 <StudentCard key={s.id} student={s} onRefresh={fetchStudents} lang={language} />
