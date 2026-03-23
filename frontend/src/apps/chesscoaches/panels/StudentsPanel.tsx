@@ -207,7 +207,7 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
                   set('recurring_time', h ? `${h}:${m}` : '');
                 }}
               >
-                <option value="">HH</option>
+                <option value="">{lang === 'fr' ? 'Choisir l\'heure' : 'Pick hour'}</option>
                 {Array.from({ length: 24 }, (_, i) => {
                   const h = String(i).padStart(2, '0');
                   return <option key={i} value={h}>{h}h</option>;
@@ -217,7 +217,8 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
                 className={input}
                 value={form.recurring_time ? form.recurring_time.split(':')[1] : '00'}
                 onChange={e => {
-                  const h = form.recurring_time ? form.recurring_time.split(':')[0] : '00';
+                  const h = form.recurring_time?.split(':')[0];
+                  if (!h) return; // don't set time until hour is picked
                   set('recurring_time', `${h}:${e.target.value}`);
                 }}
               >
