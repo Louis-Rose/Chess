@@ -33,17 +33,86 @@ interface Lesson {
 
 // ── Constants ──
 
-const COMMON_TIMEZONES = [
-  'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
-  'America/Toronto', 'America/Sao_Paulo', 'America/Mexico_City',
-  'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Madrid', 'Europe/Rome',
-  'Europe/Amsterdam', 'Europe/Brussels', 'Europe/Moscow',
-  'Asia/Dubai', 'Asia/Kolkata', 'Asia/Shanghai', 'Asia/Tokyo', 'Asia/Seoul',
-  'Asia/Singapore', 'Asia/Hong_Kong',
-  'Australia/Sydney', 'Australia/Melbourne',
-  'Africa/Cairo', 'Africa/Johannesburg',
-  'Pacific/Auckland',
-  'UTC',
+// City → IANA timezone mapping (covers major cities worldwide)
+const CITY_TIMEZONES: [string, string][] = [
+  // North America
+  ['New York', 'America/New_York'], ['Los Angeles', 'America/Los_Angeles'],
+  ['Chicago', 'America/Chicago'], ['Houston', 'America/Chicago'],
+  ['Phoenix', 'America/Phoenix'], ['Philadelphia', 'America/New_York'],
+  ['San Antonio', 'America/Chicago'], ['San Diego', 'America/Los_Angeles'],
+  ['Dallas', 'America/Chicago'], ['San Francisco', 'America/Los_Angeles'],
+  ['Seattle', 'America/Los_Angeles'], ['Denver', 'America/Denver'],
+  ['Boston', 'America/New_York'], ['Atlanta', 'America/New_York'],
+  ['Miami', 'America/New_York'], ['Washington DC', 'America/New_York'],
+  ['Detroit', 'America/Detroit'], ['Minneapolis', 'America/Chicago'],
+  ['Toronto', 'America/Toronto'], ['Montreal', 'America/Toronto'],
+  ['Vancouver', 'America/Vancouver'], ['Calgary', 'America/Edmonton'],
+  ['Ottawa', 'America/Toronto'], ['Mexico City', 'America/Mexico_City'],
+  ['Guadalajara', 'America/Mexico_City'], ['Monterrey', 'America/Monterrey'],
+  // South America
+  ['Sao Paulo', 'America/Sao_Paulo'], ['Rio de Janeiro', 'America/Sao_Paulo'],
+  ['Buenos Aires', 'America/Argentina/Buenos_Aires'], ['Lima', 'America/Lima'],
+  ['Bogota', 'America/Bogota'], ['Santiago', 'America/Santiago'],
+  ['Caracas', 'America/Caracas'], ['Medellin', 'America/Bogota'],
+  // Europe
+  ['London', 'Europe/London'], ['Manchester', 'Europe/London'],
+  ['Birmingham', 'Europe/London'], ['Edinburgh', 'Europe/London'],
+  ['Paris', 'Europe/Paris'], ['Lyon', 'Europe/Paris'],
+  ['Marseille', 'Europe/Paris'], ['Toulouse', 'Europe/Paris'],
+  ['Bordeaux', 'Europe/Paris'], ['Lille', 'Europe/Paris'],
+  ['Nice', 'Europe/Paris'], ['Strasbourg', 'Europe/Paris'],
+  ['Berlin', 'Europe/Berlin'], ['Munich', 'Europe/Berlin'],
+  ['Hamburg', 'Europe/Berlin'], ['Frankfurt', 'Europe/Berlin'],
+  ['Cologne', 'Europe/Berlin'], ['Stuttgart', 'Europe/Berlin'],
+  ['Madrid', 'Europe/Madrid'], ['Barcelona', 'Europe/Madrid'],
+  ['Valencia', 'Europe/Madrid'], ['Seville', 'Europe/Madrid'],
+  ['Rome', 'Europe/Rome'], ['Milan', 'Europe/Rome'],
+  ['Naples', 'Europe/Rome'], ['Turin', 'Europe/Rome'],
+  ['Florence', 'Europe/Rome'], ['Venice', 'Europe/Rome'],
+  ['Amsterdam', 'Europe/Amsterdam'], ['Rotterdam', 'Europe/Amsterdam'],
+  ['Brussels', 'Europe/Brussels'], ['Antwerp', 'Europe/Brussels'],
+  ['Zurich', 'Europe/Zurich'], ['Geneva', 'Europe/Zurich'],
+  ['Vienna', 'Europe/Vienna'], ['Prague', 'Europe/Prague'],
+  ['Warsaw', 'Europe/Warsaw'], ['Krakow', 'Europe/Warsaw'],
+  ['Budapest', 'Europe/Budapest'], ['Bucharest', 'Europe/Bucharest'],
+  ['Lisbon', 'Europe/Lisbon'], ['Porto', 'Europe/Lisbon'],
+  ['Dublin', 'Europe/Dublin'], ['Copenhagen', 'Europe/Copenhagen'],
+  ['Stockholm', 'Europe/Stockholm'], ['Oslo', 'Europe/Oslo'],
+  ['Helsinki', 'Europe/Helsinki'], ['Athens', 'Europe/Athens'],
+  ['Moscow', 'Europe/Moscow'], ['Saint Petersburg', 'Europe/Moscow'],
+  ['Istanbul', 'Europe/Istanbul'], ['Ankara', 'Europe/Istanbul'],
+  ['Kyiv', 'Europe/Kyiv'],
+  // Middle East
+  ['Dubai', 'Asia/Dubai'], ['Abu Dhabi', 'Asia/Dubai'],
+  ['Riyadh', 'Asia/Riyadh'], ['Doha', 'Asia/Qatar'],
+  ['Tel Aviv', 'Asia/Jerusalem'], ['Jerusalem', 'Asia/Jerusalem'],
+  ['Beirut', 'Asia/Beirut'], ['Tehran', 'Asia/Tehran'],
+  // Africa
+  ['Cairo', 'Africa/Cairo'], ['Lagos', 'Africa/Lagos'],
+  ['Nairobi', 'Africa/Nairobi'], ['Johannesburg', 'Africa/Johannesburg'],
+  ['Cape Town', 'Africa/Johannesburg'], ['Casablanca', 'Africa/Casablanca'],
+  ['Accra', 'Africa/Accra'], ['Addis Ababa', 'Africa/Addis_Ababa'],
+  // South Asia
+  ['Mumbai', 'Asia/Kolkata'], ['Delhi', 'Asia/Kolkata'],
+  ['Bangalore', 'Asia/Kolkata'], ['Chennai', 'Asia/Kolkata'],
+  ['Hyderabad', 'Asia/Kolkata'], ['Kolkata', 'Asia/Kolkata'],
+  ['Pune', 'Asia/Kolkata'], ['Karachi', 'Asia/Karachi'],
+  ['Lahore', 'Asia/Karachi'], ['Dhaka', 'Asia/Dhaka'],
+  ['Colombo', 'Asia/Colombo'],
+  // East/Southeast Asia
+  ['Shanghai', 'Asia/Shanghai'], ['Beijing', 'Asia/Shanghai'],
+  ['Shenzhen', 'Asia/Shanghai'], ['Guangzhou', 'Asia/Shanghai'],
+  ['Hong Kong', 'Asia/Hong_Kong'], ['Taipei', 'Asia/Taipei'],
+  ['Tokyo', 'Asia/Tokyo'], ['Osaka', 'Asia/Tokyo'],
+  ['Seoul', 'Asia/Seoul'], ['Busan', 'Asia/Seoul'],
+  ['Singapore', 'Asia/Singapore'], ['Bangkok', 'Asia/Bangkok'],
+  ['Jakarta', 'Asia/Jakarta'], ['Kuala Lumpur', 'Asia/Kuala_Lumpur'],
+  ['Manila', 'Asia/Manila'], ['Ho Chi Minh City', 'Asia/Ho_Chi_Minh'],
+  ['Hanoi', 'Asia/Ho_Chi_Minh'],
+  // Oceania
+  ['Sydney', 'Australia/Sydney'], ['Melbourne', 'Australia/Melbourne'],
+  ['Brisbane', 'Australia/Brisbane'], ['Perth', 'Australia/Perth'],
+  ['Auckland', 'Pacific/Auckland'], ['Wellington', 'Pacific/Auckland'],
 ];
 
 const DAY_NAMES_EN = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -121,6 +190,7 @@ function useLiveClock(interval = 30000) {
 interface StudentFormData {
   student_name: string;
   timezone: string;
+  city: string;
   recurring_day: number | null;
   recurring_time: string;
 }
@@ -128,6 +198,7 @@ interface StudentFormData {
 const EMPTY_FORM: StudentFormData = {
   student_name: '',
   timezone: '',
+  city: '',
   recurring_day: null,
   recurring_time: '',
 };
@@ -143,26 +214,61 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
   const [form, setForm] = useState(initial);
   const set = (k: keyof StudentFormData, v: string | number | null) => setForm(prev => ({ ...prev, [k]: v }));
 
+  const [cityQuery, setCityQuery] = useState(initial.city || '');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const citySuggestions = cityQuery.length >= 2
+    ? CITY_TIMEZONES.filter(([city]) => city.toLowerCase().includes(cityQuery.toLowerCase())).slice(0, 8)
+    : [];
+
+  const handleCitySelect = (city: string, tz: string) => {
+    setCityQuery(city);
+    setForm(prev => ({ ...prev, timezone: tz, city }));
+    setShowSuggestions(false);
+  };
+
   const dayNames = lang === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
   const input = 'w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors';
   const label = 'text-xs font-medium text-slate-400 mb-1';
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
-      {/* Row 1: Name + Timezone */}
+      {/* Row 1: Name + City */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <div className={label}>{t('coaches.students.name')} *</div>
           <input className={input} value={form.student_name} onChange={e => set('student_name', e.target.value)} placeholder={lang === 'fr' ? 'Nom de l\'élève' : 'Student name'} />
         </div>
-        <div>
-          <div className={label}>{t('coaches.students.timezone')}</div>
-          <select className={input} value={form.timezone} onChange={e => set('timezone', e.target.value)}>
-            <option value="">{lang === 'fr' ? 'Choisir le fuseau' : 'Pick timezone'}</option>
-            {COMMON_TIMEZONES.map(tz => (
-              <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
-            ))}
-          </select>
+        <div className="relative">
+          <div className={label}>{t('coaches.students.city')} *</div>
+          <input
+            className={input}
+            value={cityQuery}
+            onChange={e => { setCityQuery(e.target.value); setShowSuggestions(true); set('timezone', ''); }}
+            onFocus={() => setShowSuggestions(true)}
+            placeholder={lang === 'fr' ? 'Rechercher une ville...' : 'Search city...'}
+          />
+          {/* Suggestions dropdown */}
+          {showSuggestions && citySuggestions.length > 0 && (
+            <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              {citySuggestions.map(([city, tz]) => (
+                <button
+                  key={`${city}-${tz}`}
+                  onClick={() => handleCitySelect(city, tz)}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors flex justify-between items-center"
+                >
+                  <span className="text-slate-100">{city}</span>
+                  <span className="text-xs text-slate-400">{getTimezoneAbbr(tz)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Show deduced timezone */}
+          {form.timezone && (
+            <div className="mt-1 text-xs text-slate-400">
+              {t('coaches.students.timezone')}: {getTimezoneAbbr(form.timezone)} ({form.timezone.replace(/_/g, ' ')})
+            </div>
+          )}
         </div>
       </div>
 
@@ -347,6 +453,7 @@ function StudentCard({ student, onRefresh, lang }: {
         initial={{
           student_name: student.student_name,
           timezone: student.timezone,
+          city: CITY_TIMEZONES.find(([, tz]) => tz === student.timezone)?.[0] || '',
           recurring_day: student.recurring_day,
           recurring_time: student.recurring_time || '',
         }}
