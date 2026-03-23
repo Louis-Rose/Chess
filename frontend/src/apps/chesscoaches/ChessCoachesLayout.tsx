@@ -1,6 +1,6 @@
 // Chess Coaches app layout with sidebar and content area
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { Users, FileText, LogOut, Clock, Grid3X3, Home } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -31,6 +31,25 @@ function CoachesNavSidebar() {
   const [showPlayerMenu, setShowPlayerMenu] = useState(false);
   const playerMenuRef = useRef<HTMLDivElement>(null);
 
+  // Pick the largest font where the longest name part fits on one line
+  // Available text width: sidebar 256px - card padding 24px - pl-14 (56px) = 176px
+  const [debugName, setDebugName] = useState(''); // TODO: remove after testing
+  useEffect(() => { (window as any).__setCoachName = setDebugName; return () => { delete (window as any).__setCoachName; }; }, []); // TODO: remove
+  const displayName = debugName || user?.name || '';
+  const nameFontClass = useMemo(() => {
+    const name = displayName;
+    const longest = name.split(' ').reduce((a, b) => a.length > b.length ? a : b, '');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return 'text-sm';
+    const available = 176;
+    for (const [cls, font] of [['text-sm', '500 14px Inter,system-ui,sans-serif'], ['text-xs', '500 12px Inter,system-ui,sans-serif'], ['text-[10px]', '500 10px Inter,system-ui,sans-serif']] as [string, string][]) {
+      ctx.font = font;
+      if (ctx.measureText(longest).width <= available) return cls;
+    }
+    return 'text-[10px]';
+  }, [displayName]);
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (playerMenuRef.current && !playerMenuRef.current.contains(e.target as Node))
@@ -58,13 +77,7 @@ function CoachesNavSidebar() {
                     {(user.name || user.email).charAt(0).toUpperCase()}
                   </div>
                 )}
-                <p className={`text-white font-medium w-full text-center pl-14 break-words ${(() => {
-                  const name = 'LLlLLLLLLLLJJ RRRRRRRRRRRRRRRRRRRR'; /* TODO: revert to user.name */
-                  const longest = name.split(' ').reduce((a, b) => a.length > b.length ? a : b, '');
-                  if (longest.length > 25) return 'text-[10px]';
-                  if (longest.length > 20) return 'text-xs';
-                  return 'text-sm';
-                })()}`}>{/* TODO: revert to user.name */ 'LLlLLLLLLLLJJ RRRRRRRRRRRRRRRRRRRR'}</p>
+                <p className={`text-white font-medium w-full text-center pl-14 break-words ${nameFontClass}`}>{displayName}</p>
               </div>
             </button>
             {showPlayerMenu && (
