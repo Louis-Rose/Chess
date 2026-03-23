@@ -1063,6 +1063,28 @@ def delete_coach_student(student_id):
     return jsonify({'message': 'Student deleted'})
 
 
+@app.route('/api/coaches/students/<int:student_id>/lessons', methods=['GET'])
+@login_required
+def get_student_lessons(student_id):
+    """Get all lessons for a specific student."""
+    with get_db() as conn:
+        # Verify ownership
+        student = conn.execute(
+            'SELECT * FROM coach_students WHERE id = ? AND coach_user_id = ?',
+            (student_id, request.user_id)
+        ).fetchone()
+        if not student:
+            return jsonify({'error': 'Student not found'}), 404
+
+        rows = conn.execute(
+            '''SELECT id, student_id, scheduled_at, duration_minutes, status, paid, created_at
+               FROM coach_lessons WHERE student_id = ?
+               ORDER BY scheduled_at DESC''',
+            (student_id,)
+        ).fetchall()
+    return jsonify({'student': dict(student), 'lessons': [dict(r) for r in rows]})
+
+
 @app.route('/api/coaches/students/<int:student_id>/lessons', methods=['POST'])
 @login_required
 def add_coach_lesson(student_id):

@@ -1,8 +1,9 @@
 // My Students panel — student roster + scheduling
 
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Trash2, Pencil, Clock, X, Calendar, ChevronDown, ChevronUp,
+  Plus, Clock, ChevronRight,
   AlertTriangle, Users,
 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -437,135 +438,26 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
   );
 }
 
-// ── Lesson Scheduling Form ──
-
-function LessonForm({ studentId, defaultTime, onSaved, onCancel }: {
-  studentId: number;
-  defaultTime: string;
-  onSaved: () => void;
-  onCancel: () => void;
-}) {
-  const { t } = useLanguage();
-  const [scheduledAt, setScheduledAt] = useState(defaultTime);
-  const [duration, setDuration] = useState('60');
-  const [saving, setSaving] = useState(false);
-
-  const input = 'bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500 transition-colors';
-
-  const handleSave = async () => {
-    if (!scheduledAt) return;
-    setSaving(true);
-    try {
-      await authFetch(`/api/coaches/students/${studentId}/lessons`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduled_at: scheduledAt, duration_minutes: parseInt(duration) }),
-      });
-      onSaved();
-    } finally { setSaving(false); }
-  };
-
-  return (
-    <div className="bg-slate-750 border border-slate-600 rounded-lg p-3 space-y-3">
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <div className="text-xs text-slate-400 mb-1">{t('coaches.students.when')}</div>
-          <input type="datetime-local" className={input + ' w-full'} value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
-        </div>
-        <div>
-          <div className="text-xs text-slate-400 mb-1">{t('coaches.students.duration')}</div>
-          <select className={input + ' w-full'} value={duration} onChange={e => setDuration(e.target.value)}>
-            {[30, 45, 60, 90, 120].map(m => <option key={m} value={m}>{m} {t('coaches.students.minutes')}</option>)}
-          </select>
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <button onClick={handleSave} disabled={!scheduledAt || saving} className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors">
-          {saving ? '...' : t('coaches.students.save')}
-        </button>
-        <button onClick={onCancel} className="px-3 py-1.5 text-slate-400 hover:text-slate-200 text-xs transition-colors">
-          {t('coaches.students.cancel')}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ── Student Card ──
 
-function StudentCard({ student, onRefresh, lang }: {
+function StudentCard({ student, lang }: {
   student: Student;
-  onRefresh: () => void;
   lang: string;
 }) {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   useLiveClock();
-
-  const [expanded, setExpanded] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [showLessonForm, setShowLessonForm] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const dayNamesFull = lang === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
   const studentLocalTime = formatLocalTime(student.timezone, lang);
   const dstAlert = getDstAlert(student.timezone);
 
-  // Compute default time for lesson form: next recurring slot or empty
-  const getDefaultLessonTime = (): string => {
-    if (student.recurring_day === null || !student.recurring_time) return '';
-    const now = new Date();
-    const currentDay = (now.getDay() + 6) % 7; // JS Sun=0 -> Mon=0
-    let daysAhead = student.recurring_day - currentDay;
-    if (daysAhead <= 0) daysAhead += 7;
-    const next = new Date(now);
-    next.setDate(now.getDate() + daysAhead);
-    const [h, m] = student.recurring_time.split(':');
-    next.setHours(parseInt(h), parseInt(m), 0, 0);
-    return next.toISOString().slice(0, 16);
-  };
-
-  const handleDelete = async () => {
-    await authFetch(`/api/coaches/students/${student.id}`, { method: 'DELETE' });
-    onRefresh();
-  };
-
-  const handleUpdate = async (form: StudentFormData) => {
-    setSaving(true);
-    try {
-      await authFetch(`/api/coaches/students/${student.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      setEditing(false);
-      onRefresh();
-    } finally { setSaving(false); }
-  };
-
-  if (editing) {
-    return (
-      <StudentForm
-        initial={{
-          student_name: student.student_name,
-          timezone: student.timezone,
-          city: CITY_TIMEZONES.find(([, tz]) => tz === student.timezone)?.[0] || '',
-          currency: student.currency || '',
-          recurring_day: student.recurring_day,
-          recurring_time: student.recurring_time || '',
-        }}
-        onSave={handleUpdate}
-        onCancel={() => setEditing(false)}
-        saving={saving}
-        lang={lang}
-      />
-    );
-  }
-
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl transition-colors">
-      {/* Header row */}
-      <div className="flex items-center gap-3 p-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+    <div
+      className="bg-slate-800 border border-slate-700 rounded-xl hover:border-purple-500/50 transition-colors cursor-pointer"
+      onClick={() => navigate(`/students/${student.id}`)}
+    >
+      <div className="flex items-center gap-3 p-4">
         <div className="w-10 h-10 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 font-bold text-sm flex-shrink-0">
           {student.student_name.charAt(0).toUpperCase()}
         </div>
@@ -573,7 +465,6 @@ function StudentCard({ student, onRefresh, lang }: {
         <div className="flex-1 min-w-0">
           <span className="text-slate-100 font-medium text-sm truncate block">{student.student_name}</span>
           <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
-            {/* Timezone */}
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               <span className="text-slate-200">{studentLocalTime}</span>
@@ -585,7 +476,6 @@ function StudentCard({ student, onRefresh, lang }: {
                 {dstAlert}
               </span>
             )}
-            {/* Recurring slot */}
             {student.recurring_day !== null && student.recurring_time && (
               <span className="text-slate-400">
                 {t('coaches.students.recurringLabel')} {dayNamesFull[student.recurring_day]} {formatHHMM(student.recurring_time, lang)}
@@ -594,68 +484,15 @@ function StudentCard({ student, onRefresh, lang }: {
           </div>
         </div>
 
-        {/* Right side: edit pen + next lesson + chevron */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-            className="text-slate-500 hover:text-slate-300 transition-colors p-1"
-            title={t('coaches.students.editStudent')}
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
           {student.next_lesson && (
             <span className="text-xs px-2 py-1 rounded-lg border bg-blue-500/20 text-blue-400 border-blue-500/30">
               {formatLessonTime(student.next_lesson.scheduled_at, lang)}
             </span>
           )}
-          <div className="text-slate-500">
-            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </div>
+          <ChevronRight className="w-4 h-4 text-slate-500" />
         </div>
       </div>
-
-      {/* Expanded */}
-      {expanded && (
-        <div className="border-t border-slate-700 px-4 pb-4 space-y-3">
-          {/* Lesson form */}
-          {showLessonForm && (
-            <div className="pt-3">
-              <LessonForm
-                studentId={student.id}
-                defaultTime={getDefaultLessonTime()}
-                onSaved={() => { setShowLessonForm(false); onRefresh(); }}
-                onCancel={() => setShowLessonForm(false)}
-              />
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex flex-wrap gap-2 pt-2">
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowLessonForm(!showLessonForm); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 rounded-lg text-xs font-medium transition-colors"
-            >
-              <Calendar className="w-3.5 h-3.5" />{t('coaches.students.scheduleLessonFull')}
-            </button>
-
-            {confirmDelete ? (
-              <div className="flex items-center gap-2 ml-auto">
-                <span className="text-xs text-red-400">{t('coaches.students.deleteConfirm')}</span>
-                <button onClick={handleDelete} className="px-2 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-500 transition-colors">
-                  {t('coaches.students.deleteStudent')}
-                </button>
-                <button onClick={() => setConfirmDelete(false)} className="text-xs text-slate-400 hover:text-slate-200">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-red-400 text-xs transition-colors ml-auto">
-                <Trash2 className="w-3.5 h-3.5" />{t('coaches.students.deleteStudent')}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -724,7 +561,7 @@ export function StudentsPanel() {
             {students
               .sort((a, b) => a.student_name.localeCompare(b.student_name))
               .map(s => (
-                <StudentCard key={s.id} student={s} onRefresh={fetchStudents} lang={language} />
+                <StudentCard key={s.id} student={s} lang={language} />
               ))}
           </div>
         )}

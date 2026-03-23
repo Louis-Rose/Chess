@@ -12,6 +12,7 @@ import { MistakeFinderPanel } from './panels/MistakeFinderPanel';
 import { DiagramToFenPanel } from './panels/DiagramToFenPanel';
 import { AboutPanel } from './panels/AboutPanel';
 import { AdminPanel } from './panels/AdminPanel';
+import { StudentDetailPage } from './panels/StudentDetailPage';
 
 export function ChessCoachesApp() {
   useEffect(() => {
@@ -26,6 +27,7 @@ export function ChessCoachesApp() {
         <Route index element={<ScoresheetPanel />} />
         <Route path="calendar" element={<CalendarPanel />} />
         <Route path="students" element={<StudentsPanel />} />
+        <Route path="students/:studentId" element={<StudentDetailPage />} />
         <Route path="payments" element={<PaymentsPanel />} />
         <Route path="scoresheets" element={<ScoresheetReadPage />} />
         <Route path="mistakes" element={<MistakeFinderPanel />} />
