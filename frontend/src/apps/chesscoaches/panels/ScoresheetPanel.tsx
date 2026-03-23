@@ -19,7 +19,7 @@ export function ScoresheetPanel() {
         {NAV_SECTIONS.map(({ titleKey, items }, idx) => (
           <div key={titleKey}>
             {idx > 0 && <div className="border-t border-slate-700 my-6" />}
-            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-3">
+            <h2 className="text-base font-bold text-slate-100 uppercase tracking-wider mb-3 text-center">
               {t(titleKey)}
             </h2>
             {items.length > 0 ? (
