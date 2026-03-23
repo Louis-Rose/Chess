@@ -507,6 +507,14 @@ def init_db():
                     conn.execute("ALTER TABLE coach_students ADD COLUMN recurring_day INTEGER")
                     conn.execute("ALTER TABLE coach_students ADD COLUMN recurring_time TEXT")
                     print("[Database] Added recurring_day/recurring_time to coach_students")
+                # Relax old NOT NULL constraints so new simplified INSERT works
+                conn.execute("""
+                    SELECT column_name, is_nullable FROM information_schema.columns
+                    WHERE table_name = 'coach_students' AND column_name = 'coach_username' AND is_nullable = 'NO'
+                """)
+                if conn._cursor.fetchone():
+                    conn.execute("ALTER TABLE coach_students ALTER COLUMN coach_username DROP NOT NULL")
+                    print("[Database] Relaxed coach_username NOT NULL constraint")
 
             conn.execute("""
                 SELECT table_name FROM information_schema.tables

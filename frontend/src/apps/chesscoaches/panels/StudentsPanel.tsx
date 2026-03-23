@@ -215,13 +215,15 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
               </select>
               <select
                 className={input}
-                value={form.recurring_time ? form.recurring_time.split(':')[1] : '00'}
+                value={form.recurring_time ? form.recurring_time.split(':')[1] : ''}
+                disabled={!form.recurring_time}
                 onChange={e => {
                   const h = form.recurring_time?.split(':')[0];
-                  if (!h) return; // don't set time until hour is picked
+                  if (!h) return;
                   set('recurring_time', `${h}:${e.target.value}`);
                 }}
               >
+                {!form.recurring_time && <option value="">--</option>}
                 {['00', '15', '30', '45'].map(m => (
                   <option key={m} value={m}>{m}</option>
                 ))}
