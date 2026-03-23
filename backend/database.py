@@ -507,6 +507,14 @@ def init_db():
                     conn.execute("ALTER TABLE coach_students ADD COLUMN recurring_day INTEGER")
                     conn.execute("ALTER TABLE coach_students ADD COLUMN recurring_time TEXT")
                     print("[Database] Added recurring_day/recurring_time to coach_students")
+                # Add currency column if missing
+                conn.execute("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'coach_students' AND column_name = 'currency'
+                """)
+                if not conn._cursor.fetchone():
+                    conn.execute("ALTER TABLE coach_students ADD COLUMN currency TEXT")
+                    print("[Database] Added currency column to coach_students")
                 # Relax old NOT NULL constraints so new simplified INSERT works
                 conn.execute("""
                     SELECT column_name, is_nullable FROM information_schema.columns
@@ -649,6 +657,15 @@ def init_db():
                 if 'paid' not in columns:
                     conn.execute('ALTER TABLE coach_lessons ADD COLUMN paid INTEGER DEFAULT 0')
                     print("[Database] Added paid column to coach_lessons")
+
+            # Migration: Add currency column to coach_students if missing (SQLite)
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='coach_students'")
+            if cursor.fetchone():
+                cursor = conn.execute("PRAGMA table_info(coach_students)")
+                columns = [row['name'] for row in cursor.fetchall()]
+                if 'currency' not in columns:
+                    conn.execute('ALTER TABLE coach_students ADD COLUMN currency TEXT')
+                    print("[Database] Added currency column to coach_students")
 
             # Migration: Add registered_app column to users if not exists
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")

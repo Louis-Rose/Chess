@@ -378,6 +378,7 @@ CREATE TABLE IF NOT EXISTS coach_students (
     coach_user_id INTEGER NOT NULL,
     student_name TEXT NOT NULL,
     timezone TEXT DEFAULT 'UTC',
+    currency TEXT,                           -- e.g. 'USD', 'EUR', NULL=not set
     recurring_day INTEGER,                   -- 0=Mon .. 6=Sun, NULL=no recurring
     recurring_time TEXT,                     -- 'HH:MM' in coach's TZ, NULL=no recurring
     is_active INTEGER DEFAULT 1,

@@ -14,6 +14,7 @@ interface Student {
   id: number;
   student_name: string;
   timezone: string;
+  currency: string | null;
   recurring_day: number | null;   // 0=Mon .. 6=Sun, null=no recurring
   recurring_time: string | null;  // "HH:MM" in coach's TZ
   is_active: number;
@@ -118,6 +119,49 @@ export const CITY_TIMEZONES: [string, string][] = [
 const DAY_NAMES_EN = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DAY_NAMES_FR = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
+// Timezone → currency mapping
+const TZ_CURRENCY: Record<string, string> = {
+  'America/New_York': 'USD', 'America/Chicago': 'USD', 'America/Denver': 'USD', 'America/Los_Angeles': 'USD',
+  'America/Phoenix': 'USD', 'America/Detroit': 'USD',
+  'America/Toronto': 'CAD', 'America/Vancouver': 'CAD', 'America/Edmonton': 'CAD',
+  'America/Mexico_City': 'MXN', 'America/Monterrey': 'MXN',
+  'America/Sao_Paulo': 'BRL',
+  'America/Argentina/Buenos_Aires': 'ARS', 'America/Lima': 'PEN', 'America/Bogota': 'COP',
+  'America/Santiago': 'CLP', 'America/Caracas': 'VES',
+  'Europe/London': 'GBP', 'Europe/Dublin': 'EUR',
+  'Europe/Paris': 'EUR', 'Europe/Berlin': 'EUR', 'Europe/Madrid': 'EUR', 'Europe/Rome': 'EUR',
+  'Europe/Amsterdam': 'EUR', 'Europe/Brussels': 'EUR', 'Europe/Vienna': 'EUR',
+  'Europe/Lisbon': 'EUR', 'Europe/Helsinki': 'EUR', 'Europe/Athens': 'EUR',
+  'Europe/Zurich': 'CHF', 'Europe/Prague': 'CZK', 'Europe/Warsaw': 'PLN',
+  'Europe/Budapest': 'HUF', 'Europe/Bucharest': 'RON',
+  'Europe/Copenhagen': 'DKK', 'Europe/Stockholm': 'SEK', 'Europe/Oslo': 'NOK',
+  'Europe/Moscow': 'RUB', 'Europe/Istanbul': 'TRY', 'Europe/Kyiv': 'UAH',
+  'Asia/Dubai': 'AED', 'Asia/Qatar': 'QAR', 'Asia/Riyadh': 'SAR',
+  'Asia/Jerusalem': 'ILS', 'Asia/Beirut': 'LBP', 'Asia/Tehran': 'IRR',
+  'Asia/Kolkata': 'INR', 'Asia/Karachi': 'PKR', 'Asia/Dhaka': 'BDT', 'Asia/Colombo': 'LKR',
+  'Asia/Shanghai': 'CNY', 'Asia/Hong_Kong': 'HKD', 'Asia/Taipei': 'TWD',
+  'Asia/Tokyo': 'JPY', 'Asia/Seoul': 'KRW',
+  'Asia/Singapore': 'SGD', 'Asia/Bangkok': 'THB', 'Asia/Jakarta': 'IDR',
+  'Asia/Kuala_Lumpur': 'MYR', 'Asia/Manila': 'PHP', 'Asia/Ho_Chi_Minh': 'VND',
+  'Africa/Cairo': 'EGP', 'Africa/Lagos': 'NGN', 'Africa/Nairobi': 'KES',
+  'Africa/Johannesburg': 'ZAR', 'Africa/Casablanca': 'MAD', 'Africa/Accra': 'GHS',
+  'Africa/Addis_Ababa': 'ETB',
+  'Australia/Sydney': 'AUD', 'Australia/Melbourne': 'AUD', 'Australia/Brisbane': 'AUD', 'Australia/Perth': 'AUD',
+  'Pacific/Auckland': 'NZD',
+};
+
+export const COMMON_CURRENCIES = [
+  'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'CHF', 'JPY', 'CNY', 'INR', 'BRL',
+  'MXN', 'KRW', 'SGD', 'HKD', 'SEK', 'NOK', 'DKK', 'NZD', 'ZAR', 'PLN',
+  'CZK', 'HUF', 'TRY', 'ILS', 'AED', 'SAR', 'THB', 'MYR', 'PHP', 'IDR',
+  'TWD', 'ARS', 'COP', 'CLP', 'PEN', 'EGP', 'NGN', 'KES', 'RON', 'UAH',
+  'PKR', 'BDT', 'VND', 'QAR', 'LKR',
+];
+
+export function getCurrencyForTimezone(tz: string): string {
+  return TZ_CURRENCY[tz] || '';
+}
+
 // ── Helpers ──
 
 function authFetch(url: string, opts: RequestInit = {}) {
@@ -191,6 +235,7 @@ interface StudentFormData {
   student_name: string;
   timezone: string;
   city: string;
+  currency: string;
   recurring_day: number | null;
   recurring_time: string;
 }
@@ -199,6 +244,7 @@ const EMPTY_FORM: StudentFormData = {
   student_name: '',
   timezone: '',
   city: '',
+  currency: '',
   recurring_day: null,
   recurring_time: '',
 };
@@ -223,7 +269,8 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
 
   const handleCitySelect = (city: string, tz: string) => {
     setCityQuery(city);
-    setForm(prev => ({ ...prev, timezone: tz, city }));
+    const deducedCurrency = getCurrencyForTimezone(tz);
+    setForm(prev => ({ ...prev, timezone: tz, city, currency: prev.currency || deducedCurrency }));
     setShowSuggestions(false);
   };
 
@@ -272,7 +319,20 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
         </div>
       </div>
 
-      {/* Row 2: Recurring slot (optional) */}
+      {/* Row 2: Currency (shown after city is picked) */}
+      {form.timezone && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <div className={label}>{t('coaches.students.currency')}</div>
+            <select className={input} value={form.currency} onChange={e => set('currency', e.target.value)}>
+              <option value="">{lang === 'fr' ? 'Pas de devise' : 'No currency'}</option>
+              {COMMON_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Row 3: Recurring slot (optional) */}
       <div>
         <div className={label}>{t('coaches.students.recurringSlot')}</div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -454,6 +514,7 @@ function StudentCard({ student, onRefresh, lang }: {
           student_name: student.student_name,
           timezone: student.timezone,
           city: CITY_TIMEZONES.find(([, tz]) => tz === student.timezone)?.[0] || '',
+          currency: student.currency || '',
           recurring_day: student.recurring_day,
           recurring_time: student.recurring_time || '',
         }}

@@ -1006,9 +1006,10 @@ def add_coach_student():
     with get_db() as conn:
         cursor = conn.execute(
             '''INSERT INTO coach_students
-               (coach_user_id, student_name, timezone, recurring_day, recurring_time)
-               VALUES (?, ?, ?, ?, ?)''',
+               (coach_user_id, student_name, timezone, currency, recurring_day, recurring_time)
+               VALUES (?, ?, ?, ?, ?, ?)''',
             (request.user_id, name, data.get('timezone', 'UTC'),
+             (data.get('currency') or '').strip() or None,
              recurring_day, recurring_time)
         )
         if USE_POSTGRES:
@@ -1025,7 +1026,7 @@ def update_coach_student(student_id):
     """Update a student's details."""
     data = request.get_json()
 
-    allowed = ['student_name', 'timezone', 'recurring_day', 'recurring_time', 'is_active']
+    allowed = ['student_name', 'timezone', 'currency', 'recurring_day', 'recurring_time', 'is_active']
     sets = []
     vals = []
     for field in allowed:
