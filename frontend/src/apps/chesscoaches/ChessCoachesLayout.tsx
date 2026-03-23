@@ -18,14 +18,36 @@ export interface NavItem {
   bgColor: string;       // tailwind bg-* color for card icon badge
 }
 
-export const NAV_ITEMS: NavItem[] = [
-  { path: '/calendar', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
-  { path: '/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600' },
-  { path: '/payments', labelKey: 'coaches.navPayments', icon: CreditCard, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600' },
-  { path: '/scoresheets', labelKey: 'coaches.navScoresheets', icon: FileText, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
-  { path: '/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600' },
-  { path: '/mistakes', labelKey: 'coaches.navMistakes', icon: Clock, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600' },
+export interface NavSection {
+  titleKey: string;
+  items: NavItem[];
+}
+
+export const NAV_SECTIONS: NavSection[] = [
+  {
+    titleKey: 'coaches.sectionAdmin',
+    items: [
+      { path: '/calendar', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
+      { path: '/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600' },
+      { path: '/payments', labelKey: 'coaches.navPayments', icon: CreditCard, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600' },
+    ],
+  },
+  {
+    titleKey: 'coaches.sectionLessons',
+    items: [],
+  },
+  {
+    titleKey: 'coaches.sectionAITools',
+    items: [
+      { path: '/scoresheets', labelKey: 'coaches.navScoresheets', icon: FileText, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
+      { path: '/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600' },
+      { path: '/mistakes', labelKey: 'coaches.navMistakes', icon: Clock, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600' },
+    ],
+  },
 ];
+
+// Flat list for sidebar nav
+export const NAV_ITEMS: NavItem[] = NAV_SECTIONS.flatMap(s => s.items);
 
 function CoachesNavSidebar() {
   const { t } = useLanguage();

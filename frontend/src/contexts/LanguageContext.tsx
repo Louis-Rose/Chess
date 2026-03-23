@@ -328,6 +328,10 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.payments.lessonsUnpaid': 'lessons unpaid',
     'coaches.payments.markPaid': 'Mark paid',
     // Shared
+    'coaches.sectionAdmin': 'Admin',
+    'coaches.sectionLessons': 'My Lessons',
+    'coaches.sectionAITools': 'AI Tools',
+    'coaches.sectionEmpty': 'Coming soon',
     'coaches.previous': 'Previous',
     'coaches.navAdmin': 'Admin',
     // Admin panel
@@ -678,6 +682,10 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.payments.lessonsUnpaid': 'cours non payés',
     'coaches.payments.markPaid': 'Marquer payé',
     // Shared
+    'coaches.sectionAdmin': 'Administration',
+    'coaches.sectionLessons': 'Mes cours',
+    'coaches.sectionAITools': 'Outils IA',
+    'coaches.sectionEmpty': 'Bientôt disponible',
     'coaches.previous': 'Précédent',
     'coaches.navAdmin': 'Admin',
     // Admin panel
