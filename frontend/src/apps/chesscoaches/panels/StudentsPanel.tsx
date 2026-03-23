@@ -106,13 +106,6 @@ function getUtcOffset(tz: string, date: Date): number {
   return (new Date(tzStr).getTime() - new Date(utcStr).getTime()) / 3600000;
 }
 
-function isStudentInDifferentTz(studentTz: string): boolean {
-  const coachTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  if (studentTz === coachTz) return false;
-  const now = new Date();
-  return getUtcOffset(studentTz, now) !== getUtcOffset(coachTz, now);
-}
-
 // ── Live Clock Hook ──
 
 function useLiveClock(interval = 30000) {
@@ -313,7 +306,6 @@ function StudentCard({ student, onRefresh, lang }: {
   const [saving, setSaving] = useState(false);
 
   const dayNamesFull = lang === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
-  const differentTz = isStudentInDifferentTz(student.timezone);
   const studentLocalTime = formatLocalTime(student.timezone);
   const dstAlert = getDstAlert(student.timezone);
 
@@ -382,7 +374,6 @@ function StudentCard({ student, onRefresh, lang }: {
               <Clock className="w-3 h-3" />
               <span className="text-slate-200">{studentLocalTime}</span>
               <span className="text-slate-200">({getTimezoneAbbr(student.timezone)})</span>
-              {differentTz && <span className="text-amber-400/70 ml-0.5" title="Different timezone">*</span>}
             </span>
             {dstAlert && (
               <span className="flex items-center gap-1 text-amber-400">
