@@ -128,7 +128,7 @@ export function AdminPanel() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-amber-500" />
-            <span className="text-slate-400 text-sm">{data?.total ?? 0} users</span>
+            <span className="text-slate-400 text-sm">{data?.total ?? 0} user{(data?.total ?? 0) !== 1 ? 's' : ''}</span>
           </div>
           <button
             onClick={handleRefresh}
