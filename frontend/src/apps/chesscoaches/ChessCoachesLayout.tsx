@@ -50,15 +50,15 @@ function CoachesNavSidebar() {
               onClick={() => setShowPlayerMenu(!showPlayerMenu)}
               className="w-full bg-slate-800 rounded-lg p-3 hover:bg-slate-750 transition-colors cursor-pointer"
             >
-              <div className="flex items-center gap-3">
+              <div className="relative flex items-center min-h-[40px]">
                 {user.picture ? (
-                  <img src={user.picture} alt="" className="w-10 h-10 rounded-full flex-shrink-0" />
+                  <img src={user.picture} alt="" className="absolute left-0 w-10 h-10 rounded-full" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-slate-300 font-bold flex-shrink-0">
+                  <div className="absolute left-0 w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-slate-300 font-bold">
                     {(user.name || user.email).charAt(0).toUpperCase()}
                   </div>
                 )}
-                <p className="text-white font-medium text-sm truncate flex-1 text-center">{user.name}</p>
+                <p className="text-white font-medium text-sm truncate w-full text-center">{user.name}</p>
               </div>
             </button>
             {showPlayerMenu && (
