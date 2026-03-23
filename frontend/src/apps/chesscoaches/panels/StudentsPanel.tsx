@@ -197,12 +197,14 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
             {dayNames.map((d, i) => <option key={i} value={i}>{d}</option>)}
           </select>
           {form.recurring_day !== null && (
-            <input
-              type="time"
-              className={input}
-              value={form.recurring_time}
-              onChange={e => set('recurring_time', e.target.value)}
-            />
+            <select className={input} value={form.recurring_time} onChange={e => set('recurring_time', e.target.value)}>
+              <option value="">--:--</option>
+              {Array.from({ length: 48 }, (_, i) => {
+                const h = String(Math.floor(i / 2)).padStart(2, '0');
+                const m = i % 2 === 0 ? '00' : '30';
+                return <option key={i} value={`${h}:${m}`}>{h}:{m}</option>;
+              })}
+            </select>
           )}
         </div>
       </div>
