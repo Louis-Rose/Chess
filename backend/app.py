@@ -1012,7 +1012,7 @@ def add_coach_student():
              recurring_day, recurring_time)
         )
         if USE_POSTGRES:
-            student_id = conn.execute('SELECT lastval()').fetchone()[0]
+            student_id = conn.execute('SELECT lastval() AS id').fetchone()['id']
         else:
             student_id = cursor.lastrowid
 
