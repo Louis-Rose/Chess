@@ -103,7 +103,9 @@ function getDstAlerts(students: Student[]): string[] {
       if (nowOffset !== futureOffset) {
         const city = s.timezone.split('/').pop()?.replace(/_/g, ' ') || s.timezone;
         const diff = futureOffset - nowOffset;
-        alerts.push(`${city}: ${diff > 0 ? '+' : ''}${diff}h in the next 7 days`);
+        const absDiff = Math.abs(diff);
+        const unit = absDiff === 1 ? 'hour' : 'hours';
+        alerts.push(`${city}: ${diff > 0 ? '+' : '-'}${absDiff} ${unit} in 7 days`);
       }
     } catch { /* ignore invalid tz */ }
   }
