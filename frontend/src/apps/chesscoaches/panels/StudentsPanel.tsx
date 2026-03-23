@@ -188,10 +188,11 @@ function authFetch(url: string, opts: RequestInit = {}) {
   return fetch(url, { ...opts, credentials: 'include' });
 }
 
-function formatLocalTime(tz: string): string {
+function formatLocalTime(tz: string, lang: string): string {
   try {
-    return new Intl.DateTimeFormat(undefined, {
-      timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
+    const locale = lang === 'fr' ? 'fr-FR' : 'en-US';
+    return new Intl.DateTimeFormat(locale, {
+      timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: lang !== 'fr',
     }).format(new Date());
   } catch { return '--:--'; }
 }
@@ -204,15 +205,24 @@ export function getTimezoneAbbr(tz: string): string {
   } catch { return tz; }
 }
 
-function formatLessonTime(iso: string, tz?: string): string {
+function formatHHMM(time: string, lang: string): string {
+  if (lang === 'fr') return time;
+  const [h, m] = time.split(':').map(Number);
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${suffix}`;
+}
+
+function formatLessonTime(iso: string, lang: string, tz?: string): string {
   try {
     const d = new Date(iso);
+    const locale = lang === 'fr' ? 'fr-FR' : 'en-US';
     const opts: Intl.DateTimeFormatOptions = {
       weekday: 'short', month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit', hour12: false,
+      hour: '2-digit', minute: '2-digit', hour12: lang !== 'fr',
     };
     if (tz) opts.timeZone = tz;
-    return new Intl.DateTimeFormat(undefined, opts).format(d);
+    return new Intl.DateTimeFormat(locale, opts).format(d);
   } catch { return iso; }
 }
 
@@ -498,7 +508,7 @@ function StudentCard({ student, onRefresh, lang }: {
   const [saving, setSaving] = useState(false);
 
   const dayNamesFull = lang === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
-  const studentLocalTime = formatLocalTime(student.timezone);
+  const studentLocalTime = formatLocalTime(student.timezone, lang);
   const dstAlert = getDstAlert(student.timezone);
 
   // Compute default time for lesson form: next recurring slot or empty
@@ -578,7 +588,7 @@ function StudentCard({ student, onRefresh, lang }: {
             {/* Recurring slot */}
             {student.recurring_day !== null && student.recurring_time && (
               <span className="text-slate-400">
-                {t('coaches.students.recurringLabel')} {dayNamesFull[student.recurring_day]} {student.recurring_time}
+                {t('coaches.students.recurringLabel')} {dayNamesFull[student.recurring_day]} {formatHHMM(student.recurring_time, lang)}
               </span>
             )}
           </div>
@@ -595,7 +605,7 @@ function StudentCard({ student, onRefresh, lang }: {
           </button>
           {student.next_lesson && (
             <span className="text-xs px-2 py-1 rounded-lg border bg-blue-500/20 text-blue-400 border-blue-500/30">
-              {formatLessonTime(student.next_lesson.scheduled_at)}
+              {formatLessonTime(student.next_lesson.scheduled_at, lang)}
             </span>
           )}
           <div className="text-slate-500">
