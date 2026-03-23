@@ -239,6 +239,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.navHome': 'Home',
     'coaches.navCalendar': 'My Calendar',
     'coaches.navStudents': 'My Students',
+    'coaches.navPayments': 'Payments',
     'coaches.navScoresheets': 'Scoresheet → PGN',
     'coaches.onboardingInstruction': 'Sign in to get started',
     'coaches.onboardingDescription': 'Manage your students, digitize scoresheets, analyze diagrams, and review time management — all in one place.',
@@ -316,6 +317,12 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.setupTitle': 'Set your city',
     'coaches.calendar.setupDesc': 'So we can display lesson times in your timezone.',
     'coaches.calendar.myCity': 'My city',
+    // Payments panel
+    'coaches.payments.title': 'Payments',
+    'coaches.payments.allPaid': 'All lessons are paid. You\'re all caught up!',
+    'coaches.payments.lessonUnpaid': 'lesson unpaid',
+    'coaches.payments.lessonsUnpaid': 'lessons unpaid',
+    'coaches.payments.markPaid': 'Mark paid',
 
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
@@ -564,6 +571,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.navHome': 'Accueil',
     'coaches.navCalendar': 'Mon calendrier',
     'coaches.navStudents': 'Mes élèves',
+    'coaches.navPayments': 'Paiements',
     'coaches.navScoresheets': 'Feuille de partie → PGN',
     'coaches.onboardingInstruction': 'Connectez-vous pour commencer',
     'coaches.onboardingDescription': 'Gérez vos élèves, numérisez des feuilles de partie, analysez des diagrammes et examinez la gestion du temps — le tout en un seul endroit.',
@@ -641,6 +649,12 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.setupTitle': 'Indiquez votre ville',
     'coaches.calendar.setupDesc': 'Pour afficher les heures de cours dans votre fuseau horaire.',
     'coaches.calendar.myCity': 'Ma ville',
+    // Payments panel
+    'coaches.payments.title': 'Paiements',
+    'coaches.payments.allPaid': 'Tous les cours sont payés. Rien en attente !',
+    'coaches.payments.lessonUnpaid': 'cours non payé',
+    'coaches.payments.lessonsUnpaid': 'cours non payés',
+    'coaches.payments.markPaid': 'Marquer payé',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',

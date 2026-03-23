@@ -1172,7 +1172,7 @@ def get_week_lessons():
 def update_coach_lesson(lesson_id):
     """Update a lesson's status or time."""
     data = request.get_json()
-    allowed = ['scheduled_at', 'duration_minutes', 'status']
+    allowed = ['scheduled_at', 'duration_minutes', 'status', 'paid']
     sets = []
     vals = []
     for field in allowed:
@@ -1196,6 +1196,23 @@ def update_coach_lesson(lesson_id):
         conn.execute(f'UPDATE coach_lessons SET {", ".join(sets)} WHERE id = ?', tuple(vals))
 
     return jsonify({'message': 'Lesson updated'})
+
+
+@app.route('/api/coaches/lessons/unpaid', methods=['GET'])
+@login_required
+def get_unpaid_lessons():
+    """Get all completed but unpaid lessons for the coach."""
+    with get_db() as conn:
+        rows = conn.execute(
+            '''SELECT l.id, l.student_id, l.scheduled_at, l.duration_minutes, l.status, l.paid,
+                      s.student_name
+               FROM coach_lessons l
+               JOIN coach_students s ON l.student_id = s.id
+               WHERE s.coach_user_id = ? AND l.status = 'completed' AND (l.paid = 0 OR l.paid IS NULL)
+               ORDER BY l.scheduled_at DESC''',
+            (request.user_id,)
+        ).fetchall()
+    return jsonify({'lessons': [dict(r) for r in rows]})
 
 
 @app.route('/api/win-prediction-stream', methods=['GET'])

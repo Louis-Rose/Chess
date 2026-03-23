@@ -535,6 +535,15 @@ def init_db():
                 conn.execute("CREATE INDEX idx_coach_lessons_scheduled ON coach_lessons(scheduled_at)")
                 print("[Database] Created coach_lessons table")
 
+            # Migration: Add paid column to coach_lessons if missing
+            conn.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'coach_lessons' AND column_name = 'paid'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("ALTER TABLE coach_lessons ADD COLUMN paid INTEGER DEFAULT 0")
+                print("[Database] Added paid column to coach_lessons")
+
             # Migration: Add registered_app column to users if not exists
             conn.execute("""
                 SELECT column_name FROM information_schema.columns
@@ -631,6 +640,15 @@ def init_db():
                     conn.execute('DROP TABLE IF EXISTS coach_lesson_bundles')
                     conn.execute('DROP TABLE IF EXISTS coach_students')
                     print("[Database] Recreated coach tables with scheduling schema")
+
+            # Migration: Add paid column to coach_lessons if missing (SQLite)
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='coach_lessons'")
+            if cursor.fetchone():
+                cursor = conn.execute("PRAGMA table_info(coach_lessons)")
+                columns = [row['name'] for row in cursor.fetchall()]
+                if 'paid' not in columns:
+                    conn.execute('ALTER TABLE coach_lessons ADD COLUMN paid INTEGER DEFAULT 0')
+                    print("[Database] Added paid column to coach_lessons")
 
             # Migration: Add registered_app column to users if not exists
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")

@@ -392,6 +392,7 @@ CREATE TABLE IF NOT EXISTS coach_lessons (
     scheduled_at TIMESTAMP NOT NULL,
     duration_minutes INTEGER DEFAULT 60,
     status TEXT DEFAULT 'scheduled',          -- 'scheduled', 'completed', 'cancelled', 'rescheduled'
+    paid INTEGER DEFAULT 0,                   -- 0=unpaid, 1=paid
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES coach_students(id) ON DELETE CASCADE
 );
