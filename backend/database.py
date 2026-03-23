@@ -580,6 +580,9 @@ def init_db():
                 conn.execute("ALTER TABLE users ADD COLUMN registered_app TEXT")
                 print("[Database] Added registered_app column to users")
 
+            # Migration: Tag admin account as coaches app user
+            conn.execute("UPDATE users SET registered_app = 'coaches' WHERE email = 'rose.louis.mail@gmail.com' AND registered_app IS NULL")
+
             # Seed: Add test students if coach_students is empty
             conn.execute("SELECT COUNT(*) as cnt FROM coach_students")
             row = conn._cursor.fetchone()
