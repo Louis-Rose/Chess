@@ -77,7 +77,7 @@ function formatDuration(minutes: number): string {
   return `${minutes}min`;
 }
 
-function getDstAlert(tz: string): string | null {
+function getDstAlert(tz: string, lang: string): string | null {
   try {
     const now = new Date();
     const in7d = new Date(now.getTime() + 7 * 86400000);
@@ -91,6 +91,9 @@ function getDstAlert(tz: string): string | null {
     if (nowOffset !== futureOffset) {
       const diff = futureOffset - nowOffset;
       const absDiff = Math.abs(diff);
+      if (lang === 'fr') {
+        return `${diff > 0 ? '+' : '-'}${absDiff} ${absDiff === 1 ? 'heure' : 'heures'} dans 7 jours`;
+      }
       return `${diff > 0 ? '+' : '-'}${absDiff} ${absDiff === 1 ? 'hour' : 'hours'} in 7 days`;
     }
   } catch { /* ignore */ }
@@ -466,7 +469,7 @@ export function StudentDetailPage() {
   if (!student) return null;
 
   const dayNames = lang === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
-  const dstAlert = getDstAlert(student.timezone);
+  const dstAlert = getDstAlert(student.timezone, lang);
   const cityName = CITY_TIMEZONES.find(([, tz]) => tz === student.timezone)?.[0] || '';
 
   const statusColors: Record<string, string> = {

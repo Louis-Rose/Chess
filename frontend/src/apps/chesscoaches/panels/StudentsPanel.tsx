@@ -226,7 +226,7 @@ function formatLessonTime(iso: string, lang: string, tz?: string): string {
 }
 
 /** Check if a timezone has a DST transition in the next 7 days. Returns description or null. */
-function getDstAlert(tz: string): string | null {
+function getDstAlert(tz: string, lang: string): string | null {
   try {
     const now = new Date();
     const in7d = new Date(now.getTime() + 7 * 86400000);
@@ -235,8 +235,10 @@ function getDstAlert(tz: string): string | null {
     if (nowOffset !== futureOffset) {
       const diff = futureOffset - nowOffset;
       const absDiff = Math.abs(diff);
-      const unit = absDiff === 1 ? 'hour' : 'hours';
-      return `${diff > 0 ? '+' : '-'}${absDiff} ${unit} in 7 days`;
+      if (lang === 'fr') {
+        return `${diff > 0 ? '+' : '-'}${absDiff} ${absDiff === 1 ? 'heure' : 'heures'} dans 7 jours`;
+      }
+      return `${diff > 0 ? '+' : '-'}${absDiff} ${absDiff === 1 ? 'hour' : 'hours'} in 7 days`;
     }
   } catch { /* ignore */ }
   return null;
@@ -448,7 +450,7 @@ function StudentCard({ student, lang }: {
 
   const dayNamesFull = lang === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
   const studentLocalTime = formatLocalTime(student.timezone, lang);
-  const dstAlert = getDstAlert(student.timezone);
+  const dstAlert = getDstAlert(student.timezone, lang);
 
   return (
     <div
