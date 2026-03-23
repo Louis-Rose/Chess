@@ -197,7 +197,7 @@ export function AdminPanel() {
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
                   labelStyle={{ color: '#e2e8f0' }}
-                  formatter={(value: number) => [`${value} min`, 'Time']}
+                  formatter={(value) => [`${value} min`, 'Time']}
                 />
                 <Bar dataKey="minutes" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
               </BarChart>
