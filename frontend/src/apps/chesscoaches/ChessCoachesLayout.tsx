@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield } from 'lucide-react';
+import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield, CalendarDays } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { CoachesDataProvider } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
@@ -19,6 +19,7 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
+  { path: '/calendar', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
   { path: '/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600' },
   { path: '/scoresheets', labelKey: 'coaches.navScoresheets', icon: FileText, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
   { path: '/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600' },

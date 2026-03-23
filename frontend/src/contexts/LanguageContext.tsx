@@ -237,6 +237,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Coaches
     'coaches.title': 'AI-Powered Suite for Chess Coaches',
     'coaches.navHome': 'Home',
+    'coaches.navCalendar': 'My Calendar',
     'coaches.navStudents': 'My Students',
     'coaches.navScoresheets': 'Scoresheet → PGN',
     'coaches.onboardingInstruction': 'Sign in to get started',
@@ -303,10 +304,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.students.completedStatus': 'Completed',
     'coaches.students.cancelledStatus': 'Cancelled',
     'coaches.students.rescheduledStatus': 'Rescheduled',
-    'coaches.students.weekView': 'This Week',
-    'coaches.students.roster': 'Students',
-    'coaches.students.noLessonsThisWeek': 'No lessons this week.',
     'coaches.students.dstAlert': 'Daylight saving time change coming',
+    'coaches.calendar.title': 'My Calendar',
+    'coaches.calendar.noLessons': 'No lessons this week. Schedule one from My Students.',
 
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
@@ -553,6 +553,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Coaches
     'coaches.title': 'Suite IA pour entra\u00EEneurs d\'\u00E9checs',
     'coaches.navHome': 'Accueil',
+    'coaches.navCalendar': 'Mon calendrier',
     'coaches.navStudents': 'Mes élèves',
     'coaches.navScoresheets': 'Feuille de partie → PGN',
     'coaches.onboardingInstruction': 'Connectez-vous pour commencer',
@@ -619,10 +620,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.students.completedStatus': 'Terminé',
     'coaches.students.cancelledStatus': 'Annulé',
     'coaches.students.rescheduledStatus': 'Reporté',
-    'coaches.students.weekView': 'Cette semaine',
-    'coaches.students.roster': 'Élèves',
-    'coaches.students.noLessonsThisWeek': 'Aucun cours cette semaine.',
     'coaches.students.dstAlert': 'Changement d\'heure (heure d\'été) à venir',
+    'coaches.calendar.title': 'Mon calendrier',
+    'coaches.calendar.noLessons': 'Aucun cours cette semaine. Planifiez-en un depuis Mes élèves.',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',
