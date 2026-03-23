@@ -1,12 +1,9 @@
 // Service Worker for LUMRA PWA
-const CACHE_NAME = 'lumra-v3';
+const CACHE_NAME = 'lumna-coach-v1';
 const STATIC_ASSETS = [
   '/',
-  '/investing',
   '/manifest.json',
-  '/favicon-lumra.svg',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/favicon.svg'
 ];
 
 // Install event - cache static assets
@@ -38,8 +35,9 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip API calls - always fetch from network
+  // Skip API and PostHog calls - always fetch from network
   if (event.request.url.includes('/api/')) return;
+  if (event.request.url.includes('/ph/')) return;
 
   event.respondWith(
     fetch(event.request)
