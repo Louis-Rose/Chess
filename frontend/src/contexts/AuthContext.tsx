@@ -10,11 +10,16 @@ import axios from 'axios';
 const POSTHOG_EXCLUDED_EMAILS: string[] = [];
 const POSTHOG_EXCLUDED_KEY = 'posthog-excluded';
 
+// TODO: re-enable exclusion check after testing PostHog
 // Check on module load if user was previously excluded - opt out immediately
-// TODO: re-enable after testing PostHog
 // if (typeof window !== 'undefined' && localStorage.getItem(POSTHOG_EXCLUDED_KEY) === 'true') {
 //   posthog.opt_out_capturing();
 // }
+// Clear stale exclusion flag so PostHog starts capturing
+if (typeof window !== 'undefined') {
+  localStorage.removeItem(POSTHOG_EXCLUDED_KEY);
+  posthog.opt_in_capturing();
+}
 
 interface UserPreferences {
   chess_username: string | null;
