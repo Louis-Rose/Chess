@@ -141,24 +141,28 @@ function WeekView({ lessons, onRefresh, lang }: {
     );
   }
 
-  // Group by day
-  const dayNames = lang === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
-  const grouped = new Map<number, Lesson[]>();
+  // Group by date string
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-US';
+  const grouped = new Map<string, Lesson[]>();
   for (const l of lessons) {
-    const d = new Date(l.scheduled_at);
-    const dayIdx = (d.getDay() + 6) % 7; // Mon=0
-    if (!grouped.has(dayIdx)) grouped.set(dayIdx, []);
-    grouped.get(dayIdx)!.push(l);
+    const dateKey = new Date(l.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
+    if (!grouped.has(dateKey)) grouped.set(dateKey, []);
+    grouped.get(dateKey)!.push(l);
   }
+
+  // Sort by actual date
+  const sortedGroups = Array.from(grouped.entries()).sort((a, b) => {
+    const da = new Date(a[1][0].scheduled_at).getTime();
+    const db = new Date(b[1][0].scheduled_at).getTime();
+    return da - db;
+  });
 
   return (
     <div className="space-y-3">
-      {Array.from(grouped.entries())
-        .sort(([a], [b]) => a - b)
-        .map(([dayIdx, dayLessons]) => (
-          <div key={dayIdx}>
+      {sortedGroups.map(([dateLabel, dayLessons]) => (
+          <div key={dateLabel}>
             <div className="text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">
-              {dayNames[dayIdx]}
+              {dateLabel}
             </div>
             <div className="space-y-1.5">
               {dayLessons
