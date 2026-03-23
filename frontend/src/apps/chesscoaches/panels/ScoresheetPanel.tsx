@@ -35,7 +35,7 @@ export function ScoresheetPanel() {
       <div className="flex-1" />
       <div className="text-center pb-4">
         <button
-          onClick={() => navigate('/coach/about')}
+          onClick={() => navigate('/about')}
           className="text-xs text-slate-500 hover:text-slate-400 transition-colors"
         >
           {t('coaches.navAbout')}

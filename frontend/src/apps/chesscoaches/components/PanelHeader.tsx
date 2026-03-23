@@ -13,7 +13,7 @@ export function PanelHeader({ title }: PanelHeaderProps) {
   return (
     <div className="flex flex-col pt-2">
       <button
-        onClick={() => navigate('/coach')}
+        onClick={() => navigate('/')}
         className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base px-2 md:px-4"
       >
         <ArrowLeft className="w-5 h-5" />
