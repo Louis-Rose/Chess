@@ -185,9 +185,7 @@ export function getCurrencyForTimezone(tz: string): string {
 
 // ── Helpers ──
 
-function authFetch(url: string, opts: RequestInit = {}) {
-  return fetch(url, { ...opts, credentials: 'include' });
-}
+import { authFetch } from '../utils/authFetch';
 
 function formatLocalTime(tz: string, lang: string): string {
   try {

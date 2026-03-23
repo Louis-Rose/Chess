@@ -42,9 +42,7 @@ const DAY_NAMES_FR = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi
 
 // ── Helpers ──
 
-function authFetch(url: string, opts: RequestInit = {}) {
-  return fetch(url, { ...opts, credentials: 'include' });
-}
+import { authFetch } from '../utils/authFetch';
 
 function formatLocalTime(tz: string, lang: string): string {
   try {

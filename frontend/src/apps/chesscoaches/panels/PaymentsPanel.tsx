@@ -15,9 +15,7 @@ interface UnpaidLesson {
   paid: number;
 }
 
-function authFetch(url: string, opts: RequestInit = {}) {
-  return fetch(url, { ...opts, credentials: 'include' });
-}
+import { authFetch } from '../utils/authFetch';
 
 function formatDate(iso: string, lang: string): string {
   try {
