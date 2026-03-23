@@ -1083,13 +1083,78 @@ def add_coach_lesson(student_id):
 @app.route('/api/coaches/lessons/week', methods=['GET'])
 @login_required
 def get_week_lessons():
-    """Get all lessons for the coach within a date range, with student names."""
+    """Get all lessons for the coach within a date range, with student names.
+    Auto-generates lessons from recurring slots if they don't exist yet."""
     start = request.args.get('start')
     end = request.args.get('end')
+    coach_tz = request.args.get('tz', 'UTC')
     if not start or not end:
         return jsonify({'error': 'start and end required'}), 400
 
+    from datetime import datetime, timedelta
+    try:
+        import zoneinfo
+        tz = zoneinfo.ZoneInfo(coach_tz)
+    except Exception:
+        import zoneinfo
+        tz = zoneinfo.ZoneInfo('UTC')
+
+    start_dt = datetime.fromisoformat(start.replace('Z', '+00:00'))
+    end_dt = datetime.fromisoformat(end.replace('Z', '+00:00'))
+
     with get_db() as conn:
+        # Auto-generate lessons from recurring slots
+        students = conn.execute(
+            '''SELECT id, recurring_day, recurring_time FROM coach_students
+               WHERE coach_user_id = ? AND is_active = 1 AND recurring_day IS NOT NULL AND recurring_time IS NOT NULL''',
+            (request.user_id,)
+        ).fetchall()
+
+        for s in students:
+            # recurring_day: 0=Mon..6=Sun, recurring_time: "HH:MM" in coach's TZ
+            rd = s['recurring_day']
+            rt = s['recurring_time']
+            if rt is None:
+                continue
+
+            # Find the date for this weekday within start..end
+            # start_dt is Monday 00:00 UTC typically
+            start_local = start_dt.astimezone(tz)
+            # Monday=0 in our system
+            current_weekday = start_local.weekday()  # Python: Mon=0
+            days_ahead = rd - current_weekday
+            if days_ahead < 0:
+                days_ahead += 7
+            lesson_date = start_local + timedelta(days=days_ahead)
+
+            try:
+                h, m = rt.split(':')
+                lesson_dt = lesson_date.replace(hour=int(h), minute=int(m), second=0, microsecond=0)
+            except (ValueError, TypeError):
+                continue
+
+            # Convert to UTC for storage
+            lesson_utc = lesson_dt.astimezone(zoneinfo.ZoneInfo('UTC'))
+
+            if lesson_utc < start_dt or lesson_utc >= end_dt:
+                continue
+
+            # Check if a lesson already exists for this student at this time
+            lesson_str = lesson_utc.strftime('%Y-%m-%d %H:%M:%S')
+            existing = conn.execute(
+                '''SELECT id FROM coach_lessons
+                   WHERE student_id = ? AND scheduled_at = ?''',
+                (s['id'], lesson_str)
+            ).fetchone()
+
+            if not existing:
+                conn.execute(
+                    '''INSERT INTO coach_lessons (student_id, scheduled_at, duration_minutes, status)
+                       VALUES (?, ?, 60, 'scheduled')''',
+                    (s['id'], lesson_str)
+                )
+
+        # Now fetch all lessons for the week
         rows = conn.execute(
             '''SELECT l.id, l.student_id, l.scheduled_at, l.duration_minutes, l.status, l.created_at,
                       s.student_name

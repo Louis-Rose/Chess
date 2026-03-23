@@ -34,7 +34,7 @@ interface Lesson {
 // ── Constants ──
 
 // City → IANA timezone mapping (covers major cities worldwide)
-const CITY_TIMEZONES: [string, string][] = [
+export const CITY_TIMEZONES: [string, string][] = [
   // North America
   ['New York', 'America/New_York'], ['Los Angeles', 'America/Los_Angeles'],
   ['Chicago', 'America/Chicago'], ['Houston', 'America/Chicago'],
@@ -132,7 +132,7 @@ function formatLocalTime(tz: string): string {
   } catch { return '--:--'; }
 }
 
-function getTimezoneAbbr(tz: string): string {
+export function getTimezoneAbbr(tz: string): string {
   try {
     return new Intl.DateTimeFormat('en-US', {
       timeZone: tz, timeZoneName: 'short',

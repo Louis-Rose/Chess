@@ -1,9 +1,10 @@
 // My Calendar panel — weekly lesson schedule
 
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, X, Calendar } from 'lucide-react';
+import { RefreshCw, X, Calendar, MapPin } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
+import { CITY_TIMEZONES, getTimezoneAbbr } from './StudentsPanel';
 
 // ── Types ──
 
@@ -210,18 +211,83 @@ function WeekView({ lessons, onRefresh, lang }: {
   );
 }
 
+// ── Coach Timezone Storage ──
+
+const COACH_TZ_KEY = 'lumna_coach_tz';
+
+function getCoachTz(): { city: string; timezone: string } | null {
+  try {
+    const saved = localStorage.getItem(COACH_TZ_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch { return null; }
+}
+
+function saveCoachTz(city: string, timezone: string) {
+  localStorage.setItem(COACH_TZ_KEY, JSON.stringify({ city, timezone }));
+}
+
+// ── Coach City Setup ──
+
+function CoachCitySetup({ onSave, lang }: { onSave: (city: string, tz: string) => void; lang: string }) {
+  const { t } = useLanguage();
+  const [query, setQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const suggestions = query.length >= 2
+    ? CITY_TIMEZONES.filter(([city]) => city.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
+    : [];
+
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="w-16 h-16 rounded-full bg-blue-600/10 flex items-center justify-center mb-4">
+        <MapPin className="w-8 h-8 text-blue-400" />
+      </div>
+      <p className="text-slate-300 text-sm font-medium mb-1">{t('coaches.calendar.setupTitle')}</p>
+      <p className="text-slate-500 text-xs mb-4">{t('coaches.calendar.setupDesc')}</p>
+      <div className="relative w-64">
+        <input
+          className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
+          value={query}
+          onChange={e => { setQuery(e.target.value); setShowSuggestions(true); }}
+          onFocus={() => setShowSuggestions(true)}
+          placeholder={lang === 'fr' ? 'Rechercher votre ville...' : 'Search your city...'}
+        />
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+            {suggestions.map(([city, tz]) => (
+              <button
+                key={`${city}-${tz}`}
+                onClick={() => onSave(city, tz)}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors flex justify-between items-center"
+              >
+                <span className="text-slate-100">{city}</span>
+                <span className="text-xs text-slate-400">{getTimezoneAbbr(tz)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Panel ──
 
 export function CalendarPanel() {
   const { t, language } = useLanguage();
 
+  const [coachTz, setCoachTz] = useState(getCoachTz);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchLessons = useCallback(async () => {
+    const tz = getCoachTz();
+    if (!tz) { setLoading(false); return; }
     try {
       const { start, end } = getWeekBounds();
-      const res = await authFetch(`/api/coaches/lessons/week?start=${start.toISOString()}&end=${end.toISOString()}`);
+      const res = await authFetch(
+        `/api/coaches/lessons/week?start=${start.toISOString()}&end=${end.toISOString()}&tz=${encodeURIComponent(tz.timezone)}`
+      );
       const json = await res.json();
       setLessons(json.lessons || []);
     } catch { /* ignore */ }
@@ -231,10 +297,33 @@ export function CalendarPanel() {
     fetchLessons().then(() => setLoading(false));
   }, [fetchLessons]);
 
+  const handleSetCity = (city: string, timezone: string) => {
+    saveCoachTz(city, timezone);
+    setCoachTz({ city, timezone });
+    // Refetch after setting TZ
+    setTimeout(() => fetchLessons(), 100);
+  };
+
   return (
     <PanelShell title={t('coaches.calendar.title')}>
       <div className="max-w-3xl mx-auto space-y-4">
-        {loading ? (
+        {/* Coach city display */}
+        {coachTz && (
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <MapPin className="w-3.5 h-3.5" />
+            <span>{coachTz.city} ({getTimezoneAbbr(coachTz.timezone)})</span>
+            <button
+              onClick={() => { localStorage.removeItem(COACH_TZ_KEY); setCoachTz(null); }}
+              className="text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+
+        {!coachTz ? (
+          <CoachCitySetup onSave={handleSetCity} lang={language} />
+        ) : loading ? (
           <div className="space-y-2">
             {[1, 2, 3].map(i => <div key={i} className="h-12 bg-slate-800 rounded-lg animate-pulse" />)}
           </div>

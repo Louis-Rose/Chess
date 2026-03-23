@@ -309,6 +309,8 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.students.dstAlert': 'Daylight saving time change coming',
     'coaches.calendar.title': 'My Calendar',
     'coaches.calendar.noLessons': 'No lessons this week. Schedule one from My Students.',
+    'coaches.calendar.setupTitle': 'Set your city',
+    'coaches.calendar.setupDesc': 'So we can display lesson times in your timezone.',
 
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
@@ -627,6 +629,8 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.students.dstAlert': 'Changement d\'heure (heure d\'été) à venir',
     'coaches.calendar.title': 'Mon calendrier',
     'coaches.calendar.noLessons': 'Aucun cours cette semaine. Planifiez-en un depuis Mes élèves.',
+    'coaches.calendar.setupTitle': 'Indiquez votre ville',
+    'coaches.calendar.setupDesc': 'Pour afficher les heures de cours dans votre fuseau horaire.',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',
