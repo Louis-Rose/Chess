@@ -306,7 +306,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.students.weekView': 'This Week',
     'coaches.students.roster': 'Students',
     'coaches.students.noLessonsThisWeek': 'No lessons this week.',
-    'coaches.students.dstAlert': 'DST change coming',
+    'coaches.students.dstAlert': 'Daylight saving time change coming',
 
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
@@ -622,7 +622,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.students.weekView': 'Cette semaine',
     'coaches.students.roster': 'Élèves',
     'coaches.students.noLessonsThisWeek': 'Aucun cours cette semaine.',
-    'coaches.students.dstAlert': 'Changement d\'heure à venir',
+    'coaches.students.dstAlert': 'Changement d\'heure (heure d\'été) à venir',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',

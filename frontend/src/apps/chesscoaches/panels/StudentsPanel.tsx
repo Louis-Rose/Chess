@@ -363,7 +363,7 @@ function StudentCard({ student, onRefresh, lang }: {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const dayNamesShort = lang === 'fr' ? DAY_NAMES_SHORT_FR : DAY_NAMES_SHORT_EN;
+  const dayNamesFull = lang === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
   const differentTz = isStudentInDifferentTz(student.timezone);
   const studentLocalTime = formatLocalTime(student.timezone);
 
@@ -430,14 +430,14 @@ function StudentCard({ student, onRefresh, lang }: {
             {/* Timezone */}
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {studentLocalTime}
+              <span className="text-slate-200">{studentLocalTime}</span>
               <span className="text-slate-600">({student.timezone.split('/').pop()?.replace(/_/g, ' ')})</span>
               {differentTz && <span className="text-amber-400/70 ml-0.5" title="Different timezone">*</span>}
             </span>
             {/* Recurring slot */}
             {student.recurring_day !== null && student.recurring_time && (
               <span className="text-slate-400">
-                {dayNamesShort[student.recurring_day]} {student.recurring_time}
+                {dayNamesFull[student.recurring_day]} {student.recurring_time}
               </span>
             )}
           </div>
