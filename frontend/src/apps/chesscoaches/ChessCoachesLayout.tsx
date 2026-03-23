@@ -50,15 +50,15 @@ function CoachesNavSidebar() {
               onClick={() => setShowPlayerMenu(!showPlayerMenu)}
               className="w-full bg-slate-800 rounded-lg p-3 hover:bg-slate-750 transition-colors cursor-pointer"
             >
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex items-center gap-3">
                 {user.picture ? (
-                  <img src={user.picture} alt="" className="w-10 h-10 rounded-full" />
+                  <img src={user.picture} alt="" className="w-10 h-10 rounded-full flex-shrink-0" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-slate-300 font-bold">
+                  <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-slate-300 font-bold flex-shrink-0">
                     {(user.name || user.email).charAt(0).toUpperCase()}
                   </div>
                 )}
-                <p className="text-white font-medium text-sm truncate">{user.name}</p>
+                <p className="text-white font-medium text-sm truncate flex-1 text-center">{user.name}</p>
               </div>
             </button>
             {showPlayerMenu && (
@@ -78,9 +78,9 @@ function CoachesNavSidebar() {
           </div>
         ) : (
           <div className="mb-1 bg-slate-800 rounded-lg p-3">
-            <div className="flex items-center justify-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-700 animate-pulse" />
-              <div className="h-4 w-24 bg-slate-700 rounded animate-pulse" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-slate-700 animate-pulse flex-shrink-0" />
+              <div className="h-4 w-24 bg-slate-700 rounded animate-pulse flex-1" />
             </div>
           </div>
         )}
