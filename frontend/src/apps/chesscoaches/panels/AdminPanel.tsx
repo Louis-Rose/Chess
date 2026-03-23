@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Loader2, RefreshCw, ChevronUp, ChevronDown, Clock } from 'lucide-react';
+import { Shield, Loader2, ChevronUp, ChevronDown, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { PanelShell } from '../components/PanelShell';
@@ -62,13 +62,12 @@ function timeAgo(dateStr: string | null): string {
 }
 
 export function AdminPanel() {
-  const queryClient = useQueryClient();
   const { user, isLoading: authLoading } = useAuth();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [ignoreSelf, setIgnoreSelf] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_seconds');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  const { data, isLoading, error } = useQuery({
+  const { data: rawData, isLoading, error } = useQuery({
     queryKey: ['admin-coach-users'],
     queryFn: async (): Promise<AdminUsersResponse> => {
       const response = await axios.get('/api/admin/coach-users');
@@ -86,14 +85,13 @@ export function AdminPanel() {
     enabled: !!user?.is_admin,
   });
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['admin-coach-users'] }),
-      queryClient.invalidateQueries({ queryKey: ['admin-coach-time-spent'] }),
-    ]);
-    setIsRefreshing(false);
-  };
+  // Filter out self if checkbox is checked
+  const data = useMemo(() => {
+    if (!rawData) return rawData;
+    if (!ignoreSelf || !user) return rawData;
+    const filtered = rawData.users.filter(u => u.id !== user.id);
+    return { users: filtered, total: filtered.length };
+  }, [rawData, ignoreSelf, user]);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -173,13 +171,15 @@ export function AdminPanel() {
             <Shield className="w-5 h-5 text-amber-500" />
             <span className="text-slate-400 text-sm">{data?.total ?? 0} user{(data?.total ?? 0) !== 1 ? 's' : ''}</span>
           </div>
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 text-slate-300 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </button>
+          <label className="flex items-center gap-2 cursor-pointer text-slate-400 text-sm">
+            <input
+              type="checkbox"
+              checked={ignoreSelf}
+              onChange={e => setIgnoreSelf(e.target.checked)}
+              className="rounded border-slate-600 bg-slate-700 text-green-600 focus:ring-green-500 focus:ring-offset-0 cursor-pointer"
+            />
+            Ignore myself
+          </label>
         </div>
 
         {/* Time Spent Chart */}
