@@ -682,7 +682,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.payments.lessonsUnpaid': 'cours non payés',
     'coaches.payments.markPaid': 'Marquer payé',
     // Shared
-    'coaches.sectionAdmin': 'Administration',
+    'coaches.sectionAdmin': 'Administratif',
     'coaches.sectionLessons': 'Mes cours',
     'coaches.sectionAITools': 'Outils IA',
     'coaches.sectionEmpty': 'Bientôt disponible',

@@ -15,10 +15,11 @@ export function ScoresheetPanel() {
       <PWAInstallPrompt className="max-w-4xl mx-[5%] md:mx-auto mb-4" />
       <div className="border-t border-slate-700 mb-6" />
 
-      <div className="max-w-4xl mx-[5%] md:mx-auto space-y-8">
-        {NAV_SECTIONS.map(({ titleKey, items }) => (
+      <div className="max-w-4xl mx-[5%] md:mx-auto">
+        {NAV_SECTIONS.map(({ titleKey, items }, idx) => (
           <div key={titleKey}>
-            <h2 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">
+            {idx > 0 && <div className="border-t border-slate-700 my-6" />}
+            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-3">
               {t(titleKey)}
             </h2>
             {items.length > 0 ? (
