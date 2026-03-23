@@ -693,7 +693,9 @@ def init_db():
 
 
 def _seed_test_students(conn):
-    """Seed test students. Tries to find akyrosu's user_id, falls back to user_id=1."""
+    """Seed test students with lesson history. Tries to find akyrosu's user_id, falls back to user_id=1."""
+    from datetime import datetime, timedelta
+
     try:
         row = conn.execute("SELECT id FROM users WHERE email LIKE '%akyrosu%' OR name LIKE '%Louis%' ORDER BY id LIMIT 1").fetchone()
         user_id = row['id'] if row else 1
@@ -707,15 +709,43 @@ def _seed_test_students(conn):
         (user_id, 'Yuki Tanaka', 'Asia/Tokyo', None, None),           # No recurring
         (user_id, 'Lucas Martin', 'Europe/Paris', 0, '17:30'),        # Mon 17:30
         (user_id, 'Aisha Patel', 'Asia/Kolkata', 5, '10:00'),         # Sat 10:00
+        (user_id, 'Sophie Dupont', 'Europe/Paris', 2, '14:00'),       # Wed 14:00 — has history
     ]
+    student_ids = []
     for s in seeds:
-        conn.execute(
+        cursor = conn.execute(
             '''INSERT INTO coach_students
                (coach_user_id, student_name, timezone, recurring_day, recurring_time)
                VALUES (?, ?, ?, ?, ?)''',
             s
         )
-    print(f"[Database] Seeded 5 test students for user_id={user_id}")
+        student_ids.append(cursor.lastrowid)
+
+    # Seed lessons for Sophie Dupont (last student)
+    sophie_id = student_ids[-1]
+    now = datetime.now()
+    # Past lessons (completed, mix of paid/unpaid)
+    past_lessons = [
+        (sophie_id, (now - timedelta(weeks=6, days=2)).strftime('%Y-%m-%d 14:00:00'), 60, 'completed', 1),
+        (sophie_id, (now - timedelta(weeks=5, days=2)).strftime('%Y-%m-%d 14:00:00'), 60, 'completed', 1),
+        (sophie_id, (now - timedelta(weeks=4, days=2)).strftime('%Y-%m-%d 14:00:00'), 60, 'completed', 1),
+        (sophie_id, (now - timedelta(weeks=3, days=2)).strftime('%Y-%m-%d 14:00:00'), 60, 'cancelled', 0),
+        (sophie_id, (now - timedelta(weeks=2, days=2)).strftime('%Y-%m-%d 14:00:00'), 60, 'completed', 0),
+        (sophie_id, (now - timedelta(weeks=1, days=2)).strftime('%Y-%m-%d 14:00:00'), 60, 'completed', 0),
+    ]
+    # Upcoming lessons
+    upcoming_lessons = [
+        (sophie_id, (now + timedelta(days=(2 - now.weekday()) % 7 or 7)).strftime('%Y-%m-%d 14:00:00'), 60, 'scheduled', 0),
+        (sophie_id, (now + timedelta(days=(2 - now.weekday()) % 7 + 7)).strftime('%Y-%m-%d 14:00:00'), 60, 'scheduled', 0),
+    ]
+    for lesson in past_lessons + upcoming_lessons:
+        conn.execute(
+            '''INSERT INTO coach_lessons (student_id, scheduled_at, duration_minutes, status, paid)
+               VALUES (?, ?, ?, ?, ?)''',
+            lesson
+        )
+
+    print(f"[Database] Seeded 6 test students + 8 lessons for user_id={user_id}")
 
 
 # ============= CACHE FUNCTIONS =============
