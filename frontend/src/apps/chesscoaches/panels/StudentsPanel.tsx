@@ -146,7 +146,7 @@ interface StudentFormData {
 
 const EMPTY_FORM: StudentFormData = {
   student_name: '',
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+  timezone: '',
   recurring_day: null,
   recurring_time: '',
 };
@@ -177,6 +177,7 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
         <div>
           <div className={label}>{t('coaches.students.timezone')}</div>
           <select className={input} value={form.timezone} onChange={e => set('timezone', e.target.value)}>
+            <option value="">{lang === 'fr' ? 'Choisir le fuseau' : 'Pick timezone'}</option>
             {COMMON_TIMEZONES.map(tz => (
               <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
             ))}
@@ -237,7 +238,7 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
       <div className="flex items-center gap-3 pt-1">
         <button
           onClick={() => onSave(form)}
-          disabled={!form.student_name.trim() || saving}
+          disabled={!form.student_name.trim() || !form.timezone || saving}
           className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
         >
           {saving ? '...' : t('coaches.students.save')}
