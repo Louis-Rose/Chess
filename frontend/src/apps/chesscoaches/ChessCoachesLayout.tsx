@@ -58,7 +58,7 @@ function CoachesNavSidebar() {
                     {(user.name || user.email).charAt(0).toUpperCase()}
                   </div>
                 )}
-                <p className="text-white font-medium text-sm truncate w-full text-center">{user.name}</p>
+                <p className="text-white font-medium text-sm w-full text-center pl-14">{user.name}</p>
               </div>
             </button>
             {showPlayerMenu && (
