@@ -12,7 +12,7 @@ import { AboutPanel } from './panels/AboutPanel';
 
 export function ChessCoachesApp() {
   useEffect(() => {
-    document.title = 'LUMNA — Coaching Tools';
+    document.title = 'LUMNA | Coaching Tools';
     const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (link) link.href = '/favicon.svg';
   }, []);
