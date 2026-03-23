@@ -971,45 +971,22 @@ def read_scoresheet():
 @login_required
 def get_coach_students():
     """List all students for the authenticated coach."""
-    user_id = request.user_id
     with get_db() as conn:
         rows = conn.execute(
             'SELECT * FROM coach_students WHERE coach_user_id = ? ORDER BY is_active DESC, student_name ASC',
-            (user_id,)
+            (request.user_id,)
         ).fetchall()
         students = []
         for r in rows:
             s = dict(r)
-            # Attach active bundle info
-            bundle = conn.execute(
-                '''SELECT id, total_lessons, used_lessons, price_total, price_currency, purchased_at, expires_at
-                   FROM coach_lesson_bundles WHERE student_id = ?
-                   ORDER BY purchased_at DESC LIMIT 1''',
-                (s['id'],)
-            ).fetchone()
-            s['active_bundle'] = dict(bundle) if bundle else None
             # Upcoming lesson
             upcoming = conn.execute(
-                '''SELECT id, scheduled_at, duration_minutes, status, topic
+                '''SELECT id, scheduled_at, duration_minutes, status
                    FROM coach_lessons WHERE student_id = ? AND status = 'scheduled'
                    ORDER BY scheduled_at ASC LIMIT 1''',
                 (s['id'],)
             ).fetchone()
             s['next_lesson'] = dict(upcoming) if upcoming else None
-            # Lesson stats
-            stats = conn.execute(
-                '''SELECT
-                     SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-                     SUM(CASE WHEN status = 'no_show' THEN 1 ELSE 0 END) as no_shows,
-                     SUM(CASE WHEN status = 'rescheduled' THEN 1 ELSE 0 END) as rescheduled,
-                     SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
-                   FROM coach_lessons WHERE student_id = ?''',
-                (s['id'],)
-            ).fetchone()
-            if stats:
-                s['lesson_stats'] = dict(stats)
-            else:
-                s['lesson_stats'] = {'completed': 0, 'no_shows': 0, 'rescheduled': 0, 'cancelled': 0}
             students.append(s)
     return jsonify({'students': students})
 
@@ -1017,29 +994,24 @@ def get_coach_students():
 @app.route('/api/coaches/students', methods=['POST'])
 @login_required
 def add_coach_student():
-    """Add a new student for the authenticated coach."""
+    """Add a new student."""
     data = request.get_json()
     name = (data.get('student_name') or '').strip()
     if not name:
         return jsonify({'error': 'student_name required'}), 400
 
+    recurring_day = data.get('recurring_day')
+    recurring_time = (data.get('recurring_time') or '').strip() or None
+
     with get_db() as conn:
         cursor = conn.execute(
             '''INSERT INTO coach_students
-               (coach_user_id, student_name, student_chess_username, student_lichess_username,
-                email, phone, timezone, payment_status, notes)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-            (request.user_id, name,
-             (data.get('student_chess_username') or '').strip() or None,
-             (data.get('student_lichess_username') or '').strip() or None,
-             (data.get('email') or '').strip() or None,
-             (data.get('phone') or '').strip() or None,
-             data.get('timezone', 'UTC'),
-             data.get('payment_status', 'paid'),
-             (data.get('notes') or '').strip() or None)
+               (coach_user_id, student_name, timezone, recurring_day, recurring_time)
+               VALUES (?, ?, ?, ?, ?)''',
+            (request.user_id, name, data.get('timezone', 'UTC'),
+             recurring_day, recurring_time)
         )
         if USE_POSTGRES:
-            conn.execute('SELECT lastval()')
             student_id = conn.execute('SELECT lastval()').fetchone()[0]
         else:
             student_id = cursor.lastrowid
@@ -1053,10 +1025,7 @@ def update_coach_student(student_id):
     """Update a student's details."""
     data = request.get_json()
 
-    allowed = [
-        'student_name', 'student_chess_username', 'student_lichess_username',
-        'email', 'phone', 'timezone', 'payment_status', 'notes', 'is_active', 'last_contact_at',
-    ]
+    allowed = ['student_name', 'timezone', 'recurring_day', 'recurring_time', 'is_active']
     sets = []
     vals = []
     for field in allowed:
@@ -1084,7 +1053,7 @@ def update_coach_student(student_id):
 @app.route('/api/coaches/students/<int:student_id>', methods=['DELETE'])
 @login_required
 def delete_coach_student(student_id):
-    """Delete a student (and cascade lessons/bundles)."""
+    """Delete a student (and cascade lessons)."""
     with get_db() as conn:
         conn.execute(
             'DELETE FROM coach_students WHERE id = ? AND coach_user_id = ?',
@@ -1093,84 +1062,42 @@ def delete_coach_student(student_id):
     return jsonify({'message': 'Student deleted'})
 
 
-@app.route('/api/coaches/students/<int:student_id>/bundles', methods=['POST'])
-@login_required
-def add_lesson_bundle(student_id):
-    """Create a new lesson bundle for a student."""
-    data = request.get_json()
-    total = data.get('total_lessons')
-    if not total or int(total) < 1:
-        return jsonify({'error': 'total_lessons required (>= 1)'}), 400
-
-    with get_db() as conn:
-        # Verify student belongs to this coach
-        student = conn.execute('SELECT id FROM coach_students WHERE id = ? AND coach_user_id = ?', (student_id, request.user_id)).fetchone()
-        if not student:
-            return jsonify({'error': 'Student not found'}), 404
-        conn.execute(
-            '''INSERT INTO coach_lesson_bundles (student_id, total_lessons, price_total, price_currency, expires_at)
-               VALUES (?, ?, ?, ?, ?)''',
-            (student_id, int(total), data.get('price_total'), data.get('price_currency', 'EUR'), data.get('expires_at'))
-        )
-    return jsonify({'message': 'Bundle created'}), 201
-
-
-@app.route('/api/coaches/students/<int:student_id>/bundles', methods=['GET'])
-@login_required
-def get_lesson_bundles(student_id):
-    """List all bundles for a student."""
-    with get_db() as conn:
-        rows = conn.execute(
-            'SELECT * FROM coach_lesson_bundles WHERE student_id = ? ORDER BY purchased_at DESC',
-            (student_id,)
-        ).fetchall()
-    return jsonify({'bundles': [dict(r) for r in rows]})
-
-
 @app.route('/api/coaches/students/<int:student_id>/lessons', methods=['POST'])
 @login_required
 def add_coach_lesson(student_id):
-    """Log a lesson for a student."""
+    """Schedule a lesson for a student."""
     data = request.get_json()
     scheduled_at = data.get('scheduled_at')
     if not scheduled_at:
         return jsonify({'error': 'scheduled_at required'}), 400
 
-    status = data.get('status', 'scheduled')
-    bundle_id = data.get('bundle_id')
-
     with get_db() as conn:
         conn.execute(
-            '''INSERT INTO coach_lessons (student_id, bundle_id, scheduled_at, duration_minutes, status, topic, notes)
-               VALUES (?, ?, ?, ?, ?, ?, ?)''',
-            (student_id, bundle_id, scheduled_at,
-             data.get('duration_minutes', 60), status,
-             (data.get('topic') or '').strip() or None,
-             (data.get('notes') or '').strip() or None)
+            '''INSERT INTO coach_lessons (student_id, scheduled_at, duration_minutes, status)
+               VALUES (?, ?, ?, 'scheduled')''',
+            (student_id, scheduled_at, data.get('duration_minutes', 60))
         )
-        # If completed and has bundle, increment used_lessons
-        if status == 'completed' and bundle_id:
-            conn.execute(
-                'UPDATE coach_lesson_bundles SET used_lessons = used_lessons + 1 WHERE id = ?',
-                (bundle_id,)
-            )
-        # Update last_lesson_at on student
-        if status == 'completed':
-            conn.execute(
-                'UPDATE coach_students SET last_lesson_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                (student_id,)
-            )
-    return jsonify({'message': 'Lesson logged'}), 201
+    return jsonify({'message': 'Lesson scheduled'}), 201
 
 
-@app.route('/api/coaches/students/<int:student_id>/lessons', methods=['GET'])
+@app.route('/api/coaches/lessons/week', methods=['GET'])
 @login_required
-def get_coach_lessons(student_id):
-    """List lessons for a student."""
+def get_week_lessons():
+    """Get all lessons for the coach within a date range, with student names."""
+    start = request.args.get('start')
+    end = request.args.get('end')
+    if not start or not end:
+        return jsonify({'error': 'start and end required'}), 400
+
     with get_db() as conn:
         rows = conn.execute(
-            'SELECT * FROM coach_lessons WHERE student_id = ? ORDER BY scheduled_at DESC',
-            (student_id,)
+            '''SELECT l.id, l.student_id, l.scheduled_at, l.duration_minutes, l.status, l.created_at,
+                      s.student_name
+               FROM coach_lessons l
+               JOIN coach_students s ON l.student_id = s.id
+               WHERE s.coach_user_id = ? AND l.scheduled_at >= ? AND l.scheduled_at < ?
+               ORDER BY l.scheduled_at ASC''',
+            (request.user_id, start, end)
         ).fetchall()
     return jsonify({'lessons': [dict(r) for r in rows]})
 
@@ -1178,9 +1105,9 @@ def get_coach_lessons(student_id):
 @app.route('/api/coaches/lessons/<int:lesson_id>', methods=['PUT'])
 @login_required
 def update_coach_lesson(lesson_id):
-    """Update a lesson's status/details."""
+    """Update a lesson's status or time."""
     data = request.get_json()
-    allowed = ['scheduled_at', 'duration_minutes', 'status', 'topic', 'notes']
+    allowed = ['scheduled_at', 'duration_minutes', 'status']
     sets = []
     vals = []
     for field in allowed:
@@ -1197,26 +1124,11 @@ def update_coach_lesson(lesson_id):
     vals.append(lesson_id)
 
     with get_db() as conn:
-        # Get old status before update
-        old = conn.execute('SELECT status, bundle_id, student_id FROM coach_lessons WHERE id = ?', (lesson_id,)).fetchone()
+        old = conn.execute('SELECT status, student_id FROM coach_lessons WHERE id = ?', (lesson_id,)).fetchone()
         if not old:
             return jsonify({'error': 'Lesson not found'}), 404
 
         conn.execute(f'UPDATE coach_lessons SET {", ".join(sets)} WHERE id = ?', tuple(vals))
-
-        new_status = data.get('status', old['status'])
-        # Handle bundle counter changes
-        if old['bundle_id']:
-            if old['status'] != 'completed' and new_status == 'completed':
-                conn.execute('UPDATE coach_lesson_bundles SET used_lessons = used_lessons + 1 WHERE id = ?', (old['bundle_id'],))
-            elif old['status'] == 'completed' and new_status != 'completed':
-                conn.execute('UPDATE coach_lesson_bundles SET used_lessons = MAX(0, used_lessons - 1) WHERE id = ?', (old['bundle_id'],))
-
-        if new_status == 'completed':
-            conn.execute(
-                'UPDATE coach_students SET last_lesson_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                (old['student_id'],)
-            )
 
     return jsonify({'message': 'Lesson updated'})
 

@@ -475,7 +475,7 @@ def init_db():
                 """)
                 print("[Database] Created monthly_archive_cache table")
 
-            # Migration: Create coach_students table if not exists
+            # Migration: Recreate coach tables with simplified scheduling schema
             conn.execute("""
                 SELECT table_name FROM information_schema.tables
                 WHERE table_name = 'coach_students'
@@ -485,26 +485,11 @@ def init_db():
                     CREATE TABLE coach_students (
                         id SERIAL PRIMARY KEY,
                         coach_user_id INTEGER NOT NULL,
-                        coach_username TEXT,
                         student_name TEXT NOT NULL,
-                        student_chess_username TEXT,
-                        student_lichess_username TEXT,
-                        email TEXT,
-                        phone TEXT,
-                        parent_name TEXT,
-                        parent_email TEXT,
-                        parent_phone TEXT,
-                        is_minor INTEGER DEFAULT 0,
                         timezone TEXT DEFAULT 'UTC',
-                        preferred_platform TEXT,
-                        platform_link TEXT,
-                        rate_amount REAL,
-                        rate_currency TEXT DEFAULT 'EUR',
-                        payment_status TEXT DEFAULT 'paid',
-                        notes TEXT,
+                        recurring_day INTEGER,
+                        recurring_time TEXT,
                         is_active INTEGER DEFAULT 1,
-                        last_lesson_at TIMESTAMP,
-                        last_contact_at TIMESTAMP,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
@@ -512,29 +497,17 @@ def init_db():
                 conn.execute("CREATE INDEX idx_coach_students_coach ON coach_students(coach_user_id)")
                 conn.execute("CREATE INDEX idx_coach_students_active ON coach_students(coach_user_id, is_active)")
                 print("[Database] Created coach_students table")
-
-            # Migration: Create coach_lesson_bundles table if not exists
-            conn.execute("""
-                SELECT table_name FROM information_schema.tables
-                WHERE table_name = 'coach_lesson_bundles'
-            """)
-            if not conn._cursor.fetchone():
+            else:
+                # Add recurring columns if missing
                 conn.execute("""
-                    CREATE TABLE coach_lesson_bundles (
-                        id SERIAL PRIMARY KEY,
-                        student_id INTEGER NOT NULL REFERENCES coach_students(id) ON DELETE CASCADE,
-                        total_lessons INTEGER NOT NULL,
-                        used_lessons INTEGER DEFAULT 0,
-                        price_total REAL,
-                        price_currency TEXT DEFAULT 'EUR',
-                        purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        expires_at TIMESTAMP
-                    )
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'coach_students' AND column_name = 'recurring_day'
                 """)
-                conn.execute("CREATE INDEX idx_coach_lesson_bundles_student ON coach_lesson_bundles(student_id)")
-                print("[Database] Created coach_lesson_bundles table")
+                if not conn._cursor.fetchone():
+                    conn.execute("ALTER TABLE coach_students ADD COLUMN recurring_day INTEGER")
+                    conn.execute("ALTER TABLE coach_students ADD COLUMN recurring_time TEXT")
+                    print("[Database] Added recurring_day/recurring_time to coach_students")
 
-            # Migration: Create coach_lessons table if not exists
             conn.execute("""
                 SELECT table_name FROM information_schema.tables
                 WHERE table_name = 'coach_lessons'
@@ -544,32 +517,15 @@ def init_db():
                     CREATE TABLE coach_lessons (
                         id SERIAL PRIMARY KEY,
                         student_id INTEGER NOT NULL REFERENCES coach_students(id) ON DELETE CASCADE,
-                        bundle_id INTEGER REFERENCES coach_lesson_bundles(id) ON DELETE SET NULL,
                         scheduled_at TIMESTAMP NOT NULL,
                         duration_minutes INTEGER DEFAULT 60,
                         status TEXT DEFAULT 'scheduled',
-                        topic TEXT,
-                        notes TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
                 conn.execute("CREATE INDEX idx_coach_lessons_student ON coach_lessons(student_id)")
                 conn.execute("CREATE INDEX idx_coach_lessons_scheduled ON coach_lessons(scheduled_at)")
-                conn.execute("CREATE INDEX idx_coach_lessons_bundle ON coach_lessons(bundle_id)")
                 print("[Database] Created coach_lessons table")
-
-            # Migration: Add coach_user_id column to coach_students if missing
-            conn.execute("""
-                SELECT column_name FROM information_schema.columns
-                WHERE table_name = 'coach_students' AND column_name = 'coach_user_id'
-            """)
-            if not conn._cursor.fetchone():
-                conn.execute("ALTER TABLE coach_students ADD COLUMN coach_user_id INTEGER")
-                conn.execute("DROP INDEX IF EXISTS idx_coach_students_coach")
-                conn.execute("DROP INDEX IF EXISTS idx_coach_students_active")
-                conn.execute("CREATE INDEX idx_coach_students_coach ON coach_students(coach_user_id)")
-                conn.execute("CREATE INDEX idx_coach_students_active ON coach_students(coach_user_id, is_active)")
-                print("[Database] Added coach_user_id column to coach_students")
 
             # Migration: Add registered_app column to users if not exists
             conn.execute("""
@@ -656,17 +612,17 @@ def init_db():
                     conn.execute('ALTER TABLE chess_user_prefs ADD COLUMN leaderboard_name TEXT DEFAULT NULL')
                     print("[Database] Added leaderboard_name column to chess_user_prefs")
 
-            # Migration: Recreate coach_students with coach_user_id if missing
+            # Migration: Recreate coach tables with simplified scheduling schema
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='coach_students'")
             if cursor.fetchone():
                 cursor = conn.execute("PRAGMA table_info(coach_students)")
                 columns = [row['name'] for row in cursor.fetchall()]
-                if 'coach_user_id' not in columns:
-                    # Drop old table and let schema.sql recreate it with new columns
+                if 'recurring_day' not in columns:
+                    # Drop old tables and let schema.sql recreate with new schema
                     conn.execute('DROP TABLE IF EXISTS coach_lessons')
                     conn.execute('DROP TABLE IF EXISTS coach_lesson_bundles')
                     conn.execute('DROP TABLE IF EXISTS coach_students')
-                    print("[Database] Recreated coach_students with coach_user_id column")
+                    print("[Database] Recreated coach tables with scheduling schema")
 
             # Migration: Add registered_app column to users if not exists
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
@@ -694,27 +650,26 @@ def init_db():
 
 
 def _seed_test_students(conn):
-    """Seed 5 test students. Tries to find akyrosu's user_id, falls back to user_id=1."""
-    # Try to find akyrosu's user_id
+    """Seed test students. Tries to find akyrosu's user_id, falls back to user_id=1."""
     try:
         row = conn.execute("SELECT id FROM users WHERE email LIKE '%akyrosu%' OR name LIKE '%Louis%' ORDER BY id LIMIT 1").fetchone()
         user_id = row['id'] if row else 1
     except Exception:
         user_id = 1
 
+    # (coach_user_id, student_name, timezone, recurring_day, recurring_time)
     seeds = [
-        (user_id, 'Emma Fischer', 'emmaf2005', 'emmafish', 'emma.fischer@gmail.com', '+49 170 1234567', 'Europe/Berlin', 40, 'EUR', 'paid'),
-        (user_id, 'James Wilson', 'jwilson_chess', None, 'james.w@outlook.com', '+1 555 234 5678', 'America/New_York', 50, 'USD', 'overdue'),
-        (user_id, 'Yuki Tanaka', 'yuki_t', 'yukitanaka', 'yuki.tanaka@mail.jp', '+81 90 1234 5678', 'Asia/Tokyo', 6000, 'JPY', 'paid'),
-        (user_id, 'Lucas Martin', None, 'lucasmartin33', 'lucas.martin@free.fr', '+33 7 98 76 54 32', 'Europe/Paris', 35, 'EUR', 'pending'),
-        (user_id, 'Aisha Patel', 'aisha_chess', None, 'aisha.p@gmail.com', '+91 98765 43210', 'Asia/Kolkata', 1500, 'INR', 'paid'),
+        (user_id, 'Emma Fischer', 'Europe/Berlin', 1, '18:00'),      # Tue 18:00
+        (user_id, 'James Wilson', 'America/New_York', 3, '16:00'),    # Thu 16:00
+        (user_id, 'Yuki Tanaka', 'Asia/Tokyo', None, None),           # No recurring
+        (user_id, 'Lucas Martin', 'Europe/Paris', 0, '17:30'),        # Mon 17:30
+        (user_id, 'Aisha Patel', 'Asia/Kolkata', 5, '10:00'),         # Sat 10:00
     ]
     for s in seeds:
         conn.execute(
             '''INSERT INTO coach_students
-               (coach_user_id, student_name, student_chess_username, student_lichess_username,
-                email, phone, timezone, rate_amount, rate_currency, payment_status)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+               (coach_user_id, student_name, timezone, recurring_day, recurring_time)
+               VALUES (?, ?, ?, ?, ?)''',
             s
         )
     print(f"[Database] Seeded 5 test students for user_id={user_id}")

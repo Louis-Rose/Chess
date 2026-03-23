@@ -375,57 +375,25 @@ CREATE TABLE IF NOT EXISTS monthly_archive_cache (
 -- Coach students table (keyed by coach chess username)
 CREATE TABLE IF NOT EXISTS coach_students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    coach_user_id INTEGER NOT NULL,           -- Coach's user ID (Google OAuth)
-    coach_username TEXT,                      -- Legacy, kept for migration
-    student_name TEXT NOT NULL,               -- Display name
-    student_chess_username TEXT,              -- Chess.com username (optional)
-    student_lichess_username TEXT,            -- Lichess username (optional)
-    email TEXT,
-    phone TEXT,
-    parent_name TEXT,                         -- For under-18 students
-    parent_email TEXT,
-    parent_phone TEXT,
-    is_minor INTEGER DEFAULT 0,              -- 1 if under 18
-    timezone TEXT DEFAULT 'UTC',             -- IANA timezone (e.g. 'America/New_York')
-    preferred_platform TEXT,                  -- 'zoom', 'google_meet', 'discord', 'otb'
-    platform_link TEXT,                       -- URL for video call
-    rate_amount REAL,                         -- Lesson rate
-    rate_currency TEXT DEFAULT 'EUR',         -- EUR, USD, GBP
-    payment_status TEXT DEFAULT 'paid',       -- 'paid', 'pending', 'overdue'
-    notes TEXT,
-    is_active INTEGER DEFAULT 1,             -- 0 = archived student
-    last_lesson_at TIMESTAMP,
-    last_contact_at TIMESTAMP,
+    coach_user_id INTEGER NOT NULL,
+    student_name TEXT NOT NULL,
+    timezone TEXT DEFAULT 'UTC',
+    recurring_day INTEGER,                   -- 0=Mon .. 6=Sun, NULL=no recurring
+    recurring_time TEXT,                     -- 'HH:MM' in coach's TZ, NULL=no recurring
+    is_active INTEGER DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Lesson bundles (pre-paid lesson packs)
-CREATE TABLE IF NOT EXISTS coach_lesson_bundles (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id INTEGER NOT NULL,
-    total_lessons INTEGER NOT NULL,           -- e.g. 5, 10, 20
-    used_lessons INTEGER DEFAULT 0,
-    price_total REAL,                         -- Total price for the bundle
-    price_currency TEXT DEFAULT 'EUR',
-    purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP,                     -- Optional expiry
-    FOREIGN KEY (student_id) REFERENCES coach_students(id) ON DELETE CASCADE
-);
-
--- Individual lessons log
+-- Individual lessons
 CREATE TABLE IF NOT EXISTS coach_lessons (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     student_id INTEGER NOT NULL,
-    bundle_id INTEGER,                        -- NULL if not part of a bundle
-    scheduled_at TIMESTAMP NOT NULL,          -- When the lesson is/was scheduled
+    scheduled_at TIMESTAMP NOT NULL,
     duration_minutes INTEGER DEFAULT 60,
-    status TEXT DEFAULT 'scheduled',          -- 'scheduled', 'completed', 'cancelled', 'no_show', 'rescheduled'
-    topic TEXT,                               -- What was covered
-    notes TEXT,
+    status TEXT DEFAULT 'scheduled',          -- 'scheduled', 'completed', 'cancelled', 'rescheduled'
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (student_id) REFERENCES coach_students(id) ON DELETE CASCADE,
-    FOREIGN KEY (bundle_id) REFERENCES coach_lesson_bundles(id) ON DELETE SET NULL
+    FOREIGN KEY (student_id) REFERENCES coach_students(id) ON DELETE CASCADE
 );
 
 -- Indexes for faster lookups
@@ -465,7 +433,5 @@ CREATE INDEX IF NOT EXISTS idx_device_usage_user_id ON device_usage(user_id);
 -- Coach students indexes
 CREATE INDEX IF NOT EXISTS idx_coach_students_coach ON coach_students(coach_user_id);
 CREATE INDEX IF NOT EXISTS idx_coach_students_active ON coach_students(coach_user_id, is_active);
-CREATE INDEX IF NOT EXISTS idx_coach_lesson_bundles_student ON coach_lesson_bundles(student_id);
 CREATE INDEX IF NOT EXISTS idx_coach_lessons_student ON coach_lessons(student_id);
 CREATE INDEX IF NOT EXISTS idx_coach_lessons_scheduled ON coach_lessons(scheduled_at);
-CREATE INDEX IF NOT EXISTS idx_coach_lessons_bundle ON coach_lessons(bundle_id);
