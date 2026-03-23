@@ -141,19 +141,31 @@ function CoachesNavSidebar() {
             <Home className="w-4 h-4 flex-shrink-0" />
             {t('coaches.navHome')}
           </NavLink>
-          {NAV_ITEMS.map(({ path, labelKey, icon: Icon }) => (
-            <NavLink
-              key={path}
-              to={path}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-                }`
-              }
-            >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              {t(labelKey)}
-            </NavLink>
+          {NAV_SECTIONS.map(({ titleKey, items }, idx) => (
+            <div key={titleKey}>
+              {items.length > 0 && (
+                <>
+                  {idx > 0 && <div className="h-px bg-slate-700 my-1.5" />}
+                  <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-3 pt-2 pb-1">
+                    {t(titleKey)}
+                  </div>
+                  {items.map(({ path, labelKey, icon: Icon }) => (
+                    <NavLink
+                      key={path}
+                      to={path}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                        }`
+                      }
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      {t(labelKey)}
+                    </NavLink>
+                  ))}
+                </>
+              )}
+            </div>
           ))}
         </nav>
 
