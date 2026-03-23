@@ -67,6 +67,11 @@ case "$1" in
                 npm install --silent
                 npm run build
 
+                # Sync nginx config
+                echo "Updating nginx config..."
+                sudo cp "$ROOT_DIR/deploy/nginx.conf" /etc/nginx/sites-available/chess
+                sudo nginx -t
+
                 echo "Starting services..."
                 sudo systemctl start chess-backend
                 sudo systemctl start nginx
@@ -100,6 +105,11 @@ case "$1" in
                 cd "$ROOT_DIR/frontend"
                 npm install --silent
                 npm run build
+
+                # Sync nginx config
+                echo "Updating nginx config..."
+                sudo cp "$ROOT_DIR/deploy/nginx.conf" /etc/nginx/sites-available/chess
+                sudo nginx -t
 
                 echo "Restarting services..."
                 sudo systemctl restart chess-backend
