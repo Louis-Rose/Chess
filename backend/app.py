@@ -2840,17 +2840,20 @@ def list_users():
 @admin_required
 def list_coach_users():
     """List users who registered via the coaches app (admin only)."""
+    # Only count activity from when the coaches app launched
+    COACHES_LAUNCH_DATE = '2026-03-23'
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at, u.sign_in_count, u.session_count,
+            SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at, u.sign_in_count,
                    COALESCE(SUM(a.seconds), 0) as total_seconds,
-                   MAX(a.last_ping) as last_active
+                   MAX(a.last_ping) as last_active,
+                   COUNT(a.id) as session_count
             FROM users u
-            LEFT JOIN user_activity a ON u.id = a.user_id
+            LEFT JOIN user_activity a ON u.id = a.user_id AND a.activity_date >= ?
             WHERE u.registered_app = 'coaches'
             GROUP BY u.id
             ORDER BY u.created_at DESC
-        ''')
+        ''', (COACHES_LAUNCH_DATE,))
         users = []
         for row in cursor.fetchall():
             user = dict(row)
