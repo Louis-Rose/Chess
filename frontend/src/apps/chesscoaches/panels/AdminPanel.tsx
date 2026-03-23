@@ -204,7 +204,7 @@ export function AdminPanel() {
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
-                <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} ticks={[0, 15, 30, 45, 60]} domain={[0, (max: number) => Math.max(60, Math.ceil(max / 15) * 15)]} />
+                <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} ticks={(() => { const max = Math.max(...chartData.map(d => d.minutes)); const ceil = Math.max(60, Math.ceil(max / 60) * 60); return Array.from({ length: ceil / 30 + 1 }, (_, i) => i * 30); })()} domain={[0, (max: number) => Math.max(60, Math.ceil(max / 60) * 60)]} />
                 <Tooltip
                   cursor={false}
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
