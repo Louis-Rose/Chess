@@ -58,7 +58,13 @@ function CoachesNavSidebar() {
                     {(user.name || user.email).charAt(0).toUpperCase()}
                   </div>
                 )}
-                <p className={`text-white font-medium w-full text-center pl-14 break-words ${'LLlLLLLLLLLJJ RRRRRRRRRRRRRRRRRRRR'.length > 16 ? 'text-xs' : 'text-sm'}`}>{'LLlLLLLLLLLJJ RRRRRRRRRRRRRRRRRRRR' /* TODO: revert to user.name */}</p>
+                <p className={`text-white font-medium w-full text-center pl-14 break-words ${(() => {
+                  const name = 'LLlLLLLLLLLJJ RRRRRRRRRRRRRRRRRRRR'; /* TODO: revert to user.name */
+                  const longest = name.split(' ').reduce((a, b) => a.length > b.length ? a : b, '');
+                  if (longest.length > 25) return 'text-[10px]';
+                  if (longest.length > 20) return 'text-xs';
+                  return 'text-sm';
+                })()}`}>{/* TODO: revert to user.name */ 'LLlLLLLLLLLJJ RRRRRRRRRRRRRRRRRRRR'}</p>
               </div>
             </button>
             {showPlayerMenu && (
