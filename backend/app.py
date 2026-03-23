@@ -2875,15 +2875,26 @@ def list_coach_users():
 def get_coach_time_spent():
     """Get daily time spent stats for coaches app users only (from launch date)."""
     COACHES_LAUNCH_DATE = '2026-03-23'
+    exclude_user_id = request.args.get('exclude_user_id', type=int)
     with get_db() as conn:
-        cursor = conn.execute('''
-            SELECT a.activity_date, SUM(a.seconds) as total_seconds
-            FROM user_activity a
-            JOIN users u ON a.user_id = u.id
-            WHERE u.registered_app = 'coaches' AND a.activity_date >= ?
-            GROUP BY a.activity_date
-            ORDER BY a.activity_date ASC
-        ''', (COACHES_LAUNCH_DATE,))
+        if exclude_user_id:
+            cursor = conn.execute('''
+                SELECT a.activity_date, SUM(a.seconds) as total_seconds
+                FROM user_activity a
+                JOIN users u ON a.user_id = u.id
+                WHERE u.registered_app = 'coaches' AND a.activity_date >= ? AND u.id != ?
+                GROUP BY a.activity_date
+                ORDER BY a.activity_date ASC
+            ''', (COACHES_LAUNCH_DATE, exclude_user_id))
+        else:
+            cursor = conn.execute('''
+                SELECT a.activity_date, SUM(a.seconds) as total_seconds
+                FROM user_activity a
+                JOIN users u ON a.user_id = u.id
+                WHERE u.registered_app = 'coaches' AND a.activity_date >= ?
+                GROUP BY a.activity_date
+                ORDER BY a.activity_date ASC
+            ''', (COACHES_LAUNCH_DATE,))
         daily_stats = [dict(row) for row in cursor.fetchall()]
 
     return jsonify({'daily_stats': daily_stats})

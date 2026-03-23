@@ -77,9 +77,11 @@ export function AdminPanel() {
   });
 
   const { data: timeSpentData } = useQuery({
-    queryKey: ['admin-coach-time-spent'],
+    queryKey: ['admin-coach-time-spent', ignoreSelf],
     queryFn: async (): Promise<TimeSpentDay[]> => {
-      const response = await axios.get('/api/admin/coach-time-spent');
+      const response = await axios.get('/api/admin/coach-time-spent', {
+        params: ignoreSelf ? { exclude_user_id: user?.id } : {},
+      });
       return response.data.daily_stats;
     },
     enabled: !!user?.is_admin,
