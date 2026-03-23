@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     cookie_consent TEXT,              -- 'accepted' or NULL (refused/pending are not stored)
     cookie_consent_at TIMESTAMP,      -- When consent was given
     cookie_refusal_count INTEGER DEFAULT 0,  -- How many times user refused before accepting
+    registered_app TEXT,                     -- Which app the user signed up from (e.g. 'coaches')
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

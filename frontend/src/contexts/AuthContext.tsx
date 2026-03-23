@@ -313,7 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ credential })
+      body: JSON.stringify({ credential, registered_app: 'coaches' })
     });
 
     if (!response.ok) {

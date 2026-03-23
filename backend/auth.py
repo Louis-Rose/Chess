@@ -126,7 +126,7 @@ def create_demo_portfolio(user_id: int, conn=None, force: bool = False):
             return _insert_demo_portfolio(user_id, new_conn, force)
 
 
-def get_or_create_user(google_user: dict) -> int:
+def get_or_create_user(google_user: dict, registered_app: str = None) -> int:
     """Get existing user or create new one, return user_id."""
     with get_db() as conn:
         # Try to find existing user
@@ -146,10 +146,10 @@ def get_or_create_user(google_user: dict) -> int:
 
         # Create new user with sign_in_count = 1
         cursor = conn.execute('''
-            INSERT INTO users (google_id, email, name, picture, sign_in_count)
-            VALUES (?, ?, ?, ?, 1)
+            INSERT INTO users (google_id, email, name, picture, sign_in_count, registered_app)
+            VALUES (?, ?, ?, ?, 1, ?)
             RETURNING id
-        ''', (google_user['google_id'], google_user['email'], google_user['name'], google_user['picture']))
+        ''', (google_user['google_id'], google_user['email'], google_user['name'], google_user['picture'], registered_app))
         user_id = cursor.fetchone()['id']
 
         # Create default preferences

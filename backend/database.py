@@ -571,6 +571,15 @@ def init_db():
                 conn.execute("CREATE INDEX idx_coach_students_active ON coach_students(coach_user_id, is_active)")
                 print("[Database] Added coach_user_id column to coach_students")
 
+            # Migration: Add registered_app column to users if not exists
+            conn.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'registered_app'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("ALTER TABLE users ADD COLUMN registered_app TEXT")
+                print("[Database] Added registered_app column to users")
+
             # Seed: Add test students if coach_students is empty
             conn.execute("SELECT COUNT(*) as cnt FROM coach_students")
             row = conn._cursor.fetchone()
@@ -655,6 +664,15 @@ def init_db():
                     conn.execute('DROP TABLE IF EXISTS coach_lesson_bundles')
                     conn.execute('DROP TABLE IF EXISTS coach_students')
                     print("[Database] Recreated coach_students with coach_user_id column")
+
+            # Migration: Add registered_app column to users if not exists
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+            if cursor.fetchone():
+                cursor = conn.execute("PRAGMA table_info(users)")
+                columns = [row['name'] for row in cursor.fetchall()]
+                if 'registered_app' not in columns:
+                    conn.execute('ALTER TABLE users ADD COLUMN registered_app TEXT')
+                    print("[Database] Added registered_app column to users")
 
             # Run full schema
             with open(schema_path, 'r') as f:

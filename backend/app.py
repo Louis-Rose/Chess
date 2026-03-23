@@ -1289,7 +1289,8 @@ def google_auth():
         return jsonify({'error': 'Invalid Google token'}), 401
 
     # Get or create user
-    user_id = get_or_create_user(google_user)
+    registered_app = data.get('registered_app')
+    user_id = get_or_create_user(google_user, registered_app=registered_app)
 
     # Create tokens
     access_token = create_access_token(user_id)
@@ -2824,6 +2825,35 @@ def list_users():
                 continue
             user = dict(row)
             # Convert datetime objects to ISO strings for consistent JSON serialization
+            if user.get('created_at') and hasattr(user['created_at'], 'isoformat'):
+                user['created_at'] = user['created_at'].isoformat()
+            if user.get('updated_at') and hasattr(user['updated_at'], 'isoformat'):
+                user['updated_at'] = user['updated_at'].isoformat()
+            if user.get('last_active') and hasattr(user['last_active'], 'isoformat'):
+                user['last_active'] = user['last_active'].isoformat() + 'Z'
+            users.append(user)
+
+    return jsonify({'users': users, 'total': len(users)})
+
+
+@app.route('/api/admin/coach-users', methods=['GET'])
+@admin_required
+def list_coach_users():
+    """List users who registered via the coaches app (admin only)."""
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at, u.sign_in_count, u.session_count,
+                   COALESCE(SUM(a.seconds), 0) as total_seconds,
+                   MAX(a.last_ping) as last_active
+            FROM users u
+            LEFT JOIN user_activity a ON u.id = a.user_id
+            WHERE u.registered_app = 'coaches'
+            GROUP BY u.id
+            ORDER BY u.created_at DESC
+        ''')
+        users = []
+        for row in cursor.fetchall():
+            user = dict(row)
             if user.get('created_at') and hasattr(user['created_at'], 'isoformat'):
                 user['created_at'] = user['created_at'].isoformat()
             if user.get('updated_at') and hasattr(user['updated_at'], 'isoformat'):

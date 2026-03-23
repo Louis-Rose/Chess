@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     sign_in_count INTEGER DEFAULT 0,
     session_count INTEGER DEFAULT 0,
     last_session_ping TIMESTAMP,
+    registered_app TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

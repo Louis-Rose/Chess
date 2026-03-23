@@ -65,7 +65,7 @@ export function AdminPanel() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async (): Promise<AdminUsersResponse> => {
-      const response = await axios.get('/api/admin/users');
+      const response = await axios.get('/api/admin/coach-users');
       return response.data;
     },
     enabled: !!user?.is_admin,
