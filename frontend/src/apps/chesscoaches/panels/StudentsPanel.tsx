@@ -150,13 +150,33 @@ const TZ_CURRENCY: Record<string, string> = {
   'Pacific/Auckland': 'NZD',
 };
 
-export const COMMON_CURRENCIES = [
+export const CURRENCY_NAMES: Record<string, string> = {
+  USD: 'US Dollar', EUR: 'Euro', GBP: 'British Pound', CAD: 'Canadian Dollar',
+  AUD: 'Australian Dollar', CHF: 'Swiss Franc', JPY: 'Japanese Yen', CNY: 'Chinese Yuan',
+  INR: 'Indian Rupee', BRL: 'Brazilian Real', MXN: 'Mexican Peso', KRW: 'South Korean Won',
+  SGD: 'Singapore Dollar', HKD: 'Hong Kong Dollar', SEK: 'Swedish Krona', NOK: 'Norwegian Krone',
+  DKK: 'Danish Krone', NZD: 'New Zealand Dollar', ZAR: 'South African Rand', PLN: 'Polish Zloty',
+  CZK: 'Czech Koruna', HUF: 'Hungarian Forint', TRY: 'Turkish Lira', ILS: 'Israeli Shekel',
+  AED: 'UAE Dirham', SAR: 'Saudi Riyal', THB: 'Thai Baht', MYR: 'Malaysian Ringgit',
+  PHP: 'Philippine Peso', IDR: 'Indonesian Rupiah', TWD: 'Taiwan Dollar', ARS: 'Argentine Peso',
+  COP: 'Colombian Peso', CLP: 'Chilean Peso', PEN: 'Peruvian Sol', EGP: 'Egyptian Pound',
+  NGN: 'Nigerian Naira', KES: 'Kenyan Shilling', RON: 'Romanian Leu', UAH: 'Ukrainian Hryvnia',
+  PKR: 'Pakistani Rupee', BDT: 'Bangladeshi Taka', VND: 'Vietnamese Dong', QAR: 'Qatari Riyal',
+  LKR: 'Sri Lankan Rupee', MAD: 'Moroccan Dirham', GHS: 'Ghanaian Cedi', ETB: 'Ethiopian Birr',
+  IRR: 'Iranian Rial', LBP: 'Lebanese Pound', VES: 'Venezuelan Bolivar',
+};
+
+const TOP_20_CURRENCIES = [
   'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'CHF', 'JPY', 'CNY', 'INR', 'BRL',
-  'MXN', 'KRW', 'SGD', 'HKD', 'SEK', 'NOK', 'DKK', 'NZD', 'ZAR', 'PLN',
-  'CZK', 'HUF', 'TRY', 'ILS', 'AED', 'SAR', 'THB', 'MYR', 'PHP', 'IDR',
-  'TWD', 'ARS', 'COP', 'CLP', 'PEN', 'EGP', 'NGN', 'KES', 'RON', 'UAH',
-  'PKR', 'BDT', 'VND', 'QAR', 'LKR',
+  'MXN', 'KRW', 'SGD', 'SEK', 'NOK', 'PLN', 'TRY', 'ZAR', 'NZD', 'AED',
 ];
+
+/** Build currency list: top 20 + coach currency + student currency (deduped) */
+export function buildCurrencyList(extras: string[]): string[] {
+  const set = new Set(TOP_20_CURRENCIES);
+  for (const c of extras) { if (c) set.add(c); }
+  return Array.from(set).sort((a, b) => a.localeCompare(b));
+}
 
 export function getCurrencyForTimezone(tz: string): string {
   return TZ_CURRENCY[tz] || '';
@@ -320,17 +340,23 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
       </div>
 
       {/* Row 2: Currency (shown after city is picked) */}
-      {form.timezone && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <div className={label}>{t('coaches.students.currency')}</div>
-            <select className={input} value={form.currency} onChange={e => set('currency', e.target.value)}>
-              <option value="">{lang === 'fr' ? 'Pas de devise' : 'No currency'}</option>
-              {COMMON_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+      {form.timezone && (() => {
+        const coachTzData = localStorage.getItem('lumna_coach_tz');
+        const coachCurrency = coachTzData ? getCurrencyForTimezone(JSON.parse(coachTzData).timezone || '') : '';
+        const studentCurrency = getCurrencyForTimezone(form.timezone);
+        const currencies = buildCurrencyList([coachCurrency, studentCurrency].filter(Boolean));
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <div className={label}>{t('coaches.students.currency')}</div>
+              <select className={input} value={form.currency} onChange={e => set('currency', e.target.value)}>
+                <option value="">{lang === 'fr' ? 'Pas de devise' : 'No currency'}</option>
+                {currencies.map(c => <option key={c} value={c}>{c} ({CURRENCY_NAMES[c] || c})</option>)}
+              </select>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Row 3: Recurring slot (optional) */}
       <div>
