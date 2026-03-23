@@ -596,25 +596,6 @@ export function StudentsPanel() {
   return (
     <PanelShell title={t('coaches.students.title')}>
       <div className="max-w-3xl mx-auto space-y-4">
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          {t('coaches.students.addStudent')}
-        </button>
-
-        {/* Add form */}
-        {showAddForm && (
-          <StudentForm
-            initial={EMPTY_FORM}
-            onSave={handleAddStudent}
-            onCancel={() => setShowAddForm(false)}
-            saving={saving}
-            lang={language}
-          />
-        )}
-
         {/* Student list */}
         {loading ? (
           <div className="space-y-3">
@@ -645,6 +626,25 @@ export function StudentsPanel() {
                 <StudentCard key={s.id} student={s} onRefresh={fetchStudents} lang={language} />
               ))}
           </div>
+        )}
+
+        {/* Add student */}
+        {showAddForm ? (
+          <StudentForm
+            initial={EMPTY_FORM}
+            onSave={handleAddStudent}
+            onCancel={() => setShowAddForm(false)}
+            saving={saving}
+            lang={language}
+          />
+        ) : (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-1.5 mx-auto px-4 py-2 text-slate-400 hover:text-purple-400 text-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            {t('coaches.students.addStudent')}
+          </button>
         )}
       </div>
     </PanelShell>
