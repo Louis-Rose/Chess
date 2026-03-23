@@ -210,8 +210,11 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
               >
                 <option value="">{lang === 'fr' ? 'Choisir l\'heure' : 'Pick hour'}</option>
                 {Array.from({ length: 24 }, (_, i) => {
-                  const h = String(i).padStart(2, '0');
-                  return <option key={i} value={h}>{h}h</option>;
+                  const h24 = String(i).padStart(2, '0');
+                  if (lang === 'fr') return <option key={i} value={h24}>{h24}h</option>;
+                  const period = i < 12 ? 'AM' : 'PM';
+                  const h12 = i === 0 ? 12 : i > 12 ? i - 12 : i;
+                  return <option key={i} value={h24}>{h12} {period}</option>;
                 })}
               </select>
               <select
