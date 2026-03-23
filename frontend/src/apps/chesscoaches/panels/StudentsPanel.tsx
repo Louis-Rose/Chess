@@ -197,14 +197,35 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
             {dayNames.map((d, i) => <option key={i} value={i}>{d}</option>)}
           </select>
           {form.recurring_day !== null && (
-            <select className={input} value={form.recurring_time} onChange={e => set('recurring_time', e.target.value)}>
-              <option value="">--:--</option>
-              {Array.from({ length: 48 }, (_, i) => {
-                const h = String(Math.floor(i / 2)).padStart(2, '0');
-                const m = i % 2 === 0 ? '00' : '30';
-                return <option key={i} value={`${h}:${m}`}>{h}:{m}</option>;
-              })}
-            </select>
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                className={input}
+                value={form.recurring_time ? form.recurring_time.split(':')[0] : ''}
+                onChange={e => {
+                  const h = e.target.value;
+                  const m = form.recurring_time ? form.recurring_time.split(':')[1] : '00';
+                  set('recurring_time', h ? `${h}:${m}` : '');
+                }}
+              >
+                <option value="">HH</option>
+                {Array.from({ length: 24 }, (_, i) => {
+                  const h = String(i).padStart(2, '0');
+                  return <option key={i} value={h}>{h}h</option>;
+                })}
+              </select>
+              <select
+                className={input}
+                value={form.recurring_time ? form.recurring_time.split(':')[1] : '00'}
+                onChange={e => {
+                  const h = form.recurring_time ? form.recurring_time.split(':')[0] : '00';
+                  set('recurring_time', `${h}:${e.target.value}`);
+                }}
+              >
+                {['00', '15', '30', '45'].map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
           )}
         </div>
       </div>
