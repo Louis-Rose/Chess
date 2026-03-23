@@ -62,11 +62,11 @@ function timeAgo(dateStr: string | null, lang: string): string {
     const days = Math.floor(hours / 24);
     return `il y a ${days} jour${days !== 1 ? 's' : ''}`;
   }
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return `${days} day${days !== 1 ? 's' : ''} ago`;
 }
 
 export function AdminPanel() {
