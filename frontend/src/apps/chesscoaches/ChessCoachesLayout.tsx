@@ -33,11 +33,8 @@ function CoachesNavSidebar() {
 
   // Pick the largest font where the longest name part fits on one line
   // Available text width: sidebar 256px - card padding 24px - pl-14 (56px) = 176px
-  const [debugName, setDebugName] = useState(''); // TODO: remove after testing
-  useEffect(() => { (window as any).__setCoachName = setDebugName; return () => { delete (window as any).__setCoachName; }; }, []); // TODO: remove
-  const displayName = debugName || user?.name || '';
   const nameFontClass = useMemo(() => {
-    const name = displayName;
+    const name = user?.name ?? '';
     const longest = name.split(' ').reduce((a, b) => a.length > b.length ? a : b, '');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -48,7 +45,7 @@ function CoachesNavSidebar() {
       if (ctx.measureText(longest).width <= available) return cls;
     }
     return 'text-[10px]';
-  }, [displayName]);
+  }, [user?.name]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -77,7 +74,7 @@ function CoachesNavSidebar() {
                     {(user.name || user.email).charAt(0).toUpperCase()}
                   </div>
                 )}
-                <p className={`text-white font-medium w-full text-center pl-14 break-words ${nameFontClass}`}>{displayName}</p>
+                <p className={`text-white font-medium w-full text-center pl-14 break-words ${nameFontClass}`}>{user.name}</p>
               </div>
             </button>
             {showPlayerMenu && (
