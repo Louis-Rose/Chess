@@ -550,16 +550,14 @@ export function StudentsPanel() {
             </div>
             <p className="text-slate-400 text-sm">{t('coaches.students.empty')}</p>
           </div>
-            ) : (
-              <div className="space-y-2">
-                {filtered
-                  .sort((a, b) => a.student_name.localeCompare(b.student_name))
-                  .map(s => (
-                    <StudentCard key={s.id} student={s} onRefresh={refreshAll} lang={language} />
-                  ))}
-              </div>
-            )}
-          </>
+        ) : (
+          <div className="space-y-2">
+            {filtered
+              .sort((a, b) => a.student_name.localeCompare(b.student_name))
+              .map(s => (
+                <StudentCard key={s.id} student={s} onRefresh={fetchStudents} lang={language} />
+              ))}
+          </div>
         )}
       </div>
     </PanelShell>
