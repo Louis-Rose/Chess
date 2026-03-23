@@ -48,20 +48,25 @@ function formatDuration(totalSeconds: number): string {
 function formatDate(dateStr: string | null, lang: string): string {
   if (!dateStr) return '—';
   const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
-  return new Date(dateStr).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(dateStr).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function timeAgo(dateStr: string | null, lang: string): string {
   if (!dateStr) return '—';
   const diff = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60000);
-  const ago = lang === 'fr' ? '' : ' ago';
-  const prefix = lang === 'fr' ? 'il y a ' : '';
-  if (minutes < 60) return `${prefix}${minutes}m${ago}`;
+  if (lang === 'fr') {
+    if (minutes < 60) return `il y a ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `il y a ${hours} heure${hours !== 1 ? 's' : ''}`;
+    const days = Math.floor(hours / 24);
+    return `il y a ${days} jour${days !== 1 ? 's' : ''}`;
+  }
+  if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${prefix}${hours}h${ago}`;
+  if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
-  return `${prefix}${days}j${ago}`;
+  return `${days}d ago`;
 }
 
 export function AdminPanel() {
@@ -175,7 +180,7 @@ export function AdminPanel() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-amber-500" />
-            <span className="text-slate-400 text-sm">{data?.total ?? 0} {t('coaches.admin.users')}</span>
+            <span className="text-slate-400 text-sm">{data?.total ?? 0} {(data?.total ?? 0) === 1 ? t('coaches.admin.user1') : t('coaches.admin.users')}</span>
           </div>
           <label className="flex items-center gap-2 cursor-pointer text-slate-400 text-sm">
             <input
@@ -223,16 +228,16 @@ export function AdminPanel() {
                   <th className="px-3 py-2 text-left cursor-pointer hover:text-slate-200" onClick={() => handleSort('name')}>
                     {t('coaches.admin.user')} <SortIcon column="name" />
                   </th>
-                  <th className="px-3 py-2 text-left cursor-pointer hover:text-slate-200" onClick={() => handleSort('created_at')}>
+                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('created_at')}>
                     {t('coaches.admin.joined')} <SortIcon column="created_at" />
                   </th>
-                  <th className="px-3 py-2 text-left cursor-pointer hover:text-slate-200" onClick={() => handleSort('last_active')}>
+                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('last_active')}>
                     {t('coaches.admin.lastActive')} <SortIcon column="last_active" />
                   </th>
-                  <th className="px-3 py-2 text-right cursor-pointer hover:text-slate-200" onClick={() => handleSort('session_count')}>
+                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('session_count')}>
                     {t('coaches.admin.sessions')} <SortIcon column="session_count" />
                   </th>
-                  <th className="px-3 py-2 text-right cursor-pointer hover:text-slate-200" onClick={() => handleSort('total_seconds')}>
+                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('total_seconds')}>
                     {t('coaches.admin.time')} <SortIcon column="total_seconds" />
                   </th>
                 </tr>
@@ -255,10 +260,10 @@ export function AdminPanel() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{formatDate(u.created_at, language)}</td>
-                    <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{timeAgo(u.last_active, language)}</td>
-                    <td className="px-3 py-2 text-slate-400 text-right">{u.session_count || 0}</td>
-                    <td className="px-3 py-2 text-slate-400 text-right whitespace-nowrap">{formatDuration(u.total_seconds)}</td>
+                    <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{formatDate(u.created_at, language)}</td>
+                    <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{timeAgo(u.last_active, language)}</td>
+                    <td className="px-3 py-2 text-slate-400 text-center">{u.session_count || 0}</td>
+                    <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{formatDuration(u.total_seconds)}</td>
                   </tr>
                 ))}
               </tbody>

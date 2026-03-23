@@ -331,6 +331,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.previous': 'Previous',
     'coaches.navAdmin': 'Admin',
     // Admin panel
+    'coaches.admin.user1': 'user',
     'coaches.admin.users': 'users',
     'coaches.admin.ignoreSelf': 'Ignore myself',
     'coaches.admin.dailyTimeSpent': 'Daily Time Spent (minutes)',
@@ -680,6 +681,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.previous': 'Précédent',
     'coaches.navAdmin': 'Admin',
     // Admin panel
+    'coaches.admin.user1': 'utilisateur',
     'coaches.admin.users': 'utilisateurs',
     'coaches.admin.ignoreSelf': 'M\'exclure',
     'coaches.admin.dailyTimeSpent': 'Temps passé par jour (minutes)',
