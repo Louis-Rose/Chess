@@ -193,8 +193,9 @@ export function AdminPanel() {
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
-                <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} />
+                <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} ticks={[0, 15, 30, 45, 60]} domain={[0, (max: number) => Math.max(60, Math.ceil(max / 15) * 15)]} />
                 <Tooltip
+                  cursor={false}
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
                   labelStyle={{ color: '#e2e8f0' }}
                   formatter={(value) => [`${value} min`, 'Time']}
