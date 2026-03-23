@@ -248,7 +248,7 @@ function detectCity(): { city: string; timezone: string } | null {
   return null;
 }
 
-function CoachCitySetup({ onSave, lang }: { onSave: (city: string, tz: string) => void; lang: string }) {
+function CoachCitySetup({ onSave, onCancel, lang }: { onSave: (city: string, tz: string) => void; onCancel?: () => void; lang: string }) {
   const { t } = useLanguage();
   const detected = detectCity();
   const [showManual, setShowManual] = useState(false);
@@ -260,7 +260,12 @@ function CoachCitySetup({ onSave, lang }: { onSave: (city: string, tz: string) =
     : [];
 
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
+    <div className="relative flex flex-col items-center justify-center py-16 text-center">
+      {onCancel && (
+        <button onClick={onCancel} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition-colors">
+          <X className="w-5 h-5" />
+        </button>
+      )}
       <div className="w-16 h-16 rounded-full bg-blue-600/10 flex items-center justify-center mb-4">
         <MapPin className="w-8 h-8 text-blue-400" />
       </div>
@@ -324,6 +329,7 @@ export function CalendarPanel() {
   const { t, language } = useLanguage();
 
   const [coachTz, setCoachTz] = useState(getCoachTz);
+  const [changingCity, setChangingCity] = useState(false);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -347,7 +353,7 @@ export function CalendarPanel() {
   const handleSetCity = (city: string, timezone: string) => {
     saveCoachTz(city, timezone);
     setCoachTz({ city, timezone });
-    // Refetch after setting TZ
+    setChangingCity(false);
     setTimeout(() => fetchLessons(), 100);
   };
 
@@ -355,9 +361,9 @@ export function CalendarPanel() {
     <PanelShell title={t('coaches.calendar.title')}>
       <div className="max-w-3xl mx-auto space-y-4">
         {/* Coach city display */}
-        {coachTz && (
+        {coachTz && !changingCity && (
           <button
-            onClick={() => { localStorage.removeItem(COACH_TZ_KEY); setCoachTz(null); }}
+            onClick={() => setChangingCity(true)}
             className="flex items-center gap-2 text-sm text-slate-300 hover:text-purple-400 transition-colors"
           >
             <MapPin className="w-3.5 h-3.5" />
@@ -365,8 +371,12 @@ export function CalendarPanel() {
           </button>
         )}
 
-        {!coachTz ? (
-          <CoachCitySetup onSave={handleSetCity} lang={language} />
+        {!coachTz || changingCity ? (
+          <CoachCitySetup
+            onSave={handleSetCity}
+            onCancel={coachTz ? () => setChangingCity(false) : undefined}
+            lang={language}
+          />
         ) : loading ? (
           <div className="space-y-2">
             {[1, 2, 3].map(i => <div key={i} className="h-12 bg-slate-800 rounded-lg animate-pulse" />)}
