@@ -325,7 +325,7 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-3 pt-1">
+      <div className="flex items-center justify-center gap-3 pt-1">
         <button
           onClick={() => onSave(form)}
           disabled={!form.student_name.trim() || !form.timezone || saving}
