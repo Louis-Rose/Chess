@@ -50,7 +50,7 @@ function CoachesNavSidebar() {
               onClick={() => setShowPlayerMenu(!showPlayerMenu)}
               className="w-full bg-slate-800 rounded-lg p-3 hover:bg-slate-750 transition-colors cursor-pointer"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col items-center gap-2">
                 {user.picture ? (
                   <img src={user.picture} alt="" className="w-10 h-10 rounded-full" />
                 ) : (
@@ -58,10 +58,7 @@ function CoachesNavSidebar() {
                     {(user.name || user.email).charAt(0).toUpperCase()}
                   </div>
                 )}
-                <div className="text-left min-w-0">
-                  <p className="text-white font-medium text-sm truncate">{user.name}</p>
-                  <p className="text-slate-400 text-xs truncate">{user.email}</p>
-                </div>
+                <p className="text-white font-medium text-sm truncate max-w-full">{user.name}</p>
               </div>
             </button>
             {showPlayerMenu && (
@@ -71,7 +68,7 @@ function CoachesNavSidebar() {
                     setShowPlayerMenu(false);
                     await logout();
                   }}
-                  className="w-full px-3 py-2.5 text-left text-red-400 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors"
+                  className="w-full px-3 py-2.5 text-red-400 hover:bg-slate-700 flex items-center justify-center gap-2 text-sm transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
                   {t('chess.logout')}
@@ -81,12 +78,9 @@ function CoachesNavSidebar() {
           </div>
         ) : (
           <div className="mb-1 bg-slate-800 rounded-lg p-3">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col items-center gap-2">
               <div className="w-10 h-10 rounded-full bg-slate-700 animate-pulse" />
-              <div className="flex-1 min-w-0 space-y-1.5">
-                <div className="h-4 w-24 bg-slate-700 rounded animate-pulse" />
-                <div className="h-3 w-16 bg-slate-700 rounded animate-pulse" />
-              </div>
+              <div className="h-4 w-24 bg-slate-700 rounded animate-pulse" />
             </div>
           </div>
         )}
@@ -182,7 +176,6 @@ function MobilePlayerButton() {
         <div className="absolute left-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg overflow-hidden whitespace-nowrap">
           <div className="px-3 py-2 border-b border-slate-700">
             <p className="text-white text-sm font-medium">{user.name}</p>
-            <p className="text-slate-400 text-xs">{user.email}</p>
           </div>
           <button
             onClick={async () => {
