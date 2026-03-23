@@ -136,7 +136,7 @@ export function AdminPanel() {
       const seconds = byDate[key] || 0;
       result.push({
         date: key,
-        label: cur.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+        label: cur.toLocaleDateString('en-GB', { day: '2-digit', month: 'long' }),
         minutes: Math.round(seconds / 60),
       });
       cur.setDate(cur.getDate() + 1);
@@ -192,14 +192,14 @@ export function AdminPanel() {
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
+                <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
                   labelStyle={{ color: '#e2e8f0' }}
                   formatter={(value) => [`${value} min`, 'Time']}
                 />
-                <Bar dataKey="minutes" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="minutes" fill="#16a34a" radius={[2, 2, 0, 0]} activeBar={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>
