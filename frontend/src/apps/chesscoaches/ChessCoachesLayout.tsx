@@ -42,7 +42,7 @@ function CoachesNavSidebar() {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return 'text-sm';
-    const available = 176;
+    const available = 152;
     for (const [cls, font] of [['text-sm', '500 14px Inter,system-ui,sans-serif'], ['text-xs', '500 12px Inter,system-ui,sans-serif'], ['text-[10px]', '500 10px Inter,system-ui,sans-serif']] as [string, string][]) {
       ctx.font = font;
       if (ctx.measureText(longest).width <= available) return cls;
