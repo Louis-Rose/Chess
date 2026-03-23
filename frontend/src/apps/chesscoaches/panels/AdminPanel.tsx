@@ -7,6 +7,7 @@ import axios from 'axios';
 import { Shield, Loader2, ChevronUp, ChevronDown, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 
 interface AdminUser {
@@ -44,25 +45,28 @@ function formatDuration(totalSeconds: number): string {
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
 }
 
-function formatDate(dateStr: string | null): string {
+function formatDate(dateStr: string | null, lang: string): string {
   if (!dateStr) return '—';
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
+  return new Date(dateStr).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function timeAgo(dateStr: string | null): string {
+function timeAgo(dateStr: string | null, lang: string): string {
   if (!dateStr) return '—';
   const diff = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 60) return `${minutes}m ago`;
+  const ago = lang === 'fr' ? '' : ' ago';
+  const prefix = lang === 'fr' ? 'il y a ' : '';
+  if (minutes < 60) return `${prefix}${minutes}m${ago}`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${prefix}${hours}h${ago}`;
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return `${prefix}${days}j${ago}`;
 }
 
 export function AdminPanel() {
   const { user, isLoading: authLoading } = useAuth();
+  const { t, language } = useLanguage();
   const [ignoreSelf, setIgnoreSelf] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_seconds');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -136,13 +140,13 @@ export function AdminPanel() {
       const seconds = byDate[key] || 0;
       result.push({
         date: key,
-        label: cur.toLocaleDateString('en-GB', { day: '2-digit', month: 'long' }),
+        label: cur.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long' }),
         minutes: Math.round(seconds / 60),
       });
       cur.setDate(cur.getDate() + 1);
     }
     return result;
-  }, [timeSpentData]);
+  }, [timeSpentData, language]);
 
   if (!authLoading && (!user || !user.is_admin)) {
     return <Navigate to="/" replace />;
@@ -150,7 +154,7 @@ export function AdminPanel() {
 
   if (authLoading || isLoading) {
     return (
-      <PanelShell title="Admin">
+      <PanelShell title={t('coaches.navAdmin')}>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
         </div>
@@ -166,12 +170,12 @@ export function AdminPanel() {
   };
 
   return (
-    <PanelShell title="Admin">
+    <PanelShell title={t('coaches.navAdmin')}>
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-amber-500" />
-            <span className="text-slate-400 text-sm">{data?.total ?? 0} user{(data?.total ?? 0) !== 1 ? 's' : ''}</span>
+            <span className="text-slate-400 text-sm">{data?.total ?? 0} {t('coaches.admin.users')}</span>
           </div>
           <label className="flex items-center gap-2 cursor-pointer text-slate-400 text-sm">
             <input
@@ -180,7 +184,7 @@ export function AdminPanel() {
               onChange={e => setIgnoreSelf(e.target.checked)}
               className="rounded border-slate-600 bg-slate-700 text-green-600 focus:ring-green-500 focus:ring-offset-0 cursor-pointer"
             />
-            Ignore myself
+            {t('coaches.admin.ignoreSelf')}
           </label>
         </div>
 
@@ -189,7 +193,7 @@ export function AdminPanel() {
           <div className="bg-slate-700/30 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
               <Clock className="w-4 h-4 text-slate-400" />
-              <h3 className="text-sm font-medium text-slate-300">Daily Time Spent (minutes)</h3>
+              <h3 className="text-sm font-medium text-slate-300">{t('coaches.admin.dailyTimeSpent')}</h3>
             </div>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={chartData}>
@@ -200,7 +204,7 @@ export function AdminPanel() {
                   cursor={false}
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
                   labelStyle={{ color: '#e2e8f0' }}
-                  formatter={(value) => [`${value} min`, 'Time']}
+                  formatter={(value) => [`${value} min`, t('coaches.admin.time')]}
                 />
                 <Bar dataKey="minutes" fill="#16a34a" radius={[2, 2, 0, 0]} activeBar={false} />
               </BarChart>
@@ -210,26 +214,26 @@ export function AdminPanel() {
 
         {/* Users Table */}
         {error ? (
-          <p className="text-red-400 text-center py-8">Failed to load users</p>
+          <p className="text-red-400 text-center py-8">{t('coaches.admin.failedLoad')}</p>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-slate-700">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
                   <th className="px-3 py-2 text-left cursor-pointer hover:text-slate-200" onClick={() => handleSort('name')}>
-                    User <SortIcon column="name" />
+                    {t('coaches.admin.user')} <SortIcon column="name" />
                   </th>
                   <th className="px-3 py-2 text-left cursor-pointer hover:text-slate-200" onClick={() => handleSort('created_at')}>
-                    Joined <SortIcon column="created_at" />
+                    {t('coaches.admin.joined')} <SortIcon column="created_at" />
                   </th>
                   <th className="px-3 py-2 text-left cursor-pointer hover:text-slate-200" onClick={() => handleSort('last_active')}>
-                    Last Active <SortIcon column="last_active" />
+                    {t('coaches.admin.lastActive')} <SortIcon column="last_active" />
                   </th>
                   <th className="px-3 py-2 text-right cursor-pointer hover:text-slate-200" onClick={() => handleSort('session_count')}>
-                    Sessions <SortIcon column="session_count" />
+                    {t('coaches.admin.sessions')} <SortIcon column="session_count" />
                   </th>
                   <th className="px-3 py-2 text-right cursor-pointer hover:text-slate-200" onClick={() => handleSort('total_seconds')}>
-                    Time <SortIcon column="total_seconds" />
+                    {t('coaches.admin.time')} <SortIcon column="total_seconds" />
                   </th>
                 </tr>
               </thead>
@@ -251,8 +255,8 @@ export function AdminPanel() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{formatDate(u.created_at)}</td>
-                    <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{timeAgo(u.last_active)}</td>
+                    <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{formatDate(u.created_at, language)}</td>
+                    <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{timeAgo(u.last_active, language)}</td>
                     <td className="px-3 py-2 text-slate-400 text-right">{u.session_count || 0}</td>
                     <td className="px-3 py-2 text-slate-400 text-right whitespace-nowrap">{formatDuration(u.total_seconds)}</td>
                   </tr>

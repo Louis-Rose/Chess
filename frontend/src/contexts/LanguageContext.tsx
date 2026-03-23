@@ -327,6 +327,19 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.payments.lessonUnpaid': 'lesson unpaid',
     'coaches.payments.lessonsUnpaid': 'lessons unpaid',
     'coaches.payments.markPaid': 'Mark paid',
+    // Shared
+    'coaches.previous': 'Previous',
+    'coaches.navAdmin': 'Admin',
+    // Admin panel
+    'coaches.admin.users': 'users',
+    'coaches.admin.ignoreSelf': 'Ignore myself',
+    'coaches.admin.dailyTimeSpent': 'Daily Time Spent (minutes)',
+    'coaches.admin.time': 'Time',
+    'coaches.admin.failedLoad': 'Failed to load users',
+    'coaches.admin.user': 'User',
+    'coaches.admin.joined': 'Joined',
+    'coaches.admin.lastActive': 'Last Active',
+    'coaches.admin.sessions': 'Sessions',
 
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
@@ -663,6 +676,19 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.payments.lessonUnpaid': 'cours non payé',
     'coaches.payments.lessonsUnpaid': 'cours non payés',
     'coaches.payments.markPaid': 'Marquer payé',
+    // Shared
+    'coaches.previous': 'Précédent',
+    'coaches.navAdmin': 'Admin',
+    // Admin panel
+    'coaches.admin.users': 'utilisateurs',
+    'coaches.admin.ignoreSelf': 'M\'exclure',
+    'coaches.admin.dailyTimeSpent': 'Temps passé par jour (minutes)',
+    'coaches.admin.time': 'Temps',
+    'coaches.admin.failedLoad': 'Erreur de chargement des utilisateurs',
+    'coaches.admin.user': 'Utilisateur',
+    'coaches.admin.joined': 'Inscrit',
+    'coaches.admin.lastActive': 'Dernière activité',
+    'coaches.admin.sessions': 'Sessions',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',

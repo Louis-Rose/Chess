@@ -2,6 +2,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface PanelHeaderProps {
   title: string;
@@ -9,6 +10,7 @@ interface PanelHeaderProps {
 
 export function PanelHeader({ title }: PanelHeaderProps) {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   return (
     <div className="flex flex-col pt-2">
@@ -17,7 +19,7 @@ export function PanelHeader({ title }: PanelHeaderProps) {
         className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base px-2 md:px-4"
       >
         <ArrowLeft className="w-5 h-5" />
-        <span>Previous</span>
+        <span>{t('coaches.previous')}</span>
       </button>
       <div className="border-t border-slate-700 mt-2" />
       <h1 className="text-lg font-bold text-slate-100 text-center mt-2">{title}</h1>

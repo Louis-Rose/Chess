@@ -147,7 +147,7 @@ function CoachesNavSidebar() {
               }
             >
               <Shield className="w-4 h-4 flex-shrink-0" />
-              Admin
+              {t('coaches.navAdmin')}
             </NavLink>
           </>
         )}
