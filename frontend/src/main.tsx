@@ -21,8 +21,10 @@ if (new URLSearchParams(window.location.search).has('no_track')) {
   posthog.opt_out_capturing()
 }
 
-// Skip PostHog entirely for excluded users (admin) — checked before init so no data is ever sent
-const isPostHogExcluded = localStorage.getItem('posthog-excluded') === 'true'
+// TODO: re-enable PostHog exclusion after testing
+// const isPostHogExcluded = localStorage.getItem('posthog-excluded') === 'true'
+localStorage.removeItem('posthog-excluded')
+const isPostHogExcluded = false
 
 // PostHog config
 // Note: Minimum session recording duration is configured in PostHog dashboard (Project Settings > Session Replay)
