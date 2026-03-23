@@ -570,6 +570,9 @@ def init_db():
             if row and row['cnt'] == 0:
                 _seed_test_students(conn)
 
+            # Migration: Seed Sophie Dupont with lesson history if not present
+            _seed_sophie_if_missing(conn)
+
     else:
         # SQLite: run migrations and schema
         schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
@@ -687,6 +690,10 @@ def init_db():
                 _seed_test_students(conn)
                 conn.commit()
 
+            # Migration: Seed Sophie Dupont with lesson history if not present
+            _seed_sophie_if_missing(conn)
+            conn.commit()
+
             print("[Database] SQLite schema initialized")
         finally:
             conn.close()
@@ -746,6 +753,56 @@ def _seed_test_students(conn):
         )
 
     print(f"[Database] Seeded 6 test students + 8 lessons for user_id={user_id}")
+
+
+def _seed_sophie_if_missing(conn):
+    """Insert Sophie Dupont + lesson history if she doesn't exist yet."""
+    from datetime import datetime, timedelta
+
+    try:
+        row = conn.execute("SELECT id FROM users WHERE email LIKE '%rose%' OR name LIKE '%Louis%' ORDER BY id LIMIT 1").fetchone()
+        user_id = row['id'] if row else 1
+    except Exception:
+        user_id = 1
+
+    existing = conn.execute(
+        "SELECT id FROM coach_students WHERE student_name = 'Sophie Dupont' AND coach_user_id = ?",
+        (user_id,)
+    ).fetchone()
+    if existing:
+        return
+
+    use_pg = hasattr(conn, '_cursor')
+    if use_pg:
+        conn.execute(
+            "INSERT INTO coach_students (coach_user_id, student_name, timezone, recurring_day, recurring_time) VALUES (?, 'Sophie Dupont', 'Europe/Paris', 2, '14:00')",
+            (user_id,)
+        )
+        sophie_id = conn.execute("SELECT lastval() AS id").fetchone()['id']
+    else:
+        cursor = conn.execute(
+            "INSERT INTO coach_students (coach_user_id, student_name, timezone, recurring_day, recurring_time) VALUES (?, 'Sophie Dupont', 'Europe/Paris', 2, '14:00')",
+            (user_id,)
+        )
+        sophie_id = cursor.lastrowid
+
+    now = datetime.now()
+    lessons = [
+        (sophie_id, (now - timedelta(weeks=6, days=2)).strftime('%Y-%m-%d 14:00:00'), 60, 'completed', 1),
+        (sophie_id, (now - timedelta(weeks=5, days=2)).strftime('%Y-%m-%d 14:00:00'), 60, 'completed', 1),
+        (sophie_id, (now - timedelta(weeks=4, days=2)).strftime('%Y-%m-%d 14:00:00'), 60, 'completed', 1),
+        (sophie_id, (now - timedelta(weeks=3, days=2)).strftime('%Y-%m-%d 14:00:00'), 60, 'cancelled', 0),
+        (sophie_id, (now - timedelta(weeks=2, days=2)).strftime('%Y-%m-%d 14:00:00'), 60, 'completed', 0),
+        (sophie_id, (now - timedelta(weeks=1, days=2)).strftime('%Y-%m-%d 14:00:00'), 60, 'completed', 0),
+        (sophie_id, (now + timedelta(days=(2 - now.weekday()) % 7 or 7)).strftime('%Y-%m-%d 14:00:00'), 60, 'scheduled', 0),
+        (sophie_id, (now + timedelta(days=(2 - now.weekday()) % 7 + 7)).strftime('%Y-%m-%d 14:00:00'), 60, 'scheduled', 0),
+    ]
+    for l in lessons:
+        conn.execute(
+            'INSERT INTO coach_lessons (student_id, scheduled_at, duration_minutes, status, paid) VALUES (?, ?, ?, ?, ?)',
+            l
+        )
+    print(f"[Database] Seeded Sophie Dupont + 8 lessons for user_id={user_id}")
 
 
 # ============= CACHE FUNCTIONS =============
