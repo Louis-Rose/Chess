@@ -87,29 +87,21 @@ function getWeekBounds(): { start: Date; end: Date } {
   return { start, end };
 }
 
-/** Check if any student's TZ has a DST transition in the next 7 days */
-function getDstAlerts(students: Student[]): string[] {
-  const alerts: string[] = [];
-  const now = new Date();
-  const in7d = new Date(now.getTime() + 7 * 86400000);
-
-  const checkedTz = new Set<string>();
-  for (const s of students) {
-    if (checkedTz.has(s.timezone)) continue;
-    checkedTz.add(s.timezone);
-    try {
-      const nowOffset = getUtcOffset(s.timezone, now);
-      const futureOffset = getUtcOffset(s.timezone, in7d);
-      if (nowOffset !== futureOffset) {
-        const city = s.timezone.split('/').pop()?.replace(/_/g, ' ') || s.timezone;
-        const diff = futureOffset - nowOffset;
-        const absDiff = Math.abs(diff);
-        const unit = absDiff === 1 ? 'hour' : 'hours';
-        alerts.push(`${city}: ${diff > 0 ? '+' : '-'}${absDiff} ${unit} in 7 days`);
-      }
-    } catch { /* ignore invalid tz */ }
-  }
-  return alerts;
+/** Check if a timezone has a DST transition in the next 7 days. Returns description or null. */
+function getDstAlert(tz: string): string | null {
+  try {
+    const now = new Date();
+    const in7d = new Date(now.getTime() + 7 * 86400000);
+    const nowOffset = getUtcOffset(tz, now);
+    const futureOffset = getUtcOffset(tz, in7d);
+    if (nowOffset !== futureOffset) {
+      const diff = futureOffset - nowOffset;
+      const absDiff = Math.abs(diff);
+      const unit = absDiff === 1 ? 'hour' : 'hours';
+      return `${diff > 0 ? '+' : '-'}${absDiff} ${unit} in 7 days`;
+    }
+  } catch { /* ignore */ }
+  return null;
 }
 
 function getUtcOffset(tz: string, date: Date): number {
@@ -366,6 +358,7 @@ function StudentCard({ student, onRefresh, lang }: {
   const dayNamesFull = lang === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
   const differentTz = isStudentInDifferentTz(student.timezone);
   const studentLocalTime = formatLocalTime(student.timezone);
+  const dstAlert = getDstAlert(student.timezone);
 
   // Compute default time for lesson form: next recurring slot or empty
   const getDefaultLessonTime = (): string => {
@@ -434,6 +427,12 @@ function StudentCard({ student, onRefresh, lang }: {
               <span className="text-slate-600">({student.timezone.split('/').pop()?.replace(/_/g, ' ')})</span>
               {differentTz && <span className="text-amber-400/70 ml-0.5" title="Different timezone">*</span>}
             </span>
+            {dstAlert && (
+              <span className="flex items-center gap-1 text-amber-400">
+                <AlertTriangle className="w-3 h-3" />
+                {dstAlert}
+              </span>
+            )}
             {/* Recurring slot */}
             {student.recurring_day !== null && student.recurring_time && (
               <span className="text-slate-400">
@@ -647,15 +646,12 @@ export function StudentsPanel() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<Tab>('week');
-  const [dstAlerts, setDstAlerts] = useState<string[]>([]);
 
   const fetchStudents = useCallback(async () => {
     try {
       const res = await authFetch('/api/coaches/students');
       const json = await res.json();
-      const list = json.students || [];
-      setStudents(list);
-      setDstAlerts(getDstAlerts(list));
+      setStudents(json.students || []);
     } catch { /* ignore */ }
   }, []);
 
@@ -698,17 +694,6 @@ export function StudentsPanel() {
   return (
     <PanelShell title={t('coaches.students.title')}>
       <div className="max-w-3xl mx-auto space-y-4">
-        {/* DST alerts */}
-        {dstAlerts.length > 0 && (
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-            <div className="text-xs text-amber-300">
-              <span className="font-medium">{t('coaches.students.dstAlert')}:</span>
-              {dstAlerts.map((a, i) => <div key={i}>{a}</div>)}
-            </div>
-          </div>
-        )}
-
         {/* Tabs */}
         <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1 w-fit">
           <button
