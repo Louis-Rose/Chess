@@ -63,6 +63,14 @@ function formatLocalTime(tz: string): string {
   } catch { return '--:--'; }
 }
 
+function getTimezoneAbbr(tz: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, timeZoneName: 'short',
+    }).formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value || tz;
+  } catch { return tz; }
+}
+
 function formatLessonTime(iso: string, tz?: string): string {
   try {
     const d = new Date(iso);
@@ -373,7 +381,7 @@ function StudentCard({ student, onRefresh, lang }: {
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               <span className="text-slate-200">{studentLocalTime}</span>
-              <span className="text-slate-600">({student.timezone.split('/').pop()?.replace(/_/g, ' ')})</span>
+              <span className="text-slate-200">({getTimezoneAbbr(student.timezone)})</span>
               {differentTz && <span className="text-amber-400/70 ml-0.5" title="Different timezone">*</span>}
             </span>
             {dstAlert && (
@@ -385,7 +393,7 @@ function StudentCard({ student, onRefresh, lang }: {
             {/* Recurring slot */}
             {student.recurring_day !== null && student.recurring_time && (
               <span className="text-slate-400">
-                {dayNamesFull[student.recurring_day]} {student.recurring_time}
+                {t('coaches.students.recurringLabel')} {dayNamesFull[student.recurring_day]} {student.recurring_time}
               </span>
             )}
           </div>
