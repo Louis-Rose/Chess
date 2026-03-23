@@ -309,6 +309,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.students.dstAlert': 'Daylight saving time change coming',
     'coaches.calendar.title': 'My Calendar',
     'coaches.calendar.noLessons': 'No lessons this week. Schedule one from My Students.',
+    'coaches.calendar.detectTitle': 'Are you in...',
+    'coaches.calendar.confirm': 'Yes, confirm',
+    'coaches.calendar.changeCity': 'No, change city',
     'coaches.calendar.setupTitle': 'Set your city',
     'coaches.calendar.setupDesc': 'So we can display lesson times in your timezone.',
 
@@ -629,6 +632,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.students.dstAlert': 'Changement d\'heure (heure d\'été) à venir',
     'coaches.calendar.title': 'Mon calendrier',
     'coaches.calendar.noLessons': 'Aucun cours cette semaine. Planifiez-en un depuis Mes élèves.',
+    'coaches.calendar.detectTitle': 'Vous êtes à...',
+    'coaches.calendar.confirm': 'Oui, confirmer',
+    'coaches.calendar.changeCity': 'Non, changer de ville',
     'coaches.calendar.setupTitle': 'Indiquez votre ville',
     'coaches.calendar.setupDesc': 'Pour afficher les heures de cours dans votre fuseau horaire.',
 

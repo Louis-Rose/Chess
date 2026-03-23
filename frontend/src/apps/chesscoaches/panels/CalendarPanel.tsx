@@ -228,8 +228,22 @@ function saveCoachTz(city: string, timezone: string) {
 
 // ── Coach City Setup ──
 
+function detectCity(): { city: string; timezone: string } | null {
+  try {
+    const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const match = CITY_TIMEZONES.find(([, tz]) => tz === browserTz);
+    if (match) return { city: match[0], timezone: match[1] };
+    // Fallback: use the timezone city part (e.g. "Europe/Paris" → "Paris")
+    const city = browserTz.split('/').pop()?.replace(/_/g, ' ');
+    if (city) return { city, timezone: browserTz };
+  } catch { /* ignore */ }
+  return null;
+}
+
 function CoachCitySetup({ onSave, lang }: { onSave: (city: string, tz: string) => void; lang: string }) {
   const { t } = useLanguage();
+  const detected = detectCity();
+  const [showManual, setShowManual] = useState(false);
   const [query, setQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -242,31 +256,56 @@ function CoachCitySetup({ onSave, lang }: { onSave: (city: string, tz: string) =
       <div className="w-16 h-16 rounded-full bg-blue-600/10 flex items-center justify-center mb-4">
         <MapPin className="w-8 h-8 text-blue-400" />
       </div>
-      <p className="text-slate-300 text-sm font-medium mb-1">{t('coaches.calendar.setupTitle')}</p>
-      <p className="text-slate-500 text-xs mb-4">{t('coaches.calendar.setupDesc')}</p>
-      <div className="relative w-64">
-        <input
-          className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
-          value={query}
-          onChange={e => { setQuery(e.target.value); setShowSuggestions(true); }}
-          onFocus={() => setShowSuggestions(true)}
-          placeholder={lang === 'fr' ? 'Rechercher votre ville...' : 'Search your city...'}
-        />
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-            {suggestions.map(([city, tz]) => (
-              <button
-                key={`${city}-${tz}`}
-                onClick={() => onSave(city, tz)}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors flex justify-between items-center"
-              >
-                <span className="text-slate-100">{city}</span>
-                <span className="text-xs text-slate-400">{getTimezoneAbbr(tz)}</span>
-              </button>
-            ))}
+
+      {detected && !showManual ? (
+        <>
+          <p className="text-slate-300 text-sm font-medium mb-1">{t('coaches.calendar.detectTitle')}</p>
+          <p className="text-slate-200 text-lg font-semibold mb-1">{detected.city}</p>
+          <p className="text-slate-500 text-xs mb-4">{getTimezoneAbbr(detected.timezone)}</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => onSave(detected.city, detected.timezone)}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {t('coaches.calendar.confirm')}
+            </button>
+            <button
+              onClick={() => setShowManual(true)}
+              className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors"
+            >
+              {t('coaches.calendar.changeCity')}
+            </button>
           </div>
-        )}
-      </div>
+        </>
+      ) : (
+        <>
+          <p className="text-slate-300 text-sm font-medium mb-1">{t('coaches.calendar.setupTitle')}</p>
+          <p className="text-slate-500 text-xs mb-4">{t('coaches.calendar.setupDesc')}</p>
+          <div className="relative w-64">
+            <input
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
+              value={query}
+              onChange={e => { setQuery(e.target.value); setShowSuggestions(true); }}
+              onFocus={() => setShowSuggestions(true)}
+              placeholder={lang === 'fr' ? 'Rechercher votre ville...' : 'Search your city...'}
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                {suggestions.map(([city, tz]) => (
+                  <button
+                    key={`${city}-${tz}`}
+                    onClick={() => onSave(city, tz)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors flex justify-between items-center"
+                  >
+                    <span className="text-slate-100">{city}</span>
+                    <span className="text-xs text-slate-400">{getTimezoneAbbr(tz)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
