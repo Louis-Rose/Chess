@@ -172,7 +172,7 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <div className={label}>{t('coaches.students.name')} *</div>
-          <input className={input} value={form.student_name} onChange={e => set('student_name', e.target.value)} placeholder="John Doe" />
+          <input className={input} value={form.student_name} onChange={e => set('student_name', e.target.value)} placeholder={lang === 'fr' ? 'Nom de l\'élève' : 'Student name'} />
         </div>
         <div>
           <div className={label}>{t('coaches.students.timezone')}</div>
