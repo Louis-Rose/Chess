@@ -29,7 +29,8 @@ const isPostHogExcluded = false
 // PostHog config
 // Note: Minimum session recording duration is configured in PostHog dashboard (Project Settings > Session Replay)
 const posthogOptions = {
-  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+  api_host: window.location.origin + '/ph',
+  ui_host: 'https://eu.posthog.com',
   person_profiles: 'identified_only' as const,
   session_idle_timeout_seconds: 600,
   enable_recording_console_log: false,
