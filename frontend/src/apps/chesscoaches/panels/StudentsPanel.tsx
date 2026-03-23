@@ -497,8 +497,15 @@ function StudentCard({ student, onRefresh, lang }: {
           </div>
         </div>
 
-        {/* Next lesson badge */}
+        {/* Right side: edit pen + next lesson + chevron */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+            className="text-slate-500 hover:text-slate-300 transition-colors p-1"
+            title={t('coaches.students.editStudent')}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
           {student.next_lesson && (
             <span className="text-xs px-2 py-1 rounded-lg border bg-blue-500/20 text-blue-400 border-blue-500/30">
               {formatLessonTime(student.next_lesson.scheduled_at)}
@@ -531,10 +538,7 @@ function StudentCard({ student, onRefresh, lang }: {
               onClick={(e) => { e.stopPropagation(); setShowLessonForm(!showLessonForm); }}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 rounded-lg text-xs font-medium transition-colors"
             >
-              <Calendar className="w-3.5 h-3.5" />{t('coaches.students.scheduleLesson')}
-            </button>
-            <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-slate-400 hover:text-slate-200 text-xs transition-colors">
-              <Pencil className="w-3.5 h-3.5" />{t('coaches.students.editStudent')}
+              <Calendar className="w-3.5 h-3.5" />{t('coaches.students.scheduleLessonFull')}
             </button>
 
             {confirmDelete ? (
@@ -549,7 +553,7 @@ function StudentCard({ student, onRefresh, lang }: {
               </div>
             ) : (
               <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-red-400 text-xs transition-colors ml-auto">
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-3.5 h-3.5" />{t('coaches.students.deleteStudent')}
               </button>
             )}
           </div>
