@@ -65,7 +65,7 @@ function formatDate(iso: string, lang: string): string {
   try {
     const locale = lang === 'fr' ? 'fr-FR' : 'en-US';
     return new Intl.DateTimeFormat(locale, {
-      weekday: 'short', month: 'short', day: 'numeric',
+      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: lang !== 'fr',
     }).format(new Date(iso));
   } catch { return iso; }
@@ -558,23 +558,6 @@ export function StudentDetailPage() {
                 <Calendar className="w-4 h-4" />
                 {t('coaches.students.scheduleLessonFull')}
               </button>
-              <div className="flex-1" />
-              {confirmDelete ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-red-400">{t('coaches.students.deleteConfirm')}</span>
-                  <button onClick={handleDelete} className="px-2 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-500 transition-colors">
-                    {t('coaches.students.deleteStudent')}
-                  </button>
-                  <button onClick={() => setConfirmDelete(false)} className="text-slate-400 hover:text-slate-200">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-red-400 text-xs transition-colors">
-                  <Trash2 className="w-3.5 h-3.5" />
-                  {t('coaches.students.deleteStudent')}
-                </button>
-              )}
             </div>
 
             {/* Lesson form */}
@@ -676,6 +659,28 @@ export function StudentDetailPage() {
         {lessons.length === 0 && !showLessonForm && (
           <div className="text-center py-8 text-slate-500 text-sm">
             {t('coaches.student.noLessons')}
+          </div>
+        )}
+
+        {/* Delete student — bottom of page */}
+        {!editing && (
+          <div className="flex justify-center pt-8 pb-4">
+            {confirmDelete ? (
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-red-400">{t('coaches.students.deleteConfirm')}</span>
+                <button onClick={handleDelete} className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-500 transition-colors">
+                  {t('coaches.students.deleteStudentFull')}
+                </button>
+                <button onClick={() => setConfirmDelete(false)} className="text-slate-400 hover:text-slate-200">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-red-400 text-xs transition-colors">
+                <Trash2 className="w-3.5 h-3.5" />
+                {t('coaches.students.deleteStudentFull')}
+              </button>
+            )}
           </div>
         )}
       </div>
