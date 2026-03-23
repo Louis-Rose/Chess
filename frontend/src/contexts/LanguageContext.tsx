@@ -314,6 +314,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.changeCity': 'No, change city',
     'coaches.calendar.setupTitle': 'Set your city',
     'coaches.calendar.setupDesc': 'So we can display lesson times in your timezone.',
+    'coaches.calendar.myCity': 'My city',
 
     // Tax Calculator
     'taxCalc.title': 'Tax Calculator',
@@ -637,6 +638,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.changeCity': 'Non, changer de ville',
     'coaches.calendar.setupTitle': 'Indiquez votre ville',
     'coaches.calendar.setupDesc': 'Pour afficher les heures de cours dans votre fuseau horaire.',
+    'coaches.calendar.myCity': 'Ma ville',
 
     // Tax Calculator
     'taxCalc.title': 'Simulateur Fiscal',
