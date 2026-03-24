@@ -74,7 +74,6 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
@@ -84,7 +83,6 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
       document.execCommand('copy');
       document.body.removeChild(textArea);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     }
   };
 
