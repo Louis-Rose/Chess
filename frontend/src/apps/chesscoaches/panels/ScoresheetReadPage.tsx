@@ -697,6 +697,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
           <Download className="w-3 h-3" /> Download PGN
         </button>
         <CopyPgnButton moves={moves} meta={meta} variant="model" />
+        <ChesscomAnalysisButton moves={moves} meta={meta} />
         <LichessStudyButton moves={moves} meta={meta} fileName={fileName} />
       </>)}
 
@@ -738,6 +739,25 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
         </div>
       )}
     </div>
+  );
+}
+
+function ChesscomAnalysisButton({ moves, meta }: {
+  moves: Move[];
+  meta?: { white?: string; black?: string; result?: string };
+}) {
+  const { t } = useLanguage();
+  const handleClick = () => {
+    const pgn = buildPgn(moves, meta);
+    window.open(`https://www.chess.com/analysis?pgn=${encodeURIComponent(pgn)}`, '_blank');
+  };
+  return (
+    <button
+      onClick={handleClick}
+      className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
+    >
+      <ExternalLink className="w-3 h-3" /> {t('coaches.lichess.openChesscom')}
+    </button>
   );
 }
 

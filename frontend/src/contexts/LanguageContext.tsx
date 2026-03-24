@@ -283,6 +283,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.mistakes.selectAnalysis': 'Select an analysis',
 
     // Lichess integration
+    'coaches.lichess.openChesscom': 'Open in Chess.com Analysis',
     'coaches.lichess.sendToStudy': 'Send to Lichess Study',
     'coaches.lichess.usernamePrompt': 'Enter your Lichess username',
     'coaches.lichess.usernameHint': 'This is needed to list your studies',
@@ -653,6 +654,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.mistakes.selectAnalysis': 'Sélectionnez une analyse',
 
     // Lichess integration
+    'coaches.lichess.openChesscom': 'Ouvrir dans l\'analyse Chess.com',
     'coaches.lichess.sendToStudy': 'Envoyer vers une étude Lichess',
     'coaches.lichess.usernamePrompt': 'Entrez votre pseudo Lichess',
     'coaches.lichess.usernameHint': 'Nécessaire pour lister vos études',
