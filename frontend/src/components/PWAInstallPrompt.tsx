@@ -153,7 +153,7 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
             </button>
             {copied && (
               <p className="flex items-center justify-center gap-2 mt-3 text-sm text-green-800 dark:text-green-200">
-                {platform === 'ios-other' && <img src="/icons/safari.svg" alt="Safari" className="w-5 h-5" />}
+                {platform === 'ios-other' && <img src="/icons/safari-logo.jpeg" alt="Safari" className="w-5 h-5 rounded" />}
                 {platform === 'android-other' && <img src="/icons/chrome.svg" alt="Chrome" className="w-5 h-5" />}
                 {isFr
                   ? `Ouvrez ${preferredBrowser} et collez le lien`
