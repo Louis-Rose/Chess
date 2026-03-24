@@ -458,6 +458,10 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
         moves={validatedMoves}
         meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
       />
+      <ChesscomLibraryButton
+        moves={validatedMoves}
+        meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
+      />
       <LichessStudyButton
         moves={validatedMoves}
         meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
@@ -707,6 +711,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
         </button>
         <CopyPgnButton moves={moves} meta={meta} variant="model" />
         <ChesscomAnalysisButton moves={moves} meta={meta} />
+        <ChesscomLibraryButton moves={moves} meta={meta} />
         <LichessStudyButton moves={moves} meta={meta} fileName={fileName} />
       </>)}
 
@@ -769,6 +774,45 @@ function ChesscomAnalysisButton({ moves, meta }: {
       className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
     >
       <ExternalLink className="w-3 h-3" /> {t('coaches.lichess.openChesscom')}
+    </button>
+  );
+}
+
+function ChesscomLibraryButton({ moves, meta }: {
+  moves: Move[];
+  meta?: { white?: string; black?: string; result?: string };
+}) {
+  const { t } = useLanguage();
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const handleClick = async () => {
+    const pgn = buildPgn(moves, meta);
+    try {
+      await navigator.clipboard.writeText(pgn);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = pgn;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setCopied(true);
+    timerRef.current = setTimeout(() => setCopied(false), 3000);
+    setTimeout(() => window.open('https://www.chess.com/library/my-collections', '_blank'), 500);
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
+    >
+      {copied
+        ? <><Check className="w-3 h-3 text-green-400" /> <span className="text-green-400">{t('coaches.chesscom.copiedToLibrary')}</span></>
+        : <><Copy className="w-3 h-3" /> {t('coaches.chesscom.syncToLibrary')}</>
+      }
     </button>
   );
 }

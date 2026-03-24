@@ -284,6 +284,8 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Lichess integration
     'coaches.lichess.openChesscom': 'Open in Chess.com Analysis',
+    'coaches.chesscom.syncToLibrary': 'Sync to Chess.com Library',
+    'coaches.chesscom.copiedToLibrary': 'PGN copied! Paste it in your Library',
     'coaches.lichess.sendToStudy': 'Send to Lichess Study',
     'coaches.lichess.usernamePrompt': 'Enter your Lichess username',
     'coaches.lichess.usernameHint': 'This is needed to list your studies',
@@ -655,6 +657,8 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Lichess integration
     'coaches.lichess.openChesscom': 'Ouvrir dans l\'analyse Chess.com',
+    'coaches.chesscom.syncToLibrary': 'Sync vers la Bibliothèque Chess.com',
+    'coaches.chesscom.copiedToLibrary': 'PGN copié ! Collez-le dans votre Bibliothèque',
     'coaches.lichess.sendToStudy': 'Envoyer vers une étude Lichess',
     'coaches.lichess.usernamePrompt': 'Entrez votre pseudo Lichess',
     'coaches.lichess.usernameHint': 'Nécessaire pour lister vos études',
