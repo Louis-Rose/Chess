@@ -101,34 +101,21 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
       >
         <X className="w-4 h-4" />
       </button>
-      <div className="flex flex-col items-center text-center gap-3">
-        <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
-          <Download className="w-5 h-5 text-white" />
-        </div>
+      <div className="flex flex-col items-center text-center gap-2">
+        <h3 className="font-semibold text-green-900 dark:text-green-100 flex items-center gap-2">
+          <Download className="w-4 h-4" />
+          {content.title}
+        </h3>
         <div className="w-full">
-          <h3 className="font-semibold text-green-900 dark:text-green-100 mb-1">
-            {content.title}
-          </h3>
 
-          <div className="text-sm text-green-800 dark:text-green-200 space-y-3">
+          <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
             {content.steps.map((step, i) => (
-              <div key={i}>
-                <p className="flex items-center justify-center gap-2">
-                  {!isNonPreferredBrowser && step.icon && <><span className="font-medium">{i + 1}.</span><step.icon className="w-4 h-4 inline flex-shrink-0" /></>}
-                  {!isNonPreferredBrowser && step.iconSrc && <img src={step.iconSrc} alt="" className="w-7 h-7 inline flex-shrink-0" />}
-                  {!isNonPreferredBrowser && !step.icon && !step.iconSrc && <span className="font-medium">{i + 1}.</span>}
-                  <span>{step.text}</span>
-                </p>
-                {content.screenshots?.[i] && (
-                  <img
-                    src={content.screenshots[i]}
-                    alt={`${isFr ? 'Étape' : 'Step'} ${i + 1}`}
-                    className={`mt-2 rounded-lg border border-green-200 dark:border-green-700 mx-auto block ${
-                      i === 1 || i === 3 ? 'h-44' : 'h-28'
-                    }`}
-                  />
-                )}
-              </div>
+              <p key={i} className="flex items-center justify-center gap-2">
+                {!isNonPreferredBrowser && step.icon && <><span className="font-medium">{i + 1}.</span><step.icon className="w-4 h-4 inline flex-shrink-0" /></>}
+                {!isNonPreferredBrowser && step.iconSrc && <img src={step.iconSrc} alt="" className="w-7 h-7 inline flex-shrink-0" />}
+                {!isNonPreferredBrowser && !step.icon && !step.iconSrc && <span className="font-medium">{i + 1}.</span>}
+                <span>{step.text}</span>
+              </p>
             ))}
           </div>
 
