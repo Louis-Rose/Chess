@@ -1,7 +1,7 @@
 // PWA Install Prompt - shows device-specific instructions for installing the app
 
 import { useState } from 'react';
-import { Share, MoreVertical, Download, Copy, Check, X, ChevronDown } from 'lucide-react';
+import { Share, MoreVertical, Download, Copy, Check, X, ChevronDown, SquarePlus } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 type Platform = 'ios-safari' | 'ios-other' | 'android-chrome' | 'android-other' | 'desktop' | 'unknown';
@@ -189,6 +189,7 @@ function getContent(platform: Platform, language: string): ContentData | null {
           },
           {
             text: isFr ? 'Appuyez sur "Sur l\'écran d\'accueil"' : 'Tap "Add to Home Screen"',
+            icon: SquarePlus,
           },
         ],
         screenshots: ['/pwa-screenshots/step1.png', '/pwa-screenshots/step2.png', '/pwa-screenshots/step3.png', '/pwa-screenshots/step4.png'],
