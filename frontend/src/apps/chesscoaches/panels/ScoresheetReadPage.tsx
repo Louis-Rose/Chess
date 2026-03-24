@@ -801,7 +801,7 @@ function ChesscomLibraryButton({ moves, meta }: {
     if (timerRef.current) clearTimeout(timerRef.current);
     setCopied(true);
     timerRef.current = setTimeout(() => setCopied(false), 3000);
-    setTimeout(() => window.open('https://www.chess.com/library', '_blank'), 500);
+    setTimeout(() => window.open('https://www.chess.com/analysis/collections', '_blank'), 500);
   };
 
   return (
