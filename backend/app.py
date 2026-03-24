@@ -1238,6 +1238,37 @@ def get_unpaid_lessons():
     return jsonify({'lessons': [dict(r) for r in rows]})
 
 
+@app.route('/api/coaches/lichess/studies', methods=['GET'])
+@login_required
+def get_lichess_studies():
+    """Fetch a Lichess user's studies via the Lichess API."""
+    username = request.args.get('username', '').strip()
+    if not username:
+        return jsonify({'error': 'Lichess username required'}), 400
+    token = os.environ.get('LICHESS_TOKEN', '')
+    headers = {'Accept': 'application/x-ndjson'}
+    if token:
+        headers['Authorization'] = f'Bearer {token}'
+    try:
+        resp = http_requests.get(
+            f'https://lichess.org/api/study/by/{username}',
+            headers=headers, timeout=10, stream=True
+        )
+        if resp.status_code == 404:
+            return jsonify({'studies': []})
+        resp.raise_for_status()
+        import json as _json
+        studies = []
+        for line in resp.iter_lines():
+            if line:
+                obj = _json.loads(line)
+                studies.append({'id': obj['id'], 'name': obj['name']})
+        return jsonify({'studies': studies})
+    except http_requests.RequestException as e:
+        logger.error(f'Lichess API error: {e}')
+        return jsonify({'error': 'Failed to fetch Lichess studies'}), 502
+
+
 @app.route('/api/win-prediction-stream', methods=['GET'])
 def get_win_prediction_stream():
     """SSE endpoint that streams progress while analyzing win prediction patterns."""

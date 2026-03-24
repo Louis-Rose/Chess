@@ -282,6 +282,17 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.about.gemini': 'Scoresheet and diagram recognition',
     'coaches.mistakes.selectAnalysis': 'Select an analysis',
 
+    // Lichess integration
+    'coaches.lichess.sendToStudy': 'Send to Lichess Study',
+    'coaches.lichess.usernamePrompt': 'Enter your Lichess username',
+    'coaches.lichess.usernameHint': 'This is needed to list your studies',
+    'coaches.lichess.save': 'Save',
+    'coaches.lichess.cancel': 'Cancel',
+    'coaches.lichess.loading': 'Loading studies...',
+    'coaches.lichess.noStudies': 'No studies found',
+    'coaches.lichess.selectStudy': 'Select a study',
+    'coaches.lichess.changeUser': 'Change',
+
     // Students panel — scheduling
     'coaches.students.title': 'My Students',
     'coaches.students.empty': 'No students yet. Add your first student to get started.',
@@ -636,6 +647,17 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.about.chesscomApi': 'Profils de joueurs et données de parties',
     'coaches.about.gemini': 'Reconnaissance de feuilles de partie et diagrammes',
     'coaches.mistakes.selectAnalysis': 'Sélectionnez une analyse',
+
+    // Lichess integration
+    'coaches.lichess.sendToStudy': 'Envoyer vers une étude Lichess',
+    'coaches.lichess.usernamePrompt': 'Entrez votre pseudo Lichess',
+    'coaches.lichess.usernameHint': 'Nécessaire pour lister vos études',
+    'coaches.lichess.save': 'Enregistrer',
+    'coaches.lichess.cancel': 'Annuler',
+    'coaches.lichess.loading': 'Chargement des études...',
+    'coaches.lichess.noStudies': 'Aucune étude trouvée',
+    'coaches.lichess.selectStudy': 'Choisir une étude',
+    'coaches.lichess.changeUser': 'Changer',
 
     // Students panel — scheduling
     'coaches.students.title': 'Mes élèves',

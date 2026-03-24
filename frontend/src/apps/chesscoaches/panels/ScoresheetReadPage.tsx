@@ -1,11 +1,11 @@
 // Scoresheet reader page — reads scoresheets with Gemini, supports iterative correction
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download, Play, RotateCcw, Square } from 'lucide-react';
+import { Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download, Play, RotateCcw, Square, ExternalLink } from 'lucide-react';
 import { PanelShell } from '../components/PanelShell';
 import { UploadBox } from '../components/UploadBox';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { useCoachesData } from '../contexts/CoachesDataContext';
+import { useCoachesData, getCoachesPrefs, saveCoachesPrefs } from '../contexts/CoachesDataContext';
 import type { ScoresheetMove as Move, ScoresheetReadEntry as ReadEntry } from '../contexts/CoachesDataContext';
 
 // Ground truth for known scoresheets — keyed by filename stem (without extension)
@@ -697,6 +697,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
           <Download className="w-3 h-3" /> Download PGN
         </button>
         <CopyPgnButton moves={moves} meta={meta} variant="model" />
+        <LichessStudyButton moves={moves} meta={meta} />
       </>)}
 
       {/* Edit modal */}
@@ -737,6 +738,172 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
         </div>
       )}
     </div>
+  );
+}
+
+function LichessStudyButton({ moves, meta }: {
+  moves: Move[];
+  meta?: { white?: string; black?: string; result?: string };
+}) {
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const [usernameInput, setUsernameInput] = useState('');
+  const [needsUsername, setNeedsUsername] = useState(false);
+  const [studies, setStudies] = useState<{ id: string; name: string }[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const fetchStudies = useCallback(async (username: string) => {
+    setLoading(true);
+    setError('');
+    setStudies(null);
+    try {
+      const res = await fetch(`/api/coaches/lichess/studies?username=${encodeURIComponent(username)}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed');
+      setStudies(json.studies);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleOpen = () => {
+    const prefs = getCoachesPrefs();
+    if (prefs.lichess_username) {
+      setOpen(true);
+      setNeedsUsername(false);
+      fetchStudies(prefs.lichess_username);
+    } else {
+      setOpen(true);
+      setNeedsUsername(true);
+      setUsernameInput('');
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  };
+
+  const handleSaveUsername = () => {
+    const trimmed = usernameInput.trim();
+    if (!trimmed) return;
+    saveCoachesPrefs({ lichess_username: trimmed });
+    setNeedsUsername(false);
+    fetchStudies(trimmed);
+  };
+
+  const handleChangeUser = () => {
+    setNeedsUsername(true);
+    setStudies(null);
+    setUsernameInput(getCoachesPrefs().lichess_username || '');
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const handleSelectStudy = (study: { id: string; name: string }) => {
+    // For now, open the study in a new tab — actual PGN import will come next
+    const _pgn = buildPgn(moves, meta);
+    window.open(`https://lichess.org/study/${study.id}`, '_blank');
+    setOpen(false);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setStudies(null);
+    setError('');
+    setNeedsUsername(false);
+  };
+
+  return (
+    <>
+      <button
+        onClick={handleOpen}
+        className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
+      >
+        <ExternalLink className="w-3 h-3" /> {t('coaches.lichess.sendToStudy')}
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[1.5px]"
+          onClick={handleClose}
+        >
+          <div
+            className="bg-slate-800 rounded-xl p-4 min-w-[300px] max-w-[360px] shadow-xl border border-slate-600"
+            onClick={e => e.stopPropagation()}
+          >
+            {needsUsername ? (
+              <>
+                <div className="text-slate-200 text-sm font-medium mb-1">{t('coaches.lichess.usernamePrompt')}</div>
+                <div className="text-slate-500 text-xs mb-3">{t('coaches.lichess.usernameHint')}</div>
+                <input
+                  ref={inputRef}
+                  value={usernameInput}
+                  onChange={e => setUsernameInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveUsername()}
+                  placeholder="username"
+                  className="w-full bg-slate-700 text-slate-100 text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
+                />
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={handleSaveUsername}
+                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
+                  >
+                    {t('coaches.lichess.save')}
+                  </button>
+                  <button
+                    onClick={handleClose}
+                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-1.5 rounded-lg transition-colors"
+                  >
+                    {t('coaches.lichess.cancel')}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-slate-200 text-sm font-medium">{t('coaches.lichess.selectStudy')}</div>
+                  <button
+                    onClick={handleChangeUser}
+                    className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
+                  >
+                    {getCoachesPrefs().lichess_username} · {t('coaches.lichess.changeUser')}
+                  </button>
+                </div>
+                {loading && (
+                  <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse py-6">
+                    <Clock className="w-3.5 h-3.5 animate-spin" />
+                    <span className="text-xs">{t('coaches.lichess.loading')}</span>
+                  </div>
+                )}
+                {error && <p className="text-red-400 text-center py-3 text-xs">{error}</p>}
+                {studies && studies.length === 0 && (
+                  <p className="text-slate-500 text-center py-6 text-xs">{t('coaches.lichess.noStudies')}</p>
+                )}
+                {studies && studies.length > 0 && (
+                  <div className="max-h-[300px] overflow-y-auto space-y-1">
+                    {studies.map(s => (
+                      <button
+                        key={s.id}
+                        onClick={() => handleSelectStudy(s)}
+                        className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button
+                  onClick={handleClose}
+                  className="w-full mt-3 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-1.5 rounded-lg transition-colors"
+                >
+                  {t('coaches.lichess.cancel')}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
