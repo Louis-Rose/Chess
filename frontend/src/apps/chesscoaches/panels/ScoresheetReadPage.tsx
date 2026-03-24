@@ -126,6 +126,31 @@ export function ScoresheetReadPage() {
 
   const groundTruth = useMemo(() => getGroundTruth(fileName), [fileName]);
 
+  // Pick up shared image from Web Share Target
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('shared') !== '1') return;
+    // Clean up URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete('shared');
+    window.history.replaceState({}, '', url.pathname + url.search);
+    // Retrieve file from SW cache
+    (async () => {
+      try {
+        const cache = await caches.open('share-target-temp');
+        const response = await cache.match('/shared-image');
+        if (!response) return;
+        const blob = await response.blob();
+        const name = response.headers.get('X-File-Name') || 'shared-scoresheet.jpg';
+        const file = new File([blob], name, { type: blob.type });
+        const reader = new FileReader();
+        reader.onload = () => scoresheetSetImage(file, reader.result as string, name);
+        reader.readAsDataURL(file);
+        await cache.delete('/shared-image');
+      } catch { /* ignore */ }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [showImageModal, setShowImageModal] = useState(false);
   const closeModal = useCallback(() => setShowImageModal(false), []);
   useEffect(() => {

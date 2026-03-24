@@ -1,5 +1,5 @@
 // Service Worker for LUMRA PWA
-const CACHE_NAME = 'lumna-coach-v1';
+const CACHE_NAME = 'lumna-coach-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -32,12 +32,34 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - network first, fall back to cache
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Handle Web Share Target POST
+  if (event.request.method === 'POST' && url.pathname === '/coach/share-target') {
+    event.respondWith(
+      (async () => {
+        const formData = await event.request.formData();
+        const file = formData.get('image');
+        // Store file temporarily so the page can pick it up
+        const cache = await caches.open('share-target-temp');
+        if (file) {
+          const response = new Response(file, {
+            headers: { 'Content-Type': file.type, 'X-File-Name': file.name },
+          });
+          await cache.put('/shared-image', response);
+        }
+        // Redirect to the scoresheet reader with a flag
+        return Response.redirect('/coach/scoresheets?shared=1', 303);
+      })()
+    );
+    return;
+  }
+
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
   // Skip API and PostHog calls - always fetch from network
-  if (event.request.url.includes('/api/')) return;
-  if (event.request.url.includes('/ph/')) return;
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/ph/')) return;
 
   event.respondWith(
     fetch(event.request)
