@@ -1,7 +1,7 @@
 // PWA Install Prompt - shows device-specific instructions for installing the app
 
 import { useState } from 'react';
-import { Share, MoreVertical, Download, Copy, Check, X, ChevronDown, SquarePlus } from 'lucide-react';
+import { Share, MoreVertical, Download, Copy, Check, X, ChevronUp, SquarePlus } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 type Platform = 'ios-safari' | 'ios-other' | 'android-chrome' | 'android-other' | 'desktop' | 'unknown';
@@ -112,7 +112,11 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
             {content.steps.map((step, i) => (
               <p key={i} className="flex items-center gap-2">
                 <span className="font-medium w-4 text-right flex-shrink-0">{i + 1}.</span>
-                {!isNonPreferredBrowser && step.icon && !step.hideIcon && <step.icon className="w-4 h-4 flex-shrink-0" />}
+                {!isNonPreferredBrowser && step.icon && !step.hideIcon && (
+                  step.circled
+                    ? <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center flex-shrink-0"><step.icon className="w-3 h-3" /></span>
+                    : <step.icon className="w-4 h-4 flex-shrink-0" />
+                )}
                 {!isNonPreferredBrowser && step.iconSrc && <img src={step.iconSrc} alt="" className="w-7 h-7 flex-shrink-0" />}
                 <span>{step.text}</span>
               </p>
@@ -160,6 +164,7 @@ interface StepContent {
   icon?: React.ComponentType<{ className?: string }>;
   iconSrc?: string;
   hideIcon?: boolean;
+  circled?: boolean;
 }
 
 interface ContentData {
@@ -178,6 +183,8 @@ function getContent(platform: Platform, language: string): ContentData | null {
         steps: [
           {
             text: isFr ? '"..." dans la barre d\'adresse' : '"..." in the address bar',
+            icon: MoreVertical,
+            circled: true,
           },
           {
             text: isFr ? '"Partager"' : '"Share"',
@@ -185,7 +192,8 @@ function getContent(platform: Platform, language: string): ContentData | null {
           },
           {
             text: isFr ? '"En voir plus"' : '"More"',
-            icon: ChevronDown
+            icon: ChevronUp,
+            circled: true,
           },
           {
             text: isFr ? '"Sur l\'écran d\'accueil"' : '"Add to Home Screen"',
