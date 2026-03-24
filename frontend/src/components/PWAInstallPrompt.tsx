@@ -101,7 +101,7 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
       >
         <X className="w-4 h-4" />
       </button>
-      <div className="flex flex-col items-center text-center gap-2">
+      <div className="flex flex-col items-center text-center gap-1 mt-1">
         <h3 className="font-semibold text-green-900 dark:text-green-100 flex items-center gap-2">
           <Download className="w-4 h-4" />
           {content.title}
