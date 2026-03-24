@@ -697,7 +697,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
           <Download className="w-3 h-3" /> Download PGN
         </button>
         <CopyPgnButton moves={moves} meta={meta} variant="model" />
-        <LichessStudyButton moves={moves} meta={meta} />
+        <LichessStudyButton />
       </>)}
 
       {/* Edit modal */}
@@ -741,10 +741,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
   );
 }
 
-function LichessStudyButton({ moves, meta }: {
-  moves: Move[];
-  meta?: { white?: string; black?: string; result?: string };
-}) {
+function LichessStudyButton() {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
