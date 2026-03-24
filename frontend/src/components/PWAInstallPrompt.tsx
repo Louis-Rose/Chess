@@ -191,7 +191,7 @@ function getContent(platform: Platform, language: string): ContentData | null {
             icon: Share
           },
           {
-            text: isFr ? '"En voir plus"' : '"More"',
+            text: isFr ? '"En voir plus"' : '"View More"',
             icon: ChevronDown,
             circled: true,
           },
