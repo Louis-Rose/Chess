@@ -29,6 +29,6 @@ export function LumnaBrand({ hideSubtitle }: { hideSubtitle?: boolean } = {}) {
 export function LumnaBrandSubtitle() {
   const { t } = useLanguage();
   return (
-    <div className="text-sm font-bold text-slate-100 text-center text-balance">{t('coaches.title')}</div>
+    <div className="text-lg font-bold text-slate-100 text-center text-balance">{t('coaches.title')}</div>
   );
 }
