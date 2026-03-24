@@ -176,19 +176,19 @@ function getContent(platform: Platform, language: string): ContentData | null {
         title: isFr ? 'Comment installer Lumna sur iPhone' : 'How to install Lumna on iPhone',
         steps: [
           {
-            text: isFr ? 'Appuyez sur "..." dans la barre d\'adresse' : 'Tap "..." in the address bar',
+            text: isFr ? '"..." dans la barre d\'adresse' : '"..." in the address bar',
             icon: MoreVertical
           },
           {
-            text: isFr ? 'Appuyez sur "Partager"' : 'Tap "Share"',
+            text: isFr ? '"Partager"' : '"Share"',
             icon: Share
           },
           {
-            text: isFr ? 'Appuyez sur "En voir plus"' : 'Tap "More"',
+            text: isFr ? '"En voir plus"' : '"More"',
             icon: ChevronDown
           },
           {
-            text: isFr ? 'Appuyez sur "Sur l\'écran d\'accueil"' : 'Tap "Add to Home Screen"',
+            text: isFr ? '"Sur l\'écran d\'accueil"' : '"Add to Home Screen"',
             icon: SquarePlus,
           },
         ],
