@@ -1,14 +1,17 @@
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState } from 'react';
 
 export function LoginButton() {
   const { login } = useAuth();
+  const { language } = useLanguage();
   const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="relative h-[48px] min-h-[48px] max-h-[48px] flex items-center justify-center overflow-hidden">
       <GoogleLogin
+        locale={language === 'fr' ? 'fr' : 'en'}
         onSuccess={async (credentialResponse) => {
           setError(null);
           try {
