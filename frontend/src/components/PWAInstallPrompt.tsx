@@ -108,12 +108,12 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
         </h3>
         <div className="w-full">
 
-          <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
+          <div className="text-sm text-green-800 dark:text-green-200 space-y-1 inline-flex flex-col items-start mx-auto">
             {content.steps.map((step, i) => (
-              <p key={i} className="flex items-center justify-center gap-2">
-                {!isNonPreferredBrowser && step.icon && <><span className="font-medium">{i + 1}.</span><step.icon className="w-4 h-4 inline flex-shrink-0" /></>}
-                {!isNonPreferredBrowser && step.iconSrc && <img src={step.iconSrc} alt="" className="w-7 h-7 inline flex-shrink-0" />}
-                {!isNonPreferredBrowser && !step.icon && !step.iconSrc && <span className="font-medium">{i + 1}.</span>}
+              <p key={i} className="flex items-center gap-2">
+                <span className="font-medium w-4 text-right flex-shrink-0">{i + 1}.</span>
+                {!isNonPreferredBrowser && step.icon && !step.hideIcon && <step.icon className="w-4 h-4 flex-shrink-0" />}
+                {!isNonPreferredBrowser && step.iconSrc && <img src={step.iconSrc} alt="" className="w-7 h-7 flex-shrink-0" />}
                 <span>{step.text}</span>
               </p>
             ))}
@@ -158,7 +158,8 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
 interface StepContent {
   text: string;
   icon?: React.ComponentType<{ className?: string }>;
-  iconSrc?: string; // For image icons (e.g., Safari logo)
+  iconSrc?: string;
+  hideIcon?: boolean;
 }
 
 interface ContentData {
@@ -177,7 +178,6 @@ function getContent(platform: Platform, language: string): ContentData | null {
         steps: [
           {
             text: isFr ? '"..." dans la barre d\'adresse' : '"..." in the address bar',
-            icon: MoreVertical
           },
           {
             text: isFr ? '"Partager"' : '"Share"',
