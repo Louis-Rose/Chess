@@ -199,6 +199,9 @@ function getContent(platform: Platform, language: string): ContentData | null {
             text: isFr ? '"Sur l\'écran d\'accueil"' : '"Add to Home Screen"',
             icon: SquarePlus,
           },
+          {
+            text: isFr ? '"Ajouter"' : '"Add"',
+          },
         ],
         screenshots: ['/pwa-screenshots/step1.png', '/pwa-screenshots/step2.png', '/pwa-screenshots/step3.png', '/pwa-screenshots/step4.png'],
       };
