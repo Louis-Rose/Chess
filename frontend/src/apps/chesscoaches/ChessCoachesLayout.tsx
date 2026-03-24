@@ -8,7 +8,7 @@ import { CoachesDataProvider } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { LumnaBrand } from './components/LumnaBrand';
+import { LumnaBrand, LumnaBrandSubtitle } from './components/LumnaBrand';
 
 export interface NavItem {
   path: string;
@@ -267,14 +267,17 @@ function MobilePlayerButton() {
 
 function CoachesHeader() {
   return (
-    <div className="relative flex items-center justify-center px-2 py-3">
-      <div className="absolute left-2">
-        <MobilePlayerButton />
+    <div className="flex flex-col items-center px-2 py-3">
+      <div className="relative flex items-center justify-center w-full">
+        <div className="absolute left-0">
+          <MobilePlayerButton />
+        </div>
+        <LumnaBrand hideSubtitle />
+        <div className="absolute right-0">
+          <LanguageToggle />
+        </div>
       </div>
-      <LumnaBrand />
-      <div className="absolute right-2">
-        <LanguageToggle />
-      </div>
+      <LumnaBrandSubtitle />
     </div>
   );
 }

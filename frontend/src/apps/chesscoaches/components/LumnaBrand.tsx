@@ -13,7 +13,7 @@ export function LumnaLogo({ className }: { className?: string }) {
   );
 }
 
-export function LumnaBrand() {
+export function LumnaBrand({ hideSubtitle }: { hideSubtitle?: boolean } = {}) {
   const { t } = useLanguage();
   return (
     <a href="/" className="flex flex-col items-center hover:opacity-80 transition-opacity">
@@ -21,7 +21,14 @@ export function LumnaBrand() {
         <LumnaLogo className="w-9 h-9 absolute -left-11" />
         <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
       </div>
-      <span className="text-lg font-bold text-slate-100 mt-1 text-center text-balance">{t('coaches.title')}</span>
+      {!hideSubtitle && <span className="text-lg font-bold text-slate-100 mt-1 text-center text-balance">{t('coaches.title')}</span>}
     </a>
+  );
+}
+
+export function LumnaBrandSubtitle() {
+  const { t } = useLanguage();
+  return (
+    <div className="text-sm font-bold text-slate-100 text-center text-balance">{t('coaches.title')}</div>
   );
 }
