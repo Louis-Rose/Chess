@@ -210,11 +210,7 @@ function getContent(platform: Platform, language: string): ContentData | null {
     case 'ios-other':
       return {
         title: isFr ? 'Comment installer Lumna sur iPhone' : 'How to install Lumna on iPhone',
-        steps: [
-          {
-            text: isFr ? 'Ouvrez d\'abord Lumna depuis le navigateur Safari' : 'First, you need to access Lumna from the Safari browser',
-          },
-        ],
+        steps: [],
       };
 
     case 'android-chrome':
@@ -234,11 +230,7 @@ function getContent(platform: Platform, language: string): ContentData | null {
     case 'android-other':
       return {
         title: isFr ? 'Comment installer Lumna sur votre téléphone' : 'How to install Lumna on your phone',
-        steps: [
-          {
-            text: isFr ? 'Ouvrez d\'abord Lumna depuis le navigateur Chrome' : 'First, you need to access Lumna from the Chrome browser',
-          },
-        ],
+        steps: [],
       };
 
     case 'desktop':
