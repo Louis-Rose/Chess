@@ -134,7 +134,7 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
           </div>
 
           {/* Non-preferred browser: copy URL button after steps */}
-          {isNonPreferredBrowser && (
+          {isNonPreferredBrowser && (<>
             <button
               onClick={handleCopyUrl}
               className="flex items-center gap-2 mt-3 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors w-full justify-center"
@@ -160,7 +160,8 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
                   : `Now open ${preferredBrowser} and paste the link`}
               </p>
             )}
-          )}
+          </>)}
+
 
         </div>
       </div>
