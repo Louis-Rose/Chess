@@ -1,7 +1,7 @@
 // Scoresheet reader page — reads scoresheets with Gemini, supports iterative correction
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Upload, ImageIcon, Clock, BookOpen, Copy, Check, Download, Play, RotateCcw, Square, ExternalLink } from 'lucide-react';
+import { Upload, ImageIcon, Clock, BookOpen, Check, Play, RotateCcw, Square, ExternalLink } from 'lucide-react';
 import { PanelShell } from '../components/PanelShell';
 import { UploadBox } from '../components/UploadBox';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -66,16 +66,6 @@ function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result
   return `${headers}\n\n${moveText} ${meta?.result || '*'}\n`;
 }
 
-function downloadPgn(moves: Move[], sourceFileName?: string | null, meta?: { white?: string; black?: string; result?: string }) {
-  const pgn = buildPgn(moves, meta);
-  const blob = new Blob([pgn], { type: 'application/x-chess-pgn' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = sourceFileName ? sourceFileName.replace(/\.[^.]+$/, '.pgn') : 'scoresheet.pgn';
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 interface AccuracyStats {
   accuracy: number;
@@ -448,17 +438,7 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
         <div className="text-[10px] text-emerald-400/40">{'\u00A0'}</div>
         <div className="text-[10px] text-emerald-400/40">{'\u00A0'}</div>
       </div>
-      <button
-        onClick={() => downloadPgn(validatedMoves, fileName, { white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result })}
-        className="w-full px-2 py-2.5 border-t border-emerald-700/50 text-center text-xs text-emerald-400 hover:bg-emerald-800/30 transition-colors flex items-center justify-center gap-1.5"
-      >
-        <Download className="w-3 h-3" /> Download PGN
-      </button>
       <ChesscomAnalysisButton
-        moves={validatedMoves}
-        meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
-      />
-      <ChesscomLibraryButton
         moves={validatedMoves}
         meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
       />
@@ -467,53 +447,10 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
         meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
         fileName={fileName}
       />
-      <CopyPgnButton
-        moves={validatedMoves}
-        meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
-        variant="ground-truth"
-      />
     </div>
   );
 }
 
-function CopyPgnButton({ moves, meta, variant }: {
-  moves: Move[];
-  meta?: { white?: string; black?: string; result?: string };
-  variant: 'ground-truth' | 'model';
-}) {
-  const [copied, setCopied] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
-  const handleCopy = async () => {
-    const pgn = buildPgn(moves, meta);
-    try {
-      await navigator.clipboard.writeText(pgn);
-    } catch {
-      const ta = document.createElement('textarea');
-      ta.value = pgn;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-    }
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setCopied(true);
-    timerRef.current = setTimeout(() => setCopied(false), 2000);
-  };
-
-  const isGt = variant === 'ground-truth';
-  return (
-    <button
-      onClick={handleCopy}
-      className={`w-full px-2 py-2.5 border-t text-center text-xs transition-colors flex items-center justify-center gap-1.5 ${
-        isGt
-          ? 'border-emerald-700/50 text-emerald-400 hover:bg-emerald-800/30'
-          : 'border-slate-600/50 text-slate-400 hover:bg-slate-600/40 hover:text-slate-200'
-      }`}
-    >
-      {copied ? <><Check className="w-3 h-3" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy PGN</>}
-    </button>
-  );
-}
 
 function ModelPanelLoading({ name, startTime }: { name: string; startTime: number | null }) {
   const [elapsed, setElapsed] = useState(0);
@@ -703,15 +640,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
           <span>Re-reading from edit...</span>
         </div>
       ) : moves.length > 0 && (<>
-        <button
-          onClick={() => downloadPgn(moves, fileName, meta)}
-          className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
-        >
-          <Download className="w-3 h-3" /> Download PGN
-        </button>
-        <CopyPgnButton moves={moves} meta={meta} variant="model" />
         <ChesscomAnalysisButton moves={moves} meta={meta} />
-        <ChesscomLibraryButton moves={moves} meta={meta} />
         <LichessStudyButton moves={moves} meta={meta} fileName={fileName} />
       </>)}
 
@@ -778,44 +707,6 @@ function ChesscomAnalysisButton({ moves, meta }: {
   );
 }
 
-function ChesscomLibraryButton({ moves, meta }: {
-  moves: Move[];
-  meta?: { white?: string; black?: string; result?: string };
-}) {
-  const { t } = useLanguage();
-  const [copied, setCopied] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
-
-  const handleClick = async () => {
-    const pgn = buildPgn(moves, meta);
-    try {
-      await navigator.clipboard.writeText(pgn);
-    } catch {
-      const ta = document.createElement('textarea');
-      ta.value = pgn;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-    }
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setCopied(true);
-    timerRef.current = setTimeout(() => setCopied(false), 3000);
-    setTimeout(() => window.open('https://www.chess.com/analysis/collections', '_blank'), 500);
-  };
-
-  return (
-    <button
-      onClick={handleClick}
-      className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
-    >
-      {copied
-        ? <><Check className="w-3 h-3 text-green-400" /> <span className="text-green-400">{t('coaches.chesscom.copiedToLibrary')}</span></>
-        : <><Copy className="w-3 h-3" /> {t('coaches.chesscom.syncToLibrary')}</>
-      }
-    </button>
-  );
-}
 
 function LichessStudyButton({ moves, meta, fileName }: {
   moves: Move[];
