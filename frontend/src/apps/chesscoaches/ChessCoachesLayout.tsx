@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield, CalendarDays, CreditCard, ShieldCheck, BookOpen, Sparkles } from 'lucide-react';
+import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield, CalendarDays, CreditCard } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { CoachesDataProvider } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
@@ -20,14 +20,12 @@ export interface NavItem {
 
 export interface NavSection {
   titleKey: string;
-  icon: LucideIcon;
   items: NavItem[];
 }
 
 export const NAV_SECTIONS: NavSection[] = [
   {
     titleKey: 'coaches.sectionAdmin',
-    icon: ShieldCheck,
     items: [
       { path: '/calendar', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
       { path: '/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600' },
@@ -36,12 +34,10 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     titleKey: 'coaches.sectionLessons',
-    icon: BookOpen,
     items: [],
   },
   {
     titleKey: 'coaches.sectionAITools',
-    icon: Sparkles,
     items: [
       { path: '/scoresheets', labelKey: 'coaches.navScoresheets', icon: FileText, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
       { path: '/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600' },
@@ -146,12 +142,11 @@ function CoachesNavSidebar() {
 
           <div className="h-px bg-slate-700 my-1.5" />
 
-          {NAV_SECTIONS.map(({ titleKey, icon: SectionIcon, items }, idx) => (
+          {NAV_SECTIONS.map(({ titleKey, items }, idx) => (
             <div key={titleKey}>
               {idx > 0 && <div className="h-px bg-slate-700 my-1.5" />}
-              <div className="flex items-center justify-center gap-1.5 px-3 pt-2 pb-1">
-                <SectionIcon className="w-3 h-3 text-slate-400" />
-                <span className="text-xs font-bold text-slate-300 uppercase tracking-[0.15em]">{t(titleKey)}</span>
+              <div className="text-xs font-bold text-slate-300 uppercase tracking-wider px-3 pt-2 pb-1 text-center">
+                {t(titleKey)}
               </div>
               {items.length > 0 ? (
                 items.map(({ path, labelKey, icon: Icon }) => (
