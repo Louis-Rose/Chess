@@ -11,6 +11,7 @@ export function LoginButton() {
   return (
     <div className="relative h-[48px] min-h-[48px] max-h-[48px] flex items-center justify-center overflow-hidden">
       <GoogleLogin
+        key={language}
         locale={language === 'fr' ? 'fr' : 'en'}
         onSuccess={async (credentialResponse) => {
           setError(null);
