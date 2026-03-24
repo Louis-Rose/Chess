@@ -1,5 +1,5 @@
 // Service Worker for LUMRA PWA
-const CACHE_NAME = 'lumna-coach-v2';
+const CACHE_NAME = 'lumna-coach-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -35,7 +35,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // Handle Web Share Target POST
-  if (event.request.method === 'POST' && url.pathname === '/coach/share-target') {
+  if (event.request.method === 'POST' && (url.pathname === '/share-target' || url.pathname === '/coach/share-target')) {
     event.respondWith(
       (async () => {
         const formData = await event.request.formData();
@@ -49,7 +49,7 @@ self.addEventListener('fetch', (event) => {
           await cache.put('/shared-image', response);
         }
         // Redirect to the scoresheet reader with a flag
-        return Response.redirect('/coach/scoresheets?shared=1', 303);
+        return Response.redirect('/scoresheets?shared=1', 303);
       })()
     );
     return;

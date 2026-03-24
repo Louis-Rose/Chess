@@ -6,17 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LUMNA</title>
 
-    <!-- PWA manifest — dynamic per app -->
+    <!-- PWA manifest -->
     <link rel="manifest" href="/manifest.json" />
-    <script>
-      (function() {
-        var p = location.pathname;
-        var m = '/manifest.json';
-        if (p.startsWith('/coach')) m = '/manifest-coach.json';
-        else if (p.startsWith('/chess')) m = '/manifest-chess.json';
-        document.querySelector('link[rel="manifest"]').href = m;
-      })();
-    </script>
 
     <!-- Theme color for browser UI -->
     <meta name="theme-color" content="#16a34a" />

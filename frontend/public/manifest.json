@@ -1,9 +1,9 @@
 {
-  "name": "LUMNA - Investment Tracker",
+  "name": "LUMNA - Chess Coach",
   "short_name": "LUMNA",
-  "description": "Track your investment portfolio and watchlist",
-  "start_url": "/investing",
-  "scope": "/investing",
+  "description": "Digitize and analyze tournament scoresheets",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#16a34a",
@@ -21,5 +21,18 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "image",
+          "accept": ["image/jpeg", "image/png", "image/webp", "image/*"]
+        }
+      ]
+    }
+  }
 }
