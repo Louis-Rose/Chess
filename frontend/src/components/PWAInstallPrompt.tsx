@@ -155,8 +155,8 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
                 {platform === 'ios-other' && <img src="/icons/safari-logo.jpeg" alt="Safari" className="w-5 h-5 rounded" />}
                 {platform === 'android-other' && <img src="/icons/chrome.svg" alt="Chrome" className="w-5 h-5" />}
                 {isFr
-                  ? `Ouvrez ${preferredBrowser} et collez le lien`
-                  : `Now open ${preferredBrowser} and paste the link`}
+                  ? `Ouvrez ${preferredBrowser}, collez le lien et reconnectez-vous`
+                  : `Now open ${preferredBrowser}, paste the link and sign in again`}
               </p>
             )}
           </>)}
