@@ -21,7 +21,7 @@ export function LumnaBrand() {
         <LumnaLogo className="w-9 h-9 absolute -left-11" />
         <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
       </div>
-      <span className="text-lg font-bold text-slate-100 mt-1 text-center">{t('coaches.title')}</span>
+      <span className="text-base sm:text-lg font-bold text-slate-100 mt-1 text-center">{t('coaches.title')}</span>
     </a>
   );
 }
