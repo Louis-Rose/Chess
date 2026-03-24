@@ -927,13 +927,13 @@ function LichessStudyButton({ moves, meta, fileName }: {
                   <p className="text-slate-500 text-center py-6 text-xs">{t('coaches.lichess.noStudies')}</p>
                 )}
                 {!importing && studies && studies.length > 0 && (
-                  <div className="max-h-[300px] overflow-y-auto space-y-1">
+                  <div className="max-h-[300px] overflow-y-auto space-y-2">
                     {studies.map(s => (
                       <button
                         key={s.id}
                         onClick={() => handleSelectStudy(s)}
                         disabled={importing}
-                        className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-300 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50"
+                        className="w-full text-center px-3 py-2 rounded-lg text-xs text-slate-200 bg-slate-700 hover:bg-slate-600 hover:text-white transition-colors disabled:opacity-50"
                       >
                         {s.name}
                       </button>
