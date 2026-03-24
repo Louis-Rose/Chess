@@ -454,6 +454,15 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
       >
         <Download className="w-3 h-3" /> Download PGN
       </button>
+      <ChesscomAnalysisButton
+        moves={validatedMoves}
+        meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
+      />
+      <LichessStudyButton
+        moves={validatedMoves}
+        meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
+        fileName={fileName}
+      />
       <CopyPgnButton
         moves={validatedMoves}
         meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
@@ -748,7 +757,10 @@ function ChesscomAnalysisButton({ moves, meta }: {
 }) {
   const { t } = useLanguage();
   const handleClick = () => {
-    const pgn = buildPgn(moves, meta);
+    const moveText = moves.map(m =>
+      `${m.number}. ${m.white}${m.black ? ' ' + m.black : ''}`
+    ).join(' ');
+    const pgn = `[White "${meta?.white || '?'}"]\n[Black "${meta?.black || '?'}"]\n[Result "${meta?.result || '*'}"]\n[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]\n\n${moveText} ${meta?.result || '*'}`;
     window.open(`https://www.chess.com/analysis?pgn=${encodeURIComponent(pgn)}`, '_blank');
   };
   return (
