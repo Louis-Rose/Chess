@@ -34,30 +34,32 @@ export function CoachesSidebar() {
 
   return (
     <SidebarShell hideThemeToggle hideLanguageToggle fullWidth>
-      <div className="relative flex flex-col items-center px-2 pb-3 mb-2">
-        <LumnaBrand />
-        <div className="absolute right-0 top-0">
-          <LanguageToggleInline />
+      <div className="flex-1 flex flex-col items-center justify-center px-6">
+        <div className="relative flex flex-col items-center pb-3 mb-2 w-full">
+          <LumnaBrand />
+          <div className="absolute right-0 top-0">
+            <LanguageToggleInline />
+          </div>
         </div>
+        <div className="h-px bg-slate-700 w-full mb-4" />
+
+        {/* Description */}
+        <div className="pb-6">
+          <span className="text-slate-300 text-sm md:text-lg leading-relaxed text-center block">
+            {t('coaches.onboardingDescription')}
+          </span>
+        </div>
+
+        <div className="h-px bg-slate-700 w-full mb-6" />
+
+        {/* Google login */}
+        <div className="flex flex-col items-center gap-4">
+          <span className="text-slate-400 text-sm">{t('coaches.onboardingInstruction')}</span>
+          <LoginButton />
+        </div>
+
+        <div className="h-px bg-slate-700 w-full mt-6" />
       </div>
-      <div className="h-px bg-slate-700 mx-3 mb-4" />
-
-      {/* Description */}
-      <div className="px-6 pb-6">
-        <span className="text-slate-300 text-sm md:text-lg leading-relaxed text-center block">
-          {t('coaches.onboardingDescription')}
-        </span>
-      </div>
-
-      <div className="h-px bg-slate-700 mx-3 mb-6" />
-
-      {/* Google login */}
-      <div className="flex flex-col items-center gap-4 px-6">
-        <span className="text-slate-400 text-sm">{t('coaches.onboardingInstruction')}</span>
-        <LoginButton />
-      </div>
-
-      <div className="h-px bg-slate-700 mx-3 mt-6" />
     </SidebarShell>
   );
 }
