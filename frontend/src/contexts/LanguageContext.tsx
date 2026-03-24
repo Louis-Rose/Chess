@@ -295,6 +295,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.lichess.importing': 'Importing...',
     'coaches.lichess.imported': 'PGN imported!',
     'coaches.lichess.openStudy': 'Open study on Lichess',
+    'coaches.lichess.close': 'Close',
 
     // Students panel — scheduling
     'coaches.students.title': 'My Students',
@@ -664,6 +665,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.lichess.importing': 'Import en cours...',
     'coaches.lichess.imported': 'PGN importé !',
     'coaches.lichess.openStudy': 'Ouvrir l\'étude sur Lichess',
+    'coaches.lichess.close': 'Fermer',
 
     // Students panel — scheduling
     'coaches.students.title': 'Mes élèves',

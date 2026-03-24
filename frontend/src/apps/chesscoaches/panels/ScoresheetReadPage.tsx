@@ -870,7 +870,7 @@ function LichessStudyButton({ moves, meta, fileName }: {
                   onClick={handleClose}
                   className="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-1.5 rounded-lg transition-colors"
                 >
-                  {t('coaches.lichess.cancel')}
+                  {t('coaches.lichess.close')}
                 </button>
               </div>
             ) : needsUsername ? (
