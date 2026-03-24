@@ -764,6 +764,18 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
+    // Check URL param first (used when transferring between browsers)
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlLang = params.get('lang');
+      if (urlLang === 'en' || urlLang === 'fr') {
+        localStorage.setItem('language', urlLang);
+        const url = new URL(window.location.href);
+        url.searchParams.delete('lang');
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+        return urlLang;
+      }
+    } catch {}
     const saved = localStorage.getItem('language');
     if (saved) return saved as Language;
     const browserLang = navigator.language || navigator.languages?.[0] || '';

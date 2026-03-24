@@ -61,15 +61,14 @@ export function PWAInstallPrompt({ className = '' }: PWAInstallPromptProps) {
   };
 
   const handleCopyUrl = async () => {
-    // Include chess username in URL so it carries over to the other browser
+    // Include chess username and language in URL so they carry over to the other browser
     let url = window.location.href;
     try {
+      const u = new URL(url);
       const prefs = JSON.parse(localStorage.getItem('coaches_preferences') || '{}');
-      if (prefs.chess_username) {
-        const u = new URL(url);
-        u.searchParams.set('u', prefs.chess_username);
-        url = u.toString();
-      }
+      if (prefs.chess_username) u.searchParams.set('u', prefs.chess_username);
+      if (language) u.searchParams.set('lang', language);
+      url = u.toString();
     } catch {}
     try {
       await navigator.clipboard.writeText(url);
