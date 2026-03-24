@@ -12,8 +12,7 @@ export function ScoresheetPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 flex flex-col min-h-[calc(100dvh-80px)]">
-      <div className="border-t border-slate-700 mb-4 md:hidden" />
-      <PWAInstallPrompt className="max-w-4xl mx-[5%] md:mx-auto mb-4" />
+      <PWAInstallPrompt className="max-w-4xl mx-[5%] md:mx-auto mb-4 mt-2 md:mt-0" />
       <div className="border-t border-slate-700 mb-6" />
 
       {NAV_SECTIONS.map(({ titleKey, items }, idx) => (
