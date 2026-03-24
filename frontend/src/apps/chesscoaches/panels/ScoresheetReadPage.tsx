@@ -762,7 +762,7 @@ function LichessStudyButton({ moves, meta, fileName }: {
     setError('');
     setStudies(null);
     try {
-      const res = await fetch(`/api/coaches/lichess/studies?username=${encodeURIComponent(username)}`);
+      const res = await fetch(`/api/coaches/lichess/studies?username=${encodeURIComponent(username)}`, { credentials: 'include' });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed');
       setStudies(json.studies);
@@ -813,6 +813,7 @@ function LichessStudyButton({ moves, meta, fileName }: {
       const res = await fetch(`/api/coaches/lichess/studies/${study.id}/import-pgn`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ pgn, name: chapterName }),
       });
       const json = await res.json();
