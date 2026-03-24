@@ -1,7 +1,7 @@
 // PWA Install Prompt - shows device-specific instructions for installing the app
 
 import { useState } from 'react';
-import { Share, MoreVertical, Plus, Download, Copy, Check, X } from 'lucide-react';
+import { Share, MoreVertical, Plus, Download, Copy, Check, X, ChevronDown } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 type Platform = 'ios-safari' | 'ios-other' | 'android-chrome' | 'android-other' | 'desktop' | 'unknown';
@@ -184,8 +184,8 @@ function getContent(platform: Platform, language: string): ContentData | null {
             icon: Share
           },
           {
-            text: isFr ? 'Appuyez sur "Plus"' : 'Tap "More"',
-            icon: Plus
+            text: isFr ? 'Appuyez sur "En voir plus"' : 'Tap "More"',
+            icon: ChevronDown
           },
           {
             text: isFr ? 'Appuyez sur "Sur l\'écran d\'accueil"' : 'Tap "Add to Home Screen"',
