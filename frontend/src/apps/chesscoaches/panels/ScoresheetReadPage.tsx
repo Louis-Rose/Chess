@@ -801,7 +801,6 @@ function LichessStudyButton({ moves, meta }: {
 
   const handleSelectStudy = (study: { id: string; name: string }) => {
     // For now, open the study in a new tab — actual PGN import will come next
-    const _pgn = buildPgn(moves, meta);
     window.open(`https://lichess.org/study/${study.id}`, '_blank');
     setOpen(false);
   };
