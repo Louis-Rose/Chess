@@ -1269,6 +1269,34 @@ def get_lichess_studies():
         return jsonify({'error': 'Failed to fetch Lichess studies'}), 502
 
 
+@app.route('/api/coaches/lichess/studies/<study_id>/import-pgn', methods=['POST'])
+@login_required
+def import_pgn_to_lichess_study(study_id):
+    """Import a PGN as a new chapter in a Lichess study."""
+    data = request.get_json()
+    if not data or not data.get('pgn'):
+        return jsonify({'error': 'PGN required'}), 400
+    token = os.environ.get('LICHESS_TOKEN', '')
+    if not token:
+        return jsonify({'error': 'Lichess token not configured'}), 500
+    headers = {'Authorization': f'Bearer {token}'}
+    form_data = {'pgn': data['pgn']}
+    if data.get('name'):
+        form_data['name'] = data['name']
+    try:
+        resp = http_requests.post(
+            f'https://lichess.org/api/study/{study_id}/import-pgn',
+            headers=headers, data=form_data, timeout=15
+        )
+        if resp.status_code == 403:
+            return jsonify({'error': 'No permission to add chapter to this study'}), 403
+        resp.raise_for_status()
+        return jsonify(resp.json())
+    except http_requests.RequestException as e:
+        logger.error(f'Lichess import-pgn error: {e}')
+        return jsonify({'error': 'Failed to import PGN to Lichess study'}), 502
+
+
 @app.route('/api/win-prediction-stream', methods=['GET'])
 def get_win_prediction_stream():
     """SSE endpoint that streams progress while analyzing win prediction patterns."""

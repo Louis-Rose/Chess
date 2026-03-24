@@ -292,6 +292,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.lichess.noStudies': 'No studies found',
     'coaches.lichess.selectStudy': 'Select a study',
     'coaches.lichess.changeUser': 'Change',
+    'coaches.lichess.importing': 'Importing...',
+    'coaches.lichess.imported': 'PGN imported!',
+    'coaches.lichess.openStudy': 'Open study on Lichess',
 
     // Students panel — scheduling
     'coaches.students.title': 'My Students',
@@ -658,6 +661,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.lichess.noStudies': 'Aucune étude trouvée',
     'coaches.lichess.selectStudy': 'Choisir une étude',
     'coaches.lichess.changeUser': 'Changer',
+    'coaches.lichess.importing': 'Import en cours...',
+    'coaches.lichess.imported': 'PGN importé !',
+    'coaches.lichess.openStudy': 'Ouvrir l\'étude sur Lichess',
 
     // Students panel — scheduling
     'coaches.students.title': 'Mes élèves',

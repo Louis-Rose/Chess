@@ -697,7 +697,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
           <Download className="w-3 h-3" /> Download PGN
         </button>
         <CopyPgnButton moves={moves} meta={meta} variant="model" />
-        <LichessStudyButton />
+        <LichessStudyButton moves={moves} meta={meta} fileName={fileName} />
       </>)}
 
       {/* Edit modal */}
@@ -741,13 +741,19 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
   );
 }
 
-function LichessStudyButton() {
+function LichessStudyButton({ moves, meta, fileName }: {
+  moves: Move[];
+  meta?: { white?: string; black?: string; result?: string };
+  fileName?: string | null;
+}) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
   const [needsUsername, setNeedsUsername] = useState(false);
   const [studies, setStudies] = useState<{ id: string; name: string }[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [success, setSuccess] = useState<{ studyId: string; studyName: string } | null>(null);
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -768,6 +774,8 @@ function LichessStudyButton() {
   }, []);
 
   const handleOpen = () => {
+    setSuccess(null);
+    setError('');
     const prefs = getCoachesPrefs();
     if (prefs.lichess_username) {
       setOpen(true);
@@ -796,10 +804,25 @@ function LichessStudyButton() {
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
-  const handleSelectStudy = (study: { id: string; name: string }) => {
-    // For now, open the study in a new tab — actual PGN import will come next
-    window.open(`https://lichess.org/study/${study.id}`, '_blank');
-    setOpen(false);
+  const handleSelectStudy = async (study: { id: string; name: string }) => {
+    setImporting(true);
+    setError('');
+    const pgn = buildPgn(moves, meta);
+    const chapterName = fileName?.replace(/\.[^.]+$/, '') || [meta?.white, meta?.black].filter(Boolean).join(' vs ') || 'Scoresheet';
+    try {
+      const res = await fetch(`/api/coaches/lichess/studies/${study.id}/import-pgn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pgn, name: chapterName }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Import failed');
+      setSuccess({ studyId: study.id, studyName: study.name });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
+    } finally {
+      setImporting(false);
+    }
   };
 
   const handleClose = () => {
@@ -807,6 +830,8 @@ function LichessStudyButton() {
     setStudies(null);
     setError('');
     setNeedsUsername(false);
+    setSuccess(null);
+    setImporting(false);
   };
 
   return (
@@ -827,7 +852,27 @@ function LichessStudyButton() {
             className="bg-slate-800 rounded-xl p-4 min-w-[300px] max-w-[360px] shadow-xl border border-slate-600"
             onClick={e => e.stopPropagation()}
           >
-            {needsUsername ? (
+            {success ? (
+              <div className="text-center py-4">
+                <Check className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                <div className="text-slate-200 text-sm font-medium mb-1">{t('coaches.lichess.imported')}</div>
+                <div className="text-slate-400 text-xs mb-3">{success.studyName}</div>
+                <a
+                  href={`https://lichess.org/study/${success.studyId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  {t('coaches.lichess.openStudy')} <ExternalLink className="w-3 h-3" />
+                </a>
+                <button
+                  onClick={handleClose}
+                  className="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-1.5 rounded-lg transition-colors"
+                >
+                  {t('coaches.lichess.cancel')}
+                </button>
+              </div>
+            ) : needsUsername ? (
               <>
                 <div className="text-slate-200 text-sm font-medium mb-1">{t('coaches.lichess.usernamePrompt')}</div>
                 <div className="text-slate-500 text-xs mb-3">{t('coaches.lichess.usernameHint')}</div>
@@ -871,17 +916,24 @@ function LichessStudyButton() {
                     <span className="text-xs">{t('coaches.lichess.loading')}</span>
                   </div>
                 )}
+                {importing && (
+                  <div className="flex items-center justify-center gap-2 text-blue-400 animate-pulse py-6">
+                    <Clock className="w-3.5 h-3.5 animate-spin" />
+                    <span className="text-xs">{t('coaches.lichess.importing')}</span>
+                  </div>
+                )}
                 {error && <p className="text-red-400 text-center py-3 text-xs">{error}</p>}
-                {studies && studies.length === 0 && (
+                {!importing && studies && studies.length === 0 && (
                   <p className="text-slate-500 text-center py-6 text-xs">{t('coaches.lichess.noStudies')}</p>
                 )}
-                {studies && studies.length > 0 && (
+                {!importing && studies && studies.length > 0 && (
                   <div className="max-h-[300px] overflow-y-auto space-y-1">
                     {studies.map(s => (
                       <button
                         key={s.id}
                         onClick={() => handleSelectStudy(s)}
-                        className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                        disabled={importing}
+                        className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-300 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50"
                       >
                         {s.name}
                       </button>
