@@ -1,7 +1,7 @@
 // PWA Install Prompt - shows device-specific instructions for installing the app
 
 import { useState } from 'react';
-import { Share, MoreVertical, MoreHorizontal, Download, Copy, Check, X, ChevronUp, SquarePlus } from 'lucide-react';
+import { Share, MoreVertical, MoreHorizontal, Download, Copy, Check, X, ChevronDown, SquarePlus } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 type Platform = 'ios-safari' | 'ios-other' | 'android-chrome' | 'android-other' | 'desktop' | 'unknown';
@@ -192,7 +192,7 @@ function getContent(platform: Platform, language: string): ContentData | null {
           },
           {
             text: isFr ? '"En voir plus"' : '"More"',
-            icon: ChevronUp,
+            icon: ChevronDown,
             circled: true,
           },
           {
