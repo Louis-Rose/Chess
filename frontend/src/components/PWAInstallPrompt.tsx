@@ -1,7 +1,7 @@
 // PWA Install Prompt - shows device-specific instructions for installing the app
 
 import { useState } from 'react';
-import { Share, MoreVertical, Plus, Download, Copy, Check, X, ChevronDown } from 'lucide-react';
+import { Share, MoreVertical, Download, Copy, Check, X, ChevronDown } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 type Platform = 'ios-safari' | 'ios-other' | 'android-chrome' | 'android-other' | 'desktop' | 'unknown';
