@@ -261,8 +261,8 @@ export function ScoresheetReadPage() {
   }, [autoRun, scoresheet.imageFile, scoresheetStartOneRead]);
 
 
-  // Move click handler (unused for now — each model has its own board)
-  const handleMoveClick = useCallback((_moves: Move[], _ply: number) => {}, []);
+  // Per-model board ply, set when "Show on board" is clicked
+  const [modelBoardPlys, setModelBoardPlys] = useState<Record<string, number>>({});
 
   return (
     <PanelShell title={t('coaches.navScoresheets')}>
@@ -361,6 +361,9 @@ export function ScoresheetReadPage() {
                     const handleEditSave = (readIdx: number, confirmed: Move[], correctionKey: string) => {
                       scoresheetHandleEditSave(m.id, readIdx, confirmed, correctionKey);
                     };
+                    const handleMoveClick = (_moves: Move[], ply: number) => {
+                      setModelBoardPlys(prev => ({ ...prev, [m.id]: ply }));
+                    };
 
                     return (
                       <ModelRow key={m.id} preview={preview} onImageClick={() => setShowImageModal(true)}>
@@ -396,7 +399,7 @@ export function ScoresheetReadPage() {
                           </div>
                           {/* Right: board centered in remaining space */}
                           <div className="flex-1 hidden md:flex justify-center items-center self-stretch">
-                            <ModelBoard moves={latestMoves} />
+                            <ModelBoard moves={latestMoves} externalPly={modelBoardPlys[m.id]} />
                           </div>
                         </div>
                       </ModelRow>
@@ -562,7 +565,7 @@ function ModelRow({ preview, onImageClick, children }: { preview: string; onImag
   );
 }
 
-function ModelBoard({ moves }: { moves: Move[] }) {
+function ModelBoard({ moves, externalPly }: { moves: Move[]; externalPly?: number }) {
   const [ply, setPly] = useState(0);
 
   const entries = useMemo(() => {
@@ -589,6 +592,7 @@ function ModelBoard({ moves }: { moves: Move[] }) {
   const current = entries[safePly];
 
   useEffect(() => { setPly(maxPly); }, [maxPly]);
+  useEffect(() => { if (externalPly !== undefined) setPly(externalPly); }, [externalPly]);
 
   return (
     <div className="flex flex-col items-center w-[400px]">
@@ -887,22 +891,22 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       legal={move.white_legal}
                       highlight={d?.white}
                       corrected={corrections?.has(`${move.number}-white`)}
-                      onClick={() => setEditing({ moveIdx: idx, color: 'white', value: move.white })}
+                      onEdit={() => setEditing({ moveIdx: idx, color: 'white', value: move.white })}
+                      onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
                     />
                     <MoveCell
                       value={move.black || ''}
                       legal={move.black_legal}
                       corrected={corrections?.has(`${move.number}-black`)}
                       highlight={d?.black}
-                      onClick={() => move.black !== undefined ? setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }) : undefined}
+                      onEdit={() => move.black !== undefined ? setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }) : undefined}
+                      onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
                     />
                   </>;
                 };
 
                 return (
-                  <tr key={i} className="border-b border-slate-600/30 last:border-0 cursor-pointer hover:bg-slate-600/30"
-                    onClick={() => onMoveClick?.(moves, (left ? leftIdx : rightIdx) * 2 + ((left || right)?.black ? 2 : 1))}
-                  >
+                  <tr key={i} className="border-b border-slate-600/30 last:border-0">
                     {renderHalf(left, leftIdx, dLeft)}
                     {split && <>{right ? (
                       <>{renderHalf(right, rightIdx, dRight)}</>
@@ -1213,24 +1217,56 @@ function LichessStudyButton({ moves, meta, fileName }: {
   );
 }
 
-function MoveCell({ value, legal, highlight, corrected, onClick }: {
+function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
   value: string;
   legal?: boolean;
   highlight?: boolean;
   corrected?: boolean;
-  onClick: () => void;
+  onEdit: () => void;
+  onShowBoard?: () => void;
 }) {
+  const [showMenu, setShowMenu] = useState(false);
+  const ref = useRef<HTMLTableCellElement>(null);
   const bg = corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100';
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handle = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setShowMenu(false);
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [showMenu]);
+
   return (
     <td
-      className={`px-1.5 py-0.5 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}`}
-      onClick={onClick}
+      ref={ref}
+      className={`px-1.5 py-0.5 font-mono text-center cursor-pointer hover:bg-slate-600/50 relative ${bg}`}
+      onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
     >
       <span className="inline-flex items-center justify-center gap-1 w-full">
         {value}
         {legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
         {legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
       </span>
+      {showMenu && (
+        <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-lg overflow-hidden whitespace-nowrap">
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit(); }}
+            className="w-full px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 text-left"
+          >
+            Edit
+          </button>
+          {onShowBoard && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowMenu(false); onShowBoard(); }}
+              className="w-full px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 text-left border-t border-slate-700"
+            >
+              Show on board
+            </button>
+          )}
+        </div>
+      )}
     </td>
   );
 }
