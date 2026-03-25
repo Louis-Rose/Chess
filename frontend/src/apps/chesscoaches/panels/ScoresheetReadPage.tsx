@@ -441,7 +441,7 @@ export function ScoresheetReadPage() {
                             )}
                           </div>
                           {/* Right: board centered in remaining space */}
-                          <div className="flex-1 hidden md:flex justify-center items-start">
+                          <div className="flex-1 hidden md:flex justify-center items-center self-stretch">
                             {mr && latestMoves.length > 0 && (
                               <ModelBoard moves={latestMoves} />
                             )}
