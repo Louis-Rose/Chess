@@ -410,7 +410,7 @@ export function ScoresheetReadPage() {
                   {azureResult && (
                     <>
                       <div className="border-t border-slate-600 my-4" />
-                      <h2 className="text-sm font-medium text-slate-300 mb-2 px-1">Azure Document Intelligence</h2>
+                      <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">Azure Document Intelligence</h2>
                       {azureResult.loading ? (
                         <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse py-4">
                           <Clock className="w-4 h-4 animate-spin" />
@@ -452,6 +452,7 @@ export function ScoresheetReadPage() {
                       ) : (
                         <p className="text-slate-500 text-center py-3 text-xs">No tables detected</p>
                       )}
+                      <div className="border-t border-slate-600 mt-4" />
                     </>
                   )}
                 </div>
