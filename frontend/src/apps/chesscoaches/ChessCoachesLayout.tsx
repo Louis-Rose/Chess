@@ -1,7 +1,7 @@
 // Chess Coaches app layout with sidebar and content area
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield, CalendarDays, CreditCard } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { CoachesDataProvider } from './contexts/CoachesDataContext';
@@ -222,6 +222,7 @@ function LanguageToggle() {
 function MobilePlayerButton() {
   const { t } = useLanguage();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -249,6 +250,15 @@ function MobilePlayerButton() {
           <div className="px-3 py-2 border-b border-slate-700">
             <p className="text-white text-sm font-medium">{user.name}</p>
           </div>
+          {user.is_admin && (
+            <button
+              onClick={() => { setOpen(false); navigate('/admin'); }}
+              className="w-full px-3 py-2.5 text-left text-amber-400 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors border-b border-slate-700"
+            >
+              <Shield className="w-4 h-4" />
+              Admin
+            </button>
+          )}
           <button
             onClick={async () => {
               setOpen(false);
