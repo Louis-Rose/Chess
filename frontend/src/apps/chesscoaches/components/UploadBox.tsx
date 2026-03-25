@@ -11,7 +11,7 @@ interface UploadBoxProps {
   onPaste?: (file: File) => void;
   icon: ReactNode;
   title: string;
-  hint: string;
+  hint?: string;
   pasteLabel?: string;
 }
 
@@ -26,7 +26,6 @@ export function UploadBox({ onClick, onDrop, onPaste, icon, title, hint, pasteLa
 
     const handlePaste = (e: ClipboardEvent) => {
       e.preventDefault();
-      // Clear any text that iOS may have inserted
       el.textContent = '';
       const items = e.clipboardData?.items;
       if (items) {
@@ -48,6 +47,8 @@ export function UploadBox({ onClick, onDrop, onPaste, icon, title, hint, pasteLa
     return () => el.removeEventListener('paste', handlePaste);
   }, [onPaste]);
 
+  const rowClass = "border-2 border-dashed border-slate-600 rounded-xl py-5 px-5 flex items-center gap-4 hover:border-blue-500 transition-colors";
+
   return (
     <div className="max-w-lg mx-auto space-y-3">
       {/* Upload box */}
@@ -55,11 +56,13 @@ export function UploadBox({ onClick, onDrop, onPaste, icon, title, hint, pasteLa
         onClick={onClick}
         onDrop={onDrop}
         onDragOver={onDrop ? (e => e.preventDefault()) : undefined}
-        className="border-2 border-dashed border-slate-600 rounded-xl p-10 flex flex-col items-center gap-3 cursor-pointer hover:border-blue-500 transition-colors"
+        className={`${rowClass} cursor-pointer`}
       >
-        {icon}
-        <p className="text-slate-300 font-medium">{title}</p>
-        <p className="text-slate-500 text-sm">{hint}</p>
+        <div className="flex-shrink-0 [&>svg]:w-6 [&>svg]:h-6 text-slate-400">{icon}</div>
+        <div>
+          <p className="text-slate-300 font-medium">{title}</p>
+          {hint && <p className="text-slate-500 text-sm">{hint}</p>}
+        </div>
       </div>
 
       {/* Paste zone — contenteditable so iOS shows "Paste" on tap */}
@@ -68,7 +71,7 @@ export function UploadBox({ onClick, onDrop, onPaste, icon, title, hint, pasteLa
           ref={pasteRef}
           contentEditable
           suppressContentEditableWarning
-          className="border-2 border-dashed border-slate-600 rounded-xl py-6 px-4 flex items-center justify-center gap-3 cursor-text outline-none hover:border-blue-500 transition-colors caret-transparent"
+          className={`${rowClass} cursor-text outline-none caret-transparent`}
           style={{ WebkitUserSelect: 'text', userSelect: 'text' }}
         >
           <ClipboardPaste className="w-6 h-6 text-slate-400 flex-shrink-0 pointer-events-none" />
