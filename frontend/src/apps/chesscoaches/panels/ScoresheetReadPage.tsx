@@ -555,22 +555,25 @@ function ModelRow({ preview, onImageClick, children }: { preview: string; onImag
   const [tbodyTop, setTbodyTop] = useState(0);
   const [tbodyHeight, setTbodyHeight] = useState(0);
 
+  const [tablesLeft, setTablesLeft] = useState(0);
+
   useEffect(() => {
     const measure = () => {
       const container = containerRef.current;
       if (!container) return;
-      // Find the first thead within the tables area (includes #/White/Black header)
       const thead = container.querySelector('[data-tables] thead');
       const tbody = container.querySelector('[data-tables] tbody');
-      if (!thead || !tbody) return;
+      const tables = container.querySelector('[data-tables]');
+      if (!thead || !tbody || !tables) return;
       const containerRect = container.getBoundingClientRect();
       const theadRect = thead.getBoundingClientRect();
       const tbodyRect = tbody.getBoundingClientRect();
+      const tablesRect = tables.getBoundingClientRect();
       setTbodyTop(theadRect.top - containerRect.top);
       setTbodyHeight(tbodyRect.bottom - theadRect.top);
+      setTablesLeft(tablesRect.left - containerRect.left);
     };
     measure();
-    // Re-measure when content changes
     const observer = new ResizeObserver(measure);
     if (containerRef.current) observer.observe(containerRef.current);
     return () => observer.disconnect();
@@ -579,15 +582,15 @@ function ModelRow({ preview, onImageClick, children }: { preview: string; onImag
   return (
     <div ref={containerRef} className="relative">
       {/* Image positioned absolutely to align with tbody */}
-      {tbodyHeight > 0 && (
+      {tbodyHeight > 0 && tablesLeft > 0 && (
         <div
-          className="absolute left-0 hidden md:flex justify-center"
-          style={{ top: tbodyTop, height: tbodyHeight, width: 'calc((100% - 560px) / 2)' }}
+          className="absolute hidden md:flex justify-end"
+          style={{ top: tbodyTop, height: tbodyHeight, left: 0, width: tablesLeft - 8 }}
         >
           <img
             src={preview}
             alt="Scoresheet"
-            className="rounded-xl object-cover object-top cursor-pointer hover:opacity-90 transition-opacity h-full max-w-full"
+            className="rounded-xl object-cover object-top cursor-pointer hover:opacity-90 transition-opacity h-full"
             onClick={onImageClick}
           />
         </div>
