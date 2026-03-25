@@ -601,7 +601,7 @@ Return ONLY a JSON object:
     merged.extend(new_moves)
 
     # Validate with stop at first illegal
-    merged = _scoresheet_validate_moves(merged, stop_at_illegal=True)
+    merged = _scoresheet_validate_moves(merged, stop_at_illegal=False)
 
     logger.info(f"[Scoresheet reread] {model_id}: {len(merged)} moves, {elapsed}s")
 
@@ -916,11 +916,10 @@ def read_scoresheet():
             logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s")
 
             result, warnings = _scoresheet_parse_response(response.text)
-            # Pass 1: validate and stop at first illegal
-            result["moves"] = _scoresheet_validate_moves(result.get("moves", []), stop_at_illegal=True)
+            result["moves"] = _scoresheet_validate_moves(result.get("moves", []))
 
             move_count = len(result.get("moves", []))
-            logger.info(f"[Scoresheet] {model_name}: {move_count} moves (stopped at first illegal)")
+            logger.info(f"[Scoresheet] {model_name}: {move_count} moves")
             item = {"type": "result", "model_id": model_id, "name": model_name, "result": result, "elapsed": elapsed}
             if warnings:
                 item["warnings"] = warnings
