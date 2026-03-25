@@ -402,18 +402,18 @@ export function ScoresheetReadPage() {
                     return (
                       <div key={m.id}>
                         <h2 className="text-sm font-medium text-slate-300 mb-2 px-1">{mr?.name || m.name}</h2>
-                        <div className="flex gap-3 items-start">
-                          {/* Image */}
-                          <div className="flex-shrink-0 hidden md:block">
+                        <div className="flex items-start">
+                          {/* Left: image centered in remaining space */}
+                          <div className="flex-1 hidden md:flex justify-center items-start">
                             <img
                               src={preview}
                               alt="Scoresheet"
-                              className="rounded-xl w-[180px] object-contain object-top cursor-pointer hover:opacity-90 transition-opacity"
+                              className="rounded-xl max-w-[200px] object-contain object-top cursor-pointer hover:opacity-90 transition-opacity"
                               onClick={() => setShowImageModal(true)}
                             />
                           </div>
-                          {/* Tables */}
-                          <div className="flex flex-wrap gap-3 items-start flex-1 min-w-0">
+                          {/* Center: tables */}
+                          <div className="flex flex-wrap gap-3 items-start flex-shrink-0">
                             {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
                             {!mr ? (
                               <ModelPanelLoading name={m.name} startTime={startTime} />
@@ -440,10 +440,12 @@ export function ScoresheetReadPage() {
                               ))
                             )}
                           </div>
-                          {/* Board for this model */}
-                          {mr && latestMoves.length > 0 && (
-                            <ModelBoard moves={latestMoves} />
-                          )}
+                          {/* Right: board centered in remaining space */}
+                          <div className="flex-1 hidden md:flex justify-center items-start">
+                            {mr && latestMoves.length > 0 && (
+                              <ModelBoard moves={latestMoves} />
+                            )}
+                          </div>
                         </div>
                         {mr && allReads.length > 0 && !allReads.some(r => r.rereading) && (
                           <div className="text-xs text-slate-400 mt-1 px-1">
@@ -587,7 +589,7 @@ function ModelBoard({ moves }: { moves: Move[] }) {
   useEffect(() => { setPly(maxPly); }, [maxPly]);
 
   return (
-    <div className="flex-shrink-0 hidden md:flex flex-col items-center self-center w-[250px]">
+    <div className="flex flex-col items-center w-[250px]">
       <BoardPreview fen={data.fens[safePly]} lastMove={data.lastMoves[safePly]} />
       <div className="flex justify-center gap-1.5 mt-2">
         <button onClick={() => setPly(0)} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏮</button>
