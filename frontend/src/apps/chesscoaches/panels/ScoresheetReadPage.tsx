@@ -401,7 +401,7 @@ export function ScoresheetReadPage() {
 
                     return (
                       <div key={m.id}>
-                        <h2 className="text-sm font-medium text-slate-300 mb-2 px-1">{mr?.name || m.name}</h2>
+                        <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">{mr?.name || m.name}</h2>
                         <div className="flex items-start">
                           {/* Left: image centered in remaining space */}
                           <div className="flex-1 hidden md:flex justify-center items-start">

@@ -491,9 +491,9 @@ def _scoresheet_parse_response(response_text):
 
 
 SCORESHEET_MODELS = [
-    {"id": "gemini-3-flash-preview", "name": "3.0 Flash"},
-    {"id": "gemini-3.1-pro-preview", "name": "3.1 Pro"},
-    {"id": "gemini-3.1-flash-lite-preview", "name": "3.1 Flash Lite"},
+    {"id": "gemini-3-flash-preview", "name": "Gemini 3 Flash"},
+    {"id": "gemini-3.1-pro-preview", "name": "Gemini 3.1 Pro"},
+    {"id": "gemini-3.1-flash-lite-preview", "name": "Gemini 3.1 Flash-Lite"},
 ]
 
 SCORESHEET_READ_PROMPT = """You are analyzing a handwritten chess tournament scoresheet image.
