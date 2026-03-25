@@ -37,9 +37,15 @@ export function DiagramToFenPanel() {
           {!preview ? (
             <UploadBox
               onClick={() => fileRef.current?.click()}
+              onPaste={(file) => {
+                const reader = new FileReader();
+                reader.onload = () => diagramSetImage(file, reader.result as string);
+                reader.readAsDataURL(file);
+              }}
               icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
               title={t('coaches.diagram.uploadPrompt')}
               hint={t('coaches.diagram.uploadHint')}
+              pasteLabel={t('coaches.pasteClipboard')}
             />
           ) : (
             <div className="space-y-4">

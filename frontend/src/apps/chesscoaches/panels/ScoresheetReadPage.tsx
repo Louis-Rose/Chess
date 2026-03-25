@@ -200,9 +200,15 @@ export function ScoresheetReadPage() {
           {!preview ? (
             <UploadBox
               onClick={() => fileInputRef.current?.click()}
+              onPaste={(file) => {
+                const reader = new FileReader();
+                reader.onload = () => scoresheetSetImage(file, reader.result as string, file.name);
+                reader.readAsDataURL(file);
+              }}
               icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
               title={t('coaches.uploadPrompt')}
               hint={t('coaches.uploadHint')}
+              pasteLabel={t('coaches.pasteClipboard')}
             />
           ) : (
             <div className="space-y-4">
