@@ -244,6 +244,7 @@ export function ScoresheetReadPage() {
     scoresheetSetImage(finalFile, finalPreview, cropFileName);
     setCropSrc(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    setAutoRun(true);
   };
 
   const handleCropCancel = () => {
@@ -251,7 +252,15 @@ export function ScoresheetReadPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const startOneRead = scoresheetStartOneRead;
+  // Auto-run one read after crop confirm
+  const [autoRun, setAutoRun] = useState(false);
+  useEffect(() => {
+    if (autoRun && scoresheet.imageFile) {
+      setAutoRun(false);
+      scoresheetStartOneRead();
+    }
+  }, [autoRun, scoresheet.imageFile, scoresheetStartOneRead]);
+
   const startMultipleReads = () => groundTruth && scoresheetStartMultipleReads(groundTruth.moves);
   const stopMultipleReads = scoresheetStopMultipleReads;
 
@@ -323,49 +332,6 @@ export function ScoresheetReadPage() {
                 </button>
               </div>
 
-              {/* Before results: centered image + buttons */}
-              {models.length === 0 && (
-                <>
-                  <img
-                    src={preview}
-                    alt="Scoresheet"
-                    className="rounded-xl max-h-[50vh] max-w-sm mx-auto cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => setShowImageModal(true)}
-                  />
-                  {/* Run buttons */}
-                  {!analyzing && !autoRunning && (
-                    <div className="flex items-center justify-center gap-3">
-                      <button
-                        onClick={startOneRead}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors"
-                      >
-                        <Play className="w-3.5 h-3.5" />
-                        Run one read
-                      </button>
-                      {groundTruth && (
-                        <button
-                          onClick={startMultipleReads}
-                          className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg transition-colors"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          Run multiple reads
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {autoRunning && (
-                    <div className="flex items-center justify-center">
-                      <button
-                        onClick={stopMultipleReads}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded-lg transition-colors"
-                      >
-                        <Square className="w-3.5 h-3.5 fill-current" />
-                        Stop
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
 
               {/* Error */}
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
