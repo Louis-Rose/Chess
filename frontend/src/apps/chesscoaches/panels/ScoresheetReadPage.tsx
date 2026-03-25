@@ -565,13 +565,15 @@ function ModelRow({ preview, onImageClick, children }: { preview: string; onImag
     const measure = () => {
       const container = containerRef.current;
       if (!container) return;
-      // Find the first tbody within the tables area
+      // Find the first thead within the tables area (includes #/White/Black header)
+      const thead = container.querySelector('[data-tables] thead');
       const tbody = container.querySelector('[data-tables] tbody');
-      if (!tbody) return;
+      if (!thead || !tbody) return;
       const containerRect = container.getBoundingClientRect();
+      const theadRect = thead.getBoundingClientRect();
       const tbodyRect = tbody.getBoundingClientRect();
-      setTbodyTop(tbodyRect.top - containerRect.top);
-      setTbodyHeight(tbodyRect.height);
+      setTbodyTop(theadRect.top - containerRect.top);
+      setTbodyHeight(tbodyRect.bottom - theadRect.top);
     };
     measure();
     // Re-measure when content changes
