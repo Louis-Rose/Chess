@@ -197,7 +197,9 @@ export function ScoresheetReadPage() {
     const { preview: dataUrl } = await compressImage(file);
     setCropSrc(dataUrl);
     setCropFileName(file.name);
-    setCrop(undefined);
+    // Default crop: 90% centered rectangle so the user sees the handles immediately
+    const defaultCrop: CropType = { unit: '%', x: 5, y: 5, width: 90, height: 90 };
+    setCrop(defaultCrop);
     setCompletedCrop(undefined);
   };
 
@@ -261,7 +263,7 @@ export function ScoresheetReadPage() {
           {cropSrc ? (
             /* ── Crop step ── */
             <div className="space-y-4">
-              <p className="text-slate-400 text-sm text-center">{t('coaches.cropHint')}</p>
+              <p className="text-slate-200 text-base font-medium text-center">{t('coaches.cropHint')}</p>
               <div className="flex justify-center">
                 <ReactCrop
                   crop={crop}
@@ -272,7 +274,7 @@ export function ScoresheetReadPage() {
                     ref={cropImgRef}
                     src={cropSrc}
                     alt="Crop"
-                    className="max-h-[60vh] rounded-lg"
+                    className="max-h-[45vh] rounded-lg"
                   />
                 </ReactCrop>
               </div>
