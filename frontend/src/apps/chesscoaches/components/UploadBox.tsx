@@ -26,7 +26,7 @@ export function UploadBox({ onClick, onDrop, onPaste, icon, title, hint, pasteLa
 
     const handlePaste = (e: ClipboardEvent) => {
       e.preventDefault();
-      el.textContent = '';
+      el.innerHTML = '&nbsp;';
       const items = e.clipboardData?.items;
       if (items) {
         for (const item of Array.from(items)) {
@@ -67,17 +67,24 @@ export function UploadBox({ onClick, onDrop, onPaste, icon, title, hint, pasteLa
 
       {/* Paste zone — contenteditable so iOS shows "Paste" on tap */}
       {onPaste && (
-        <div
-          ref={pasteRef}
-          contentEditable
-          suppressContentEditableWarning
-          className={`${rowClass} cursor-text outline-none caret-transparent`}
-          style={{ WebkitUserSelect: 'text', userSelect: 'text' }}
-        >
-          <ClipboardPaste className="w-6 h-6 text-slate-400 flex-shrink-0 pointer-events-none" />
-          <p className="text-slate-300 font-medium pointer-events-none">
-            {pasteLabel || 'Paste from clipboard'}{pasteError ? ` ${pasteError}` : ''}
-          </p>
+        <div className="relative">
+          {/* Visual label layer — not interactive */}
+          <div className={`${rowClass} pointer-events-none`}>
+            <ClipboardPaste className="w-6 h-6 text-slate-400 flex-shrink-0" />
+            <p className="text-slate-300 font-medium">
+              {pasteLabel || 'Paste from clipboard'}{pasteError ? ` ${pasteError}` : ''}
+            </p>
+          </div>
+          {/* Invisible contenteditable on top — receives taps and paste events */}
+          <div
+            ref={pasteRef}
+            contentEditable
+            suppressContentEditableWarning
+            className="absolute inset-0 outline-none caret-transparent opacity-0 cursor-text"
+            style={{ WebkitUserSelect: 'text', userSelect: 'text', fontSize: '16px' }}
+          >
+            &nbsp;
+          </div>
         </div>
       )}
     </div>
