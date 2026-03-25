@@ -244,6 +244,7 @@ export function ScoresheetReadPage() {
 
   const handleCropCancel = () => {
     setCropSrc(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const startOneRead = scoresheetStartOneRead;
