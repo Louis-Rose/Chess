@@ -240,6 +240,7 @@ export function ScoresheetReadPage() {
     console.log(`[Scoresheet] Cropped image: ${(finalFile.size / 1024).toFixed(0)} KB`);
     scoresheetSetImage(finalFile, finalPreview, cropFileName);
     setCropSrc(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleCropCancel = () => {
