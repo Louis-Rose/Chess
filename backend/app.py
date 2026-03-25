@@ -505,6 +505,8 @@ Extract ALL moves from the scoresheet and return them as a JSON object with this
   "event": "Tournament name or empty string if unreadable",
   "date": "Date or empty string if unreadable",
   "result": "1-0, 0-1, 1/2-1/2, or * if unreadable/ongoing",
+  "columns": 2,
+  "rows_per_column": 15,
   "moves": [
     {"number": 1, "white": "e4", "black": "e5"},
     {"number": 2, "white": "Nf3", "black": "Nc6"}
@@ -519,6 +521,8 @@ Rules:
 - Include ALL moves you can read, even partially
 - Be careful with similar-looking pieces: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
 - Castling: O-O (kingside), O-O-O (queenside)
+- "columns": how many columns of moves the scoresheet has (usually 1, 2, or 3)
+- "rows_per_column": how many move rows fit in each column on the sheet
 
 Return ONLY the JSON object, no other text."""
 

@@ -419,7 +419,12 @@ export function ScoresheetReadPage() {
               )}
 
               {/* Results: 3-column layout — image | tables | board */}
-              {models.length > 0 && (
+              {models.length > 0 && (() => {
+                // Get layout from first model result
+                const firstResult = models.length > 0 ? modelResults[models[0].id]?.result : null;
+                const sheetColumns = (firstResult as any)?.columns || 1;
+                const rowsPerColumn = (firstResult as any)?.rows_per_column || null;
+                return (
                 <div className="flex gap-4 items-start justify-center">
                   {/* Left: scoresheet image — stretches to match table height */}
                   <div className="flex-shrink-0 hidden md:flex self-stretch">
@@ -448,7 +453,7 @@ export function ScoresheetReadPage() {
                         <div key={m.id}>
                           <h2 className="text-sm font-medium text-slate-300 mb-2 px-1">{mr?.name || m.name}</h2>
                           <div className="flex flex-wrap gap-3 items-start">
-                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} />}
+                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
                             {!mr ? (
                               <ModelPanelLoading name={m.name} startTime={startTime} />
                             ) : (
@@ -468,6 +473,8 @@ export function ScoresheetReadPage() {
                                   corrections={read.corrections}
                                   onEditSave={(confirmed, corrKey) => handleEditSave(readIdx, confirmed, corrKey)}
                                   onMoveClick={handleMoveClick}
+                                  sheetColumns={sheetColumns}
+                                  rowsPerColumn={rowsPerColumn}
                                 />
                               ))
                             )}
@@ -545,7 +552,8 @@ export function ScoresheetReadPage() {
                     </div>
                   </div>
                 </div>
-              )}
+                );
+              })()}
             </div>
           )}
 
@@ -597,10 +605,12 @@ function EditableCell({ value, onSave }: { value: string; onSave: (v: string) =>
   );
 }
 
-function GroundTruthPanel({ groundTruth, fileName, onUpdate }: {
+function GroundTruthPanel({ groundTruth, fileName, onUpdate, sheetColumns = 1, rowsPerColumn }: {
   groundTruth: { white_player: string; black_player: string; result: string; moves: Move[] };
   fileName?: string | null;
   onUpdate: (gt: { white_player: string; black_player: string; result: string; moves: Move[] }) => void;
+  sheetColumns?: number;
+  rowsPerColumn?: number | null;
 }) {
   const [validatedMoves, setValidatedMoves] = useState<Move[]>(groundTruth.moves);
   const [saving, setSaving] = useState(false);
@@ -665,8 +675,8 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate }: {
       </div>
 
       {(() => {
-        const split = validatedMoves.length > 15;
-        const splitAt = split ? Math.ceil(validatedMoves.length / 2) : validatedMoves.length;
+        const split = sheetColumns > 1 || validatedMoves.length > 15;
+        const splitAt = split ? (rowsPerColumn || Math.ceil(validatedMoves.length / sheetColumns)) : validatedMoves.length;
         const leftMoves = validatedMoves.slice(0, splitAt);
         const rightMoves = split ? validatedMoves.slice(splitAt) : [];
         const rows = Math.max(leftMoves.length, rightMoves.length);
@@ -773,7 +783,7 @@ const WARNING_LABELS: Record<string, string> = {
   unwrapped_array: 'Unwrapped array',
 };
 
-function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, warnings, error, meta, fileName, rereading, corrections, onEditSave, onMoveClick }: {
+function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, warnings, error, meta, fileName, rereading, corrections, onEditSave, onMoveClick, sheetColumns = 1, rowsPerColumn }: {
   label: string;
   moves: Move[];
   groundTruthMoves?: Move[];
@@ -787,6 +797,8 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
   corrections?: Set<string>;
   onEditSave?: (confirmed: Move[], correctionKey: string) => void;
   onMoveClick?: (moves: Move[], ply: number) => void;
+  sheetColumns?: number;
+  rowsPerColumn?: number | null;
 }) {
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
   const [liveElapsed, setLiveElapsed] = useState(0);
@@ -875,8 +887,8 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
 
       {/* Moves table */}
       {moves.length > 0 && (() => {
-        const split = moves.length > 15;
-        const splitAt = split ? Math.ceil(moves.length / 2) : moves.length;
+        const split = sheetColumns > 1 || moves.length > 15;
+        const splitAt = split ? (rowsPerColumn || Math.ceil(moves.length / sheetColumns)) : moves.length;
         const leftMoves = moves.slice(0, splitAt);
         const rightMoves = split ? moves.slice(splitAt) : [];
         const rows = Math.max(leftMoves.length, rightMoves.length);
