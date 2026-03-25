@@ -649,7 +649,7 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, sheetColumns = 1, r
   }, [groundTruth, onUpdate, saveToServer]);
 
   return (
-    <div className="bg-emerald-900/30 border border-emerald-700/50 rounded-xl overflow-hidden self-start">
+    <div className="bg-emerald-900/30 border border-emerald-700/50 rounded-xl overflow-hidden self-start w-[380px]">
       <div className="px-2 py-2 border-b border-emerald-700/50 flex items-center gap-1.5">
         <BookOpen className="w-3 h-3 text-emerald-400" />
         <span className="text-emerald-300 font-medium text-xs">Ground Truth</span>
@@ -759,7 +759,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   }, [startTime]);
 
   return (
-    <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start">
+    <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start w-[380px]">
       <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
         <span className="text-slate-100 font-medium text-xs">{name}</span>
         <div className="flex items-center gap-1">
@@ -849,7 +849,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
   const stats = groundTruthMoves && moves.length > 0 ? computeStats(moves, groundTruthMoves) : null;
 
   return (
-    <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[200px]">
+    <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start w-[380px]">
       {/* Header */}
       <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
         <span className="text-slate-100 font-medium text-xs">{label}</span>
