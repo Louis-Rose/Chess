@@ -265,7 +265,9 @@ export function ScoresheetReadPage() {
           {cropSrc ? (
             /* ── Crop step ── */
             <div className="space-y-4">
-              <p className="text-slate-200 text-base font-medium text-center">{t('coaches.cropHint')}</p>
+              <div className="flex justify-center h-[36px] items-center">
+                <p className="text-slate-200 text-base font-medium text-center">{t('coaches.cropHint')}</p>
+              </div>
               <div className="flex justify-center max-w-sm mx-auto">
                 <ReactCrop
                   crop={crop}
@@ -305,7 +307,7 @@ export function ScoresheetReadPage() {
           ) : (
             <div className="space-y-4">
               {/* Replace + preview */}
-              <div className="flex justify-center">
+              <div className="flex justify-center h-[36px] items-center">
                 <button
                   onClick={() => { scoresheetClear(); fileInputRef.current?.click(); }}
                   className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
