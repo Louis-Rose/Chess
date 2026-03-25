@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { Upload, ImageIcon, Clock, BookOpen, Check, Play, RotateCcw, Square, ExternalLink, X, Crop } from 'lucide-react';
+import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, X, Crop } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -127,11 +127,10 @@ export function ScoresheetReadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
-    scoresheetStartMultipleReads, scoresheetStopMultipleReads,
     scoresheetHandleEditSave, scoresheetCancel, scoresheetClear,
   } = useCoachesData();
 
-  const { preview, fileName, error, modelResults, reReads, models, autoRunning, startTime, analyzing, azureResult } = scoresheet;
+  const { preview, fileName, error, modelResults, reReads, models, startTime, analyzing, azureResult } = scoresheet;
 
   const [groundTruth, setGroundTruth] = useState<{ white_player: string; black_player: string; result: string; moves: Move[] } | null>(null);
   useEffect(() => {
@@ -261,8 +260,6 @@ export function ScoresheetReadPage() {
     }
   }, [autoRun, scoresheet.imageFile, scoresheetStartOneRead]);
 
-  const startMultipleReads = () => groundTruth && scoresheetStartMultipleReads(groundTruth.moves);
-  const stopMultipleReads = scoresheetStopMultipleReads;
 
   // Move click handler (unused for now — each model has its own board)
   const handleMoveClick = useCallback((_moves: Move[], _ply: number) => {}, []);
@@ -358,13 +355,12 @@ export function ScoresheetReadPage() {
                     const mr = modelResults[m.id];
                     const extraReads = reReads[m.id] || [];
                     const allReads: ReadEntry[] = mr?.result
-                      ? [{ moves: mr.result.moves, elapsed: mr.elapsed, warnings: mr.warnings, error: mr.error }, ...extraReads]
+                      ? [{ moves: mr.result.moves, elapsed: mr.elapsed, error: mr.error }, ...extraReads]
                       : [];
-                    const meta = mr?.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined;
+                    const latestMoves = allReads.length > 0 ? allReads[allReads.length - 1].moves : [];
                     const handleEditSave = (readIdx: number, confirmed: Move[], correctionKey: string) => {
                       scoresheetHandleEditSave(m.id, readIdx, confirmed, correctionKey);
                     };
-                    const latestMoves = allReads.length > 0 ? allReads[allReads.length - 1].moves : [];
 
                     return (
                       <ModelRow key={m.id} preview={preview} onImageClick={() => setShowImageModal(true)}>
@@ -387,7 +383,6 @@ export function ScoresheetReadPage() {
                                   disagreements={groundTruth ? buildDisagreementMap(read.moves, groundTruth.moves) : new Map()}
                                   elapsed={read.elapsed}
                                   error={read.error}
-                                  meta={meta}
                                   fileName={fileName}
                                   rereading={read.rereading}
                                   corrections={read.corrections}
