@@ -502,31 +502,29 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
   return (
     <div ref={containerRef} className="relative">
       {/* Image positioned absolutely to align with tbody */}
-      {tablesLeft > 0 && onReplace && (
-        <div
-          className="absolute hidden md:flex justify-center"
-          style={{ top: Math.max(0, tbodyTop - 36), left: 0, width: tablesLeft - 8 }}
-        >
-          <button
-            onClick={onReplace}
-            className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
-          >
-            <Upload className="w-4 h-4" />
-            {replaceLabel || 'Replace photo'}
-          </button>
-        </div>
-      )}
       {tbodyHeight > 0 && tablesLeft > 0 && (
         <div
           className="absolute hidden md:flex justify-end"
-          style={{ top: tbodyTop, height: tbodyHeight, left: 0, width: tablesLeft - 8 }}
+          style={{ top: Math.max(0, tbodyTop - 36), left: 0, width: tablesLeft - 8 }}
         >
-          <img
-            src={preview}
-            alt="Scoresheet"
-            className="rounded-xl object-cover object-top cursor-pointer hover:opacity-90 transition-opacity h-full"
-            onClick={onImageClick}
-          />
+          <div className="flex flex-col items-center">
+            {onReplace && (
+              <button
+                onClick={onReplace}
+                className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors mb-1"
+              >
+                <Upload className="w-4 h-4" />
+                {replaceLabel || 'Replace photo'}
+              </button>
+            )}
+            <img
+              src={preview}
+              alt="Scoresheet"
+              className="rounded-xl object-cover object-top cursor-pointer hover:opacity-90 transition-opacity"
+              style={{ height: tbodyHeight }}
+              onClick={onImageClick}
+            />
+          </div>
         </div>
       )}
       {/* Content with left/right margins for image/board space */}
