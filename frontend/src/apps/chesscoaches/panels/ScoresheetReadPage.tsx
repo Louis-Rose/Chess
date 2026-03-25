@@ -254,46 +254,8 @@ export function ScoresheetReadPage() {
   const startMultipleReads = () => groundTruth && scoresheetStartMultipleReads(groundTruth.moves);
   const stopMultipleReads = scoresheetStopMultipleReads;
 
-  // Board preview state — tracks which move is selected across all panels
-  const [boardPly, setBoardPly] = useState(0);
-  const [boardMoves, setBoardMoves] = useState<Move[]>([]);
-
-  // Auto-set board from first model result
-  const firstModelMoves = models.length > 0 && modelResults[models[0].id]?.result?.moves;
-  useEffect(() => {
-    if (firstModelMoves && boardMoves.length === 0) {
-      setBoardMoves(firstModelMoves);
-      setBoardPly(firstModelMoves.length * 2);
-    }
-  }, [firstModelMoves]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Build FENs from moves using chess.js — tolerates illegal moves by stopping
-  const boardData = useMemo(() => {
-    if (boardMoves.length === 0) return { fens: ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'], lastMoves: [null] };
-    const chess = new Chess();
-    const fens: string[] = [chess.fen()];
-    const lastMoves: ({ from: string; to: string } | null)[] = [null];
-    for (const m of boardMoves) {
-      for (const color of ['white', 'black'] as const) {
-        const san = m[color];
-        if (!san) continue;
-        try {
-          const result = chess.move(san);
-          fens.push(chess.fen());
-          lastMoves.push(result ? { from: result.from, to: result.to } : null);
-        } catch {
-          fens.push(chess.fen());
-          lastMoves.push(null);
-        }
-      }
-    }
-    return { fens, lastMoves };
-  }, [boardMoves]);
-
-  const handleMoveClick = useCallback((moves: Move[], ply: number) => {
-    setBoardMoves(moves);
-    setBoardPly(ply);
-  }, []);
+  // Move click handler (unused for now — each model has its own board)
+  const handleMoveClick = useCallback((_moves: Move[], _ply: number) => {}, []);
 
   return (
     <PanelShell title={t('coaches.navScoresheets')}>
@@ -418,41 +380,40 @@ export function ScoresheetReadPage() {
                 </div>
               )}
 
-              {/* Results: 3-column layout — image | tables | board */}
+              {/* Results: one row per model — [image | GT | read | board] */}
               {models.length > 0 && (() => {
-                // Get layout from first model result
-                const firstResult = models.length > 0 ? modelResults[models[0].id]?.result : null;
+                const firstResult = modelResults[models[0].id]?.result;
                 const sheetColumns = (firstResult as any)?.columns || 1;
                 const rowsPerColumn = (firstResult as any)?.rows_per_column || null;
                 return (
-                <div className="flex gap-4 items-start justify-center">
-                  {/* Left: scoresheet image — stretches to match table height */}
-                  <div className="flex-shrink-0 hidden md:flex self-stretch">
-                    <img
-                      src={preview}
-                      alt="Scoresheet"
-                      className="rounded-xl w-[200px] object-contain object-top cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => setShowImageModal(true)}
-                    />
-                  </div>
+                <div className="space-y-8">
+                  {models.map((m) => {
+                    const mr = modelResults[m.id];
+                    const extraReads = reReads[m.id] || [];
+                    const allReads: ReadEntry[] = mr?.result
+                      ? [{ moves: mr.result.moves, elapsed: mr.elapsed, warnings: mr.warnings, error: mr.error }, ...extraReads]
+                      : [];
+                    const meta = mr?.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined;
+                    const handleEditSave = (readIdx: number, confirmed: Move[], correctionKey: string) => {
+                      scoresheetHandleEditSave(m.id, readIdx, confirmed, correctionKey);
+                    };
+                    const latestMoves = allReads.length > 0 ? allReads[allReads.length - 1].moves : [];
 
-                  {/* Middle: model results + tables */}
-                  <div className="min-w-0 space-y-6">
-                    {models.map((m) => {
-                      const mr = modelResults[m.id];
-                      const extraReads = reReads[m.id] || [];
-                      const allReads: ReadEntry[] = mr?.result
-                        ? [{ moves: mr.result.moves, elapsed: mr.elapsed, warnings: mr.warnings, error: mr.error }, ...extraReads]
-                        : [];
-                      const meta = mr?.result ? { white: mr.result.white_player, black: mr.result.black_player, result: mr.result.result } : undefined;
-                      const handleEditSave = (readIdx: number, confirmed: Move[], correctionKey: string) => {
-                        scoresheetHandleEditSave(m.id, readIdx, confirmed, correctionKey);
-                      };
-
-                      return (
-                        <div key={m.id}>
-                          <h2 className="text-sm font-medium text-slate-300 mb-2 px-1">{mr?.name || m.name}</h2>
-                          <div className="flex flex-wrap gap-3 items-start">
+                    return (
+                      <div key={m.id}>
+                        <h2 className="text-sm font-medium text-slate-300 mb-2 px-1">{mr?.name || m.name}</h2>
+                        <div className="flex gap-3 items-start">
+                          {/* Image */}
+                          <div className="flex-shrink-0 hidden md:block">
+                            <img
+                              src={preview}
+                              alt="Scoresheet"
+                              className="rounded-xl w-[180px] object-contain object-top cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => setShowImageModal(true)}
+                            />
+                          </div>
+                          {/* Tables */}
+                          <div className="flex flex-wrap gap-3 items-start flex-1 min-w-0">
                             {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
                             {!mr ? (
                               <ModelPanelLoading name={m.name} startTime={startTime} />
@@ -479,78 +440,68 @@ export function ScoresheetReadPage() {
                               ))
                             )}
                           </div>
-                          {mr && allReads.length > 0 && !allReads.some(r => r.rereading) && (
-                            <div className="text-xs text-slate-400 mt-1 px-1">
-                              {allReads.length} {allReads.length === 1 ? 'run' : 'runs'} — {allReads.reduce((sum, r) => sum + (r.elapsed || 0), 0)}s total
-                            </div>
+                          {/* Board for this model */}
+                          {mr && latestMoves.length > 0 && (
+                            <ModelBoard moves={latestMoves} />
                           )}
                         </div>
-                      );
-                    })}
-
-                    {/* Azure DI section */}
-                    {azureResult && (
-                      <>
-                        <div className="border-t border-slate-600 my-4" />
-                        <h2 className="text-sm font-medium text-slate-300 mb-2 px-1">Azure Document Intelligence</h2>
-                        {azureResult.loading ? (
-                          <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse py-4">
-                            <Clock className="w-4 h-4 animate-spin" />
-                            <span className="text-sm">Analyzing with Azure DI...</span>
-                            <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
-                              <X className="w-4 h-4" />
-                            </button>
+                        {mr && allReads.length > 0 && !allReads.some(r => r.rereading) && (
+                          <div className="text-xs text-slate-400 mt-1 px-1">
+                            {allReads.length} {allReads.length === 1 ? 'run' : 'runs'} — {allReads.reduce((sum, r) => sum + (r.elapsed || 0), 0)}s total
                           </div>
-                        ) : azureResult.error ? (
-                          <p className="text-red-400 text-center py-3 text-xs px-2">{azureResult.error}</p>
-                        ) : azureResult.rawTables && azureResult.rawTables.length > 0 ? (
-                          <div className="flex flex-wrap gap-3 items-start">
-                            {azureResult.rawTables.map((t) => (
-                              <div key={t.index} className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[200px]">
-                                <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
-                                  <span className="text-slate-100 font-medium text-xs">Raw Table {t.index + 1}</span>
-                                  <span className="text-slate-400 text-xs">{t.rowCount}r x {t.columnCount}c</span>
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3 text-slate-400" />
-                                    <span className="text-slate-400 text-xs">{azureResult.elapsed}s</span>
-                                  </div>
-                                </div>
-                                <table className="w-full text-xs">
-                                  <tbody>
-                                    {t.rows.map((row, ri) => (
-                                      <tr key={ri} className="border-b border-slate-600/30 last:border-0">
-                                        {row.map((cell, ci) => (
-                                          <td key={ci} className="px-1.5 py-0.5 font-mono text-slate-100 text-center">
-                                            {cell || <span className="text-slate-600">-</span>}
-                                          </td>
-                                        ))}
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-slate-500 text-center py-3 text-xs">No tables detected</p>
                         )}
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    );
+                  })}
 
-                  {/* Right: chessboard — vertically centered */}
-                  <div className="flex-shrink-0 hidden md:flex flex-col items-center self-center w-[320px]">
-                    <BoardPreview
-                      fen={boardData.fens[Math.min(boardPly, boardData.fens.length - 1)]}
-                      lastMove={boardData.lastMoves[Math.min(boardPly, boardData.lastMoves.length - 1)]}
-                    />
-                    <div className="flex justify-center gap-2 mt-2">
-                      <button onClick={() => setBoardPly(0)} className="px-2.5 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏮</button>
-                      <button onClick={() => setBoardPly(p => Math.max(0, p - 1))} className="px-2.5 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">◀</button>
-                      <button onClick={() => setBoardPly(p => Math.min(boardData.fens.length - 1, p + 1))} className="px-2.5 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">▶</button>
-                      <button onClick={() => setBoardPly(boardData.fens.length - 1)} className="px-2.5 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏭</button>
-                    </div>
-                  </div>
+                  {/* Azure DI section */}
+                  {azureResult && (
+                    <>
+                      <div className="border-t border-slate-600 my-4" />
+                      <h2 className="text-sm font-medium text-slate-300 mb-2 px-1">Azure Document Intelligence</h2>
+                      {azureResult.loading ? (
+                        <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse py-4">
+                          <Clock className="w-4 h-4 animate-spin" />
+                          <span className="text-sm">Analyzing with Azure DI...</span>
+                          <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : azureResult.error ? (
+                        <p className="text-red-400 text-center py-3 text-xs px-2">{azureResult.error}</p>
+                      ) : azureResult.rawTables && azureResult.rawTables.length > 0 ? (
+                        <div className="flex flex-wrap gap-3 items-start">
+                          {azureResult.rawTables.map((t) => (
+                            <div key={t.index} className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[200px]">
+                              <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
+                                <span className="text-slate-100 font-medium text-xs">Raw Table {t.index + 1}</span>
+                                <span className="text-slate-400 text-xs">{t.rowCount}r x {t.columnCount}c</span>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-slate-400" />
+                                  <span className="text-slate-400 text-xs">{azureResult.elapsed}s</span>
+                                </div>
+                              </div>
+                              <table className="w-full text-xs">
+                                <tbody>
+                                  {t.rows.map((row, ri) => (
+                                    <tr key={ri} className="border-b border-slate-600/30 last:border-0">
+                                      {row.map((cell, ci) => (
+                                        <td key={ci} className="px-1.5 py-0.5 font-mono text-slate-100 text-center">
+                                          {cell || <span className="text-slate-600">-</span>}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-slate-500 text-center py-3 text-xs">No tables detected</p>
+                      )}
+                    </>
+                  )}
                 </div>
                 );
               })()}
@@ -602,6 +553,49 @@ function EditableCell({ value, onSave }: { value: string; onSave: (v: string) =>
       className="bg-slate-900 text-slate-100 font-mono text-xs text-center w-16 px-1 py-0 rounded border border-emerald-500 outline-none"
       style={{ fontSize: '16px' }}
     />
+  );
+}
+
+function ModelBoard({ moves }: { moves: Move[] }) {
+  const [ply, setPly] = useState(0);
+
+  const data = useMemo(() => {
+    const chess = new Chess();
+    const fens: string[] = [chess.fen()];
+    const lastMoves: ({ from: string; to: string } | null)[] = [null];
+    for (const m of moves) {
+      for (const color of ['white', 'black'] as const) {
+        const san = m[color];
+        if (!san) continue;
+        try {
+          const result = chess.move(san);
+          fens.push(chess.fen());
+          lastMoves.push(result ? { from: result.from, to: result.to } : null);
+        } catch {
+          fens.push(chess.fen());
+          lastMoves.push(null);
+        }
+      }
+    }
+    return { fens, lastMoves };
+  }, [moves]);
+
+  const maxPly = data.fens.length - 1;
+  const safePly = Math.min(ply, maxPly);
+
+  // Auto-set to last position when moves change
+  useEffect(() => { setPly(maxPly); }, [maxPly]);
+
+  return (
+    <div className="flex-shrink-0 hidden md:flex flex-col items-center self-center w-[250px]">
+      <BoardPreview fen={data.fens[safePly]} lastMove={data.lastMoves[safePly]} />
+      <div className="flex justify-center gap-1.5 mt-2">
+        <button onClick={() => setPly(0)} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏮</button>
+        <button onClick={() => setPly(p => Math.max(0, p - 1))} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">◀</button>
+        <button onClick={() => setPly(p => Math.min(maxPly, p + 1))} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">▶</button>
+        <button onClick={() => setPly(maxPly)} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏭</button>
+      </div>
+    </div>
   );
 }
 
