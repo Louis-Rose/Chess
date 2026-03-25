@@ -439,11 +439,6 @@ export function ScoresheetReadPage() {
                             <ModelBoard moves={latestMoves} />
                           </div>
                         </div>
-                        {mr && allReads.length > 0 && !allReads.some(r => r.rereading) && (
-                          <div className="text-xs text-slate-400 mt-1 px-1">
-                            {allReads.length} {allReads.length === 1 ? 'run' : 'runs'} — {allReads.reduce((sum, r) => sum + (r.elapsed || 0), 0)}s total
-                          </div>
-                        )}
                       </ModelRow>
                     );
                   })}
