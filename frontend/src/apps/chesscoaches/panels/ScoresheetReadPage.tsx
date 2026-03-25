@@ -403,14 +403,23 @@ export function ScoresheetReadPage() {
                       <div key={m.id}>
                         <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">{mr?.name || m.name}</h2>
                         <div className="flex items-start">
-                          {/* Left: image stretches to match table height */}
-                          <div className="flex-1 hidden md:flex justify-center self-stretch">
-                            <img
-                              src={preview}
-                              alt="Scoresheet"
-                              className="rounded-xl object-cover object-top cursor-pointer hover:opacity-90 transition-opacity h-full"
-                              onClick={() => setShowImageModal(true)}
-                            />
+                          {/* Left: image aligned with move rows */}
+                          <div className="flex-1 hidden md:flex justify-center items-start self-stretch">
+                            <div className="flex flex-col h-full">
+                              {/* Spacer matching table headers: banner + spacer + meta + col headers */}
+                              <div className="flex-shrink-0" style={{ height: '122px' }} />
+                              {/* Image fills the moves area */}
+                              <div className="flex-1 min-h-0">
+                                <img
+                                  src={preview}
+                                  alt="Scoresheet"
+                                  className="rounded-xl object-cover object-top cursor-pointer hover:opacity-90 transition-opacity h-full"
+                                  onClick={() => setShowImageModal(true)}
+                                />
+                              </div>
+                              {/* Spacer matching table footer */}
+                              <div className="flex-shrink-0" style={{ height: '80px' }} />
+                            </div>
                           </div>
                           {/* Center: tables */}
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0">
