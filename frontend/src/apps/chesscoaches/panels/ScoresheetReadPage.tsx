@@ -205,7 +205,7 @@ export function ScoresheetReadPage() {
               }}
               icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
               title={t('coaches.uploadPrompt')}
-              hint={t('coaches.uploadHint')}
+              hint=""
               pasteLabel={t('coaches.pasteClipboard')}
             />
           ) : (
