@@ -420,7 +420,7 @@ export function ScoresheetReadPage() {
 
               {/* Results: 3-column layout — image | tables | board */}
               {models.length > 0 && (
-                <div className="flex gap-4 items-start">
+                <div className="flex gap-4 items-start justify-center">
                   {/* Left: scoresheet image — stretches to match table height */}
                   <div className="flex-shrink-0 hidden md:flex self-stretch">
                     <img
@@ -432,7 +432,7 @@ export function ScoresheetReadPage() {
                   </div>
 
                   {/* Middle: model results + tables */}
-                  <div className="flex-1 min-w-0 space-y-6">
+                  <div className="min-w-0 space-y-6">
                     {models.map((m) => {
                       const mr = modelResults[m.id];
                       const extraReads = reReads[m.id] || [];
@@ -531,17 +531,17 @@ export function ScoresheetReadPage() {
                     )}
                   </div>
 
-                  {/* Right: chessboard */}
-                  <div className="flex-shrink-0 hidden md:block w-[250px] sticky top-4">
+                  {/* Right: chessboard — vertically centered */}
+                  <div className="flex-shrink-0 hidden md:flex flex-col items-center self-center w-[320px]">
                     <BoardPreview
                       fen={boardData.fens[Math.min(boardPly, boardData.fens.length - 1)]}
                       lastMove={boardData.lastMoves[Math.min(boardPly, boardData.lastMoves.length - 1)]}
                     />
                     <div className="flex justify-center gap-2 mt-2">
-                      <button onClick={() => setBoardPly(0)} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏮</button>
-                      <button onClick={() => setBoardPly(p => Math.max(0, p - 1))} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">◀</button>
-                      <button onClick={() => setBoardPly(p => Math.min(boardData.fens.length - 1, p + 1))} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">▶</button>
-                      <button onClick={() => setBoardPly(boardData.fens.length - 1)} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏭</button>
+                      <button onClick={() => setBoardPly(0)} className="px-2.5 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏮</button>
+                      <button onClick={() => setBoardPly(p => Math.max(0, p - 1))} className="px-2.5 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">◀</button>
+                      <button onClick={() => setBoardPly(p => Math.min(boardData.fens.length - 1, p + 1))} className="px-2.5 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">▶</button>
+                      <button onClick={() => setBoardPly(boardData.fens.length - 1)} className="px-2.5 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏭</button>
                     </div>
                   </div>
                 </div>
