@@ -896,12 +896,12 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
         </div>
       </div>
 
-      {/* Warnings */}
-      <div className="px-2 py-1 border-b border-slate-600/50 text-[10px] text-amber-400 min-h-[22px] text-center">
-        {warnings && warnings.length > 0
-          ? warnings.map(w => WARNING_LABELS[w] || w).join(' · ')
-          : '\u00A0'}
-      </div>
+      {/* Warnings — only shown when present */}
+      {warnings && warnings.length > 0 && (
+        <div className="px-2 py-1 border-b border-slate-600/50 text-[10px] text-amber-400 text-center">
+          {warnings.map(w => WARNING_LABELS[w] || w).join(' · ')}
+        </div>
+      )}
 
       {error && <p className="text-red-400 text-center py-3 text-xs px-2">{error}</p>}
 
