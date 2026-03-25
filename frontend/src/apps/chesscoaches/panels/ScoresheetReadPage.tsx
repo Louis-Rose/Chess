@@ -421,12 +421,12 @@ export function ScoresheetReadPage() {
               {/* Results: 3-column layout — image | tables | board */}
               {models.length > 0 && (
                 <div className="flex gap-4 items-start">
-                  {/* Left: scoresheet image */}
-                  <div className="flex-shrink-0 hidden md:block">
+                  {/* Left: scoresheet image — stretches to match table height */}
+                  <div className="flex-shrink-0 hidden md:flex self-stretch">
                     <img
                       src={preview}
                       alt="Scoresheet"
-                      className="rounded-xl max-h-[65vh] w-[200px] object-contain cursor-pointer hover:opacity-90 transition-opacity sticky top-4"
+                      className="rounded-xl w-[200px] object-contain object-top cursor-pointer hover:opacity-90 transition-opacity"
                       onClick={() => setShowImageModal(true)}
                     />
                   </div>
@@ -664,36 +664,63 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate }: {
         </div>
       </div>
 
-      <table className="w-full text-xs">
-        <thead className="bg-emerald-900/40">
-          <tr className="border-b border-emerald-700/50">
-            <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6">#</th>
-            <th className="px-1.5 py-1 text-slate-400 font-medium text-center">White</th>
-            <th className="px-1.5 py-1 text-slate-400 font-medium text-center">Black</th>
-          </tr>
-        </thead>
-        <tbody>
-          {validatedMoves.map((move) => (
-            <tr key={move.number} className="border-b border-emerald-700/20 last:border-0">
-              <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{move.number}</td>
-              <td className="px-1.5 py-0.5 font-mono text-slate-100 text-center">
-                <span className="inline-flex items-center gap-1">
-                  <EditableCell value={move.white} onSave={v => updateMove(move.number, 'white', v)} />
-                  {move.white_legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
-                  {move.white_legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
-                </span>
-              </td>
-              <td className="px-1.5 py-0.5 font-mono text-slate-100 text-center">
-                <span className="inline-flex items-center gap-1">
-                  <EditableCell value={move.black || ''} onSave={v => updateMove(move.number, 'black', v)} />
-                  {move.black_legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
-                  {move.black_legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {(() => {
+        const split = validatedMoves.length > 15;
+        const splitAt = split ? Math.ceil(validatedMoves.length / 2) : validatedMoves.length;
+        const leftMoves = validatedMoves.slice(0, splitAt);
+        const rightMoves = split ? validatedMoves.slice(splitAt) : [];
+        const rows = Math.max(leftMoves.length, rightMoves.length);
+
+        const renderCell = (move: Move | undefined, color: 'white' | 'black') => {
+          if (!move) return <td className="px-1.5 py-0.5" />;
+          const val = move[color];
+          const legal = move[`${color}_legal` as const];
+          return (
+            <td className="px-1.5 py-0.5 font-mono text-slate-100 text-center">
+              <span className="inline-flex items-center gap-1">
+                <EditableCell value={val || ''} onSave={v => updateMove(move.number, color, v)} />
+                {legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
+                {legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
+              </span>
+            </td>
+          );
+        };
+
+        return (
+          <table className="w-full text-xs">
+            <thead className="bg-emerald-900/40">
+              <tr className="border-b border-emerald-700/50">
+                <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6">#</th>
+                <th className="px-1.5 py-1 text-slate-400 font-medium text-center">White</th>
+                <th className="px-1.5 py-1 text-slate-400 font-medium text-center">Black</th>
+                {split && <>
+                  <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6 border-l border-emerald-700/50">#</th>
+                  <th className="px-1.5 py-1 text-slate-400 font-medium text-center">White</th>
+                  <th className="px-1.5 py-1 text-slate-400 font-medium text-center">Black</th>
+                </>}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: rows }, (_, i) => {
+                const left = leftMoves[i];
+                const right = rightMoves[i];
+                return (
+                  <tr key={i} className="border-b border-emerald-700/20 last:border-0">
+                    <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{left?.number}</td>
+                    {renderCell(left, 'white')}
+                    {renderCell(left, 'black')}
+                    {split && <>
+                      <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono border-l border-emerald-700/30">{right?.number}</td>
+                      {renderCell(right, 'white')}
+                      {renderCell(right, 'black')}
+                    </>}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        );
+      })()}
       <div className="px-2 py-1.5 border-t border-emerald-700/50 text-center space-y-0.5 flex flex-col items-center justify-center">
         <div>
           <span className="text-xs font-medium text-green-400">100% accuracy</span>
@@ -847,41 +874,74 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
       )}
 
       {/* Moves table */}
-      {moves.length > 0 && (
-        <table className="w-full text-xs">
-          <thead className="bg-slate-700">
-            <tr className="border-b border-slate-600">
-              <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6">#</th>
-              <th className="px-1.5 py-1 text-slate-400 font-medium text-center">White</th>
-              <th className="px-1.5 py-1 text-slate-400 font-medium text-center">Black</th>
-            </tr>
-          </thead>
-          <tbody>
-            {moves.map((move, idx) => {
-              const d = disagreements.get(move.number);
-              return (
-                <tr key={move.number} className="border-b border-slate-600/30 last:border-0 cursor-pointer hover:bg-slate-600/30" onClick={() => onMoveClick?.(moves, idx * 2 + (move.black ? 2 : 1))}>
-                  <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{move.number}</td>
-                  <MoveCell
-                    value={move.white}
-                    legal={move.white_legal}
-                    highlight={d?.white}
-                    corrected={corrections?.has(`${move.number}-white`)}
-                    onClick={() => setEditing({ moveIdx: idx, color: 'white', value: move.white })}
-                  />
-                  <MoveCell
-                    value={move.black || ''}
-                    legal={move.black_legal}
-                    corrected={corrections?.has(`${move.number}-black`)}
-                    highlight={d?.black}
-                    onClick={() => move.black !== undefined ? setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }) : undefined}
-                  />
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
+      {moves.length > 0 && (() => {
+        const split = moves.length > 15;
+        const splitAt = split ? Math.ceil(moves.length / 2) : moves.length;
+        const leftMoves = moves.slice(0, splitAt);
+        const rightMoves = split ? moves.slice(splitAt) : [];
+        const rows = Math.max(leftMoves.length, rightMoves.length);
+
+        return (
+          <table className="w-full text-xs">
+            <thead className="bg-slate-700">
+              <tr className="border-b border-slate-600">
+                <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6">#</th>
+                <th className="px-1.5 py-1 text-slate-400 font-medium text-center">White</th>
+                <th className="px-1.5 py-1 text-slate-400 font-medium text-center">Black</th>
+                {split && <>
+                  <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6 border-l border-slate-600">#</th>
+                  <th className="px-1.5 py-1 text-slate-400 font-medium text-center">White</th>
+                  <th className="px-1.5 py-1 text-slate-400 font-medium text-center">Black</th>
+                </>}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: rows }, (_, i) => {
+                const left = leftMoves[i];
+                const right = rightMoves[i];
+                const leftIdx = i;
+                const rightIdx = splitAt + i;
+                const dLeft = left ? disagreements.get(left.number) : undefined;
+                const dRight = right ? disagreements.get(right.number) : undefined;
+
+                const renderHalf = (move: Move | undefined, idx: number, d: { white: boolean; black: boolean } | undefined) => {
+                  if (!move) return <><td className="px-1.5 py-0.5" /><td className="px-1.5 py-0.5" /><td className="px-1.5 py-0.5" /></>;
+                  return <>
+                    <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{move.number}</td>
+                    <MoveCell
+                      value={move.white}
+                      legal={move.white_legal}
+                      highlight={d?.white}
+                      corrected={corrections?.has(`${move.number}-white`)}
+                      onClick={() => setEditing({ moveIdx: idx, color: 'white', value: move.white })}
+                    />
+                    <MoveCell
+                      value={move.black || ''}
+                      legal={move.black_legal}
+                      corrected={corrections?.has(`${move.number}-black`)}
+                      highlight={d?.black}
+                      onClick={() => move.black !== undefined ? setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }) : undefined}
+                    />
+                  </>;
+                };
+
+                return (
+                  <tr key={i} className="border-b border-slate-600/30 last:border-0 cursor-pointer hover:bg-slate-600/30"
+                    onClick={() => onMoveClick?.(moves, (left ? leftIdx : rightIdx) * 2 + ((left || right)?.black ? 2 : 1))}
+                  >
+                    {renderHalf(left, leftIdx, dLeft)}
+                    {split && <>{right ? (
+                      <>{renderHalf(right, rightIdx, dRight)}</>
+                    ) : (
+                      <><td className="px-1.5 py-0.5 border-l border-slate-600/30" /><td className="px-1.5 py-0.5" /><td className="px-1.5 py-0.5" /></>
+                    )}</>}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        );
+      })()}
       {/* Stats */}
       {stats && !rereading && (
         <div className="px-2 py-1.5 border-t border-slate-600/50 text-center space-y-0.5">
