@@ -207,6 +207,7 @@ export function ScoresheetReadPage() {
               title={t('coaches.uploadPrompt')}
               hint={t('coaches.uploadHint')}
               pasteLabel={t('coaches.pasteClipboard')}
+              pasteHint={t('coaches.pasteHint')}
               photoLibraryLabel={t('coaches.photoLibrary')}
               takePhotoLabel={t('coaches.takePhoto')}
               chooseFileLabel={t('coaches.chooseFile')}

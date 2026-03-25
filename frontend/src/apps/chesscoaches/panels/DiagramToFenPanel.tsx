@@ -45,6 +45,7 @@ export function DiagramToFenPanel() {
               title={t('coaches.diagram.uploadPrompt')}
               hint={t('coaches.diagram.uploadHint')}
               pasteLabel={t('coaches.pasteClipboard')}
+              pasteHint={t('coaches.pasteHint')}
               photoLibraryLabel={t('coaches.photoLibrary')}
               takePhotoLabel={t('coaches.takePhoto')}
               chooseFileLabel={t('coaches.chooseFile')}
