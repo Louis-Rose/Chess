@@ -277,9 +277,6 @@ export function ScoresheetReadPage() {
           {cropSrc ? (
             /* ── Crop step ── */
             <div className="space-y-4">
-              <div className="flex justify-center h-[36px] items-center">
-                <p className="text-slate-200 text-base font-medium text-center">{t('coaches.cropHint')}</p>
-              </div>
               <div className="flex justify-center max-w-sm mx-auto">
                 <ReactCrop
                   crop={crop}
@@ -294,6 +291,7 @@ export function ScoresheetReadPage() {
                   />
                 </ReactCrop>
               </div>
+              <p className="text-slate-200 text-base font-medium text-center">{t('coaches.cropHint')}</p>
               <div className="flex items-center justify-center gap-3">
                 <button
                   onClick={handleCropCancel}
