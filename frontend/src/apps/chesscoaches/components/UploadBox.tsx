@@ -1,8 +1,10 @@
 // Shared upload box — consistent dashed-border drop zone across all panels
+// On mobile: tapping shows a custom action sheet with Photo Library, Camera, Files, and Paste options
+// On desktop: tapping opens the standard file picker; paste button shown separately
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { ClipboardPaste } from 'lucide-react';
+import { Image, Camera, FolderOpen, ClipboardPaste } from 'lucide-react';
 
 interface UploadBoxProps {
   onClick: () => void;
@@ -12,13 +14,38 @@ interface UploadBoxProps {
   title: string;
   hint: string;
   pasteLabel?: string;
+  photoLibraryLabel?: string;
+  takePhotoLabel?: string;
+  chooseFileLabel?: string;
+  cancelLabel?: string;
 }
 
-export function UploadBox({ onClick, onDrop, onPaste, icon, title, hint, pasteLabel }: UploadBoxProps) {
+const isMobile = () => typeof window !== 'undefined' && 'ontouchstart' in window;
+
+export function UploadBox({
+  onClick, onDrop, onPaste, icon, title, hint,
+  pasteLabel, photoLibraryLabel, takePhotoLabel, chooseFileLabel, cancelLabel,
+}: UploadBoxProps) {
+  const [showMenu, setShowMenu] = useState(false);
   const [pasteError, setPasteError] = useState('');
+  const menuRef = useRef<HTMLDivElement>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!showMenu) return;
+    const handle = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowMenu(false);
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [showMenu]);
 
   const handlePaste = async () => {
     if (!onPaste) return;
+    setShowMenu(false);
     setPasteError('');
     try {
       const items = await navigator.clipboard.read();
@@ -31,16 +58,53 @@ export function UploadBox({ onClick, onDrop, onPaste, icon, title, hint, pasteLa
           return;
         }
       }
-      setPasteError(pasteLabel ? '❌' : 'No image in clipboard');
+      setPasteError('❌');
     } catch {
-      setPasteError(pasteLabel ? '❌' : 'Clipboard access denied');
+      setPasteError('❌');
     }
   };
 
+  const handleBoxClick = () => {
+    if (onPaste && isMobile()) {
+      setShowMenu(true);
+      setPasteError('');
+    } else {
+      onClick();
+    }
+  };
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Forward to the parent onClick handler by simulating the same file into the parent's input
+    // We need to propagate the file — call onClick to trigger parent's file input won't work
+    // Instead, we fire a custom event with the file
+    const file = e.target.files?.[0];
+    if (file) {
+      // Dispatch the file through the onPaste callback (reused for all file sources)
+      onPaste?.(file);
+    }
+    e.target.value = '';
+  };
+
+  const menuItems = [
+    { label: photoLibraryLabel || 'Photo Library', icon: Image, action: () => { setShowMenu(false); photoRef.current?.click(); } },
+    { label: takePhotoLabel || 'Take a photo', icon: Camera, action: () => { setShowMenu(false); cameraRef.current?.click(); } },
+    { label: chooseFileLabel || 'Choose file', icon: FolderOpen, action: () => { setShowMenu(false); fileRef.current?.click(); } },
+    { label: (pasteLabel || 'Paste from clipboard') + (pasteError ? ` ${pasteError}` : ''), icon: ClipboardPaste, action: handlePaste },
+  ];
+
   return (
-    <div className="max-w-lg mx-auto space-y-3">
+    <div className="max-w-lg mx-auto relative">
+      {/* Hidden file inputs for mobile action sheet */}
+      {onPaste && (
+        <>
+          <input ref={photoRef} type="file" accept="image/*" onChange={handleFileSelected} className="hidden" />
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelected} className="hidden" />
+          <input ref={fileRef} type="file" accept="image/*,.jpg,.jpeg,.png,.webp" onChange={handleFileSelected} className="hidden" />
+        </>
+      )}
+
       <div
-        onClick={onClick}
+        onClick={handleBoxClick}
         onDrop={onDrop}
         onDragOver={onDrop ? (e => e.preventDefault()) : undefined}
         className="border-2 border-dashed border-slate-600 rounded-xl p-10 flex flex-col items-center gap-3 cursor-pointer hover:border-blue-500 transition-colors"
@@ -49,15 +113,37 @@ export function UploadBox({ onClick, onDrop, onPaste, icon, title, hint, pasteLa
         <p className="text-slate-300 font-medium">{title}</p>
         <p className="text-slate-500 text-sm">{hint}</p>
       </div>
-      {onPaste && (
-        <button
-          onClick={handlePaste}
-          className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-sm rounded-lg transition-colors"
-        >
-          <ClipboardPaste className="w-4 h-4" />
-          {pasteLabel || 'Paste from clipboard'}
-          {pasteError && <span className="text-red-400 ml-1">{pasteError}</span>}
-        </button>
+
+      {/* Mobile action sheet */}
+      {showMenu && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setShowMenu(false)}>
+          <div
+            ref={menuRef}
+            className="w-full max-w-sm mb-4 mx-4 animate-in slide-in-from-bottom-4 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="bg-slate-700 rounded-2xl overflow-hidden">
+              {menuItems.map(({ label, icon: Icon, action }, i) => (
+                <button
+                  key={i}
+                  onClick={action}
+                  className={`w-full px-4 py-3.5 flex items-center gap-3 text-white text-[15px] font-medium hover:bg-slate-600 transition-colors ${
+                    i > 0 ? 'border-t border-slate-600' : ''
+                  }`}
+                >
+                  <Icon className="w-5 h-5 text-slate-300 flex-shrink-0" />
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowMenu(false)}
+              className="w-full mt-2 px-4 py-3.5 bg-slate-700 rounded-2xl text-slate-400 text-[15px] font-medium hover:bg-slate-600 transition-colors"
+            >
+              {cancelLabel || 'Cancel'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

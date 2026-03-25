@@ -207,6 +207,10 @@ export function ScoresheetReadPage() {
               title={t('coaches.uploadPrompt')}
               hint={t('coaches.uploadHint')}
               pasteLabel={t('coaches.pasteClipboard')}
+              photoLibraryLabel={t('coaches.photoLibrary')}
+              takePhotoLabel={t('coaches.takePhoto')}
+              chooseFileLabel={t('coaches.chooseFile')}
+              cancelLabel={t('coaches.cancel')}
             />
           ) : (
             <div className="space-y-4">

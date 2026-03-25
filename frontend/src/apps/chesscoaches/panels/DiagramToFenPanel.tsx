@@ -45,6 +45,10 @@ export function DiagramToFenPanel() {
               title={t('coaches.diagram.uploadPrompt')}
               hint={t('coaches.diagram.uploadHint')}
               pasteLabel={t('coaches.pasteClipboard')}
+              photoLibraryLabel={t('coaches.photoLibrary')}
+              takePhotoLabel={t('coaches.takePhoto')}
+              chooseFileLabel={t('coaches.chooseFile')}
+              cancelLabel={t('coaches.cancel')}
             />
           ) : (
             <div className="space-y-4">
