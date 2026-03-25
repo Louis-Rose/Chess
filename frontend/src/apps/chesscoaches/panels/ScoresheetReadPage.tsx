@@ -556,39 +556,51 @@ function EditableCell({ value, onSave }: { value: string; onSave: (v: string) =>
   );
 }
 
+interface PlyEntry {
+  fen: string;
+  lastMove: { from: string; to: string } | null;
+  illegal?: { moveNumber: number; color: 'white' | 'black'; san: string };
+}
+
 function ModelBoard({ moves }: { moves: Move[] }) {
   const [ply, setPly] = useState(0);
 
-  const data = useMemo(() => {
+  const entries = useMemo(() => {
     const chess = new Chess();
-    const fens: string[] = [chess.fen()];
-    const lastMoves: ({ from: string; to: string } | null)[] = [null];
+    const result: PlyEntry[] = [{ fen: chess.fen(), lastMove: null }];
     for (const m of moves) {
       for (const color of ['white', 'black'] as const) {
         const san = m[color];
         if (!san) continue;
         try {
-          const result = chess.move(san);
-          fens.push(chess.fen());
-          lastMoves.push(result ? { from: result.from, to: result.to } : null);
+          const move = chess.move(san);
+          result.push({ fen: chess.fen(), lastMove: move ? { from: move.from, to: move.to } : null });
         } catch {
-          // Illegal move — skip, don't add duplicate FEN
+          // Illegal — show same position with error label
+          result.push({ fen: chess.fen(), lastMove: null, illegal: { moveNumber: m.number, color, san } });
         }
       }
     }
-    return { fens, lastMoves };
+    return result;
   }, [moves]);
 
-  const maxPly = data.fens.length - 1;
+  const maxPly = entries.length - 1;
   const safePly = Math.min(ply, maxPly);
+  const current = entries[safePly];
 
-  // Auto-set to last position when moves change
   useEffect(() => { setPly(maxPly); }, [maxPly]);
 
   return (
     <div className="flex flex-col items-center w-[300px]">
-      <BoardPreview fen={data.fens[safePly]} lastMove={data.lastMoves[safePly]} />
-      <div className="flex justify-center gap-1.5 mt-2">
+      <BoardPreview fen={current.fen} lastMove={current.lastMove} />
+      {current.illegal ? (
+        <p className="text-red-400 text-xs mt-1.5 text-center">
+          Illegal: {current.illegal.moveNumber}. {current.illegal.color === 'black' ? '...' : ''}{current.illegal.san} ({current.illegal.color})
+        </p>
+      ) : (
+        <div className="h-[20px] mt-1.5" />
+      )}
+      <div className="flex justify-center gap-1.5 mt-1">
         <button onClick={() => setPly(0)} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏮</button>
         <button onClick={() => setPly(p => Math.max(0, p - 1))} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">◀</button>
         <button onClick={() => setPly(p => Math.min(maxPly, p + 1))} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">▶</button>
