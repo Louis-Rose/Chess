@@ -391,7 +391,7 @@ export function ScoresheetReadPage() {
                       <div key={m.id}>
                         <h2 className="text-sm font-medium text-slate-300 mb-2 px-1">{mr?.name || m.name}</h2>
                         <div className="flex flex-wrap gap-3 items-start">
-                          {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} />}
+                          {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} />}
                           {!mr ? (
                             <ModelPanelLoading name={m.name} startTime={startTime} />
                           ) : (
@@ -495,8 +495,44 @@ export function ScoresheetReadPage() {
   );
 }
 
-function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_player: string; black_player: string; result: string; moves: Move[] }; fileName?: string | null }) {
+function EditableCell({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setDraft(value); }, [value]);
+  useEffect(() => { if (editing) inputRef.current?.select(); }, [editing]);
+
+  if (!editing) {
+    return (
+      <span
+        onClick={() => setEditing(true)}
+        className="cursor-pointer hover:bg-emerald-800/40 px-0.5 rounded"
+      >
+        {value || '\u00A0'}
+      </span>
+    );
+  }
+  return (
+    <input
+      ref={inputRef}
+      value={draft}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={() => { setEditing(false); if (draft !== value) onSave(draft); }}
+      onKeyDown={e => { if (e.key === 'Enter') { setEditing(false); if (draft !== value) onSave(draft); } if (e.key === 'Escape') { setEditing(false); setDraft(value); } }}
+      className="bg-slate-900 text-slate-100 font-mono text-xs text-center w-16 px-1 py-0 rounded border border-emerald-500 outline-none"
+      style={{ fontSize: '16px' }}
+    />
+  );
+}
+
+function GroundTruthPanel({ groundTruth, fileName, onUpdate }: {
+  groundTruth: { white_player: string; black_player: string; result: string; moves: Move[] };
+  fileName?: string | null;
+  onUpdate: (gt: { white_player: string; black_player: string; result: string; moves: Move[] }) => void;
+}) {
   const [validatedMoves, setValidatedMoves] = useState<Move[]>(groundTruth.moves);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -511,11 +547,36 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
     return () => { cancelled = true; };
   }, [groundTruth.moves]);
 
+  const saveToServer = useCallback((updated: { white_player: string; black_player: string; result: string; moves: Move[] }) => {
+    if (!fileName) return;
+    const stem = fileName.replace(/\.[^.]+$/, '');
+    setSaving(true);
+    fetch('/api/coaches/ground-truth', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ name: stem, ...updated, moves: updated.moves.map(m => ({ number: m.number, white: m.white, black: m.black })) }),
+    })
+      .then(() => { groundTruthCache.delete(stem); })
+      .catch(() => {})
+      .finally(() => setSaving(false));
+  }, [fileName]);
+
+  const updateMove = useCallback((moveNumber: number, color: 'white' | 'black', value: string) => {
+    const newMoves = groundTruth.moves.map(m =>
+      m.number === moveNumber ? { ...m, [color]: value } : m
+    );
+    const updated = { ...groundTruth, moves: newMoves };
+    onUpdate(updated);
+    saveToServer(updated);
+  }, [groundTruth, onUpdate, saveToServer]);
+
   return (
     <div className="bg-emerald-900/30 border border-emerald-700/50 rounded-xl overflow-hidden self-start">
       <div className="px-2 py-2 border-b border-emerald-700/50 flex items-center gap-1.5">
         <BookOpen className="w-3 h-3 text-emerald-400" />
         <span className="text-emerald-300 font-medium text-xs">Ground Truth</span>
+        {saving && <span className="text-emerald-400/50 text-[9px]">saving...</span>}
       </div>
 
       <div className="px-2 py-1 border-b border-emerald-700/30 text-[10px] text-emerald-400/60 min-h-[22px]">
@@ -546,14 +607,14 @@ function GroundTruthPanel({ groundTruth, fileName }: { groundTruth: { white_play
               <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{move.number}</td>
               <td className="px-1.5 py-0.5 font-mono text-slate-100 text-center">
                 <span className="inline-flex items-center gap-1">
-                  {move.white}
+                  <EditableCell value={move.white} onSave={v => updateMove(move.number, 'white', v)} />
                   {move.white_legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
                   {move.white_legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
                 </span>
               </td>
               <td className="px-1.5 py-0.5 font-mono text-slate-100 text-center">
                 <span className="inline-flex items-center gap-1">
-                  {move.black || ''}
+                  <EditableCell value={move.black || ''} onSave={v => updateMove(move.number, 'black', v)} />
                   {move.black_legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
                   {move.black_legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
                 </span>

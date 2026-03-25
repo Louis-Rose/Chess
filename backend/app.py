@@ -353,6 +353,35 @@ No intro, no filler. Output ONLY the prefixed lines."""
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/coaches/ground-truth', methods=['PUT'])
+@admin_required
+def save_ground_truth():
+    """Save ground truth CSV for a scoresheet."""
+    data = request.get_json()
+    name = data.get('name', '').strip()
+    if not name or '/' in name or '..' in name:
+        return jsonify({'error': 'Invalid name'}), 400
+
+    csv_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'public', 'scoresheets', name)
+    os.makedirs(csv_dir, exist_ok=True)
+    csv_path = os.path.join(csv_dir, 'moves.csv')
+
+    lines = []
+    lines.append(f"white_player,{data.get('white_player', '')}")
+    lines.append(f"black_player,{data.get('black_player', '')}")
+    lines.append(f"result,{data.get('result', '*')}")
+    lines.append('move,white,black')
+    for move in data.get('moves', []):
+        black = move.get('black', '')
+        lines.append(f"{move['number']},{move['white']},{black}")
+
+    with open(csv_path, 'w') as f:
+        f.write('\n'.join(lines) + '\n')
+
+    logger.info(f"[GroundTruth] Saved {len(data.get('moves', []))} moves to {csv_path}")
+    return jsonify({'ok': True})
+
+
 @app.route('/api/coaches/validate-moves', methods=['POST'])
 def validate_moves():
     """Re-validate a list of moves with python-chess and return legality flags."""
