@@ -266,7 +266,7 @@ export function ScoresheetReadPage() {
             /* ── Crop step ── */
             <div className="space-y-4">
               <p className="text-slate-200 text-base font-medium text-center">{t('coaches.cropHint')}</p>
-              <div className="flex justify-center max-w-md mx-auto">
+              <div className="flex justify-center max-w-sm mx-auto">
                 <ReactCrop
                   crop={crop}
                   onChange={setCrop}
@@ -276,8 +276,7 @@ export function ScoresheetReadPage() {
                     ref={cropImgRef}
                     src={cropSrc}
                     alt="Crop"
-                    style={{ maxHeight: 'calc(100dvh - 220px)', maxWidth: '100%', objectFit: 'contain' }}
-                    className="rounded-lg"
+                    className="rounded-lg max-h-[50vh]"
                   />
                 </ReactCrop>
               </div>
@@ -318,7 +317,7 @@ export function ScoresheetReadPage() {
               <img
                 src={preview}
                 alt="Scoresheet"
-                className="rounded-xl max-h-80 mx-auto cursor-pointer hover:opacity-90 transition-opacity"
+                className="rounded-xl max-h-[50vh] max-w-sm mx-auto cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={() => setShowImageModal(true)}
               />
 
