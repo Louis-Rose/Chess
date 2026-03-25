@@ -197,8 +197,8 @@ export function ScoresheetReadPage() {
     const { preview: dataUrl } = await compressImage(file);
     setCropSrc(dataUrl);
     setCropFileName(file.name);
-    // Default crop: 90% centered rectangle so the user sees the handles immediately
-    const defaultCrop: CropType = { unit: '%', x: 5, y: 5, width: 90, height: 90 };
+    // Default crop: full image so the user sees the handles immediately
+    const defaultCrop: CropType = { unit: '%', x: 0, y: 0, width: 100, height: 100 };
     setCrop(defaultCrop);
     setCompletedCrop(undefined);
   };
