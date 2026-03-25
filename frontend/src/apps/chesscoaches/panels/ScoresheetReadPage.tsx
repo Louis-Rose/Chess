@@ -572,8 +572,7 @@ function ModelBoard({ moves }: { moves: Move[] }) {
           fens.push(chess.fen());
           lastMoves.push(result ? { from: result.from, to: result.to } : null);
         } catch {
-          fens.push(chess.fen());
-          lastMoves.push(null);
+          // Illegal move — skip, don't add duplicate FEN
         }
       }
     }
