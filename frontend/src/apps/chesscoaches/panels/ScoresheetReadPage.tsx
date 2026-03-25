@@ -420,7 +420,6 @@ export function ScoresheetReadPage() {
                                   groundTruthMoves={groundTruth?.moves}
                                   disagreements={groundTruth ? buildDisagreementMap(read.moves, groundTruth.moves) : new Map()}
                                   elapsed={read.elapsed}
-                                  warnings={read.warnings}
                                   error={read.error}
                                   meta={meta}
                                   fileName={fileName}
@@ -802,18 +801,12 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-const WARNING_LABELS: Record<string, string> = {
-  json_repaired: 'JSON repaired',
-  unwrapped_array: 'Unwrapped array',
-};
-
-function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, warnings, error, meta, fileName, rereading, corrections, onEditSave, onMoveClick, sheetColumns = 1, rowsPerColumn }: {
+function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onMoveClick, sheetColumns = 1, rowsPerColumn }: {
   label: string;
   moves: Move[];
   groundTruthMoves?: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
   elapsed: number;
-  warnings?: string[];
   error?: string;
   meta?: { white?: string; black?: string; result?: string };
   fileName?: string | null;
