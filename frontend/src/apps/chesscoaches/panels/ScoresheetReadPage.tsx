@@ -1,6 +1,6 @@
 // Scoresheet reader page — reads scoresheets with Gemini, supports iterative correction
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Upload, ImageIcon, Clock, BookOpen, Check, Play, RotateCcw, Square, ExternalLink, X } from 'lucide-react';
 import { PanelShell } from '../components/PanelShell';
 import { UploadBox } from '../components/UploadBox';
@@ -9,50 +9,52 @@ import { useCoachesData, getCoachesPrefs, saveCoachesPrefs } from '../contexts/C
 import { compressImage } from '../utils/compressImage';
 import type { ScoresheetMove as Move, ScoresheetReadEntry as ReadEntry } from '../contexts/CoachesDataContext';
 
-// Ground truth for known scoresheets — keyed by filename stem (without extension)
-const GROUND_TRUTHS: Record<string, { white_player: string; black_player: string; result: string; moves: Move[] }> = {
-  '2024_WCC_DING_GUKESH_14': {
-    white_player: 'Ding Liren',
-    black_player: 'D. Gukesh',
-    result: '0-1',
-    moves: [
-      { number: 1, white: 'Nf3', black: 'd5' }, { number: 2, white: 'g3', black: 'c5' },
-      { number: 3, white: 'Bg2', black: 'Nc6' }, { number: 4, white: 'd4', black: 'e6' },
-      { number: 5, white: 'O-O', black: 'cd4' }, { number: 6, white: 'Nd4', black: 'Nge7' },
-      { number: 7, white: 'c4', black: 'Nd4' }, { number: 8, white: 'Qd4', black: 'Nc6' },
-      { number: 9, white: 'Qd1', black: 'd4' }, { number: 10, white: 'e3', black: 'Bc5' },
-      { number: 11, white: 'ed4', black: 'Bd4' }, { number: 12, white: 'Nc3', black: 'O-O' },
-      { number: 13, white: 'Nb5', black: 'Bb6' }, { number: 14, white: 'b3', black: 'a6' },
-      { number: 15, white: 'Nc3', black: 'Bd4' }, { number: 16, white: 'Bb2', black: 'e5' },
-      { number: 17, white: 'Qd2', black: 'Be6' }, { number: 18, white: 'Nd5', black: 'b5' },
-      { number: 19, white: 'cb5', black: 'ab5' }, { number: 20, white: 'Nf4', black: 'ef4' },
-      { number: 21, white: 'Bc6', black: 'Bb2' }, { number: 22, white: 'Qb2', black: 'Rb8' },
-      { number: 23, white: 'Rfd1', black: 'Qb6' }, { number: 24, white: 'Bf3', black: 'fg3' },
-      { number: 25, white: 'hg3', black: 'b4' }, { number: 26, white: 'a4', black: 'ba3' },
-      { number: 27, white: 'Ra3', black: 'g6' }, { number: 28, white: 'Qd4', black: 'Qb5' },
-      { number: 29, white: 'b4', black: 'Qb4' }, { number: 30, white: 'Qb4', black: 'Rb4' },
-      { number: 31, white: 'Ra8', black: 'Ra8' }, { number: 32, white: 'Ba8', black: 'g5' },
-      { number: 33, white: 'Bd5', black: 'Bf5' }, { number: 34, white: 'Rc1', black: 'Kg7' },
-      { number: 35, white: 'Rc7', black: 'Bg6' }, { number: 36, white: 'Rc4', black: 'Rb1+' },
-      { number: 37, white: 'Kg2', black: 'Re1' }, { number: 38, white: 'Rb4', black: 'h5' },
-      { number: 39, white: 'Ra4', black: 'Re5' }, { number: 40, white: 'Bf3', black: 'Kh6' },
-      { number: 41, white: 'Kg1', black: 'Re6' }, { number: 42, white: 'Rc4', black: 'g4' },
-      { number: 43, white: 'Bd5', black: 'Rd6' }, { number: 44, white: 'Bb7', black: 'Kg5' },
-      { number: 45, white: 'f3', black: 'f5' }, { number: 46, white: 'fg4', black: 'hg4' },
-      { number: 47, white: 'Rb4', black: 'Bf7' }, { number: 48, white: 'Kf2', black: 'Rd2+' },
-      { number: 49, white: 'Kg1', black: 'Kf6' }, { number: 50, white: 'Rb6+', black: 'Kg5' },
-      { number: 51, white: 'Rb4', black: 'Be6' }, { number: 52, white: 'Ra4', black: 'Rb2' },
-      { number: 53, white: 'Ba8', black: 'Kf6' }, { number: 54, white: 'Rf4', black: 'Ke5' },
-      { number: 55, white: 'Rf2', black: 'Rf2' }, { number: 56, white: 'Kf2', black: 'Bd5' },
-      { number: 57, white: 'Bd5', black: 'Kd5' }, { number: 58, white: 'Ke3', black: 'Ke5' },
-    ],
-  },
-};
+// Parse a moves.csv file into ground truth data
+function parseMovesCsv(csv: string): { white_player: string; black_player: string; result: string; moves: Move[] } | null {
+  const lines = csv.trim().split('\n');
+  let white_player = '', black_player = '', result = '*';
+  const moves: Move[] = [];
+  let inMoves = false;
 
-function getGroundTruth(filename: string | null): typeof GROUND_TRUTHS[string] | null {
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (trimmed === 'move,white,black') { inMoves = true; continue; }
+    if (!inMoves) {
+      const [key, ...rest] = trimmed.split(',');
+      const val = rest.join(',');
+      if (key === 'white_player') white_player = val;
+      else if (key === 'black_player') black_player = val;
+      else if (key === 'result') result = val;
+    } else {
+      const [num, white, black] = trimmed.split(',');
+      const move: Move = { number: parseInt(num), white };
+      if (black) move.black = black;
+      moves.push(move);
+    }
+  }
+  if (moves.length === 0) return null;
+  return { white_player, black_player, result, moves };
+}
+
+// Fetch ground truth CSV for a scoresheet (by filename stem)
+const groundTruthCache = new Map<string, { white_player: string; black_player: string; result: string; moves: Move[] } | null>();
+
+async function fetchGroundTruth(filename: string | null): Promise<{ white_player: string; black_player: string; result: string; moves: Move[] } | null> {
   if (!filename) return null;
   const stem = filename.replace(/\.[^.]+$/, '');
-  return GROUND_TRUTHS[stem] || null;
+  if (groundTruthCache.has(stem)) return groundTruthCache.get(stem)!;
+  try {
+    const res = await fetch(`/scoresheets/${stem}/moves.csv`);
+    if (!res.ok) { groundTruthCache.set(stem, null); return null; }
+    const csv = await res.text();
+    const parsed = parseMovesCsv(csv);
+    groundTruthCache.set(stem, parsed);
+    return parsed;
+  } catch {
+    groundTruthCache.set(stem, null);
+    return null;
+  }
 }
 
 function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result?: string }): string {
@@ -125,7 +127,11 @@ export function ScoresheetReadPage() {
 
   const { preview, fileName, error, modelResults, reReads, models, autoRunning, startTime, analyzing, azureResult } = scoresheet;
 
-  const groundTruth = useMemo(() => getGroundTruth(fileName), [fileName]);
+  const [groundTruth, setGroundTruth] = useState<{ white_player: string; black_player: string; result: string; moves: Move[] } | null>(null);
+  useEffect(() => {
+    setGroundTruth(null);
+    fetchGroundTruth(fileName).then(setGroundTruth);
+  }, [fileName]);
 
   // Pick up shared image from Web Share Target
   useEffect(() => {
