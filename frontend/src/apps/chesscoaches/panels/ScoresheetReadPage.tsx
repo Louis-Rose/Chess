@@ -6,6 +6,7 @@ import { PanelShell } from '../components/PanelShell';
 import { UploadBox } from '../components/UploadBox';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useCoachesData, getCoachesPrefs, saveCoachesPrefs } from '../contexts/CoachesDataContext';
+import { compressImage } from '../utils/compressImage';
 import type { ScoresheetMove as Move, ScoresheetReadEntry as ReadEntry } from '../contexts/CoachesDataContext';
 
 // Ground truth for known scoresheets — keyed by filename stem (without extension)
@@ -142,10 +143,9 @@ export function ScoresheetReadPage() {
         if (!response) return;
         const blob = await response.blob();
         const name = response.headers.get('X-File-Name') || 'shared-scoresheet.jpg';
-        const file = new File([blob], name, { type: blob.type });
-        const reader = new FileReader();
-        reader.onload = () => scoresheetSetImage(file, reader.result as string, name);
-        reader.readAsDataURL(file);
+        const raw = new File([blob], name, { type: blob.type });
+        const { file: compressed, preview: dataUrl } = await compressImage(raw);
+        scoresheetSetImage(compressed, dataUrl, name);
         await cache.delete('/shared-image');
       } catch { /* ignore */ }
     })();
@@ -175,12 +175,11 @@ export function ScoresheetReadPage() {
     return map;
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => scoresheetSetImage(file, reader.result as string, file.name);
-    reader.readAsDataURL(file);
+    const { file: compressed, preview: dataUrl } = await compressImage(file);
+    scoresheetSetImage(compressed, dataUrl, file.name);
   };
 
   const startOneRead = scoresheetStartOneRead;
@@ -200,10 +199,9 @@ export function ScoresheetReadPage() {
           {!preview ? (
             <UploadBox
               onClick={() => fileInputRef.current?.click()}
-              onPaste={(file) => {
-                const reader = new FileReader();
-                reader.onload = () => scoresheetSetImage(file, reader.result as string, file.name);
-                reader.readAsDataURL(file);
+              onPaste={async (file) => {
+                const { file: compressed, preview: dataUrl } = await compressImage(file);
+                scoresheetSetImage(compressed, dataUrl, file.name);
               }}
               icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
               title={t('coaches.uploadPrompt')}

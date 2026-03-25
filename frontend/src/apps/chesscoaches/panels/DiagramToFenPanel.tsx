@@ -7,6 +7,7 @@ import { Chess } from 'chess.js';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 import { useCoachesData } from '../contexts/CoachesDataContext';
+import { compressImage } from '../utils/compressImage';
 import type { DiagramModelResult } from '../contexts/CoachesDataContext';
 
 export function DiagramToFenPanel() {
@@ -16,12 +17,11 @@ export function DiagramToFenPanel() {
   const { preview, models, modelResults, analyzing, error } = diagram;
   const [showImageModal, setShowImageModal] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => diagramSetImage(file, reader.result as string);
-    reader.readAsDataURL(file);
+    const { file: compressed, preview: dataUrl } = await compressImage(file);
+    diagramSetImage(compressed, dataUrl);
   };
 
   return (
@@ -37,10 +37,9 @@ export function DiagramToFenPanel() {
           {!preview ? (
             <UploadBox
               onClick={() => fileRef.current?.click()}
-              onPaste={(file) => {
-                const reader = new FileReader();
-                reader.onload = () => diagramSetImage(file, reader.result as string);
-                reader.readAsDataURL(file);
+              onPaste={async (file) => {
+                const { file: compressed, preview: dataUrl } = await compressImage(file);
+                diagramSetImage(compressed, dataUrl);
               }}
               icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
               title={t('coaches.diagram.uploadPrompt')}
