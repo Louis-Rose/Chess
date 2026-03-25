@@ -114,31 +114,34 @@ export function UploadBox({
         <p className="text-slate-500 text-sm">{hint}</p>
       </div>
 
-      {/* Mobile action sheet */}
+      {/* Mobile action sheet — iOS-style */}
       {showMenu && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setShowMenu(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowMenu(false)}>
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+          {/* Sheet */}
           <div
             ref={menuRef}
-            className="w-full max-w-sm mb-4 mx-4 animate-in slide-in-from-bottom-4 duration-200"
+            className="relative w-[calc(100%-24px)] max-w-sm mb-2 animate-in slide-in-from-bottom-4 duration-200"
             onClick={e => e.stopPropagation()}
           >
-            <div className="bg-slate-700 rounded-2xl overflow-hidden">
+            <div className="bg-[#2c2c2e]/95 backdrop-blur-xl rounded-[14px] overflow-hidden">
               {menuItems.map(({ label, icon: Icon, action }, i) => (
                 <button
                   key={i}
                   onClick={action}
-                  className={`w-full px-4 py-3.5 flex items-center gap-3 text-white text-[15px] font-medium hover:bg-slate-600 transition-colors ${
-                    i > 0 ? 'border-t border-slate-600' : ''
+                  className={`w-full px-4 py-[14px] flex items-center gap-3 text-[#f5f5f7] text-[17px] active:bg-white/10 ${
+                    i > 0 ? 'border-t border-white/8' : ''
                   }`}
                 >
-                  <Icon className="w-5 h-5 text-slate-300 flex-shrink-0" />
+                  <Icon className="w-[22px] h-[22px] text-[#8e8e93] flex-shrink-0" />
                   {label}
                 </button>
               ))}
             </div>
             <button
               onClick={() => setShowMenu(false)}
-              className="w-full mt-2 px-4 py-3.5 bg-slate-700 rounded-2xl text-slate-400 text-[15px] font-medium hover:bg-slate-600 transition-colors"
+              className="w-full mt-2 py-[14px] bg-[#2c2c2e]/95 backdrop-blur-xl rounded-[14px] text-[#0a84ff] text-[17px] font-semibold active:bg-white/10"
             >
               {cancelLabel || 'Cancel'}
             </button>
