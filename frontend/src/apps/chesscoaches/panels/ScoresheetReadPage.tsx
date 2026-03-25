@@ -410,7 +410,7 @@ export function ScoresheetReadPage() {
                       ) : azureResult.error ? (
                         <p className="text-red-400 text-center py-3 text-xs px-2">{azureResult.error}</p>
                       ) : azureResult.rawTables && azureResult.rawTables.length > 0 ? (
-                        <div className="flex flex-wrap gap-3 items-start">
+                        <div className="flex flex-wrap gap-3 items-start justify-center">
                           {azureResult.rawTables.map((t) => (
                             <div key={t.index} className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[200px]">
                               <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
