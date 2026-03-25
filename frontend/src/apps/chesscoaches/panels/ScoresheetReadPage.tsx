@@ -373,7 +373,7 @@ export function ScoresheetReadPage() {
                           <div className="flex-1 hidden md:block" />
                           {/* Center: tables */}
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables>
-                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
+                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} onMoveClick={handleMoveClick} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
                             {!mr ? (
                               <ModelPanelLoading name={m.name} startTime={startTime} />
                             ) : (
@@ -474,37 +474,6 @@ export function ScoresheetReadPage() {
         </div>
       )}
     </PanelShell>
-  );
-}
-
-function EditableCell({ value, onSave }: { value: string; onSave: (v: string) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => { setDraft(value); }, [value]);
-  useEffect(() => { if (editing) inputRef.current?.select(); }, [editing]);
-
-  if (!editing) {
-    return (
-      <span
-        onClick={() => setEditing(true)}
-        className="cursor-pointer hover:bg-emerald-800/40 px-0.5 rounded"
-      >
-        {value || '\u00A0'}
-      </span>
-    );
-  }
-  return (
-    <input
-      ref={inputRef}
-      value={draft}
-      onChange={e => setDraft(e.target.value)}
-      onBlur={() => { setEditing(false); if (draft !== value) onSave(draft); }}
-      onKeyDown={e => { if (e.key === 'Enter') { setEditing(false); if (draft !== value) onSave(draft); } if (e.key === 'Escape') { setEditing(false); setDraft(value); } }}
-      className="bg-slate-900 text-slate-100 font-mono text-xs text-center w-16 px-1 py-0 rounded border border-emerald-500 outline-none"
-      style={{ fontSize: '16px' }}
-    />
   );
 }
 
@@ -614,10 +583,11 @@ function ModelBoard({ moves, externalPly }: { moves: Move[]; externalPly?: numbe
   );
 }
 
-function GroundTruthPanel({ groundTruth, fileName, onUpdate, sheetColumns = 1, rowsPerColumn }: {
+function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, sheetColumns = 1, rowsPerColumn }: {
   groundTruth: { white_player: string; black_player: string; result: string; moves: Move[] };
   fileName?: string | null;
   onUpdate: (gt: { white_player: string; black_player: string; result: string; moves: Move[] }) => void;
+  onMoveClick?: (moves: Move[], ply: number) => void;
   sheetColumns?: number;
   rowsPerColumn?: number | null;
 }) {
@@ -676,18 +646,21 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, sheetColumns = 1, r
         const rightMoves = split ? validatedMoves.slice(splitAt) : [];
         const rows = Math.max(leftMoves.length, rightMoves.length);
 
-        const renderCell = (move: Move | undefined, color: 'white' | 'black') => {
+        const renderCell = (move: Move | undefined, color: 'white' | 'black', idx: number) => {
           if (!move) return <td className="px-1.5 py-0.5" />;
           const val = move[color];
           const legal = move[`${color}_legal` as const];
+          const ply = idx * 2 + (color === 'black' ? 2 : 1);
           return (
-            <td className="px-1.5 py-0.5 font-mono text-slate-100 text-center">
-              <span className="inline-flex items-center gap-1">
-                <EditableCell value={val || ''} onSave={v => updateMove(move.number, color, v)} />
-                {legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
-                {legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
-              </span>
-            </td>
+            <MoveCell
+              value={val || ''}
+              legal={legal}
+              onEdit={() => {
+                const newVal = prompt(`Edit move ${move.number} ${color}:`, val || '');
+                if (newVal !== null && newVal !== val) updateMove(move.number, color, newVal);
+              }}
+              onShowBoard={onMoveClick ? () => onMoveClick(groundTruth.moves, ply) : undefined}
+            />
           );
         };
 
@@ -712,12 +685,12 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, sheetColumns = 1, r
                 return (
                   <tr key={i} className="border-b border-emerald-700/20 last:border-0">
                     <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{left?.number}</td>
-                    {renderCell(left, 'white')}
-                    {renderCell(left, 'black')}
+                    {renderCell(left, 'white', i)}
+                    {renderCell(left, 'black', i)}
                     {split && <>
                       <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono border-l border-emerald-700/30">{right?.number}</td>
-                      {renderCell(right, 'white')}
-                      {renderCell(right, 'black')}
+                      {renderCell(right, 'white', splitAt + i)}
+                      {renderCell(right, 'black', splitAt + i)}
                     </>}
                   </tr>
                 );
