@@ -1,7 +1,10 @@
 // Scoresheet reader page — reads scoresheets with Gemini, supports iterative correction
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Upload, ImageIcon, Clock, BookOpen, Check, Play, RotateCcw, Square, ExternalLink, X } from 'lucide-react';
+import { Upload, ImageIcon, Clock, BookOpen, Check, Play, RotateCcw, Square, ExternalLink, X, Crop } from 'lucide-react';
+import ReactCrop from 'react-image-crop';
+import type { Crop as CropType, PixelCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 import { PanelShell } from '../components/PanelShell';
 import { UploadBox } from '../components/UploadBox';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -181,11 +184,64 @@ export function ScoresheetReadPage() {
     return map;
   }, []);
 
+  // ── Crop state ──
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropFileName, setCropFileName] = useState('');
+  const [crop, setCrop] = useState<CropType>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+  const cropImgRef = useRef<HTMLImageElement>(null);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const { file: compressed, preview: dataUrl } = await compressImage(file);
-    scoresheetSetImage(compressed, dataUrl, file.name);
+    const { preview: dataUrl } = await compressImage(file);
+    setCropSrc(dataUrl);
+    setCropFileName(file.name);
+    setCrop(undefined);
+    setCompletedCrop(undefined);
+  };
+
+  const handleCropConfirm = async () => {
+    const img = cropImgRef.current;
+    if (!img || !cropSrc) return;
+
+    let finalFile: File;
+    let finalPreview: string;
+
+    if (completedCrop && completedCrop.width > 0 && completedCrop.height > 0) {
+      // Crop the image
+      const canvas = document.createElement('canvas');
+      const scaleX = img.naturalWidth / img.width;
+      const scaleY = img.naturalHeight / img.height;
+      canvas.width = completedCrop.width * scaleX;
+      canvas.height = completedCrop.height * scaleY;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(
+        img,
+        completedCrop.x * scaleX, completedCrop.y * scaleY,
+        completedCrop.width * scaleX, completedCrop.height * scaleY,
+        0, 0, canvas.width, canvas.height,
+      );
+      const blob = await new Promise<Blob>((resolve) =>
+        canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.90)
+      );
+      finalFile = new File([blob], cropFileName.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+      finalPreview = canvas.toDataURL('image/jpeg', 0.90);
+    } else {
+      // No crop — use full image
+      const res = await fetch(cropSrc);
+      const blob = await res.blob();
+      finalFile = new File([blob], cropFileName.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+      finalPreview = cropSrc;
+    }
+
+    console.log(`[Scoresheet] Cropped image: ${(finalFile.size / 1024).toFixed(0)} KB`);
+    scoresheetSetImage(finalFile, finalPreview, cropFileName);
+    setCropSrc(null);
+  };
+
+  const handleCropCancel = () => {
+    setCropSrc(null);
   };
 
   const startOneRead = scoresheetStartOneRead;
@@ -202,7 +258,41 @@ export function ScoresheetReadPage() {
             className="hidden"
           />
 
-          {!preview ? (
+          {cropSrc ? (
+            /* ── Crop step ── */
+            <div className="space-y-4">
+              <p className="text-slate-400 text-sm text-center">{t('coaches.cropHint')}</p>
+              <div className="flex justify-center">
+                <ReactCrop
+                  crop={crop}
+                  onChange={setCrop}
+                  onComplete={setCompletedCrop}
+                >
+                  <img
+                    ref={cropImgRef}
+                    src={cropSrc}
+                    alt="Crop"
+                    className="max-h-[60vh] rounded-lg"
+                  />
+                </ReactCrop>
+              </div>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={handleCropCancel}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors"
+                >
+                  {t('coaches.cancel')}
+                </button>
+                <button
+                  onClick={handleCropConfirm}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors"
+                >
+                  <Crop className="w-3.5 h-3.5" />
+                  {t('coaches.cropConfirm')}
+                </button>
+              </div>
+            </div>
+          ) : !preview ? (
             <UploadBox
               onClick={() => fileInputRef.current?.click()}
               icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
