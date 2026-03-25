@@ -1200,6 +1200,7 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
   onShowBoard?: () => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLTableCellElement>(null);
   const bg = corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100';
 
@@ -1212,11 +1213,20 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
     return () => document.removeEventListener('mousedown', handle);
   }, [showMenu]);
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 4, left: rect.left + rect.width / 2 });
+    }
+    setShowMenu(!showMenu);
+  };
+
   return (
     <td
       ref={ref}
-      className={`px-1.5 py-0.5 font-mono text-center cursor-pointer hover:bg-slate-600/50 relative ${bg}`}
-      onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+      className={`px-1.5 py-0.5 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}`}
+      onClick={handleClick}
     >
       <span className="inline-flex items-center justify-center gap-1 w-full">
         {value}
@@ -1224,17 +1234,20 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
         {legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
       </span>
       {showMenu && (
-        <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-lg overflow-hidden whitespace-nowrap">
+        <div
+          className="fixed z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg overflow-hidden whitespace-nowrap"
+          style={{ top: menuPos.top, left: menuPos.left }}
+        >
           <button
             onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit(); }}
-            className="w-full px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 text-left"
+            className="w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left"
           >
             Edit
           </button>
           {onShowBoard && (
             <button
               onClick={(e) => { e.stopPropagation(); setShowMenu(false); onShowBoard(); }}
-              className="w-full px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 text-left border-t border-slate-700"
+              className="w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left border-t border-slate-700"
             >
               Show on board
             </button>
