@@ -318,18 +318,6 @@ export function ScoresheetReadPage() {
             />
           ) : (
             <div className="space-y-4">
-              {/* Replace button */}
-              <div className="flex justify-center h-[36px] items-center">
-                <button
-                  onClick={() => { scoresheetClear(); fileInputRef.current?.click(); }}
-                  className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
-                >
-                  <Upload className="w-4 h-4" />
-                  {t('coaches.replaceImage')}
-                </button>
-              </div>
-
-
               {/* Error */}
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
@@ -366,7 +354,7 @@ export function ScoresheetReadPage() {
                     };
 
                     return (
-                      <ModelRow key={m.id} preview={preview} onImageClick={() => setShowImageModal(true)}>
+                      <ModelRow key={m.id} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')}>
                         <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">{mr?.name || m.name}</h2>
                         <div className="flex items-start">
                           {/* Left spacer (image is absolutely positioned by ModelRow) */}
@@ -484,7 +472,7 @@ interface PlyEntry {
   illegal?: { moveNumber: number; color: 'white' | 'black'; san: string };
 }
 
-function ModelRow({ preview, onImageClick, children }: { preview: string; onImageClick: () => void; children: ReactNode }) {
+function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: { preview: string; onImageClick: () => void; onReplace?: () => void; replaceLabel?: string; children: ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tbodyTop, setTbodyTop] = useState(0);
   const [tbodyHeight, setTbodyHeight] = useState(0);
@@ -516,6 +504,20 @@ function ModelRow({ preview, onImageClick, children }: { preview: string; onImag
   return (
     <div ref={containerRef} className="relative">
       {/* Image positioned absolutely to align with tbody */}
+      {tablesLeft > 0 && onReplace && (
+        <div
+          className="absolute hidden md:flex justify-center"
+          style={{ top: Math.max(0, tbodyTop - 36), left: 0, width: tablesLeft - 8 }}
+        >
+          <button
+            onClick={onReplace}
+            className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            {replaceLabel || 'Replace photo'}
+          </button>
+        </div>
+      )}
       {tbodyHeight > 0 && tablesLeft > 0 && (
         <div
           className="absolute hidden md:flex justify-end"
