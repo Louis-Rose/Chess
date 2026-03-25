@@ -264,7 +264,7 @@ export function ScoresheetReadPage() {
             /* ── Crop step ── */
             <div className="space-y-4">
               <p className="text-slate-200 text-base font-medium text-center">{t('coaches.cropHint')}</p>
-              <div className="flex justify-center">
+              <div className="flex justify-center max-w-md mx-auto">
                 <ReactCrop
                   crop={crop}
                   onChange={setCrop}
@@ -274,7 +274,8 @@ export function ScoresheetReadPage() {
                     ref={cropImgRef}
                     src={cropSrc}
                     alt="Crop"
-                    className="max-h-[45vh] rounded-lg"
+                    style={{ maxHeight: 'calc(100dvh - 220px)', maxWidth: '100%', objectFit: 'contain' }}
+                    className="rounded-lg"
                   />
                 </ReactCrop>
               </div>
