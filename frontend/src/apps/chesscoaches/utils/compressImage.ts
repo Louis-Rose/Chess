@@ -20,6 +20,7 @@ export async function compressImage(file: File): Promise<{ file: File; preview: 
 
   const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: QUALITY });
   const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+  console.log(`[CompressImage] ${file.name}: ${(file.size / 1024).toFixed(0)} KB ${width}x${height} → ${(compressed.size / 1024).toFixed(0)} KB ${w}x${h}`);
 
   // Generate preview data URL
   const preview = await new Promise<string>((resolve) => {

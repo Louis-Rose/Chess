@@ -1,7 +1,7 @@
 // Scoresheet reader page — reads scoresheets with Gemini, supports iterative correction
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Upload, ImageIcon, Clock, BookOpen, Check, Play, RotateCcw, Square, ExternalLink } from 'lucide-react';
+import { Upload, ImageIcon, Clock, BookOpen, Check, Play, RotateCcw, Square, ExternalLink, X } from 'lucide-react';
 import { PanelShell } from '../components/PanelShell';
 import { UploadBox } from '../components/UploadBox';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -120,7 +120,7 @@ export function ScoresheetReadPage() {
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
     scoresheetStartMultipleReads, scoresheetStopMultipleReads,
-    scoresheetHandleEditSave, scoresheetClear,
+    scoresheetHandleEditSave, scoresheetCancel, scoresheetClear,
   } = useCoachesData();
 
   const { preview, fileName, error, modelResults, reReads, models, autoRunning, startTime, analyzing, azureResult } = scoresheet;
@@ -270,6 +270,9 @@ export function ScoresheetReadPage() {
                 <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse py-4">
                   <Clock className="w-4 h-4 animate-spin" />
                   <span className="text-sm">Analyzing scoresheet...</span>
+                  <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               )}
 
@@ -336,6 +339,9 @@ export function ScoresheetReadPage() {
                     <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse py-4">
                       <Clock className="w-4 h-4 animate-spin" />
                       <span className="text-sm">Analyzing with Azure DI...</span>
+                      <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
                   ) : azureResult.error ? (
                     <p className="text-red-400 text-center py-3 text-xs px-2">{azureResult.error}</p>

@@ -233,6 +233,7 @@ interface CoachesDataContextType {
   scoresheetStartMultipleReads: (groundTruthMoves: ScoresheetMove[]) => void;
   scoresheetStopMultipleReads: () => void;
   scoresheetHandleEditSave: (modelId: string, readIdx: number, confirmed: ScoresheetMove[], correctionKey: string) => void;
+  scoresheetCancel: () => void;
   scoresheetClear: () => void;
 
   // Diagram panel
@@ -363,6 +364,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
   const scoresheetAutoCorrectRef = useRef(false);
   const scoresheetAutoCorrectDoneRef = useRef<Set<string>>(new Set());
   const scoresheetAbortRef = useRef<AbortController | null>(null);
+  const scoresheetAnalyzeAbortRef = useRef<AbortController | null>(null);
 
   const scoresheetSetImage = useCallback((file: File, preview: string, fileName: string) => {
     setScoresheet({ ...SCORESHEET_INITIAL, preview, imageFile: file, fileName });
@@ -389,12 +391,14 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     return null;
   }, []);
 
-  const scoresheetAnalyzeImage = useCallback(async (file: File) => {
+  const scoresheetAnalyzeImage = useCallback(async (file: File, signal: AbortSignal) => {
     setScoresheet(prev => ({ ...prev, error: '', modelResults: {}, reReads: {}, models: [], analyzing: true }));
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const res = await fetch('/api/coaches/read-scoresheet', { method: 'POST', body: formData });
+      console.log(`[Scoresheet] Uploading image: ${file.name} (${(file.size / 1024).toFixed(0)} KB, ${file.type})`);
+      const res = await fetch('/api/coaches/read-scoresheet', { method: 'POST', body: formData, signal });
+      console.log(`[Scoresheet] Upload complete, status: ${res.status}`);
       if (!res.ok) {
         const text = await res.text();
         try { const json = JSON.parse(text); throw new Error(json.error || 'Analysis failed'); }
@@ -413,6 +417,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
           const payload = JSON.parse(line.slice(6));
+          console.log(`[Scoresheet] SSE event:`, payload.type, payload.model_id || '');
           if (payload.type === 'models') {
             setScoresheet(prev => ({ ...prev, models: payload.models, startTime: Date.now() }));
           } else if (payload.type === 'result') {
@@ -424,38 +429,56 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
           }
         }
       }
+      console.log('[Scoresheet] SSE stream complete');
     } catch (e) {
+      if (signal.aborted) { console.log('[Scoresheet] Cancelled by user'); return; }
+      console.error('[Scoresheet] Error:', e);
       setScoresheet(prev => ({ ...prev, error: e instanceof Error ? e.message : 'Unknown error' }));
     } finally {
       setScoresheet(prev => ({ ...prev, analyzing: false }));
     }
   }, []);
 
-  const scoresheetAnalyzeAzure = useCallback(async (file: File) => {
+  const scoresheetAnalyzeAzure = useCallback(async (file: File, signal: AbortSignal) => {
     setScoresheet(prev => ({ ...prev, azureResult: { moves: [], elapsed: 0, loading: true } }));
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const res = await fetch('/api/coaches/read-scoresheet-azure', { method: 'POST', body: formData });
+      console.log(`[Scoresheet Azure] Uploading image: ${file.name} (${(file.size / 1024).toFixed(0)} KB)`);
+      const res = await fetch('/api/coaches/read-scoresheet-azure', { method: 'POST', body: formData, signal });
+      console.log(`[Scoresheet Azure] Response status: ${res.status}`);
       if (res.ok) {
         const json = await res.json();
+        console.log(`[Scoresheet Azure] Got ${json.moves?.length || 0} moves in ${json.elapsed}s`);
         setScoresheet(prev => ({ ...prev, azureResult: { moves: json.moves, elapsed: json.elapsed, loading: false, rawLines: json.raw_lines, rawTables: json.raw_tables } }));
       } else {
         const json = await res.json().catch(() => ({ error: 'Failed' }));
+        console.error('[Scoresheet Azure] Error:', json.error);
         setScoresheet(prev => ({ ...prev, azureResult: { moves: [], elapsed: 0, loading: false, error: json.error } }));
       }
     } catch (e) {
+      if (signal.aborted) { console.log('[Scoresheet Azure] Cancelled by user'); return; }
+      console.error('[Scoresheet Azure] Error:', e);
       setScoresheet(prev => ({ ...prev, azureResult: { moves: [], elapsed: 0, loading: false, error: e instanceof Error ? e.message : 'Unknown error' } }));
     }
+  }, []);
+
+  const scoresheetCancel = useCallback(() => {
+    console.log('[Scoresheet] Cancelling analysis...');
+    if (scoresheetAnalyzeAbortRef.current) { scoresheetAnalyzeAbortRef.current.abort(); scoresheetAnalyzeAbortRef.current = null; }
+    setScoresheet(prev => ({ ...prev, analyzing: false, azureResult: prev.azureResult?.loading ? { moves: [], elapsed: 0, loading: false, error: 'Cancelled' } : prev.azureResult }));
   }, []);
 
   const scoresheetStartOneRead = useCallback(() => {
     const file = scoresheet.imageFile;
     if (!file) return;
+    if (scoresheetAnalyzeAbortRef.current) scoresheetAnalyzeAbortRef.current.abort();
+    const controller = new AbortController();
+    scoresheetAnalyzeAbortRef.current = controller;
     scoresheetAutoCorrectRef.current = false;
     setScoresheet(prev => ({ ...prev, autoRunning: false, modelResults: {}, reReads: {}, azureResult: null }));
-    scoresheetAnalyzeImage(file);
-    scoresheetAnalyzeAzure(file);
+    scoresheetAnalyzeImage(file, controller.signal);
+    scoresheetAnalyzeAzure(file, controller.signal);
   }, [scoresheet.imageFile, scoresheetAnalyzeImage, scoresheetAnalyzeAzure]);
 
   // Ref to hold ground truth moves for auto-correct loop
@@ -464,12 +487,15 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
   const scoresheetStartMultipleReads = useCallback((groundTruthMoves: ScoresheetMove[]) => {
     const file = scoresheet.imageFile;
     if (!file) return;
+    if (scoresheetAnalyzeAbortRef.current) scoresheetAnalyzeAbortRef.current.abort();
+    const controller = new AbortController();
+    scoresheetAnalyzeAbortRef.current = controller;
     scoresheetAutoCorrectRef.current = true;
     scoresheetAutoCorrectDoneRef.current = new Set();
     scoresheetGtRef.current = groundTruthMoves;
     setScoresheet(prev => ({ ...prev, autoRunning: true, modelResults: {}, reReads: {}, azureResult: null }));
-    scoresheetAnalyzeImage(file);
-    scoresheetAnalyzeAzure(file);
+    scoresheetAnalyzeImage(file, controller.signal);
+    scoresheetAnalyzeAzure(file, controller.signal);
   }, [scoresheet.imageFile, scoresheetAnalyzeImage, scoresheetAnalyzeAzure]);
 
   const scoresheetStopMultipleReads = useCallback(() => {
@@ -734,7 +760,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
       handleSelectSavedUsername, handleRemoveSavedPlayer,
       playerInfo, playerInfoLoading, playerInfoError,
       handleSubmit, onboardingDone, completeOnboarding,
-      scoresheet, scoresheetSetImage, scoresheetStartOneRead, scoresheetStartMultipleReads, scoresheetStopMultipleReads, scoresheetHandleEditSave, scoresheetClear,
+      scoresheet, scoresheetSetImage, scoresheetStartOneRead, scoresheetStartMultipleReads, scoresheetStopMultipleReads, scoresheetHandleEditSave, scoresheetCancel, scoresheetClear,
       diagram, diagramSetImage, diagramAnalyze, diagramClear,
       mistakes: mistakesState, mistakesSetFile, mistakesAnalyze, mistakesClear, mistakesSetExpanded,
     }}>
