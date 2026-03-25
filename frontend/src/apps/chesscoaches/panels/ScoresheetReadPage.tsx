@@ -707,20 +707,6 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, sheetColumns = 1, r
         {saving && <span className="text-emerald-400/50 text-[9px]">saving...</span>}
       </div>
 
-      <div className="px-2 py-1 border-b border-emerald-700/30 text-[10px] text-emerald-400/60 min-h-[22px]">
-        {'\u00A0'}
-      </div>
-
-      <div className="px-2 py-1.5 border-b border-emerald-700/30 text-xs text-center">
-        <div className="flex flex-wrap gap-x-3 justify-center">
-          <div><span className="text-slate-400">W:</span> <span className="text-slate-200">{groundTruth.white_player}</span></div>
-          <div><span className="text-slate-400">B:</span> <span className="text-slate-200">{groundTruth.black_player}</span></div>
-        </div>
-        <div>
-          <span className="text-slate-400">Result:</span> <span className="text-slate-200">{groundTruth.result}</span>
-        </div>
-      </div>
-
       {(() => {
         const split = sheetColumns > 1 || validatedMoves.length > 15;
         const splitAt = split ? (rowsPerColumn || Math.ceil(validatedMoves.length / sheetColumns)) : validatedMoves.length;
@@ -918,19 +904,6 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, wa
       </div>
 
       {error && <p className="text-red-400 text-center py-3 text-xs px-2">{error}</p>}
-
-      {/* Game info */}
-      {meta && (
-        <div className="px-2 py-1.5 border-b border-slate-600/50 text-xs text-center">
-          <div className="flex flex-wrap gap-x-3 justify-center">
-            <div><span className="text-slate-400">W:</span> <span className="text-slate-200">{meta.white || ''}</span></div>
-            <div><span className="text-slate-400">B:</span> <span className="text-slate-200">{meta.black || ''}</span></div>
-          </div>
-          <div>
-            <span className="text-slate-400">Result:</span> <span className="text-slate-200">{meta.result && meta.result !== '*' ? meta.result : ''}</span>
-          </div>
-        </div>
-      )}
 
       {/* Moves table */}
       {moves.length > 0 && (() => {
