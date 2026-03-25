@@ -27,8 +27,10 @@ export function UploadBox({
   pasteLabel, photoLibraryLabel, takePhotoLabel, chooseFileLabel, cancelLabel,
 }: UploadBoxProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const [waitingForPaste, setWaitingForPaste] = useState(false);
   const [pasteError, setPasteError] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
+  const pasteTargetRef = useRef<HTMLDivElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -43,25 +45,48 @@ export function UploadBox({
     return () => document.removeEventListener('mousedown', handle);
   }, [showMenu]);
 
-  const handlePaste = async () => {
-    if (!onPaste) return;
-    setShowMenu(false);
-    setPasteError('');
-    try {
-      const items = await navigator.clipboard.read();
-      for (const item of items) {
-        const imageType = item.types.find(t => t.startsWith('image/'));
-        if (imageType) {
-          const blob = await item.getType(imageType);
-          const file = new File([blob], 'pasted-image.jpg', { type: imageType });
-          onPaste(file);
-          return;
+  // Listen for paste events on the hidden contenteditable div
+  useEffect(() => {
+    if (!waitingForPaste) return;
+    const target = pasteTargetRef.current;
+    if (!target) return;
+    target.focus();
+
+    const handlePasteEvent = (e: ClipboardEvent) => {
+      e.preventDefault();
+      setWaitingForPaste(false);
+      const items = e.clipboardData?.items;
+      if (items) {
+        for (const item of Array.from(items)) {
+          if (item.type.startsWith('image/')) {
+            const blob = item.getAsFile();
+            if (blob) {
+              onPaste?.(new File([blob], 'pasted-image.jpg', { type: item.type }));
+              return;
+            }
+          }
         }
       }
       setPasteError('❌');
-    } catch {
-      setPasteError('❌');
-    }
+    };
+
+    // Also timeout after 5s if user dismisses the paste popup
+    const timer = setTimeout(() => setWaitingForPaste(false), 5000);
+
+    target.addEventListener('paste', handlePasteEvent);
+    return () => {
+      target.removeEventListener('paste', handlePasteEvent);
+      clearTimeout(timer);
+    };
+  }, [waitingForPaste, onPaste]);
+
+  const handlePaste = () => {
+    if (!onPaste) return;
+    setShowMenu(false);
+    setPasteError('');
+    setWaitingForPaste(true);
+    // On iOS, focusing the contenteditable triggers the paste bar; user taps "Paste"
+    setTimeout(() => pasteTargetRef.current?.focus(), 50);
   };
 
   const handleBoxClick = () => {
@@ -94,6 +119,14 @@ export function UploadBox({
 
   return (
     <div className="max-w-lg mx-auto relative">
+      {/* Hidden paste target — contenteditable div that receives paste events on iOS */}
+      <div
+        ref={pasteTargetRef}
+        contentEditable
+        suppressContentEditableWarning
+        className="fixed -left-[9999px] w-0 h-0 opacity-0"
+      />
+
       {/* Hidden file inputs for mobile action sheet */}
       {onPaste && (
         <>
