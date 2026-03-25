@@ -199,14 +199,8 @@ export function ScoresheetReadPage() {
           {!preview ? (
             <UploadBox
               onClick={() => fileInputRef.current?.click()}
-              onPaste={async (file) => {
-                const { file: compressed, preview: dataUrl } = await compressImage(file);
-                scoresheetSetImage(compressed, dataUrl, file.name);
-              }}
               icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
               title={t('coaches.uploadPrompt')}
-              hint=""
-              pasteLabel={t('coaches.pasteClipboard')}
             />
           ) : (
             <div className="space-y-4">
