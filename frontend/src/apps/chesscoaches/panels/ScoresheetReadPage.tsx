@@ -1,6 +1,7 @@
 // Scoresheet reader page — reads scoresheets with Gemini, supports iterative correction
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { Upload, ImageIcon, Clock, BookOpen, Check, Play, RotateCcw, Square, ExternalLink, X, Crop } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
@@ -400,29 +401,13 @@ export function ScoresheetReadPage() {
                     const latestMoves = allReads.length > 0 ? allReads[allReads.length - 1].moves : [];
 
                     return (
-                      <div key={m.id}>
+                      <ModelRow key={m.id} preview={preview} onImageClick={() => setShowImageModal(true)}>
                         <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">{mr?.name || m.name}</h2>
                         <div className="flex items-start">
-                          {/* Left: image aligned with move rows */}
-                          <div className="flex-1 hidden md:flex justify-center items-start self-stretch">
-                            <div className="flex flex-col h-full">
-                              {/* Spacer matching table headers: banner + spacer + meta + col headers */}
-                              <div className="flex-shrink-0" style={{ height: '122px' }} />
-                              {/* Image fills the moves area */}
-                              <div className="flex-1 min-h-0">
-                                <img
-                                  src={preview}
-                                  alt="Scoresheet"
-                                  className="rounded-xl object-cover object-top cursor-pointer hover:opacity-90 transition-opacity h-full"
-                                  onClick={() => setShowImageModal(true)}
-                                />
-                              </div>
-                              {/* Spacer matching table footer */}
-                              <div className="flex-shrink-0" style={{ height: '80px' }} />
-                            </div>
-                          </div>
+                          {/* Left spacer (image is absolutely positioned by ModelRow) */}
+                          <div className="flex-1 hidden md:block" />
                           {/* Center: tables */}
-                          <div className="flex flex-wrap gap-3 items-start flex-shrink-0">
+                          <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables>
                             {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
                             {!mr ? (
                               <ModelPanelLoading name={m.name} startTime={startTime} />
@@ -459,7 +444,7 @@ export function ScoresheetReadPage() {
                             {allReads.length} {allReads.length === 1 ? 'run' : 'runs'} — {allReads.reduce((sum, r) => sum + (r.elapsed || 0), 0)}s total
                           </div>
                         )}
-                      </div>
+                      </ModelRow>
                     );
                   })}
 
@@ -569,6 +554,52 @@ interface PlyEntry {
   fen: string;
   lastMove: { from: string; to: string } | null;
   illegal?: { moveNumber: number; color: 'white' | 'black'; san: string };
+}
+
+function ModelRow({ preview, onImageClick, children }: { preview: string; onImageClick: () => void; children: ReactNode }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [tbodyTop, setTbodyTop] = useState(0);
+  const [tbodyHeight, setTbodyHeight] = useState(0);
+
+  useEffect(() => {
+    const measure = () => {
+      const container = containerRef.current;
+      if (!container) return;
+      // Find the first tbody within the tables area
+      const tbody = container.querySelector('[data-tables] tbody');
+      if (!tbody) return;
+      const containerRect = container.getBoundingClientRect();
+      const tbodyRect = tbody.getBoundingClientRect();
+      setTbodyTop(tbodyRect.top - containerRect.top);
+      setTbodyHeight(tbodyRect.height);
+    };
+    measure();
+    // Re-measure when content changes
+    const observer = new ResizeObserver(measure);
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      {/* Image positioned absolutely to align with tbody */}
+      {tbodyHeight > 0 && (
+        <div
+          className="absolute left-0 hidden md:flex justify-center"
+          style={{ top: tbodyTop, height: tbodyHeight, width: 'calc((100% - 560px) / 2)' }}
+        >
+          <img
+            src={preview}
+            alt="Scoresheet"
+            className="rounded-xl object-cover object-top cursor-pointer hover:opacity-90 transition-opacity h-full max-w-full"
+            onClick={onImageClick}
+          />
+        </div>
+      )}
+      {/* Content with left/right margins for image/board space */}
+      {children}
+    </div>
+  );
 }
 
 function ModelBoard({ moves }: { moves: Move[] }) {
