@@ -1342,23 +1342,21 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
       </span>
       {showMenu && createPortal(
         <div
-          className="fixed z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg overflow-hidden whitespace-nowrap"
+          className="fixed z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg whitespace-nowrap"
           style={{ top: menuPos.top, left: menuPos.left }}
         >
           <button
             onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit(); }}
-            className="w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left"
+            className={`w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left ${onShowBoard ? '' : 'rounded-b-lg'} rounded-t-lg`}
           >
             {t('coaches.editMove')}
           </button>
-          {onShowBoard && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowMenu(false); onShowBoard(); }}
-              className="w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left border-t border-slate-700"
-            >
-              {t('coaches.showOnBoard')}
-            </button>
-          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onShowBoard) onShowBoard(); }}
+            className="w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left border-t border-slate-700 rounded-b-lg"
+          >
+            {t('coaches.showOnBoard')}
+          </button>
         </div>,
         document.body
       )}
