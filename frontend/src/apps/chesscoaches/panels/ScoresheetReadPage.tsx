@@ -1328,7 +1328,7 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
     e.stopPropagation();
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect();
-      setMenuPos({ top: rect.bottom + 4, left: rect.left + rect.width / 2 });
+      setMenuPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + rect.width / 2 });
     }
     setShowMenu(!showMenu);
   };
@@ -1347,18 +1347,18 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
       {showMenu && createPortal(
         <div
           ref={menuRef}
-          className="fixed z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg whitespace-nowrap"
+          className="absolute z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg whitespace-nowrap flex flex-col"
           style={{ top: menuPos.top, left: menuPos.left }}
         >
           <button
             onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit(); }}
-            className={`w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left ${onShowBoard ? '' : 'rounded-b-lg'} rounded-t-lg`}
+            className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-t-lg"
           >
             {t('coaches.editMove')}
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onShowBoard) onShowBoard(); }}
-            className="w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left border-t border-slate-700 rounded-b-lg"
+            className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left border-t border-slate-700 rounded-b-lg"
           >
             {t('coaches.showOnBoard')}
           </button>
