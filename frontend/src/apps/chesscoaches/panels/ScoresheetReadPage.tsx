@@ -1,6 +1,7 @@
 // Scoresheet reader page — reads scoresheets with Gemini, supports iterative correction
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, X, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
@@ -1321,7 +1322,6 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('[MoveCell] clicked', { value, hasOnShowBoard: !!onShowBoard });
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect();
       setMenuPos({ top: rect.bottom + 4, left: rect.left + rect.width / 2 });
@@ -1340,7 +1340,7 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
         {legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
         {legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
       </span>
-      {showMenu && (
+      {showMenu && createPortal(
         <div
           className="fixed z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg overflow-hidden whitespace-nowrap"
           style={{ top: menuPos.top, left: menuPos.left }}
@@ -1359,7 +1359,8 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
               {t('coaches.showOnBoard')}
             </button>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </td>
   );
