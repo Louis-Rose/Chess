@@ -756,6 +756,31 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
       .finally(() => setSaving(false));
   }, [fileName]);
 
+  const [editing, setEditing] = useState<{ moveNumber: number; moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing && inputRef.current) inputRef.current.focus();
+  }, [editing]);
+
+  // Legal moves at editing position
+  const legalMoves = useMemo(() => {
+    if (!editing) return [];
+    try {
+      const chess = new Chess();
+      for (let i = 0; i < editing.moveIdx; i++) {
+        const m = groundTruth.moves[i];
+        if (m.white) try { chess.move(m.white); } catch { break; }
+        if (m.black) try { chess.move(m.black); } catch { break; }
+      }
+      if (editing.color === 'black') {
+        const m = groundTruth.moves[editing.moveIdx];
+        if (m?.white) try { chess.move(m.white); } catch { /* */ }
+      }
+      return chess.moves().sort();
+    } catch { return []; }
+  }, [editing, groundTruth.moves]);
+
   const updateMove = useCallback((moveNumber: number, color: 'white' | 'black', value: string) => {
     const newMoves = groundTruth.moves.map(m =>
       m.number === moveNumber ? { ...m, [color]: value } : m
@@ -791,8 +816,7 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
               legal={legal}
               active={activePly === ply}
               onEdit={() => {
-                const newVal = prompt(`Edit move ${move.number} ${color}:`, val || '');
-                if (newVal !== null && newVal !== val) updateMove(move.number, color, newVal);
+                setEditing({ moveNumber: move.number, moveIdx: idx, color, value: val || '' });
               }}
               onShowBoard={onMoveClick ? () => onMoveClick(groundTruth.moves, ply) : undefined}
             />
@@ -846,6 +870,59 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
         meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
         fileName={fileName}
       />
+
+      {/* Edit modal */}
+      {editing && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px]"
+          onClick={() => setEditing(null)}
+        >
+          <div
+            className="bg-slate-800 rounded-xl p-4 min-w-[260px] shadow-xl border border-slate-600"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="text-slate-400 text-xs mb-2 text-center">
+              {t('coaches.move')} {editing.moveNumber} · {editing.color === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
+            </div>
+            <input
+              ref={inputRef}
+              value={editing.value}
+              onChange={e => setEditing({ ...editing, value: e.target.value })}
+              onKeyDown={e => { if (e.key === 'Enter') { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); } if (e.key === 'Escape') setEditing(null); }}
+              className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
+            />
+            {legalMoves.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2 max-h-[120px] overflow-y-auto">
+                {legalMoves.map(san => {
+                  const isSelected = san === editing.value;
+                  const pieceChar = san[0] >= 'A' && san[0] <= 'Z' && san[0] !== 'O' ? san[0] : '';
+                  const pieceFen = pieceChar ? (editing.color === 'white' ? pieceChar : pieceChar.toLowerCase()) : (editing.color === 'white' ? 'P' : 'p');
+                  return (
+                    <button
+                      key={san}
+                      onClick={() => setEditing({ ...editing, value: san })}
+                      className={`flex items-center gap-0.5 px-1.5 py-1 rounded text-xs font-mono transition-colors ${
+                        isSelected ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      <img src={pieceImageUrl(pieceFen)} alt="" className="w-4 h-4" draggable={false} />
+                      {san}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <div className="mt-3">
+              <button
+                onClick={() => { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); }}
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
+              >
+                {t('coaches.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
