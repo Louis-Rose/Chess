@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, X, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, X, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -300,6 +300,19 @@ export function ScoresheetReadPage() {
                   <span className="text-sm">Analyzing scoresheet...</span>
                   <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
                     <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* Retry button */}
+              {!analyzing && preview && (
+                <div className="flex justify-center py-2">
+                  <button
+                    onClick={scoresheetStartOneRead}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    {models.length > 0 ? 'Re-analyze' : 'Analyze'}
                   </button>
                 </div>
               )}
