@@ -503,18 +503,9 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
       {tbodyHeight > 0 && tablesLeft > 0 && (
         <div
           className="absolute hidden md:flex justify-end"
-          style={{ top: Math.max(0, tbodyTop - 36), left: 0, width: tablesLeft - 8 }}
+          style={{ top: tbodyTop, left: 0, width: tablesLeft - 8 }}
         >
           <div className="flex flex-col items-center">
-            {onReplace && (
-              <button
-                onClick={onReplace}
-                className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors mb-1"
-              >
-                <Upload className="w-4 h-4" />
-                {replaceLabel || 'Replace photo'}
-              </button>
-            )}
             <img
               src={preview}
               alt="Scoresheet"
@@ -522,6 +513,15 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
               style={{ height: tbodyHeight }}
               onClick={onImageClick}
             />
+            {onReplace && (
+              <button
+                onClick={onReplace}
+                className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors mt-1"
+              >
+                <Upload className="w-4 h-4" />
+                {replaceLabel || 'Replace photo'}
+              </button>
+            )}
           </div>
         </div>
       )}
