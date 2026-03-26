@@ -823,6 +823,7 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
               value={val || ''}
               legal={legal}
               active={activePly === ply}
+              reason={move[`${color}_reason` as 'white_reason' | 'black_reason']}
               onEdit={() => {
                 setEditing({ moveNumber: move.number, moveIdx: idx, color, value: val || '' });
                 onMoveClick?.(groundTruth.moves, ply);
@@ -1089,6 +1090,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       highlight={d?.white}
                       corrected={corrections?.has(`${move.number}-white`)}
                       active={activePly === idx * 2 + 1}
+                      reason={move.white_reason}
                       onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
                     />
@@ -1098,6 +1100,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       corrected={corrections?.has(`${move.number}-black`)}
                       highlight={d?.black}
                       active={activePly === idx * 2 + 2}
+                      reason={move.black_reason}
                       onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
                     />
@@ -1497,12 +1500,13 @@ function MoveSuggestions({ legalMoves, color, value, onSelect }: {
   );
 }
 
-function MoveCell({ value, legal, highlight, corrected, active, onEdit, onShowBoard }: {
+function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, onShowBoard }: {
   value: string;
   legal?: boolean;
   highlight?: boolean;
   corrected?: boolean;
   active?: boolean;
+  reason?: string;
   onEdit: () => void;
   onShowBoard?: () => void;
 }) {
@@ -1543,7 +1547,7 @@ function MoveCell({ value, legal, highlight, corrected, active, onEdit, onShowBo
       <span className="inline-flex items-center justify-center gap-1 w-full">
         {value}
         {legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
-        {legal === false && <span className="text-red-400 text-[9px]">&#10007;</span>}
+        {legal === false && <span className="text-red-400 text-[9px]" title={reason}>&#10007;</span>}
       </span>
       {showMenu && createPortal(
         <div

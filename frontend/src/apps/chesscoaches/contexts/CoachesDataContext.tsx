@@ -51,6 +51,8 @@ export interface ScoresheetMove {
   black?: string;
   white_legal?: boolean;
   black_legal?: boolean;
+  white_reason?: string;
+  black_reason?: string;
 }
 
 export interface ScoresheetResult {

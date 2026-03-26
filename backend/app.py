@@ -466,6 +466,42 @@ def _scoresheet_push_san(board, san):
     return False
 
 
+def _scoresheet_diagnose_illegal(board, san):
+    """Diagnose why a SAN move is illegal. Returns a human-readable reason."""
+    import chess
+    import re
+    cleaned = _scoresheet_clean_san(san)
+    # Check for ambiguous piece moves (e.g., Nd2 when Nbd2/Nfd2 needed)
+    piece_match = re.match(r'^([KQRBN])', cleaned)
+    if piece_match:
+        piece_letter = piece_match.group(1)
+        dest_match = re.search(r'([a-h][1-8])', cleaned)
+        if dest_match:
+            dest = dest_match.group(1)
+            # Find all legal moves by this piece type to this square
+            candidates = [board.san(m) for m in board.legal_moves
+                         if board.san(m).startswith(piece_letter) and dest in board.san(m)]
+            if len(candidates) > 1:
+                return f"Ambiguous — did you mean {' or '.join(candidates)}?"
+            if len(candidates) == 1:
+                return f"Did you mean {candidates[0]}?"
+            # No legal moves by this piece to that square
+            all_piece_moves = [board.san(m) for m in board.legal_moves if board.san(m).startswith(piece_letter)]
+            if all_piece_moves:
+                return f"Legal {piece_letter} moves: {', '.join(all_piece_moves)}"
+            return f"No legal {piece_letter} moves"
+    else:
+        # Pawn move
+        dest_match = re.search(r'([a-h][1-8])', cleaned)
+        if dest_match:
+            dest = dest_match.group(1)
+            pawn_moves = [board.san(m) for m in board.legal_moves
+                         if not board.san(m)[0].isupper() and dest in board.san(m)]
+            if pawn_moves:
+                return f"Did you mean {' or '.join(pawn_moves)}?"
+    return None
+
+
 def _scoresheet_validate_moves(moves, stop_at_illegal=False):
     """Validate moves with python-chess, adding legality flags.
     If stop_at_illegal, truncate after the first illegal move."""
@@ -484,8 +520,12 @@ def _scoresheet_validate_moves(moves, stop_at_illegal=False):
                 move[color] = normalized
             if _scoresheet_push_san(board, san):
                 move[f"{color}_legal"] = True
+                move.pop(f"{color}_reason", None)
             else:
                 move[f"{color}_legal"] = False
+                reason = _scoresheet_diagnose_illegal(board, san)
+                if reason:
+                    move[f"{color}_reason"] = reason
                 # Flip the turn so the next move validates from the right side
                 fen_parts = board.fen().split(' ')
                 fen_parts[1] = 'b' if fen_parts[1] == 'w' else 'w'
