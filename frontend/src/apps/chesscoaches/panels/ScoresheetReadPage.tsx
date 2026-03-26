@@ -564,6 +564,10 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: M
           result.push({ fen: chess.fen(), lastMove: move ? { from: move.from, to: move.to } : null, san });
         } catch {
           result.push({ fen: chess.fen(), lastMove: null, illegal: { moveNumber: m.number, color, san }, san });
+          // Flip turn so next move validates from the right side
+          const fen = chess.fen().split(' ');
+          fen[1] = fen[1] === 'w' ? 'b' : 'w';
+          chess.load(fen.join(' '));
         }
       }
     }

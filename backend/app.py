@@ -486,6 +486,10 @@ def _scoresheet_validate_moves(moves, stop_at_illegal=False):
                 move[f"{color}_legal"] = True
             else:
                 move[f"{color}_legal"] = False
+                # Flip the turn so the next move validates from the right side
+                fen_parts = board.fen().split(' ')
+                fen_parts[1] = 'b' if fen_parts[1] == 'w' else 'w'
+                board.set_fen(' '.join(fen_parts))
                 if stop_at_illegal:
                     if color == "white":
                         move.pop("black", None)
