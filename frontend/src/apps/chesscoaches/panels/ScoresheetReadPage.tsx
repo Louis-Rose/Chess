@@ -1321,6 +1321,7 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    console.log('[MoveCell] clicked', { value, hasOnShowBoard: !!onShowBoard });
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect();
       setMenuPos({ top: rect.bottom + 4, left: rect.left + rect.width / 2 });
