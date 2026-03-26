@@ -353,6 +353,33 @@ No intro, no filler. Output ONLY the prefixed lines."""
         return jsonify({"error": str(e)}), 500
 
 
+GROUND_TRUTH_DIR = os.path.join(os.path.dirname(__file__), 'data', 'scoresheets')
+
+
+@app.route('/api/coaches/ground-truth/<name>', methods=['GET'])
+def get_ground_truth(name):
+    """Load ground truth CSV for a scoresheet."""
+    if not name or '/' in name or '..' in name:
+        return jsonify({'error': 'Invalid name'}), 400
+    csv_path = os.path.join(GROUND_TRUTH_DIR, name, 'moves.csv')
+    if not os.path.exists(csv_path):
+        return jsonify({'error': 'Not found'}), 404
+    with open(csv_path) as f:
+        raw = f.read().strip().split('\n')
+    meta = {}
+    moves = []
+    header_seen = False
+    for line in raw:
+        parts = line.split(',', 2)
+        if not header_seen and parts[0] in ('white_player', 'black_player', 'result'):
+            meta[parts[0]] = parts[1] if len(parts) > 1 else ''
+        elif parts[0] == 'move':
+            header_seen = True
+        elif header_seen and len(parts) >= 2:
+            moves.append({'number': int(parts[0]), 'white': parts[1], 'black': parts[2] if len(parts) > 2 else ''})
+    return jsonify({**meta, 'moves': moves})
+
+
 @app.route('/api/coaches/ground-truth', methods=['PUT'])
 @admin_required
 def save_ground_truth():
@@ -362,7 +389,7 @@ def save_ground_truth():
     if not name or '/' in name or '..' in name:
         return jsonify({'error': 'Invalid name'}), 400
 
-    csv_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'public', 'scoresheets_data', name)
+    csv_dir = os.path.join(GROUND_TRUTH_DIR, name)
     os.makedirs(csv_dir, exist_ok=True)
     csv_path = os.path.join(csv_dir, 'moves.csv')
 

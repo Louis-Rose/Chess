@@ -16,34 +16,7 @@ import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
 // Parse a moves.csv file into ground truth data
-function parseMovesCsv(csv: string): { white_player: string; black_player: string; result: string; moves: Move[] } | null {
-  const lines = csv.trim().split('\n');
-  let white_player = '', black_player = '', result = '*';
-  const moves: Move[] = [];
-  let inMoves = false;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    if (trimmed === 'move,white,black') { inMoves = true; continue; }
-    if (!inMoves) {
-      const [key, ...rest] = trimmed.split(',');
-      const val = rest.join(',');
-      if (key === 'white_player') white_player = val;
-      else if (key === 'black_player') black_player = val;
-      else if (key === 'result') result = val;
-    } else {
-      const [num, white, black] = trimmed.split(',');
-      const move: Move = { number: parseInt(num), white };
-      if (black) move.black = black;
-      moves.push(move);
-    }
-  }
-  if (moves.length === 0) return null;
-  return { white_player, black_player, result, moves };
-}
-
-// Fetch ground truth CSV for a scoresheet (by filename stem)
+// Fetch ground truth for a scoresheet via API (by filename stem)
 const groundTruthCache = new Map<string, { white_player: string; black_player: string; result: string; moves: Move[] } | null>();
 
 async function fetchGroundTruth(filename: string | null): Promise<{ white_player: string; black_player: string; result: string; moves: Move[] } | null> {
@@ -51,12 +24,12 @@ async function fetchGroundTruth(filename: string | null): Promise<{ white_player
   const stem = filename.replace(/\.[^.]+$/, '');
   if (groundTruthCache.has(stem)) return groundTruthCache.get(stem)!;
   try {
-    const res = await fetch(`/scoresheets_data/${stem}/moves.csv`);
+    const res = await fetch(`/api/coaches/ground-truth/${encodeURIComponent(stem)}`);
     if (!res.ok) { groundTruthCache.set(stem, null); return null; }
-    const csv = await res.text();
-    const parsed = parseMovesCsv(csv);
-    groundTruthCache.set(stem, parsed);
-    return parsed;
+    const data = await res.json();
+    if (!data.moves || data.moves.length === 0) { groundTruthCache.set(stem, null); return null; }
+    groundTruthCache.set(stem, data);
+    return data;
   } catch {
     groundTruthCache.set(stem, null);
     return null;
