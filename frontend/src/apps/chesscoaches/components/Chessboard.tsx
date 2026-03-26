@@ -136,7 +136,7 @@ function noiseSource(ctx: AudioContext, durationSec: number): AudioBufferSourceN
 
 // All variations: sharp transient click + board body resonance
 // Tuned around the Tournament baseline with different balances
-function playMoveSound(isCapture: boolean) {
+export function playMoveSound(isCapture: boolean) {
   try {
     const ctx = getAudioCtx();
     const t = ctx.currentTime;

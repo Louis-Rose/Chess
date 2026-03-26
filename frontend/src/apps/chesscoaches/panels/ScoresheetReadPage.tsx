@@ -12,6 +12,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { useCoachesData, getCoachesPrefs, saveCoachesPrefs } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
 import { BoardPreview } from '../components/BoardPreview';
+import { playMoveSound } from '../components/Chessboard';
 import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
@@ -439,6 +440,7 @@ interface PlyEntry {
   fen: string;
   lastMove: { from: string; to: string } | null;
   illegal?: { moveNumber: number; color: 'white' | 'black'; san: string };
+  san?: string;
 }
 
 function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: { preview: string; onImageClick: () => void; onReplace?: () => void; replaceLabel?: string; children: ReactNode }) {
@@ -506,6 +508,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
 
 function ModelBoard({ moves, externalPly }: { moves: Move[]; externalPly?: number }) {
   const [ply, setPly] = useState(0);
+  const isInitialRender = useRef(true);
 
   const entries = useMemo(() => {
     const chess = new Chess();
@@ -516,10 +519,9 @@ function ModelBoard({ moves, externalPly }: { moves: Move[]; externalPly?: numbe
         if (!san) continue;
         try {
           const move = chess.move(san);
-          result.push({ fen: chess.fen(), lastMove: move ? { from: move.from, to: move.to } : null });
+          result.push({ fen: chess.fen(), lastMove: move ? { from: move.from, to: move.to } : null, san });
         } catch {
-          // Illegal — show same position with error label
-          result.push({ fen: chess.fen(), lastMove: null, illegal: { moveNumber: m.number, color, san } });
+          result.push({ fen: chess.fen(), lastMove: null, illegal: { moveNumber: m.number, color, san }, san });
         }
       }
     }
@@ -532,6 +534,26 @@ function ModelBoard({ moves, externalPly }: { moves: Move[]; externalPly?: numbe
 
   useEffect(() => { setPly(maxPly); }, [maxPly]);
   useEffect(() => { if (externalPly !== undefined) setPly(externalPly); }, [externalPly]);
+
+  // Play sound on ply change
+  useEffect(() => {
+    if (isInitialRender.current) { isInitialRender.current = false; return; }
+    if (safePly > 0 && entries[safePly]?.san) {
+      playMoveSound(entries[safePly].san!.includes('x'));
+    }
+  }, [safePly, entries]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); setPly(p => Math.max(0, p - 1)); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); setPly(p => Math.min(maxPly, p + 1)); }
+      if (e.key === 'Home') { e.preventDefault(); setPly(0); }
+      if (e.key === 'End') { e.preventDefault(); setPly(maxPly); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [maxPly]);
 
   return (
     <div className="flex flex-col items-center w-[400px]">
