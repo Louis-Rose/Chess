@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, X, Crop } from 'lucide-react';
+import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, X, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -638,11 +638,19 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
           <button onClick={() => { exitBranch(); }} className="text-slate-400 hover:text-white underline">Go back to main line</button>
         </div>
       )}
-      <div className="flex justify-center gap-1.5 mt-1">
-        <button onClick={() => { exitBranch(); setPly(0); }} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏮</button>
-        <button onClick={goPrev} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">◀</button>
-        <button onClick={goNext} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">▶</button>
-        <button onClick={() => { exitBranch(); setPly(maxPly); }} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏭</button>
+      <div className="flex justify-center gap-1 mt-2">
+        <button onClick={() => { exitBranch(); setPly(0); }} className="flex-1 max-w-[72px] py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+          <ChevronFirst className="w-5 h-5" />
+        </button>
+        <button onClick={goPrev} className="flex-1 max-w-[72px] py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <button onClick={goNext} className="flex-1 max-w-[72px] py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+          <ChevronRight className="w-5 h-5" />
+        </button>
+        <button onClick={() => { exitBranch(); setPly(maxPly); }} className="flex-1 max-w-[72px] py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+          <ChevronLast className="w-5 h-5" />
+        </button>
       </div>
     </div>
   );
