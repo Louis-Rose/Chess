@@ -13,7 +13,7 @@ import { useCoachesData, getCoachesPrefs, saveCoachesPrefs } from '../contexts/C
 import { compressImage } from '../utils/compressImage';
 import { BoardPreview } from '../components/BoardPreview';
 import { Chess } from 'chess.js';
-import type { ScoresheetMove as Move, ScoresheetReadEntry as ReadEntry } from '../contexts/CoachesDataContext';
+import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
 // Parse a moves.csv file into ground truth data
 function parseMovesCsv(csv: string): { white_player: string; black_player: string; result: string; moves: Move[] } | null {
@@ -339,13 +339,14 @@ export function ScoresheetReadPage() {
                 <div className="space-y-8">
                   {models.map((m) => {
                     const mr = modelResults[m.id];
-                    const extraReads = reReads[m.id] || [];
-                    const allReads: ReadEntry[] = mr?.result
-                      ? [{ moves: mr.result.moves, elapsed: mr.elapsed, error: mr.error }, ...extraReads]
-                      : [];
-                    const latestMoves = allReads.length > 0 ? allReads[allReads.length - 1].moves : [];
-                    const handleEditSave = (readIdx: number, confirmed: Move[], correctionKey: string) => {
-                      scoresheetHandleEditSave(m.id, readIdx, confirmed, correctionKey);
+                    const reRead = reReads[m.id]?.[0];
+                    const currentMoves = mr?.result?.moves || [];
+                    const currentElapsed = mr?.elapsed || 0;
+                    const currentError = mr?.error;
+                    const isRereading = mr?.rereading || false;
+                    const corrections = reRead?.corrections;
+                    const handleEditSave = (_readIdx: number, confirmed: Move[], correctionKey: string) => {
+                      scoresheetHandleEditSave(m.id, 0, confirmed, correctionKey);
                     };
                     const handleMoveClick = (_moves: Move[], ply: number) => {
                       setModelBoardPlys(prev => ({ ...prev, [m.id]: ply }));
@@ -363,29 +364,26 @@ export function ScoresheetReadPage() {
                             {!mr ? (
                               <ModelPanelLoading name={m.name} startTime={startTime} />
                             ) : (
-                              allReads.map((read, readIdx) => (
-                                <MovesPanel
-                                  key={readIdx}
-                                  label={`Read ${readIdx + 1}`}
-                                  moves={read.moves}
-                                  groundTruthMoves={groundTruth?.moves}
-                                  disagreements={groundTruth ? buildDisagreementMap(read.moves, groundTruth.moves) : new Map()}
-                                  elapsed={read.elapsed}
-                                  error={read.error}
-                                  fileName={fileName}
-                                  rereading={read.rereading}
-                                  corrections={read.corrections}
-                                  onEditSave={(confirmed, corrKey) => handleEditSave(readIdx, confirmed, corrKey)}
-                                  onMoveClick={handleMoveClick}
-                                  sheetColumns={sheetColumns}
-                                  rowsPerColumn={rowsPerColumn}
-                                />
-                              ))
+                              <MovesPanel
+                                label="Read"
+                                moves={currentMoves}
+                                groundTruthMoves={groundTruth?.moves}
+                                disagreements={groundTruth ? buildDisagreementMap(currentMoves, groundTruth.moves) : new Map()}
+                                elapsed={currentElapsed}
+                                error={currentError}
+                                fileName={fileName}
+                                rereading={isRereading}
+                                corrections={corrections}
+                                onEditSave={(confirmed, corrKey) => handleEditSave(0, confirmed, corrKey)}
+                                onMoveClick={handleMoveClick}
+                                sheetColumns={sheetColumns}
+                                rowsPerColumn={rowsPerColumn}
+                              />
                             )}
                           </div>
                           {/* Right: board centered in remaining space */}
                           <div className="flex-1 hidden md:flex justify-center items-center self-stretch">
-                            <ModelBoard moves={latestMoves} externalPly={modelBoardPlys[m.id]} />
+                            <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]} />
                           </div>
                         </div>
                       </ModelRow>
@@ -920,7 +918,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
             className="bg-slate-800 rounded-xl p-4 min-w-[260px] shadow-xl border border-slate-600"
             onClick={e => e.stopPropagation()}
           >
-            <div className="text-slate-400 text-xs mb-2">
+            <div className="text-slate-400 text-xs mb-2 text-center">
               Move {moves[editing.moveIdx]?.number} · {editing.color === 'white' ? 'White' : 'Black'}
             </div>
             <input

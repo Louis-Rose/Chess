@@ -68,6 +68,7 @@ export interface ScoresheetModelResult {
   error?: string;
   elapsed: number;
   warnings?: string[];
+  rereading?: boolean;
 }
 
 export interface ScoresheetReadEntry {
@@ -384,19 +385,20 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     return null;
   }, []);
 
-  const scoresheetHandleEditSave = useCallback(async (modelId: string, readIdx: number, confirmed: ScoresheetMove[], correctionKey: string) => {
+  const scoresheetHandleEditSave = useCallback(async (modelId: string, _readIdx: number, confirmed: ScoresheetMove[], correctionKey: string) => {
+    // Update the model result in-place (show rereading state)
     setScoresheet(prev => {
-      const allReads = prev.reReads[modelId] || [];
-      const prevCorrections = new Set<string>();
-      for (let i = 0; i <= readIdx; i++) {
-        const read = readIdx === 0 && i === 0 ? { corrections: undefined } : allReads[i - 1];
-        if (read?.corrections) read.corrections.forEach((c: string) => prevCorrections.add(c));
-      }
+      const mr = prev.modelResults[modelId];
+      if (!mr?.result) return prev;
+      const prevCorrections = new Set<string>(prev.reReads[modelId]?.[0]?.corrections);
       prevCorrections.add(correctionKey);
-      const keepReReads = readIdx === 0 ? [] : allReads.slice(0, readIdx);
       return {
         ...prev,
-        reReads: { ...prev.reReads, [modelId]: [...keepReReads, { moves: confirmed, elapsed: 0, rereading: true, corrections: prevCorrections }] },
+        modelResults: {
+          ...prev.modelResults,
+          [modelId]: { ...mr, result: { ...mr.result, moves: confirmed }, rereading: true },
+        },
+        reReads: { ...prev.reReads, [modelId]: [{ moves: confirmed, elapsed: 0, rereading: true, corrections: prevCorrections }] },
       };
     });
 
@@ -406,22 +408,37 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
       const result = await scoresheetDoReread(file, modelId, confirmed);
       if (result) {
         setScoresheet(prev => {
-          const reads = [...(prev.reReads[modelId] || [])];
-          reads[reads.length - 1] = { ...reads[reads.length - 1], moves: result.moves, elapsed: result.elapsed, warnings: result.warnings, rereading: false };
-          return { ...prev, reReads: { ...prev.reReads, [modelId]: reads } };
+          const mr = prev.modelResults[modelId];
+          if (!mr) return prev;
+          return {
+            ...prev,
+            modelResults: {
+              ...prev.modelResults,
+              [modelId]: { ...mr, result: { ...mr.result!, moves: result.moves }, elapsed: result.elapsed, rereading: false },
+            },
+            reReads: { ...prev.reReads, [modelId]: [{ ...prev.reReads[modelId]?.[0]!, moves: result.moves, elapsed: result.elapsed, rereading: false }] },
+          };
         });
       } else {
         setScoresheet(prev => {
-          const reads = [...(prev.reReads[modelId] || [])];
-          reads[reads.length - 1] = { ...reads[reads.length - 1], rereading: false, error: 'Re-read failed' };
-          return { ...prev, reReads: { ...prev.reReads, [modelId]: reads } };
+          const mr = prev.modelResults[modelId];
+          if (!mr) return prev;
+          return {
+            ...prev,
+            modelResults: { ...prev.modelResults, [modelId]: { ...mr, rereading: false, error: 'Re-read failed' } },
+            reReads: { ...prev.reReads, [modelId]: [{ ...prev.reReads[modelId]?.[0]!, rereading: false, error: 'Re-read failed' }] },
+          };
         });
       }
     } catch {
       setScoresheet(prev => {
-        const reads = [...(prev.reReads[modelId] || [])];
-        reads[reads.length - 1] = { ...reads[reads.length - 1], rereading: false, error: 'Re-read failed' };
-        return { ...prev, reReads: { ...prev.reReads, [modelId]: reads } };
+        const mr = prev.modelResults[modelId];
+        if (!mr) return prev;
+        return {
+          ...prev,
+          modelResults: { ...prev.modelResults, [modelId]: { ...mr, rereading: false, error: 'Re-read failed' } },
+          reReads: { ...prev.reReads, [modelId]: [{ ...prev.reReads[modelId]?.[0]!, rereading: false, error: 'Re-read failed' }] },
+        };
       });
     }
   }, [scoresheet.imageFile, scoresheetDoReread]);
