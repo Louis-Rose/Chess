@@ -236,8 +236,8 @@ export function ScoresheetReadPage() {
   }, [autoRun, scoresheet.imageFile, scoresheetStartOneRead]);
 
 
-  // Per-model board ply, set when "Show on board" is clicked
-  const [modelBoardPlys, setModelBoardPlys] = useState<Record<string, number>>({});
+  // Per-model board ply + source tracking
+  const [modelBoardPlys, setModelBoardPlys] = useState<Record<string, { ply: number; source: 'gt' | 'read' | 'nav' }>>({});
 
   return (
     <PanelShell title={t('coaches.navScoresheets')}>
@@ -339,14 +339,20 @@ export function ScoresheetReadPage() {
                     const handleEditSave = (_readIdx: number, confirmed: Move[], correctionKey: string) => {
                       scoresheetHandleEditSave(m.id, 0, confirmed, correctionKey);
                     };
-                    const handleMoveClick = (movesArr: Move[], ply: number) => {
-                      setModelBoardPlys(prev => ({ ...prev, [m.id]: ply }));
+                    const makeMoveClick = (source: 'gt' | 'read') => (movesArr: Move[], ply: number) => {
+                      setModelBoardPlys(prev => ({ ...prev, [m.id]: { ply, source } }));
                       if (ply > 0) {
                         const moveIdx = Math.floor((ply - 1) / 2);
                         const color = ply % 2 === 1 ? 'white' : 'black';
                         const san = movesArr[moveIdx]?.[color];
                         if (san) playMoveSound(san.includes('x'));
                       }
+                    };
+                    const handleBoardPlyChange = (ply: number) => {
+                      setModelBoardPlys(prev => {
+                        const prevSource = prev[m.id]?.source || 'nav';
+                        return { ...prev, [m.id]: { ply, source: prevSource } };
+                      });
                     };
 
                     return (
@@ -357,7 +363,7 @@ export function ScoresheetReadPage() {
                           <div className="flex-1 hidden md:block" />
                           {/* Center: tables */}
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables>
-                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} onMoveClick={analyzing ? undefined : handleMoveClick} activePly={analyzing ? undefined : modelBoardPlys[m.id]} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
+                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} onMoveClick={analyzing ? undefined : makeMoveClick('gt')} activePly={!analyzing && modelBoardPlys[m.id]?.source !== 'read' ? modelBoardPlys[m.id]?.ply : undefined} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
                             {!mr ? (
                               <ModelPanelLoading name={m.name} startTime={startTime} />
                             ) : (
@@ -372,8 +378,8 @@ export function ScoresheetReadPage() {
                                 rereading={isRereading}
                                 corrections={corrections}
                                 onEditSave={(confirmed, corrKey) => handleEditSave(0, confirmed, corrKey)}
-                                onMoveClick={analyzing ? undefined : handleMoveClick}
-                                activePly={analyzing ? undefined : modelBoardPlys[m.id]}
+                                onMoveClick={analyzing ? undefined : makeMoveClick('read')}
+                                activePly={!analyzing && modelBoardPlys[m.id]?.source !== 'gt' ? modelBoardPlys[m.id]?.ply : undefined}
                                 sheetColumns={modelColumns}
                                 rowsPerColumn={modelRowsPerColumn}
                               />
@@ -381,7 +387,7 @@ export function ScoresheetReadPage() {
                           </div>
                           {/* Right: board centered in remaining space (items-start so extra content doesn't affect row height) */}
                           <div className="flex-1 hidden md:flex justify-center items-start">
-                            <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]} disableDrag={!mr || isRereading} />
+                            <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]?.ply} onPlyChange={handleBoardPlyChange} disableDrag={!mr || isRereading} />
                           </div>
                         </div>
                       </ModelRow>
@@ -530,7 +536,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
   );
 }
 
-function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; externalPly?: number; disableDrag?: boolean }) {
+function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean }) {
   const { t } = useLanguage();
   const [ply, setPly] = useState(0);
 
@@ -566,6 +572,15 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
 
   useEffect(() => { setPly(0); exitBranch(); }, [maxPly, exitBranch]);
   useEffect(() => { if (externalPly !== undefined) { setPly(externalPly); exitBranch(); } }, [externalPly, exitBranch]);
+
+  // Notify parent of ply changes (for table highlight sync)
+  const prevPlyRef = useRef(safePly);
+  useEffect(() => {
+    if (safePly !== prevPlyRef.current && !inBranch && onPlyChange) {
+      onPlyChange(safePly);
+    }
+    prevPlyRef.current = safePly;
+  }, [safePly, inBranch, onPlyChange]);
 
   // Play sound for a given ply (called from navigation actions, not from effects)
   const playSoundForPly = useCallback((p: number) => {
