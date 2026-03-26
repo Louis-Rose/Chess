@@ -670,7 +670,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: M
   }, [instanceId, goPrev, goNext, goFirst, goLast]);
 
   return (
-    <div className="flex flex-col items-center w-[400px]" onClick={activate}
+    <div className="flex flex-col items-center w-[400px]" onClick={activate}>
       <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={disableDrag ? undefined : handleUserMove} />
       <div className="flex justify-center gap-1.5 mt-1.5 w-full">
         <button onClick={goFirst} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
