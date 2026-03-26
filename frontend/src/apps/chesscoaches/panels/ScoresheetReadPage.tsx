@@ -573,14 +573,6 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: M
   useEffect(() => { setPly(0); exitBranch(); }, [maxPly, exitBranch]);
   useEffect(() => { if (externalPly !== undefined) { setPly(externalPly); exitBranch(); } }, [externalPly, exitBranch]);
 
-  // Notify parent of ply changes (for table highlight sync)
-  const prevPlyRef = useRef(safePly);
-  useEffect(() => {
-    if (safePly !== prevPlyRef.current && !inBranch && onPlyChange) {
-      onPlyChange(safePly);
-    }
-    prevPlyRef.current = safePly;
-  }, [safePly, inBranch, onPlyChange]);
 
   // Play sound for a given ply (called from navigation actions, not from effects)
   const playSoundForPly = useCallback((p: number) => {
@@ -631,11 +623,11 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: M
     } else {
       setPly(p => {
         const newP = Math.max(0, p - 1);
-        if (newP !== p) playSoundForPly(p);
+        if (newP !== p) { playSoundForPly(p); onPlyChange?.(newP); }
         return newP;
       });
     }
-  }, [inBranch, branch, safePly, playSoundForPly]);
+  }, [inBranch, branch, safePly, playSoundForPly, onPlyChange]);
   const goNext = useCallback(() => {
     if (branch && branchPly < branch.fens.length - 1) {
       const san = branch.sans[branchPly];
@@ -644,19 +636,19 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: M
     } else if (!inBranch) {
       setPly(p => {
         const newP = Math.min(maxPly, p + 1);
-        if (newP !== p) playSoundForPly(newP);
+        if (newP !== p) { playSoundForPly(newP); onPlyChange?.(newP); }
         return newP;
       });
     }
-  }, [branch, branchPly, inBranch, maxPly, playSoundForPly]);
+  }, [branch, branchPly, inBranch, maxPly, playSoundForPly, onPlyChange]);
 
   // Keyboard navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
       if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
-      if (e.key === 'Home') { e.preventDefault(); exitBranch(); setPly(p => { if (p !== 0) playSoundForPly(p); return 0; }); }
-      if (e.key === 'End') { e.preventDefault(); exitBranch(); setPly(p => { if (p !== maxPly) playSoundForPly(maxPly); return maxPly; }); }
+      if (e.key === 'Home') { e.preventDefault(); exitBranch(); setPly(p => { if (p !== 0) { playSoundForPly(p); onPlyChange?.(0); } return 0; }); }
+      if (e.key === 'End') { e.preventDefault(); exitBranch(); setPly(p => { if (p !== maxPly) { playSoundForPly(maxPly); onPlyChange?.(maxPly); } return maxPly; }); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -666,7 +658,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: M
     <div className="flex flex-col items-center w-[400px]">
       <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={disableDrag ? undefined : handleUserMove} />
       <div className="flex justify-center gap-1.5 mt-1.5 w-full">
-        <button onClick={() => { exitBranch(); setPly(p => { if (p !== 0) playSoundForPly(p); return 0; }); }} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+        <button onClick={() => { exitBranch(); setPly(p => { if (p !== 0) { playSoundForPly(p); onPlyChange?.(0); } return 0; }); }} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
           <ChevronFirst className="w-6 h-6" />
         </button>
         <button onClick={goPrev} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
@@ -675,7 +667,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: M
         <button onClick={goNext} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
           <ChevronRight className="w-6 h-6" />
         </button>
-        <button onClick={() => { exitBranch(); setPly(p => { if (p !== maxPly) playSoundForPly(maxPly); return maxPly; }); }} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+        <button onClick={() => { exitBranch(); setPly(p => { if (p !== maxPly) { playSoundForPly(maxPly); onPlyChange?.(maxPly); } return maxPly; }); }} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
           <ChevronLast className="w-6 h-6" />
         </button>
       </div>
