@@ -955,15 +955,13 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
               className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
             />
             <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={validatedMoves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
-              if (san === editing.value) {
-                const orig = groundTruth.moves[editing.moveIdx]?.[editing.color] || '';
-                setEditing({ ...editing, value: orig });
-                onClearPreview?.();
-              } else {
-                setEditing({ ...editing, value: san });
-                onPreview?.(editing.moveIdx, editing.color, san);
-                playMoveSound(san.includes('x'));
-              }
+              setEditing({ ...editing, value: san });
+              onPreview?.(editing.moveIdx, editing.color, san);
+              playMoveSound(san.includes('x'));
+            }} onDeselect={() => {
+              const orig = groundTruth.moves[editing.moveIdx]?.[editing.color] || '';
+              setEditing({ ...editing, value: orig });
+              onClearPreview?.();
             }} />
             <div className="mt-3">
               <button
@@ -1225,15 +1223,13 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
               className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
             />
             <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
-              if (san === editing.value) {
-                const orig = moves[editing.moveIdx]?.[editing.color] || '';
-                setEditing({ ...editing, value: orig });
-                onClearPreview?.();
-              } else {
-                setEditing({ ...editing, value: san });
-                onPreview?.(editing.moveIdx, editing.color, san);
-                playMoveSound(san.includes('x'));
-              }
+              setEditing({ ...editing, value: san });
+              onPreview?.(editing.moveIdx, editing.color, san);
+              playMoveSound(san.includes('x'));
+            }} onDeselect={() => {
+              const orig = moves[editing.moveIdx]?.[editing.color] || '';
+              setEditing({ ...editing, value: orig });
+              onClearPreview?.();
             }} />
             <div className="mt-3">
               <button
@@ -1505,12 +1501,13 @@ function getPieceKey(san: string): string {
   return 'P';
 }
 
-function MoveSuggestions({ legalMoves, color, value, reason, onSelect }: {
+function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselect }: {
   legalMoves: string[];
   color: 'white' | 'black';
   value: string;
   reason?: string;
   onSelect: (san: string) => void;
+  onDeselect?: () => void;
 }) {
   const { t } = useLanguage();
   // Pre-select piece filter based on current value
@@ -1574,7 +1571,7 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect }: {
             return (
               <button
                 key={san}
-                onClick={() => onSelect(san)}
+                onClick={() => isSelected ? onDeselect?.() : onSelect(san)}
                 className={`px-2 py-1 rounded text-xs font-mono transition-colors border ${
                   isSelected ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-700 text-amber-300 hover:bg-slate-600 border-amber-500/40'
                 }`}
@@ -1593,7 +1590,7 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect }: {
             return (
               <button
                 key={san}
-                onClick={() => onSelect(san)}
+                onClick={() => isSelected ? onDeselect?.() : onSelect(san)}
                 className={`px-2 py-1 rounded text-xs font-mono transition-colors ${
                   isSelected ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                 }`}
