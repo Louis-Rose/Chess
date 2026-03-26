@@ -1612,9 +1612,10 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
       setShowMenu(false);
     };
     const updatePos = () => {
-      if (ref.current) {
+      if (ref.current && menuRef.current) {
         const rect = ref.current.getBoundingClientRect();
-        setMenuPos({ top: rect.bottom + 4, left: rect.left + rect.width / 2 });
+        menuRef.current.style.top = `${rect.bottom + 4}px`;
+        menuRef.current.style.left = `${rect.left + rect.width / 2}px`;
       }
     };
     document.addEventListener('mousedown', handle);
