@@ -295,7 +295,7 @@ export function ScoresheetReadPage() {
 
               {/* Analyzing spinner */}
               {analyzing && (
-                <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse py-4">
+                <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-4">
                   <Clock className="w-4 h-4 animate-spin" />
                   <span className="text-sm">Analyzing scoresheet...</span>
                   <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
@@ -370,7 +370,7 @@ export function ScoresheetReadPage() {
                       <div className="border-t border-slate-600 my-4" />
                       <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">Azure Document Intelligence</h2>
                       {azureResult.loading ? (
-                        <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse py-4">
+                        <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-4">
                           <Clock className="w-4 h-4 animate-spin" />
                           <span className="text-sm">Analyzing with Azure DI...</span>
                           <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
@@ -819,7 +819,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
           <span className="text-slate-400 text-xs">{elapsed}s</span>
         </div>
       </div>
-      <div className="flex items-center justify-center gap-2 py-12 text-slate-500">
+      <div className="flex items-center justify-center gap-2 py-12 text-slate-500 animate-pulse-sync">
         <Clock className="w-4 h-4 animate-spin" />
         <span className="text-xs">Analyzing scoresheet...</span>
       </div>

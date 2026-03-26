@@ -9,6 +9,15 @@ html, body {
   background-color: #1e293b; /* slate-800 — prevents white flash/gap */
 }
 
+/* Synced pulse — all elements using this class pulse in phase */
+@keyframes pulse-sync {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.animate-pulse-sync {
+  animation: pulse-sync 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 /* Hide scrollbar but keep scroll functionality */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */
