@@ -1624,6 +1624,11 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
   const menuRef = useRef<HTMLDivElement>(null);
   const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100';
 
+  // Close menu when this cell is no longer active
+  useEffect(() => {
+    if (!active && showMenu) setShowMenu(false);
+  }, [active, showMenu]);
+
   useEffect(() => {
     if (!showMenu) return;
     const handle = (e: MouseEvent) => {
