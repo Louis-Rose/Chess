@@ -355,8 +355,8 @@ export function ScoresheetReadPage() {
                               />
                             )}
                           </div>
-                          {/* Right: board centered in remaining space */}
-                          <div className="flex-1 hidden md:flex justify-center items-center self-stretch">
+                          {/* Right: board centered in remaining space (items-start so extra content doesn't affect row height) */}
+                          <div className="flex-1 hidden md:flex justify-center items-start">
                             <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]} disableDrag={!mr || isRereading} />
                           </div>
                         </div>
@@ -652,7 +652,9 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
           Variation : {branch.sans[branchPly - 1]}
         </p>
       )}
-      <p className={`text-sm mt-1 ${currentIllegal ? 'text-red-400' : 'invisible'}`}>Illegal move</p>
+      {currentIllegal && (
+        <p className="text-red-400 text-sm mt-1">Illegal move</p>
+      )}
       {inBranch && (
         <div className="flex items-center gap-2 text-xs text-amber-400 mt-1.5">
           <span>Variation ({branch!.sans.length} move{branch!.sans.length > 1 ? 's' : ''})</span>
