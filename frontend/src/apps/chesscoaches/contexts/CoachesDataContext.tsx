@@ -518,7 +518,25 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
   const scoresheetCancel = useCallback(() => {
     console.log('[Scoresheet] Cancelling analysis...');
     if (scoresheetAnalyzeAbortRef.current) { scoresheetAnalyzeAbortRef.current.abort(); scoresheetAnalyzeAbortRef.current = null; }
-    setScoresheet(prev => ({ ...prev, analyzing: false, azureResult: prev.azureResult?.loading ? { moves: [], elapsed: 0, loading: false, error: 'Cancelled' } : prev.azureResult }));
+    setScoresheet(prev => ({
+      ...prev,
+      analyzing: false,
+      startTime: null,
+      models: prev.models.map(m => {
+        if (prev.modelResults[m.id]) return m;
+        // Mark models without results as cancelled
+        return m;
+      }),
+      modelResults: {
+        ...prev.modelResults,
+        ...Object.fromEntries(
+          prev.models
+            .filter(m => !prev.modelResults[m.id])
+            .map(m => [m.id, { name: m.name, error: 'Cancelled', elapsed: 0 }])
+        ),
+      },
+      azureResult: prev.azureResult?.loading ? { moves: [], elapsed: 0, loading: false, error: 'Cancelled' } : prev.azureResult,
+    }));
   }, []);
 
   const scoresheetStartOneRead = useCallback(() => {
