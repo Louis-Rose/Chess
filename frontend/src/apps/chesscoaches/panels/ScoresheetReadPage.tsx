@@ -1611,8 +1611,10 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
       if (menuRef.current?.contains(target)) return;
       setShowMenu(false);
     };
+    const handleScroll = () => setShowMenu(false);
     document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => { document.removeEventListener('mousedown', handle); window.removeEventListener('scroll', handleScroll, true); };
   }, [showMenu]);
 
   const handleClick = (e: React.MouseEvent) => {
@@ -1620,7 +1622,7 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
     if (onShowBoard) onShowBoard();
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect();
-      setMenuPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + rect.width / 2 });
+      setMenuPos({ top: rect.bottom + 4, left: rect.left + rect.width / 2 });
     }
     setShowMenu(!showMenu);
   };
@@ -1639,7 +1641,7 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
       {showMenu && createPortal(
         <div
           ref={menuRef}
-          className="absolute z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg whitespace-nowrap"
+          className="fixed z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg whitespace-nowrap"
           style={{ top: menuPos.top, left: menuPos.left }}
         >
           <button
