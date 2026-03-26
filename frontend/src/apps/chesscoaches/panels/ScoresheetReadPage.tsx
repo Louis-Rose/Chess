@@ -232,6 +232,7 @@ export function ScoresheetReadPage() {
   useEffect(() => {
     if (autoRun && scoresheet.imageFile) {
       setAutoRun(false);
+      activeModelBoardId = 0;
       scoresheetStartOneRead();
     }
   }, [autoRun, scoresheet.imageFile, scoresheetStartOneRead]);
@@ -310,7 +311,7 @@ export function ScoresheetReadPage() {
               {!analyzing && preview && (
                 <div className="flex justify-center py-2">
                   <button
-                    onClick={scoresheetStartOneRead}
+                    onClick={() => { activeModelBoardId = 0; scoresheetStartOneRead(); }}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
                   >
                     <RotateCcw className="w-4 h-4" />
@@ -327,7 +328,7 @@ export function ScoresheetReadPage() {
                 const rowsPerColumn = (anyResult as any)?.rows_per_column || null;
                 return (
                 <div className="space-y-8">
-                  {models.map((m) => {
+                  {models.map((m, modelIdx) => {
                     const mr = modelResults[m.id];
                     const reRead = reReads[m.id]?.[0];
                     const currentMoves = mr?.result?.moves || [];
@@ -388,7 +389,7 @@ export function ScoresheetReadPage() {
                           </div>
                           {/* Right: board centered in remaining space (items-start so extra content doesn't affect row height) */}
                           <div className="flex-1 hidden md:flex justify-center items-start">
-                            <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]?.ply} onPlyChange={handleBoardPlyChange} disableDrag={!mr || isRereading} />
+                            <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]?.ply} onPlyChange={handleBoardPlyChange} disableDrag={!mr || isRereading} autoActivate={modelIdx === 0} />
                           </div>
                         </div>
                       </ModelRow>
@@ -541,7 +542,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
 let activeModelBoardId = 0;
 let nextModelBoardId = 0;
 
-function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean }) {
+function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; autoActivate?: boolean }) {
   const { t } = useLanguage();
   const [instanceId] = useState(() => ++nextModelBoardId);
   const [ply, setPly] = useState(0);
@@ -580,7 +581,10 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: M
   const currentLastMove = inBranch ? null : entries[safePly].lastMove;
   const currentIllegal = inBranch ? undefined : entries[safePly].illegal;
 
-  useEffect(() => { setPly(0); exitBranch(); }, [maxPly, exitBranch]);
+  useEffect(() => {
+    setPly(0); exitBranch();
+    if (autoActivate && maxPly > 0 && activeModelBoardId === 0) activeModelBoardId = instanceId;
+  }, [maxPly, exitBranch, autoActivate, instanceId]);
   useEffect(() => { if (externalPly !== undefined) { setPly(externalPly); exitBranch(); activeModelBoardId = instanceId; } }, [externalPly, exitBranch, instanceId]);
 
 
