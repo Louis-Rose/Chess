@@ -536,8 +536,13 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
   );
 }
 
+// Track which ModelBoard instance is "active" (last interacted with)
+let activeModelBoardId = 0;
+let nextModelBoardId = 0;
+
 function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean }) {
   const { t } = useLanguage();
+  const [instanceId] = useState(() => ++nextModelBoardId);
   const [ply, setPly] = useState(0);
 
   // Branch (variation) state
@@ -642,12 +647,33 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: M
     }
   }, [branch, branchPly, inBranch, maxPly, playSoundForPly, onPlyChange]);
 
+  const goFirst = useCallback(() => {
+    exitBranch(); setPly(p => { if (p !== 0) { playSoundForPly(p); onPlyChange?.(0); } return 0; });
+  }, [exitBranch, playSoundForPly, onPlyChange]);
+  const goLast = useCallback(() => {
+    exitBranch(); setPly(p => { if (p !== maxPly) { playSoundForPly(maxPly); onPlyChange?.(maxPly); } return maxPly; });
+  }, [exitBranch, maxPly, playSoundForPly, onPlyChange]);
+
+  // Activate this board on any click, then keyboard only responds to active board
+  const activate = useCallback(() => { activeModelBoardId = instanceId; }, [instanceId]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (activeModelBoardId !== instanceId) return;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+      if (e.key === 'Home') { e.preventDefault(); goFirst(); }
+      if (e.key === 'End') { e.preventDefault(); goLast(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [instanceId, goPrev, goNext, goFirst, goLast]);
 
   return (
-    <div className="flex flex-col items-center w-[400px]">
+    <div className="flex flex-col items-center w-[400px]" onClick={activate}
       <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={disableDrag ? undefined : handleUserMove} />
       <div className="flex justify-center gap-1.5 mt-1.5 w-full">
-        <button onClick={() => { exitBranch(); setPly(p => { if (p !== 0) { playSoundForPly(p); onPlyChange?.(0); } return 0; }); }} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+        <button onClick={goFirst} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
           <ChevronFirst className="w-6 h-6" />
         </button>
         <button onClick={goPrev} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
@@ -656,7 +682,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: M
         <button onClick={goNext} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
           <ChevronRight className="w-6 h-6" />
         </button>
-        <button onClick={() => { exitBranch(); setPly(p => { if (p !== maxPly) { playSoundForPly(maxPly); onPlyChange?.(maxPly); } return maxPly; }); }} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+        <button onClick={goLast} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
           <ChevronLast className="w-6 h-6" />
         </button>
       </div>
