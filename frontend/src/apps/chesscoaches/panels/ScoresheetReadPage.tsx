@@ -1,6 +1,7 @@
 // Scoresheet reader page — reads scoresheets with Gemini, supports iterative correction
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, X, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
@@ -1599,6 +1600,7 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
   const [showMenu, setShowMenu] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLTableCellElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100';
 
   useEffect(() => {
@@ -1606,10 +1608,19 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
     const handle = (e: MouseEvent) => {
       const target = e.target as Node;
       if (ref.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
       setShowMenu(false);
     };
+    const updatePos = () => {
+      if (ref.current && menuRef.current) {
+        const rect = ref.current.getBoundingClientRect();
+        menuRef.current.style.top = `${rect.bottom + 4}px`;
+        menuRef.current.style.left = `${rect.left + rect.width / 2}px`;
+      }
+    };
     document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
+    window.addEventListener('scroll', updatePos, true);
+    return () => { document.removeEventListener('mousedown', handle); window.removeEventListener('scroll', updatePos, true); };
   }, [showMenu]);
 
   const handleClick = (e: React.MouseEvent) => {
@@ -1633,8 +1644,9 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
         {legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
         {legal === false && <span className="text-red-400 text-[9px]" title={reason}>&#10007;</span>}
       </span>
-      {showMenu && (
+      {showMenu && createPortal(
         <div
+          ref={menuRef}
           className="fixed z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg whitespace-nowrap"
           style={{ top: menuPos.top, left: menuPos.left }}
         >
@@ -1644,7 +1656,8 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
           >
             {t('coaches.editMove')}
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </td>
   );
