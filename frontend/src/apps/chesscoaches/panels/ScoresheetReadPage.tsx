@@ -1596,6 +1596,7 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (onShowBoard) onShowBoard();
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect();
       setMenuPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + rect.width / 2 });
@@ -1617,20 +1618,14 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
       {showMenu && createPortal(
         <div
           ref={menuRef}
-          className="absolute z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg whitespace-nowrap flex flex-col"
+          className="absolute z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg whitespace-nowrap"
           style={{ top: menuPos.top, left: menuPos.left }}
         >
           <button
             onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit(); }}
-            className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-t-lg"
+            className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-lg"
           >
             {t('coaches.editMove')}
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onShowBoard) onShowBoard(); }}
-            className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left border-t border-slate-700 rounded-b-lg"
-          >
-            {t('coaches.showOnBoard')}
           </button>
         </div>,
         document.body
