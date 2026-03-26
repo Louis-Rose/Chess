@@ -908,7 +908,7 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
               onKeyDown={e => { if (e.key === 'Enter') { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); } if (e.key === 'Escape') setEditing(null); }}
               className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
             />
-            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} onSelect={san => setEditing({ ...editing, value: san })} />
+            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={validatedMoves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => setEditing({ ...editing, value: san })} />
             <div className="mt-3">
               <button
                 onClick={() => { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); }}
@@ -1170,7 +1170,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
               onKeyDown={handleKeyDown}
               className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
             />
-            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} onSelect={san => setEditing({ ...editing, value: san })} />
+            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => setEditing({ ...editing, value: san })} />
             <div className="mt-3">
               <button
                 onClick={handleSave}
@@ -1441,10 +1441,11 @@ function getPieceKey(san: string): string {
   return 'P';
 }
 
-function MoveSuggestions({ legalMoves, color, value, onSelect }: {
+function MoveSuggestions({ legalMoves, color, value, reason, onSelect }: {
   legalMoves: string[];
   color: 'white' | 'black';
   value: string;
+  reason?: string;
   onSelect: (san: string) => void;
 }) {
   const { t } = useLanguage();
@@ -1455,6 +1456,16 @@ function MoveSuggestions({ legalMoves, color, value, onSelect }: {
   });
   const isWhite = color === 'white';
 
+  // Extract suggested moves from ambiguous reason (e.g., "Ambiguous: did you mean Nfd2 or Nbd2?")
+  const suggestedMoves = useMemo(() => {
+    if (!reason) return [];
+    const match = reason.match(/did you mean (.+)\?/i);
+    if (!match) return [];
+    return match[1].split(/ or |, /).map(s => s.trim()).filter(s => legalMoves.includes(s));
+  }, [reason, legalMoves]);
+
+  const suggestedPieceKey = suggestedMoves.length > 0 ? getPieceKey(suggestedMoves[0]) : null;
+
   // Which pieces have legal moves?
   const availablePieces = useMemo(() => {
     const set = new Set<string>();
@@ -1463,6 +1474,10 @@ function MoveSuggestions({ legalMoves, color, value, onSelect }: {
   }, [legalMoves]);
 
   const filtered = pieceFilter ? legalMoves.filter(san => getPieceKey(san) === pieceFilter) : [];
+  // When the selected piece matches the ambiguous piece, separate suggested from others
+  const showSuggested = pieceFilter === suggestedPieceKey && suggestedMoves.length > 0;
+  const suggestedFiltered = showSuggested ? filtered.filter(san => suggestedMoves.includes(san)) : [];
+  const otherFiltered = showSuggested ? filtered.filter(san => !suggestedMoves.includes(san)) : filtered;
 
   if (legalMoves.length === 0) return null;
 
@@ -1487,10 +1502,29 @@ function MoveSuggestions({ legalMoves, color, value, onSelect }: {
           </button>
         ))}
       </div>
-      {/* Filtered moves */}
-      {filtered.length > 0 && (
+      {/* Suggested moves (from ambiguous diagnosis) */}
+      {suggestedFiltered.length > 0 && (
         <div className="flex flex-wrap gap-1 justify-center">
-          {filtered.map(san => {
+          {suggestedFiltered.map(san => {
+            const isSelected = san === value;
+            return (
+              <button
+                key={san}
+                onClick={() => onSelect(san)}
+                className={`px-2 py-1 rounded text-xs font-mono transition-colors border ${
+                  isSelected ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-700 text-amber-300 hover:bg-slate-600 border-amber-500/40'
+                }`}
+              >
+                {san}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {/* Other filtered moves */}
+      {otherFiltered.length > 0 && (
+        <div className="flex flex-wrap gap-1 justify-center">
+          {otherFiltered.map(san => {
             const isSelected = san === value;
             return (
               <button
