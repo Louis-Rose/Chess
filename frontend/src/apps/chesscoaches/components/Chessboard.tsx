@@ -197,14 +197,121 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const [ply, setPly] = useState(initialPly ?? maxPly);
   const [flipped, setFlipped] = useState(false);
 
+  // Branch (variation) state: user-made moves that diverge from the main line
+  const [branch, setBranch] = useState<{ startPly: number; fens: string[]; sans: string[] } | null>(null);
+  const [branchPly, setBranchPly] = useState(0); // index within branch.fens
+
+  const inBranch = branch !== null && branchPly > 0;
+
+  // The FEN currently displayed
+  const currentFen = inBranch ? branch!.fens[branchPly] : fens[ply];
+
   useEffect(() => {
     setPly(initialPly ?? fens.length - 1);
+    setBranch(null);
+    setBranchPly(0);
   }, [pgn, fens.length, initialPly]);
 
-  const goFirst = useCallback(() => setPly(0), []);
-  const goPrev = useCallback(() => setPly(p => Math.max(0, p - 1)), []);
-  const goNext = useCallback(() => setPly(p => Math.min(maxPly, p + 1)), [maxPly]);
-  const goLast = useCallback(() => setPly(maxPly), [maxPly]);
+  const exitBranch = useCallback(() => { setBranch(null); setBranchPly(0); }, []);
+
+  const goFirst = useCallback(() => { exitBranch(); setPly(0); }, [exitBranch]);
+  const goPrev = useCallback(() => {
+    if (inBranch) {
+      // Go back within branch; at branch start, return to main line
+      setBranchPly(p => {
+        if (p <= 1) { setBranch(null); return 0; }
+        return p - 1;
+      });
+    } else {
+      setBranch(null); setBranchPly(0);
+      setPly(p => Math.max(0, p - 1));
+    }
+  }, [inBranch]);
+  const goNext = useCallback(() => {
+    if (branch && branchPly < branch.fens.length - 1) {
+      setBranchPly(p => p + 1);
+    } else if (!inBranch) {
+      setPly(p => Math.min(maxPly, p + 1));
+    }
+  }, [branch, branchPly, inBranch, maxPly]);
+  const goLast = useCallback(() => { exitBranch(); setPly(maxPly); }, [exitBranch, maxPly]);
+
+  // Handle a user move on the board (drag & drop)
+  const handleUserMove = useCallback((from: string, to: string) => {
+    try {
+      const chess = new Chess(currentFen);
+      // Try the move (allow promotion to queen by default)
+      const move = chess.move({ from, to, promotion: 'q' });
+      if (!move) return;
+
+      const newFen = chess.fen();
+      const san = move.san;
+
+      // Check if this matches the next move in the main line
+      if (!inBranch && ply < maxPly && san === sans[ply]) {
+        // Matches main line — just advance
+        setPly(p => p + 1);
+        playMoveSound(san.includes('x'));
+        return;
+      }
+
+      // Diverges — create or extend branch
+      if (inBranch && branch) {
+        // Extend existing branch
+        setBranch({
+          ...branch,
+          fens: [...branch.fens.slice(0, branchPly + 1), newFen],
+          sans: [...branch.sans.slice(0, branchPly), san],
+        });
+        setBranchPly(branchPly + 1);
+      } else {
+        // New branch from current main-line ply
+        setBranch({
+          startPly: ply,
+          fens: [fens[ply], newFen],
+          sans: [san],
+        });
+        setBranchPly(1);
+      }
+      playMoveSound(san.includes('x'));
+    } catch {
+      // Invalid move — ignore
+    }
+  }, [currentFen, inBranch, branch, branchPly, ply, maxPly, sans, fens]);
+
+  // Drag & drop state
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState<{ piece: string; fromR: number; fromC: number; x: number; y: number } | null>(null);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent, piece: string, r: number, c: number) => {
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    setDragging({ piece, fromR: r, fromC: c, x: e.clientX, y: e.clientY });
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging) return;
+    setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
+  }, [dragging]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!dragging || !boardRef.current) { setDragging(null); return; }
+    const rect = boardRef.current.getBoundingClientRect();
+    const sqSize = rect.width / 8;
+    const dj = Math.floor((e.clientX - rect.left) / sqSize);
+    const di = Math.floor((e.clientY - rect.top) / sqSize);
+    if (di < 0 || di > 7 || dj < 0 || dj > 7) { setDragging(null); return; }
+    const toR = flipped ? 7 - di : di;
+    const toC = flipped ? 7 - dj : dj;
+    const fromFile = String.fromCharCode(97 + dragging.fromC);
+    const fromRank = String(8 - dragging.fromR);
+    const toFile = String.fromCharCode(97 + toC);
+    const toRank = String(8 - toR);
+    const from = `${fromFile}${fromRank}`;
+    const to = `${toFile}${toRank}`;
+    if (from !== to) handleUserMove(from, to);
+    setDragging(null);
+  }, [dragging, flipped, handleUserMove]);
 
   // Play sound on ply change (skip initial render)
   const isInitialRender = useRef(true);
@@ -213,11 +320,11 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
       isInitialRender.current = false;
       return;
     }
-    if (ply > 0 && ply <= sans.length) {
+    if (!inBranch && ply > 0 && ply <= sans.length) {
       const san = sans[ply - 1];
       playMoveSound(san.includes('x'));
     }
-  }, [ply, sans]);
+  }, [ply, sans, inBranch]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -230,7 +337,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [goFirst, goPrev, goNext, goLast]);
 
-  const board = fenToBoard(fens[ply]);
+  const board = fenToBoard(currentFen);
 
   // Current clocks for each side — fall back to starting time
   const currentClocks = useMemo(() => {
@@ -303,13 +410,29 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
       >
         <ArrowUpDown className="w-5 h-5" />
       </button>
-      <div className="w-full aspect-square relative rounded-lg overflow-hidden shadow-lg">
+      <div className="w-full aspect-square relative rounded-lg overflow-hidden shadow-lg touch-none">
         {/* HTML grid board */}
-        <div className="grid grid-cols-8 grid-rows-8 w-full h-full">
+        <div
+          ref={boardRef}
+          className="grid grid-cols-8 grid-rows-8 w-full h-full"
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+        >
           {(() => {
-            // Compute highlight squares
+            // Compute highlight squares from the last move (main line or branch)
             let fromR = -1, fromC = -1, toR = -1, toC = -1;
-            if (ply > 0) {
+            if (inBranch && branch && branchPly > 0) {
+              try {
+                const chess = new Chess(branch.fens[branchPly - 1]);
+                const move = chess.move(branch.sans[branchPly - 1]);
+                if (move) {
+                  fromC = move.from.charCodeAt(0) - 97;
+                  fromR = 7 - (parseInt(move.from[1]) - 1);
+                  toC = move.to.charCodeAt(0) - 97;
+                  toR = 7 - (parseInt(move.to[1]) - 1);
+                }
+              } catch {}
+            } else if (ply > 0) {
               try {
                 const chess = new Chess(fens[ply - 1]);
                 const move = chess.move(sans[ply - 1]);
@@ -332,7 +455,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                 const bg = isHighlight
                   ? (isLight ? '#f7ec5a' : '#dac934')
                   : (isLight ? LIGHT : DARK);
-                const piece = board[r]?.[c];
+                const piece = (dragging && dragging.fromR === r && dragging.fromC === c) ? null : board[r]?.[c];
 
                 squares.push(
                   <div
@@ -361,8 +484,9 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                       <img
                         src={pieceImageUrl(piece)}
                         alt=""
-                        className="absolute inset-[5%] w-[90%] h-[90%] pointer-events-none"
+                        className="absolute inset-[5%] w-[90%] h-[90%] cursor-grab active:cursor-grabbing"
                         draggable={false}
+                        onPointerDown={(e) => handlePointerDown(e, piece, r, c)}
                       />
                     )}
                   </div>
@@ -372,6 +496,16 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
             return squares;
           })()}
         </div>
+        {/* Dragging ghost piece */}
+        {dragging && (
+          <img
+            src={pieceImageUrl(dragging.piece)}
+            alt=""
+            className="fixed pointer-events-none z-50 w-16 h-16 -translate-x-1/2 -translate-y-1/2"
+            style={{ left: dragging.x, top: dragging.y }}
+            draggable={false}
+          />
+        )}
       </div>
       </div>
 
@@ -397,9 +531,9 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                   <td className="text-slate-500 text-right px-2 py-0.5">{num}.</td>
                   <td className="px-1 py-0.5">
                     <button
-                      onClick={() => setPly(whitePly)}
+                      onClick={() => { exitBranch(); setPly(whitePly); }}
                       className={`w-full text-left px-1 rounded hover:bg-slate-600 transition-colors ${
-                        ply === whitePly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
+                        !inBranch && ply === whitePly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
                       }`}
                     >
                       {white}
@@ -408,9 +542,9 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                   <td className="px-1 py-0.5">
                     {black ? (
                       <button
-                        onClick={() => setPly(blackPly!)}
+                        onClick={() => { exitBranch(); setPly(blackPly!); }}
                         className={`w-full text-left px-1 rounded hover:bg-slate-600 transition-colors ${
-                          ply === blackPly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
+                          !inBranch && ply === blackPly ? 'bg-blue-600/40 text-white' : 'text-slate-300'
                         }`}
                       >
                         {black}
@@ -425,15 +559,23 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
       </div>
       </div>
 
+      {/* Branch indicator */}
+      {inBranch && (
+        <div className="flex items-center gap-2 text-xs text-amber-400">
+          <span>Variation ({branch!.sans.length} move{branch!.sans.length > 1 ? 's' : ''})</span>
+          <button onClick={exitBranch} className="text-slate-400 hover:text-white underline">back to main line</button>
+        </div>
+      )}
+
       {/* Navigation controls */}
       <div className="flex items-center gap-1">
-        <button onClick={goFirst} disabled={ply === 0} className="p-2 rounded-lg text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-default transition-colors">
+        <button onClick={goFirst} disabled={ply === 0 && !inBranch} className="p-2 rounded-lg text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-default transition-colors">
           <ChevronFirst className="w-5 h-5" />
         </button>
-        <button onClick={goPrev} disabled={ply === 0} className="p-2 rounded-lg text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-default transition-colors">
+        <button onClick={goPrev} disabled={ply === 0 && !inBranch} className="p-2 rounded-lg text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-default transition-colors">
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <button onClick={goNext} disabled={ply === maxPly} className="p-2 rounded-lg text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-default transition-colors">
+        <button onClick={goNext} disabled={ply === maxPly && !inBranch} className="p-2 rounded-lg text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-default transition-colors">
           <ChevronRight className="w-5 h-5" />
         </button>
         <button
@@ -443,7 +585,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
         >
           <ArrowUpDown className="w-5 h-5" />
         </button>
-        <button onClick={goLast} disabled={ply === maxPly} className="p-2 rounded-lg text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-default transition-colors">
+        <button onClick={goLast} disabled={ply === maxPly && !inBranch} className="p-2 rounded-lg text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-default transition-colors">
           <ChevronLast className="w-5 h-5" />
         </button>
       </div>
