@@ -1497,7 +1497,7 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect }: {
   const filtered = pieceFilter ? legalMoves.filter(san => getPieceKey(san) === pieceFilter) : [];
   // When the selected piece matches the ambiguous piece, separate suggested from others
   const showSuggested = pieceFilter === suggestedPieceKey && suggestedMoves.length > 0;
-  const suggestedFiltered = showSuggested ? filtered.filter(san => suggestedMoves.includes(san)) : [];
+  const suggestedFiltered = showSuggested ? suggestedMoves : [];
   const otherFiltered = showSuggested ? filtered.filter(san => !suggestedMoves.includes(san)) : filtered;
 
   if (legalMoves.length === 0) return null;
