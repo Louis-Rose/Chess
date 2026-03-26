@@ -339,8 +339,14 @@ export function ScoresheetReadPage() {
                     const handleEditSave = (_readIdx: number, confirmed: Move[], correctionKey: string) => {
                       scoresheetHandleEditSave(m.id, 0, confirmed, correctionKey);
                     };
-                    const handleMoveClick = (_moves: Move[], ply: number) => {
+                    const handleMoveClick = (movesArr: Move[], ply: number) => {
                       setModelBoardPlys(prev => ({ ...prev, [m.id]: ply }));
+                      if (ply > 0) {
+                        const moveIdx = Math.floor((ply - 1) / 2);
+                        const color = ply % 2 === 1 ? 'white' : 'black';
+                        const san = movesArr[moveIdx]?.[color];
+                        if (san) playMoveSound(san.includes('x'));
+                      }
                     };
 
                     return (
