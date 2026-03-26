@@ -1392,16 +1392,10 @@ function LichessStudyButton({ moves, meta, fileName }: {
                   href={`https://lichess.org/study/${success.studyId}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                  className="inline-flex items-center justify-center gap-1.5 w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white text-xs py-2 rounded-lg transition-colors"
                 >
                   {t('coaches.lichess.openStudy')} <ExternalLink className="w-3 h-3" />
                 </a>
-                <button
-                  onClick={handleClose}
-                  className="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-1.5 rounded-lg transition-colors"
-                >
-                  {t('coaches.lichess.close')}
-                </button>
               </div>
             ) : needsUsername ? (
               <>
