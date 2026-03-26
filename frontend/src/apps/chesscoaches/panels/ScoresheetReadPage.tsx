@@ -1559,7 +1559,7 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLTableCellElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const bg = active ? 'bg-blue-800/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100';
+  const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100';
 
   useEffect(() => {
     if (!showMenu) return;
