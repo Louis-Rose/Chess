@@ -362,7 +362,7 @@ def save_ground_truth():
     if not name or '/' in name or '..' in name:
         return jsonify({'error': 'Invalid name'}), 400
 
-    csv_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'public', 'scoresheets', name)
+    csv_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'public', 'scoresheets_data', name)
     os.makedirs(csv_dir, exist_ok=True)
     csv_path = os.path.join(csv_dir, 'moves.csv')
 

@@ -51,7 +51,7 @@ async function fetchGroundTruth(filename: string | null): Promise<{ white_player
   const stem = filename.replace(/\.[^.]+$/, '');
   if (groundTruthCache.has(stem)) return groundTruthCache.get(stem)!;
   try {
-    const res = await fetch(`/scoresheets/${stem}/moves.csv`);
+    const res = await fetch(`/scoresheets_data/${stem}/moves.csv`);
     if (!res.ok) { groundTruthCache.set(stem, null); return null; }
     const csv = await res.text();
     const parsed = parseMovesCsv(csv);
