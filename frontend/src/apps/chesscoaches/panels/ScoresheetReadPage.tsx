@@ -471,7 +471,7 @@ export function ScoresheetReadPage() {
 interface PlyEntry {
   fen: string;
   lastMove: { from: string; to: string } | null;
-  illegal?: { moveNumber: number; color: 'white' | 'black'; san: string };
+  illegal?: { moveNumber: number; color: 'white' | 'black'; san: string; reason?: string };
   san?: string;
 }
 
@@ -564,7 +564,8 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
           const move = chess.move(san);
           result.push({ fen: chess.fen(), lastMove: move ? { from: move.from, to: move.to } : null, san });
         } catch {
-          result.push({ fen: chess.fen(), lastMove: null, illegal: { moveNumber: m.number, color, san }, san });
+          const reason = m[`${color}_reason` as 'white_reason' | 'black_reason'];
+          result.push({ fen: chess.fen(), lastMove: null, illegal: { moveNumber: m.number, color, san, reason }, san });
           // Flip turn so next move validates from the right side
           const fen = chess.fen().split(' ');
           fen[1] = fen[1] === 'w' ? 'b' : 'w';
@@ -695,7 +696,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
           <ChevronLast className="w-6 h-6" />
         </button>
       </div>
-      <div className="mt-1.5 text-sm text-center h-[44px]">
+      <div className="mt-1.5 text-sm text-center min-h-[44px]">
         {safePly > 0 && entries[safePly]?.san && !inBranch && (
           <p className="text-slate-300">
             {t('coaches.move')} {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')}) : {entries[safePly].san}
@@ -710,7 +711,10 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
           </p>
         )}
         {currentIllegal && (
-          <p className="text-red-400">{t('coaches.illegalMove')}</p>
+          <>
+            <p className="text-red-400">{t('coaches.illegalMove')}</p>
+            {currentIllegal.reason && <p className="text-red-400/70 text-xs">{currentIllegal.reason}</p>}
+          </>
         )}
       </div>
       {inBranch && (
@@ -894,6 +898,9 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
             <div className="text-slate-400 text-xs mb-2 text-center">
               {t('coaches.move')} {editing.moveNumber} · {editing.color === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
             </div>
+            {validatedMoves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason'] && (
+              <p className="text-red-400/80 text-xs mb-2 text-center">{validatedMoves[editing.moveIdx][`${editing.color}_reason` as 'white_reason' | 'black_reason']}</p>
+            )}
             <input
               ref={inputRef}
               value={editing.value}
@@ -1153,6 +1160,9 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
             <div className="text-slate-400 text-xs mb-2 text-center">
               {t('coaches.move')} {moves[editing.moveIdx]?.number} · {editing.color === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
             </div>
+            {moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason'] && (
+              <p className="text-red-400/80 text-xs mb-2 text-center">{moves[editing.moveIdx][`${editing.color}_reason` as 'white_reason' | 'black_reason']}</p>
+            )}
             <input
               ref={inputRef}
               value={editing.value}
