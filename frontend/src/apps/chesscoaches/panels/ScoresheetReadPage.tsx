@@ -899,7 +899,7 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
               {t('coaches.move')} {editing.moveNumber} · {editing.color === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
             </div>
             {validatedMoves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason'] && (
-              <p className="text-red-400/80 text-xs mb-2 text-center">{validatedMoves[editing.moveIdx][`${editing.color}_reason` as 'white_reason' | 'black_reason']}</p>
+              <p className="text-red-400 text-sm mb-2 text-center">{validatedMoves[editing.moveIdx][`${editing.color}_reason` as 'white_reason' | 'black_reason']}</p>
             )}
             <input
               ref={inputRef}
@@ -1161,7 +1161,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
               {t('coaches.move')} {moves[editing.moveIdx]?.number} · {editing.color === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
             </div>
             {moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason'] && (
-              <p className="text-red-400/80 text-xs mb-2 text-center">{moves[editing.moveIdx][`${editing.color}_reason` as 'white_reason' | 'black_reason']}</p>
+              <p className="text-red-400 text-sm mb-2 text-center">{moves[editing.moveIdx][`${editing.color}_reason` as 'white_reason' | 'black_reason']}</p>
             )}
             <input
               ref={inputRef}
