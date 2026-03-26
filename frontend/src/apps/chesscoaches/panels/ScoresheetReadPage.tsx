@@ -540,7 +540,7 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
   const currentLastMove = inBranch ? null : entries[safePly].lastMove;
   const currentIllegal = inBranch ? undefined : entries[safePly].illegal;
 
-  useEffect(() => { setPly(maxPly); exitBranch(); }, [maxPly, exitBranch]);
+  useEffect(() => { isInitialRender.current = true; setPly(maxPly); exitBranch(); }, [maxPly, exitBranch]);
   useEffect(() => { if (externalPly !== undefined) { setPly(externalPly); exitBranch(); } }, [externalPly, exitBranch]);
 
   // Play sound on ply change
