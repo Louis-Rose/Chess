@@ -365,7 +365,7 @@ export function ScoresheetReadPage() {
                           <div className="flex-1 hidden md:block" />
                           {/* Center: tables */}
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables>
-                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} onMoveClick={analyzing ? undefined : makeMoveClick('gt')} activePly={!analyzing && modelBoardPlys[m.id]?.source !== 'read' ? modelBoardPlys[m.id]?.ply : undefined} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
+                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} onMoveClick={makeMoveClick('gt')} activePly={modelBoardPlys[m.id]?.source !== 'read' ? modelBoardPlys[m.id]?.ply : undefined} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
                             {!mr ? (
                               <ModelPanelLoading name={m.name} startTime={startTime} />
                             ) : (
@@ -380,8 +380,8 @@ export function ScoresheetReadPage() {
                                 rereading={isRereading}
                                 corrections={corrections}
                                 onEditSave={(confirmed, corrKey) => handleEditSave(0, confirmed, corrKey)}
-                                onMoveClick={analyzing ? undefined : makeMoveClick('read')}
-                                activePly={!analyzing && modelBoardPlys[m.id]?.source !== 'gt' ? modelBoardPlys[m.id]?.ply : undefined}
+                                onMoveClick={mr ? makeMoveClick('read') : undefined}
+                                activePly={modelBoardPlys[m.id]?.source !== 'gt' ? modelBoardPlys[m.id]?.ply : undefined}
                                 sheetColumns={modelColumns}
                                 rowsPerColumn={modelRowsPerColumn}
                               />
