@@ -1425,7 +1425,12 @@ function MoveSuggestions({ legalMoves, color, value, onSelect }: {
   value: string;
   onSelect: (san: string) => void;
 }) {
-  const [pieceFilter, setPieceFilter] = useState<string | null>(null);
+  const { t } = useLanguage();
+  // Pre-select piece filter based on current value
+  const [pieceFilter, setPieceFilter] = useState<string | null>(() => {
+    if (!value) return null;
+    return getPieceKey(value);
+  });
   const isWhite = color === 'white';
 
   // Which pieces have legal moves?
@@ -1442,6 +1447,7 @@ function MoveSuggestions({ legalMoves, color, value, onSelect }: {
   return (
     <div className="mt-2 space-y-1.5">
       {/* Piece filter row */}
+      {!pieceFilter && <p className="text-slate-500 text-[10px] text-center">{t('coaches.selectPiece')}</p>}
       <div className="flex justify-center gap-1">
         {PIECE_FILTERS.filter(p => availablePieces.has(p.key)).map(p => (
           <button
