@@ -817,6 +817,7 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
               active={activePly === ply}
               onEdit={() => {
                 setEditing({ moveNumber: move.number, moveIdx: idx, color, value: val || '' });
+                onMoveClick?.(groundTruth.moves, ply);
               }}
               onShowBoard={onMoveClick ? () => onMoveClick(groundTruth.moves, ply) : undefined}
             />
@@ -1080,7 +1081,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       highlight={d?.white}
                       corrected={corrections?.has(`${move.number}-white`)}
                       active={activePly === idx * 2 + 1}
-                      onEdit={() => setEditing({ moveIdx: idx, color: 'white', value: move.white })}
+                      onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
                     />
                     <MoveCell
@@ -1089,7 +1090,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       corrected={corrections?.has(`${move.number}-black`)}
                       highlight={d?.black}
                       active={activePly === idx * 2 + 2}
-                      onEdit={() => move.black !== undefined ? setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }) : undefined}
+                      onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
                     />
                   </>;
