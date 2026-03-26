@@ -510,6 +510,12 @@ function ModelBoard({ moves, externalPly }: { moves: Move[]; externalPly?: numbe
   const [ply, setPly] = useState(0);
   const isInitialRender = useRef(true);
 
+  // Branch (variation) state
+  const [branch, setBranch] = useState<{ startPly: number; fens: string[]; sans: string[] } | null>(null);
+  const [branchPly, setBranchPly] = useState(0);
+  const inBranch = branch !== null && branchPly > 0;
+  const exitBranch = useCallback(() => { setBranch(null); setBranchPly(0); }, []);
+
   const entries = useMemo(() => {
     const chess = new Chess();
     const result: PlyEntry[] = [{ fen: chess.fen(), lastMove: null }];
@@ -530,46 +536,105 @@ function ModelBoard({ moves, externalPly }: { moves: Move[]; externalPly?: numbe
 
   const maxPly = entries.length - 1;
   const safePly = Math.min(ply, maxPly);
-  const current = entries[safePly];
+  const currentFen = inBranch ? branch!.fens[branchPly] : entries[safePly].fen;
+  const currentLastMove = inBranch ? null : entries[safePly].lastMove;
+  const currentIllegal = inBranch ? undefined : entries[safePly].illegal;
 
-  useEffect(() => { setPly(maxPly); }, [maxPly]);
-  useEffect(() => { if (externalPly !== undefined) setPly(externalPly); }, [externalPly]);
+  useEffect(() => { setPly(maxPly); exitBranch(); }, [maxPly, exitBranch]);
+  useEffect(() => { if (externalPly !== undefined) { setPly(externalPly); exitBranch(); } }, [externalPly, exitBranch]);
 
   // Play sound on ply change
   useEffect(() => {
     if (isInitialRender.current) { isInitialRender.current = false; return; }
-    if (safePly > 0 && entries[safePly]?.san) {
+    if (inBranch && branch && branchPly > 0) {
+      const san = branch.sans[branchPly - 1];
+      if (san) playMoveSound(san.includes('x'));
+    } else if (safePly > 0 && entries[safePly]?.san) {
       playMoveSound(entries[safePly].san!.includes('x'));
     }
-  }, [safePly, entries]);
+  }, [safePly, branchPly, entries, inBranch, branch]);
+
+  // Handle user move (drag & drop)
+  const handleUserMove = useCallback((from: string, to: string) => {
+    try {
+      const chess = new Chess(currentFen);
+      const move = chess.move({ from, to, promotion: 'q' });
+      if (!move) return;
+      const newFen = chess.fen();
+      const san = move.san;
+
+      // Check if matches next main-line move
+      if (!inBranch && safePly < maxPly && entries[safePly + 1]?.san === san) {
+        setPly(p => p + 1);
+        playMoveSound(san.includes('x'));
+        return;
+      }
+
+      // Diverges — create or extend branch
+      if (inBranch && branch) {
+        setBranch({
+          ...branch,
+          fens: [...branch.fens.slice(0, branchPly + 1), newFen],
+          sans: [...branch.sans.slice(0, branchPly), san],
+        });
+        setBranchPly(branchPly + 1);
+      } else {
+        setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
+        setBranchPly(1);
+      }
+      playMoveSound(san.includes('x'));
+    } catch { /* invalid move */ }
+  }, [currentFen, inBranch, branch, branchPly, safePly, maxPly, entries]);
+
+  // Navigation
+  const goPrev = useCallback(() => {
+    if (inBranch) {
+      setBranchPly(p => { if (p <= 1) { setBranch(null); return 0; } return p - 1; });
+    } else {
+      setPly(p => Math.max(0, p - 1));
+    }
+  }, [inBranch]);
+  const goNext = useCallback(() => {
+    if (branch && branchPly < branch.fens.length - 1) {
+      setBranchPly(p => p + 1);
+    } else if (!inBranch) {
+      setPly(p => Math.min(maxPly, p + 1));
+    }
+  }, [branch, branchPly, inBranch, maxPly]);
 
   // Keyboard navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') { e.preventDefault(); setPly(p => Math.max(0, p - 1)); }
-      if (e.key === 'ArrowRight') { e.preventDefault(); setPly(p => Math.min(maxPly, p + 1)); }
-      if (e.key === 'Home') { e.preventDefault(); setPly(0); }
-      if (e.key === 'End') { e.preventDefault(); setPly(maxPly); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+      if (e.key === 'Home') { e.preventDefault(); exitBranch(); setPly(0); }
+      if (e.key === 'End') { e.preventDefault(); exitBranch(); setPly(maxPly); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [maxPly]);
+  }, [maxPly, goPrev, goNext, exitBranch]);
 
   return (
     <div className="flex flex-col items-center w-[400px]">
-      <BoardPreview fen={current.fen} lastMove={current.lastMove} />
-      {current.illegal ? (
+      <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={handleUserMove} />
+      {currentIllegal ? (
         <p className="text-red-400 text-xs mt-1.5 text-center">
-          Illegal: {current.illegal.moveNumber}. {current.illegal.color === 'black' ? '...' : ''}{current.illegal.san} ({current.illegal.color})
+          Illegal: {currentIllegal.moveNumber}. {currentIllegal.color === 'black' ? '...' : ''}{currentIllegal.san} ({currentIllegal.color})
         </p>
       ) : (
         <div className="h-[20px] mt-1.5" />
       )}
+      {inBranch && (
+        <div className="flex items-center gap-2 text-xs text-amber-400 mb-1">
+          <span>Variation ({branch!.sans.length} move{branch!.sans.length > 1 ? 's' : ''})</span>
+          <button onClick={() => { exitBranch(); }} className="text-slate-400 hover:text-white underline">back to main line</button>
+        </div>
+      )}
       <div className="flex justify-center gap-1.5 mt-1">
-        <button onClick={() => setPly(0)} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏮</button>
-        <button onClick={() => setPly(p => Math.max(0, p - 1))} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">◀</button>
-        <button onClick={() => setPly(p => Math.min(maxPly, p + 1))} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">▶</button>
-        <button onClick={() => setPly(maxPly)} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏭</button>
+        <button onClick={() => { exitBranch(); setPly(0); }} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏮</button>
+        <button onClick={goPrev} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">◀</button>
+        <button onClick={goNext} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">▶</button>
+        <button onClick={() => { exitBranch(); setPly(maxPly); }} className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">⏭</button>
       </div>
     </div>
   );
