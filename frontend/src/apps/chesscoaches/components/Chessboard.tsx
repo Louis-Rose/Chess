@@ -343,7 +343,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                     {/* Coordinate labels */}
                     {dj === 0 && (
                       <span
-                        className="absolute top-0.5 left-0.5 text-[0.6rem] font-bold leading-none pointer-events-none"
+                        className="absolute top-[3px] left-[3px] text-[0.75rem] font-extrabold leading-none pointer-events-none opacity-80"
                         style={{ color: isLight ? DARK : LIGHT }}
                       >
                         {flipped ? di + 1 : 8 - di}
@@ -351,7 +351,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                     )}
                     {di === 7 && (
                       <span
-                        className="absolute bottom-0.5 right-1 text-[0.6rem] font-bold leading-none pointer-events-none"
+                        className="absolute bottom-[2px] right-[4px] text-[0.75rem] font-extrabold leading-none pointer-events-none opacity-80"
                         style={{ color: isLight ? DARK : LIGHT }}
                       >
                         {'abcdefgh'[c]}
