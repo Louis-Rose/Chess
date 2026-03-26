@@ -954,7 +954,17 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
               onKeyDown={e => { if (e.key === 'Enter') { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); onClearPreview?.(); } if (e.key === 'Escape') { setEditing(null); onClearPreview?.(); } }}
               className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
             />
-            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={validatedMoves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => { setEditing({ ...editing, value: san }); onPreview?.(editing.moveIdx, editing.color, san); playMoveSound(san.includes('x')); }} />
+            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={validatedMoves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
+              if (san === editing.value) {
+                const orig = groundTruth.moves[editing.moveIdx]?.[editing.color] || '';
+                setEditing({ ...editing, value: orig });
+                onClearPreview?.();
+              } else {
+                setEditing({ ...editing, value: san });
+                onPreview?.(editing.moveIdx, editing.color, san);
+                playMoveSound(san.includes('x'));
+              }
+            }} />
             <div className="mt-3">
               <button
                 onClick={() => { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); onClearPreview?.(); }}
@@ -1214,7 +1224,17 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
               onKeyDown={e => { if (e.key === 'Enter') { handleSave(); onClearPreview?.(); } if (e.key === 'Escape') { setEditing(null); onClearPreview?.(); } }}
               className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
             />
-            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => { setEditing({ ...editing, value: san }); onPreview?.(editing.moveIdx, editing.color, san); playMoveSound(san.includes('x')); }} />
+            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
+              if (san === editing.value) {
+                const orig = moves[editing.moveIdx]?.[editing.color] || '';
+                setEditing({ ...editing, value: orig });
+                onClearPreview?.();
+              } else {
+                setEditing({ ...editing, value: san });
+                onPreview?.(editing.moveIdx, editing.color, san);
+                playMoveSound(san.includes('x'));
+              }
+            }} />
             <div className="mt-3">
               <button
                 onClick={() => { handleSave(); onClearPreview?.(); }}
