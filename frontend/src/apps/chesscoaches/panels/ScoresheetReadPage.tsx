@@ -625,33 +625,31 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
   return (
     <div className="flex flex-col items-center w-[400px]">
       <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={disableDrag ? undefined : handleUserMove} />
-      {currentIllegal ? (
+      <div className="flex justify-center gap-1.5 mt-1.5 w-full">
+        <button onClick={() => { exitBranch(); setPly(0); }} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+          <ChevronFirst className="w-6 h-6" />
+        </button>
+        <button onClick={goPrev} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <button onClick={goNext} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+          <ChevronRight className="w-6 h-6" />
+        </button>
+        <button onClick={() => { exitBranch(); setPly(maxPly); }} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+          <ChevronLast className="w-6 h-6" />
+        </button>
+      </div>
+      {currentIllegal && (
         <p className="text-red-400 text-xs mt-1.5 text-center">
           Illegal: {currentIllegal.moveNumber}. {currentIllegal.color === 'black' ? '...' : ''}{currentIllegal.san} ({currentIllegal.color})
         </p>
-      ) : (
-        <div className="h-[20px] mt-1.5" />
       )}
       {inBranch && (
-        <div className="flex items-center gap-2 text-xs text-amber-400 mb-1">
+        <div className="flex items-center gap-2 text-xs text-amber-400 mt-1.5">
           <span>Variation ({branch!.sans.length} move{branch!.sans.length > 1 ? 's' : ''})</span>
           <button onClick={() => { exitBranch(); }} className="text-slate-400 hover:text-white underline">Go back to main line</button>
         </div>
       )}
-      <div className="flex justify-center gap-1 mt-2">
-        <button onClick={() => { exitBranch(); setPly(0); }} className="flex-1 max-w-[72px] py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
-          <ChevronFirst className="w-5 h-5" />
-        </button>
-        <button onClick={goPrev} className="flex-1 max-w-[72px] py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <button onClick={goNext} className="flex-1 max-w-[72px] py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
-          <ChevronRight className="w-5 h-5" />
-        </button>
-        <button onClick={() => { exitBranch(); setPly(maxPly); }} className="flex-1 max-w-[72px] py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
-          <ChevronLast className="w-5 h-5" />
-        </button>
-      </div>
     </div>
   );
 }
