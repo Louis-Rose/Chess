@@ -640,16 +640,16 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
         </button>
       </div>
       {safePly > 0 && entries[safePly]?.san && !inBranch && (
-        <p className="text-slate-400 text-xs mt-1.5">
-          {Math.ceil(safePly / 2)}. {entries[safePly].san} <span className="text-slate-500">({safePly % 2 === 1 ? 'White' : 'Black'})</span>
+        <p className="text-slate-300 text-sm mt-1.5">
+          Move {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? 'White' : 'Black'}) : {entries[safePly].san}
         </p>
       )}
       {safePly === 0 && !inBranch && (
-        <p className="text-slate-500 text-xs mt-1.5">Starting position</p>
+        <p className="text-slate-400 text-sm mt-1.5">Starting position</p>
       )}
       {inBranch && branch && branchPly > 0 && (
-        <p className="text-slate-400 text-xs mt-1.5">
-          Variation: {branch.sans[branchPly - 1]}
+        <p className="text-slate-300 text-sm mt-1.5">
+          Variation : {branch.sans[branchPly - 1]}
         </p>
       )}
       {currentIllegal && (
