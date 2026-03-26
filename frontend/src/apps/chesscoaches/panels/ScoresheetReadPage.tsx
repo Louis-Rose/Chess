@@ -962,6 +962,7 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
               const orig = groundTruth.moves[editing.moveIdx]?.[editing.color] || '';
               setEditing({ ...editing, value: orig });
               onClearPreview?.();
+              playMoveSound(false);
             }} />
             <div className="mt-3">
               <button
@@ -1230,6 +1231,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
               const orig = moves[editing.moveIdx]?.[editing.color] || '';
               setEditing({ ...editing, value: orig });
               onClearPreview?.();
+              playMoveSound(false);
             }} />
             <div className="mt-3">
               <button
