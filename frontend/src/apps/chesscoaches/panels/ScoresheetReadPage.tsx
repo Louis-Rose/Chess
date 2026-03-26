@@ -652,9 +652,7 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
           Variation : {branch.sans[branchPly - 1]}
         </p>
       )}
-      {currentIllegal && (
-        <p className="text-red-400 text-sm mt-1">Illegal move</p>
-      )}
+      <p className={`text-sm mt-1 ${currentIllegal ? 'text-red-400' : 'invisible'}`}>Illegal move</p>
       {inBranch && (
         <div className="flex items-center gap-2 text-xs text-amber-400 mt-1.5">
           <span>Variation ({branch!.sans.length} move{branch!.sans.length > 1 ? 's' : ''})</span>
