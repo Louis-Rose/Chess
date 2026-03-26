@@ -891,27 +891,7 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
               onKeyDown={e => { if (e.key === 'Enter') { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); } if (e.key === 'Escape') setEditing(null); }}
               className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
             />
-            {legalMoves.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2 max-h-[120px] overflow-y-auto">
-                {legalMoves.map(san => {
-                  const isSelected = san === editing.value;
-                  const pieceChar = san[0] >= 'A' && san[0] <= 'Z' && san[0] !== 'O' ? san[0] : '';
-                  const pieceFen = pieceChar ? (editing.color === 'white' ? pieceChar : pieceChar.toLowerCase()) : (editing.color === 'white' ? 'P' : 'p');
-                  return (
-                    <button
-                      key={san}
-                      onClick={() => setEditing({ ...editing, value: san })}
-                      className={`flex items-center gap-0.5 px-1.5 py-1 rounded text-xs font-mono transition-colors ${
-                        isSelected ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                      }`}
-                    >
-                      <img src={pieceImageUrl(pieceFen)} alt="" className="w-4 h-4" draggable={false} />
-                      {san}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} onSelect={san => setEditing({ ...editing, value: san })} />
             <div className="mt-3">
               <button
                 onClick={() => { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); }}
@@ -1168,27 +1148,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
               onKeyDown={handleKeyDown}
               className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
             />
-            {legalMoves.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2 max-h-[120px] overflow-y-auto">
-                {legalMoves.map(san => {
-                  const isSelected = san === editing.value;
-                  const pieceChar = san[0] >= 'A' && san[0] <= 'Z' && san[0] !== 'O' ? san[0] : '';
-                  const pieceFen = pieceChar ? (editing.color === 'white' ? pieceChar : pieceChar.toLowerCase()) : (editing.color === 'white' ? 'P' : 'p');
-                  return (
-                    <button
-                      key={san}
-                      onClick={() => setEditing({ ...editing, value: san })}
-                      className={`flex items-center gap-0.5 px-1.5 py-1 rounded text-xs font-mono transition-colors ${
-                        isSelected ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                      }`}
-                    >
-                      <img src={pieceImageUrl(pieceFen)} alt="" className="w-4 h-4" draggable={false} />
-                      {san}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} onSelect={san => setEditing({ ...editing, value: san })} />
             <div className="mt-3">
               <button
                 onClick={handleSave}
@@ -1439,6 +1399,86 @@ function LichessStudyButton({ moves, meta, fileName }: {
         </div>
       )}
     </>
+  );
+}
+
+const PIECE_FILTERS = [
+  { key: 'K', label: 'K', fen: (w: boolean) => w ? 'K' : 'k' },
+  { key: 'Q', label: 'Q', fen: (w: boolean) => w ? 'Q' : 'q' },
+  { key: 'R', label: 'R', fen: (w: boolean) => w ? 'R' : 'r' },
+  { key: 'B', label: 'B', fen: (w: boolean) => w ? 'B' : 'b' },
+  { key: 'N', label: 'N', fen: (w: boolean) => w ? 'N' : 'n' },
+  { key: 'P', label: '', fen: (w: boolean) => w ? 'P' : 'p' },
+  { key: 'O', label: 'O-O', fen: (w: boolean) => w ? 'K' : 'k' },
+];
+
+function getPieceKey(san: string): string {
+  if (san.startsWith('O-O')) return 'O';
+  const ch = san[0];
+  if (ch >= 'A' && ch <= 'Z' && 'KQRBN'.includes(ch)) return ch;
+  return 'P';
+}
+
+function MoveSuggestions({ legalMoves, color, value, onSelect }: {
+  legalMoves: string[];
+  color: 'white' | 'black';
+  value: string;
+  onSelect: (san: string) => void;
+}) {
+  const [pieceFilter, setPieceFilter] = useState<string | null>(null);
+  const isWhite = color === 'white';
+
+  // Which pieces have legal moves?
+  const availablePieces = useMemo(() => {
+    const set = new Set<string>();
+    for (const san of legalMoves) set.add(getPieceKey(san));
+    return set;
+  }, [legalMoves]);
+
+  const filtered = pieceFilter ? legalMoves.filter(san => getPieceKey(san) === pieceFilter) : [];
+
+  if (legalMoves.length === 0) return null;
+
+  return (
+    <div className="mt-2 space-y-1.5">
+      {/* Piece filter row */}
+      <div className="flex justify-center gap-1">
+        {PIECE_FILTERS.filter(p => availablePieces.has(p.key)).map(p => (
+          <button
+            key={p.key}
+            onClick={() => setPieceFilter(pieceFilter === p.key ? null : p.key)}
+            className={`flex items-center justify-center w-8 h-8 rounded transition-colors ${
+              pieceFilter === p.key ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'
+            }`}
+          >
+            {p.key === 'O' ? (
+              <span className="text-[9px] text-slate-300 font-mono">O-O</span>
+            ) : (
+              <img src={pieceImageUrl(p.fen(isWhite))} alt={p.label} className="w-5 h-5" draggable={false} />
+            )}
+          </button>
+        ))}
+      </div>
+      {/* Filtered moves */}
+      {filtered.length > 0 && (
+        <div className="flex flex-wrap gap-1 justify-center">
+          {filtered.map(san => {
+            const isSelected = san === value;
+            return (
+              <button
+                key={san}
+                onClick={() => onSelect(san)}
+                className={`px-2 py-1 rounded text-xs font-mono transition-colors ${
+                  isSelected ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                {san}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
