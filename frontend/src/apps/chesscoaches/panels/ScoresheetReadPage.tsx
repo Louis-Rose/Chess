@@ -516,7 +516,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
             {onReplace && (
               <button
                 onClick={onReplace}
-                className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors mt-1"
+                className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors mt-3"
               >
                 <Upload className="w-4 h-4" />
                 {replaceLabel || 'Replace photo'}
