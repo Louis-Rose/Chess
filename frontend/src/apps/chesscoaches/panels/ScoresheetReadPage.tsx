@@ -874,7 +874,7 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
       {/* Edit modal */}
       {editing && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px]"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[0.5px]"
           onClick={() => setEditing(null)}
         >
           <div
@@ -1131,7 +1131,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
       {/* Edit modal */}
       {editing && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px]"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[0.5px]"
           onClick={() => setEditing(null)}
         >
           <div
