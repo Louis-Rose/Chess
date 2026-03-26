@@ -482,7 +482,7 @@ def _scoresheet_diagnose_illegal(board, san):
             candidates = [board.san(m) for m in board.legal_moves
                          if board.san(m).startswith(piece_letter) and dest in board.san(m)]
             if len(candidates) > 1:
-                return f"Ambiguous — did you mean {' or '.join(candidates)}?"
+                return f"Ambiguous: did you mean {' or '.join(candidates)}?"
             if len(candidates) == 1:
                 return f"Did you mean {candidates[0]}?"
             # No legal moves by this piece to that square

@@ -713,7 +713,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         {currentIllegal && (
           <>
             <p className="text-red-400">{t('coaches.illegalMove')}</p>
-            {currentIllegal.reason && <p className="text-red-400/70 text-xs">{currentIllegal.reason}</p>}
+            {currentIllegal.reason && <p className="text-red-400">{currentIllegal.reason}</p>}
           </>
         )}
       </div>
