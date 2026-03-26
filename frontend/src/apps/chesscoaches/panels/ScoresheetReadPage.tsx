@@ -819,8 +819,9 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
           <span className="text-slate-400 text-xs">{elapsed}s</span>
         </div>
       </div>
-      <div className="flex items-center justify-center py-12">
-        <span className="text-slate-500 text-xs">Analyzing scoresheet...</span>
+      <div className="flex items-center justify-center gap-2 py-12 text-slate-500 animate-pulse">
+        <Clock className="w-4 h-4 animate-spin" />
+        <span className="text-xs">Analyzing scoresheet...</span>
       </div>
     </div>
   );
