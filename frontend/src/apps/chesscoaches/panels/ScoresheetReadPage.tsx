@@ -642,17 +642,6 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: M
     }
   }, [branch, branchPly, inBranch, maxPly, playSoundForPly, onPlyChange]);
 
-  // Keyboard navigation
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
-      if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
-      if (e.key === 'Home') { e.preventDefault(); exitBranch(); setPly(p => { if (p !== 0) { playSoundForPly(p); onPlyChange?.(0); } return 0; }); }
-      if (e.key === 'End') { e.preventDefault(); exitBranch(); setPly(p => { if (p !== maxPly) { playSoundForPly(maxPly); onPlyChange?.(maxPly); } return maxPly; }); }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [maxPly, goPrev, goNext, exitBranch]);
 
   return (
     <div className="flex flex-col items-center w-[400px]">
