@@ -1112,18 +1112,12 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                 })}
               </div>
             )}
-            <div className="flex gap-2 mt-3">
+            <div className="mt-3">
               <button
                 onClick={handleSave}
-                className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
               >
                 {t('coaches.save')}
-              </button>
-              <button
-                onClick={() => setEditing(null)}
-                className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-1.5 rounded-lg transition-colors"
-              >
-                {t('coaches.cancel')}
               </button>
             </div>
           </div>
