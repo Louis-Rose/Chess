@@ -1309,12 +1309,16 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
   const [showMenu, setShowMenu] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLTableCellElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const bg = corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100';
 
   useEffect(() => {
     if (!showMenu) return;
     const handle = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setShowMenu(false);
+      const target = e.target as Node;
+      if (ref.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setShowMenu(false);
     };
     document.addEventListener('mousedown', handle);
     return () => document.removeEventListener('mousedown', handle);
@@ -1342,6 +1346,7 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
       </span>
       {showMenu && createPortal(
         <div
+          ref={menuRef}
           className="fixed z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg whitespace-nowrap"
           style={{ top: menuPos.top, left: menuPos.left }}
         >
