@@ -357,7 +357,7 @@ export function ScoresheetReadPage() {
                           <div className="flex-1 hidden md:block" />
                           {/* Center: tables */}
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables>
-                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} onMoveClick={handleMoveClick} activePly={modelBoardPlys[m.id]} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
+                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} onMoveClick={analyzing ? undefined : handleMoveClick} activePly={analyzing ? undefined : modelBoardPlys[m.id]} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
                             {!mr ? (
                               <ModelPanelLoading name={m.name} startTime={startTime} />
                             ) : (
@@ -372,8 +372,8 @@ export function ScoresheetReadPage() {
                                 rereading={isRereading}
                                 corrections={corrections}
                                 onEditSave={(confirmed, corrKey) => handleEditSave(0, confirmed, corrKey)}
-                                onMoveClick={handleMoveClick}
-                                activePly={modelBoardPlys[m.id]}
+                                onMoveClick={analyzing ? undefined : handleMoveClick}
+                                activePly={analyzing ? undefined : modelBoardPlys[m.id]}
                                 sheetColumns={modelColumns}
                                 rowsPerColumn={modelRowsPerColumn}
                               />
