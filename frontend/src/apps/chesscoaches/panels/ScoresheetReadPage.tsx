@@ -639,11 +639,10 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
           <ChevronLast className="w-6 h-6" />
         </button>
       </div>
-      <div className="mt-1.5 text-sm text-center">
+      <div className="mt-1.5 text-sm text-center h-[44px]">
         {safePly > 0 && entries[safePly]?.san && !inBranch && (
           <p className="text-slate-300">
             Move {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? 'White' : 'Black'}) : {entries[safePly].san}
-            {currentIllegal && <span className="text-red-400 ml-2">— Illegal move</span>}
           </p>
         )}
         {safePly === 0 && !inBranch && (
@@ -653,6 +652,9 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
           <p className="text-slate-300">
             Variation : {branch.sans[branchPly - 1]}
           </p>
+        )}
+        {currentIllegal && (
+          <p className="text-red-400">Illegal move</p>
         )}
       </div>
       {inBranch && (
