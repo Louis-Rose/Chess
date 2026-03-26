@@ -639,24 +639,24 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
           <ChevronLast className="w-6 h-6" />
         </button>
       </div>
-      {safePly > 0 && entries[safePly]?.san && !inBranch && (
-        <p className="text-slate-300 text-sm mt-1.5">
-          Move {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? 'White' : 'Black'}) : {entries[safePly].san}
-        </p>
-      )}
-      {safePly === 0 && !inBranch && (
-        <p className="text-slate-300 text-sm mt-1.5">Starting position</p>
-      )}
-      {inBranch && branch && branchPly > 0 && (
-        <p className="text-slate-300 text-sm mt-1.5">
-          Variation : {branch.sans[branchPly - 1]}
-        </p>
-      )}
-      {currentIllegal && (
-        <p className="text-red-400 text-sm mt-1">Illegal move</p>
-      )}
+      <div className="mt-1.5 text-sm text-center">
+        {safePly > 0 && entries[safePly]?.san && !inBranch && (
+          <p className="text-slate-300">
+            Move {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? 'White' : 'Black'}) : {entries[safePly].san}
+            {currentIllegal && <span className="text-red-400 ml-2">— Illegal move</span>}
+          </p>
+        )}
+        {safePly === 0 && !inBranch && (
+          <p className="text-slate-300">Starting position</p>
+        )}
+        {inBranch && branch && branchPly > 0 && (
+          <p className="text-slate-300">
+            Variation : {branch.sans[branchPly - 1]}
+          </p>
+        )}
+      </div>
       {inBranch && (
-        <div className="flex items-center gap-2 text-xs text-amber-400 mt-1.5">
+        <div className="flex items-center gap-2 text-xs text-amber-400 mt-1">
           <span>Variation ({branch!.sans.length} move{branch!.sans.length > 1 ? 's' : ''})</span>
           <button onClick={() => { exitBranch(); }} className="text-slate-400 hover:text-white underline">Go back to main line</button>
         </div>
