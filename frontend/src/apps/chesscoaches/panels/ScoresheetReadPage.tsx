@@ -297,7 +297,7 @@ export function ScoresheetReadPage() {
               {analyzing && (
                 <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-4">
                   <Clock className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Analyzing scoresheet...</span>
+                  <span className="text-sm">{t('coaches.analyzing')}</span>
                   <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
                     <X className="w-4 h-4" />
                   </button>
@@ -312,7 +312,7 @@ export function ScoresheetReadPage() {
                     className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
                   >
                     <RotateCcw className="w-4 h-4" />
-                    {models.length > 0 ? 'Re-analyze' : 'Analyze'}
+                    {models.length > 0 ? t('coaches.reanalyze') : t('coaches.analyze')}
                   </button>
                 </div>
               )}
@@ -352,7 +352,7 @@ export function ScoresheetReadPage() {
                               <ModelPanelLoading name={m.name} startTime={startTime} />
                             ) : (
                               <MovesPanel
-                                label="Read"
+                                label={t('coaches.read')}
                                 moves={currentMoves}
                                 groundTruthMoves={groundTruth?.moves}
                                 disagreements={groundTruth ? buildDisagreementMap(currentMoves, groundTruth.moves) : new Map()}
@@ -385,7 +385,7 @@ export function ScoresheetReadPage() {
                       {azureResult.loading ? (
                         <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-4">
                           <Clock className="w-4 h-4 animate-spin" />
-                          <span className="text-sm">Analyzing with Azure DI...</span>
+                          <span className="text-sm">{t('coaches.analyzeAzure')}</span>
                           <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
                             <X className="w-4 h-4" />
                           </button>
@@ -520,6 +520,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
 }
 
 function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; externalPly?: number; disableDrag?: boolean }) {
+  const { t } = useLanguage();
   const [ply, setPly] = useState(0);
 
   // Branch (variation) state
@@ -655,25 +656,25 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
       <div className="mt-1.5 text-sm text-center h-[44px]">
         {safePly > 0 && entries[safePly]?.san && !inBranch && (
           <p className="text-slate-300">
-            Move {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? 'White' : 'Black'}) : {entries[safePly].san}
+            {t('coaches.move')} {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')}) : {entries[safePly].san}
           </p>
         )}
         {safePly === 0 && !inBranch && (
-          <p className="text-slate-300">Starting position</p>
+          <p className="text-slate-300">{t('coaches.startingPosition')}</p>
         )}
         {inBranch && branch && branchPly > 0 && (
           <p className="text-slate-300">
-            Variation : {branch.sans[branchPly - 1]}
+            {t('coaches.variation')} : {branch.sans[branchPly - 1]}
           </p>
         )}
         {currentIllegal && (
-          <p className="text-red-400">Illegal move</p>
+          <p className="text-red-400">{t('coaches.illegalMove')}</p>
         )}
       </div>
       {inBranch && (
         <div className="flex items-center gap-2 text-xs text-amber-400 mt-1">
-          <span>Variation ({branch!.sans.length} move{branch!.sans.length > 1 ? 's' : ''})</span>
-          <button onClick={() => { exitBranch(); }} className="text-slate-400 hover:text-white underline">Go back to main line</button>
+          <span>{t('coaches.variation')} ({branch!.sans.length} {branch!.sans.length > 1 ? t('coaches.variationMovesPlural') : t('coaches.variationMoves')})</span>
+          <button onClick={() => { exitBranch(); }} className="text-slate-400 hover:text-white underline">{t('coaches.backToMainLine')}</button>
         </div>
       )}
     </div>
@@ -685,9 +686,11 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, sheetC
   fileName?: string | null;
   onUpdate: (gt: { white_player: string; black_player: string; result: string; moves: Move[] }) => void;
   onMoveClick?: (moves: Move[], ply: number) => void;
+  // i18n handled via useLanguage() below
   sheetColumns?: number;
   rowsPerColumn?: number | null;
 }) {
+  const { t } = useLanguage();
   const [validatedMoves, setValidatedMoves] = useState<Move[]>(groundTruth.moves);
   const [saving, setSaving] = useState(false);
 
@@ -732,8 +735,8 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, sheetC
     <div className="bg-emerald-900/30 border border-emerald-700/50 rounded-xl overflow-hidden self-start min-w-[260px]">
       <div className="px-2 py-2 border-b border-emerald-700/50 flex items-center justify-center gap-1.5">
         <BookOpen className="w-3 h-3 text-emerald-400" />
-        <span className="text-emerald-300 font-medium text-xs">Ground Truth</span>
-        {saving && <span className="text-emerald-400/50 text-[9px]">saving...</span>}
+        <span className="text-emerald-300 font-medium text-xs">{t('coaches.groundTruth')}</span>
+        {saving && <span className="text-emerald-400/50 text-[9px]">{t('coaches.saving')}</span>}
       </div>
 
       {(() => {
@@ -797,7 +800,7 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, sheetC
         );
       })()}
       <div className="px-2 py-1.5 border-t border-emerald-700/50 text-center">
-        <span className="text-xs font-medium text-green-400">100% accuracy</span>
+        <span className="text-xs font-medium text-green-400">100% {t('coaches.accuracy')}</span>
       </div>
       <ChesscomAnalysisButton
         moves={validatedMoves}
@@ -814,6 +817,7 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, sheetC
 
 
 function ModelPanelLoading({ name, startTime }: { name: string; startTime: number | null }) {
+  const { t } = useLanguage();
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -834,7 +838,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
       </div>
       <div className="flex items-center justify-center gap-2 py-12 text-slate-500 animate-pulse-sync">
         <Clock className="w-4 h-4 animate-spin" />
-        <span className="text-xs">Analyzing scoresheet...</span>
+        <span className="text-xs">{t('coaches.analyzing')}</span>
       </div>
     </div>
   );
@@ -856,6 +860,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   sheetColumns?: number;
   rowsPerColumn?: number | null;
 }) {
+  const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
   const [liveElapsed, setLiveElapsed] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -995,14 +1000,14 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
       {stats && !rereading && (
         <div className="px-2 py-1.5 border-t border-slate-600/50 text-center">
           <span className={`text-xs font-medium ${stats.accuracy === 100 ? 'text-green-400' : stats.accuracy >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
-            {stats.accuracy}% accuracy
+            {stats.accuracy}% {t('coaches.accuracy')}
           </span>
         </div>
       )}
       {rereading ? (
         <div className="flex items-center justify-center gap-1.5 py-2.5 border-t border-slate-600/50 text-xs text-blue-400 animate-pulse">
           <Clock className="w-3 h-3 animate-spin" />
-          <span>Re-reading from edit...</span>
+          <span>{t('coaches.rereading')}</span>
         </div>
       ) : moves.length > 0 && (<>
         <ChesscomAnalysisButton moves={moves} meta={meta} />
@@ -1020,7 +1025,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
             onClick={e => e.stopPropagation()}
           >
             <div className="text-slate-400 text-xs mb-2 text-center">
-              Move {moves[editing.moveIdx]?.number} · {editing.color === 'white' ? 'White' : 'Black'}
+              {t('coaches.move')} {moves[editing.moveIdx]?.number} · {editing.color === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
             </div>
             <input
               ref={inputRef}
@@ -1034,13 +1039,13 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                 onClick={handleSave}
                 className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
               >
-                Save
+                {t('coaches.save')}
               </button>
               <button
                 onClick={() => setEditing(null)}
                 className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-1.5 rounded-lg transition-colors"
               >
-                Cancel
+                {t('coaches.cancel')}
               </button>
             </div>
           </div>
@@ -1296,6 +1301,7 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
   onEdit: () => void;
   onShowBoard?: () => void;
 }) {
+  const { t } = useLanguage();
   const [showMenu, setShowMenu] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLTableCellElement>(null);
@@ -1339,14 +1345,14 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
             onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit(); }}
             className="w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left"
           >
-            Edit
+            {t('coaches.editMove')}
           </button>
           {onShowBoard && (
             <button
               onClick={(e) => { e.stopPropagation(); setShowMenu(false); onShowBoard(); }}
               className="w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left border-t border-slate-700"
             >
-              Show on board
+              {t('coaches.showOnBoard')}
             </button>
           )}
         </div>
