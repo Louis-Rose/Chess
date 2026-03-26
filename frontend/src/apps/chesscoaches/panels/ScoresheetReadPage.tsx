@@ -1611,10 +1611,15 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
       if (menuRef.current?.contains(target)) return;
       setShowMenu(false);
     };
-    const handleScroll = () => setShowMenu(false);
+    const updatePos = () => {
+      if (ref.current) {
+        const rect = ref.current.getBoundingClientRect();
+        setMenuPos({ top: rect.bottom + 4, left: rect.left + rect.width / 2 });
+      }
+    };
     document.addEventListener('mousedown', handle);
-    window.addEventListener('scroll', handleScroll, true);
-    return () => { document.removeEventListener('mousedown', handle); window.removeEventListener('scroll', handleScroll, true); };
+    window.addEventListener('scroll', updatePos, true);
+    return () => { document.removeEventListener('mousedown', handle); window.removeEventListener('scroll', updatePos, true); };
   }, [showMenu]);
 
   const handleClick = (e: React.MouseEvent) => {
