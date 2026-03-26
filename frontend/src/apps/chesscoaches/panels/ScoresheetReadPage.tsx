@@ -626,9 +626,15 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     } catch { return undefined; }
   }, [currentIllegal, entries, safePly]);
 
+  const prevMaxPlyRef = useRef(0);
   useEffect(() => {
-    setPly(0); exitBranch();
+    // Only reset to ply 0 on fresh results (was 0, now has moves)
+    // On re-read (maxPly changes but ply was already set), preserve position
+    if (prevMaxPlyRef.current === 0 && maxPly > 0) {
+      setPly(0); exitBranch();
+    }
     if (autoActivate && maxPly > 0 && activeModelBoardId === 0) activeModelBoardId = instanceId;
+    prevMaxPlyRef.current = maxPly;
   }, [maxPly, exitBranch, autoActivate, instanceId]);
   useEffect(() => { if (externalPly !== undefined) { setPly(externalPly); exitBranch(); activeModelBoardId = instanceId; } }, [externalPly, exitBranch, instanceId]);
 
