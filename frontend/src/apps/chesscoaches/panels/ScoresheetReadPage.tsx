@@ -591,7 +591,7 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
     } else {
       setPly(p => {
         const newP = Math.max(0, p - 1);
-        if (p > 0) playSoundForPly(p);
+        if (newP !== p) playSoundForPly(p);
         return newP;
       });
     }
@@ -604,7 +604,7 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
     } else if (!inBranch) {
       setPly(p => {
         const newP = Math.min(maxPly, p + 1);
-        playSoundForPly(newP);
+        if (newP !== p) playSoundForPly(newP);
         return newP;
       });
     }
