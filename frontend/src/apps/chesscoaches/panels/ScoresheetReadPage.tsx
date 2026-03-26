@@ -641,7 +641,7 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
       </div>
       {safePly > 0 && entries[safePly]?.san && !inBranch && (
         <p className="text-slate-400 text-xs mt-1.5">
-          {Math.ceil(safePly / 2)}.{safePly % 2 === 0 ? '..' : ''} {entries[safePly].san}
+          {Math.ceil(safePly / 2)}. {entries[safePly].san} <span className="text-slate-500">({safePly % 2 === 1 ? 'White' : 'Black'})</span>
         </p>
       )}
       {safePly === 0 && !inBranch && (
