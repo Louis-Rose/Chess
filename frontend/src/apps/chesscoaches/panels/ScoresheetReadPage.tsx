@@ -576,7 +576,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag }: { moves: M
   const currentIllegal = inBranch ? undefined : entries[safePly].illegal;
 
   useEffect(() => { setPly(0); exitBranch(); }, [maxPly, exitBranch]);
-  useEffect(() => { if (externalPly !== undefined) { setPly(externalPly); exitBranch(); } }, [externalPly, exitBranch]);
+  useEffect(() => { if (externalPly !== undefined) { setPly(externalPly); exitBranch(); activeModelBoardId = instanceId; } }, [externalPly, exitBranch, instanceId]);
 
 
   // Play sound for a given ply (called from navigation actions, not from effects)
