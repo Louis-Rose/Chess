@@ -240,6 +240,8 @@ export function ScoresheetReadPage() {
 
   // Per-model board ply + source tracking
   const [modelBoardPlys, setModelBoardPlys] = useState<Record<string, { ply: number; source: 'gt' | 'read' | 'nav' }>>({});
+  // Per-model preview FEN (shown while editing, before save)
+  const [previewFens, setPreviewFens] = useState<Record<string, string | null>>({});
 
   return (
     <PanelShell title={t('coaches.navScoresheets')}>
@@ -350,6 +352,23 @@ export function ScoresheetReadPage() {
                         if (san) playMoveSound(san.includes('x'));
                       }
                     };
+                    const handlePreview = (movesArr: Move[], moveIdx: number, color: 'white' | 'black', san: string) => {
+                      try {
+                        const chess = new Chess();
+                        for (let i = 0; i < moveIdx; i++) {
+                          if (movesArr[i].white) try { chess.move(movesArr[i].white); } catch { break; }
+                          if (movesArr[i].black) try { chess.move(movesArr[i].black); } catch { break; }
+                        }
+                        if (color === 'black' && movesArr[moveIdx]?.white) {
+                          try { chess.move(movesArr[moveIdx].white); } catch { /* */ }
+                        }
+                        chess.move(san);
+                        setPreviewFens(prev => ({ ...prev, [m.id]: chess.fen() }));
+                      } catch {
+                        setPreviewFens(prev => ({ ...prev, [m.id]: null }));
+                      }
+                    };
+                    const clearPreview = () => setPreviewFens(prev => ({ ...prev, [m.id]: null }));
                     const handleBoardPlyChange = (ply: number) => {
                       setModelBoardPlys(prev => {
                         const prevSource = prev[m.id]?.source || 'nav';
@@ -365,7 +384,7 @@ export function ScoresheetReadPage() {
                           <div className="flex-1 hidden md:block" />
                           {/* Center: tables */}
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables>
-                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} onMoveClick={mr ? makeMoveClick('gt') : undefined} activePly={mr && modelBoardPlys[m.id]?.source !== 'read' ? modelBoardPlys[m.id]?.ply : undefined} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
+                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} onMoveClick={mr ? makeMoveClick('gt') : undefined} activePly={mr && modelBoardPlys[m.id]?.source !== 'read' ? modelBoardPlys[m.id]?.ply : undefined} onPreview={(idx, color, san) => handlePreview(groundTruth.moves, idx, color, san)} onClearPreview={clearPreview} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
                             {!mr ? (
                               <ModelPanelLoading name={m.name} startTime={startTime} />
                             ) : (
@@ -382,6 +401,8 @@ export function ScoresheetReadPage() {
                                 onEditSave={(confirmed, corrKey) => handleEditSave(0, confirmed, corrKey)}
                                 onMoveClick={mr ? makeMoveClick('read') : undefined}
                                 activePly={modelBoardPlys[m.id]?.source !== 'gt' ? modelBoardPlys[m.id]?.ply : undefined}
+                                onPreview={(idx, color, san) => handlePreview(currentMoves, idx, color, san)}
+                                onClearPreview={clearPreview}
                                 sheetColumns={modelColumns}
                                 rowsPerColumn={modelRowsPerColumn}
                               />
@@ -389,7 +410,7 @@ export function ScoresheetReadPage() {
                           </div>
                           {/* Right: board centered in remaining space (items-start so extra content doesn't affect row height) */}
                           <div className="flex-1 hidden md:flex justify-center items-start">
-                            <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]?.ply} onPlyChange={handleBoardPlyChange} disableDrag={!mr || isRereading} autoActivate={modelIdx === 0} />
+                            <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]?.ply} onPlyChange={handleBoardPlyChange} disableDrag={!mr || isRereading} autoActivate={modelIdx === 0} previewFen={previewFens[m.id]} />
                           </div>
                         </div>
                       </ModelRow>
@@ -542,7 +563,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
 let activeModelBoardId = 0;
 let nextModelBoardId = 0;
 
-function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; autoActivate?: boolean }) {
+function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate, previewFen }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; autoActivate?: boolean; previewFen?: string | null }) {
   const { t } = useLanguage();
   const [instanceId] = useState(() => ++nextModelBoardId);
   const [ply, setPly] = useState(0);
@@ -578,8 +599,8 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
   const maxPly = entries.length - 1;
   const safePly = Math.min(ply, maxPly);
-  const currentFen = inBranch ? branch!.fens[branchPly] : entries[safePly].fen;
-  const currentLastMove = inBranch ? null : entries[safePly].lastMove;
+  const currentFen = previewFen || (inBranch ? branch!.fens[branchPly] : entries[safePly].fen);
+  const currentLastMove = previewFen ? null : (inBranch ? null : entries[safePly].lastMove);
   const currentIllegal = inBranch ? undefined : entries[safePly].illegal;
 
   useEffect(() => {
@@ -727,12 +748,14 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
   );
 }
 
-function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, activePly, sheetColumns = 1, rowsPerColumn }: {
+function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn }: {
   groundTruth: { white_player: string; black_player: string; result: string; moves: Move[] };
   fileName?: string | null;
   onUpdate: (gt: { white_player: string; black_player: string; result: string; moves: Move[] }) => void;
   onMoveClick?: (moves: Move[], ply: number) => void;
   activePly?: number;
+  onPreview?: (moveIdx: number, color: 'white' | 'black', san: string) => void;
+  onClearPreview?: () => void;
   sheetColumns?: number;
   rowsPerColumn?: number | null;
 }) {
@@ -889,7 +912,7 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
       {editing && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[0.5px]"
-          onClick={() => setEditing(null)}
+          onClick={() => { setEditing(null); onClearPreview?.(); }}
         >
           <div
             className="bg-slate-800 rounded-xl p-4 min-w-[260px] shadow-xl border border-slate-600"
@@ -905,13 +928,13 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, active
               ref={inputRef}
               value={editing.value}
               onChange={e => setEditing({ ...editing, value: e.target.value })}
-              onKeyDown={e => { if (e.key === 'Enter') { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); } if (e.key === 'Escape') setEditing(null); }}
+              onKeyDown={e => { if (e.key === 'Enter') { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); onClearPreview?.(); } if (e.key === 'Escape') { setEditing(null); onClearPreview?.(); } }}
               className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
             />
-            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={validatedMoves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => setEditing({ ...editing, value: san })} />
+            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={validatedMoves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => { setEditing({ ...editing, value: san }); onPreview?.(editing.moveIdx, editing.color, san); }} />
             <div className="mt-3">
               <button
-                onClick={() => { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); }}
+                onClick={() => { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); onClearPreview?.(); }}
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
               >
                 {t('coaches.save')}
@@ -953,7 +976,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onMoveClick, activePly, sheetColumns = 1, rowsPerColumn }: {
+function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn }: {
   label: string;
   moves: Move[];
   groundTruthMoves?: Move[];
@@ -967,6 +990,8 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   onEditSave?: (confirmed: Move[], correctionKey: string) => void;
   onMoveClick?: (moves: Move[], ply: number) => void;
   activePly?: number;
+  onPreview?: (moveIdx: number, color: 'white' | 'black', san: string) => void;
+  onClearPreview?: () => void;
   sheetColumns?: number;
   rowsPerColumn?: number | null;
 }) {
@@ -1151,7 +1176,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
       {editing && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[0.5px]"
-          onClick={() => setEditing(null)}
+          onClick={() => { setEditing(null); onClearPreview?.(); }}
         >
           <div
             className="bg-slate-800 rounded-xl p-4 min-w-[260px] shadow-xl border border-slate-600"
@@ -1167,13 +1192,13 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
               ref={inputRef}
               value={editing.value}
               onChange={e => setEditing({ ...editing, value: e.target.value })}
-              onKeyDown={handleKeyDown}
+              onKeyDown={e => { if (e.key === 'Enter') { handleSave(); onClearPreview?.(); } if (e.key === 'Escape') { setEditing(null); onClearPreview?.(); } }}
               className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
             />
-            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => setEditing({ ...editing, value: san })} />
+            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => { setEditing({ ...editing, value: san }); onPreview?.(editing.moveIdx, editing.color, san); }} />
             <div className="mt-3">
               <button
-                onClick={handleSave}
+                onClick={() => { handleSave(); onClearPreview?.(); }}
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
               >
                 {t('coaches.save')}
