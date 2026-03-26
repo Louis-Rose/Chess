@@ -653,9 +653,7 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
         </p>
       )}
       {currentIllegal && (
-        <p className="text-red-400 text-xs mt-1.5 text-center">
-          Illegal: {currentIllegal.moveNumber}. {currentIllegal.color === 'black' ? '...' : ''}{currentIllegal.san} ({currentIllegal.color})
-        </p>
+        <p className="text-red-400 text-sm mt-1">Illegal move</p>
       )}
       {inBranch && (
         <div className="flex items-center gap-2 text-xs text-amber-400 mt-1.5">
