@@ -508,7 +508,6 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
 
 function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; externalPly?: number; disableDrag?: boolean }) {
   const [ply, setPly] = useState(0);
-  const isInitialRender = useRef(true);
 
   // Branch (variation) state
   const [branch, setBranch] = useState<{ startPly: number; fens: string[]; sans: string[] } | null>(null);
@@ -540,19 +539,13 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
   const currentLastMove = inBranch ? null : entries[safePly].lastMove;
   const currentIllegal = inBranch ? undefined : entries[safePly].illegal;
 
-  useEffect(() => { isInitialRender.current = true; setPly(maxPly); exitBranch(); }, [maxPly, exitBranch]);
+  useEffect(() => { setPly(maxPly); exitBranch(); }, [maxPly, exitBranch]);
   useEffect(() => { if (externalPly !== undefined) { setPly(externalPly); exitBranch(); } }, [externalPly, exitBranch]);
 
-  // Play sound on ply change
-  useEffect(() => {
-    if (isInitialRender.current) { isInitialRender.current = false; return; }
-    if (inBranch && branch && branchPly > 0) {
-      const san = branch.sans[branchPly - 1];
-      if (san) playMoveSound(san.includes('x'));
-    } else if (safePly > 0 && entries[safePly]?.san) {
-      playMoveSound(entries[safePly].san!.includes('x'));
-    }
-  }, [safePly, branchPly, entries, inBranch, branch]);
+  // Play sound for a given ply (called from navigation actions, not from effects)
+  const playSoundForPly = useCallback((p: number) => {
+    if (p > 0 && entries[p]?.san) playMoveSound(entries[p].san!.includes('x'));
+  }, [entries]);
 
   // Handle user move (drag & drop)
   const handleUserMove = useCallback((from: string, to: string) => {
@@ -589,18 +582,33 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
   // Navigation
   const goPrev = useCallback(() => {
     if (inBranch) {
-      setBranchPly(p => { if (p <= 1) { setBranch(null); return 0; } return p - 1; });
+      setBranchPly(p => {
+        if (p <= 1) { setBranch(null); playSoundForPly(safePly); return 0; }
+        const san = branch?.sans[p - 2];
+        if (san) playMoveSound(san.includes('x'));
+        return p - 1;
+      });
     } else {
-      setPly(p => Math.max(0, p - 1));
+      setPly(p => {
+        const newP = Math.max(0, p - 1);
+        if (newP > 0) playSoundForPly(newP);
+        return newP;
+      });
     }
-  }, [inBranch]);
+  }, [inBranch, branch, safePly, playSoundForPly]);
   const goNext = useCallback(() => {
     if (branch && branchPly < branch.fens.length - 1) {
+      const san = branch.sans[branchPly];
+      if (san) playMoveSound(san.includes('x'));
       setBranchPly(p => p + 1);
     } else if (!inBranch) {
-      setPly(p => Math.min(maxPly, p + 1));
+      setPly(p => {
+        const newP = Math.min(maxPly, p + 1);
+        playSoundForPly(newP);
+        return newP;
+      });
     }
-  }, [branch, branchPly, inBranch, maxPly]);
+  }, [branch, branchPly, inBranch, maxPly, playSoundForPly]);
 
   // Keyboard navigation
   useEffect(() => {
