@@ -357,7 +357,7 @@ export function ScoresheetReadPage() {
                           <div className="flex-1 hidden md:block" />
                           {/* Center: tables */}
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables>
-                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} onMoveClick={handleMoveClick} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
+                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} onMoveClick={handleMoveClick} activePly={modelBoardPlys[m.id]} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
                             {!mr ? (
                               <ModelPanelLoading name={m.name} startTime={startTime} />
                             ) : (
@@ -373,6 +373,7 @@ export function ScoresheetReadPage() {
                                 corrections={corrections}
                                 onEditSave={(confirmed, corrKey) => handleEditSave(0, confirmed, corrKey)}
                                 onMoveClick={handleMoveClick}
+                                activePly={modelBoardPlys[m.id]}
                                 sheetColumns={modelColumns}
                                 rowsPerColumn={modelRowsPerColumn}
                               />
@@ -691,12 +692,12 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
   );
 }
 
-function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, sheetColumns = 1, rowsPerColumn }: {
+function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, activePly, sheetColumns = 1, rowsPerColumn }: {
   groundTruth: { white_player: string; black_player: string; result: string; moves: Move[] };
   fileName?: string | null;
   onUpdate: (gt: { white_player: string; black_player: string; result: string; moves: Move[] }) => void;
   onMoveClick?: (moves: Move[], ply: number) => void;
-  // i18n handled via useLanguage() below
+  activePly?: number;
   sheetColumns?: number;
   rowsPerColumn?: number | null;
 }) {
@@ -765,6 +766,7 @@ function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, sheetC
             <MoveCell
               value={val || ''}
               legal={legal}
+              active={activePly === ply}
               onEdit={() => {
                 const newVal = prompt(`Edit move ${move.number} ${color}:`, val || '');
                 if (newVal !== null && newVal !== val) updateMove(move.number, color, newVal);
@@ -854,7 +856,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onMoveClick, sheetColumns = 1, rowsPerColumn }: {
+function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onMoveClick, activePly, sheetColumns = 1, rowsPerColumn }: {
   label: string;
   moves: Move[];
   groundTruthMoves?: Move[];
@@ -867,6 +869,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   corrections?: Set<string>;
   onEditSave?: (confirmed: Move[], correctionKey: string) => void;
   onMoveClick?: (moves: Move[], ply: number) => void;
+  activePly?: number;
   sheetColumns?: number;
   rowsPerColumn?: number | null;
 }) {
@@ -977,6 +980,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       legal={move.white_legal}
                       highlight={d?.white}
                       corrected={corrections?.has(`${move.number}-white`)}
+                      active={activePly === idx * 2 + 1}
                       onEdit={() => setEditing({ moveIdx: idx, color: 'white', value: move.white })}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
                     />
@@ -985,6 +989,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       legal={move.black_legal}
                       corrected={corrections?.has(`${move.number}-black`)}
                       highlight={d?.black}
+                      active={activePly === idx * 2 + 2}
                       onEdit={() => move.black !== undefined ? setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }) : undefined}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
                     />
@@ -1303,11 +1308,12 @@ function LichessStudyButton({ moves, meta, fileName }: {
   );
 }
 
-function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
+function MoveCell({ value, legal, highlight, corrected, active, onEdit, onShowBoard }: {
   value: string;
   legal?: boolean;
   highlight?: boolean;
   corrected?: boolean;
+  active?: boolean;
   onEdit: () => void;
   onShowBoard?: () => void;
 }) {
@@ -1316,7 +1322,7 @@ function MoveCell({ value, legal, highlight, corrected, onEdit, onShowBoard }: {
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLTableCellElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const bg = corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100';
+  const bg = active ? 'bg-blue-800/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100';
 
   useEffect(() => {
     if (!showMenu) return;
