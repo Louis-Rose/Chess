@@ -14,6 +14,7 @@ import { useCoachesData, getCoachesPrefs, saveCoachesPrefs } from '../contexts/C
 import { compressImage } from '../utils/compressImage';
 import { BoardPreview } from '../components/BoardPreview';
 import { playMoveSound } from '../components/Chessboard';
+import { pieceImageUrl } from '../utils/pieces';
 import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
@@ -901,6 +902,25 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   const inputRef = useRef<HTMLInputElement>(null);
   const rereadStartRef = useRef<number | null>(null);
 
+  // Compute legal moves at the editing position
+  const legalMoves = useMemo(() => {
+    if (!editing) return [];
+    try {
+      const chess = new Chess();
+      for (let i = 0; i < editing.moveIdx; i++) {
+        const m = moves[i];
+        if (m.white) try { chess.move(m.white); } catch { break; }
+        if (m.black) try { chess.move(m.black); } catch { break; }
+      }
+      // For the editing move's row, play white first if we're editing black
+      if (editing.color === 'black') {
+        const m = moves[editing.moveIdx];
+        if (m?.white) try { chess.move(m.white); } catch { /* */ }
+      }
+      return chess.moves().sort();
+    } catch { return []; }
+  }, [editing, moves]);
+
   useEffect(() => {
     if (editing && inputRef.current) inputRef.current.focus();
   }, [editing]);
@@ -1071,6 +1091,27 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
               onKeyDown={handleKeyDown}
               className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
             />
+            {legalMoves.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2 max-h-[120px] overflow-y-auto">
+                {legalMoves.map(san => {
+                  const isSelected = san === editing.value;
+                  const pieceChar = san[0] >= 'A' && san[0] <= 'Z' && san[0] !== 'O' ? san[0] : '';
+                  const pieceFen = pieceChar ? (editing.color === 'white' ? pieceChar : pieceChar.toLowerCase()) : (editing.color === 'white' ? 'P' : 'p');
+                  return (
+                    <button
+                      key={san}
+                      onClick={() => setEditing({ ...editing, value: san })}
+                      className={`flex items-center gap-0.5 px-1.5 py-1 rounded text-xs font-mono transition-colors ${
+                        isSelected ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      <img src={pieceImageUrl(pieceFen)} alt="" className="w-4 h-4" draggable={false} />
+                      {san}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             <div className="flex gap-2 mt-3">
               <button
                 onClick={handleSave}
