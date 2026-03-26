@@ -603,6 +603,27 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
   const currentLastMove = previewFen ? null : (inBranch ? null : entries[safePly].lastMove);
   const currentIllegal = inBranch ? undefined : entries[safePly].illegal;
 
+  // Compute highlight squares for ambiguous moves
+  const ambiguousSquares = useMemo(() => {
+    if (!currentIllegal?.reason) return undefined;
+    const match = currentIllegal.reason.match(/did you mean (.+)\?/i);
+    if (!match) return undefined;
+    const sans = match[1].split(/ or |, /).map(s => s.trim());
+    try {
+      const chess = new Chess(entries[safePly].fen);
+      const squares: string[] = [];
+      for (const san of sans) {
+        const move = chess.move(san);
+        if (move) {
+          if (!squares.includes(move.from)) squares.push(move.from);
+          if (!squares.includes(move.to)) squares.push(move.to);
+          chess.undo();
+        }
+      }
+      return squares.length > 0 ? squares : undefined;
+    } catch { return undefined; }
+  }, [currentIllegal, entries, safePly]);
+
   useEffect(() => {
     setPly(0); exitBranch();
     if (autoActivate && maxPly > 0 && activeModelBoardId === 0) activeModelBoardId = instanceId;
@@ -702,7 +723,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
   return (
     <div className="flex flex-col items-center w-[400px]" onClick={activate}>
-      <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={disableDrag ? undefined : handleUserMove} />
+      <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={disableDrag ? undefined : handleUserMove} highlightSquares={ambiguousSquares} />
       <div className="flex justify-center gap-1.5 mt-1.5 w-full">
         <button onClick={goFirst} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
           <ChevronFirst className="w-6 h-6" />

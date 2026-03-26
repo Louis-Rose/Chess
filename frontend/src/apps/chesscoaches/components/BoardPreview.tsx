@@ -23,9 +23,10 @@ interface BoardPreviewProps {
   fen: string;
   lastMove?: { from: string; to: string } | null;
   onUserMove?: (from: string, to: string) => void;
+  highlightSquares?: string[];
 }
 
-export function BoardPreview({ fen, lastMove, onUserMove }: BoardPreviewProps) {
+export function BoardPreview({ fen, lastMove, onUserMove, highlightSquares }: BoardPreviewProps) {
   const board = useMemo(() => fenToBoard(fen), [fen]);
   const boardRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ piece: string; fromR: number; fromC: number; x: number; y: number } | null>(null);
@@ -39,6 +40,17 @@ export function BoardPreview({ fen, lastMove, onUserMove }: BoardPreviewProps) {
       toR: 7 - (parseInt(lastMove.to[1]) - 1),
     };
   }, [lastMove]);
+
+  const hlSquareSet = useMemo(() => {
+    if (!highlightSquares || highlightSquares.length === 0) return null;
+    const set = new Set<string>();
+    for (const sq of highlightSquares) {
+      const c = sq.charCodeAt(0) - 97;
+      const r = 7 - (parseInt(sq[1]) - 1);
+      set.add(`${r}-${c}`);
+    }
+    return set;
+  }, [highlightSquares]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent, piece: string, r: number, c: number) => {
     if (!onUserMove) return;
@@ -84,7 +96,8 @@ export function BoardPreview({ fen, lastMove, onUserMove }: BoardPreviewProps) {
           const c = idx % 8;
           const isLight = (r + c) % 2 === 0;
           const isHL = (r === highlight.fromR && c === highlight.fromC) || (r === highlight.toR && c === highlight.toC);
-          const bg = isHL ? (isLight ? '#f7ec5a' : '#dac934') : (isLight ? LIGHT : DARK);
+          const isHLSquare = hlSquareSet?.has(`${r}-${c}`) ?? false;
+          const bg = (isHL || isHLSquare) ? (isLight ? '#f7ec5a' : '#dac934') : (isLight ? LIGHT : DARK);
           const piece = (dragging && dragging.fromR === r && dragging.fromC === c) ? null : board[r]?.[c];
 
           return (
