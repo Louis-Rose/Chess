@@ -319,15 +319,18 @@ export function ScoresheetReadPage() {
 
               {/* Results: one row per model — [image | GT | read | board] */}
               {models.length > 0 && (() => {
-                const firstResult = modelResults[models[0].id]?.result;
-                const sheetColumns = (firstResult as any)?.columns || 1;
-                const rowsPerColumn = (firstResult as any)?.rows_per_column || null;
+                // Get column info from any model that has results (for GT panel consistency)
+                const anyResult = Object.values(modelResults).find(r => r?.result)?.result;
+                const sheetColumns = (anyResult as any)?.columns || 1;
+                const rowsPerColumn = (anyResult as any)?.rows_per_column || null;
                 return (
                 <div className="space-y-8">
                   {models.map((m) => {
                     const mr = modelResults[m.id];
                     const reRead = reReads[m.id]?.[0];
                     const currentMoves = mr?.result?.moves || [];
+                    const modelColumns = (mr?.result as any)?.columns || sheetColumns;
+                    const modelRowsPerColumn = (mr?.result as any)?.rows_per_column || rowsPerColumn;
                     const currentElapsed = mr?.elapsed || 0;
                     const currentError = mr?.error;
                     const isRereading = mr?.rereading || false;
@@ -363,8 +366,8 @@ export function ScoresheetReadPage() {
                                 corrections={corrections}
                                 onEditSave={(confirmed, corrKey) => handleEditSave(0, confirmed, corrKey)}
                                 onMoveClick={handleMoveClick}
-                                sheetColumns={sheetColumns}
-                                rowsPerColumn={rowsPerColumn}
+                                sheetColumns={modelColumns}
+                                rowsPerColumn={modelRowsPerColumn}
                               />
                             )}
                           </div>
