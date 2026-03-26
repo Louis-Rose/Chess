@@ -357,7 +357,7 @@ export function ScoresheetReadPage() {
                         const chess = new Chess();
                         for (let i = 0; i < moveIdx; i++) {
                           if (movesArr[i].white) try { chess.move(movesArr[i].white); } catch { break; }
-                          if (movesArr[i].black) try { chess.move(movesArr[i].black); } catch { break; }
+                          if (movesArr[i].black) try { chess.move(movesArr[i].black!); } catch { break; }
                         }
                         if (color === 'black' && movesArr[moveIdx]?.white) {
                           try { chess.move(movesArr[moveIdx].white); } catch { /* */ }
@@ -1060,10 +1060,6 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
     onEditSave(confirmed, correctionKey);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSave();
-    if (e.key === 'Escape') setEditing(null);
-  };
 
   const stats = groundTruthMoves && moves.length > 0 ? computeStats(moves, groundTruthMoves) : null;
 
