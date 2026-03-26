@@ -357,7 +357,7 @@ export function ScoresheetReadPage() {
                           </div>
                           {/* Right: board centered in remaining space */}
                           <div className="flex-1 hidden md:flex justify-center items-center self-stretch">
-                            <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]} />
+                            <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]} disableDrag={!mr || isRereading} />
                           </div>
                         </div>
                       </ModelRow>
@@ -506,7 +506,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
   );
 }
 
-function ModelBoard({ moves, externalPly }: { moves: Move[]; externalPly?: number }) {
+function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; externalPly?: number; disableDrag?: boolean }) {
   const [ply, setPly] = useState(0);
   const isInitialRender = useRef(true);
 
@@ -616,7 +616,7 @@ function ModelBoard({ moves, externalPly }: { moves: Move[]; externalPly?: numbe
 
   return (
     <div className="flex flex-col items-center w-[400px]">
-      <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={handleUserMove} />
+      <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={disableDrag ? undefined : handleUserMove} />
       {currentIllegal ? (
         <p className="text-red-400 text-xs mt-1.5 text-center">
           Illegal: {currentIllegal.moveNumber}. {currentIllegal.color === 'black' ? '...' : ''}{currentIllegal.san} ({currentIllegal.color})
