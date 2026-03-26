@@ -591,7 +591,7 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
     } else {
       setPly(p => {
         const newP = Math.max(0, p - 1);
-        if (newP > 0) playSoundForPly(newP);
+        if (p > 0) playSoundForPly(p);
         return newP;
       });
     }
@@ -645,7 +645,7 @@ function ModelBoard({ moves, externalPly, disableDrag }: { moves: Move[]; extern
         </p>
       )}
       {safePly === 0 && !inBranch && (
-        <p className="text-slate-400 text-sm mt-1.5">Starting position</p>
+        <p className="text-slate-300 text-sm mt-1.5">Starting position</p>
       )}
       {inBranch && branch && branchPly > 0 && (
         <p className="text-slate-300 text-sm mt-1.5">
