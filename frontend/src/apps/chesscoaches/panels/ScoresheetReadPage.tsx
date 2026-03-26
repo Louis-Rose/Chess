@@ -627,7 +627,7 @@ function ModelBoard({ moves, externalPly }: { moves: Move[]; externalPly?: numbe
       {inBranch && (
         <div className="flex items-center gap-2 text-xs text-amber-400 mb-1">
           <span>Variation ({branch!.sans.length} move{branch!.sans.length > 1 ? 's' : ''})</span>
-          <button onClick={() => { exitBranch(); }} className="text-slate-400 hover:text-white underline">back to main line</button>
+          <button onClick={() => { exitBranch(); }} className="text-slate-400 hover:text-white underline">Go back to main line</button>
         </div>
       )}
       <div className="flex justify-center gap-1.5 mt-1">
