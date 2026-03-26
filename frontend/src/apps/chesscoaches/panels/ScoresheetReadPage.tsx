@@ -453,7 +453,7 @@ export function ScoresheetReadPage() {
       {showImageModal && preview && (
         <div
           onClick={closeModal}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[1.5px] cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px] cursor-pointer"
         >
           <img
             src={preview}
@@ -1054,7 +1054,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
       {/* Edit modal */}
       {editing && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[1.5px]"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px]"
           onClick={() => setEditing(null)}
         >
           <div
@@ -1220,7 +1220,7 @@ function LichessStudyButton({ moves, meta, fileName }: {
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[1.5px]"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px]"
           onClick={handleClose}
         >
           <div
