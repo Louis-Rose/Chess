@@ -1550,9 +1550,11 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
             if (conf === 'low') low++;
           }
         }
-        if (illegal === 0 && medium === 0 && low === 0) return null;
+        const disagreementCount = modelDisagreements?.size || 0;
+        if (illegal === 0 && medium === 0 && low === 0 && disagreementCount === 0) return null;
         return (
           <div className="px-2 py-2 border-t border-slate-600/50 flex flex-col items-center gap-0.5 text-xs">
+            {disagreementCount > 0 && <span className="text-red-400">{disagreementCount} {disagreementCount === 1 ? 'disagreement' : 'disagreements'}</span>}
             {illegal > 0 && <span className="text-orange-400">{illegal} illegal {illegal === 1 ? 'move' : 'moves'}</span>}
             {medium > 0 && <span className="text-yellow-400">{medium} uncertain {medium === 1 ? 'move' : 'moves'}</span>}
             {low > 0 && <span className="text-red-400">{low} low confidence {low === 1 ? 'move' : 'moves'}</span>}
