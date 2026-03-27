@@ -19,9 +19,10 @@ import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
 // Parse a moves.csv file into ground truth data
-// Fetch ground truth for a scoresheet via API (by filename stem)
+// Fetch ground truth for a scoresheet via API (by filename stem) — used by GroundTruthPanel (admin)
 const groundTruthCache = new Map<string, { white_player: string; black_player: string; result: string; moves: Move[] } | null>();
 
+// @ts-ignore used by GroundTruthPanel
 async function fetchGroundTruth(filename: string | null): Promise<{ white_player: string; black_player: string; result: string; moves: Move[] } | null> {
   if (!filename) return null;
   const stem = filename.replace(/\.[^.]+$/, '');
