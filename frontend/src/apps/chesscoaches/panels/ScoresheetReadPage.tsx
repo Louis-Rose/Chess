@@ -256,29 +256,31 @@ export function ScoresheetReadPage() {
           {cropSrc ? (
             /* ── Crop step ── */
             <div className="space-y-4">
-              <div className="flex items-start justify-center gap-6">
-                {/* User's photo — center */}
-                <div className="max-w-sm flex justify-center">
-                  <ReactCrop
-                    crop={crop}
-                    onChange={setCrop}
-                    onComplete={setCompletedCrop}
-                  >
-                    <img
-                      ref={cropImgRef}
-                      src={cropSrc}
-                      alt="Crop"
-                      className="rounded-lg max-h-[50vh]"
-                    />
-                  </ReactCrop>
+              <div className="flex items-start justify-center gap-8">
+                {/* User's photo — center, pushed right to visually center */}
+                <div className="flex-1 flex justify-end">
+                  <div className="max-w-sm">
+                    <ReactCrop
+                      crop={crop}
+                      onChange={setCrop}
+                      onComplete={setCompletedCrop}
+                    >
+                      <img
+                        ref={cropImgRef}
+                        src={cropSrc}
+                        alt="Crop"
+                        className="rounded-lg max-h-[50vh]"
+                      />
+                    </ReactCrop>
+                  </div>
                 </div>
                 {/* Example — right side */}
-                <div className="hidden md:block w-48 flex-shrink-0">
-                  <p className="text-slate-400 text-xs text-center mb-2">{t('coaches.example')}</p>
+                <div className="hidden md:flex md:flex-col md:items-center w-56 flex-shrink-0 pt-2">
+                  <p className="text-slate-200 text-sm font-medium text-center mb-2">{t('coaches.example')}</p>
                   <img
                     src="/cropping_example.jpeg"
                     alt="Cropping example"
-                    className="rounded-lg opacity-50 w-full"
+                    className="rounded-lg opacity-40 w-full"
                   />
                 </div>
               </div>
