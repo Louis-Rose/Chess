@@ -294,14 +294,22 @@ export function ScoresheetReadPage() {
               {/* Error */}
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
-              {/* Analyzing spinner */}
+              {/* Analyzing spinner + image preview */}
               {analyzing && (
-                <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-4">
-                  <Clock className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">{t('coaches.analyzing')}</span>
-                  <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
-                    <X className="w-4 h-4" />
-                  </button>
+                <div className="flex flex-col items-center gap-4 py-4">
+                  <img
+                    src={preview}
+                    alt="Scoresheet"
+                    className="max-w-sm rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setShowImageModal(true)}
+                  />
+                  <div className="flex items-center gap-2 text-slate-400 animate-pulse-sync">
+                    <Clock className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">{t('coaches.analyzing')}</span>
+                    <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1117,10 +1125,10 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   const stats = groundTruthMoves && moves.length > 0 ? computeStats(moves, groundTruthMoves) : null;
 
   return (
-    <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[260px]">
+    <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[320px]">
       {/* Header */}
-      <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
-        <span className="text-slate-100 font-medium text-xs">{label}</span>
+      <div className="px-3 py-2.5 border-b border-slate-600 flex items-center justify-center gap-2">
+        <span className="text-slate-100 font-medium text-sm">{label}</span>
         <div className="flex items-center gap-1">
           <Clock className={`w-3 h-3 text-slate-400${rereading ? ' animate-spin' : ''}`} />
           <span className="text-slate-400 text-xs">{rereading ? liveElapsed : elapsed}s</span>
@@ -1139,16 +1147,16 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
         const rows = Math.max(leftMoves.length, rightMoves.length);
 
         return (
-          <table className="w-full text-xs">
+          <table className="w-full text-sm">
             <thead className="bg-slate-700">
               <tr className="border-b border-slate-600">
-                <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6">#</th>
-                <th className="px-1.5 py-1 text-slate-400 font-medium text-center">White</th>
-                <th className="px-1.5 py-1 text-slate-400 font-medium text-center">Black</th>
+                <th className="px-2 py-1.5 text-slate-400 font-medium text-center w-8">#</th>
+                <th className="px-2 py-1.5 text-slate-400 font-medium text-center">White</th>
+                <th className="px-2 py-1.5 text-slate-400 font-medium text-center">Black</th>
                 {split && <>
-                  <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6 border-l border-slate-600">#</th>
-                  <th className="px-1.5 py-1 text-slate-400 font-medium text-center">White</th>
-                  <th className="px-1.5 py-1 text-slate-400 font-medium text-center">Black</th>
+                  <th className="px-2 py-1.5 text-slate-400 font-medium text-center w-8 border-l border-slate-600">#</th>
+                  <th className="px-2 py-1.5 text-slate-400 font-medium text-center">White</th>
+                  <th className="px-2 py-1.5 text-slate-400 font-medium text-center">Black</th>
                 </>}
               </tr>
             </thead>
@@ -1162,9 +1170,9 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                 const dRight = right ? disagreements.get(right.number) : undefined;
 
                 const renderHalf = (move: Move | undefined, idx: number, d: { white: boolean; black: boolean } | undefined) => {
-                  if (!move) return <><td className="px-1.5 py-0.5" /><td className="px-1.5 py-0.5" /><td className="px-1.5 py-0.5" /></>;
+                  if (!move) return <><td className="px-2 py-1" /><td className="px-2 py-1" /><td className="px-2 py-1" /></>;
                   return <>
-                    <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{move.number}</td>
+                    <td className="px-2 py-1 text-slate-500 text-center font-mono">{move.number}</td>
                     <MoveCell
                       value={move.white}
                       legal={move.white_legal}
@@ -1677,13 +1685,13 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
   return (
     <td
       ref={ref}
-      className={`px-1.5 py-0.5 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}`}
+      className={`px-2 py-1 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}`}
       onClick={handleClick}
     >
       <span className="inline-flex items-center justify-center gap-1 w-full">
         {value}
-        {legal === true && <span className="text-green-400 text-[9px]">&#10003;</span>}
-        {legal === false && <span className="text-red-400 text-[9px]" title={reason}>&#10007;</span>}
+        {legal === true && <span className="text-green-400 text-[10px]">&#10003;</span>}
+        {legal === false && <span className="text-red-400 text-[10px]" title={reason}>&#10007;</span>}
       </span>
       {showMenu && createPortal(
         <div
