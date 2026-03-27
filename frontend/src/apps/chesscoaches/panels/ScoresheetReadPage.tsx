@@ -558,18 +558,63 @@ export function ScoresheetReadPage() {
                       consensusMoves.pop();
                     }
                     if (consensusMoves.length === 0) return null;
-                    // Validate legality with chess.js
-                    const chess = new Chess();
-                    for (const cm of consensusMoves) {
+                    // Validate legality with chess.js, auto-resolve ambiguities
+                    const valChess = new Chess();
+                    for (let ci = 0; ci < consensusMoves.length; ci++) {
+                      const cm = consensusMoves[ci];
                       for (const color of ['white', 'black'] as const) {
                         const san = cm[color];
                         if (!san) continue;
-                        try { chess.move(san); (cm as any)[`${color}_legal`] = true; }
+                        try { valChess.move(san); (cm as any)[`${color}_legal`] = true; }
                         catch {
+                          // Check if it's an ambiguity: find legal moves by same piece to same square
+                          const pieceMatch = san.match(/^([KQRBN])/);
+                          const destMatch = san.match(/([a-h][1-8])/);
+                          if (pieceMatch && destMatch) {
+                            const piece = pieceMatch[1];
+                            const dest = destMatch[1];
+                            const candidates = valChess.moves().filter(m => m.startsWith(piece) && m.includes(dest));
+                            if (candidates.length > 1) {
+                              // Ambiguity! Try each candidate, pick the one with fewest downstream illegals
+                              let bestAmbig = candidates[0];
+                              let bestAmbigIllegals = Infinity;
+                              for (const cand of candidates) {
+                                const simA = new Chess(valChess.fen());
+                                let ill = 0;
+                                try { simA.move(cand); } catch { ill += 100; }
+                                if (ill === 0) {
+                                  for (let j = ci; j < consensusMoves.length; j++) {
+                                    for (const c2 of ['white', 'black'] as const) {
+                                      if (j === ci && c2 === color) continue; // skip current
+                                      if (j === ci && color === 'black') continue; // already past white
+                                      const s2 = consensusMoves[j]?.[c2];
+                                      if (!s2) continue;
+                                      try { simA.move(s2); } catch { ill++; }
+                                    }
+                                  }
+                                }
+                                if (ill < bestAmbigIllegals) { bestAmbigIllegals = ill; bestAmbig = cand; }
+                              }
+                              // Auto-resolve: use the best disambiguation
+                              (cm as any)[color] = bestAmbig;
+                              (cm as any)[`${color}_reason`] = `Ambiguous: did you mean ${candidates.join(' or ')}? Auto-resolved to ${bestAmbig}`;
+                              try { valChess.move(bestAmbig); (cm as any)[`${color}_legal`] = true; }
+                              catch { (cm as any)[`${color}_legal`] = false; }
+                              continue;
+                            } else if (candidates.length === 1) {
+                              // Only one legal move by this piece to this square — auto-fix
+                              (cm as any)[color] = candidates[0];
+                              (cm as any)[`${color}_reason`] = `Did you mean ${candidates[0]}?`;
+                              try { valChess.move(candidates[0]); (cm as any)[`${color}_legal`] = true; }
+                              catch { (cm as any)[`${color}_legal`] = false; }
+                              continue;
+                            }
+                          }
+                          // Not ambiguity, just illegal
                           (cm as any)[`${color}_legal`] = false;
-                          const fen = chess.fen().split(' ');
+                          const fen = valChess.fen().split(' ');
                           fen[1] = fen[1] === 'w' ? 'b' : 'w';
-                          chess.load(fen.join(' '));
+                          valChess.load(fen.join(' '));
                         }
                       }
                     }
