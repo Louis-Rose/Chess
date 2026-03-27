@@ -400,15 +400,14 @@ export function ScoresheetReadPage() {
                           <div className="flex-1 hidden md:block" />
                           {/* Center: tables */}
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables>
-                            {groundTruth && <GroundTruthPanel groundTruth={groundTruth} fileName={fileName} onUpdate={setGroundTruth} onMoveClick={mr ? makeMoveClick('gt') : undefined} activePly={mr && modelBoardPlys[m.id]?.source !== 'read' ? modelBoardPlys[m.id]?.ply : undefined} onPreview={(idx, color, san) => handlePreview(groundTruth.moves, idx, color, san)} onClearPreview={clearPreview} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} />}
                             {!mr ? (
                               <ModelPanelLoading name={m.name} startTime={startTime} />
                             ) : (
                               <MovesPanel
                                 label={t('coaches.read')}
                                 moves={currentMoves}
-                                groundTruthMoves={groundTruth?.moves}
-                                disagreements={groundTruth ? buildDisagreementMap(currentMoves, groundTruth.moves) : new Map()}
+                                groundTruthMoves={undefined}
+                                disagreements={new Map()}
                                 elapsed={currentElapsed}
                                 error={currentError}
                                 fileName={fileName}
