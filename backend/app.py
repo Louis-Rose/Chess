@@ -579,8 +579,8 @@ Extract ALL moves from the scoresheet and return them as a JSON object with this
   "columns": 2,
   "rows_per_column": 15,
   "moves": [
-    {"number": 1, "white": "e4", "black": "e5"},
-    {"number": 2, "white": "Nf3", "black": "Nc6"}
+    {"number": 1, "white": "e4", "white_confidence": "high", "black": "e5", "black_confidence": "high"},
+    {"number": 2, "white": "Nf3", "white_confidence": "high", "black": "Nc6", "black_confidence": "medium"}
   ]
 }
 
@@ -592,6 +592,7 @@ Rules:
 - Include ALL moves you can read, even partially
 - Be careful with similar-looking pieces: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
 - Castling: O-O (kingside), O-O-O (queenside)
+- For each move, include a confidence level: "high" (clearly readable), "medium" (somewhat ambiguous), or "low" (hard to read/guessing)
 - "columns": how many columns of moves the scoresheet has (usually 1, 2, or 3)
 - "rows_per_column": how many move rows fit in each column on the sheet
 

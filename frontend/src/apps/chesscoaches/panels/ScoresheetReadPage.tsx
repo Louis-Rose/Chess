@@ -1183,6 +1183,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       corrected={corrections?.has(`${move.number}-white`)}
                       active={activePly === idx * 2 + 1}
                       reason={move.white_reason}
+                      confidence={move.white_confidence}
                       onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
                     />
@@ -1193,6 +1194,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       highlight={d?.black}
                       active={activePly === idx * 2 + 2}
                       reason={move.black_reason}
+                      confidence={move.black_confidence}
                       onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
                     />
@@ -1642,13 +1644,14 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselec
   );
 }
 
-function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, onShowBoard }: {
+function MoveCell({ value, legal, highlight, corrected, active, reason, confidence, onEdit, onShowBoard }: {
   value: string;
   legal?: boolean;
   highlight?: boolean;
   corrected?: boolean;
   active?: boolean;
   reason?: string;
+  confidence?: 'high' | 'medium' | 'low';
   onEdit: () => void;
   onShowBoard?: () => void;
 }) {
@@ -1657,7 +1660,8 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, onEdit, 
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLTableCellElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-red-900/50 text-red-200' : 'text-slate-100';
+  const needsAttention = legal === false || (confidence && confidence !== 'high');
+  const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-red-900/50 text-red-200' : needsAttention ? 'bg-yellow-500/20 text-yellow-100' : 'text-slate-100';
 
   // Close menu when this cell is no longer active
   useEffect(() => {

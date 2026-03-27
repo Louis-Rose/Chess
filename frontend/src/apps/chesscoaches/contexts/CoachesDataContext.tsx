@@ -53,6 +53,8 @@ export interface ScoresheetMove {
   black_legal?: boolean;
   white_reason?: string;
   black_reason?: string;
+  white_confidence?: 'high' | 'medium' | 'low';
+  black_confidence?: 'high' | 'medium' | 'low';
 }
 
 export interface ScoresheetResult {
