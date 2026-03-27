@@ -256,28 +256,33 @@ export function ScoresheetReadPage() {
           {cropSrc ? (
             /* ── Crop step ── */
             <div className="space-y-4">
-              <div className="flex justify-center max-w-sm mx-auto">
-                <ReactCrop
-                  crop={crop}
-                  onChange={setCrop}
-                  onComplete={setCompletedCrop}
-                >
+              <div className="flex items-start justify-center gap-6">
+                {/* User's photo — center */}
+                <div className="flex-1 min-w-0 flex justify-center">
+                  <ReactCrop
+                    crop={crop}
+                    onChange={setCrop}
+                    onComplete={setCompletedCrop}
+                  >
+                    <img
+                      ref={cropImgRef}
+                      src={cropSrc}
+                      alt="Crop"
+                      className="rounded-lg max-h-[60vh]"
+                    />
+                  </ReactCrop>
+                </div>
+                {/* Example — right side */}
+                <div className="hidden md:block w-48 flex-shrink-0">
+                  <p className="text-slate-400 text-xs text-center mb-2">{t('coaches.example')}</p>
                   <img
-                    ref={cropImgRef}
-                    src={cropSrc}
-                    alt="Crop"
-                    className="rounded-lg max-h-[50vh]"
+                    src="/cropping_example.jpeg"
+                    alt="Cropping example"
+                    className="rounded-lg opacity-50 w-full"
                   />
-                </ReactCrop>
+                </div>
               </div>
               <p className="text-slate-200 text-base font-medium text-center">{t('coaches.cropHint')}</p>
-              <div className="max-w-sm mx-auto">
-                <img
-                  src="/cropping_example.jpeg"
-                  alt="Cropping example"
-                  className="rounded-lg opacity-60 w-full"
-                />
-              </div>
               <div className="flex items-center justify-center gap-3">
                 <button
                   onClick={handleCropCancel}
