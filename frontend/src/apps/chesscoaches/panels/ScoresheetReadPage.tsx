@@ -511,7 +511,7 @@ export function ScoresheetReadPage() {
           <img
             src="/cropping_example.jpeg"
             alt="Cropping example"
-            className="max-w-[90vw] max-h-[90vh] rounded-xl object-contain"
+            className="max-w-[95vw] max-h-[95vh] rounded-xl object-contain"
           />
         </div>
       )}
