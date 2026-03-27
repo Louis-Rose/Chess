@@ -257,7 +257,7 @@ export function ScoresheetReadPage() {
           {cropSrc ? (
             /* ── Crop step ── */
             <div className="space-y-4">
-              <div className="flex items-start justify-center gap-4">
+              <div className="relative flex justify-center">
                 {/* User's photo — centered */}
                 <div className="max-w-sm">
                   <ReactCrop
@@ -273,13 +273,13 @@ export function ScoresheetReadPage() {
                     />
                   </ReactCrop>
                 </div>
-                {/* Example — right of the uploaded image */}
-                <div className="hidden lg:flex flex-col items-center w-64 flex-shrink-0">
+                {/* Example — positioned to the right of the centered image */}
+                <div className="hidden lg:flex flex-col items-center w-48 flex-shrink-0 absolute left-[calc(50%+13rem)] top-0">
                   <p className="text-slate-200 text-sm font-medium text-center mb-2">{t('coaches.example')}</p>
                   <img
                     src="/cropping_example.jpeg"
                     alt="Cropping example"
-                    className="rounded-lg opacity-10 w-full cursor-pointer hover:opacity-25 transition-opacity"
+                    className="rounded-lg opacity-90 w-full cursor-pointer hover:opacity-100 transition-opacity"
                     onClick={() => setShowExampleModal(true)}
                   />
                 </div>
