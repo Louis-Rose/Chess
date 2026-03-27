@@ -456,6 +456,8 @@ export function ScoresheetReadPage() {
                     // Smart consensus: greedy left-to-right, picks the candidate
                     // producing the fewest illegal moves downstream.
                     const consensusMoves: Move[] = [];
+                    // Store vote details per half-move: key = "moveNumber-color"
+                    const voteDetails: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean }[]> = {};
 
                     // First pass: collect majority-vote moves (used as fallback for downstream simulation)
                     const majorityMoves: Move[] = [];
@@ -493,15 +495,18 @@ export function ScoresheetReadPage() {
                         const candidates = Object.entries(votes).sort((a, b) => b[1] - a[1]);
                         if (candidates.length === 0) continue;
 
+                        const detailKey = `${i + 1}-${color}`;
                         if (candidates.length === 1) {
                           // All models agree
                           (move as any)[color] = candidates[0][0];
+                          voteDetails[detailKey] = [{ candidate: candidates[0][0], votes: candidates[0][1], downstreamIllegals: 0, chosen: true }];
                           try { mainChess.move(candidates[0][0]); } catch { /* will be caught by validation */ }
                         } else {
                           // Disagreement: evaluate each candidate by downstream illegals
                           let bestCandidate = candidates[0][0];
                           let bestIllegals = Infinity;
                           let bestVotes = candidates[0][1];
+                          const details: { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean }[] = [];
 
                           for (const [candidate, voteCount] of candidates) {
                             const simChess = new Chess(mainChess.fen());
@@ -510,13 +515,11 @@ export function ScoresheetReadPage() {
 
                             if (illegals === 0) {
                               // Play remaining half-moves using majority votes
-                              // Continue from current color's remaining half-move partner
                               const startColor = color === 'white' ? 'black' : null;
                               if (startColor && majorityMoves[i]?.black) {
                                 try { simChess.move(majorityMoves[i].black!); } catch { illegals++; }
                               }
-                              // Then play subsequent full moves
-                              const startIdx = color === 'white' ? i + 1 : i + 1;
+                              const startIdx = i + 1;
                               for (let j = startIdx; j < maxLen; j++) {
                                 for (const c of ['white', 'black'] as const) {
                                   const san = majorityMoves[j]?.[c];
@@ -526,12 +529,18 @@ export function ScoresheetReadPage() {
                               }
                             }
 
+                            details.push({ candidate, votes: voteCount, downstreamIllegals: illegals, chosen: false });
+
                             if (illegals < bestIllegals || (illegals === bestIllegals && voteCount > bestVotes)) {
                               bestIllegals = illegals;
                               bestCandidate = candidate;
                               bestVotes = voteCount;
                             }
                           }
+
+                          // Mark the chosen one
+                          for (const d of details) { if (d.candidate === bestCandidate) d.chosen = true; }
+                          voteDetails[detailKey] = details;
 
                           (move as any)[color] = bestCandidate;
                           try { mainChess.move(bestCandidate); } catch {
@@ -619,6 +628,7 @@ export function ScoresheetReadPage() {
                               sheetColumns={consensusColumns}
                               rowsPerColumn={consensusRowsPerColumn}
                               modelDisagreements={modelDisagreements}
+                              voteDetails={voteDetails}
                             />
                           </div>
                           <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
@@ -1290,7 +1300,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, modelDisagreements, originalMoves }: {
+function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, modelDisagreements, originalMoves, voteDetails }: {
   label: string;
   moves: Move[];
   groundTruthMoves?: Move[];
@@ -1311,11 +1321,13 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   rowsPerColumn?: number | null;
   modelDisagreements?: Set<string>;
   originalMoves?: Move[];
+  voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean }[]>;
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
   const [liveElapsed, setLiveElapsed] = useState(0);
   const [showIllegalModal, setShowIllegalModal] = useState(false);
+  const [voteInfoKey, setVoteInfoKey] = useState<string | null>(null);
   const hasIllegalMoves = moves.some(m => m.white_legal === false || m.black_legal === false);
   const inputRef = useRef<HTMLInputElement>(null);
   const rereadStartRef = useRef<number | null>(null);
@@ -1440,6 +1452,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       disputed={modelDisagreements?.has(`${move.number}-white`)}
                       onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
+                      onVoteInfo={voteDetails ? () => setVoteInfoKey(`${move.number}-white`) : undefined}
                     />
                     <MoveCell
                       value={move.black || ''}
@@ -1452,6 +1465,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       disputed={modelDisagreements?.has(`${move.number}-black`)}
                       onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
+                      onVoteInfo={voteDetails ? () => setVoteInfoKey(`${move.number}-black`) : undefined}
                     />
                   </>;
                 };
@@ -1595,6 +1609,50 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
             </div>
             <button
               onClick={() => setShowIllegalModal(false)}
+              className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm py-2 rounded-lg transition-colors"
+            >
+              OK
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Vote info modal */}
+      {voteInfoKey && voteDetails?.[voteInfoKey] && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px]"
+          onClick={() => setVoteInfoKey(null)}
+        >
+          <div
+            className="bg-slate-800 rounded-xl p-5 min-w-[300px] max-w-md shadow-xl border border-slate-600 space-y-3"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-slate-100 font-medium text-center">
+              {t('coaches.move')} {voteInfoKey.split('-')[0]} · {voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
+            </h3>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-600 text-slate-400">
+                  <th className="py-1.5 text-left px-2">{t('coaches.voteCandidate')}</th>
+                  <th className="py-1.5 text-center px-2">{t('coaches.voteVotes')}</th>
+                  <th className="py-1.5 text-center px-2">{t('coaches.voteIllegals')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {voteDetails[voteInfoKey].map(d => (
+                  <tr key={d.candidate} className={`border-b border-slate-700/50 ${d.chosen ? 'bg-blue-600/20' : ''}`}>
+                    <td className="py-1.5 px-2 font-mono text-slate-100">
+                      {d.candidate} {d.chosen && <span className="text-blue-400 text-xs">✓</span>}
+                    </td>
+                    <td className="py-1.5 px-2 text-center text-slate-300">{d.votes}</td>
+                    <td className="py-1.5 px-2 text-center text-slate-300">{d.downstreamIllegals >= 100 ? t('coaches.voteItselfIllegal') : d.downstreamIllegals}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button
+              onClick={() => setVoteInfoKey(null)}
               className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm py-2 rounded-lg transition-colors"
             >
               OK
@@ -1966,7 +2024,7 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselec
   );
 }
 
-function MoveCell({ value, legal, highlight, corrected, active, reason, confidence, disputed, onEdit, onShowBoard }: {
+function MoveCell({ value, legal, highlight, corrected, active, reason, confidence, disputed, onEdit, onShowBoard, onVoteInfo }: {
   value: string;
   legal?: boolean;
   highlight?: boolean;
@@ -1977,6 +2035,7 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, confiden
   disputed?: boolean;
   onEdit: () => void;
   onShowBoard?: () => void;
+  onVoteInfo?: () => void;
 }) {
   const { t } = useLanguage();
   const [showMenu, setShowMenu] = useState(false);
@@ -2041,10 +2100,18 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, confiden
         >
           <button
             onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit(); }}
-            className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-lg"
+            className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-t-lg"
           >
             {t('coaches.editMove')}
           </button>
+          {onVoteInfo && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowMenu(false); onVoteInfo(); }}
+              className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-b-lg border-t border-slate-600"
+            >
+              {t('coaches.voteInfo')}
+            </button>
+          )}
         </div>,
         document.body
       )}
