@@ -538,16 +538,28 @@ export function ScoresheetReadPage() {
                             }
                           }
 
-                          // Mark the chosen one
-                          for (const d of details) { if (d.candidate === bestCandidate) d.chosen = true; }
-                          voteDetails[detailKey] = details;
-
-                          (move as any)[color] = bestCandidate;
-                          try { mainChess.move(bestCandidate); } catch {
-                            // Skip side if move is illegal (validation pass will flag it)
+                          // Check if all candidates are themselves illegal
+                          const allIllegal = details.every(d => d.downstreamIllegals >= 100);
+                          if (allIllegal) {
+                            // Don't pick any — mark as needing user input
+                            voteDetails[detailKey] = details; // none chosen
+                            (move as any)[color] = candidates[0][0]; // use first as placeholder
+                            (move as any)[`${color}_legal`] = false;
+                            (move as any)[`${color}_reason`] = 'All options are illegal — please correct manually';
                             const fen = mainChess.fen().split(' ');
                             fen[1] = fen[1] === 'w' ? 'b' : 'w';
                             mainChess.load(fen.join(' '));
+                          } else {
+                            // Mark the chosen one
+                            for (const d of details) { if (d.candidate === bestCandidate) d.chosen = true; }
+                            voteDetails[detailKey] = details;
+
+                            (move as any)[color] = bestCandidate;
+                            try { mainChess.move(bestCandidate); } catch {
+                              const fen = mainChess.fen().split(' ');
+                              fen[1] = fen[1] === 'w' ? 'b' : 'w';
+                              mainChess.load(fen.join(' '));
+                            }
                           }
                         }
                       }
@@ -1698,6 +1710,9 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                 ))}
               </tbody>
             </table>
+            {voteDetails[voteInfoKey].every(d => !d.chosen) && (
+              <p className="text-red-400 text-xs text-center">{t('coaches.voteAllIllegal')}</p>
+            )}
             <button
               onClick={() => setVoteInfoKey(null)}
               className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm py-2 rounded-lg transition-colors"
