@@ -108,11 +108,6 @@ export function ScoresheetReadPage() {
 
   const { preview, fileName, error, modelResults, reReads, models, startTime, analyzing, azureResult } = scoresheet;
 
-  const [groundTruth, setGroundTruth] = useState<{ white_player: string; black_player: string; result: string; moves: Move[] } | null>(null);
-  useEffect(() => {
-    setGroundTruth(null);
-    fetchGroundTruth(fileName).then(setGroundTruth);
-  }, [fileName]);
 
   // Pick up shared image from Web Share Target
   useEffect(() => {
@@ -148,20 +143,6 @@ export function ScoresheetReadPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [showImageModal, showExampleModal, closeModal]);
 
-  const buildDisagreementMap = useCallback((moves: Move[], gtMoves: Move[]) => {
-    const map = new Map<number, { white: boolean; black: boolean }>();
-    const maxLen = Math.max(moves.length, gtMoves.length);
-    for (let i = 0; i < maxLen; i++) {
-      const modelMove = moves[i];
-      const gtMove = gtMoves[i];
-      const whiteDiff = !movesMatch(modelMove?.white || '', gtMove?.white || '');
-      const blackDiff = !movesMatch(modelMove?.black || '', gtMove?.black || '');
-      if (whiteDiff || blackDiff) {
-        map.set(i + 1, { white: whiteDiff, black: blackDiff });
-      }
-    }
-    return map;
-  }, []);
 
   // ── Crop state ──
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -804,6 +785,8 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
   );
 }
 
+// @ts-ignore — kept for potential admin/dev use
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn }: {
   groundTruth: { white_player: string; black_player: string; result: string; moves: Move[] };
   fileName?: string | null;
