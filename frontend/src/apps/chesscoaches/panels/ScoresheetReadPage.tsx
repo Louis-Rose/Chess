@@ -324,6 +324,26 @@ export function ScoresheetReadPage() {
                 const anyResult = Object.values(modelResults).find(r => r?.result)?.result;
                 const sheetColumns = (anyResult as any)?.columns || 1;
                 const rowsPerColumn = (anyResult as any)?.rows_per_column || null;
+
+                // Compute cross-model disagreements
+                const allModelMovesForDisagreement = models
+                  .map(m => modelResults[m.id]?.result?.moves)
+                  .filter((mv): mv is Move[] => !!mv && mv.length > 0);
+                const modelDisagreements = new Set<string>();
+                if (allModelMovesForDisagreement.length >= 2) {
+                  const maxLen = Math.max(...allModelMovesForDisagreement.map(mv => mv.length));
+                  for (let i = 0; i < maxLen; i++) {
+                    for (const color of ['white', 'black'] as const) {
+                      const values = new Set<string>();
+                      for (const mv of allModelMovesForDisagreement) {
+                        const val = mv[i]?.[color];
+                        if (val) values.add(val);
+                      }
+                      if (values.size > 1) modelDisagreements.add(`${i + 1}-${color}`);
+                    }
+                  }
+                }
+
                 return (
                 <div className="space-y-8">
                   {models.map((m, modelIdx) => {
@@ -411,6 +431,7 @@ export function ScoresheetReadPage() {
                                 onClearPreview={clearPreview}
                                 sheetColumns={modelColumns}
                                 rowsPerColumn={modelRowsPerColumn}
+                                modelDisagreements={modelDisagreements}
                               />
                             )}
                           </div>
@@ -498,6 +519,7 @@ export function ScoresheetReadPage() {
                               activePly={modelBoardPlys[consensusId]?.ply}
                               sheetColumns={consensusColumns}
                               rowsPerColumn={consensusRowsPerColumn}
+                              modelDisagreements={modelDisagreements}
                             />
                           </div>
                           <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
@@ -1132,7 +1154,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn }: {
+function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, modelDisagreements }: {
   label: string;
   moves: Move[];
   groundTruthMoves?: Move[];
@@ -1151,6 +1173,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   onClearPreview?: () => void;
   sheetColumns?: number;
   rowsPerColumn?: number | null;
+  modelDisagreements?: Set<string>;
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
@@ -1277,6 +1300,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       active={activePly === idx * 2 + 1}
                       reason={move.white_reason}
                       confidence={move.white_confidence}
+                      disputed={modelDisagreements?.has(`${move.number}-white`)}
                       onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
                     />
@@ -1288,6 +1312,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       active={activePly === idx * 2 + 2}
                       reason={move.black_reason}
                       confidence={move.black_confidence}
+                      disputed={modelDisagreements?.has(`${move.number}-black`)}
                       onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
                     />
@@ -1791,7 +1816,7 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselec
   );
 }
 
-function MoveCell({ value, legal, highlight, corrected, active, reason, confidence, onEdit, onShowBoard }: {
+function MoveCell({ value, legal, highlight, corrected, active, reason, confidence, disputed, onEdit, onShowBoard }: {
   value: string;
   legal?: boolean;
   highlight?: boolean;
@@ -1799,6 +1824,7 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, confiden
   active?: boolean;
   reason?: string;
   confidence?: 'high' | 'medium' | 'low';
+  disputed?: boolean;
   onEdit: () => void;
   onShowBoard?: () => void;
 }) {
@@ -1850,7 +1876,7 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, confiden
   return (
     <td
       ref={ref}
-      className={`px-2 py-1 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}`}
+      className={`px-2 py-1 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}${disputed ? ' ring-1 ring-inset ring-red-500' : ''}`}
       onClick={handleClick}
     >
       <span className="inline-flex items-center justify-center gap-1 w-full">
