@@ -374,14 +374,22 @@ export function ScoresheetReadPage() {
                       });
                     };
 
+                    const deselectCell = () => {
+                      setModelBoardPlys(p => {
+                        const current = p[m.id];
+                        if (!current) return p;
+                        return { ...p, [m.id]: { ...current, ply: undefined as any } };
+                      });
+                    };
+
                     return (
                       <ModelRow key={m.id} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')}>
                         <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">{mr?.name || m.name}</h2>
-                        <div className="flex items-stretch">
+                        <div className="flex items-stretch" onClick={deselectCell}>
                           {/* Left spacer (image is absolutely positioned by ModelRow) */}
                           <div className="flex-1 hidden md:block" />
                           {/* Center: tables */}
-                          <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables>
+                          <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
                             {!mr ? (
                               <ModelPanelLoading name={m.name} startTime={startTime} />
                             ) : (
@@ -407,7 +415,7 @@ export function ScoresheetReadPage() {
                             )}
                           </div>
                           {/* Right: board centered vertically (mb offset compensates for buttons/text below board) */}
-                          <div className="flex-1 hidden md:flex justify-center items-center -mb-20">
+                          <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
                             <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]?.ply} onPlyChange={handleBoardPlyChange} disableDrag={!mr || isRereading} autoActivate={modelIdx === 0} previewFen={previewFens[m.id]} />
                           </div>
                         </div>
