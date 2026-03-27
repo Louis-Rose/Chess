@@ -225,6 +225,8 @@ export function ScoresheetReadPage() {
   const [modelBoardPlys, setModelBoardPlys] = useState<Record<string, { ply: number; source: 'gt' | 'read' | 'nav' }>>({});
   // Per-model preview FEN (shown while editing, before save)
   const [previewFens, setPreviewFens] = useState<Record<string, string | null>>({});
+  // Consensus overrides: user edits on top of the computed consensus
+  const [consensusOverrides, setConsensusOverrides] = useState<Move[] | null>(null);
 
   return (
     <PanelShell title={t('coaches.navScoresheets')}>
@@ -493,6 +495,26 @@ export function ScoresheetReadPage() {
                     const consensusId = '__consensus__';
                     const consensusColumns = sheetColumns;
                     const consensusRowsPerColumn = rowsPerColumn;
+                    // Apply overrides on top of computed consensus
+                    const displayConsensusMoves = consensusOverrides || consensusMoves;
+                    const handleConsensusEditSave = (_readIdx: number, confirmed: Move[], _corrKey: string) => {
+                      // Re-validate with chess.js
+                      const ch = new Chess();
+                      for (const cm of confirmed) {
+                        for (const col of ['white', 'black'] as const) {
+                          const san = cm[col];
+                          if (!san) continue;
+                          try { ch.move(san); (cm as any)[`${col}_legal`] = true; }
+                          catch {
+                            (cm as any)[`${col}_legal`] = false;
+                            const f = ch.fen().split(' ');
+                            f[1] = f[1] === 'w' ? 'b' : 'w';
+                            ch.load(f.join(' '));
+                          }
+                        }
+                      }
+                      setConsensusOverrides(confirmed);
+                    };
                     const handleConsensusBoardPly = (ply: number) => {
                       setModelBoardPlys(prev => ({ ...prev, [consensusId]: { ply, source: 'nav' as const } }));
                     };
@@ -507,11 +529,13 @@ export function ScoresheetReadPage() {
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
                             <MovesPanel
                               label={t('coaches.consensus')}
-                              moves={consensusMoves}
+                              moves={displayConsensusMoves}
                               groundTruthMoves={undefined}
                               disagreements={new Map()}
                               elapsed={0}
                               fileName={fileName}
+                              onEditSave={(confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey)}
+                              originalMoves={consensusOverrides ? consensusMoves : undefined}
                               onMoveClick={(movesArr, ply) => {
                                 setModelBoardPlys(p => ({ ...p, [consensusId]: { ply, source: 'read' as const } }));
                                 const moveIdx = Math.floor((ply - 1) / 2);
@@ -526,7 +550,7 @@ export function ScoresheetReadPage() {
                             />
                           </div>
                           <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={consensusMoves} externalPly={modelBoardPlys[consensusId]?.ply} onPlyChange={handleConsensusBoardPly} disableDrag autoActivate={false} previewFen={null} />
+                            <ModelBoard moves={displayConsensusMoves} externalPly={modelBoardPlys[consensusId]?.ply} onPlyChange={handleConsensusBoardPly} disableDrag autoActivate={false} previewFen={null} />
                           </div>
                         </div>
                       </ModelRow>
@@ -1157,7 +1181,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, modelDisagreements }: {
+function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, modelDisagreements, originalMoves }: {
   label: string;
   moves: Move[];
   groundTruthMoves?: Move[];
@@ -1177,6 +1201,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   sheetColumns?: number;
   rowsPerColumn?: number | null;
   modelDisagreements?: Set<string>;
+  originalMoves?: Move[];
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
@@ -1418,13 +1443,26 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
               onClearPreview?.();
               playMoveSound(false);
             }} />
-            <div className="mt-3">
+            <div className="mt-3 space-y-1.5">
               <button
                 onClick={() => { handleSave(); onClearPreview?.(); }}
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
               >
                 {t('coaches.save')}
               </button>
+              {originalMoves && (() => {
+                const origVal = originalMoves[editing.moveIdx]?.[editing.color] || '';
+                const currentVal = moves[editing.moveIdx]?.[editing.color] || '';
+                if (origVal === currentVal) return null;
+                return (
+                  <button
+                    onClick={() => { setEditing({ ...editing, value: origVal }); }}
+                    className="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-1.5 rounded-lg transition-colors"
+                  >
+                    {t('coaches.revertToConsensus')} ({origVal})
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>
