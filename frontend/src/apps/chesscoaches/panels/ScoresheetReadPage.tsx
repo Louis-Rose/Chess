@@ -531,9 +531,13 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
       setTablesLeft(tablesRect.left - containerRect.left);
     };
     measure();
+    // Re-measure after layout settles (tables may render after initial mount)
+    const timer = setTimeout(measure, 200);
     const observer = new ResizeObserver(measure);
     if (containerRef.current) observer.observe(containerRef.current);
-    return () => observer.disconnect();
+    const tablesEl = containerRef.current?.querySelector('[data-tables]');
+    if (tablesEl) observer.observe(tablesEl);
+    return () => { observer.disconnect(); clearTimeout(timer); };
   }, []);
 
   return (
