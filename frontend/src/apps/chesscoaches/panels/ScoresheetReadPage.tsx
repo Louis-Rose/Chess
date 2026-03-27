@@ -531,9 +531,9 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
         setTbodyTop(theadRect.top - containerRect.top);
         setTbodyHeight(tbodyRect.bottom - theadRect.top);
       } else {
-        // Loading state: position image at the tables element
+        // Loading state: use a reasonable default height close to final table size
         setTbodyTop(tablesRect.top - containerRect.top);
-        setTbodyHeight(tablesRect.height);
+        setTbodyHeight(Math.max(tablesRect.height, 500));
       }
     };
     measure();
