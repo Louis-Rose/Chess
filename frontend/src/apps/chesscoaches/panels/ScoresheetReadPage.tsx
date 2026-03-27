@@ -554,7 +554,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
       {/* Image positioned absolutely to align with tables */}
       {tbodyHeight > 0 && tablesLeft > 0 && (
         <div
-          className="absolute hidden md:flex justify-end"
+          className="absolute hidden md:flex justify-center"
           style={{ top: tbodyTop, left: 0, width: tablesLeft - 8 }}
         >
           <div className="flex flex-col items-center">
