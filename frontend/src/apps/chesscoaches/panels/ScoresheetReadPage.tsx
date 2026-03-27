@@ -550,7 +550,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
   }, []);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative" style={{ minHeight: tbodyHeight > 0 ? tbodyTop + tbodyHeight + 60 : undefined }}>
       {/* Image positioned absolutely to align with tables */}
       {tbodyHeight > 0 && tablesLeft > 0 && (
         <div
