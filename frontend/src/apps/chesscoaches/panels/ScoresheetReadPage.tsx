@@ -256,31 +256,29 @@ export function ScoresheetReadPage() {
           {cropSrc ? (
             /* ── Crop step ── */
             <div className="space-y-4">
-              <div className="flex items-start justify-center gap-8">
-                {/* User's photo — center, pushed right to visually center */}
-                <div className="flex-1 flex justify-end">
-                  <div className="max-w-sm">
-                    <ReactCrop
-                      crop={crop}
-                      onChange={setCrop}
-                      onComplete={setCompletedCrop}
-                    >
-                      <img
-                        ref={cropImgRef}
-                        src={cropSrc}
-                        alt="Crop"
-                        className="rounded-lg max-h-[50vh]"
-                      />
-                    </ReactCrop>
-                  </div>
+              <div className="relative flex justify-center">
+                {/* User's photo — centered */}
+                <div className="max-w-sm">
+                  <ReactCrop
+                    crop={crop}
+                    onChange={setCrop}
+                    onComplete={setCompletedCrop}
+                  >
+                    <img
+                      ref={cropImgRef}
+                      src={cropSrc}
+                      alt="Crop"
+                      className="rounded-lg max-h-[50vh]"
+                    />
+                  </ReactCrop>
                 </div>
-                {/* Example — right side */}
-                <div className="hidden md:flex md:flex-col md:items-center w-56 flex-shrink-0 pt-2">
+                {/* Example — absolutely positioned on the right */}
+                <div className="hidden lg:flex flex-col items-center absolute right-0 top-0 w-64">
                   <p className="text-slate-200 text-sm font-medium text-center mb-2">{t('coaches.example')}</p>
                   <img
                     src="/cropping_example.jpeg"
                     alt="Cropping example"
-                    className="rounded-lg opacity-40 w-full"
+                    className="rounded-lg opacity-30 w-full"
                   />
                 </div>
               </div>
