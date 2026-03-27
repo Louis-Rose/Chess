@@ -453,13 +453,96 @@ export function ScoresheetReadPage() {
                       .filter((mv): mv is Move[] => !!mv && mv.length > 0);
                     if (allModelMoves.length < 2) return null;
                     const maxLen = Math.max(...allModelMoves.map(mv => mv.length));
-                    // Smart consensus: greedy left-to-right, picks the candidate
-                    // producing the fewest illegal moves downstream.
-                    const consensusMoves: Move[] = [];
-                    // Store vote details per half-move: key = "moveNumber-color"
-                    const voteDetails: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean }[]> = {};
+                    // Two-pass smart consensus algorithm.
+                    // Pass 1: greedy left-to-right using majority votes for downstream simulation.
+                    // Pass 2: same algorithm but uses Pass 1 results for downstream simulation,
+                    //         producing better choices and accurate "illegals after" counts.
 
-                    // First pass: collect majority-vote moves (used as fallback for downstream simulation)
+                    // Helper: run one greedy pass given a downstream reference sequence
+                    const runConsensusPass = (downstreamRef: Move[]) => {
+                      const result: Move[] = [];
+                      const details: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean }[]> = {};
+                      const passChess = new Chess();
+
+                      for (let i = 0; i < maxLen; i++) {
+                        const move: Move = { number: i + 1, white: '' };
+                        for (const color of ['white', 'black'] as const) {
+                          const votes: Record<string, number> = {};
+                          for (const modelMv of allModelMoves) {
+                            const val = modelMv[i]?.[color];
+                            if (val) {
+                              const normalized = val.replace(/[+#]/g, '');
+                              votes[normalized] = (votes[normalized] || 0) + 1;
+                            }
+                          }
+                          const candidates = Object.entries(votes).sort((a, b) => b[1] - a[1]);
+                          if (candidates.length === 0) continue;
+
+                          const detailKey = `${i + 1}-${color}`;
+                          if (candidates.length === 1) {
+                            (move as any)[color] = candidates[0][0];
+                            details[detailKey] = [{ candidate: candidates[0][0], votes: candidates[0][1], downstreamIllegals: 0, chosen: true }];
+                            try { passChess.move(candidates[0][0]); } catch { /* validation will catch */ }
+                          } else {
+                            let bestCandidate = candidates[0][0];
+                            let bestIllegals = Infinity;
+                            let bestVotes = candidates[0][1];
+                            const dets: { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean }[] = [];
+
+                            for (const [candidate, voteCount] of candidates) {
+                              const simChess = new Chess(passChess.fen());
+                              let illegals = 0;
+                              try { simChess.move(candidate); } catch { illegals += 100; }
+
+                              if (illegals === 0) {
+                                // Simulate remaining moves using the downstream reference
+                                if (color === 'white' && downstreamRef[i]?.black) {
+                                  try { simChess.move(downstreamRef[i].black!); } catch { illegals++; }
+                                }
+                                for (let j = i + 1; j < maxLen; j++) {
+                                  for (const c of ['white', 'black'] as const) {
+                                    const san = downstreamRef[j]?.[c];
+                                    if (!san) continue;
+                                    try { simChess.move(san); } catch { illegals++; }
+                                  }
+                                }
+                              }
+
+                              dets.push({ candidate, votes: voteCount, downstreamIllegals: illegals, chosen: false });
+                              if (illegals < bestIllegals || (illegals === bestIllegals && voteCount > bestVotes)) {
+                                bestIllegals = illegals;
+                                bestCandidate = candidate;
+                                bestVotes = voteCount;
+                              }
+                            }
+
+                            const allIllegal = dets.every(d => d.downstreamIllegals >= 100);
+                            if (allIllegal) {
+                              details[detailKey] = dets;
+                              (move as any)[color] = candidates[0][0];
+                              (move as any)[`${color}_legal`] = false;
+                              (move as any)[`${color}_reason`] = 'All options are illegal — please correct manually';
+                              const fen = passChess.fen().split(' ');
+                              fen[1] = fen[1] === 'w' ? 'b' : 'w';
+                              passChess.load(fen.join(' '));
+                            } else {
+                              for (const d of dets) { if (d.candidate === bestCandidate) d.chosen = true; }
+                              details[detailKey] = dets;
+                              (move as any)[color] = bestCandidate;
+                              try { passChess.move(bestCandidate); } catch {
+                                const fen = passChess.fen().split(' ');
+                                fen[1] = fen[1] === 'w' ? 'b' : 'w';
+                                passChess.load(fen.join(' '));
+                              }
+                            }
+                          }
+                        }
+                        result.push(move);
+                      }
+                      return { moves: result, details };
+                    };
+
+                    // Collect majority-vote moves (used as downstream ref for Pass 1)
                     const majorityMoves: Move[] = [];
                     for (let i = 0; i < maxLen; i++) {
                       const mv: Move = { number: i + 1, white: '' };
@@ -478,93 +561,14 @@ export function ScoresheetReadPage() {
                       majorityMoves.push(mv);
                     }
 
-                    // Second pass: greedy left-to-right with look-ahead
-                    const mainChess = new Chess();
-                    for (let i = 0; i < maxLen; i++) {
-                      const move: Move = { number: i + 1, white: '' };
-                      for (const color of ['white', 'black'] as const) {
-                        // Collect candidates with vote counts
-                        const votes: Record<string, number> = {};
-                        for (const modelMv of allModelMoves) {
-                          const val = modelMv[i]?.[color];
-                          if (val) {
-                            const normalized = val.replace(/[+#]/g, '');
-                            votes[normalized] = (votes[normalized] || 0) + 1;
-                          }
-                        }
-                        const candidates = Object.entries(votes).sort((a, b) => b[1] - a[1]);
-                        if (candidates.length === 0) continue;
+                    // Pass 1: use majority votes as downstream reference
+                    const pass1 = runConsensusPass(majorityMoves);
+                    // Pass 2: use Pass 1 results as downstream reference
+                    const pass2 = runConsensusPass(pass1.moves);
 
-                        const detailKey = `${i + 1}-${color}`;
-                        if (candidates.length === 1) {
-                          // All models agree
-                          (move as any)[color] = candidates[0][0];
-                          voteDetails[detailKey] = [{ candidate: candidates[0][0], votes: candidates[0][1], downstreamIllegals: 0, chosen: true }];
-                          try { mainChess.move(candidates[0][0]); } catch { /* will be caught by validation */ }
-                        } else {
-                          // Disagreement: evaluate each candidate by downstream illegals
-                          let bestCandidate = candidates[0][0];
-                          let bestIllegals = Infinity;
-                          let bestVotes = candidates[0][1];
-                          const details: { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean }[] = [];
+                    const consensusMoves = pass2.moves;
+                    const voteDetails = pass2.details;
 
-                          for (const [candidate, voteCount] of candidates) {
-                            const simChess = new Chess(mainChess.fen());
-                            let illegals = 0;
-                            try { simChess.move(candidate); } catch { illegals += 100; } // candidate itself illegal = heavy penalty
-
-                            if (illegals === 0) {
-                              // Play remaining half-moves using majority votes
-                              const startColor = color === 'white' ? 'black' : null;
-                              if (startColor && majorityMoves[i]?.black) {
-                                try { simChess.move(majorityMoves[i].black!); } catch { illegals++; }
-                              }
-                              const startIdx = i + 1;
-                              for (let j = startIdx; j < maxLen; j++) {
-                                for (const c of ['white', 'black'] as const) {
-                                  const san = majorityMoves[j]?.[c];
-                                  if (!san) continue;
-                                  try { simChess.move(san); } catch { illegals++; }
-                                }
-                              }
-                            }
-
-                            details.push({ candidate, votes: voteCount, downstreamIllegals: illegals, chosen: false });
-
-                            if (illegals < bestIllegals || (illegals === bestIllegals && voteCount > bestVotes)) {
-                              bestIllegals = illegals;
-                              bestCandidate = candidate;
-                              bestVotes = voteCount;
-                            }
-                          }
-
-                          // Check if all candidates are themselves illegal
-                          const allIllegal = details.every(d => d.downstreamIllegals >= 100);
-                          if (allIllegal) {
-                            // Don't pick any — mark as needing user input
-                            voteDetails[detailKey] = details; // none chosen
-                            (move as any)[color] = candidates[0][0]; // use first as placeholder
-                            (move as any)[`${color}_legal`] = false;
-                            (move as any)[`${color}_reason`] = 'All options are illegal — please correct manually';
-                            const fen = mainChess.fen().split(' ');
-                            fen[1] = fen[1] === 'w' ? 'b' : 'w';
-                            mainChess.load(fen.join(' '));
-                          } else {
-                            // Mark the chosen one
-                            for (const d of details) { if (d.candidate === bestCandidate) d.chosen = true; }
-                            voteDetails[detailKey] = details;
-
-                            (move as any)[color] = bestCandidate;
-                            try { mainChess.move(bestCandidate); } catch {
-                              const fen = mainChess.fen().split(' ');
-                              fen[1] = fen[1] === 'w' ? 'b' : 'w';
-                              mainChess.load(fen.join(' '));
-                            }
-                          }
-                        }
-                      }
-                      consensusMoves.push(move);
-                    }
                     // Remove trailing empty moves
                     while (consensusMoves.length > 0 && !consensusMoves[consensusMoves.length - 1].white && !consensusMoves[consensusMoves.length - 1].black) {
                       consensusMoves.pop();
