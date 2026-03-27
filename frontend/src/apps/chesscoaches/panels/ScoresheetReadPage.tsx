@@ -258,7 +258,7 @@ export function ScoresheetReadPage() {
             <div className="space-y-4">
               <div className="flex items-start justify-center gap-6">
                 {/* User's photo — center */}
-                <div className="flex-1 min-w-0 flex justify-center">
+                <div className="max-w-sm flex justify-center">
                   <ReactCrop
                     crop={crop}
                     onChange={setCrop}
@@ -268,7 +268,7 @@ export function ScoresheetReadPage() {
                       ref={cropImgRef}
                       src={cropSrc}
                       alt="Crop"
-                      className="rounded-lg max-h-[60vh]"
+                      className="rounded-lg max-h-[50vh]"
                     />
                   </ReactCrop>
                 </div>
