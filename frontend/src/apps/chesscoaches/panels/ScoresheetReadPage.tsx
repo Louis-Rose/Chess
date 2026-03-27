@@ -274,7 +274,7 @@ export function ScoresheetReadPage() {
                   </ReactCrop>
                 </div>
                 {/* Example — positioned to the right of the centered image */}
-                <div className="hidden lg:block w-64 flex-shrink-0 absolute left-[calc(50%+13rem)] top-1/2 -translate-y-1/2">
+                <div className="hidden lg:block w-64 flex-shrink-0 absolute left-[calc(50%+14rem)] top-1/2 -translate-y-1/2">
                   <p className="text-slate-200 text-sm font-medium text-center mb-2 -mt-6">{t('coaches.example')}</p>
                   <img
                     src="/cropping_example.jpeg"
