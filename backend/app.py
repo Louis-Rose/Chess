@@ -422,8 +422,16 @@ def validate_moves():
 
 def _scoresheet_clean_san(san):
     """Clean up common OCR artifacts from a SAN move."""
+    import re
     # Strip trailing/leading dots, commas, spaces
     san = san.strip(' .,;:')
+    # Fix l/I misread as digit 1 at the end of a move (before optional +/#)
+    # e.g. Reel -> Re1, Nfl -> Nf1
+    san = re.sub(r'([a-h])[lI]([+#]?)$', r'\g<1>1\2', san)
+    # Fix O misread as 0 in non-castling contexts (e.g. RcO -> Rc0 is not valid)
+    # But don't touch castling patterns (O-O, 0-0, etc.)
+    if not re.fullmatch(r'[oO0][-\s]*[oO0]([-\s]*[oO0])?[+#]?', san):
+        san = re.sub(r'([a-h])O([+#]?)$', r'\g<1>0\2', san)
     return san
 
 
@@ -599,6 +607,7 @@ Rules:
 - If black's last move is missing (white won or game ended), omit the "black" field for that move
 - Include ALL moves you can read, even partially
 - Be careful with similar-looking pieces: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
+- Chess moves always end with a rank digit (1-8), optionally followed by + or #. If you see a letter "l" or "I" at the end, it is the digit "1". Do not output moves ending in letters like "Reel" — that should be "Re1".
 - Castling: O-O (kingside), O-O-O (queenside)
 - For each move, include a confidence level: "high" (clearly readable), "medium" (somewhat ambiguous), or "low" (hard to read/guessing)
 - "columns": how many columns of moves the scoresheet has (usually 1, 2, or 3)
@@ -672,6 +681,7 @@ Rules:
 - Some players write captures with "x" (e.g. Nxd4) and some without (e.g. Nd4). Read what is actually written.
 - If a move is unreadable, use "?"
 - Be careful with similar-looking pieces: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
+- Chess moves always end with a rank digit (1-8), optionally followed by + or #. If you see a letter "l" or "I" at the end, it is the digit "1".
 - Castling: O-O (kingside), O-O-O (queenside)
 
 Return ONLY a JSON object:
