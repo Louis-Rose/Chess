@@ -22,7 +22,6 @@ import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 // Fetch ground truth for a scoresheet via API (by filename stem) — used by GroundTruthPanel (admin)
 const groundTruthCache = new Map<string, { white_player: string; black_player: string; result: string; moves: Move[] } | null>();
 
-// @ts-ignore used by GroundTruthPanel
 async function fetchGroundTruth(filename: string | null): Promise<{ white_player: string; black_player: string; result: string; moves: Move[] } | null> {
   if (!filename) return null;
   const stem = filename.replace(/\.[^.]+$/, '');
@@ -109,6 +108,12 @@ export function ScoresheetReadPage() {
 
   const { preview, fileName, error, modelResults, reReads, models, startTime, analyzing, azureResult } = scoresheet;
 
+  // Fetch ground truth for accuracy comparison
+  const [groundTruth, setGroundTruth] = useState<{ white_player: string; black_player: string; result: string; moves: Move[] } | null>(null);
+  useEffect(() => {
+    setGroundTruth(null);
+    fetchGroundTruth(fileName).then(setGroundTruth);
+  }, [fileName]);
 
   // Pick up shared image from Web Share Target
   useEffect(() => {
@@ -672,8 +677,8 @@ export function ScoresheetReadPage() {
                             <MovesPanel
                               label={t('coaches.consensus')}
                               moves={displayConsensusMoves}
-                              groundTruthMoves={undefined}
-                              disagreements={new Map()}
+                              groundTruthMoves={groundTruth?.moves}
+                              disagreements={groundTruth ? (() => { const m = new Map<number, { white: boolean; black: boolean }>(); const gt = groundTruth.moves; for (let idx = 0; idx < Math.max(displayConsensusMoves.length, gt.length); idx++) { const cm = displayConsensusMoves[idx]; const gm = gt[idx]; const wd = !movesMatch(cm?.white || '', gm?.white || ''); const bd = !movesMatch(cm?.black || '', gm?.black || ''); if (wd || bd) m.set(idx + 1, { white: wd, black: bd }); } return m; })() : new Map()}
                               elapsed={0}
                               fileName={fileName}
                               onEditSave={(confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey)}
