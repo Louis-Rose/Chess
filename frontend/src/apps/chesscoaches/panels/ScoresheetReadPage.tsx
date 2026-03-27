@@ -506,12 +506,12 @@ export function ScoresheetReadPage() {
       {showExampleModal && (
         <div
           onClick={closeModal}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px] cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center pl-64 bg-slate-900/60 backdrop-blur-[0.5px] cursor-pointer"
         >
           <img
             src="/cropping_example.jpeg"
             alt="Cropping example"
-            className="max-w-[95vw] max-h-[95vh] rounded-xl object-contain"
+            className="max-w-[85vw] max-h-[95vh] rounded-xl object-contain"
           />
         </div>
       )}
