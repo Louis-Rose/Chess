@@ -423,6 +423,92 @@ export function ScoresheetReadPage() {
                     );
                   })}
 
+                  {/* Consensus row — majority vote across all models */}
+                  {(() => {
+                    const allModelMoves = models
+                      .map(m => modelResults[m.id]?.result?.moves)
+                      .filter((mv): mv is Move[] => !!mv && mv.length > 0);
+                    if (allModelMoves.length < 2) return null;
+                    const maxLen = Math.max(...allModelMoves.map(mv => mv.length));
+                    const consensusMoves: Move[] = [];
+                    for (let i = 0; i < maxLen; i++) {
+                      const move: Move = { number: i + 1, white: '' };
+                      for (const color of ['white', 'black'] as const) {
+                        const votes: Record<string, number> = {};
+                        for (const mv of allModelMoves) {
+                          const val = mv[i]?.[color];
+                          if (val) votes[val] = (votes[val] || 0) + 1;
+                        }
+                        const sorted = Object.entries(votes).sort((a, b) => b[1] - a[1]);
+                        if (sorted.length > 0) {
+                          (move as any)[color] = sorted[0][0];
+                        }
+                      }
+                      consensusMoves.push(move);
+                    }
+                    // Remove trailing empty moves
+                    while (consensusMoves.length > 0 && !consensusMoves[consensusMoves.length - 1].white && !consensusMoves[consensusMoves.length - 1].black) {
+                      consensusMoves.pop();
+                    }
+                    if (consensusMoves.length === 0) return null;
+                    // Validate legality with chess.js
+                    const chess = new Chess();
+                    for (const cm of consensusMoves) {
+                      for (const color of ['white', 'black'] as const) {
+                        const san = cm[color];
+                        if (!san) continue;
+                        try { chess.move(san); (cm as any)[`${color}_legal`] = true; }
+                        catch {
+                          (cm as any)[`${color}_legal`] = false;
+                          const fen = chess.fen().split(' ');
+                          fen[1] = fen[1] === 'w' ? 'b' : 'w';
+                          chess.load(fen.join(' '));
+                        }
+                      }
+                    }
+                    const consensusId = '__consensus__';
+                    const consensusColumns = sheetColumns;
+                    const consensusRowsPerColumn = rowsPerColumn;
+                    const handleConsensusBoardPly = (ply: number) => {
+                      setModelBoardPlys(prev => ({ ...prev, [consensusId]: { ply, source: 'nav' as const } }));
+                    };
+                    const deselectConsensus = () => {
+                      setModelBoardPlys(p => { const rest = { ...p }; delete rest[consensusId]; return rest; });
+                    };
+                    return (
+                      <>
+                        <div className="border-t border-slate-600 my-4" />
+                        <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">{t('coaches.consensus')} ({allModelMoves.length} {t('coaches.models')})</h2>
+                        <div className="flex items-stretch" onClick={deselectConsensus}>
+                          <div className="flex-1 hidden md:block" />
+                          <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
+                            <MovesPanel
+                              label={t('coaches.consensus')}
+                              moves={consensusMoves}
+                              groundTruthMoves={undefined}
+                              disagreements={new Map()}
+                              elapsed={0}
+                              fileName={fileName}
+                              onMoveClick={(movesArr, ply) => {
+                                setModelBoardPlys(p => ({ ...p, [consensusId]: { ply, source: 'read' as const } }));
+                                const moveIdx = Math.floor((ply - 1) / 2);
+                                const color = ply % 2 === 1 ? 'white' : 'black';
+                                const san = movesArr[moveIdx]?.[color];
+                                if (san) playMoveSound(san.includes('x'));
+                              }}
+                              activePly={modelBoardPlys[consensusId]?.ply}
+                              sheetColumns={consensusColumns}
+                              rowsPerColumn={consensusRowsPerColumn}
+                            />
+                          </div>
+                          <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
+                            <ModelBoard moves={consensusMoves} externalPly={modelBoardPlys[consensusId]?.ply} onPlyChange={handleConsensusBoardPly} disableDrag autoActivate={false} previewFen={null} />
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+
                   {/* Azure DI section */}
                   {azureResult && (
                     <>
