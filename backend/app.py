@@ -463,6 +463,14 @@ def _scoresheet_push_san(board, san):
             return True
         except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
             pass
+    # Try lowercasing first letter for pawn moves misread as uppercase (C3 -> c3, E4 -> e4)
+    if len(san) >= 2 and san[0] in 'ABCDEFGH' and san[1] in '12345678':
+        lower = san[0].lower() + san[1:]
+        try:
+            board.push_san(lower)
+            return True
+        except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, ValueError):
+            pass
     return False
 
 
