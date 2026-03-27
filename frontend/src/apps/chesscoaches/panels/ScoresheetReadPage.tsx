@@ -521,14 +521,20 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
       const thead = container.querySelector('[data-tables] thead');
       const tbody = container.querySelector('[data-tables] tbody');
       const tables = container.querySelector('[data-tables]');
-      if (!thead || !tbody || !tables) return;
+      if (!tables) return;
       const containerRect = container.getBoundingClientRect();
-      const theadRect = thead.getBoundingClientRect();
-      const tbodyRect = tbody.getBoundingClientRect();
       const tablesRect = tables.getBoundingClientRect();
-      setTbodyTop(theadRect.top - containerRect.top);
-      setTbodyHeight(tbodyRect.bottom - theadRect.top);
       setTablesLeft(tablesRect.left - containerRect.left);
+      if (thead && tbody) {
+        const theadRect = thead.getBoundingClientRect();
+        const tbodyRect = tbody.getBoundingClientRect();
+        setTbodyTop(theadRect.top - containerRect.top);
+        setTbodyHeight(tbodyRect.bottom - theadRect.top);
+      } else {
+        // Loading state: position image at the tables element
+        setTbodyTop(tablesRect.top - containerRect.top);
+        setTbodyHeight(tablesRect.height);
+      }
     };
     measure();
     // Re-measure after layout settles (tables may render after initial mount)
@@ -537,12 +543,15 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
     if (containerRef.current) observer.observe(containerRef.current);
     const tablesEl = containerRef.current?.querySelector('[data-tables]');
     if (tablesEl) observer.observe(tablesEl);
-    return () => { observer.disconnect(); clearTimeout(timer); };
+    // Re-measure when DOM changes (e.g. loading → results)
+    const mutationObs = new MutationObserver(measure);
+    if (containerRef.current) mutationObs.observe(containerRef.current, { childList: true, subtree: true });
+    return () => { observer.disconnect(); mutationObs.disconnect(); clearTimeout(timer); };
   }, []);
 
   return (
     <div ref={containerRef} className="relative">
-      {/* Image positioned absolutely to align with tbody */}
+      {/* Image positioned absolutely to align with tables */}
       {tbodyHeight > 0 && tablesLeft > 0 && (
         <div
           className="absolute hidden md:flex justify-end"
