@@ -390,22 +390,48 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     return null;
   }, []);
 
-  const scoresheetHandleEditSave = useCallback((modelId: string, _readIdx: number, confirmed: ScoresheetMove[], correctionKey: string) => {
+  const scoresheetHandleEditSave = useCallback(async (modelId: string, _readIdx: number, confirmed: ScoresheetMove[], correctionKey: string) => {
     // Update the model result in-place (no re-read)
+    const prevCorrections = new Set<string>();
     setScoresheet(prev => {
       const mr = prev.modelResults[modelId];
       if (!mr?.result) return prev;
-      const prevCorrections = new Set<string>(prev.reReads[modelId]?.[0]?.corrections);
-      prevCorrections.add(correctionKey);
+      const corr = new Set<string>(prev.reReads[modelId]?.[0]?.corrections);
+      corr.add(correctionKey);
+      corr.forEach(c => prevCorrections.add(c));
       return {
         ...prev,
         modelResults: {
           ...prev.modelResults,
           [modelId]: { ...mr, result: { ...mr.result, moves: confirmed } },
         },
-        reReads: { ...prev.reReads, [modelId]: [{ moves: confirmed, elapsed: 0, rereading: false, corrections: prevCorrections }] },
+        reReads: { ...prev.reReads, [modelId]: [{ moves: confirmed, elapsed: 0, rereading: false, corrections: corr }] },
       };
     });
+
+    // Re-validate legality of all moves
+    try {
+      const res = await fetch('/api/coaches/validate-moves', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moves: confirmed }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setScoresheet(prev => {
+          const mr = prev.modelResults[modelId];
+          if (!mr?.result) return prev;
+          return {
+            ...prev,
+            modelResults: {
+              ...prev.modelResults,
+              [modelId]: { ...mr, result: { ...mr.result, moves: json.moves } },
+            },
+            reReads: { ...prev.reReads, [modelId]: [{ ...prev.reReads[modelId]?.[0]!, moves: json.moves }] },
+          };
+        });
+      }
+    } catch { /* validation failed silently */ }
   }, []);
 
   const scoresheetReread = useCallback(async (modelId: string) => {

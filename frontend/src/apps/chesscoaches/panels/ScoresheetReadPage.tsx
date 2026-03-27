@@ -1112,19 +1112,17 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
     const editedValue = editing.value;
     setEditing(null);
 
-    // Build confirmed moves: all moves up to and including the edited one
+    // Build all moves with the edit applied, clear legality for re-validation
     const confirmed: Move[] = [];
-    for (let i = 0; i <= editedMoveIdx; i++) {
+    for (let i = 0; i < moves.length; i++) {
       const m = { ...moves[i] };
       if (i === editedMoveIdx) {
         m[editedColor] = editedValue;
-        if (editedColor === 'white') {
-          delete m.black;
-          delete m.black_legal;
-        }
       }
       delete m.white_legal;
       delete m.black_legal;
+      delete m.white_reason;
+      delete m.black_reason;
       confirmed.push(m);
     }
 
