@@ -476,8 +476,7 @@ export function ScoresheetReadPage() {
                       setModelBoardPlys(p => { const rest = { ...p }; delete rest[consensusId]; return rest; });
                     };
                     return (
-                      <>
-                        <div className="border-t border-slate-600 my-4" />
+                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)}>
                         <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">{t('coaches.consensus')} ({allModelMoves.length} {t('coaches.models')})</h2>
                         <div className="flex items-stretch" onClick={deselectConsensus}>
                           <div className="flex-1 hidden md:block" />
@@ -505,7 +504,7 @@ export function ScoresheetReadPage() {
                             <ModelBoard moves={consensusMoves} externalPly={modelBoardPlys[consensusId]?.ply} onPlyChange={handleConsensusBoardPly} disableDrag autoActivate={false} previewFen={null} />
                           </div>
                         </div>
-                      </>
+                      </ModelRow>
                     );
                   })()}
 
