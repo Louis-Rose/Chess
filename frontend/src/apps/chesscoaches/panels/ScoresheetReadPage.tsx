@@ -337,7 +337,7 @@ export function ScoresheetReadPage() {
                       const values = new Set<string>();
                       for (const mv of allModelMovesForDisagreement) {
                         const val = mv[i]?.[color];
-                        if (val) values.add(val);
+                        if (val) values.add(val.replace(/[+#]/g, ''));
                       }
                       if (values.size > 1) modelDisagreements.add(`${i + 1}-${color}`);
                     }
@@ -458,7 +458,10 @@ export function ScoresheetReadPage() {
                         const votes: Record<string, number> = {};
                         for (const mv of allModelMoves) {
                           const val = mv[i]?.[color];
-                          if (val) votes[val] = (votes[val] || 0) + 1;
+                          if (val) {
+                            const normalized = val.replace(/[+#]/g, '');
+                            votes[normalized] = (votes[normalized] || 0) + 1;
+                          }
                         }
                         const sorted = Object.entries(votes).sort((a, b) => b[1] - a[1]);
                         if (sorted.length > 0) {
