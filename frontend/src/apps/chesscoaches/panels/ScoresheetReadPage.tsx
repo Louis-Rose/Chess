@@ -1232,6 +1232,27 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
           </span>
         </div>
       )}
+      {/* Move quality counts */}
+      {moves.length > 0 && !rereading && (() => {
+        let illegal = 0, medium = 0, low = 0;
+        for (const m of moves) {
+          for (const color of ['white', 'black'] as const) {
+            if (!m[color]) continue;
+            if (m[`${color}_legal` as const] === false) illegal++;
+            const conf = m[`${color}_confidence` as 'white_confidence' | 'black_confidence'];
+            if (conf === 'medium') medium++;
+            if (conf === 'low') low++;
+          }
+        }
+        if (illegal === 0 && medium === 0 && low === 0) return null;
+        return (
+          <div className="px-2 py-2 border-t border-slate-600/50 flex flex-col items-center gap-0.5 text-xs">
+            {illegal > 0 && <span className="text-orange-400">{illegal} illegal {illegal === 1 ? 'move' : 'moves'}</span>}
+            {medium > 0 && <span className="text-yellow-400">{medium} uncertain {medium === 1 ? 'move' : 'moves'}</span>}
+            {low > 0 && <span className="text-red-400">{low} low confidence {low === 1 ? 'move' : 'moves'}</span>}
+          </div>
+        );
+      })()}
       {rereading ? (
         <div className="flex items-center justify-center gap-1.5 py-2.5 border-t border-slate-600/50 text-xs text-blue-400 animate-pulse">
           <Clock className="w-3 h-3 animate-spin" />
