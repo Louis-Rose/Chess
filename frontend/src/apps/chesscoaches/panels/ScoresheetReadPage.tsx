@@ -415,8 +415,8 @@ export function ScoresheetReadPage() {
                               />
                             )}
                           </div>
-                          {/* Right: board centered in remaining space (items-start so extra content doesn't affect row height) */}
-                          <div className="flex-1 hidden md:flex justify-center items-start">
+                          {/* Right: board centered vertically relative to the moves table */}
+                          <div className="flex-1 hidden md:flex justify-center items-center">
                             <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]?.ply} onPlyChange={handleBoardPlyChange} disableDrag={!mr || isRereading} autoActivate={modelIdx === 0} previewFen={previewFens[m.id]} />
                           </div>
                         </div>
