@@ -1296,7 +1296,7 @@ function ChesscomAnalysisButton({ moves, meta }: {
   return (
     <button
       onClick={handleClick}
-      className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
+      className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-xs text-slate-200 hover:bg-slate-600/40 transition-colors flex items-center justify-center gap-1.5"
     >
       <ExternalLink className="w-3 h-3" /> {t('coaches.lichess.openChesscom')}
     </button>
@@ -1402,7 +1402,7 @@ function LichessStudyButton({ moves, meta, fileName }: {
     <>
       <button
         onClick={handleOpen}
-        className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
+        className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-xs text-slate-200 hover:bg-slate-600/40 transition-colors flex items-center justify-center gap-1.5"
       >
         <ExternalLink className="w-3 h-3" /> {t('coaches.lichess.sendToStudy')}
       </button>
