@@ -1307,10 +1307,10 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
             onClick={e => e.stopPropagation()}
           >
             <h3 className="text-slate-100 font-medium text-center">{t('coaches.illegalMovesTitle')}</h3>
-            <p className="text-slate-300 text-sm text-center">{t('coaches.illegalMovesDesc')}</p>
+            <p className="text-slate-300 text-sm text-center whitespace-pre-line">{t('coaches.illegalMovesDesc')}</p>
             <div className="flex items-center justify-center gap-4 text-sm">
               <span className="flex items-center gap-1 text-green-400"><span className="text-[10px]">&#10003;</span> {t('coaches.legalMove')}</span>
-              <span className="flex items-center gap-1 text-red-400"><span className="text-[10px]">&#10007;</span> {t('coaches.illegalMove')}</span>
+              <span className="flex items-center gap-1 text-red-400"><span className="text-[10px]">&#10007;</span> {t('coaches.illegal')}</span>
             </div>
             <button
               onClick={() => setShowIllegalModal(false)}
