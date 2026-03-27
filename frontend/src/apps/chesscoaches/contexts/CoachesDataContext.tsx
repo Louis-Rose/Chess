@@ -233,6 +233,7 @@ interface CoachesDataContextType {
   scoresheetSetImage: (file: File, preview: string, fileName: string) => void;
   scoresheetStartOneRead: () => void;
   scoresheetHandleEditSave: (modelId: string, readIdx: number, confirmed: ScoresheetMove[], correctionKey: string) => void;
+  scoresheetReread: (modelId: string) => void;
   scoresheetCancel: () => void;
   scoresheetClear: () => void;
 
@@ -387,8 +388,8 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     return null;
   }, []);
 
-  const scoresheetHandleEditSave = useCallback(async (modelId: string, _readIdx: number, confirmed: ScoresheetMove[], correctionKey: string) => {
-    // Update the model result in-place (show rereading state)
+  const scoresheetHandleEditSave = useCallback((modelId: string, _readIdx: number, confirmed: ScoresheetMove[], correctionKey: string) => {
+    // Update the model result in-place (no re-read)
     setScoresheet(prev => {
       const mr = prev.modelResults[modelId];
       if (!mr?.result) return prev;
@@ -398,9 +399,24 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
         ...prev,
         modelResults: {
           ...prev.modelResults,
-          [modelId]: { ...mr, result: { ...mr.result, moves: confirmed }, rereading: true },
+          [modelId]: { ...mr, result: { ...mr.result, moves: confirmed } },
         },
-        reReads: { ...prev.reReads, [modelId]: [{ moves: confirmed, elapsed: 0, rereading: true, corrections: prevCorrections }] },
+        reReads: { ...prev.reReads, [modelId]: [{ moves: confirmed, elapsed: 0, rereading: false, corrections: prevCorrections }] },
+      };
+    });
+  }, []);
+
+  const scoresheetReread = useCallback(async (modelId: string) => {
+    const mr = scoresheet.modelResults[modelId];
+    const confirmed = mr?.result?.moves;
+    if (!confirmed) return;
+
+    setScoresheet(prev => {
+      const mr2 = prev.modelResults[modelId];
+      if (!mr2) return prev;
+      return {
+        ...prev,
+        modelResults: { ...prev.modelResults, [modelId]: { ...mr2, rereading: true } },
       };
     });
 
@@ -410,40 +426,40 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
       const result = await scoresheetDoReread(file, modelId, confirmed);
       if (result) {
         setScoresheet(prev => {
-          const mr = prev.modelResults[modelId];
-          if (!mr) return prev;
+          const mr2 = prev.modelResults[modelId];
+          if (!mr2) return prev;
           return {
             ...prev,
             modelResults: {
               ...prev.modelResults,
-              [modelId]: { ...mr, result: { ...mr.result!, moves: result.moves }, elapsed: result.elapsed, rereading: false },
+              [modelId]: { ...mr2, result: { ...mr2.result!, moves: result.moves }, elapsed: result.elapsed, rereading: false },
             },
             reReads: { ...prev.reReads, [modelId]: [{ ...prev.reReads[modelId]?.[0]!, moves: result.moves, elapsed: result.elapsed, rereading: false }] },
           };
         });
       } else {
         setScoresheet(prev => {
-          const mr = prev.modelResults[modelId];
-          if (!mr) return prev;
+          const mr2 = prev.modelResults[modelId];
+          if (!mr2) return prev;
           return {
             ...prev,
-            modelResults: { ...prev.modelResults, [modelId]: { ...mr, rereading: false, error: 'Re-read failed' } },
+            modelResults: { ...prev.modelResults, [modelId]: { ...mr2, rereading: false, error: 'Re-read failed' } },
             reReads: { ...prev.reReads, [modelId]: [{ ...prev.reReads[modelId]?.[0]!, rereading: false, error: 'Re-read failed' }] },
           };
         });
       }
     } catch {
       setScoresheet(prev => {
-        const mr = prev.modelResults[modelId];
-        if (!mr) return prev;
+        const mr2 = prev.modelResults[modelId];
+        if (!mr2) return prev;
         return {
           ...prev,
-          modelResults: { ...prev.modelResults, [modelId]: { ...mr, rereading: false, error: 'Re-read failed' } },
+          modelResults: { ...prev.modelResults, [modelId]: { ...mr2, rereading: false, error: 'Re-read failed' } },
           reReads: { ...prev.reReads, [modelId]: [{ ...prev.reReads[modelId]?.[0]!, rereading: false, error: 'Re-read failed' }] },
         };
       });
     }
-  }, [scoresheet.imageFile, scoresheetDoReread]);
+  }, [scoresheet.imageFile, scoresheet.modelResults, scoresheetDoReread]);
 
   const scoresheetAnalyzeImage = useCallback(async (file: File, signal: AbortSignal) => {
     setScoresheet(prev => ({ ...prev, error: '', modelResults: {}, reReads: {}, models: [], analyzing: true }));
@@ -665,7 +681,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
       handleSelectSavedUsername, handleRemoveSavedPlayer,
       playerInfo, playerInfoLoading, playerInfoError,
       handleSubmit, onboardingDone, completeOnboarding,
-      scoresheet, scoresheetSetImage, scoresheetStartOneRead, scoresheetHandleEditSave, scoresheetCancel, scoresheetClear,
+      scoresheet, scoresheetSetImage, scoresheetStartOneRead, scoresheetHandleEditSave, scoresheetReread, scoresheetCancel, scoresheetClear,
       diagram, diagramSetImage, diagramAnalyze, diagramClear,
       mistakes: mistakesState, mistakesSetFile, mistakesAnalyze, mistakesClear, mistakesSetExpanded,
     }}>

@@ -104,7 +104,7 @@ export function ScoresheetReadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
-    scoresheetHandleEditSave, scoresheetCancel, scoresheetClear,
+    scoresheetHandleEditSave, scoresheetReread, scoresheetCancel, scoresheetClear,
   } = useCoachesData();
 
   const { preview, fileName, error, modelResults, reReads, models, startTime, analyzing, azureResult } = scoresheet;
@@ -396,6 +396,7 @@ export function ScoresheetReadPage() {
                                 rereading={isRereading}
                                 corrections={corrections}
                                 onEditSave={(confirmed, corrKey) => handleEditSave(0, confirmed, corrKey)}
+                                onReread={() => scoresheetReread(m.id)}
                                 onMoveClick={mr ? makeMoveClick('read') : undefined}
                                 activePly={modelBoardPlys[m.id]?.source !== 'gt' ? modelBoardPlys[m.id]?.ply : undefined}
                                 onPreview={(idx, color, san) => handlePreview(currentMoves, idx, color, san)}
@@ -1038,7 +1039,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn }: {
+function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn }: {
   label: string;
   moves: Move[];
   groundTruthMoves?: Move[];
@@ -1050,6 +1051,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   rereading?: boolean;
   corrections?: Set<string>;
   onEditSave?: (confirmed: Move[], correctionKey: string) => void;
+  onReread?: () => void;
   onMoveClick?: (moves: Move[], ply: number) => void;
   activePly?: number;
   onPreview?: (moveIdx: number, color: 'white' | 'black', san: string) => void;
@@ -1226,6 +1228,15 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
           <span>{t('coaches.rereading')}</span>
         </div>
       ) : moves.length > 0 && (<>
+        {onReread && corrections && corrections.size > 0 && (
+          <button
+            onClick={onReread}
+            className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-sm text-blue-400 hover:bg-slate-600/40 transition-colors flex items-center justify-center gap-1.5"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            {t('coaches.rereadFromEdit')}
+          </button>
+        )}
         <ChesscomAnalysisButton moves={moves} meta={meta} />
         <LichessStudyButton moves={moves} meta={meta} fileName={fileName} />
       </>)}
