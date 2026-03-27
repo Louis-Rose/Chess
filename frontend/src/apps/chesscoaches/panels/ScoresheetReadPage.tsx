@@ -377,7 +377,7 @@ export function ScoresheetReadPage() {
                     return (
                       <ModelRow key={m.id} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')}>
                         <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">{mr?.name || m.name}</h2>
-                        <div className="flex items-start">
+                        <div className="flex items-stretch">
                           {/* Left spacer (image is absolutely positioned by ModelRow) */}
                           <div className="flex-1 hidden md:block" />
                           {/* Center: tables */}
