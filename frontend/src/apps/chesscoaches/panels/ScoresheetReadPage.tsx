@@ -139,13 +139,14 @@ export function ScoresheetReadPage() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [showImageModal, setShowImageModal] = useState(false);
-  const closeModal = useCallback(() => setShowImageModal(false), []);
+  const [showExampleModal, setShowExampleModal] = useState(false);
+  const closeModal = useCallback(() => { setShowImageModal(false); setShowExampleModal(false); }, []);
   useEffect(() => {
-    if (!showImageModal) return;
+    if (!showImageModal && !showExampleModal) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [showImageModal, closeModal]);
+  }, [showImageModal, showExampleModal, closeModal]);
 
   const buildDisagreementMap = useCallback((moves: Move[], gtMoves: Move[]) => {
     const map = new Map<number, { white: boolean; black: boolean }>();
@@ -256,7 +257,7 @@ export function ScoresheetReadPage() {
           {cropSrc ? (
             /* ── Crop step ── */
             <div className="space-y-4">
-              <div className="relative flex justify-center">
+              <div className="flex items-start justify-center gap-4">
                 {/* User's photo — centered */}
                 <div className="max-w-sm">
                   <ReactCrop
@@ -272,13 +273,14 @@ export function ScoresheetReadPage() {
                     />
                   </ReactCrop>
                 </div>
-                {/* Example — absolutely positioned on the right */}
-                <div className="hidden lg:flex flex-col items-center absolute right-0 top-0 w-64">
+                {/* Example — right of the uploaded image */}
+                <div className="hidden lg:flex flex-col items-center w-64 flex-shrink-0">
                   <p className="text-slate-200 text-sm font-medium text-center mb-2">{t('coaches.example')}</p>
                   <img
                     src="/cropping_example.jpeg"
                     alt="Cropping example"
-                    className="rounded-lg opacity-30 w-full"
+                    className="rounded-lg opacity-10 w-full cursor-pointer hover:opacity-25 transition-opacity"
+                    onClick={() => setShowExampleModal(true)}
                   />
                 </div>
               </div>
@@ -495,6 +497,20 @@ export function ScoresheetReadPage() {
           <img
             src={preview}
             alt="Scoresheet"
+            className="max-w-[90vw] max-h-[90vh] rounded-xl object-contain"
+          />
+        </div>
+      )}
+
+      {/* Example image modal */}
+      {showExampleModal && (
+        <div
+          onClick={closeModal}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px] cursor-pointer"
+        >
+          <img
+            src="/cropping_example.jpeg"
+            alt="Cropping example"
             className="max-w-[90vw] max-h-[90vh] rounded-xl object-contain"
           />
         </div>
