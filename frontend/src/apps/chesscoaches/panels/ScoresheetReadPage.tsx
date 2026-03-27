@@ -376,9 +376,9 @@ export function ScoresheetReadPage() {
 
                     const deselectCell = () => {
                       setModelBoardPlys(p => {
-                        const current = p[m.id];
-                        if (!current) return p;
-                        return { ...p, [m.id]: { ...current, ply: undefined as any } };
+                        const rest = { ...p };
+                        delete rest[m.id];
+                        return rest;
                       });
                     };
 
@@ -1070,6 +1070,8 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
   const [liveElapsed, setLiveElapsed] = useState(0);
+  const [showIllegalModal, setShowIllegalModal] = useState(false);
+  const hasIllegalMoves = moves.some(m => m.white_legal === false || m.black_legal === false);
   const inputRef = useRef<HTMLInputElement>(null);
   const rereadStartRef = useRef<number | null>(null);
 
@@ -1245,8 +1247,8 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
             {t('coaches.rereadFromEdit')}
           </button>
         )}
-        <ChesscomAnalysisButton moves={moves} meta={meta} />
-        <LichessStudyButton moves={moves} meta={meta} fileName={fileName} />
+        <ChesscomAnalysisButton moves={moves} meta={meta} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
+        <LichessStudyButton moves={moves} meta={meta} fileName={fileName} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
       </>)}
 
       {/* Edit modal */}
@@ -1293,16 +1295,46 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
           </div>
         </div>
       )}
+
+      {/* Illegal moves modal */}
+      {showIllegalModal && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px]"
+          onClick={() => setShowIllegalModal(false)}
+        >
+          <div
+            className="bg-slate-800 rounded-xl p-5 max-w-sm shadow-xl border border-slate-600 space-y-3"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-slate-100 font-medium text-center">{t('coaches.illegalMovesTitle')}</h3>
+            <p className="text-slate-300 text-sm text-center">{t('coaches.illegalMovesDesc')}</p>
+            <div className="flex items-center justify-center gap-4 text-sm">
+              <span className="flex items-center gap-1 text-green-400"><span className="text-[10px]">&#10003;</span> {t('coaches.legalMove')}</span>
+              <span className="flex items-center gap-1 text-red-400"><span className="text-[10px]">&#10007;</span> {t('coaches.illegalMove')}</span>
+            </div>
+            <button
+              onClick={() => setShowIllegalModal(false)}
+              className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm py-2 rounded-lg transition-colors"
+            >
+              OK
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
 
-function ChesscomAnalysisButton({ moves, meta }: {
+function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }: {
   moves: Move[];
   meta?: { white?: string; black?: string; result?: string };
+  hasIllegalMoves?: boolean;
+  onIllegalClick?: () => void;
 }) {
   const { t } = useLanguage();
   const handleClick = () => {
+    if (hasIllegalMoves) { onIllegalClick?.(); return; }
     const moveText = moves.map(m =>
       `${m.number}. ${m.white}${m.black ? ' ' + m.black : ''}`
     ).join(' ');
@@ -1320,10 +1352,12 @@ function ChesscomAnalysisButton({ moves, meta }: {
 }
 
 
-function LichessStudyButton({ moves, meta, fileName }: {
+function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onIllegalClick }: {
   moves: Move[];
   meta?: { white?: string; black?: string; result?: string };
   fileName?: string | null;
+  hasIllegalMoves?: boolean;
+  onIllegalClick?: () => void;
 }) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
@@ -1353,6 +1387,7 @@ function LichessStudyButton({ moves, meta, fileName }: {
   }, []);
 
   const handleOpen = () => {
+    if (hasIllegalMoves) { onIllegalClick?.(); return; }
     setSuccess(null);
     setError('');
     const prefs = getCoachesPrefs();
