@@ -405,8 +405,8 @@ export function ScoresheetReadPage() {
                               />
                             )}
                           </div>
-                          {/* Right: board centered vertically relative to the moves table */}
-                          <div className="flex-1 hidden md:flex justify-center items-center">
+                          {/* Right: board centered vertically (mb offset compensates for buttons/text below board) */}
+                          <div className="flex-1 hidden md:flex justify-center items-center -mb-20">
                             <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]?.ply} onPlyChange={handleBoardPlyChange} disableDrag={!mr || isRereading} autoActivate={modelIdx === 0} previewFen={previewFens[m.id]} />
                           </div>
                         </div>
