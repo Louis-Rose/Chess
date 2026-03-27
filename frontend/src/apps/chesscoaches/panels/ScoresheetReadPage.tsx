@@ -294,24 +294,14 @@ export function ScoresheetReadPage() {
               {/* Error */}
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
-              {/* Analyzing spinner + image preview in left position */}
-              {analyzing && (
-                <div className="flex items-start py-4">
-                  <div className="hidden md:flex flex-col items-center flex-shrink-0">
-                    <img
-                      src={preview}
-                      alt="Scoresheet"
-                      className="max-w-[200px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => setShowImageModal(true)}
-                    />
-                  </div>
-                  <div className="flex-1 flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-16">
-                    <Clock className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">{t('coaches.analyzing')}</span>
-                    <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
+              {/* Analyzing spinner */}
+              {analyzing && models.length === 0 && (
+                <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-4">
+                  <Clock className="w-4 h-4 animate-spin" />
+                  <span className="text-sm">{t('coaches.analyzing')}</span>
+                  <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               )}
 
