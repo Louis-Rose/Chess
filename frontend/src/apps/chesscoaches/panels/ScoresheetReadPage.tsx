@@ -271,6 +271,13 @@ export function ScoresheetReadPage() {
                 </ReactCrop>
               </div>
               <p className="text-slate-200 text-base font-medium text-center">{t('coaches.cropHint')}</p>
+              <div className="max-w-sm mx-auto">
+                <img
+                  src="/cropping_example.jpeg"
+                  alt="Cropping example"
+                  className="rounded-lg opacity-60 w-full"
+                />
+              </div>
               <div className="flex items-center justify-center gap-3">
                 <button
                   onClick={handleCropCancel}
@@ -288,20 +295,11 @@ export function ScoresheetReadPage() {
               </div>
             </div>
           ) : !preview ? (
-            <div className="space-y-4">
-              <UploadBox
-                onClick={() => fileInputRef.current?.click()}
-                icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
-                title={t('coaches.uploadPrompt')}
-              />
-              <div className="max-w-lg mx-auto">
-                <img
-                  src="/cropping_example.jpeg"
-                  alt="Scoresheet example"
-                  className="rounded-lg opacity-60 w-full"
-                />
-              </div>
-            </div>
+            <UploadBox
+              onClick={() => fileInputRef.current?.click()}
+              icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
+              title={t('coaches.uploadPrompt')}
+            />
           ) : (
             <div className="space-y-4">
               {/* Error */}
