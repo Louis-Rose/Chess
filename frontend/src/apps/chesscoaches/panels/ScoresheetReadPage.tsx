@@ -1629,7 +1629,7 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselec
       )}
       {/* Other filtered moves */}
       {otherFiltered.length > 0 && (
-        <div className="flex flex-wrap gap-1 justify-center">
+        <div className="flex flex-wrap gap-1 justify-center max-w-[320px] mx-auto">
           {otherFiltered.map(san => {
             const isSelected = san === value;
             return (
