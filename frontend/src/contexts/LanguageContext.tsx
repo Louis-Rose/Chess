@@ -390,6 +390,10 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.sectionAITools': 'AI Tools',
     'coaches.sectionEmpty': 'Coming soon',
     'coaches.previous': 'Previous',
+    'coaches.status.done': 'done',
+    'coaches.status.loading': 'reading...',
+    'coaches.status.consensusDone': 'Consensus done',
+    'coaches.status.consensusComputing': 'Consensus computing...',
     'coaches.navAdmin': 'Admin',
     // Admin panel
     'coaches.admin.user1': 'user',
@@ -801,6 +805,10 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.sectionAITools': 'Outils IA',
     'coaches.sectionEmpty': 'Bientôt disponible',
     'coaches.previous': 'Précédent',
+    'coaches.status.done': 'terminé',
+    'coaches.status.loading': 'lecture...',
+    'coaches.status.consensusDone': 'Consensus terminé',
+    'coaches.status.consensusComputing': 'Consensus en cours...',
     'coaches.navAdmin': 'Admin',
     // Admin panel
     'coaches.admin.user1': 'utilisateur',

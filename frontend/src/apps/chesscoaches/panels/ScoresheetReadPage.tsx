@@ -453,21 +453,93 @@ export function ScoresheetReadPage() {
                       .filter((mv): mv is Move[] => !!mv && mv.length > 0);
                     if (allModelMoves.length < 2) return null;
                     const maxLen = Math.max(...allModelMoves.map(mv => mv.length));
+                    // Smart consensus: greedy left-to-right, picks the candidate
+                    // producing the fewest illegal moves downstream.
                     const consensusMoves: Move[] = [];
+
+                    // First pass: collect majority-vote moves (used as fallback for downstream simulation)
+                    const majorityMoves: Move[] = [];
                     for (let i = 0; i < maxLen; i++) {
-                      const move: Move = { number: i + 1, white: '' };
+                      const mv: Move = { number: i + 1, white: '' };
                       for (const color of ['white', 'black'] as const) {
                         const votes: Record<string, number> = {};
-                        for (const mv of allModelMoves) {
-                          const val = mv[i]?.[color];
+                        for (const modelMv of allModelMoves) {
+                          const val = modelMv[i]?.[color];
                           if (val) {
                             const normalized = val.replace(/[+#]/g, '');
                             votes[normalized] = (votes[normalized] || 0) + 1;
                           }
                         }
                         const sorted = Object.entries(votes).sort((a, b) => b[1] - a[1]);
-                        if (sorted.length > 0) {
-                          (move as any)[color] = sorted[0][0];
+                        if (sorted.length > 0) (mv as any)[color] = sorted[0][0];
+                      }
+                      majorityMoves.push(mv);
+                    }
+
+                    // Second pass: greedy left-to-right with look-ahead
+                    const mainChess = new Chess();
+                    for (let i = 0; i < maxLen; i++) {
+                      const move: Move = { number: i + 1, white: '' };
+                      for (const color of ['white', 'black'] as const) {
+                        // Collect candidates with vote counts
+                        const votes: Record<string, number> = {};
+                        for (const modelMv of allModelMoves) {
+                          const val = modelMv[i]?.[color];
+                          if (val) {
+                            const normalized = val.replace(/[+#]/g, '');
+                            votes[normalized] = (votes[normalized] || 0) + 1;
+                          }
+                        }
+                        const candidates = Object.entries(votes).sort((a, b) => b[1] - a[1]);
+                        if (candidates.length === 0) continue;
+
+                        if (candidates.length === 1) {
+                          // All models agree
+                          (move as any)[color] = candidates[0][0];
+                          try { mainChess.move(candidates[0][0]); } catch { /* will be caught by validation */ }
+                        } else {
+                          // Disagreement: evaluate each candidate by downstream illegals
+                          let bestCandidate = candidates[0][0];
+                          let bestIllegals = Infinity;
+                          let bestVotes = candidates[0][1];
+
+                          for (const [candidate, voteCount] of candidates) {
+                            const simChess = new Chess(mainChess.fen());
+                            let illegals = 0;
+                            try { simChess.move(candidate); } catch { illegals += 100; } // candidate itself illegal = heavy penalty
+
+                            if (illegals === 0) {
+                              // Play remaining half-moves using majority votes
+                              // Continue from current color's remaining half-move partner
+                              const startColor = color === 'white' ? 'black' : null;
+                              if (startColor && majorityMoves[i]?.black) {
+                                try { simChess.move(majorityMoves[i].black!); } catch { illegals++; }
+                              }
+                              // Then play subsequent full moves
+                              const startIdx = color === 'white' ? i + 1 : i + 1;
+                              for (let j = startIdx; j < maxLen; j++) {
+                                for (const c of ['white', 'black'] as const) {
+                                  const san = majorityMoves[j]?.[c];
+                                  if (!san) continue;
+                                  try { simChess.move(san); } catch { illegals++; }
+                                }
+                              }
+                            }
+
+                            if (illegals < bestIllegals || (illegals === bestIllegals && voteCount > bestVotes)) {
+                              bestIllegals = illegals;
+                              bestCandidate = candidate;
+                              bestVotes = voteCount;
+                            }
+                          }
+
+                          (move as any)[color] = bestCandidate;
+                          try { mainChess.move(bestCandidate); } catch {
+                            // Skip side if move is illegal (validation pass will flag it)
+                            const fen = mainChess.fen().split(' ');
+                            fen[1] = fen[1] === 'w' ? 'b' : 'w';
+                            mainChess.load(fen.join(' '));
+                          }
                         }
                       }
                       consensusMoves.push(move);
@@ -605,6 +677,43 @@ export function ScoresheetReadPage() {
                       )}
                       <div className="border-t border-slate-600 mt-4" />
                     </>
+                  )}
+
+                  {/* Status bar — model progress */}
+                  {models.length > 0 && (
+                    <div className="mt-6 border-t border-slate-700 pt-3 flex flex-wrap gap-x-4 gap-y-1 justify-center text-xs text-slate-400">
+                      {models.map(m => {
+                        const mr = modelResults[m.id];
+                        const done = !!(mr?.result || mr?.error);
+                        return (
+                          <span key={m.id} className={done ? 'text-slate-400' : 'text-slate-500'}>
+                            {m.name}{' '}
+                            {done ? (
+                              <>{mr?.error ? '✗' : '✓'} {mr?.elapsed ? `${mr.elapsed}s` : ''}</>
+                            ) : (
+                              <span className="animate-pulse">⏳ {t('coaches.status.loading')}</span>
+                            )}
+                          </span>
+                        );
+                      })}
+                      {(() => {
+                        const finishedCount = models.filter(m => !!(modelResults[m.id]?.result || modelResults[m.id]?.error)).length;
+                        const allDone = finishedCount === models.length;
+                        const hasConsensus = models
+                          .map(m => modelResults[m.id]?.result?.moves)
+                          .filter((mv): mv is Move[] => !!mv && mv.length > 0).length >= 2;
+                        if (!hasConsensus && !allDone) return null;
+                        return (
+                          <span className={allDone ? 'text-slate-400' : 'text-slate-500'}>
+                            {allDone && hasConsensus ? (
+                              <>✓ {t('coaches.status.consensusDone')}</>
+                            ) : (
+                              <span className="animate-pulse">⏳ {t('coaches.status.consensusComputing')}</span>
+                            )}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   )}
                 </div>
                 );
