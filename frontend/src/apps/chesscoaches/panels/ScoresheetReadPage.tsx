@@ -1753,12 +1753,6 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                 </>
               );
             })()}
-            <button
-              onClick={() => setVoteInfoKey(null)}
-              className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm py-2 rounded-lg transition-colors"
-            >
-              OK
-            </button>
           </div>
         </div>,
         document.body
