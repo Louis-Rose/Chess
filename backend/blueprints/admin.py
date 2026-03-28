@@ -392,15 +392,27 @@ def get_api_usage():
             row['avg_elapsed'] = round(row['avg_elapsed'] or 0, 1)
             by_model.append(row)
 
-        # Per-feature aggregates
+        # Per-feature aggregates (with cost computed from per-model pricing)
         cursor = conn.execute('''
-            SELECT feature, COUNT(*) as call_count,
+            SELECT feature, model_id, COUNT(*) as call_count,
                    SUM(input_tokens) as total_input,
                    SUM(output_tokens) as total_output
             FROM api_usage
-            GROUP BY feature
+            GROUP BY feature, model_id
         ''')
-        by_feature = [dict(r) for r in cursor.fetchall()]
+        feature_agg = {}
+        for r in cursor.fetchall():
+            row = dict(r)
+            f = row['feature']
+            pricing = GEMINI_PRICING.get(row['model_id'], {'input': 0, 'output': 0})
+            cost = ((row['total_input'] or 0) * pricing['input'] + (row['total_output'] or 0) * pricing['output']) / 1_000_000
+            if f not in feature_agg:
+                feature_agg[f] = {'feature': f, 'call_count': 0, 'total_input': 0, 'total_output': 0, 'cost_usd': 0}
+            feature_agg[f]['call_count'] += row['call_count']
+            feature_agg[f]['total_input'] += row['total_input'] or 0
+            feature_agg[f]['total_output'] += row['total_output'] or 0
+            feature_agg[f]['cost_usd'] += cost
+        by_feature = [{'cost_usd': round(v['cost_usd'], 6), **v} for v in feature_agg.values()]
 
     # Compute total cost
     total_cost = sum(m['cost_usd'] for m in by_model)

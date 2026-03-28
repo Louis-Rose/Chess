@@ -57,7 +57,7 @@ interface ApiUsageByModel {
 interface ApiUsageResponse {
   history: ApiUsageRow[];
   by_model: ApiUsageByModel[];
-  by_feature: { feature: string; call_count: number; total_input: number; total_output: number }[];
+  by_feature: { feature: string; call_count: number; total_input: number; total_output: number; cost_usd: number }[];
   total_cost_usd: number;
   pricing: Record<string, { input: number; output: number }>;
 }
@@ -331,14 +331,27 @@ export function AdminPanel() {
 
             {/* Per-feature summary */}
             {apiUsage.by_feature.length > 0 && (
-              <div className="flex gap-3 flex-wrap">
-                {apiUsage.by_feature.map(f => (
-                  <div key={f.feature} className="bg-slate-800/50 rounded-md px-3 py-2 text-xs">
-                    <span className="text-slate-400">{FEATURE_LABELS[f.feature] || f.feature}</span>
-                    <span className="text-slate-200 ml-2 font-medium">{f.call_count} calls</span>
-                    <span className="text-slate-500 ml-2">{formatTokens((f.total_input || 0) + (f.total_output || 0))} tokens</span>
-                  </div>
-                ))}
+              <div className="overflow-x-auto rounded-lg border border-slate-600/50">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left">Feature</th>
+                      <th className="px-3 py-2 text-center">Calls</th>
+                      <th className="px-3 py-2 text-center">Tokens</th>
+                      <th className="px-3 py-2 text-right">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {apiUsage.by_feature.map(f => (
+                      <tr key={f.feature} className="hover:bg-slate-700/30">
+                        <td className="px-3 py-2 text-slate-200">{FEATURE_LABELS[f.feature] || f.feature}</td>
+                        <td className="px-3 py-2 text-slate-400 text-center">{f.call_count}</td>
+                        <td className="px-3 py-2 text-slate-400 text-center">{formatTokens((f.total_input || 0) + (f.total_output || 0))}</td>
+                        <td className="px-3 py-2 text-green-400 text-right font-medium">{formatCost(f.cost_usd)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
 
