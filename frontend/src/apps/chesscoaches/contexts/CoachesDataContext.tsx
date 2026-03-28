@@ -605,8 +605,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     scoresheetAnalyzeAbortRef.current = controller;
     setScoresheet(prev => ({ ...prev, modelResults: {}, reReads: {}, azureResult: null }));
     scoresheetAnalyzeImage(file, controller.signal);
-    scoresheetAnalyzeAzure(file, controller.signal);
-  }, [scoresheet.imageFile, scoresheetAnalyzeImage, scoresheetAnalyzeAzure]);
+  }, [scoresheet.imageFile, scoresheetAnalyzeImage]);
 
 
   // ── Diagram state ──
