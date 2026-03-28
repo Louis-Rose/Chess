@@ -414,6 +414,37 @@ def get_api_usage():
             feature_agg[f]['cost_usd'] += cost
         by_feature = [{'cost_usd': round(v['cost_usd'], 6), **v} for v in feature_agg.values()]
 
+        # Per-invocation history (grouped by request_id)
+        cursor = conn.execute('''
+            SELECT request_id, feature,
+                   COUNT(*) as model_count,
+                   SUM(input_tokens) as total_input,
+                   SUM(output_tokens) as total_output,
+                   MAX(elapsed_seconds) as elapsed_seconds,
+                   SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) as error_count,
+                   MIN(created_at) as created_at
+            FROM api_usage
+            WHERE request_id IS NOT NULL
+            GROUP BY request_id
+            ORDER BY MIN(created_at) DESC
+            LIMIT 100
+        ''')
+        invocations = []
+        for r in cursor.fetchall():
+            row = dict(r)
+            # Compute cost for this invocation from its individual calls
+            cursor2 = conn.execute('''
+                SELECT model_id, SUM(input_tokens) as inp, SUM(output_tokens) as out
+                FROM api_usage WHERE request_id = ?
+                GROUP BY model_id
+            ''', (row['request_id'],))
+            cost = 0
+            for m in cursor2.fetchall():
+                p = GEMINI_PRICING.get(m['model_id'], {'input': 0, 'output': 0})
+                cost += ((m['inp'] or 0) * p['input'] + (m['out'] or 0) * p['output']) / 1_000_000
+            row['cost_usd'] = round(cost, 6)
+            invocations.append(row)
+
     # Compute total cost
     total_cost = sum(m['cost_usd'] for m in by_model)
 
@@ -421,6 +452,7 @@ def get_api_usage():
         'history': rows,
         'by_model': by_model,
         'by_feature': by_feature,
+        'invocations': invocations,
         'total_cost_usd': round(total_cost, 6),
         'pricing': GEMINI_PRICING,
     })

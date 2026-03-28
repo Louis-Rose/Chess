@@ -436,6 +436,7 @@ CREATE INDEX IF NOT EXISTS idx_device_usage_user_id ON device_usage(user_id);
 CREATE TABLE IF NOT EXISTS api_usage (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,                       -- NULL for unauthenticated requests
+    request_id TEXT,                       -- Groups model calls from one feature invocation
     feature TEXT NOT NULL,                 -- 'scoresheet', 'reread', 'diagram'
     model_id TEXT NOT NULL,                -- e.g. 'gemini-3-flash-preview'
     input_tokens INTEGER DEFAULT 0,

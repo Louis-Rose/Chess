@@ -583,6 +583,15 @@ def init_db():
                 conn.execute("CREATE INDEX idx_api_usage_created ON api_usage(created_at)")
                 conn.execute("CREATE INDEX idx_api_usage_feature ON api_usage(feature)")
                 print("[Database] Created api_usage table")
+            else:
+                # Migration: Add request_id column if missing
+                conn.execute("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'api_usage' AND column_name = 'request_id'
+                """)
+                if not conn._cursor.fetchone():
+                    conn.execute("ALTER TABLE api_usage ADD COLUMN request_id TEXT")
+                    print("[Database] Added request_id column to api_usage")
 
             # Migration: Tag admin account as coaches app user
             conn.execute("UPDATE users SET registered_app = 'coaches' WHERE email = 'rose.louis.mail@gmail.com' AND registered_app IS NULL")

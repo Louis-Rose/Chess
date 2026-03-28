@@ -233,14 +233,14 @@ def _scoresheet_parse_response(response_text):
     return result, warnings
 
 
-def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None):
+def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None, request_id=None):
     """Log a Gemini API call to the api_usage table."""
     try:
         with get_db() as conn:
             conn.execute(
-                """INSERT INTO api_usage (feature, model_id, input_tokens, output_tokens, elapsed_seconds, error)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                (feature, model_id, input_tokens, output_tokens, elapsed, error),
+                """INSERT INTO api_usage (request_id, feature, model_id, input_tokens, output_tokens, elapsed_seconds, error)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (request_id, feature, model_id, input_tokens, output_tokens, elapsed, error),
             )
     except Exception as e:
         logger.error(f"[API Usage] Failed to log: {e}")
@@ -293,6 +293,7 @@ def reread_scoresheet():
     import chess
     import json as json_module
     import time as time_module
+    import uuid
 
     if 'image' not in request.files:
         return jsonify({"error": "No image file provided"}), 400
@@ -303,6 +304,7 @@ def reread_scoresheet():
 
     confirmed_moves = json_module.loads(request.form.get('confirmed_moves', '[]'))
     model_id = request.form.get('model_id', 'gemini-3-flash-preview')
+    req_id = uuid.uuid4().hex[:12]
 
     api_key = os.environ.get('GEMINI_API_KEY')
     if not api_key:
@@ -375,14 +377,14 @@ Return ONLY a JSON object:
     except Exception as e:
         elapsed = round(time_module.time() - start)
         logger.error(f"[Scoresheet reread] {model_id} failed: {e}")
-        _log_api_usage('reread', model_id, 0, 0, elapsed, error=str(e))
+        _log_api_usage('reread', model_id, 0, 0, elapsed, error=str(e), request_id=req_id)
         return jsonify({"error": str(e)}), 500
 
     elapsed = round(time_module.time() - start)
     usage = getattr(response, 'usage_metadata', None)
     in_tok = getattr(usage, 'prompt_token_count', 0) or 0
     out_tok = getattr(usage, 'candidates_token_count', 0) or 0
-    _log_api_usage('reread', model_id, in_tok, out_tok, elapsed)
+    _log_api_usage('reread', model_id, in_tok, out_tok, elapsed, request_id=req_id)
     gemini_result, warnings = _scoresheet_parse_response(response.text)
     new_moves = gemini_result.get("moves", [])
 
@@ -580,6 +582,7 @@ def read_diagram():
     import threading
     import queue
     import time as time_module
+    import uuid
 
     logger.info("[Diagram] Request received")
 
@@ -600,6 +603,7 @@ def read_diagram():
     logger.info(f"[Diagram] Image: {len(image_bytes)} bytes, {mime_type}")
 
     THREAD_DONE = "THREAD_DONE"
+    req_id = uuid.uuid4().hex[:12]
 
     result_queue = queue.Queue()
     client = genai.Client(api_key=api_key)
@@ -627,12 +631,12 @@ def read_diagram():
                 fen = fen[4:].strip()
             logger.info(f"[Diagram] {model_name} responded in {elapsed}s: {fen[:80]} ({in_tok}+{out_tok} tokens)")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "fen": fen, "elapsed": elapsed})
-            _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed)
+            _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed, request_id=req_id)
         except Exception as e:
             elapsed = round(time_module.time() - start)
             logger.error(f"[Diagram] {model_name} failed after {elapsed}s: {e}")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
-            _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e))
+            _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e), request_id=req_id)
         finally:
             result_queue.put(THREAD_DONE)
 
@@ -677,6 +681,7 @@ def read_scoresheet():
     import threading
     import queue
     import time as time_module
+    import uuid
 
     logger.info("[Scoresheet] Request received")
 
@@ -697,6 +702,7 @@ def read_scoresheet():
     logger.info(f"[Scoresheet] Image: {len(image_bytes)} bytes, {mime_type}")
 
     THREAD_DONE = "THREAD_DONE"
+    req_id = uuid.uuid4().hex[:12]
 
     result_queue = queue.Queue()
     client = genai.Client(api_key=api_key)
@@ -731,13 +737,13 @@ def read_scoresheet():
             if warnings:
                 item["warnings"] = warnings
             result_queue.put(item)
-            _log_api_usage('scoresheet', model_id, in_tok, out_tok, elapsed)
+            _log_api_usage('scoresheet', model_id, in_tok, out_tok, elapsed, request_id=req_id)
 
         except Exception as e:
             elapsed = round(time_module.time() - start)
             logger.error(f"[Scoresheet] {model_name} failed after {elapsed}s: {e}")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
-            _log_api_usage('scoresheet', model_id, 0, 0, elapsed, error=str(e))
+            _log_api_usage('scoresheet', model_id, 0, 0, elapsed, error=str(e), request_id=req_id)
         finally:
             result_queue.put(THREAD_DONE)
 
