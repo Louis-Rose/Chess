@@ -2209,7 +2209,7 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, confiden
   return (
     <td
       ref={ref}
-      className={`px-2 py-1 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}${disputed ? ' ring-1 ring-inset ring-yellow-500' : ''}`}
+      className={`px-2 py-1 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}`}
       onClick={handleClick}
     >
       <span className="inline-flex items-center justify-center gap-1 w-full">
