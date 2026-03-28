@@ -337,10 +337,10 @@ def reread_scoresheet():
     model_id = request.form.get('model_id', 'gemini-3-flash-preview')
     req_id = uuid.uuid4().hex[:12]
 
-    paid_key = os.environ.get('GEMINI_API_KEY')
+    paid_key = os.environ.get('GEMINI_PAID_API_KEY')
     free_key = os.environ.get('GEMINI_FREE_API_KEY')
     if not paid_key:
-        return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
+        return jsonify({"error": "GEMINI_PAID_API_KEY not configured"}), 500
 
     # Replay confirmed moves to get board position
     board = chess.Board()
@@ -627,11 +627,11 @@ def read_diagram():
     if not image_file.filename:
         return jsonify({"error": "Empty filename"}), 400
 
-    paid_key = os.environ.get('GEMINI_API_KEY')
+    paid_key = os.environ.get('GEMINI_PAID_API_KEY')
     free_key = os.environ.get('GEMINI_FREE_API_KEY')
     if not paid_key:
-        logger.error("[Diagram] GEMINI_API_KEY not configured")
-        return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
+        logger.error("[Diagram] GEMINI_PAID_API_KEY not configured")
+        return jsonify({"error": "GEMINI_PAID_API_KEY not configured"}), 500
 
     image_bytes = image_file.read()
     mime_type = image_file.content_type or 'image/jpeg'
@@ -729,11 +729,11 @@ def read_scoresheet():
     if not image_file.filename:
         return jsonify({"error": "Empty filename"}), 400
 
-    paid_key = os.environ.get('GEMINI_API_KEY')
+    paid_key = os.environ.get('GEMINI_PAID_API_KEY')
     free_key = os.environ.get('GEMINI_FREE_API_KEY')
     if not paid_key:
-        logger.error("[Scoresheet] GEMINI_API_KEY not configured")
-        return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
+        logger.error("[Scoresheet] GEMINI_PAID_API_KEY not configured")
+        return jsonify({"error": "GEMINI_PAID_API_KEY not configured"}), 500
 
     image_bytes = image_file.read()
     mime_type = image_file.content_type or 'image/jpeg'

@@ -579,9 +579,9 @@ def _parse_revolut_pdf_with_gemini(pdf_bytes):
     from pdf2image import convert_from_bytes
     import json
 
-    api_key = os.environ.get('GEMINI_API_KEY')
+    api_key = os.environ.get('GEMINI_PAID_API_KEY')
     if not api_key:
-        return None, ['GEMINI_API_KEY not configured']
+        return None, ['GEMINI_PAID_API_KEY not configured']
 
     try:
         genai.configure(api_key=api_key)
@@ -891,7 +891,7 @@ def _map_stock_names_to_tickers_with_gemini(stock_names: list[str]) -> dict[str,
     import google.generativeai as genai
     import json
 
-    api_key = os.environ.get('GEMINI_API_KEY')
+    api_key = os.environ.get('GEMINI_PAID_API_KEY')
     if not api_key:
         # Fallback: return names as-is
         return {name: name for name in stock_names}
@@ -1200,9 +1200,9 @@ def _parse_ibkr_pdf_with_gemini(pdf_bytes: bytes) -> tuple[list[dict] | None, li
     from pdf2image import convert_from_bytes
     import json
 
-    api_key = os.environ.get('GEMINI_API_KEY')
+    api_key = os.environ.get('GEMINI_PAID_API_KEY')
     if not api_key:
-        return None, ['GEMINI_API_KEY not configured']
+        return None, ['GEMINI_PAID_API_KEY not configured']
 
     try:
         genai.configure(api_key=api_key)
@@ -1279,9 +1279,9 @@ def _parse_ibkr_html_with_gemini(html_bytes: bytes) -> tuple[list[dict] | None, 
     import google.generativeai as genai
     import json
 
-    api_key = os.environ.get('GEMINI_API_KEY')
+    api_key = os.environ.get('GEMINI_PAID_API_KEY')
     if not api_key:
-        return None, ['GEMINI_API_KEY not configured']
+        return None, ['GEMINI_PAID_API_KEY not configured']
 
     try:
         genai.configure(api_key=api_key)
@@ -1363,9 +1363,9 @@ def _parse_ibkr_image_with_gemini(image_bytes: bytes) -> tuple[list[dict] | None
     from io import BytesIO
     import json
 
-    api_key = os.environ.get('GEMINI_API_KEY')
+    api_key = os.environ.get('GEMINI_PAID_API_KEY')
     if not api_key:
-        return None, ['GEMINI_API_KEY not configured']
+        return None, ['GEMINI_PAID_API_KEY not configured']
 
     try:
         genai.configure(api_key=api_key)

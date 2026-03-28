@@ -271,9 +271,9 @@ def get_chess_insight():
     if not stat_type or not rows:
         return jsonify({"error": "type and rows required"}), 400
 
-    api_key = os.environ.get('GEMINI_API_KEY')
+    api_key = os.environ.get('GEMINI_PAID_API_KEY')
     if not api_key:
-        return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
+        return jsonify({"error": "GEMINI_PAID_API_KEY not configured"}), 500
 
     try:
         genai.configure(api_key=api_key)
