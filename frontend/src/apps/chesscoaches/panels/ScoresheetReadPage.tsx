@@ -663,9 +663,6 @@ export function ScoresheetReadPage() {
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
                             {!consensusReady ? (
                               <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[540px]">
-                                <div className="px-3 py-2.5 border-b border-slate-600 flex items-center justify-center gap-2">
-                                  <span className="text-slate-100 font-medium text-sm">{t('coaches.consensus')}</span>
-                                </div>
                                 <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
                                   <Clock className="w-4 h-4 animate-spin" />
                                   <span className="text-sm">{t('coaches.analyzing')}</span>
