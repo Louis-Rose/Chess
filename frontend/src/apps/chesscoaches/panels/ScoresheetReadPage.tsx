@@ -392,43 +392,10 @@ export function ScoresheetReadPage() {
                 </div>
               )}
 
-              {/* Consensus loading — before models arrive */}
-              {analyzing && models.length === 0 && preview && (
-                <div className="border border-slate-600/50 rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => setResultsCollapsed(c => !c)}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 hover:bg-slate-700/30 transition-colors"
-                  >
-                    <span className="text-base text-slate-100 font-medium">{t('coaches.consensus')}</span>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${resultsCollapsed ? '' : 'rotate-180'}`} />
-                  </button>
-                  {!resultsCollapsed && (
-                    <div className="border-t border-slate-600/50 py-4">
-                      <ModelRow key="__consensus_early__" preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')} fileName={fileName || undefined}>
-                        <div className="flex items-stretch">
-                          <div className="flex-1 hidden md:block" />
-                          <div className="flex-shrink-0" data-tables>
-                            <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[540px]">
-                              <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
-                                <Clock className="w-4 h-4 animate-spin" />
-                                <span className="text-sm">{t('coaches.analyzing')}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex-1 hidden md:flex justify-center items-center">
-                            <ModelBoard moves={[]} externalPly={0} onPlyChange={() => {}} disableDrag autoActivate={false} previewFen={null} />
-                          </div>
-                        </div>
-                      </ModelRow>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Retry button — moved inside results block, between consensus and models */}
 
               {/* Results: one row per model — [image | GT | read | board] */}
-              {models.length > 0 && (() => {
+              {(models.length > 0 || (analyzing && preview)) && (() => {
                 // Get column info from any model that has results (for GT panel consistency)
                 const anyResult = Object.values(modelResults).find(r => r?.result)?.result;
                 const sheetColumns = (anyResult as any)?.columns || 1;
