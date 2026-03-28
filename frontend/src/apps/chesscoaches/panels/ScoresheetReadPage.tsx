@@ -1396,7 +1396,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
               const isAutoResolved = reason?.startsWith('Ambiguous') || reason?.startsWith('Auto-fixed');
               if (isIllegalMove || hasDisagreement || isAutoResolved) {
                 return (
-                  <p className="text-yellow-400 text-xs text-center">
+                  <p className="text-yellow-400 text-sm text-center">
                     {isIllegalMove && 'Illegal move'}
                     {isIllegalMove && hasDisagreement && ' · '}
                     {hasDisagreement && 'Models disagree'}
