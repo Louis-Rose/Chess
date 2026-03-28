@@ -1447,8 +1447,9 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       {names.map(name => {
                         const move = modelToMove[name];
                         const conf = confByModel[name];
+                        const illegal = move ? candidateIllegal[move] : false;
                         return (
-                          <tr key={name} className="border-b border-slate-700/50">
+                          <tr key={name} className={`border-b border-slate-700/50 ${illegal ? 'opacity-40' : ''}`}>
                             <td className="py-1.5 px-2 text-slate-100 text-xs">{name}</td>
                             <td className="py-1.5 px-2 text-center font-mono text-slate-100">{move || '—'}{legalMark(move)}</td>
                             <td className={`py-1.5 px-2 text-center text-xs ${confColor(conf)}`}>{conf || '—'}</td>
