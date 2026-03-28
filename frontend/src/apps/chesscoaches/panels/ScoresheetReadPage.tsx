@@ -2031,7 +2031,7 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onEd
   const menuRef = useRef<HTMLDivElement>(null);
   const isLowConfidence = confidence === 'low';
   const isIllegal = legal === false;
-  const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : (highlight || isIllegal) ? 'bg-yellow-500/25 text-yellow-100' : isLowConfidence ? 'bg-red-500/20 text-red-200' : 'text-slate-100';
+  const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : (highlight || isIllegal || isLowConfidence) ? 'bg-yellow-500/25 text-yellow-100' : 'text-slate-100';
 
   // Close menu when this cell is no longer active
   useEffect(() => {
