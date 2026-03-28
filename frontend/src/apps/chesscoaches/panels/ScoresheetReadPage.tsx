@@ -79,6 +79,10 @@ export function ScoresheetReadPage() {
   const [processingCollapsed, setProcessingCollapsed] = useState(false);
   const [resultsCollapsed, setResultsCollapsed] = useState(false);
   const [modelsCollapsed, setModelsCollapsed] = useState(false);
+  const [highlightHintDismissed, setHighlightHintDismissed] = useState(() => {
+    const dismissed = localStorage.getItem('scoresheet_hint_dismissed');
+    return dismissed === new Date().toISOString().split('T')[0];
+  });
 
   // ── Live elapsed timer for status table ──
   const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
@@ -609,8 +613,13 @@ export function ScoresheetReadPage() {
                     };
                     return (
                       <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')} fileName={fileName || undefined}>
-                        {consensusReady && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)) && (
-                          <p className="text-slate-100 text-sm text-center mb-3"><span className="bg-yellow-500/25 text-yellow-100 px-1.5 py-0.5 rounded">Highlighted moves</span> should be double-checked</p>
+                        {consensusReady && !highlightHintDismissed && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)) && (
+                          <div className="flex items-center justify-center gap-2 mb-3 bg-slate-700/40 rounded-lg px-4 py-2">
+                            <p className="text-slate-100 text-sm"><span className="bg-yellow-500/25 text-yellow-100 px-1.5 py-0.5 rounded">Highlighted moves</span> should be double-checked</p>
+                            <button onClick={() => { setHighlightHintDismissed(true); localStorage.setItem('scoresheet_hint_dismissed', new Date().toISOString().split('T')[0]); }} className="text-slate-500 hover:text-slate-300 transition-colors ml-1 flex-shrink-0">
+                              <span className="text-xs">&#10005;</span>
+                            </button>
+                          </div>
                         )}
                         <div className="flex items-stretch" onClick={consensusReady ? deselectConsensus : undefined}>
                           <div className="flex-1 hidden md:block" />
