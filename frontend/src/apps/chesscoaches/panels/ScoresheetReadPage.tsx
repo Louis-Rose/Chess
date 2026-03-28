@@ -1739,6 +1739,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                   </table>
                   {details.length > 1 && (
                     <div className="text-xs text-slate-500 space-y-1">
+                      <span className="text-slate-400 font-medium">Pass 2 details</span>
                       {details.map(d => (
                         <div key={d.candidate} className="flex justify-between px-2">
                           <span className="font-mono text-slate-400">{d.candidate}</span>
