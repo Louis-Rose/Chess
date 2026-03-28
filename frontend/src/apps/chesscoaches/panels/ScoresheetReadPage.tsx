@@ -622,14 +622,14 @@ export function ScoresheetReadPage() {
                               }
                               // Auto-resolve: use the best disambiguation
                               (cm as any)[color] = bestAmbig;
-                              (cm as any)[`${color}_reason`] = `Ambiguous: did you mean ${candidates.join(' or ')}? Auto-resolved to ${bestAmbig}`;
+                              (cm as any)[`${color}_reason`] = `Ambiguous (${candidates.join('/')}) → ${bestAmbig}`;
                               try { valChess.move(bestAmbig); (cm as any)[`${color}_legal`] = true; }
                               catch { (cm as any)[`${color}_legal`] = false; }
                               continue;
                             } else if (candidates.length === 1) {
                               // Only one legal move by this piece to this square — auto-fix
                               (cm as any)[color] = candidates[0];
-                              (cm as any)[`${color}_reason`] = `Did you mean ${candidates[0]}?`;
+                              (cm as any)[`${color}_reason`] = `Auto-fixed → ${candidates[0]}`;
                               try { valChess.move(candidates[0]); (cm as any)[`${color}_legal`] = true; }
                               catch { (cm as any)[`${color}_legal`] = false; }
                               continue;
@@ -2058,12 +2058,12 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselec
   });
   const isWhite = color === 'white';
 
-  // Extract suggested moves from ambiguous reason (e.g., "Ambiguous: did you mean Nfd2 or Nbd2?")
+  // Extract suggested moves from ambiguous reason (e.g., "Ambiguous (N5h4/N3h4) → N5h4")
   const suggestedMoves = useMemo(() => {
     if (!reason) return [];
-    const match = reason.match(/did you mean (.+)\?/i);
+    const match = reason.match(/Ambiguous \((.+)\)/);
     if (!match) return [];
-    return match[1].split(/ or |, /).map(s => s.trim()).filter(s => legalMoves.includes(s));
+    return match[1].split('/').map(s => s.trim()).filter(s => legalMoves.includes(s));
   }, [reason, legalMoves]);
 
   const suggestedPieceKey = suggestedMoves.length > 0 ? getPieceKey(suggestedMoves[0]) : null;
