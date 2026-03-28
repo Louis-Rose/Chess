@@ -373,7 +373,6 @@ export function AdminPanel() {
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <div className="flex items-center gap-1">
-                  <DollarSign className="w-3.5 h-3.5 text-green-400" />
                   <span className="text-green-400 font-medium">{formatCost(apiUsage.total_cost_usd)}</span>
                   <span className="text-slate-500">total</span>
                 </div>
