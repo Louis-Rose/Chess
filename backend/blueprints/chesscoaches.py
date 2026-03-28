@@ -675,7 +675,8 @@ def read_diagram():
             elapsed = round(time_module.time() - start)
             logger.error(f"[Diagram] {model_name} failed after {elapsed}s: {e}")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
-            _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid)
+            err_tier = 'paid' if (model_id in _PAID_ONLY_MODELS or client_free is None) else 'free'
+            _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid, billing_tier=err_tier)
         finally:
             result_queue.put(THREAD_DONE)
 
@@ -786,7 +787,8 @@ def read_scoresheet():
             elapsed = round(time_module.time() - start)
             logger.error(f"[Scoresheet] {model_name} failed after {elapsed}s: {e}")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
-            _log_api_usage('scoresheet', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid)
+            err_tier = 'paid' if (model_id in _PAID_ONLY_MODELS or client_free is None) else 'free'
+            _log_api_usage('scoresheet', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid, billing_tier=err_tier)
         finally:
             result_queue.put(THREAD_DONE)
 

@@ -377,19 +377,24 @@ export function AdminPanel() {
                       <th className="px-3 py-2 text-left">Feature</th>
                       <th className="px-3 py-2 text-center">Uses</th>
                       <th className="px-3 py-2 text-center">Tokens</th>
+                      <th className="px-3 py-2 text-center">Avg time</th>
                       <th className="px-3 py-2 text-center">Avg cost</th>
                       <th className="px-3 py-2 text-right">Cost</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/50">
                     {apiUsage.by_feature.map(f => {
-                      const invocationCount = apiUsage.invocations.filter(i => i.feature === f.feature).length;
-                      const uses = invocationCount || f.call_count;
+                      const featureInvocations = apiUsage.invocations.filter(i => i.feature === f.feature);
+                      const uses = featureInvocations.length || f.call_count;
+                      const avgTime = featureInvocations.length > 0
+                        ? Math.round(featureInvocations.reduce((s, i) => s + i.elapsed_seconds, 0) / featureInvocations.length)
+                        : 0;
                       return (
                         <tr key={f.feature} className="hover:bg-slate-700/30">
                           <td className="px-3 py-2 text-slate-200">{FEATURE_LABELS[f.feature] || f.feature}</td>
                           <td className="px-3 py-2 text-slate-400 text-center">{uses}</td>
                           <td className="px-3 py-2 text-slate-400 text-center">{formatTokens((f.total_input || 0) + (f.total_output || 0))}</td>
+                          <td className="px-3 py-2 text-slate-400 text-center">{avgTime > 0 ? `${avgTime}s` : '—'}</td>
                           <td className="px-3 py-2 text-slate-400 text-center">{uses > 0 ? formatCost(f.cost_usd / uses) : '—'}</td>
                           <td className="px-3 py-2 text-green-400 text-right font-medium">{formatCost(f.cost_usd)}</td>
                         </tr>
