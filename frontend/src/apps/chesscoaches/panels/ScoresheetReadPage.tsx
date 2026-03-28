@@ -1470,7 +1470,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
       </div>
 
 
-      {error && <p className="text-red-400 text-center py-3 text-xs px-2 break-words">{error}</p>}
+      {error && <p className="text-red-400 text-center py-3 text-xs px-2 break-words max-w-sm mx-auto">{error}</p>}
 
       {/* Moves table */}
       {moves.length > 0 && (() => {
