@@ -849,7 +849,6 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, fileName, ch
           style={{ top: 0, bottom: 0, left: 0, width: tablesLeft - 8 }}
         >
           <div className="flex flex-col items-center">
-            {fileName && <span className="text-slate-100 text-sm mb-3 truncate max-w-[200px]">{fileName}</span>}
             <img
               src={preview}
               alt="Scoresheet"
@@ -857,6 +856,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, fileName, ch
               style={{ maxHeight: tbodyHeight }}
               onClick={onImageClick}
             />
+            {fileName && <span className="text-slate-500 text-xs mt-2 truncate max-w-[200px]">{fileName}</span>}
             {onReplace && (
               <button
                 onClick={onReplace}
