@@ -1453,8 +1453,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                         <td className="py-1.5 px-2 text-slate-100 text-xs font-medium">Consensus (Pass 2)</td>
                         <td className="py-1.5 px-2 text-center font-mono">
                           {postValidationChanged
-                            ? <span className="text-slate-100">{chosen}</span>
-                            : <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{chosen || '—'}</span>}
+                            ? <span className="text-slate-100">{chosen}{legalMark(chosen)}</span>
+                            : <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{chosen || '—'}{legalMark(chosen)}</span>}
                         </td>
                         <td />
                       </tr>
