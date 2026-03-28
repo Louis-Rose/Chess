@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import type { ReactNode } from 'react';
+import { useAuth } from '../../../contexts/AuthContext';
 
 // ── Shared types ──
 
@@ -365,6 +366,17 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
   // ── Scoresheet state ──
   const [scoresheet, setScoresheet] = useState<ScoresheetState>(SCORESHEET_INITIAL);
   const scoresheetAnalyzeAbortRef = useRef<AbortController | null>(null);
+
+  // ── Clear scoresheet on logout ──
+  const { user } = useAuth();
+  const prevUserRef = useRef(user);
+  useEffect(() => {
+    if (prevUserRef.current && !user) {
+      if (scoresheetAnalyzeAbortRef.current) { scoresheetAnalyzeAbortRef.current.abort(); scoresheetAnalyzeAbortRef.current = null; }
+      setScoresheet(SCORESHEET_INITIAL);
+    }
+    prevUserRef.current = user;
+  }, [user]);
 
   const scoresheetSetImage = useCallback((file: File, preview: string, fileName: string) => {
     setScoresheet({ ...SCORESHEET_INITIAL, preview, imageFile: file, fileName });
