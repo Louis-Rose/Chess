@@ -600,7 +600,7 @@ export function ScoresheetReadPage() {
                     return (
                       <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')} fileName={fileName || undefined}>
                         {consensusReady && modelDisagreements.size > 0 && (
-                          <p className="text-slate-100 text-sm text-center mb-3">Highlighted moves should be double-checked</p>
+                          <p className="text-slate-100 text-sm text-center mb-3"><span className="text-yellow-400">Highlighted moves</span> should be double-checked</p>
                         )}
                         <div className="flex items-stretch" onClick={consensusReady ? deselectConsensus : undefined}>
                           <div className="flex-1 hidden md:block" />
@@ -1082,7 +1082,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, modelDisagreements, originalMoves, voteDetails, allModelNames }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1262,28 +1262,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
               })}
             </tbody>
           </table>
-        );
-      })()}
-      {/* Move quality counts */}
-      {moves.length > 0 && !rereading && (() => {
-        let illegal = 0, medium = 0, low = 0;
-        for (const m of moves) {
-          for (const color of ['white', 'black'] as const) {
-            if (!m[color]) continue;
-            if (m[`${color}_legal` as const] === false) illegal++;
-            const conf = m[`${color}_confidence` as 'white_confidence' | 'black_confidence'];
-            if (conf === 'medium') medium++;
-            if (conf === 'low') low++;
-          }
-        }
-        const disagreementCount = modelDisagreements?.size || 0;
-        return (
-          <div className="px-2 py-2 border-t border-slate-600/50 flex flex-col items-center gap-0.5 text-xs">
-            <span className={disagreementCount > 0 ? 'text-red-400' : 'text-slate-600'}>{disagreementCount} {disagreementCount === 1 ? 'disagreement' : 'disagreements'}</span>
-            <span className={illegal > 0 ? 'text-orange-400' : 'text-slate-600'}>{illegal} illegal {illegal === 1 ? 'move' : 'moves'}</span>
-            <span className={medium > 0 ? 'text-yellow-400' : 'text-slate-600'}>{medium} medium confidence {medium === 1 ? 'move' : 'moves'}</span>
-            <span className={low > 0 ? 'text-red-400' : 'text-slate-600'}>{low} low confidence {low === 1 ? 'move' : 'moves'}</span>
-          </div>
         );
       })()}
       {rereading ? (
