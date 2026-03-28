@@ -2168,7 +2168,8 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, confiden
   const menuRef = useRef<HTMLDivElement>(null);
   const isLowConfidence = confidence === 'low';
   const isMediumConfidence = confidence === 'medium';
-  const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-yellow-700/40 text-yellow-100' : isLowConfidence ? 'bg-red-500/20 text-red-200' : isMediumConfidence ? 'bg-yellow-500/20 text-yellow-100' : 'text-slate-100';
+  const isIllegal = legal === false;
+  const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : (highlight || isIllegal) ? 'bg-yellow-700/40 text-yellow-100' : isLowConfidence ? 'bg-red-500/20 text-red-200' : isMediumConfidence ? 'bg-yellow-500/20 text-yellow-100' : 'text-slate-100';
 
   // Close menu when this cell is no longer active
   useEffect(() => {
