@@ -1701,6 +1701,17 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
               const [moveNumStr, colorStr] = voteInfoKey.split('-');
               const finalMove = moves[parseInt(moveNumStr) - 1]?.[colorStr as 'white' | 'black'];
               const postValidationChanged = finalMove && chosen && finalMove.replace(/[+#]/g, '') !== chosen;
+              // Track legality per candidate (>= 100 means itself illegal)
+              const candidateIllegal: Record<string, boolean> = {};
+              for (const d of details) candidateIllegal[d.candidate] = d.downstreamIllegals >= 100;
+              const legalMark = (move?: string) => {
+                if (!move) return null;
+                const illegal = candidateIllegal[move];
+                if (illegal === undefined) return null;
+                return illegal
+                  ? <span className="text-red-400 text-[10px] ml-1">&#10007;</span>
+                  : <span className="text-green-400 text-[10px] ml-1">&#10003;</span>;
+              };
               const confColor = (c?: string) => c === 'high' ? 'text-emerald-400' : c === 'medium' ? 'text-yellow-400' : c === 'low' ? 'text-red-400' : 'text-slate-600';
               return (
                 <>
@@ -1719,7 +1730,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                         return (
                           <tr key={name} className="border-b border-slate-700/50">
                             <td className="py-1.5 px-2 text-slate-100 text-xs">{name}</td>
-                            <td className="py-1.5 px-2 text-center font-mono text-slate-100">{move || '—'}</td>
+                            <td className="py-1.5 px-2 text-center font-mono text-slate-100">{move || '—'}{legalMark(move)}</td>
                             <td className={`py-1.5 px-2 text-center text-xs ${confColor(conf)}`}>{conf || '—'}</td>
                           </tr>
                         );
@@ -1728,7 +1739,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       {pass1Choice && (
                         <tr className="border-b border-slate-700/50">
                           <td className="py-1.5 px-2 text-slate-100 text-xs">Consensus (Pass 1)</td>
-                          <td className="py-1.5 px-2 text-center font-mono text-slate-100">{pass1Choice}</td>
+                          <td className="py-1.5 px-2 text-center font-mono text-slate-100">{pass1Choice}{legalMark(pass1Choice)}</td>
                         </tr>
                       )}
                       <tr className="border-b border-slate-700/50">
