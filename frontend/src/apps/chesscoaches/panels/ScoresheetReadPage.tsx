@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
-import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, X, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, X, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, AlertTriangle } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -149,6 +149,15 @@ export function ScoresheetReadPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [showImageModal, showExampleModal, closeModal]);
 
+
+  // ── Live elapsed timer for status table ──
+  const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
+  useEffect(() => {
+    if (!startTime || !analyzing) { setLiveGlobalElapsed(0); return; }
+    setLiveGlobalElapsed(Math.round((Date.now() - startTime) / 1000));
+    const id = setInterval(() => setLiveGlobalElapsed(Math.round((Date.now() - startTime) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [startTime, analyzing]);
 
   // ── Crop state ──
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -301,7 +310,71 @@ export function ScoresheetReadPage() {
               {/* Error */}
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
-              {/* Analyzing spinner */}
+              {/* Status table — shows during and after analysis */}
+              {models.length > 0 && (
+                <div className="bg-slate-700/30 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <tbody className="divide-y divide-slate-700/30">
+                      {models.map(m => {
+                        const mr = modelResults[m.id];
+                        const done = !!(mr?.result || mr?.error);
+                        const failed = !!mr?.error;
+                        return (
+                          <tr key={m.id}>
+                            <td className="px-4 py-2.5 text-slate-200 font-medium">{m.name}</td>
+                            <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                              {done ? (
+                                failed ? (
+                                  <span className="text-red-400">Error</span>
+                                ) : (
+                                  <span className="text-emerald-400">{mr?.elapsed}s</span>
+                                )
+                              ) : (
+                                <span className="text-slate-500">{liveGlobalElapsed}s</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-2.5 w-8">
+                              {done ? (
+                                failed ? <AlertTriangle className="w-4 h-4 text-red-400" /> : <Check className="w-4 h-4 text-emerald-400" />
+                              ) : (
+                                <Clock className="w-4 h-4 text-slate-500 animate-spin" />
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {/* Consensus row */}
+                      {(() => {
+                        const finishedCount = models.filter(m => !!(modelResults[m.id]?.result || modelResults[m.id]?.error)).length;
+                        const allDone = finishedCount === models.length;
+                        const hasConsensus = models
+                          .map(m => modelResults[m.id]?.result?.moves)
+                          .filter((mv): mv is Move[] => !!mv && mv.length > 0).length >= 2;
+                        if (!hasConsensus && !allDone) return null;
+                        return (
+                          <tr>
+                            <td className="px-4 py-2.5 text-slate-200 font-medium">{t('coaches.consensus')}</td>
+                            <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                              {allDone && hasConsensus ? (
+                                <span className="text-emerald-400">done</span>
+                              ) : (
+                                <span className="text-slate-500">{liveGlobalElapsed}s</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-2.5 w-8">
+                              {allDone && hasConsensus ? (
+                                <Check className="w-4 h-4 text-emerald-400" />
+                              ) : (
+                                <Clock className="w-4 h-4 text-slate-500 animate-spin" />
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               {analyzing && models.length === 0 && (
                 <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-4">
                   <Clock className="w-4 h-4 animate-spin" />
@@ -711,42 +784,7 @@ export function ScoresheetReadPage() {
 
                   {/* Azure DI section — disabled, kept for future use */}
 
-                  {/* Status bar — model progress */}
-                  {models.length > 0 && (
-                    <div className="mt-6 border-t border-slate-700 pt-3 flex flex-wrap gap-x-4 gap-y-1 justify-center text-xs text-slate-400">
-                      {models.map(m => {
-                        const mr = modelResults[m.id];
-                        const done = !!(mr?.result || mr?.error);
-                        return (
-                          <span key={m.id} className={done ? 'text-slate-400' : 'text-slate-500'}>
-                            {m.name}{' '}
-                            {done ? (
-                              <>{mr?.error ? '✗' : '✓'} {mr?.elapsed ? `${mr.elapsed}s` : ''}</>
-                            ) : (
-                              <span className="animate-pulse">⏳ {t('coaches.status.loading')}</span>
-                            )}
-                          </span>
-                        );
-                      })}
-                      {(() => {
-                        const finishedCount = models.filter(m => !!(modelResults[m.id]?.result || modelResults[m.id]?.error)).length;
-                        const allDone = finishedCount === models.length;
-                        const hasConsensus = models
-                          .map(m => modelResults[m.id]?.result?.moves)
-                          .filter((mv): mv is Move[] => !!mv && mv.length > 0).length >= 2;
-                        if (!hasConsensus && !allDone) return null;
-                        return (
-                          <span className={allDone ? 'text-slate-400' : 'text-slate-500'}>
-                            {allDone && hasConsensus ? (
-                              <>✓ {t('coaches.status.consensusDone')}</>
-                            ) : (
-                              <span className="animate-pulse">⏳ {t('coaches.status.consensusComputing')}</span>
-                            )}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                  )}
+                  {/* Old status bar removed — replaced by status table at top */}
                 </div>
                 );
               })()}
