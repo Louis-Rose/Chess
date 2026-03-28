@@ -440,35 +440,16 @@ export function ScoresheetReadPage() {
                       <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${resultsCollapsed ? '' : 'rotate-180'}`} />
                     </button>
                   {!resultsCollapsed && (
-                    <div className="border-t border-slate-600/50">
+                    <div className="border-t border-slate-600/50 py-4">
                   {(() => {
                     const modelEntries = models
                       .filter(m => modelResults[m.id]?.result?.moves && modelResults[m.id]!.result!.moves.length > 0)
                       .map(m => ({ name: m.name, moves: modelResults[m.id]!.result!.moves }));
                     const allModelMoves = modelEntries.map(e => e.moves);
                     const modelNames = modelEntries.map(e => e.name);
-                    if (allModelMoves.length < 2) return (
-                      <ModelRow key="__consensus_loading__" preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')} fileName={fileName || undefined}>
-                        <div className="flex items-stretch">
-                          <div className="flex-1 hidden md:block" />
-                          <div className="flex-shrink-0" data-tables>
-                            <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[320px]">
-                              <div className="px-3 py-2.5 border-b border-slate-600 flex items-center justify-center gap-2">
-                                <span className="text-slate-100 font-medium text-sm">{t('coaches.consensus')}</span>
-                              </div>
-                              <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
-                                <Clock className="w-4 h-4 animate-spin" />
-                                <span className="text-sm">{t('coaches.analyzing')}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex-1 hidden md:flex justify-center items-center">
-                            <ModelBoard moves={[]} externalPly={0} onPlyChange={() => {}} disableDrag autoActivate={false} previewFen={null} />
-                          </div>
-                        </div>
-                      </ModelRow>
-                    );
-                    const maxLen = Math.max(...allModelMoves.map(mv => mv.length));
+                    const consensusReady = allModelMoves.length >= 2;
+                    const consensusId = '__consensus__';
+                    const maxLen = allModelMoves.length > 0 ? Math.max(...allModelMoves.map(mv => mv.length)) : 0;
                     // Two-pass smart consensus algorithm.
 
                     // Helper: run one greedy pass given a downstream reference sequence
@@ -655,7 +636,6 @@ export function ScoresheetReadPage() {
                         }
                       }
                     }
-                    const consensusId = '__consensus__';
                     const consensusColumns = sheetColumns;
                     const consensusRowsPerColumn = rowsPerColumn;
                     // Apply overrides on top of computed consensus
@@ -686,10 +666,20 @@ export function ScoresheetReadPage() {
                     };
                     return (
                       <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')} fileName={fileName || undefined}>
-                        <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">{t('coaches.consensus')} ({allModelMoves.length} {t('coaches.models')})</h2>
-                        <div className="flex items-stretch" onClick={deselectConsensus}>
+                        <div className="flex items-stretch" onClick={consensusReady ? deselectConsensus : undefined}>
                           <div className="flex-1 hidden md:block" />
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
+                            {!consensusReady ? (
+                              <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[320px]">
+                                <div className="px-3 py-2.5 border-b border-slate-600 flex items-center justify-center gap-2">
+                                  <span className="text-slate-100 font-medium text-sm">{t('coaches.consensus')}</span>
+                                </div>
+                                <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
+                                  <Clock className="w-4 h-4 animate-spin" />
+                                  <span className="text-sm">{t('coaches.analyzing')}</span>
+                                </div>
+                              </div>
+                            ) : (
                             <MovesPanel
                               label={t('coaches.consensus')}
                               moves={displayConsensusMoves}
@@ -712,9 +702,10 @@ export function ScoresheetReadPage() {
                               modelDisagreements={modelDisagreements}
                               voteDetails={voteDetails}
                             />
+                            )}
                           </div>
                           <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={displayConsensusMoves} externalPly={modelBoardPlys[consensusId]?.ply} onPlyChange={handleConsensusBoardPly} disableDrag autoActivate={false} previewFen={null} />
+                            <ModelBoard moves={consensusReady ? displayConsensusMoves : []} externalPly={consensusReady ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={consensusReady ? handleConsensusBoardPly : () => {}} disableDrag autoActivate={false} previewFen={null} />
                           </div>
                         </div>
                       </ModelRow>
@@ -749,7 +740,7 @@ export function ScoresheetReadPage() {
                       <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${modelsCollapsed ? '' : 'rotate-180'}`} />
                     </button>
                     {!modelsCollapsed && (
-                      <div className="flex flex-wrap gap-3 items-start justify-center px-4 pb-4 border-t border-slate-600/50">
+                      <div className="flex flex-wrap gap-3 items-start justify-center px-4 py-4 border-t border-slate-600/50">
                         {models.map((m) => {
                           const mr = modelResults[m.id];
                           const reRead = reReads[m.id]?.[0];
@@ -888,7 +879,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, fileName, ch
           style={{ top: 0, bottom: 0, left: 0, width: tablesLeft - 8 }}
         >
           <div className="flex flex-col items-center">
-            {fileName && <span className="text-slate-500 text-xs mb-1.5 truncate max-w-[200px]">{fileName}</span>}
+            {fileName && <span className="text-slate-100 text-sm mb-3 truncate max-w-[200px]">{fileName}</span>}
             <img
               src={preview}
               alt="Scoresheet"
