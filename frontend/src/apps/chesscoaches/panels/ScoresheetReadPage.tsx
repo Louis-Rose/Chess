@@ -1503,7 +1503,6 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       active={activePly === idx * 2 + 1}
                       reason={move.white_reason}
                       confidence={move.white_confidence}
-                      disputed={modelDisagreements?.has(`${move.number}-white`)}
                       onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
                       onVoteInfo={voteDetails ? () => setVoteInfoKey(`${move.number}-white`) : undefined}
@@ -1516,7 +1515,6 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       active={activePly === idx * 2 + 2}
                       reason={move.black_reason}
                       confidence={move.black_confidence}
-                      disputed={modelDisagreements?.has(`${move.number}-black`)}
                       onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
                       onVoteInfo={voteDetails ? () => setVoteInfoKey(`${move.number}-black`) : undefined}
@@ -2148,7 +2146,7 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselec
   );
 }
 
-function MoveCell({ value, legal, highlight, corrected, active, reason, confidence, disputed, onEdit, onShowBoard, onVoteInfo }: {
+function MoveCell({ value, legal, highlight, corrected, active, reason, confidence, onEdit, onShowBoard, onVoteInfo }: {
   value: string;
   legal?: boolean;
   highlight?: boolean;
@@ -2156,7 +2154,6 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, confiden
   active?: boolean;
   reason?: string;
   confidence?: 'high' | 'medium' | 'low';
-  disputed?: boolean;
   onEdit: () => void;
   onShowBoard?: () => void;
   onVoteInfo?: () => void;
