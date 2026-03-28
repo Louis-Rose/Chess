@@ -392,9 +392,20 @@ export function ScoresheetReadPage() {
                 </div>
               )}
 
-              {/* Retry button — moved inside results block, between consensus and models */}
+              {/* Re-analyze button — between Processing and Results */}
+              {!analyzing && preview && models.length > 0 && (
+                <div className="flex justify-center py-2">
+                  <button
+                    onClick={() => { activeModelBoardId = 0; scoresheetStartOneRead(); }}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    {t('coaches.reanalyze')}
+                  </button>
+                </div>
+              )}
 
-              {/* Results: one row per model — [image | GT | read | board] */}
+              {/* Results: consensus + individual reads */}
               {(models.length > 0 || (analyzing && preview)) && (() => {
                 // Get column info from any model that has results (for GT panel consistency)
                 const anyResult = Object.values(modelResults).find(r => r?.result)?.result;
@@ -422,13 +433,13 @@ export function ScoresheetReadPage() {
 
                 return (
                 <div className="space-y-8">
-                  {/* Consensus result — collapsible panel */}
+                  {/* Results — collapsible panel */}
                   <div className="border border-slate-600/50 rounded-xl overflow-hidden">
                     <button
                       onClick={() => setResultsCollapsed(c => !c)}
                       className="w-full flex items-center justify-center gap-2 px-6 py-3 hover:bg-slate-700/30 transition-colors"
                     >
-                      <span className="text-base text-slate-100 font-medium">{t('coaches.consensus')}</span>
+                      <span className="text-base text-slate-100 font-medium">{t('coaches.results') || 'Results'}</span>
                       <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${resultsCollapsed ? '' : 'rotate-180'}`} />
                     </button>
                   {!resultsCollapsed && (
@@ -709,18 +720,6 @@ export function ScoresheetReadPage() {
                   )}
                   </div>
 
-                  {/* Re-analyze button — between consensus and individual models */}
-                  {!analyzing && preview && (
-                    <div className="flex justify-center py-2">
-                      <button
-                        onClick={() => { activeModelBoardId = 0; scoresheetStartOneRead(); }}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                        {models.length > 0 ? t('coaches.reanalyze') : t('coaches.analyze')}
-                      </button>
-                    </div>
-                  )}
 
 
                   {/* Individual model reads — collapsible */}
