@@ -312,18 +312,7 @@ export function ScoresheetReadPage() {
                 </div>
               )}
 
-              {/* Retry button */}
-              {!analyzing && preview && (
-                <div className="flex justify-center py-2">
-                  <button
-                    onClick={() => { activeModelBoardId = 0; scoresheetStartOneRead(); }}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    {models.length > 0 ? t('coaches.reanalyze') : t('coaches.analyze')}
-                  </button>
-                </div>
-              )}
+              {/* Retry button — moved inside results block, between consensus and models */}
 
               {/* Results: one row per model — [image | GT | read | board] */}
               {models.length > 0 && (() => {
@@ -353,104 +342,6 @@ export function ScoresheetReadPage() {
 
                 return (
                 <div className="space-y-8">
-                  {models.map((m, modelIdx) => {
-                    const mr = modelResults[m.id];
-                    const reRead = reReads[m.id]?.[0];
-                    const currentMoves = mr?.result?.moves || [];
-                    const modelColumns = (mr?.result as any)?.columns || sheetColumns;
-                    const modelRowsPerColumn = (mr?.result as any)?.rows_per_column || rowsPerColumn;
-                    const currentElapsed = mr?.elapsed || 0;
-                    const currentError = mr?.error;
-                    const isRereading = mr?.rereading || false;
-                    const corrections = reRead?.corrections;
-                    const handleEditSave = (_readIdx: number, confirmed: Move[], correctionKey: string) => {
-                      scoresheetHandleEditSave(m.id, 0, confirmed, correctionKey);
-                    };
-                    const makeMoveClick = (source: 'gt' | 'read') => (movesArr: Move[], ply: number) => {
-                      const prev = modelBoardPlys[m.id];
-                      if (prev?.ply === ply && prev?.source === source) return;
-                      setModelBoardPlys(p => ({ ...p, [m.id]: { ply, source } }));
-                      if (ply > 0) {
-                        const moveIdx = Math.floor((ply - 1) / 2);
-                        const color = ply % 2 === 1 ? 'white' : 'black';
-                        const san = movesArr[moveIdx]?.[color];
-                        if (san) playMoveSound(san.includes('x'));
-                      }
-                    };
-                    const handlePreview = (movesArr: Move[], moveIdx: number, color: 'white' | 'black', san: string) => {
-                      try {
-                        const chess = new Chess();
-                        for (let i = 0; i < moveIdx; i++) {
-                          if (movesArr[i].white) try { chess.move(movesArr[i].white); } catch { break; }
-                          if (movesArr[i].black) try { chess.move(movesArr[i].black!); } catch { break; }
-                        }
-                        if (color === 'black' && movesArr[moveIdx]?.white) {
-                          try { chess.move(movesArr[moveIdx].white); } catch { /* */ }
-                        }
-                        chess.move(san);
-                        setPreviewFens(prev => ({ ...prev, [m.id]: chess.fen() }));
-                      } catch {
-                        setPreviewFens(prev => ({ ...prev, [m.id]: null }));
-                      }
-                    };
-                    const clearPreview = () => setPreviewFens(prev => ({ ...prev, [m.id]: null }));
-                    const handleBoardPlyChange = (ply: number) => {
-                      setModelBoardPlys(prev => {
-                        const prevSource = prev[m.id]?.source || 'nav';
-                        return { ...prev, [m.id]: { ply, source: prevSource } };
-                      });
-                    };
-
-                    const deselectCell = () => {
-                      setModelBoardPlys(p => {
-                        const rest = { ...p };
-                        delete rest[m.id];
-                        return rest;
-                      });
-                    };
-
-                    return (
-                      <ModelRow key={m.id} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')}>
-                        <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">{mr?.name || m.name}</h2>
-                        <div className="flex items-stretch" onClick={deselectCell}>
-                          {/* Left spacer (image is absolutely positioned by ModelRow) */}
-                          <div className="flex-1 hidden md:block" />
-                          {/* Center: tables */}
-                          <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
-                            {!mr ? (
-                              <ModelPanelLoading name={m.name} startTime={startTime} />
-                            ) : (
-                              <MovesPanel
-                                label={t('coaches.read')}
-                                moves={currentMoves}
-                                groundTruthMoves={undefined}
-                                disagreements={new Map()}
-                                elapsed={currentElapsed}
-                                error={currentError}
-                                fileName={fileName}
-                                rereading={isRereading}
-                                corrections={corrections}
-                                onEditSave={(confirmed, corrKey) => handleEditSave(0, confirmed, corrKey)}
-                                onReread={() => scoresheetReread(m.id)}
-                                onMoveClick={mr ? makeMoveClick('read') : undefined}
-                                activePly={modelBoardPlys[m.id]?.source !== 'gt' ? modelBoardPlys[m.id]?.ply : undefined}
-                                onPreview={(idx, color, san) => handlePreview(currentMoves, idx, color, san)}
-                                onClearPreview={clearPreview}
-                                sheetColumns={modelColumns}
-                                rowsPerColumn={modelRowsPerColumn}
-                                modelDisagreements={modelDisagreements}
-                              />
-                            )}
-                          </div>
-                          {/* Right: board centered vertically (mb offset compensates for buttons/text below board) */}
-                          <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]?.ply} onPlyChange={handleBoardPlyChange} disableDrag={!mr || isRereading} autoActivate={modelIdx === 0} previewFen={previewFens[m.id]} />
-                          </div>
-                        </div>
-                      </ModelRow>
-                    );
-                  })}
-
                   {/* Consensus row — majority vote across all models */}
                   {(() => {
                     const allModelMoves = models
@@ -704,6 +595,119 @@ export function ScoresheetReadPage() {
                       </ModelRow>
                     );
                   })()}
+
+
+                  {/* Re-analyze button — between consensus and individual models */}
+                  {!analyzing && preview && (
+                    <div className="flex justify-center py-2">
+                      <button
+                        onClick={() => { activeModelBoardId = 0; scoresheetStartOneRead(); }}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        {models.length > 0 ? t('coaches.reanalyze') : t('coaches.analyze')}
+                      </button>
+                    </div>
+                  )}
+
+
+                  {models.map((m, modelIdx) => {
+                    const mr = modelResults[m.id];
+                    const reRead = reReads[m.id]?.[0];
+                    const currentMoves = mr?.result?.moves || [];
+                    const modelColumns = (mr?.result as any)?.columns || sheetColumns;
+                    const modelRowsPerColumn = (mr?.result as any)?.rows_per_column || rowsPerColumn;
+                    const currentElapsed = mr?.elapsed || 0;
+                    const currentError = mr?.error;
+                    const isRereading = mr?.rereading || false;
+                    const corrections = reRead?.corrections;
+                    const handleEditSave = (_readIdx: number, confirmed: Move[], correctionKey: string) => {
+                      scoresheetHandleEditSave(m.id, 0, confirmed, correctionKey);
+                    };
+                    const makeMoveClick = (source: 'gt' | 'read') => (movesArr: Move[], ply: number) => {
+                      const prev = modelBoardPlys[m.id];
+                      if (prev?.ply === ply && prev?.source === source) return;
+                      setModelBoardPlys(p => ({ ...p, [m.id]: { ply, source } }));
+                      if (ply > 0) {
+                        const moveIdx = Math.floor((ply - 1) / 2);
+                        const color = ply % 2 === 1 ? 'white' : 'black';
+                        const san = movesArr[moveIdx]?.[color];
+                        if (san) playMoveSound(san.includes('x'));
+                      }
+                    };
+                    const handlePreview = (movesArr: Move[], moveIdx: number, color: 'white' | 'black', san: string) => {
+                      try {
+                        const chess = new Chess();
+                        for (let i = 0; i < moveIdx; i++) {
+                          if (movesArr[i].white) try { chess.move(movesArr[i].white); } catch { break; }
+                          if (movesArr[i].black) try { chess.move(movesArr[i].black!); } catch { break; }
+                        }
+                        if (color === 'black' && movesArr[moveIdx]?.white) {
+                          try { chess.move(movesArr[moveIdx].white); } catch { /* */ }
+                        }
+                        chess.move(san);
+                        setPreviewFens(prev => ({ ...prev, [m.id]: chess.fen() }));
+                      } catch {
+                        setPreviewFens(prev => ({ ...prev, [m.id]: null }));
+                      }
+                    };
+                    const clearPreview = () => setPreviewFens(prev => ({ ...prev, [m.id]: null }));
+                    const handleBoardPlyChange = (ply: number) => {
+                      setModelBoardPlys(prev => {
+                        const prevSource = prev[m.id]?.source || 'nav';
+                        return { ...prev, [m.id]: { ply, source: prevSource } };
+                      });
+                    };
+
+                    const deselectCell = () => {
+                      setModelBoardPlys(p => {
+                        const rest = { ...p };
+                        delete rest[m.id];
+                        return rest;
+                      });
+                    };
+
+                    return (
+                      <ModelRow key={m.id} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')}>
+                        <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">{mr?.name || m.name}</h2>
+                        <div className="flex items-stretch" onClick={deselectCell}>
+                          {/* Left spacer (image is absolutely positioned by ModelRow) */}
+                          <div className="flex-1 hidden md:block" />
+                          {/* Center: tables */}
+                          <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
+                            {!mr ? (
+                              <ModelPanelLoading name={m.name} startTime={startTime} />
+                            ) : (
+                              <MovesPanel
+                                label={t('coaches.read')}
+                                moves={currentMoves}
+                                groundTruthMoves={undefined}
+                                disagreements={new Map()}
+                                elapsed={currentElapsed}
+                                error={currentError}
+                                fileName={fileName}
+                                rereading={isRereading}
+                                corrections={corrections}
+                                onEditSave={(confirmed, corrKey) => handleEditSave(0, confirmed, corrKey)}
+                                onReread={() => scoresheetReread(m.id)}
+                                onMoveClick={mr ? makeMoveClick('read') : undefined}
+                                activePly={modelBoardPlys[m.id]?.source !== 'gt' ? modelBoardPlys[m.id]?.ply : undefined}
+                                onPreview={(idx, color, san) => handlePreview(currentMoves, idx, color, san)}
+                                onClearPreview={clearPreview}
+                                sheetColumns={modelColumns}
+                                rowsPerColumn={modelRowsPerColumn}
+                                modelDisagreements={modelDisagreements}
+                              />
+                            )}
+                          </div>
+                          {/* Right: board centered vertically (mb offset compensates for buttons/text below board) */}
+                          <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
+                            <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]?.ply} onPlyChange={handleBoardPlyChange} disableDrag={!mr || isRereading} autoActivate={modelIdx === 0} previewFen={previewFens[m.id]} />
+                          </div>
+                        </div>
+                      </ModelRow>
+                    );
+                  })}
 
                   {/* Azure DI section — disabled, kept for future use */}
 
