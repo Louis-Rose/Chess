@@ -1730,9 +1730,10 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       )}
                       <tr className="border-b border-slate-700/50">
                         <td className="py-1.5 px-2 text-slate-100 text-xs font-medium">Consensus (Final)</td>
-                        <td className="py-1.5 px-2 text-center font-mono text-slate-100">
-                          {chosen || '—'} {chosen && <span className="text-blue-400 text-xs">✓</span>}
+                        <td className="py-1.5 px-2 text-center font-mono">
+                          <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{chosen || '—'}</span>
                         </td>
+                        <td />
                       </tr>
                     </tbody>
                   </table>
