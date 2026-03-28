@@ -355,7 +355,7 @@ export function ScoresheetReadPage() {
                       const values = new Set<string>();
                       for (const mv of allModelMovesForDisagreement) {
                         const val = mv[i]?.[color];
-                        if (val) values.add(val.replace(/[+#]/g, ''));
+                        if (val) values.add(val.replace(/[+#x]/g, ''));
                       }
                       if (values.size > 1) modelDisagreements.add(`${i + 1}-${color}`);
                     }
@@ -402,7 +402,7 @@ export function ScoresheetReadPage() {
                             const moveObj = allModelMoves[mi][i];
                             const val = moveObj?.[color];
                             if (val) {
-                              const normalized = val.replace(/[+#]/g, '');
+                              const normalized = val.replace(/[+#x]/g, '');
                               votes[normalized] = (votes[normalized] || 0) + 1;
                               if (!votersByCandidate[normalized]) votersByCandidate[normalized] = [];
                               votersByCandidate[normalized].push(modelNames[mi]);
@@ -486,7 +486,7 @@ export function ScoresheetReadPage() {
                         for (const modelMv of allModelMoves) {
                           const val = modelMv[i]?.[color];
                           if (val) {
-                            const normalized = val.replace(/[+#]/g, '');
+                            const normalized = val.replace(/[+#x]/g, '');
                             votes[normalized] = (votes[normalized] || 0) + 1;
                           }
                         }
@@ -1477,7 +1477,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
               // Look up the final post-validation move (disambiguation etc.)
               const [moveNumStr, colorStr] = voteInfoKey.split('-');
               const finalMove = moves[parseInt(moveNumStr) - 1]?.[colorStr as 'white' | 'black'];
-              const postValidationChanged = finalMove && chosen && finalMove.replace(/[+#]/g, '') !== chosen;
+              const postValidationChanged = finalMove && chosen && finalMove.replace(/[+#x]/g, '') !== chosen;
               // Track legality per candidate (>= 100 means itself illegal)
               const candidateIllegal: Record<string, boolean> = {};
               for (const d of details) candidateIllegal[d.candidate] = d.downstreamIllegals >= 100;
