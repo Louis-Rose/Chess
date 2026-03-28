@@ -359,25 +359,26 @@ export function ScoresheetReadPage() {
                           </tr>
                         );
                       })}
-                      {/* Consensus row */}
+                      {/* Consensus row — always visible */}
                       {(() => {
                         const finishedCount = models.filter(m => !!(modelResults[m.id]?.result || modelResults[m.id]?.error)).length;
                         const allDone = finishedCount === models.length;
                         const hasConsensus = models
                           .map(m => modelResults[m.id]?.result?.moves)
                           .filter((mv): mv is Move[] => !!mv && mv.length > 0).length >= 2;
-                        if (!hasConsensus && !allDone) return null;
                         const maxElapsed = Math.max(...models.map(m => modelResults[m.id]?.elapsed || 0));
+                        const done = allDone && hasConsensus;
+                        const status = done
+                          ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-4 h-4" /> Done</span>
+                          : hasConsensus
+                            ? <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> Computing...</span>
+                            : <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> Waiting...</span>;
                         return (
                           <tr>
                             <td className="px-4 py-2.5 text-slate-200 font-medium">{t('coaches.consensus')}</td>
+                            <td className="px-4 py-2.5 text-center">{status}</td>
                             <td className="px-4 py-2.5 text-center">
-                              {allDone && hasConsensus
-                                ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-4 h-4" /> Done</span>
-                                : <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> Computing...</span>}
-                            </td>
-                            <td className="px-4 py-2.5 text-center">
-                              {allDone && hasConsensus
+                              {done
                                 ? <span className="text-emerald-400">{maxElapsed}s</span>
                                 : <span className="text-slate-500">{liveGlobalElapsed}s</span>}
                             </td>
