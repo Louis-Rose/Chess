@@ -1332,8 +1332,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {/* Edit modal */}
       {editing && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[0.5px]"
-          onClick={() => { setEditing(null); onClearPreview?.(); }}
+          className="fixed inset-0 z-50 flex items-center justify-center pl-64 bg-slate-900/20 backdrop-blur-[0.5px]"
+          onClick={() => { setEditing(null); onClearPreview?.(); setEditFromVoteKey(null); }}
         >
           <div
             className="bg-slate-800 rounded-xl p-4 min-w-[260px] shadow-xl border border-slate-600"
@@ -1347,7 +1347,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                 &larr; Back to votes
               </button>
             )}
-            <div className="text-slate-400 text-xs mb-2 text-center">
+            <div className="text-slate-100 text-sm font-medium mb-2 text-center">
               {t('coaches.move')} {moves[editing.moveIdx]?.number} · {editing.color === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
             </div>
             {moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason'] && (
@@ -1359,6 +1359,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   const ply = editing.color === 'white' ? editing.moveIdx * 2 : editing.moveIdx * 2 + 1;
                   onMoveClick(moves, ply);
                   onClearPreview?.();
+                  setEditing({ ...editing, value: '' });
                 }}
                 className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-1.5 mb-2 rounded-lg transition-colors"
               >
