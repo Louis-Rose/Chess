@@ -591,6 +591,16 @@ export function ScoresheetReadPage() {
                       }
                       setConsensusOverrides(confirmed);
                     };
+                    const handleConfirmMove = (moveNumber: number, color: 'white' | 'black') => {
+                      const current = consensusOverrides || [...consensusMoves.map(m => ({ ...m }))];
+                      const idx = moveNumber - 1;
+                      if (current[idx]) {
+                        delete (current[idx] as any)[`${color}_reason`];
+                        // Clear the disagreement highlight by ensuring the move is marked as confirmed
+                        (current[idx] as any)[`${color}_confirmed`] = true;
+                      }
+                      setConsensusOverrides([...current]);
+                    };
                     const handleConsensusBoardPly = (ply: number) => {
                       setModelBoardPlys(prev => ({ ...prev, [consensusId]: { ply, source: 'nav' as const } }));
                     };
@@ -645,6 +655,7 @@ export function ScoresheetReadPage() {
                               modelDisagreements={modelDisagreements}
                               voteDetails={voteDetails}
                               allModelNames={modelNames}
+                              onConfirmMove={handleConfirmMove}
                             />
                             )}
                           </div>
@@ -1082,7 +1093,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, onConfirmMove }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1105,6 +1116,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string>; pass1Choice?: string }[]>;
   allModelNames?: string[];
   showMoveInfo?: boolean;
+  onConfirmMove?: (moveNumber: number, color: 'white' | 'black') => void;
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
@@ -1228,8 +1240,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     <MoveCell
                       value={move.white}
                       legal={move.white_legal}
-                      highlight={d?.white || !!move.white_reason}
-                      corrected={corrections?.has(`${move.number}-white`) || (originalMoves && originalMoves[idx]?.white !== move.white && move.white_legal !== false)}
+                      highlight={(d?.white || !!move.white_reason) && !(move as any).white_confirmed}
+                      corrected={corrections?.has(`${move.number}-white`) || (originalMoves && originalMoves[idx]?.white !== move.white && move.white_legal !== false) || !!(move as any).white_confirmed}
                       active={activePly === idx * 2 + 1}
                       reason={move.white_reason}
                       confidence={move.white_confidence}
@@ -1241,8 +1253,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     <MoveCell
                       value={move.black || ''}
                       legal={move.black_legal}
-                      corrected={corrections?.has(`${move.number}-black`) || (originalMoves && originalMoves[idx]?.black !== move.black && move.black_legal !== false)}
-                      highlight={d?.black || !!move.black_reason}
+                      corrected={corrections?.has(`${move.number}-black`) || (originalMoves && originalMoves[idx]?.black !== move.black && move.black_legal !== false) || !!(move as any).black_confirmed}
+                      highlight={(d?.black || !!move.black_reason) && !(move as any).black_confirmed}
                       active={activePly === idx * 2 + 2}
                       reason={move.black_reason}
                       confidence={move.black_confidence}
@@ -1504,6 +1516,18 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     <span className="flex items-center gap-1 text-slate-100"><span className="text-green-400">&#10003;</span> legal move</span>
                     <span className="flex items-center gap-1 text-slate-100"><span className="text-red-400">&#10007;</span> illegal move</span>
                   </div>
+                  {onConfirmMove && (finalMove || chosen) && (
+                    <button
+                      onClick={() => {
+                        const [mn, cl] = voteInfoKey.split('-');
+                        onConfirmMove(parseInt(mn), cl as 'white' | 'black');
+                        setVoteInfoKey(null);
+                      }}
+                      className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors mt-1"
+                    >
+                      Confirm {finalMove || chosen}
+                    </button>
+                  )}
                 </>
               );
             })()}
