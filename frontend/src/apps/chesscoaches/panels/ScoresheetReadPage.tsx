@@ -614,7 +614,17 @@ export function ScoresheetReadPage() {
                               label={t('coaches.consensus')}
                               moves={displayConsensusMoves}
 
-                              disagreements={new Map()}
+                              disagreements={(() => {
+                                const m = new Map<number, { white: boolean; black: boolean }>();
+                                modelDisagreements.forEach(key => {
+                                  const [numStr, color] = key.split('-');
+                                  const num = parseInt(numStr);
+                                  const existing = m.get(num) || { white: false, black: false };
+                                  existing[color as 'white' | 'black'] = true;
+                                  m.set(num, existing);
+                                });
+                                return m;
+                              })()}
                               elapsed={0}
                               fileName={fileName}
                               onEditSave={(confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey)}
