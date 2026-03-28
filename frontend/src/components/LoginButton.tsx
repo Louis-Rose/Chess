@@ -1,4 +1,5 @@
 import { GoogleLogin } from '@react-oauth/google';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useRef } from 'react';
@@ -6,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 export function LoginButton() {
   const { login } = useAuth();
   const { language } = useLanguage();
+  const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [visible, setVisible] = useState(true);
   const prevLang = useRef(language);
@@ -35,6 +37,7 @@ export function LoginButton() {
             try {
               if (credentialResponse.credential) {
                 await login(credentialResponse.credential);
+                navigate('/');
               }
             } catch (err) {
               setError(err instanceof Error ? err.message : 'Login failed');
