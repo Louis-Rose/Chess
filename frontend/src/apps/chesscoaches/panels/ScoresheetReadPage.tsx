@@ -447,7 +447,7 @@ export function ScoresheetReadPage() {
                     // Helper: run one greedy pass given a downstream reference sequence
                     const runConsensusPass = (downstreamRef: Move[]) => {
                       const result: Move[] = [];
-                      const details: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[] }[]> = {};
+                      const details: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string> }[]> = {};
                       const passChess = new Chess();
 
                       for (let i = 0; i < maxLen; i++) {
@@ -455,13 +455,17 @@ export function ScoresheetReadPage() {
                         for (const color of ['white', 'black'] as const) {
                           const votes: Record<string, number> = {};
                           const votersByCandidate: Record<string, string[]> = {};
+                          const confidenceByModel: Record<string, string> = {};
                           for (let mi = 0; mi < allModelMoves.length; mi++) {
-                            const val = allModelMoves[mi][i]?.[color];
+                            const moveObj = allModelMoves[mi][i];
+                            const val = moveObj?.[color];
                             if (val) {
                               const normalized = val.replace(/[+#]/g, '');
                               votes[normalized] = (votes[normalized] || 0) + 1;
                               if (!votersByCandidate[normalized]) votersByCandidate[normalized] = [];
                               votersByCandidate[normalized].push(modelNames[mi]);
+                              const conf = moveObj?.[`${color}_confidence` as 'white_confidence' | 'black_confidence'];
+                              if (conf) confidenceByModel[modelNames[mi]] = conf;
                             }
                           }
                           const candidates = Object.entries(votes).sort((a, b) => b[1] - a[1]);
@@ -470,13 +474,13 @@ export function ScoresheetReadPage() {
                           const detailKey = `${i + 1}-${color}`;
                           if (candidates.length === 1) {
                             (move as any)[color] = candidates[0][0];
-                            details[detailKey] = [{ candidate: candidates[0][0], votes: candidates[0][1], downstreamIllegals: 0, chosen: true, models: votersByCandidate[candidates[0][0]] || [] }];
+                            details[detailKey] = [{ candidate: candidates[0][0], votes: candidates[0][1], downstreamIllegals: 0, chosen: true, models: votersByCandidate[candidates[0][0]] || [], confidenceByModel }];
                             try { passChess.move(candidates[0][0]); } catch { /* validation will catch */ }
                           } else {
                             let bestCandidate = candidates[0][0];
                             let bestIllegals = Infinity;
                             let bestVotes = candidates[0][1];
-                            const dets: { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[] }[] = [];
+                            const dets: { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string> }[] = [];
 
                             for (const [candidate, voteCount] of candidates) {
                               const simChess = new Chess(passChess.fen());
@@ -497,7 +501,7 @@ export function ScoresheetReadPage() {
                                 }
                               }
 
-                              dets.push({ candidate, votes: voteCount, downstreamIllegals: illegals, chosen: false, models: votersByCandidate[candidate] || [] });
+                              dets.push({ candidate, votes: voteCount, downstreamIllegals: illegals, chosen: false, models: votersByCandidate[candidate] || [], confidenceByModel });
                               if (illegals < bestIllegals || (illegals === bestIllegals && voteCount > bestVotes)) {
                                 bestIllegals = illegals;
                                 bestCandidate = candidate;
@@ -557,7 +561,7 @@ export function ScoresheetReadPage() {
 
                     const consensusMoves = pass2.moves;
                     // Combine pass1 and pass2 details for the vote info modal
-                    const voteDetails: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; pass1Choice?: string }[]> = {};
+                    const voteDetails: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string>; pass1Choice?: string }[]> = {};
                     for (const key of Object.keys(pass2.details)) {
                       const p1Choice = pass1.details[key]?.find(d => d.chosen)?.candidate;
                       voteDetails[key] = pass2.details[key].map(d => ({ ...d, pass1Choice: p1Choice }));
@@ -1371,7 +1375,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   rowsPerColumn?: number | null;
   modelDisagreements?: Set<string>;
   originalMoves?: Move[];
-  voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; pass1Choice?: string }[]>;
+  voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string>; pass1Choice?: string }[]>;
   allModelNames?: string[];
 }) {
   const { t } = useLanguage();
@@ -1688,11 +1692,13 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
               const names = allModelNames || [];
               // Build model→move lookup
               const modelToMove: Record<string, string> = {};
+              const confByModel = details[0]?.confidenceByModel || {};
               for (const d of details) {
                 for (const m of (d.models || [])) modelToMove[m] = d.candidate;
               }
               const chosen = details.find(d => d.chosen)?.candidate;
               const pass1Choice = details[0]?.pass1Choice;
+              const confColor = (c?: string) => c === 'high' ? 'text-emerald-400' : c === 'medium' ? 'text-yellow-400' : c === 'low' ? 'text-red-400' : 'text-slate-600';
               return (
                 <>
                   <table className="w-full text-sm">
@@ -1700,16 +1706,19 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       <tr className="border-b border-slate-600 text-slate-400">
                         <th className="py-1.5 text-left px-2">Model</th>
                         <th className="py-1.5 text-center px-2">{t('coaches.voteCandidate')}</th>
+                        <th className="py-1.5 text-center px-2">Confidence</th>
                       </tr>
                     </thead>
                     <tbody>
                       {names.map(name => {
                         const move = modelToMove[name];
                         const isChosen = move === chosen;
+                        const conf = confByModel[name];
                         return (
                           <tr key={name} className={`border-b border-slate-700/50 ${isChosen ? 'bg-blue-600/10' : ''}`}>
                             <td className="py-1.5 px-2 text-slate-300 text-xs">{name}</td>
                             <td className="py-1.5 px-2 text-center font-mono text-slate-100">{move || '—'}</td>
+                            <td className={`py-1.5 px-2 text-center text-xs ${confColor(conf)}`}>{conf || '—'}</td>
                           </tr>
                         );
                       })}
