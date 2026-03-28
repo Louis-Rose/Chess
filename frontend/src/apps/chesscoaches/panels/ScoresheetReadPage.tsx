@@ -1745,7 +1745,6 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                     <tbody>
                       {names.map(name => {
                         const move = modelToMove[name];
-                        const isChosen = move === chosen;
                         const conf = confByModel[name];
                         return (
                           <tr key={name} className="border-b border-slate-700/50">
