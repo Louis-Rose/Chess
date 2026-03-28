@@ -577,6 +577,19 @@ def _scoresheet_parse_response(response_text):
     return result, warnings
 
 
+def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None):
+    """Log a Gemini API call to the api_usage table."""
+    try:
+        with get_db() as conn:
+            conn.execute(
+                """INSERT INTO api_usage (feature, model_id, input_tokens, output_tokens, elapsed_seconds, error)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (feature, model_id, input_tokens, output_tokens, elapsed, error),
+            )
+    except Exception as e:
+        logger.error(f"[API Usage] Failed to log: {e}")
+
+
 SCORESHEET_MODELS = [
     {"id": "gemini-3-flash-preview", "name": "Gemini 3 Flash"},
     {"id": "gemini-3.1-pro-preview", "name": "Gemini 3.1 Pro"},
@@ -704,10 +717,16 @@ Return ONLY a JSON object:
             config={"response_mime_type": "application/json"},
         )
     except Exception as e:
+        elapsed = round(time_module.time() - start)
         logger.error(f"[Scoresheet reread] {model_id} failed: {e}")
+        _log_api_usage('reread', model_id, 0, 0, elapsed, error=str(e))
         return jsonify({"error": str(e)}), 500
 
     elapsed = round(time_module.time() - start)
+    usage = getattr(response, 'usage_metadata', None)
+    in_tok = getattr(usage, 'prompt_token_count', 0) or 0
+    out_tok = getattr(usage, 'candidates_token_count', 0) or 0
+    _log_api_usage('reread', model_id, in_tok, out_tok, elapsed)
     gemini_result, warnings = _scoresheet_parse_response(response.text)
     new_moves = gemini_result.get("moves", [])
 
@@ -943,16 +962,21 @@ def read_diagram():
                 ],
             )
             elapsed = round(time_module.time() - start)
+            usage = getattr(response, 'usage_metadata', None)
+            in_tok = getattr(usage, 'prompt_token_count', 0) or 0
+            out_tok = getattr(usage, 'candidates_token_count', 0) or 0
             fen = response.text.strip().strip('`').strip()
             # Remove markdown code block if present
             if fen.startswith('fen\n'):
                 fen = fen[4:].strip()
-            logger.info(f"[Diagram] {model_name} responded in {elapsed}s: {fen[:80]}")
+            logger.info(f"[Diagram] {model_name} responded in {elapsed}s: {fen[:80]} ({in_tok}+{out_tok} tokens)")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "fen": fen, "elapsed": elapsed})
+            _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed)
         except Exception as e:
             elapsed = round(time_module.time() - start)
             logger.error(f"[Diagram] {model_name} failed after {elapsed}s: {e}")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
+            _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e))
         finally:
             result_queue.put(THREAD_DONE)
 
@@ -1036,22 +1060,28 @@ def read_scoresheet():
                 config={"response_mime_type": "application/json"},
             )
             elapsed = round(time_module.time() - start)
-            logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s")
+            usage = getattr(response, 'usage_metadata', None)
+            in_tok = getattr(usage, 'prompt_token_count', 0) or 0
+            out_tok = getattr(usage, 'candidates_token_count', 0) or 0
+            logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s ({in_tok}+{out_tok} tokens)")
 
             result, warnings = _scoresheet_parse_response(response.text)
             result["moves"] = _scoresheet_validate_moves(result.get("moves", []))
 
             move_count = len(result.get("moves", []))
             logger.info(f"[Scoresheet] {model_name}: {move_count} moves")
-            item = {"type": "result", "model_id": model_id, "name": model_name, "result": result, "elapsed": elapsed}
+            item = {"type": "result", "model_id": model_id, "name": model_name, "result": result, "elapsed": elapsed,
+                    "input_tokens": in_tok, "output_tokens": out_tok}
             if warnings:
                 item["warnings"] = warnings
             result_queue.put(item)
+            _log_api_usage('scoresheet', model_id, in_tok, out_tok, elapsed)
 
         except Exception as e:
             elapsed = round(time_module.time() - start)
             logger.error(f"[Scoresheet] {model_name} failed after {elapsed}s: {e}")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
+            _log_api_usage('scoresheet', model_id, 0, 0, elapsed, error=str(e))
         finally:
             result_queue.put(THREAD_DONE)
 
@@ -3096,6 +3126,75 @@ def get_coach_time_spent():
         daily_stats = [dict(row) for row in cursor.fetchall()]
 
     return jsonify({'daily_stats': daily_stats})
+
+
+# ── Gemini pricing per 1M tokens (USD) ──
+GEMINI_PRICING = {
+    'gemini-3-flash-preview':         {'input': 0.10, 'output': 0.40},
+    'gemini-3.1-pro-preview':         {'input': 1.25, 'output': 10.00},
+    'gemini-3.1-flash-lite-preview':  {'input': 0.02, 'output': 0.10},
+    'gemini-2.0-flash':               {'input': 0.10, 'output': 0.40},
+}
+
+@app.route('/api/admin/api-usage', methods=['GET'])
+@admin_required
+def get_api_usage():
+    """Get Gemini API usage history with cost breakdown."""
+    with get_db() as conn:
+        # Per-call history (most recent first, cap at 200)
+        cursor = conn.execute('''
+            SELECT id, feature, model_id, input_tokens, output_tokens,
+                   elapsed_seconds, error, created_at
+            FROM api_usage
+            ORDER BY created_at DESC
+            LIMIT 200
+        ''')
+        rows = [dict(r) for r in cursor.fetchall()]
+
+        # Per-model aggregates
+        cursor = conn.execute('''
+            SELECT model_id,
+                   COUNT(*) as call_count,
+                   SUM(input_tokens) as total_input,
+                   SUM(output_tokens) as total_output,
+                   SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) as error_count,
+                   AVG(elapsed_seconds) as avg_elapsed
+            FROM api_usage
+            GROUP BY model_id
+            ORDER BY call_count DESC
+        ''')
+        by_model = []
+        for r in cursor.fetchall():
+            row = dict(r)
+            pricing = GEMINI_PRICING.get(row['model_id'], {'input': 0, 'output': 0})
+            row['cost_usd'] = round(
+                (row['total_input'] or 0) * pricing['input'] / 1_000_000
+                + (row['total_output'] or 0) * pricing['output'] / 1_000_000,
+                6,
+            )
+            row['avg_elapsed'] = round(row['avg_elapsed'] or 0, 1)
+            by_model.append(row)
+
+        # Per-feature aggregates
+        cursor = conn.execute('''
+            SELECT feature, COUNT(*) as call_count,
+                   SUM(input_tokens) as total_input,
+                   SUM(output_tokens) as total_output
+            FROM api_usage
+            GROUP BY feature
+        ''')
+        by_feature = [dict(r) for r in cursor.fetchall()]
+
+    # Compute total cost
+    total_cost = sum(m['cost_usd'] for m in by_model)
+
+    return jsonify({
+        'history': rows,
+        'by_model': by_model,
+        'by_feature': by_feature,
+        'total_cost_usd': round(total_cost, 6),
+        'pricing': GEMINI_PRICING,
+    })
 
 
 EXCLUDED_CHESS_TESTERS = ('akyrosu', 'pingu-dav', 'remi75014', 'pengumasc', 'augustincbs', 'lau_tiny')

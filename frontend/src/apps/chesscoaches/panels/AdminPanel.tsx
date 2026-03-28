@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Loader2, ChevronUp, ChevronDown, Clock } from 'lucide-react';
+import { Shield, Loader2, ChevronUp, ChevronDown, Clock, Cpu, DollarSign, AlertTriangle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -31,6 +31,35 @@ interface AdminUsersResponse {
 interface TimeSpentDay {
   activity_date: string;
   total_seconds: number;
+}
+
+interface ApiUsageRow {
+  id: number;
+  feature: string;
+  model_id: string;
+  input_tokens: number;
+  output_tokens: number;
+  elapsed_seconds: number;
+  error: string | null;
+  created_at: string;
+}
+
+interface ApiUsageByModel {
+  model_id: string;
+  call_count: number;
+  total_input: number;
+  total_output: number;
+  error_count: number;
+  avg_elapsed: number;
+  cost_usd: number;
+}
+
+interface ApiUsageResponse {
+  history: ApiUsageRow[];
+  by_model: ApiUsageByModel[];
+  by_feature: { feature: string; call_count: number; total_input: number; total_output: number }[];
+  total_cost_usd: number;
+  pricing: Record<string, { input: number; output: number }>;
 }
 
 type SortColumn = 'name' | 'created_at' | 'last_active' | 'total_seconds' | 'session_count';
@@ -69,6 +98,29 @@ function timeAgo(dateStr: string | null, lang: string): string {
   return `${days} day${days !== 1 ? 's' : ''} ago`;
 }
 
+function formatTokens(n: number): string {
+  if (!n) return '0';
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
+
+function formatCost(usd: number): string {
+  if (usd === 0) return '$0';
+  if (usd < 0.01) return `$${usd.toFixed(4)}`;
+  return `$${usd.toFixed(2)}`;
+}
+
+function shortModel(id: string): string {
+  return id.replace('gemini-', '').replace('-preview', '');
+}
+
+const FEATURE_LABELS: Record<string, string> = {
+  scoresheet: 'Scoresheet',
+  reread: 'Re-read',
+  diagram: 'Diagram',
+};
+
 export function AdminPanel() {
   const { user, isLoading: authLoading } = useAuth();
   const { t, language } = useLanguage();
@@ -92,6 +144,15 @@ export function AdminPanel() {
         params: ignoreSelf ? { exclude_user_id: user?.id } : {},
       });
       return response.data.daily_stats;
+    },
+    enabled: !!user?.is_admin,
+  });
+
+  const { data: apiUsage } = useQuery({
+    queryKey: ['admin-api-usage'],
+    queryFn: async (): Promise<ApiUsageResponse> => {
+      const response = await axios.get('/api/admin/api-usage');
+      return response.data;
     },
     enabled: !!user?.is_admin,
   });
@@ -214,6 +275,125 @@ export function AdminPanel() {
                 <Bar dataKey="minutes" fill="#16a34a" radius={[2, 2, 0, 0]} activeBar={false} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Gemini API Usage */}
+        {apiUsage && (
+          <div className="bg-slate-700/30 rounded-lg p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-purple-400" />
+                <h3 className="text-sm font-medium text-slate-300">Gemini API Usage</h3>
+              </div>
+              <div className="flex items-center gap-1 text-sm">
+                <DollarSign className="w-3.5 h-3.5 text-green-400" />
+                <span className="text-green-400 font-medium">{formatCost(apiUsage.total_cost_usd)}</span>
+                <span className="text-slate-500 ml-1">total</span>
+              </div>
+            </div>
+
+            {/* Cost per model */}
+            {apiUsage.by_model.length > 0 && (
+              <div className="overflow-x-auto rounded-lg border border-slate-600/50">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left">Model</th>
+                      <th className="px-3 py-2 text-center">Calls</th>
+                      <th className="px-3 py-2 text-center">Input</th>
+                      <th className="px-3 py-2 text-center">Output</th>
+                      <th className="px-3 py-2 text-center">Avg time</th>
+                      <th className="px-3 py-2 text-center">Errors</th>
+                      <th className="px-3 py-2 text-right">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {apiUsage.by_model.map(m => (
+                      <tr key={m.model_id} className="hover:bg-slate-700/30">
+                        <td className="px-3 py-2 text-slate-200 font-mono text-xs">{shortModel(m.model_id)}</td>
+                        <td className="px-3 py-2 text-slate-400 text-center">{m.call_count}</td>
+                        <td className="px-3 py-2 text-slate-400 text-center">{formatTokens(m.total_input)}</td>
+                        <td className="px-3 py-2 text-slate-400 text-center">{formatTokens(m.total_output)}</td>
+                        <td className="px-3 py-2 text-slate-400 text-center">{m.avg_elapsed}s</td>
+                        <td className="px-3 py-2 text-center">
+                          {m.error_count > 0
+                            ? <span className="text-red-400">{m.error_count}</span>
+                            : <span className="text-slate-600">0</span>}
+                        </td>
+                        <td className="px-3 py-2 text-green-400 text-right font-medium">{formatCost(m.cost_usd)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Per-feature summary */}
+            {apiUsage.by_feature.length > 0 && (
+              <div className="flex gap-3 flex-wrap">
+                {apiUsage.by_feature.map(f => (
+                  <div key={f.feature} className="bg-slate-800/50 rounded-md px-3 py-2 text-xs">
+                    <span className="text-slate-400">{FEATURE_LABELS[f.feature] || f.feature}</span>
+                    <span className="text-slate-200 ml-2 font-medium">{f.call_count} calls</span>
+                    <span className="text-slate-500 ml-2">{formatTokens((f.total_input || 0) + (f.total_output || 0))} tokens</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Recent calls history */}
+            {apiUsage.history.length > 0 && (
+              <details className="group">
+                <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-300 select-none">
+                  Recent calls ({apiUsage.history.length})
+                </summary>
+                <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-slate-600/50">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0">
+                      <tr className="bg-slate-700/80 text-slate-400 uppercase tracking-wider">
+                        <th className="px-2 py-1.5 text-left">Time</th>
+                        <th className="px-2 py-1.5 text-left">Feature</th>
+                        <th className="px-2 py-1.5 text-left">Model</th>
+                        <th className="px-2 py-1.5 text-center">In</th>
+                        <th className="px-2 py-1.5 text-center">Out</th>
+                        <th className="px-2 py-1.5 text-center">Time</th>
+                        <th className="px-2 py-1.5 text-right">Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-700/30">
+                      {apiUsage.history.map(row => {
+                        const pricing = apiUsage.pricing[row.model_id] || { input: 0, output: 0 };
+                        const cost = (row.input_tokens * pricing.input + row.output_tokens * pricing.output) / 1_000_000;
+                        return (
+                          <tr key={row.id} className={`hover:bg-slate-700/20 ${row.error ? 'bg-red-900/10' : ''}`}>
+                            <td className="px-2 py-1 text-slate-500 whitespace-nowrap">
+                              {new Date(row.created_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short' })}
+                              {' '}
+                              {new Date(row.created_at).toLocaleTimeString(language === 'fr' ? 'fr-FR' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className="px-2 py-1 text-slate-300">{FEATURE_LABELS[row.feature] || row.feature}</td>
+                            <td className="px-2 py-1 text-slate-400 font-mono">{shortModel(row.model_id)}</td>
+                            <td className="px-2 py-1 text-slate-400 text-center">{formatTokens(row.input_tokens)}</td>
+                            <td className="px-2 py-1 text-slate-400 text-center">{formatTokens(row.output_tokens)}</td>
+                            <td className="px-2 py-1 text-slate-400 text-center">{row.elapsed_seconds}s</td>
+                            <td className="px-2 py-1 text-right">
+                              {row.error
+                                ? <span className="text-red-400 flex items-center justify-end gap-1"><AlertTriangle className="w-3 h-3" /> err</span>
+                                : <span className="text-green-400">{formatCost(cost)}</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            )}
+
+            {apiUsage.by_model.length === 0 && (
+              <p className="text-slate-500 text-sm text-center py-4">No API calls recorded yet</p>
+            )}
           </div>
         )}
 

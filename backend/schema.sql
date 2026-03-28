@@ -432,6 +432,21 @@ CREATE INDEX IF NOT EXISTS idx_theme_usage_user_id ON theme_usage(user_id);
 CREATE INDEX IF NOT EXISTS idx_language_usage_user_id ON language_usage(user_id);
 CREATE INDEX IF NOT EXISTS idx_device_usage_user_id ON device_usage(user_id);
 
+-- API usage tracking (Gemini calls for scoresheet/diagram reading)
+CREATE TABLE IF NOT EXISTS api_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,                       -- NULL for unauthenticated requests
+    feature TEXT NOT NULL,                 -- 'scoresheet', 'reread', 'diagram'
+    model_id TEXT NOT NULL,                -- e.g. 'gemini-3-flash-preview'
+    input_tokens INTEGER DEFAULT 0,
+    output_tokens INTEGER DEFAULT 0,
+    elapsed_seconds INTEGER DEFAULT 0,
+    error TEXT,                            -- NULL if successful
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_api_usage_created ON api_usage(created_at);
+CREATE INDEX IF NOT EXISTS idx_api_usage_feature ON api_usage(feature);
+
 -- Coach students indexes
 CREATE INDEX IF NOT EXISTS idx_coach_students_coach ON coach_students(coach_user_id);
 CREATE INDEX IF NOT EXISTS idx_coach_students_active ON coach_students(coach_user_id, is_active);

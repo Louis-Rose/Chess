@@ -561,6 +561,29 @@ def init_db():
                 conn.execute("ALTER TABLE users ADD COLUMN registered_app TEXT")
                 print("[Database] Added registered_app column to users")
 
+            # Migration: Create api_usage table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'api_usage'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE api_usage (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER,
+                        feature TEXT NOT NULL,
+                        model_id TEXT NOT NULL,
+                        input_tokens INTEGER DEFAULT 0,
+                        output_tokens INTEGER DEFAULT 0,
+                        elapsed_seconds INTEGER DEFAULT 0,
+                        error TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                conn.execute("CREATE INDEX idx_api_usage_created ON api_usage(created_at)")
+                conn.execute("CREATE INDEX idx_api_usage_feature ON api_usage(feature)")
+                print("[Database] Created api_usage table")
+
             # Migration: Tag admin account as coaches app user
             conn.execute("UPDATE users SET registered_app = 'coaches' WHERE email = 'rose.louis.mail@gmail.com' AND registered_app IS NULL")
 
