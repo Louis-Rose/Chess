@@ -1742,7 +1742,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       {details.map(d => (
                         <div key={d.candidate} className="flex justify-between px-2">
                           <span className="font-mono text-slate-400">{d.candidate}</span>
-                          <span>{d.downstreamIllegals >= 100 ? <span className="text-red-400">{t('coaches.voteItselfIllegal')}</span> : <span>{d.downstreamIllegals} {t('coaches.voteIllegals').toLowerCase()}</span>}</span>
+                          <span>{d.downstreamIllegals >= 100 ? <span className="text-red-400">{t('coaches.voteItselfIllegal')}</span> : <span>results in {d.downstreamIllegals} illegal {d.downstreamIllegals === 1 ? 'move' : 'moves'}</span>}</span>
                         </div>
                       ))}
                     </div>
