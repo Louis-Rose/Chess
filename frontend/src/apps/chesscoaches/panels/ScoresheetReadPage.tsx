@@ -381,7 +381,7 @@ export function ScoresheetReadPage() {
                       .map(m => ({ name: m.name, moves: modelResults[m.id]!.result!.moves }));
                     const allModelMoves = modelEntries.map(e => e.moves);
                     const modelNames = modelEntries.map(e => e.name);
-                    const consensusReady = allModelMoves.length >= 2;
+                    const consensusReady = allModelMoves.length >= 2 && allModelMoves.length === models.length;
                     const consensusId = '__consensus__';
                     const maxLen = allModelMoves.length > 0 ? Math.max(...allModelMoves.map(mv => mv.length)) : 0;
                     // Two-pass smart consensus algorithm.
@@ -1586,6 +1586,19 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                         No, edit move
                       </button>
                     </div>
+                  )}
+                  {onMoveClick && (
+                    <button
+                      onClick={() => {
+                        const [mn, cl] = voteInfoKey.split('-');
+                        const idx = parseInt(mn) - 1;
+                        const ply = cl === 'white' ? idx * 2 : idx * 2 + 1;
+                        onMoveClick(moves, ply);
+                      }}
+                      className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-1.5 rounded-lg transition-colors mt-1"
+                    >
+                      Show position before this move
+                    </button>
                   )}
                 </>
               );
