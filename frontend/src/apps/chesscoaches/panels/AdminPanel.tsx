@@ -270,6 +270,60 @@ export function AdminPanel() {
           </label>
         </div>
 
+        {/* Users Table */}
+        {error ? (
+          <p className="text-red-400 text-center py-8">{t('coaches.admin.failedLoad')}</p>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-slate-700">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left cursor-pointer hover:text-slate-200" onClick={() => handleSort('name')}>
+                    {t('coaches.admin.user')} <SortIcon column="name" />
+                  </th>
+                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('created_at')}>
+                    {t('coaches.admin.joined')} <SortIcon column="created_at" />
+                  </th>
+                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('last_active')}>
+                    {t('coaches.admin.lastActive')} <SortIcon column="last_active" />
+                  </th>
+                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('session_count')}>
+                    {t('coaches.admin.sessions')} <SortIcon column="session_count" />
+                  </th>
+                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('total_seconds')}>
+                    {t('coaches.admin.time')} <SortIcon column="total_seconds" />
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700/50">
+                {sortedUsers.map(u => (
+                  <tr key={u.id} className="hover:bg-slate-700/30 transition-colors">
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        {u.picture ? (
+                          <img src={u.picture} alt="" className="w-6 h-6 rounded-full" />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs text-slate-300">
+                            {(u.name || u.email).charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-slate-200 truncate">{u.name || u.email}</p>
+                          <p className="text-slate-500 text-xs truncate">{u.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{formatDate(u.created_at, language)}</td>
+                    <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{timeAgo(u.last_active, language)}</td>
+                    <td className="px-3 py-2 text-slate-400 text-center">{u.session_count || 0}</td>
+                    <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{formatDuration(u.total_seconds)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {/* Time Spent Chart */}
         {chartData.length > 0 && (
           <div className="bg-slate-700/30 rounded-lg p-4">
@@ -430,59 +484,6 @@ export function AdminPanel() {
           </div>
         )}
 
-        {/* Users Table */}
-        {error ? (
-          <p className="text-red-400 text-center py-8">{t('coaches.admin.failedLoad')}</p>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-slate-700">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
-                  <th className="px-3 py-2 text-left cursor-pointer hover:text-slate-200" onClick={() => handleSort('name')}>
-                    {t('coaches.admin.user')} <SortIcon column="name" />
-                  </th>
-                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('created_at')}>
-                    {t('coaches.admin.joined')} <SortIcon column="created_at" />
-                  </th>
-                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('last_active')}>
-                    {t('coaches.admin.lastActive')} <SortIcon column="last_active" />
-                  </th>
-                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('session_count')}>
-                    {t('coaches.admin.sessions')} <SortIcon column="session_count" />
-                  </th>
-                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('total_seconds')}>
-                    {t('coaches.admin.time')} <SortIcon column="total_seconds" />
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-700/50">
-                {sortedUsers.map(u => (
-                  <tr key={u.id} className="hover:bg-slate-700/30 transition-colors">
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        {u.picture ? (
-                          <img src={u.picture} alt="" className="w-6 h-6 rounded-full" />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs text-slate-300">
-                            {(u.name || u.email).charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-slate-200 truncate">{u.name || u.email}</p>
-                          <p className="text-slate-500 text-xs truncate">{u.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{formatDate(u.created_at, language)}</td>
-                    <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{timeAgo(u.last_active, language)}</td>
-                    <td className="px-3 py-2 text-slate-400 text-center">{u.session_count || 0}</td>
-                    <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{formatDuration(u.total_seconds)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </PanelShell>
   );
