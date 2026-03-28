@@ -1697,6 +1697,10 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
               }
               const chosen = details.find(d => d.chosen)?.candidate;
               const pass1Choice = details[0]?.pass1Choice;
+              // Look up the final post-validation move (disambiguation etc.)
+              const [moveNumStr, colorStr] = voteInfoKey.split('-');
+              const finalMove = moves[parseInt(moveNumStr) - 1]?.[colorStr as 'white' | 'black'];
+              const postValidationChanged = finalMove && chosen && finalMove.replace(/[+#]/g, '') !== chosen;
               const confColor = (c?: string) => c === 'high' ? 'text-emerald-400' : c === 'medium' ? 'text-yellow-400' : c === 'low' ? 'text-red-400' : 'text-slate-600';
               return (
                 <>
@@ -1730,10 +1734,23 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       <tr className="border-b border-slate-700/50">
                         <td className="py-1.5 px-2 text-slate-100 text-xs font-medium">Consensus (Pass 2)</td>
                         <td className="py-1.5 px-2 text-center font-mono">
-                          <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{chosen || '—'}</span>
+                          {postValidationChanged
+                            ? <span className="text-slate-100">{chosen}</span>
+                            : <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{chosen || '—'}</span>}
                         </td>
                         <td />
                       </tr>
+                      {postValidationChanged && (
+                        <tr className="border-b border-slate-700/50">
+                          <td className="py-1.5 px-2 text-slate-100 text-xs font-medium">After validation</td>
+                          <td className="py-1.5 px-2 text-center font-mono">
+                            <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{finalMove}</span>
+                          </td>
+                          <td className="py-1.5 px-2 text-center text-xs text-slate-500">
+                            {moves[parseInt(moveNumStr) - 1]?.[`${colorStr}_reason` as 'white_reason' | 'black_reason'] || 'disambiguated'}
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                   {details.length > 1 && (
