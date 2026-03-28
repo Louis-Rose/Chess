@@ -856,7 +856,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, fileName, ch
               style={{ maxHeight: tbodyHeight }}
               onClick={onImageClick}
             />
-            {fileName && <span className="text-slate-500 text-xs mt-2 truncate max-w-[200px]">{fileName}</span>}
+            {fileName && <span className="text-slate-100 text-sm mt-2 truncate max-w-[200px]">{fileName}</span>}
             {onReplace && (
               <button
                 onClick={onReplace}
@@ -1360,7 +1360,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   onMoveClick(moves, ply);
                   onClearPreview?.();
                 }}
-                className="w-full text-slate-400 hover:text-slate-200 text-xs py-1 mb-2 transition-colors"
+                className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-1.5 mb-2 rounded-lg transition-colors"
               >
                 Show position before this move
               </button>
