@@ -599,6 +599,9 @@ export function ScoresheetReadPage() {
                     };
                     return (
                       <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')} fileName={fileName || undefined}>
+                        {consensusReady && modelDisagreements.size > 0 && (
+                          <p className="text-slate-100 text-sm text-center mb-3">Highlighted moves should be double-checked</p>
+                        )}
                         <div className="flex items-stretch" onClick={consensusReady ? deselectConsensus : undefined}>
                           <div className="flex-1 hidden md:block" />
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
@@ -1280,9 +1283,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             <span className={illegal > 0 ? 'text-orange-400' : 'text-slate-600'}>{illegal} illegal {illegal === 1 ? 'move' : 'moves'}</span>
             <span className={medium > 0 ? 'text-yellow-400' : 'text-slate-600'}>{medium} medium confidence {medium === 1 ? 'move' : 'moves'}</span>
             <span className={low > 0 ? 'text-red-400' : 'text-slate-600'}>{low} low confidence {low === 1 ? 'move' : 'moves'}</span>
-            {(disagreementCount > 0 || illegal > 0) && (
-              <span className="text-slate-500 mt-1">Highlighted moves should be double-checked</span>
-            )}
           </div>
         );
       })()}
