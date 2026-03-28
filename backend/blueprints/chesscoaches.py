@@ -251,30 +251,21 @@ _PAID_ONLY_MODELS = {'gemini-3.1-pro-preview'}
 
 
 def _gemini_generate(client_free, client_paid, model_id, contents, config=None):
-    """Try free API key first, fall back to paid on 429. Returns (response, billing_tier)."""
+    """Try free API key first, fall back to paid on any error. Returns (response, billing_tier)."""
+    kwargs = {'model': model_id, 'contents': contents}
+    if config:
+        kwargs['config'] = config
+
     # Models with no free tier go straight to paid
     if model_id in _PAID_ONLY_MODELS or client_free is None:
-        kwargs = {'model': model_id, 'contents': contents}
-        if config:
-            kwargs['config'] = config
         return client_paid.models.generate_content(**kwargs), 'paid'
 
-    # Try free key first
+    # Try free key first, fall back to paid on any failure
     try:
-        kwargs = {'model': model_id, 'contents': contents}
-        if config:
-            kwargs['config'] = config
-        response = client_free.models.generate_content(**kwargs)
-        return response, 'free'
+        return client_free.models.generate_content(**kwargs), 'free'
     except Exception as e:
-        err_str = str(e).lower()
-        if '429' in err_str or 'resource_exhausted' in err_str or 'rate' in err_str or '503' in err_str or 'unavailable' in err_str:
-            logger.info(f"[Gemini] Free key failed for {model_id} ({type(e).__name__}), falling back to paid key")
-            kwargs = {'model': model_id, 'contents': contents}
-            if config:
-                kwargs['config'] = config
-            return client_paid.models.generate_content(**kwargs), 'paid'
-        raise
+        logger.info(f"[Gemini] Free key failed for {model_id} ({type(e).__name__}), falling back to paid key")
+        return client_paid.models.generate_content(**kwargs), 'paid'
 
 
 SCORESHEET_MODELS = [
@@ -675,8 +666,7 @@ def read_diagram():
             elapsed = round(time_module.time() - start)
             logger.error(f"[Diagram] {model_name} failed after {elapsed}s: {e}")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
-            err_tier = 'paid' if (model_id in _PAID_ONLY_MODELS or client_free is None) else 'free'
-            _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid, billing_tier=err_tier)
+            _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid, billing_tier='paid')
         finally:
             result_queue.put(THREAD_DONE)
 
@@ -787,8 +777,7 @@ def read_scoresheet():
             elapsed = round(time_module.time() - start)
             logger.error(f"[Scoresheet] {model_name} failed after {elapsed}s: {e}")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
-            err_tier = 'paid' if (model_id in _PAID_ONLY_MODELS or client_free is None) else 'free'
-            _log_api_usage('scoresheet', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid, billing_tier=err_tier)
+            _log_api_usage('scoresheet', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid, billing_tier='paid')
         finally:
             result_queue.put(THREAD_DONE)
 
