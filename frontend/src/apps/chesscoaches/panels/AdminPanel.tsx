@@ -356,10 +356,13 @@ export function AdminPanel() {
                 <Cpu className="w-4 h-4 text-purple-400" />
                 <h3 className="text-sm font-medium text-slate-300">Gemini API Usage</h3>
               </div>
-              <div className="flex items-center gap-1 text-sm">
-                <DollarSign className="w-3.5 h-3.5 text-green-400" />
-                <span className="text-green-400 font-medium">{formatCost(apiUsage.total_cost_usd)}</span>
-                <span className="text-slate-500 ml-1">total</span>
+              <div className="flex items-center gap-3 text-sm">
+                <div className="flex items-center gap-1">
+                  <DollarSign className="w-3.5 h-3.5 text-green-400" />
+                  <span className="text-green-400 font-medium">{formatCost(apiUsage.total_cost_usd)}</span>
+                  <span className="text-slate-500">total</span>
+                </div>
+                <a href="https://aistudio.google.com/spend" target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">Google Billing</a>
               </div>
             </div>
 
