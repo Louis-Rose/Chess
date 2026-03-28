@@ -614,11 +614,13 @@ export function ScoresheetReadPage() {
                     return (
                       <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')} fileName={fileName || undefined}>
                         {consensusReady && !highlightHintDismissed && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)) && (
-                          <div className="flex items-center justify-center gap-2 mb-3 bg-slate-700/40 rounded-lg px-4 py-2">
-                            <p className="text-slate-100 text-sm"><span className="bg-yellow-500/25 text-yellow-100 px-1.5 py-0.5 rounded">Highlighted moves</span> should be double-checked</p>
-                            <button onClick={() => { setHighlightHintDismissed(true); localStorage.setItem('scoresheet_hint_dismissed', new Date().toISOString().split('T')[0]); }} className="text-slate-500 hover:text-slate-300 transition-colors ml-1 flex-shrink-0">
-                              <span className="text-xs">&#10005;</span>
-                            </button>
+                          <div className="flex justify-center mb-3">
+                            <div className="inline-flex items-center gap-2 bg-slate-700/40 rounded-lg px-3 py-1.5">
+                              <p className="text-slate-100 text-sm"><span className="bg-yellow-500/25 text-yellow-100 px-1.5 py-0.5 rounded">Highlighted moves</span> should be double-checked</p>
+                              <button onClick={() => { setHighlightHintDismissed(true); localStorage.setItem('scoresheet_hint_dismissed', new Date().toISOString().split('T')[0]); }} className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0">
+                                <span className="text-xs">&#10005;</span>
+                              </button>
+                            </div>
                           </div>
                         )}
                         <div className="flex items-stretch" onClick={consensusReady ? deselectConsensus : undefined}>
@@ -2054,7 +2056,7 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onEd
               onClick={(e) => { e.stopPropagation(); setShowMenu(false); onVoteInfo(); }}
               className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-lg"
             >
-              See vote &amp; Edit
+              See votes &amp; Edit
             </button>
           ) : (
           <button
