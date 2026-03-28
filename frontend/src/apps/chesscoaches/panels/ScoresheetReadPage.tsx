@@ -447,7 +447,27 @@ export function ScoresheetReadPage() {
                       .map(m => ({ name: m.name, moves: modelResults[m.id]!.result!.moves }));
                     const allModelMoves = modelEntries.map(e => e.moves);
                     const modelNames = modelEntries.map(e => e.name);
-                    if (allModelMoves.length < 2) return null;
+                    if (allModelMoves.length < 2) return (
+                      <ModelRow key="__consensus_loading__" preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')} fileName={fileName || undefined}>
+                        <div className="flex items-stretch">
+                          <div className="flex-1 hidden md:block" />
+                          <div className="flex-shrink-0" data-tables>
+                            <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[320px]">
+                              <div className="px-3 py-2.5 border-b border-slate-600 flex items-center justify-center gap-2">
+                                <span className="text-slate-100 font-medium text-sm">{t('coaches.consensus')}</span>
+                              </div>
+                              <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
+                                <Clock className="w-4 h-4 animate-spin" />
+                                <span className="text-sm">{t('coaches.analyzing')}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex-1 hidden md:flex justify-center items-center">
+                            <ModelBoard moves={[]} externalPly={0} onPlyChange={() => {}} disableDrag autoActivate={false} previewFen={null} />
+                          </div>
+                        </div>
+                      </ModelRow>
+                    );
                     const maxLen = Math.max(...allModelMoves.map(mv => mv.length));
                     // Two-pass smart consensus algorithm.
 
