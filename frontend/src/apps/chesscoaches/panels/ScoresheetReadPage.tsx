@@ -1203,11 +1203,11 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       const m = { ...moves[i] };
       if (i === editedMoveIdx) {
         m[editedColor] = editedValue;
+        (m as any)[`${editedColor}_confirmed`] = true;
+        delete (m as any)[`${editedColor}_reason`];
       }
       delete m.white_legal;
       delete m.black_legal;
-      delete m.white_reason;
-      delete m.black_reason;
       confirmed.push(m);
     }
 
