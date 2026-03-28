@@ -1464,7 +1464,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                           <td className="py-1.5 px-2 text-center font-mono">
                             <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{finalMove}</span>
                           </td>
-                          <td className="py-1.5 px-2 text-center text-xs text-slate-500">
+                          <td className="py-1.5 px-2 text-center text-xs text-slate-100">
                             {moves[parseInt(moveNumStr) - 1]?.[`${colorStr}_reason` as 'white_reason' | 'black_reason'] || 'disambiguated'}
                           </td>
                         </tr>
