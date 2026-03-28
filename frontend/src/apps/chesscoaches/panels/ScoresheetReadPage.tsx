@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
-import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronDown, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Upload, ImageIcon, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronDown, RotateCcw, AlertTriangle } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -18,27 +18,6 @@ import { pieceImageUrl } from '../utils/pieces';
 import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
-// Parse a moves.csv file into ground truth data
-// Fetch ground truth for a scoresheet via API (by filename stem) — used by GroundTruthPanel (admin)
-const groundTruthCache = new Map<string, { white_player: string; black_player: string; result: string; moves: Move[] } | null>();
-
-async function fetchGroundTruth(filename: string | null): Promise<{ white_player: string; black_player: string; result: string; moves: Move[] } | null> {
-  if (!filename) return null;
-  const stem = filename.replace(/\.[^.]+$/, '');
-  if (groundTruthCache.has(stem)) return groundTruthCache.get(stem)!;
-  try {
-    const res = await fetch(`/api/coaches/ground-truth/${encodeURIComponent(stem)}`);
-    if (!res.ok) { groundTruthCache.set(stem, null); return null; }
-    const data = await res.json();
-    if (!data.moves || data.moves.length === 0) { groundTruthCache.set(stem, null); return null; }
-    groundTruthCache.set(stem, data);
-    return data;
-  } catch {
-    groundTruthCache.set(stem, null);
-    return null;
-  }
-}
-
 function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result?: string }): string {
   const headers = [
     `[White "${meta?.white || '?'}"]`,
@@ -52,52 +31,6 @@ function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result
 }
 
 
-interface AccuracyStats {
-  accuracy: number;
-  mistakesThatAreIllegal: number | null;  // % of reading mistakes that are also illegal
-  illegalThatAreMistakes: number | null;   // % of illegal moves that are also reading mistakes
-}
-
-/** Compare two SAN moves tolerating capture 'x' differences (Bxc6 ≡ Bc6). */
-function movesMatch(a: string, b: string): boolean {
-  if (a === b) return true;
-  // Strip all 'x' and compare
-  return a.replace(/x/g, '') === b.replace(/x/g, '');
-}
-
-function computeStats(modelMoves: Move[], gtMoves: Move[]): AccuracyStats | null {
-  const total = gtMoves.reduce((n, m) => n + 1 + (m.black ? 1 : 0), 0);
-  if (total === 0) return null;
-
-  let correct = 0;
-  let mistakes = 0;
-  let illegal = 0;
-  let mistakesAndIllegal = 0;
-
-  for (let i = 0; i < gtMoves.length; i++) {
-    const gt = gtMoves[i];
-    const mm = modelMoves[i];
-    for (const color of ['white', 'black'] as const) {
-      if (color === 'black' && !gt.black) continue;
-      const gtVal = gt[color] || '';
-      const mmVal = mm?.[color] || '';
-      const isMistake = !movesMatch(mmVal, gtVal);
-      const legalKey = `${color}_legal` as const;
-      const isIllegal = mm?.[legalKey] === false;
-      if (!isMistake) correct++;
-      if (isMistake) mistakes++;
-      if (isIllegal) illegal++;
-      if (isMistake && isIllegal) mistakesAndIllegal++;
-    }
-  }
-
-  return {
-    accuracy: Math.round((correct / total) * 100),
-    mistakesThatAreIllegal: mistakes > 0 ? Math.round((mistakesAndIllegal / mistakes) * 100) : null,
-    illegalThatAreMistakes: illegal > 0 ? Math.round((mistakesAndIllegal / illegal) * 100) : null,
-  };
-}
-
 export function ScoresheetReadPage() {
   const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -107,13 +40,6 @@ export function ScoresheetReadPage() {
   } = useCoachesData();
 
   const { preview, fileName, error, modelResults, reReads, models, startTime, analyzing } = scoresheet;
-
-  // Fetch ground truth for accuracy comparison
-  const [groundTruth, setGroundTruth] = useState<{ white_player: string; black_player: string; result: string; moves: Move[] } | null>(null);
-  useEffect(() => {
-    setGroundTruth(null);
-    fetchGroundTruth(fileName).then(setGroundTruth);
-  }, [fileName]);
 
   // Pick up shared image from Web Share Target
   useEffect(() => {
@@ -687,8 +613,8 @@ export function ScoresheetReadPage() {
                             <MovesPanel
                               label={t('coaches.consensus')}
                               moves={displayConsensusMoves}
-                              groundTruthMoves={groundTruth?.moves}
-                              disagreements={groundTruth ? (() => { const m = new Map<number, { white: boolean; black: boolean }>(); const gt = groundTruth.moves; for (let idx = 0; idx < Math.max(displayConsensusMoves.length, gt.length); idx++) { const cm = displayConsensusMoves[idx]; const gm = gt[idx]; const wd = !movesMatch(cm?.white || '', gm?.white || ''); const bd = !movesMatch(cm?.black || '', gm?.black || ''); if (wd || bd) m.set(idx + 1, { white: wd, black: bd }); } return m; })() : new Map()}
+
+                              disagreements={new Map()}
                               elapsed={0}
                               fileName={fileName}
                               onEditSave={(confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey)}
@@ -752,7 +678,7 @@ export function ScoresheetReadPage() {
                                 <MovesPanel
                                   label={mr?.name || m.name}
                                   moves={currentMoves}
-                                  groundTruthMoves={undefined}
+    
                                   disagreements={new Map()}
                                   elapsed={currentElapsed}
                                   error={currentError}
@@ -1114,216 +1040,6 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
   );
 }
 
-// @ts-ignore — kept for potential admin/dev use
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function GroundTruthPanel({ groundTruth, fileName, onUpdate, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn }: {
-  groundTruth: { white_player: string; black_player: string; result: string; moves: Move[] };
-  fileName?: string | null;
-  onUpdate: (gt: { white_player: string; black_player: string; result: string; moves: Move[] }) => void;
-  onMoveClick?: (moves: Move[], ply: number) => void;
-  activePly?: number;
-  onPreview?: (moveIdx: number, color: 'white' | 'black', san: string) => void;
-  onClearPreview?: () => void;
-  sheetColumns?: number;
-  rowsPerColumn?: number | null;
-}) {
-  const { t } = useLanguage();
-  const [validatedMoves, setValidatedMoves] = useState<Move[]>(groundTruth.moves);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/api/coaches/validate-moves', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ moves: groundTruth.moves }),
-    })
-      .then(res => res.ok ? res.json() : null)
-      .then(json => { if (json && !cancelled) setValidatedMoves(json.moves); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [groundTruth.moves]);
-
-  const saveToServer = useCallback((updated: { white_player: string; black_player: string; result: string; moves: Move[] }) => {
-    if (!fileName) return;
-    const stem = fileName.replace(/\.[^.]+$/, '');
-    setSaving(true);
-    fetch('/api/coaches/ground-truth', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ name: stem, ...updated, moves: updated.moves.map(m => ({ number: m.number, white: m.white, black: m.black })) }),
-    })
-      .then(() => { groundTruthCache.delete(stem); })
-      .catch(() => {})
-      .finally(() => setSaving(false));
-  }, [fileName]);
-
-  const [editing, setEditing] = useState<{ moveNumber: number; moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (editing && inputRef.current) inputRef.current.focus();
-  }, [editing]);
-
-  // Legal moves at editing position
-  const legalMoves = useMemo(() => {
-    if (!editing) return [];
-    try {
-      const chess = new Chess();
-      for (let i = 0; i < editing.moveIdx; i++) {
-        const m = groundTruth.moves[i];
-        if (m.white) try { chess.move(m.white); } catch { break; }
-        if (m.black) try { chess.move(m.black); } catch { break; }
-      }
-      if (editing.color === 'black') {
-        const m = groundTruth.moves[editing.moveIdx];
-        if (m?.white) try { chess.move(m.white); } catch { /* */ }
-      }
-      return chess.moves().sort();
-    } catch { return []; }
-  }, [editing, groundTruth.moves]);
-
-  const updateMove = useCallback((moveNumber: number, color: 'white' | 'black', value: string) => {
-    const newMoves = groundTruth.moves.map(m =>
-      m.number === moveNumber ? { ...m, [color]: value } : m
-    );
-    const updated = { ...groundTruth, moves: newMoves };
-    onUpdate(updated);
-    saveToServer(updated);
-  }, [groundTruth, onUpdate, saveToServer]);
-
-  return (
-    <div className="bg-emerald-900/30 border border-emerald-700/50 rounded-xl overflow-hidden self-start min-w-[260px]">
-      <div className="px-2 py-2 border-b border-emerald-700/50 flex items-center justify-center gap-1.5">
-        <BookOpen className="w-3 h-3 text-emerald-400" />
-        <span className="text-emerald-300 font-medium text-xs">{t('coaches.groundTruth')}</span>
-        {saving && <span className="text-emerald-400/50 text-[9px]">{t('coaches.saving')}</span>}
-      </div>
-
-      {(() => {
-        const split = sheetColumns > 1 || validatedMoves.length > 15;
-        const splitAt = split ? (rowsPerColumn || Math.ceil(validatedMoves.length / sheetColumns)) : validatedMoves.length;
-        const leftMoves = validatedMoves.slice(0, splitAt);
-        const rightMoves = split ? validatedMoves.slice(splitAt) : [];
-        const rows = Math.max(leftMoves.length, rightMoves.length);
-
-        const renderCell = (move: Move | undefined, color: 'white' | 'black', idx: number) => {
-          if (!move) return <td className="px-1.5 py-0.5" />;
-          const val = move[color];
-          const legal = move[`${color}_legal` as const];
-          const ply = idx * 2 + (color === 'black' ? 2 : 1);
-          return (
-            <MoveCell
-              value={val || ''}
-              legal={legal}
-              active={activePly === ply}
-              reason={move[`${color}_reason` as 'white_reason' | 'black_reason']}
-              onEdit={() => {
-                setEditing({ moveNumber: move.number, moveIdx: idx, color, value: val || '' });
-                onMoveClick?.(groundTruth.moves, ply);
-              }}
-              onShowBoard={onMoveClick ? () => onMoveClick(groundTruth.moves, ply) : undefined}
-            />
-          );
-        };
-
-        return (
-          <table className="w-full text-xs">
-            <thead className="bg-emerald-900/40">
-              <tr className="border-b border-emerald-700/50">
-                <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6">#</th>
-                <th className="px-1.5 py-1 text-slate-400 font-medium text-center">White</th>
-                <th className="px-1.5 py-1 text-slate-400 font-medium text-center">Black</th>
-                {split && <>
-                  <th className="px-1.5 py-1 text-slate-400 font-medium text-center w-6 border-l border-emerald-700/50">#</th>
-                  <th className="px-1.5 py-1 text-slate-400 font-medium text-center">White</th>
-                  <th className="px-1.5 py-1 text-slate-400 font-medium text-center">Black</th>
-                </>}
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({ length: rows }, (_, i) => {
-                const left = leftMoves[i];
-                const right = rightMoves[i];
-                return (
-                  <tr key={i} className="border-b border-emerald-700/20 last:border-0">
-                    <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono">{left?.number}</td>
-                    {renderCell(left, 'white', i)}
-                    {renderCell(left, 'black', i)}
-                    {split && <>
-                      <td className="px-1.5 py-0.5 text-slate-500 text-center font-mono border-l border-emerald-700/30">{right?.number}</td>
-                      {renderCell(right, 'white', splitAt + i)}
-                      {renderCell(right, 'black', splitAt + i)}
-                    </>}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        );
-      })()}
-      <div className="px-2 py-1.5 border-t border-emerald-700/50 text-center">
-        <span className="text-xs font-medium text-green-400">100% {t('coaches.accuracy')}</span>
-      </div>
-      <ChesscomAnalysisButton
-        moves={validatedMoves}
-        meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
-      />
-      <LichessStudyButton
-        moves={validatedMoves}
-        meta={{ white: groundTruth.white_player, black: groundTruth.black_player, result: groundTruth.result }}
-        fileName={fileName}
-      />
-
-      {/* Edit modal */}
-      {editing && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[0.5px]"
-          onClick={() => { setEditing(null); onClearPreview?.(); }}
-        >
-          <div
-            className="bg-slate-800 rounded-xl p-4 min-w-[260px] shadow-xl border border-slate-600"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="text-slate-400 text-xs mb-2 text-center">
-              {t('coaches.move')} {editing.moveNumber} · {editing.color === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
-            </div>
-            {validatedMoves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason'] && (
-              <p className="text-red-400 text-sm mb-2 text-center">{validatedMoves[editing.moveIdx][`${editing.color}_reason` as 'white_reason' | 'black_reason']}</p>
-            )}
-            <input
-              ref={inputRef}
-              value={editing.value}
-              onChange={e => setEditing({ ...editing, value: e.target.value })}
-              onKeyDown={e => { if (e.key === 'Enter') { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); onClearPreview?.(); } if (e.key === 'Escape') { setEditing(null); onClearPreview?.(); } }}
-              className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
-            />
-            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={validatedMoves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
-              setEditing({ ...editing, value: san });
-              onPreview?.(editing.moveIdx, editing.color, san);
-              playMoveSound(san.includes('x'));
-            }} onDeselect={() => {
-              const orig = groundTruth.moves[editing.moveIdx]?.[editing.color] || '';
-              setEditing({ ...editing, value: orig });
-              onClearPreview?.();
-              playMoveSound(false);
-            }} />
-            <div className="mt-3">
-              <button
-                onClick={() => { updateMove(editing.moveNumber, editing.color, editing.value); setEditing(null); onClearPreview?.(); }}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
-              >
-                {t('coaches.save')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 
 function ModelPanelLoading({ name, startTime }: { name: string; startTime: number | null }) {
   const { t } = useLanguage();
@@ -1353,10 +1069,9 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, modelDisagreements, originalMoves, voteDetails, allModelNames }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, modelDisagreements, originalMoves, voteDetails, allModelNames }: {
   label: string;
   moves: Move[];
-  groundTruthMoves?: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
   elapsed: number;
   error?: string;
@@ -1444,7 +1159,6 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   };
 
 
-  const stats = groundTruthMoves && moves.length > 0 ? computeStats(moves, groundTruthMoves) : null;
 
   return (
     <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[320px]">
@@ -1537,14 +1251,6 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
           </table>
         );
       })()}
-      {/* Stats */}
-      {stats && !rereading && (
-        <div className="px-2 py-1.5 border-t border-slate-600/50 text-center">
-          <span className={`text-xs font-medium ${stats.accuracy === 100 ? 'text-green-400' : stats.accuracy >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
-            {stats.accuracy}% {t('coaches.accuracy')}
-          </span>
-        </div>
-      )}
       {/* Move quality counts */}
       {moves.length > 0 && !rereading && (() => {
         let illegal = 0, medium = 0, low = 0;
@@ -1564,6 +1270,9 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
             <span className={illegal > 0 ? 'text-orange-400' : 'text-slate-600'}>{illegal} illegal {illegal === 1 ? 'move' : 'moves'}</span>
             <span className={medium > 0 ? 'text-yellow-400' : 'text-slate-600'}>{medium} medium confidence {medium === 1 ? 'move' : 'moves'}</span>
             <span className={low > 0 ? 'text-red-400' : 'text-slate-600'}>{low} low confidence {low === 1 ? 'move' : 'moves'}</span>
+            {(disagreementCount > 0 || illegal > 0) && (
+              <span className="text-slate-500 mt-1">Highlighted moves should be double-checked</span>
+            )}
           </div>
         );
       })()}
@@ -1776,6 +1485,10 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                   {details.every(d => !d.chosen) && (
                     <p className="text-red-400 text-xs text-center">{t('coaches.voteAllIllegal')}</p>
                   )}
+                  <div className="flex items-center justify-center gap-4 text-[10px] text-slate-500 pt-1">
+                    <span className="flex items-center gap-1"><span className="text-green-400">&#10003;</span> legal</span>
+                    <span className="flex items-center gap-1"><span className="text-red-400">&#10007;</span> illegal</span>
+                  </div>
                 </>
               );
             })()}
@@ -2146,7 +1859,7 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselec
   );
 }
 
-function MoveCell({ value, legal, highlight, corrected, active, reason, confidence, onEdit, onShowBoard, onVoteInfo }: {
+function MoveCell({ value, legal, highlight, corrected, active, confidence, onEdit, onShowBoard, onVoteInfo }: {
   value: string;
   legal?: boolean;
   highlight?: boolean;
@@ -2211,8 +1924,6 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, confiden
     >
       <span className="inline-flex items-center justify-center gap-1 w-full">
         {value}
-        {legal === true && <span className="text-green-400 text-[10px]">&#10003;</span>}
-        {legal === false && <span className="text-red-400 text-[10px]" title={reason}>&#10007;</span>}
       </span>
       {showMenu && createPortal(
         <div
