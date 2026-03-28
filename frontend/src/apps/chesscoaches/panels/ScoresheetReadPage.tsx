@@ -150,7 +150,7 @@ export function ScoresheetReadPage() {
   }, [showImageModal, showExampleModal, closeModal]);
 
 
-  const [modelsCollapsed, setModelsCollapsed] = useState(true);
+  const [modelsCollapsed, setModelsCollapsed] = useState(false);
 
   // ── Live elapsed timer for status table ──
   const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
