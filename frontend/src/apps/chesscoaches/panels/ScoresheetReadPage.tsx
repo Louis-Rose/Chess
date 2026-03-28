@@ -1353,19 +1353,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             {moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason'] && (
               <p className="text-red-400 text-sm mb-2 text-center">{moves[editing.moveIdx][`${editing.color}_reason` as 'white_reason' | 'black_reason']}</p>
             )}
-            {onMoveClick && (
-              <button
-                onClick={() => {
-                  const ply = editing.color === 'white' ? editing.moveIdx * 2 : editing.moveIdx * 2 + 1;
-                  onMoveClick(moves, ply);
-                  onClearPreview?.();
-                  setEditing({ ...editing, value: '' });
-                }}
-                className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-1.5 mb-2 rounded-lg transition-colors"
-              >
-                Show position before this move
-              </button>
-            )}
             <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
               setEditing({ ...editing, value: san });
               onPreview?.(editing.moveIdx, editing.color, san);
@@ -1377,6 +1364,19 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
               playMoveSound(false);
             }} />
             <div className="mt-3 space-y-1.5">
+              {onMoveClick && (
+                <button
+                  onClick={() => {
+                    const ply = editing.color === 'white' ? editing.moveIdx * 2 : editing.moveIdx * 2 + 1;
+                    onMoveClick(moves, ply);
+                    onClearPreview?.();
+                    setEditing({ ...editing, value: '' });
+                  }}
+                  className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-1.5 rounded-lg transition-colors"
+                >
+                  Show position before this move
+                </button>
+              )}
               <button
                 onClick={() => { handleSave(); onClearPreview?.(); }}
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
@@ -1560,6 +1560,19 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     <span className="flex items-center gap-1 text-slate-100"><span className="text-green-400">&#10003;</span> legal move</span>
                     <span className="flex items-center gap-1 text-slate-100"><span className="text-red-400">&#10007;</span> illegal move</span>
                   </div>
+                  {onMoveClick && (
+                    <button
+                      onClick={() => {
+                        const [mn, cl] = voteInfoKey.split('-');
+                        const idx = parseInt(mn) - 1;
+                        const ply = cl === 'white' ? idx * 2 : idx * 2 + 1;
+                        onMoveClick(moves, ply);
+                      }}
+                      className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-1.5 rounded-lg transition-colors"
+                    >
+                      Show position before this move
+                    </button>
+                  )}
                   {onConfirmMove && (finalMove || chosen) && (
                     <div className="flex gap-2 mt-1">
                       <button
@@ -1586,19 +1599,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                         No, edit move
                       </button>
                     </div>
-                  )}
-                  {onMoveClick && (
-                    <button
-                      onClick={() => {
-                        const [mn, cl] = voteInfoKey.split('-');
-                        const idx = parseInt(mn) - 1;
-                        const ply = cl === 'white' ? idx * 2 : idx * 2 + 1;
-                        onMoveClick(moves, ply);
-                      }}
-                      className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-1.5 rounded-lg transition-colors mt-1"
-                    >
-                      Show position before this move
-                    </button>
                   )}
                 </>
               );
