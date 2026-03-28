@@ -592,6 +592,14 @@ def init_db():
                 if not conn._cursor.fetchone():
                     conn.execute("ALTER TABLE api_usage ADD COLUMN request_id TEXT")
                     print("[Database] Added request_id column to api_usage")
+                # Migration: Add thinking_tokens column if missing
+                conn.execute("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'api_usage' AND column_name = 'thinking_tokens'
+                """)
+                if not conn._cursor.fetchone():
+                    conn.execute("ALTER TABLE api_usage ADD COLUMN thinking_tokens INTEGER DEFAULT 0")
+                    print("[Database] Added thinking_tokens column to api_usage")
 
             # Migration: Tag admin account as coaches app user
             conn.execute("UPDATE users SET registered_app = 'coaches' WHERE email = 'rose.louis.mail@gmail.com' AND registered_app IS NULL")

@@ -233,14 +233,14 @@ def _scoresheet_parse_response(response_text):
     return result, warnings
 
 
-def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None, request_id=None):
+def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None, request_id=None, thinking_tokens=0):
     """Log a Gemini API call to the api_usage table."""
     try:
         with get_db() as conn:
             conn.execute(
-                """INSERT INTO api_usage (request_id, feature, model_id, input_tokens, output_tokens, elapsed_seconds, error)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (request_id, feature, model_id, input_tokens, output_tokens, elapsed, error),
+                """INSERT INTO api_usage (request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, elapsed_seconds, error)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, elapsed, error),
             )
     except Exception as e:
         logger.error(f"[API Usage] Failed to log: {e}")
@@ -384,7 +384,8 @@ Return ONLY a JSON object:
     usage = getattr(response, 'usage_metadata', None)
     in_tok = getattr(usage, 'prompt_token_count', 0) or 0
     out_tok = getattr(usage, 'candidates_token_count', 0) or 0
-    _log_api_usage('reread', model_id, in_tok, out_tok, elapsed, request_id=req_id)
+    think_tok = getattr(usage, 'thoughts_token_count', 0) or 0
+    _log_api_usage('reread', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok)
     gemini_result, warnings = _scoresheet_parse_response(response.text)
     new_moves = gemini_result.get("moves", [])
 
@@ -625,13 +626,14 @@ def read_diagram():
             usage = getattr(response, 'usage_metadata', None)
             in_tok = getattr(usage, 'prompt_token_count', 0) or 0
             out_tok = getattr(usage, 'candidates_token_count', 0) or 0
+            think_tok = getattr(usage, 'thoughts_token_count', 0) or 0
             fen = response.text.strip().strip('`').strip()
             # Remove markdown code block if present
             if fen.startswith('fen\n'):
                 fen = fen[4:].strip()
-            logger.info(f"[Diagram] {model_name} responded in {elapsed}s: {fen[:80]} ({in_tok}+{out_tok} tokens)")
+            logger.info(f"[Diagram] {model_name} responded in {elapsed}s: {fen[:80]} ({in_tok}+{out_tok}+{think_tok}t tokens)")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "fen": fen, "elapsed": elapsed})
-            _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed, request_id=req_id)
+            _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok)
         except Exception as e:
             elapsed = round(time_module.time() - start)
             logger.error(f"[Diagram] {model_name} failed after {elapsed}s: {e}")
@@ -725,7 +727,8 @@ def read_scoresheet():
             usage = getattr(response, 'usage_metadata', None)
             in_tok = getattr(usage, 'prompt_token_count', 0) or 0
             out_tok = getattr(usage, 'candidates_token_count', 0) or 0
-            logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s ({in_tok}+{out_tok} tokens)")
+            think_tok = getattr(usage, 'thoughts_token_count', 0) or 0
+            logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s ({in_tok}+{out_tok}+{think_tok}t tokens)")
 
             result, warnings = _scoresheet_parse_response(response.text)
             result["moves"] = _scoresheet_validate_moves(result.get("moves", []))
@@ -737,7 +740,7 @@ def read_scoresheet():
             if warnings:
                 item["warnings"] = warnings
             result_queue.put(item)
-            _log_api_usage('scoresheet', model_id, in_tok, out_tok, elapsed, request_id=req_id)
+            _log_api_usage('scoresheet', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok)
 
         except Exception as e:
             elapsed = round(time_module.time() - start)

@@ -361,6 +361,7 @@ def get_api_usage():
         # Per-call history (most recent first, cap at 200)
         cursor = conn.execute('''
             SELECT id, feature, model_id, input_tokens, output_tokens,
+                   COALESCE(thinking_tokens, 0) as thinking_tokens,
                    elapsed_seconds, error, created_at
             FROM api_usage
             ORDER BY created_at DESC
@@ -368,12 +369,13 @@ def get_api_usage():
         ''')
         rows = [dict(r) for r in cursor.fetchall()]
 
-        # Per-model aggregates
+        # Per-model aggregates (thinking tokens billed at output rate)
         cursor = conn.execute('''
             SELECT model_id,
                    COUNT(*) as call_count,
                    SUM(input_tokens) as total_input,
                    SUM(output_tokens) as total_output,
+                   SUM(COALESCE(thinking_tokens, 0)) as total_thinking,
                    SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) as error_count,
                    AVG(elapsed_seconds) as avg_elapsed
             FROM api_usage
@@ -384,9 +386,10 @@ def get_api_usage():
         for r in cursor.fetchall():
             row = dict(r)
             pricing = GEMINI_PRICING.get(row['model_id'], {'input': 0, 'output': 0})
+            billed_output = (row['total_output'] or 0) + (row['total_thinking'] or 0)
             row['cost_usd'] = round(
                 (row['total_input'] or 0) * pricing['input'] / 1_000_000
-                + (row['total_output'] or 0) * pricing['output'] / 1_000_000,
+                + billed_output * pricing['output'] / 1_000_000,
                 6,
             )
             row['avg_elapsed'] = round(row['avg_elapsed'] or 0, 1)
@@ -396,7 +399,8 @@ def get_api_usage():
         cursor = conn.execute('''
             SELECT feature, model_id, COUNT(*) as call_count,
                    SUM(input_tokens) as total_input,
-                   SUM(output_tokens) as total_output
+                   SUM(output_tokens) as total_output,
+                   SUM(COALESCE(thinking_tokens, 0)) as total_thinking
             FROM api_usage
             GROUP BY feature, model_id
         ''')
@@ -405,12 +409,14 @@ def get_api_usage():
             row = dict(r)
             f = row['feature']
             pricing = GEMINI_PRICING.get(row['model_id'], {'input': 0, 'output': 0})
-            cost = ((row['total_input'] or 0) * pricing['input'] + (row['total_output'] or 0) * pricing['output']) / 1_000_000
+            billed_output = (row['total_output'] or 0) + (row['total_thinking'] or 0)
+            cost = ((row['total_input'] or 0) * pricing['input'] + billed_output * pricing['output']) / 1_000_000
             if f not in feature_agg:
-                feature_agg[f] = {'feature': f, 'call_count': 0, 'total_input': 0, 'total_output': 0, 'cost_usd': 0}
+                feature_agg[f] = {'feature': f, 'call_count': 0, 'total_input': 0, 'total_output': 0, 'total_thinking': 0, 'cost_usd': 0}
             feature_agg[f]['call_count'] += row['call_count']
             feature_agg[f]['total_input'] += row['total_input'] or 0
             feature_agg[f]['total_output'] += row['total_output'] or 0
+            feature_agg[f]['total_thinking'] += row['total_thinking'] or 0
             feature_agg[f]['cost_usd'] += cost
         by_feature = [{'cost_usd': round(v['cost_usd'], 6), **v} for v in feature_agg.values()]
 
@@ -420,6 +426,7 @@ def get_api_usage():
                    COUNT(*) as model_count,
                    SUM(input_tokens) as total_input,
                    SUM(output_tokens) as total_output,
+                   SUM(COALESCE(thinking_tokens, 0)) as total_thinking,
                    MAX(elapsed_seconds) as elapsed_seconds,
                    SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) as error_count,
                    MIN(created_at) as created_at
@@ -432,16 +439,18 @@ def get_api_usage():
         invocations = []
         for r in cursor.fetchall():
             row = dict(r)
-            # Compute cost for this invocation from its individual calls
             cursor2 = conn.execute('''
-                SELECT model_id, SUM(input_tokens) as inp, SUM(output_tokens) as out
+                SELECT model_id, SUM(input_tokens) as inp,
+                       SUM(output_tokens) as out,
+                       SUM(COALESCE(thinking_tokens, 0)) as think
                 FROM api_usage WHERE request_id = ?
                 GROUP BY model_id
             ''', (row['request_id'],))
             cost = 0
             for m in cursor2.fetchall():
                 p = GEMINI_PRICING.get(m['model_id'], {'input': 0, 'output': 0})
-                cost += ((m['inp'] or 0) * p['input'] + (m['out'] or 0) * p['output']) / 1_000_000
+                billed_out = (m['out'] or 0) + (m['think'] or 0)
+                cost += ((m['inp'] or 0) * p['input'] + billed_out * p['output']) / 1_000_000
             row['cost_usd'] = round(cost, 6)
             invocations.append(row)
 

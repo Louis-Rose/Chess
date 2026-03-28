@@ -441,6 +441,7 @@ CREATE TABLE IF NOT EXISTS api_usage (
     model_id TEXT NOT NULL,                -- e.g. 'gemini-3-flash-preview'
     input_tokens INTEGER DEFAULT 0,
     output_tokens INTEGER DEFAULT 0,
+    thinking_tokens INTEGER DEFAULT 0,
     elapsed_seconds INTEGER DEFAULT 0,
     error TEXT,                            -- NULL if successful
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

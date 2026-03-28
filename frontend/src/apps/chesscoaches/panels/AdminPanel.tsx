@@ -49,6 +49,7 @@ interface ApiUsageByModel {
   call_count: number;
   total_input: number;
   total_output: number;
+  total_thinking: number;
   error_count: number;
   avg_elapsed: number;
   cost_usd: number;
@@ -316,6 +317,7 @@ export function AdminPanel() {
                       <th className="px-3 py-2 text-center">Calls</th>
                       <th className="px-3 py-2 text-center">Input</th>
                       <th className="px-3 py-2 text-center">Output</th>
+                      <th className="px-3 py-2 text-center">Thinking</th>
                       <th className="px-3 py-2 text-center">Avg time</th>
                       <th className="px-3 py-2 text-center">Errors</th>
                       <th className="px-3 py-2 text-right">Cost</th>
@@ -328,6 +330,7 @@ export function AdminPanel() {
                         <td className="px-3 py-2 text-slate-400 text-center">{m.call_count}</td>
                         <td className="px-3 py-2 text-slate-400 text-center">{formatTokens(m.total_input)}</td>
                         <td className="px-3 py-2 text-slate-400 text-center">{formatTokens(m.total_output)}</td>
+                        <td className="px-3 py-2 text-center">{m.total_thinking ? <span className="text-amber-400">{formatTokens(m.total_thinking)}</span> : <span className="text-slate-600">0</span>}</td>
                         <td className="px-3 py-2 text-slate-400 text-center">{m.avg_elapsed}s</td>
                         <td className="px-3 py-2 text-center">
                           {m.error_count > 0
