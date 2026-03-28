@@ -357,6 +357,7 @@ export function ScoresheetReadPage() {
                           .map(m => modelResults[m.id]?.result?.moves)
                           .filter((mv): mv is Move[] => !!mv && mv.length > 0).length >= 2;
                         if (!hasConsensus && !allDone) return null;
+                        const maxElapsed = Math.max(...models.map(m => modelResults[m.id]?.elapsed || 0));
                         return (
                           <tr>
                             <td className="px-4 py-2.5 text-slate-200 font-medium">{t('coaches.consensus')}</td>
@@ -367,7 +368,7 @@ export function ScoresheetReadPage() {
                             </td>
                             <td className="px-4 py-2.5 text-center">
                               {allDone && hasConsensus
-                                ? <span className="text-emerald-400">—</span>
+                                ? <span className="text-emerald-400">{maxElapsed}s</span>
                                 : <span className="text-slate-500">{liveGlobalElapsed}s</span>}
                             </td>
                           </tr>
