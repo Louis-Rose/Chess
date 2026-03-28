@@ -268,8 +268,8 @@ def _gemini_generate(client_free, client_paid, model_id, contents, config=None):
         return response, 'free'
     except Exception as e:
         err_str = str(e).lower()
-        if '429' in err_str or 'resource_exhausted' in err_str or 'rate' in err_str:
-            logger.info(f"[Gemini] Free quota exhausted for {model_id}, falling back to paid key")
+        if '429' in err_str or 'resource_exhausted' in err_str or 'rate' in err_str or '503' in err_str or 'unavailable' in err_str:
+            logger.info(f"[Gemini] Free key failed for {model_id} ({type(e).__name__}), falling back to paid key")
             kwargs = {'model': model_id, 'contents': contents}
             if config:
                 kwargs['config'] = config
