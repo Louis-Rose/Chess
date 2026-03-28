@@ -35,13 +35,19 @@ A re-read uses a single user-selected model.
 
 The Gemini API does **not** include any billing indicator in its responses. There is no `is_free`, `billing_tier`, or `cost` field. Google confirmed there is no programmatic way to determine whether a specific API call was free or paid.
 
-### Free tier behavior
+### Our billing setup
 
-Google's free tier gives generous rate limits (RPM/RPD) per model. Calls within these limits cost $0. Once exceeded:
-- Free-tier calls return 429 errors (rate limited)
-- Paid-tier calls are billed per token
+We use a **paid Google Cloud API key** (billed monthly). However, even on a paid plan, Google still provides free-tier quotas per model. Calls within those quotas cost $0; only calls exceeding the limits are billed per token.
 
-Since `gemini-3-flash-preview` and `gemini-3.1-flash-lite-preview` are available on the free tier, their calls may cost nothing. `gemini-3.1-pro-preview` is **not available on the free tier** -- if your API key is on the free plan, Pro calls will fail.
+In practice, for our 3-model scoresheet read:
+
+| Model | Free quota | Actually billed? |
+|-------|-----------|-----------------|
+| `gemini-3-flash-preview` | Yes (generous RPM/RPD) | Rarely -- most calls fall within free quota |
+| `gemini-3.1-pro-preview` | **No free tier** | **Always billed** |
+| `gemini-3.1-flash-lite-preview` | Yes (generous RPM/RPD) | Rarely -- most calls fall within free quota |
+
+This means the **real cost per scoresheet read is dominated by the 3.1 Pro call** ($2/M input, $12/M output+thinking). The Flash and Flash-Lite calls are likely free unless we hit high volume.
 
 ### What the dashboard shows
 
@@ -51,7 +57,7 @@ The admin panel computes cost as:
 cost = (input_tokens * input_rate + (output_tokens + thinking_tokens) * output_rate) / 1,000,000
 ```
 
-This is the **maximum possible cost** assuming every call is billed. If you're within free-tier quotas, actual cost is $0 for Flash and Flash-Lite models.
+This is the **maximum possible cost** assuming every call is billed. The actual charge is likely lower because Flash and Flash-Lite calls within free quotas cost $0. The Pro cost is always accurate.
 
 ### Thinking tokens matter
 
@@ -62,11 +68,9 @@ Gemini models use internal "thinking" tokens for reasoning before producing outp
 
 For example, a simple "say ok" call produced 156 thinking tokens vs 1 output token. On scoresheet reads with images, thinking tokens can be thousands -- and at $3-12/M (output rate), they can dominate the cost.
 
-### How to check your actual billing
+### Actual billing
 
-1. Go to [Google AI Studio](https://aistudio.google.com) > Settings > Billing
-2. Check your project's billing tier (Free Tier vs Tier 1/Pay-as-you-go)
-3. If on free tier: your actual cost is $0 (until you hit rate limits)
+As of March 2026, the Google Cloud invoice shows ~9.19 EUR/month. This covers all Gemini API usage across the app (scoresheet, diagram, chess insight, broker imports).
 
 ## Pricing source
 
