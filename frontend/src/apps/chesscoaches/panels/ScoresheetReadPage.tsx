@@ -1112,6 +1112,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   const [showIllegalModal, setShowIllegalModal] = useState(false);
   const [voteInfoKey, setVoteInfoKey] = useState<string | null>(null);
   const [moveInfoKey, setMoveInfoKey] = useState<string | null>(null);
+  const [showPass2Details, setShowPass2Details] = useState(false);
   const hasIllegalMoves = moves.some(m => m.white_legal === false || m.black_legal === false);
   const inputRef = useRef<HTMLInputElement>(null);
   const rereadStartRef = useRef<number | null>(null);
@@ -1234,7 +1235,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.white_confidence}
                       onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
-                      onVoteInfo={voteDetails ? () => setVoteInfoKey(`${move.number}-white`) : undefined}
+                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setShowPass2Details(false); } : undefined}
                       onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
                     />
                     <MoveCell
@@ -1247,7 +1248,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.black_confidence}
                       onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
-                      onVoteInfo={voteDetails ? () => setVoteInfoKey(`${move.number}-black`) : undefined}
+                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setShowPass2Details(false); } : undefined}
                       onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
                     />
                   </>;
@@ -1463,8 +1464,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                           <td className="py-1.5 px-2 text-center font-mono text-slate-100">{pass1Choice}{legalMark(pass1Choice)}</td>
                         </tr>
                       )}
-                      <tr className="border-b border-slate-700/50">
-                        <td className="py-1.5 px-2 text-slate-100 text-xs font-medium">Consensus (Pass 2)</td>
+                      <tr className={`border-b border-slate-700/50 ${details.length > 1 ? 'cursor-pointer hover:bg-slate-700/30' : ''}`} onClick={details.length > 1 ? () => setShowPass2Details(p => !p) : undefined}>
+                        <td className="py-1.5 px-2 text-slate-100 text-xs font-medium">Consensus (Pass 2) {details.length > 1 && <span className="text-slate-500 text-[10px]">{showPass2Details ? '▲' : '▼'}</span>}</td>
                         <td className="py-1.5 px-2 text-center font-mono">
                           {postValidationChanged
                             ? <span className="text-slate-100">{chosen}{legalMark(chosen)}</span>
@@ -1485,7 +1486,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       )}
                     </tbody>
                   </table>
-                  {details.length > 1 && (
+                  {details.length > 1 && showPass2Details && (
                     <div className="text-xs text-slate-500 space-y-1">
                       <span className="text-slate-400 font-medium">Pass 2 details</span>
                       {details.map(d => (
@@ -1553,9 +1554,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     <tr>
                       <td className="py-1.5 px-2 text-slate-400">Highlighted</td>
                       <td className="py-1.5 px-2 text-right text-yellow-400 text-xs">
-                        {legal === false && 'Illegal move'}
-                        {legal === false && reason && ' · '}
-                        {reason || ''}
+                        {legal === false ? 'Illegal move' : reason || ''}
                       </td>
                     </tr>
                   )}
