@@ -1225,7 +1225,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     <MoveCell
                       value={move.white}
                       legal={move.white_legal}
-                      highlight={d?.white}
+                      highlight={d?.white || !!move.white_reason}
                       corrected={corrections?.has(`${move.number}-white`) || (originalMoves && originalMoves[idx]?.white !== move.white && move.white_legal !== false)}
                       active={activePly === idx * 2 + 1}
                       reason={move.white_reason}
@@ -1238,7 +1238,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       value={move.black || ''}
                       legal={move.black_legal}
                       corrected={corrections?.has(`${move.number}-black`) || (originalMoves && originalMoves[idx]?.black !== move.black && move.black_legal !== false)}
-                      highlight={d?.black}
+                      highlight={d?.black || !!move.black_reason}
                       active={activePly === idx * 2 + 2}
                       reason={move.black_reason}
                       confidence={move.black_confidence}
