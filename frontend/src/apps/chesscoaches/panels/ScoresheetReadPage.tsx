@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
-import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, X, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, X, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronDown, RotateCcw, AlertTriangle } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -149,6 +149,8 @@ export function ScoresheetReadPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [showImageModal, showExampleModal, closeModal]);
 
+
+  const [modelsCollapsed, setModelsCollapsed] = useState(true);
 
   // ── Live elapsed timer for status table ──
   const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
@@ -684,103 +686,55 @@ export function ScoresheetReadPage() {
                   )}
 
 
-                  {models.map((m, modelIdx) => {
-                    const mr = modelResults[m.id];
-                    const reRead = reReads[m.id]?.[0];
-                    const currentMoves = mr?.result?.moves || [];
-                    const modelColumns = (mr?.result as any)?.columns || sheetColumns;
-                    const modelRowsPerColumn = (mr?.result as any)?.rows_per_column || rowsPerColumn;
-                    const currentElapsed = mr?.elapsed || 0;
-                    const currentError = mr?.error;
-                    const isRereading = mr?.rereading || false;
-                    const corrections = reRead?.corrections;
-                    const handleEditSave = (_readIdx: number, confirmed: Move[], correctionKey: string) => {
-                      scoresheetHandleEditSave(m.id, 0, confirmed, correctionKey);
-                    };
-                    const makeMoveClick = (source: 'gt' | 'read') => (movesArr: Move[], ply: number) => {
-                      const prev = modelBoardPlys[m.id];
-                      if (prev?.ply === ply && prev?.source === source) return;
-                      setModelBoardPlys(p => ({ ...p, [m.id]: { ply, source } }));
-                      if (ply > 0) {
-                        const moveIdx = Math.floor((ply - 1) / 2);
-                        const color = ply % 2 === 1 ? 'white' : 'black';
-                        const san = movesArr[moveIdx]?.[color];
-                        if (san) playMoveSound(san.includes('x'));
-                      }
-                    };
-                    const handlePreview = (movesArr: Move[], moveIdx: number, color: 'white' | 'black', san: string) => {
-                      try {
-                        const chess = new Chess();
-                        for (let i = 0; i < moveIdx; i++) {
-                          if (movesArr[i].white) try { chess.move(movesArr[i].white); } catch { break; }
-                          if (movesArr[i].black) try { chess.move(movesArr[i].black!); } catch { break; }
-                        }
-                        if (color === 'black' && movesArr[moveIdx]?.white) {
-                          try { chess.move(movesArr[moveIdx].white); } catch { /* */ }
-                        }
-                        chess.move(san);
-                        setPreviewFens(prev => ({ ...prev, [m.id]: chess.fen() }));
-                      } catch {
-                        setPreviewFens(prev => ({ ...prev, [m.id]: null }));
-                      }
-                    };
-                    const clearPreview = () => setPreviewFens(prev => ({ ...prev, [m.id]: null }));
-                    const handleBoardPlyChange = (ply: number) => {
-                      setModelBoardPlys(prev => {
-                        const prevSource = prev[m.id]?.source || 'nav';
-                        return { ...prev, [m.id]: { ply, source: prevSource } };
-                      });
-                    };
-
-                    const deselectCell = () => {
-                      setModelBoardPlys(p => {
-                        const rest = { ...p };
-                        delete rest[m.id];
-                        return rest;
-                      });
-                    };
-
-                    return (
-                      <ModelRow key={m.id} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')}>
-                        <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">{mr?.name || m.name}</h2>
-                        <div className="flex items-stretch" onClick={deselectCell}>
-                          {/* Left spacer (image is absolutely positioned by ModelRow) */}
-                          <div className="flex-1 hidden md:block" />
-                          {/* Center: tables */}
-                          <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
-                            {!mr ? (
-                              <ModelPanelLoading name={m.name} startTime={startTime} />
-                            ) : (
-                              <MovesPanel
-                                label={t('coaches.read')}
-                                moves={currentMoves}
-                                groundTruthMoves={undefined}
-                                disagreements={new Map()}
-                                elapsed={currentElapsed}
-                                error={currentError}
-                                fileName={fileName}
-                                rereading={isRereading}
-                                corrections={corrections}
-                                onEditSave={(confirmed, corrKey) => handleEditSave(0, confirmed, corrKey)}
-                                onReread={() => scoresheetReread(m.id)}
-                                onMoveClick={mr ? makeMoveClick('read') : undefined}
-                                activePly={modelBoardPlys[m.id]?.source !== 'gt' ? modelBoardPlys[m.id]?.ply : undefined}
-                                onPreview={(idx, color, san) => handlePreview(currentMoves, idx, color, san)}
-                                onClearPreview={clearPreview}
-                                sheetColumns={modelColumns}
-                                rowsPerColumn={modelRowsPerColumn}
-                                modelDisagreements={modelDisagreements}
-                              />
-                            )}
-                          </div>
-                          {/* Right: board centered vertically (mb offset compensates for buttons/text below board) */}
-                          <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={currentMoves} externalPly={modelBoardPlys[m.id]?.ply} onPlyChange={handleBoardPlyChange} disableDrag={!mr || isRereading} autoActivate={modelIdx === 0} previewFen={previewFens[m.id]} />
-                          </div>
-                        </div>
-                      </ModelRow>
-                    );
-                  })}
+                  {/* Individual model reads — collapsible */}
+                  <div className="bg-slate-800/30 rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => setModelsCollapsed(c => !c)}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-700/30 transition-colors"
+                    >
+                      <span className="text-sm text-slate-400">{t('coaches.individualReads') || 'Individual model reads'}</span>
+                      <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${modelsCollapsed ? '' : 'rotate-180'}`} />
+                    </button>
+                    {!modelsCollapsed && (
+                      <div className="flex flex-wrap gap-3 items-start justify-center px-4 pb-4">
+                        {models.map((m) => {
+                          const mr = modelResults[m.id];
+                          const reRead = reReads[m.id]?.[0];
+                          const currentMoves = mr?.result?.moves || [];
+                          const modelColumns = (mr?.result as any)?.columns || sheetColumns;
+                          const modelRowsPerColumn = (mr?.result as any)?.rows_per_column || rowsPerColumn;
+                          const currentElapsed = mr?.elapsed || 0;
+                          const currentError = mr?.error;
+                          const isRereading = mr?.rereading || false;
+                          const corrections = reRead?.corrections;
+                          return (
+                            <div key={m.id}>
+                              {!mr ? (
+                                <ModelPanelLoading name={m.name} startTime={startTime} />
+                              ) : (
+                                <MovesPanel
+                                  label={mr?.name || m.name}
+                                  moves={currentMoves}
+                                  groundTruthMoves={undefined}
+                                  disagreements={new Map()}
+                                  elapsed={currentElapsed}
+                                  error={currentError}
+                                  fileName={fileName}
+                                  rereading={isRereading}
+                                  corrections={corrections}
+                                  onEditSave={(confirmed, corrKey) => { scoresheetHandleEditSave(m.id, 0, confirmed, corrKey); }}
+                                  onReread={() => scoresheetReread(m.id)}
+                                  sheetColumns={modelColumns}
+                                  rowsPerColumn={modelRowsPerColumn}
+                                  modelDisagreements={modelDisagreements}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Azure DI section — disabled, kept for future use */}
 
