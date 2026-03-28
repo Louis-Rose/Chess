@@ -1,6 +1,6 @@
 // Admin panel for coaches app (admin only)
 
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
@@ -57,6 +57,17 @@ interface ApiUsageByModel {
   cost_usd: number;
 }
 
+interface ApiInvocationModel {
+  model_id: string;
+  input_tokens: number;
+  output_tokens: number;
+  thinking_tokens: number;
+  billing_tier: string;
+  elapsed_seconds: number;
+  error: string | null;
+  cost_usd: number;
+}
+
 interface ApiInvocation {
   request_id: string;
   feature: string;
@@ -68,6 +79,7 @@ interface ApiInvocation {
   free_count: number;
   cost_usd: number;
   created_at: string;
+  models: ApiInvocationModel[];
 }
 
 interface ApiUsageResponse {
@@ -141,6 +153,7 @@ export function AdminPanel() {
   const { user, isLoading: authLoading } = useAuth();
   const { t, language } = useLanguage();
   const [ignoreSelf, setIgnoreSelf] = useState(false);
+  const [expandedInvocation, setExpandedInvocation] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_seconds');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
@@ -464,27 +477,67 @@ export function AdminPanel() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/30">
-                      {apiUsage.invocations.map(inv => (
-                        <tr key={inv.request_id} className={`hover:bg-slate-700/20 ${inv.error_count >= inv.model_count ? 'bg-red-900/10' : ''}`}>
-                          <td className="px-2 py-1 text-slate-500 whitespace-nowrap">
-                            {new Date(inv.created_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short' })}
-                            {' '}
-                            {new Date(inv.created_at).toLocaleTimeString(language === 'fr' ? 'fr-FR' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
-                          </td>
-                          <td className="px-2 py-1 text-slate-300">
-                            {FEATURE_LABELS[inv.feature] || inv.feature}
-                            {inv.free_count > 0 && <span className="ml-1.5 text-[10px] text-emerald-400 bg-emerald-400/10 px-1 rounded">{inv.free_count} free</span>}
-                          </td>
-                          <td className="px-2 py-1 text-slate-400 text-center">{inv.model_count}</td>
-                          <td className="px-2 py-1 text-slate-400 text-center">{formatTokens((inv.total_input || 0) + (inv.total_output || 0))}</td>
-                          <td className="px-2 py-1 text-slate-400 text-center">{inv.elapsed_seconds}s</td>
-                          <td className="px-2 py-1 text-right">
-                            {inv.error_count >= inv.model_count
-                              ? <span className="text-red-400 flex items-center justify-end gap-1"><AlertTriangle className="w-3 h-3" />{formatCost(inv.cost_usd)}</span>
-                              : <span className="text-green-400">{formatCost(inv.cost_usd)}</span>}
-                          </td>
-                        </tr>
-                      ))}
+                      {apiUsage.invocations.map(inv => {
+                        const expanded = expandedInvocation === inv.request_id;
+                        return (
+                          <React.Fragment key={inv.request_id}>
+                            <tr
+                              className={`hover:bg-slate-700/20 cursor-pointer ${inv.error_count >= inv.model_count ? 'bg-red-900/10' : ''}`}
+                              onClick={() => setExpandedInvocation(expanded ? null : inv.request_id)}
+                            >
+                              <td className="px-2 py-1 text-slate-500 whitespace-nowrap">
+                                {new Date(inv.created_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short' })}
+                                {' '}
+                                {new Date(inv.created_at).toLocaleTimeString(language === 'fr' ? 'fr-FR' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
+                              </td>
+                              <td className="px-2 py-1 text-slate-300">
+                                {FEATURE_LABELS[inv.feature] || inv.feature}
+                                {inv.free_count > 0 && <span className="ml-1.5 text-[10px] text-emerald-400 bg-emerald-400/10 px-1 rounded">{inv.free_count} free</span>}
+                              </td>
+                              <td className="px-2 py-1 text-slate-400 text-center">{inv.model_count}</td>
+                              <td className="px-2 py-1 text-slate-400 text-center">{formatTokens((inv.total_input || 0) + (inv.total_output || 0))}</td>
+                              <td className="px-2 py-1 text-slate-400 text-center">{inv.elapsed_seconds}s</td>
+                              <td className="px-2 py-1 text-right">
+                                {inv.error_count >= inv.model_count
+                                  ? <span className="text-red-400 flex items-center justify-end gap-1"><AlertTriangle className="w-3 h-3" />{formatCost(inv.cost_usd)}</span>
+                                  : <span className="text-green-400">{formatCost(inv.cost_usd)}</span>}
+                              </td>
+                            </tr>
+                            {expanded && inv.models && (
+                              <tr>
+                                <td colSpan={6} className="px-2 py-2 bg-slate-800/50">
+                                  <table className="w-full text-xs">
+                                    <thead>
+                                      <tr className="text-slate-500 text-[10px] uppercase">
+                                        <th className="px-2 py-1 text-left">Model</th>
+                                        <th className="px-2 py-1 text-center">Tier</th>
+                                        <th className="px-2 py-1 text-center">Input</th>
+                                        <th className="px-2 py-1 text-center">Output</th>
+                                        <th className="px-2 py-1 text-center">Thinking</th>
+                                        <th className="px-2 py-1 text-center">Time</th>
+                                        <th className="px-2 py-1 text-right">Cost</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {inv.models.map((m, i) => (
+                                        <tr key={i} className={m.error ? 'text-red-400/70' : ''}>
+                                          <td className="px-2 py-0.5 font-mono">{shortModel(m.model_id)}</td>
+                                          <td className="px-2 py-0.5 text-center">{m.billing_tier === 'free' ? <span className="text-emerald-400">free</span> : <span className="text-slate-500">paid</span>}</td>
+                                          <td className="px-2 py-0.5 text-slate-400 text-center">{formatTokens(m.input_tokens)}</td>
+                                          <td className="px-2 py-0.5 text-slate-400 text-center">{formatTokens(m.output_tokens)}</td>
+                                          <td className="px-2 py-0.5 text-center">{m.thinking_tokens ? <span className="text-amber-400">{formatTokens(m.thinking_tokens)}</span> : <span className="text-slate-600">0</span>}</td>
+                                          <td className="px-2 py-0.5 text-slate-400 text-center">{m.elapsed_seconds}s</td>
+                                          <td className="px-2 py-0.5 text-right">{m.error ? <span className="text-red-400">err</span> : <span className="text-green-400">{formatCost(m.cost_usd)}</span>}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

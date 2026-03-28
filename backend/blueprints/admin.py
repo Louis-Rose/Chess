@@ -450,18 +450,28 @@ def get_api_usage():
         for r in cursor.fetchall():
             row = dict(r)
             cursor2 = conn.execute('''
-                SELECT model_id, SUM(input_tokens) as inp,
-                       SUM(output_tokens) as out,
-                       SUM(COALESCE(thinking_tokens, 0)) as think
+                SELECT model_id,
+                       SUM(input_tokens) as input_tokens,
+                       SUM(output_tokens) as output_tokens,
+                       SUM(COALESCE(thinking_tokens, 0)) as thinking_tokens,
+                       COALESCE(billing_tier, 'paid') as billing_tier,
+                       MAX(elapsed_seconds) as elapsed_seconds,
+                       MAX(error) as error
                 FROM api_usage WHERE request_id = ?
-                GROUP BY model_id
+                GROUP BY model_id, billing_tier
             ''', (row['request_id'],))
             cost = 0
+            models = []
             for m in cursor2.fetchall():
-                p = GEMINI_PRICING.get(m['model_id'], {'input': 0, 'output': 0})
-                billed_out = (m['out'] or 0) + (m['think'] or 0)
-                cost += ((m['inp'] or 0) * p['input'] + billed_out * p['output']) / 1_000_000
+                md = dict(m)
+                p = GEMINI_PRICING.get(md['model_id'], {'input': 0, 'output': 0})
+                billed_out = (md['output_tokens'] or 0) + (md['thinking_tokens'] or 0)
+                md['cost_usd'] = round(((md['input_tokens'] or 0) * p['input'] + billed_out * p['output']) / 1_000_000, 6)
+                cost += md['cost_usd']
+                models.append(md)
+            models.sort(key=lambda m: m['cost_usd'], reverse=True)
             row['cost_usd'] = round(cost, 6)
+            row['models'] = models
             invocations.append(row)
 
     # Compute total cost
