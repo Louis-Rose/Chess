@@ -391,15 +391,6 @@ export function ScoresheetReadPage() {
                 </div>
                 </div>
               )}
-              {analyzing && models.length === 0 && (
-                <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-4">
-                  <Clock className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">{t('coaches.analyzing')}</span>
-                  <button onClick={scoresheetCancel} className="text-slate-500 hover:text-slate-300 transition-colors ml-1">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
 
               {/* Retry button — moved inside results block, between consensus and models */}
 
