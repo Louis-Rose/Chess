@@ -1339,19 +1339,20 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             className="bg-slate-800 rounded-xl p-4 min-w-[260px] shadow-xl border border-slate-600"
             onClick={e => e.stopPropagation()}
           >
+            {editFromVoteKey && (
+              <button
+                onClick={() => { setEditing(null); onClearPreview?.(); setVoteInfoKey(editFromVoteKey); setEditFromVoteKey(null); setShowPass2Details(false); }}
+                className="text-slate-400 hover:text-slate-200 text-xs mb-2 transition-colors"
+              >
+                &larr; Back to votes
+              </button>
+            )}
             <div className="text-slate-400 text-xs mb-2 text-center">
               {t('coaches.move')} {moves[editing.moveIdx]?.number} · {editing.color === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
             </div>
             {moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason'] && (
               <p className="text-red-400 text-sm mb-2 text-center">{moves[editing.moveIdx][`${editing.color}_reason` as 'white_reason' | 'black_reason']}</p>
             )}
-            <input
-              ref={inputRef}
-              value={editing.value}
-              onChange={e => setEditing({ ...editing, value: e.target.value })}
-              onKeyDown={e => { if (e.key === 'Enter') { handleSave(); onClearPreview?.(); } if (e.key === 'Escape') { setEditing(null); onClearPreview?.(); } }}
-              className="w-full bg-slate-700 text-slate-100 font-mono text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
-            />
             <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
               setEditing({ ...editing, value: san });
               onPreview?.(editing.moveIdx, editing.color, san);
@@ -1382,14 +1383,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   </button>
                 );
               })()}
-              {editFromVoteKey && (
-                <button
-                  onClick={() => { setEditing(null); onClearPreview?.(); setVoteInfoKey(editFromVoteKey); setEditFromVoteKey(null); setShowPass2Details(false); }}
-                  className="w-full text-slate-400 hover:text-slate-200 text-xs py-1.5 transition-colors"
-                >
-                  &larr; Back to votes
-                </button>
-              )}
             </div>
           </div>
         </div>
