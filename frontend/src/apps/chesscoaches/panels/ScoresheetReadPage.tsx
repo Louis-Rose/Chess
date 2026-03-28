@@ -599,7 +599,7 @@ export function ScoresheetReadPage() {
                     };
                     return (
                       <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')} fileName={fileName || undefined}>
-                        {consensusReady && modelDisagreements.size > 0 && (
+                        {consensusReady && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)) && (
                           <p className="text-slate-100 text-sm text-center mb-3"><span className="text-yellow-400">Highlighted moves</span> should be double-checked</p>
                         )}
                         <div className="flex items-stretch" onClick={consensusReady ? deselectConsensus : undefined}>
