@@ -702,7 +702,7 @@ export function ScoresheetReadPage() {
                                   onReread={() => scoresheetReread(m.id)}
                                   sheetColumns={modelColumns}
                                   rowsPerColumn={modelRowsPerColumn}
-                                  modelDisagreements={modelDisagreements}
+                                  showMoveInfo
                                 />
                               )}
                             </div>
@@ -1082,7 +1082,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1104,12 +1104,14 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   originalMoves?: Move[];
   voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string>; pass1Choice?: string }[]>;
   allModelNames?: string[];
+  showMoveInfo?: boolean;
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
   const [liveElapsed, setLiveElapsed] = useState(0);
   const [showIllegalModal, setShowIllegalModal] = useState(false);
   const [voteInfoKey, setVoteInfoKey] = useState<string | null>(null);
+  const [moveInfoKey, setMoveInfoKey] = useState<string | null>(null);
   const hasIllegalMoves = moves.some(m => m.white_legal === false || m.black_legal === false);
   const inputRef = useRef<HTMLInputElement>(null);
   const rereadStartRef = useRef<number | null>(null);
@@ -1233,6 +1235,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
                       onVoteInfo={voteDetails ? () => setVoteInfoKey(`${move.number}-white`) : undefined}
+                      onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
                     />
                     <MoveCell
                       value={move.black || ''}
@@ -1245,6 +1248,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
                       onVoteInfo={voteDetails ? () => setVoteInfoKey(`${move.number}-black`) : undefined}
+                      onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
                     />
                   </>;
                 };
@@ -1505,6 +1509,62 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
         </div>,
         document.body
       )}
+
+      {/* Move info modal (for individual reads) */}
+      {moveInfoKey && (() => {
+        const [numStr, colorStr] = moveInfoKey.split('-');
+        const moveIdx = parseInt(numStr) - 1;
+        const move = moves[moveIdx];
+        if (!move) return null;
+        const san = move[colorStr as 'white' | 'black'];
+        const legal = move[`${colorStr}_legal` as 'white_legal' | 'black_legal'];
+        const conf = move[`${colorStr}_confidence` as 'white_confidence' | 'black_confidence'];
+        const reason = move[`${colorStr}_reason` as 'white_reason' | 'black_reason'];
+        const isHighlighted = legal === false || !!reason;
+        return createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center pl-64 bg-slate-900/60 backdrop-blur-[0.5px]"
+            onClick={() => setMoveInfoKey(null)}
+          >
+            <div
+              className="bg-slate-800 rounded-xl p-5 min-w-[260px] max-w-sm shadow-xl border border-slate-600 space-y-3"
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-slate-100 font-medium text-center">
+                {t('coaches.move')} {numStr} · {colorStr === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
+              </h3>
+              <div className="text-center font-mono text-lg text-slate-100">{san || '—'}</div>
+              <table className="w-full text-sm">
+                <tbody>
+                  <tr className="border-b border-slate-700/50">
+                    <td className="py-1.5 px-2 text-slate-400">Legality</td>
+                    <td className="py-1.5 px-2 text-right">
+                      {legal === true ? <span className="text-green-400">Legal</span> : legal === false ? <span className="text-red-400">Illegal</span> : <span className="text-slate-500">—</span>}
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-700/50">
+                    <td className="py-1.5 px-2 text-slate-400">Confidence</td>
+                    <td className={`py-1.5 px-2 text-right ${conf === 'high' ? 'text-emerald-400' : conf === 'medium' ? 'text-yellow-400' : conf === 'low' ? 'text-red-400' : 'text-slate-500'}`}>
+                      {conf || '—'}
+                    </td>
+                  </tr>
+                  {isHighlighted && (
+                    <tr>
+                      <td className="py-1.5 px-2 text-slate-400">Highlighted</td>
+                      <td className="py-1.5 px-2 text-right text-yellow-400 text-xs">
+                        {legal === false && 'Illegal move'}
+                        {legal === false && reason && ' · '}
+                        {reason || ''}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>,
+          document.body
+        );
+      })()}
     </div>
   );
 }
@@ -1868,7 +1928,7 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselec
   );
 }
 
-function MoveCell({ value, legal, highlight, corrected, active, confidence, onEdit, onShowBoard, onVoteInfo }: {
+function MoveCell({ value, legal, highlight, corrected, active, confidence, onEdit, onShowBoard, onVoteInfo, onMoveInfo }: {
   value: string;
   legal?: boolean;
   highlight?: boolean;
@@ -1879,6 +1939,7 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onEd
   onEdit: () => void;
   onShowBoard?: () => void;
   onVoteInfo?: () => void;
+  onMoveInfo?: () => void;
 }) {
   const { t } = useLanguage();
   const [showMenu, setShowMenu] = useState(false);
@@ -1916,6 +1977,7 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onEd
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (onMoveInfo) { onMoveInfo(); return; }
     if (onShowBoard) onShowBoard();
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect();
