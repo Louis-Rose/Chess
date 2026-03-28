@@ -122,7 +122,6 @@ function formatTokens(n: number): string {
 
 function formatCost(usd: number): string {
   if (usd === 0) return '$0';
-  if (usd < 0.01) return `$${usd.toFixed(4)}`;
   return `$${usd.toFixed(2)}`;
 }
 
@@ -308,6 +307,35 @@ export function AdminPanel() {
               </div>
             </div>
 
+            {/* Per-feature summary */}
+            {apiUsage.by_feature.length > 0 && (
+              <div className="overflow-x-auto rounded-lg border border-slate-600/50">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left">Feature</th>
+                      <th className="px-3 py-2 text-center">Uses</th>
+                      <th className="px-3 py-2 text-center">Tokens</th>
+                      <th className="px-3 py-2 text-right">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {apiUsage.by_feature.map(f => {
+                      const invocationCount = apiUsage.invocations.filter(i => i.feature === f.feature).length;
+                      return (
+                        <tr key={f.feature} className="hover:bg-slate-700/30">
+                          <td className="px-3 py-2 text-slate-200">{FEATURE_LABELS[f.feature] || f.feature}</td>
+                          <td className="px-3 py-2 text-slate-400 text-center">{invocationCount || f.call_count}</td>
+                          <td className="px-3 py-2 text-slate-400 text-center">{formatTokens((f.total_input || 0) + (f.total_output || 0))}</td>
+                          <td className="px-3 py-2 text-green-400 text-right font-medium">{formatCost(f.cost_usd)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
             {/* Cost per model */}
             {apiUsage.by_model.length > 0 && (
               <div className="overflow-x-auto rounded-lg border border-slate-600/50">
@@ -346,35 +374,6 @@ export function AdminPanel() {
               </div>
             )}
 
-            {/* Per-feature summary */}
-            {apiUsage.by_feature.length > 0 && (
-              <div className="overflow-x-auto rounded-lg border border-slate-600/50">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
-                      <th className="px-3 py-2 text-left">Feature</th>
-                      <th className="px-3 py-2 text-center">Uses</th>
-                      <th className="px-3 py-2 text-center">Tokens</th>
-                      <th className="px-3 py-2 text-right">Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-700/50">
-                    {apiUsage.by_feature.map(f => {
-                      const invocationCount = apiUsage.invocations.filter(i => i.feature === f.feature).length;
-                      return (
-                        <tr key={f.feature} className="hover:bg-slate-700/30">
-                          <td className="px-3 py-2 text-slate-200">{FEATURE_LABELS[f.feature] || f.feature}</td>
-                          <td className="px-3 py-2 text-slate-400 text-center">{invocationCount || f.call_count}</td>
-                          <td className="px-3 py-2 text-slate-400 text-center">{formatTokens((f.total_input || 0) + (f.total_output || 0))}</td>
-                          <td className="px-3 py-2 text-green-400 text-right font-medium">{formatCost(f.cost_usd)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
             {/* Invocation history (feature-level) */}
             {apiUsage.invocations.length > 0 && (
               <div>
@@ -393,7 +392,7 @@ export function AdminPanel() {
                     </thead>
                     <tbody className="divide-y divide-slate-700/30">
                       {apiUsage.invocations.map(inv => (
-                        <tr key={inv.request_id} className={`hover:bg-slate-700/20 ${inv.error_count > 0 ? 'bg-red-900/10' : ''}`}>
+                        <tr key={inv.request_id} className={`hover:bg-slate-700/20 ${inv.error_count >= inv.model_count ? 'bg-red-900/10' : ''}`}>
                           <td className="px-2 py-1 text-slate-500 whitespace-nowrap">
                             {new Date(inv.created_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short' })}
                             {' '}
@@ -407,7 +406,7 @@ export function AdminPanel() {
                           <td className="px-2 py-1 text-slate-400 text-center">{formatTokens((inv.total_input || 0) + (inv.total_output || 0))}</td>
                           <td className="px-2 py-1 text-slate-400 text-center">{inv.elapsed_seconds}s</td>
                           <td className="px-2 py-1 text-right">
-                            {inv.error_count > 0
+                            {inv.error_count >= inv.model_count
                               ? <span className="text-red-400 flex items-center justify-end gap-1"><AlertTriangle className="w-3 h-3" />{formatCost(inv.cost_usd)}</span>
                               : <span className="text-green-400">{formatCost(inv.cost_usd)}</span>}
                           </td>
