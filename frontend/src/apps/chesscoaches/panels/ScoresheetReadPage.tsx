@@ -173,6 +173,7 @@ export function ScoresheetReadPage() {
   const [modelBoardPlys, setModelBoardPlys] = useState<Record<string, { ply: number; source: 'gt' | 'read' | 'nav' }>>({});
   // Consensus overrides: user edits on top of the computed consensus
   const [consensusOverrides, setConsensusOverrides] = useState<Move[] | null>(null);
+  const [consensusPreviewFen, setConsensusPreviewFen] = useState<string | null>(null);
 
   return (
     <PanelShell title={t('coaches.navScoresheets')}>
@@ -667,11 +668,26 @@ export function ScoresheetReadPage() {
                               voteDetails={voteDetails}
                               allModelNames={modelNames}
                               onConfirmMove={handleConfirmMove}
+                              onPreview={(moveIdx, color, san) => {
+                                try {
+                                  const chess = new Chess();
+                                  for (let i = 0; i < moveIdx; i++) {
+                                    if (displayConsensusMoves[i].white) try { chess.move(displayConsensusMoves[i].white); } catch { break; }
+                                    if (displayConsensusMoves[i].black) try { chess.move(displayConsensusMoves[i].black!); } catch { break; }
+                                  }
+                                  if (color === 'black' && displayConsensusMoves[moveIdx]?.white) {
+                                    try { chess.move(displayConsensusMoves[moveIdx].white); } catch { /* */ }
+                                  }
+                                  chess.move(san);
+                                  setConsensusPreviewFen(chess.fen());
+                                } catch { setConsensusPreviewFen(null); }
+                              }}
+                              onClearPreview={() => setConsensusPreviewFen(null)}
                             />
                             )}
                           </div>
                           <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={consensusReady ? displayConsensusMoves : []} externalPly={consensusReady ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={consensusReady ? handleConsensusBoardPly : () => {}} disableDrag autoActivate={false} previewFen={null} />
+                            <ModelBoard moves={consensusReady ? displayConsensusMoves : []} externalPly={consensusReady ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={consensusReady ? handleConsensusBoardPly : () => {}} disableDrag autoActivate={false} previewFen={consensusPreviewFen} />
                           </div>
                         </div>
                       </ModelRow>
@@ -1131,6 +1147,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
+  const [editFromVoteKey, setEditFromVoteKey] = useState<string | null>(null);
   const [liveElapsed, setLiveElapsed] = useState(0);
   const [showIllegalModal, setShowIllegalModal] = useState(false);
   const [voteInfoKey, setVoteInfoKey] = useState<string | null>(null);
@@ -1178,6 +1195,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
     const editedColor = editing.color;
     const editedValue = editing.value;
     setEditing(null);
+    setEditFromVoteKey(null);
 
     // Build all moves with the edit applied, clear legality for re-validation
     const confirmed: Move[] = [];
@@ -1364,6 +1382,14 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   </button>
                 );
               })()}
+              {editFromVoteKey && (
+                <button
+                  onClick={() => { setEditing(null); onClearPreview?.(); setVoteInfoKey(editFromVoteKey); setEditFromVoteKey(null); setShowPass2Details(false); }}
+                  className="w-full text-slate-400 hover:text-slate-200 text-xs py-1.5 transition-colors"
+                >
+                  &larr; Back to votes
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1545,6 +1571,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                           const [mn, cl] = voteInfoKey.split('-');
                           const idx = parseInt(mn) - 1;
                           const val = moves[idx]?.[cl as 'white' | 'black'] || '';
+                          setEditFromVoteKey(voteInfoKey);
                           setVoteInfoKey(null);
                           setEditing({ moveIdx: idx, color: cl as 'white' | 'black', value: val });
                         }}
