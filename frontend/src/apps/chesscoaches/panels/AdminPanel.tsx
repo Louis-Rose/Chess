@@ -47,6 +47,8 @@ interface ApiUsageRow {
 interface ApiUsageByModel {
   model_id: string;
   call_count: number;
+  paid_count: number;
+  free_count: number;
   total_input: number;
   total_output: number;
   total_thinking: number;
@@ -344,6 +346,8 @@ export function AdminPanel() {
                     <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
                       <th className="px-3 py-2 text-left">Model</th>
                       <th className="px-3 py-2 text-center">Calls</th>
+                      <th className="px-3 py-2 text-center">Paid</th>
+                      <th className="px-3 py-2 text-center">Free</th>
                       <th className="px-3 py-2 text-center">Input</th>
                       <th className="px-3 py-2 text-center">Output</th>
                       <th className="px-3 py-2 text-center">Thinking</th>
@@ -357,6 +361,8 @@ export function AdminPanel() {
                       <tr key={m.model_id} className="hover:bg-slate-700/30">
                         <td className="px-3 py-2 text-slate-200 font-mono text-xs">{shortModel(m.model_id)}</td>
                         <td className="px-3 py-2 text-slate-400 text-center">{m.call_count}</td>
+                        <td className="px-3 py-2 text-center">{m.paid_count > 0 ? <span className="text-slate-300">{m.paid_count}</span> : <span className="text-slate-600">0</span>}</td>
+                        <td className="px-3 py-2 text-center">{m.free_count > 0 ? <span className="text-emerald-400">{m.free_count}</span> : <span className="text-slate-600">0</span>}</td>
                         <td className="px-3 py-2 text-slate-400 text-center">{formatTokens(m.total_input)}</td>
                         <td className="px-3 py-2 text-slate-400 text-center">{formatTokens(m.total_output)}</td>
                         <td className="px-3 py-2 text-center">{m.total_thinking ? <span className="text-amber-400">{formatTokens(m.total_thinking)}</span> : <span className="text-slate-600">0</span>}</td>

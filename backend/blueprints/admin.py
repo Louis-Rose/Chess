@@ -374,6 +374,8 @@ def get_api_usage():
         cursor = conn.execute('''
             SELECT model_id,
                    COUNT(*) as call_count,
+                   SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'paid' THEN 1 ELSE 0 END) as paid_count,
+                   SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'free' THEN 1 ELSE 0 END) as free_count,
                    SUM(input_tokens) as total_input,
                    SUM(output_tokens) as total_output,
                    SUM(COALESCE(thinking_tokens, 0)) as total_thinking,
@@ -381,7 +383,6 @@ def get_api_usage():
                    AVG(elapsed_seconds) as avg_elapsed
             FROM api_usage
             GROUP BY model_id
-            ORDER BY call_count DESC
         ''')
         by_model = []
         for r in cursor.fetchall():
@@ -395,6 +396,7 @@ def get_api_usage():
             )
             row['avg_elapsed'] = round(row['avg_elapsed'] or 0, 1)
             by_model.append(row)
+        by_model.sort(key=lambda m: m['cost_usd'], reverse=True)
 
         # Per-feature aggregates (with cost computed from per-model pricing)
         cursor = conn.execute('''
