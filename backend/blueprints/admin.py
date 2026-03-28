@@ -434,7 +434,7 @@ def get_api_usage():
                    MIN(created_at) as created_at
             FROM api_usage
             WHERE request_id IS NOT NULL
-            GROUP BY request_id
+            GROUP BY request_id, feature
             ORDER BY MIN(created_at) DESC
             LIMIT 100
         ''')
