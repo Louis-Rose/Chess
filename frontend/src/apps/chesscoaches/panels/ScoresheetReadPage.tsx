@@ -150,6 +150,8 @@ export function ScoresheetReadPage() {
   }, [showImageModal, showExampleModal, closeModal]);
 
 
+  const [processingCollapsed, setProcessingCollapsed] = useState(false);
+  const [resultsCollapsed, setResultsCollapsed] = useState(false);
   const [modelsCollapsed, setModelsCollapsed] = useState(false);
 
   // ── Live elapsed timer for status table ──
@@ -310,11 +312,19 @@ export function ScoresheetReadPage() {
               {/* Error */}
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
-              {/* Status table — shows during and after analysis */}
+              {/* Processing status — collapsible panel */}
               {models.length > 0 && (
                 <div className="flex justify-center">
-                <div className="bg-slate-700/30 rounded-lg overflow-hidden inline-block min-w-[400px]">
-                  <table className="w-full text-sm">
+                <div className="border border-slate-600/50 rounded-xl overflow-hidden inline-block min-w-[400px]">
+                  <button
+                    onClick={() => setProcessingCollapsed(c => !c)}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 hover:bg-slate-700/30 transition-colors"
+                  >
+                    <span className="text-base text-slate-100 font-medium">Processing</span>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${processingCollapsed ? '' : 'rotate-180'}`} />
+                  </button>
+                  {!processingCollapsed && (
+                  <table className="w-full text-sm border-t border-slate-600/50">
                     <thead>
                       <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
                         <th className="px-4 py-2 text-left w-1/3">Model</th>
@@ -376,6 +386,7 @@ export function ScoresheetReadPage() {
                       })()}
                     </tbody>
                   </table>
+                  )}
                 </div>
                 </div>
               )}
@@ -419,7 +430,17 @@ export function ScoresheetReadPage() {
 
                 return (
                 <div className="space-y-8">
-                  {/* Consensus row — majority vote across all models */}
+                  {/* Consensus result — collapsible panel */}
+                  <div className="border border-slate-600/50 rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => setResultsCollapsed(c => !c)}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 hover:bg-slate-700/30 transition-colors"
+                    >
+                      <span className="text-base text-slate-100 font-medium">{t('coaches.consensus')}</span>
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${resultsCollapsed ? '' : 'rotate-180'}`} />
+                    </button>
+                  {!resultsCollapsed && (
+                    <div className="border-t border-slate-600/50">
                   {(() => {
                     const allModelMoves = models
                       .map(m => modelResults[m.id]?.result?.moves)
@@ -672,7 +693,9 @@ export function ScoresheetReadPage() {
                       </ModelRow>
                     );
                   })()}
-
+                    </div>
+                  )}
+                  </div>
 
                   {/* Re-analyze button — between consensus and individual models */}
                   {!analyzing && preview && (
