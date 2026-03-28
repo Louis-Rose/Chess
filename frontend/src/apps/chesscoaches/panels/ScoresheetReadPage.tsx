@@ -1405,6 +1405,27 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             </h3>
             {(() => {
               const details = voteDetails[voteInfoKey];
+              const [mn, cl] = voteInfoKey.split('-');
+              const moveObj = moves[parseInt(mn) - 1];
+              const isIllegalMove = moveObj?.[`${cl}_legal` as 'white_legal' | 'black_legal'] === false;
+              const hasDisagreement = details.length > 1;
+              const reason = moveObj?.[`${cl}_reason` as 'white_reason' | 'black_reason'];
+              const isAutoResolved = reason?.startsWith('Ambiguous') || reason?.startsWith('Auto-fixed');
+              if (isIllegalMove || hasDisagreement || isAutoResolved) {
+                return (
+                  <p className="text-yellow-400 text-xs text-center">
+                    {isIllegalMove && 'Illegal move'}
+                    {isIllegalMove && hasDisagreement && ' · '}
+                    {hasDisagreement && 'Models disagree'}
+                    {(isIllegalMove || hasDisagreement) && isAutoResolved && ' · '}
+                    {isAutoResolved && 'Auto-resolved'}
+                  </p>
+                );
+              }
+              return null;
+            })()}
+            {(() => {
+              const details = voteDetails[voteInfoKey];
               const names = allModelNames || [];
               // Build model→move lookup
               const modelToMove: Record<string, string> = {};
@@ -1887,7 +1908,6 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onEd
   const ref = useRef<HTMLTableCellElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const isLowConfidence = confidence === 'low';
-  const isMediumConfidence = confidence === 'medium';
   const isIllegal = legal === false;
   const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : (highlight || isIllegal) ? 'bg-yellow-500/25 text-yellow-100' : isLowConfidence ? 'bg-red-500/20 text-red-200' : 'text-slate-100';
 
