@@ -686,16 +686,17 @@ export function ScoresheetReadPage() {
 
 
                   {/* Individual model reads — collapsible */}
-                  <div className="bg-slate-800/30 rounded-xl overflow-hidden">
+                  <div className="flex justify-center">
+                  <div className="border border-slate-600/50 rounded-xl overflow-hidden inline-block">
                     <button
                       onClick={() => setModelsCollapsed(c => !c)}
-                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-700/30 transition-colors"
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 hover:bg-slate-700/30 transition-colors"
                     >
-                      <span className="text-sm text-slate-400">{t('coaches.individualReads') || 'Individual model reads'}</span>
-                      <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${modelsCollapsed ? '' : 'rotate-180'}`} />
+                      <span className="text-base text-slate-100 font-medium">{t('coaches.individualReads') || 'Individual model reads'}</span>
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${modelsCollapsed ? '' : 'rotate-180'}`} />
                     </button>
                     {!modelsCollapsed && (
-                      <div className="flex flex-wrap gap-3 items-start justify-center px-4 pb-4">
+                      <div className="flex flex-wrap gap-3 items-start justify-center px-4 pb-4 border-t border-slate-600/50">
                         {models.map((m) => {
                           const mr = modelResults[m.id];
                           const reRead = reReads[m.id]?.[0];
@@ -733,6 +734,7 @@ export function ScoresheetReadPage() {
                         })}
                       </div>
                     )}
+                  </div>
                   </div>
 
                   {/* Azure DI section — disabled, kept for future use */}
