@@ -828,18 +828,18 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
 
   return (
     <div ref={containerRef} className="relative" style={{ minHeight: tbodyHeight > 0 ? tbodyTop + tbodyHeight + 60 : undefined }}>
-      {/* Image positioned absolutely to align with tables */}
+      {/* Image positioned absolutely, vertically centered with the row */}
       {tbodyHeight > 0 && tablesLeft > 0 && (
         <div
-          className="absolute hidden md:flex justify-center"
-          style={{ top: tbodyTop, left: 0, width: tablesLeft - 8 }}
+          className="absolute hidden md:flex items-center justify-center"
+          style={{ top: 0, bottom: 0, left: 0, width: tablesLeft - 8 }}
         >
           <div className="flex flex-col items-center">
             <img
               src={preview}
               alt="Scoresheet"
               className="rounded-xl object-cover object-top cursor-pointer hover:opacity-90 transition-opacity"
-              style={{ height: tbodyHeight }}
+              style={{ maxHeight: tbodyHeight }}
               onClick={onImageClick}
             />
             {onReplace && (
