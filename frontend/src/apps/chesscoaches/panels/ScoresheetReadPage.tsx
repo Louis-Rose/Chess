@@ -1353,6 +1353,18 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             {moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason'] && (
               <p className="text-red-400 text-sm mb-2 text-center">{moves[editing.moveIdx][`${editing.color}_reason` as 'white_reason' | 'black_reason']}</p>
             )}
+            {onMoveClick && (
+              <button
+                onClick={() => {
+                  const ply = editing.color === 'white' ? editing.moveIdx * 2 : editing.moveIdx * 2 + 1;
+                  onMoveClick(moves, ply);
+                  onClearPreview?.();
+                }}
+                className="w-full text-slate-400 hover:text-slate-200 text-xs py-1 mb-2 transition-colors"
+              >
+                Show position before this move
+              </button>
+            )}
             <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
               setEditing({ ...editing, value: san });
               onPreview?.(editing.moveIdx, editing.color, san);
