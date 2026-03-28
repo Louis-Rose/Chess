@@ -314,6 +314,13 @@ export function ScoresheetReadPage() {
               {models.length > 0 && (
                 <div className="bg-slate-700/30 rounded-lg overflow-hidden">
                   <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
+                        <th className="px-4 py-2 text-left w-1/3">Model</th>
+                        <th className="px-4 py-2 text-center w-1/3">Status</th>
+                        <th className="px-4 py-2 text-center w-1/3">Time</th>
+                      </tr>
+                    </thead>
                     <tbody className="divide-y divide-slate-700/30">
                       {models.map(m => {
                         const mr = modelResults[m.id];
@@ -322,22 +329,20 @@ export function ScoresheetReadPage() {
                         return (
                           <tr key={m.id}>
                             <td className="px-4 py-2.5 text-slate-200 font-medium">{m.name}</td>
-                            <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                            <td className="px-4 py-2.5 text-center">
                               {done ? (
-                                failed ? (
-                                  <span className="text-red-400">Error</span>
-                                ) : (
-                                  <span className="text-emerald-400">{mr?.elapsed}s</span>
-                                )
+                                failed
+                                  ? <span className="text-red-400 inline-flex items-center gap-1"><AlertTriangle className="w-4 h-4" /> Error</span>
+                                  : <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-4 h-4" /> Done</span>
                               ) : (
-                                <span className="text-slate-500">{liveGlobalElapsed}s</span>
+                                <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> Reading...</span>
                               )}
                             </td>
-                            <td className="px-4 py-2.5 w-8">
+                            <td className="px-4 py-2.5 text-center">
                               {done ? (
-                                failed ? <AlertTriangle className="w-4 h-4 text-red-400" /> : <Check className="w-4 h-4 text-emerald-400" />
+                                failed ? <span className="text-red-400">—</span> : <span className="text-emerald-400">{mr?.elapsed}s</span>
                               ) : (
-                                <Clock className="w-4 h-4 text-slate-500 animate-spin" />
+                                <span className="text-slate-500">{liveGlobalElapsed}s</span>
                               )}
                             </td>
                           </tr>
@@ -354,19 +359,15 @@ export function ScoresheetReadPage() {
                         return (
                           <tr>
                             <td className="px-4 py-2.5 text-slate-200 font-medium">{t('coaches.consensus')}</td>
-                            <td className="px-4 py-2.5 text-right whitespace-nowrap">
-                              {allDone && hasConsensus ? (
-                                <span className="text-emerald-400">done</span>
-                              ) : (
-                                <span className="text-slate-500">{liveGlobalElapsed}s</span>
-                              )}
+                            <td className="px-4 py-2.5 text-center">
+                              {allDone && hasConsensus
+                                ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-4 h-4" /> Done</span>
+                                : <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> Computing...</span>}
                             </td>
-                            <td className="px-4 py-2.5 w-8">
-                              {allDone && hasConsensus ? (
-                                <Check className="w-4 h-4 text-emerald-400" />
-                              ) : (
-                                <Clock className="w-4 h-4 text-slate-500 animate-spin" />
-                              )}
+                            <td className="px-4 py-2.5 text-center">
+                              {allDone && hasConsensus
+                                ? <span className="text-emerald-400">—</span>
+                                : <span className="text-slate-500">{liveGlobalElapsed}s</span>}
                             </td>
                           </tr>
                         );
