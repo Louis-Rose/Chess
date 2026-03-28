@@ -442,31 +442,33 @@ export function ScoresheetReadPage() {
                   {!resultsCollapsed && (
                     <div className="border-t border-slate-600/50">
                   {(() => {
-                    const allModelMoves = models
-                      .map(m => modelResults[m.id]?.result?.moves)
-                      .filter((mv): mv is Move[] => !!mv && mv.length > 0);
+                    const modelEntries = models
+                      .filter(m => modelResults[m.id]?.result?.moves && modelResults[m.id]!.result!.moves.length > 0)
+                      .map(m => ({ name: m.name, moves: modelResults[m.id]!.result!.moves }));
+                    const allModelMoves = modelEntries.map(e => e.moves);
+                    const modelNames = modelEntries.map(e => e.name);
                     if (allModelMoves.length < 2) return null;
                     const maxLen = Math.max(...allModelMoves.map(mv => mv.length));
                     // Two-pass smart consensus algorithm.
-                    // Pass 1: greedy left-to-right using majority votes for downstream simulation.
-                    // Pass 2: same algorithm but uses Pass 1 results for downstream simulation,
-                    //         producing better choices and accurate "illegals after" counts.
 
                     // Helper: run one greedy pass given a downstream reference sequence
                     const runConsensusPass = (downstreamRef: Move[]) => {
                       const result: Move[] = [];
-                      const details: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean }[]> = {};
+                      const details: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[] }[]> = {};
                       const passChess = new Chess();
 
                       for (let i = 0; i < maxLen; i++) {
                         const move: Move = { number: i + 1, white: '' };
                         for (const color of ['white', 'black'] as const) {
                           const votes: Record<string, number> = {};
-                          for (const modelMv of allModelMoves) {
-                            const val = modelMv[i]?.[color];
+                          const votersByCandidate: Record<string, string[]> = {};
+                          for (let mi = 0; mi < allModelMoves.length; mi++) {
+                            const val = allModelMoves[mi][i]?.[color];
                             if (val) {
                               const normalized = val.replace(/[+#]/g, '');
                               votes[normalized] = (votes[normalized] || 0) + 1;
+                              if (!votersByCandidate[normalized]) votersByCandidate[normalized] = [];
+                              votersByCandidate[normalized].push(modelNames[mi]);
                             }
                           }
                           const candidates = Object.entries(votes).sort((a, b) => b[1] - a[1]);
@@ -475,13 +477,13 @@ export function ScoresheetReadPage() {
                           const detailKey = `${i + 1}-${color}`;
                           if (candidates.length === 1) {
                             (move as any)[color] = candidates[0][0];
-                            details[detailKey] = [{ candidate: candidates[0][0], votes: candidates[0][1], downstreamIllegals: 0, chosen: true }];
+                            details[detailKey] = [{ candidate: candidates[0][0], votes: candidates[0][1], downstreamIllegals: 0, chosen: true, models: votersByCandidate[candidates[0][0]] || [] }];
                             try { passChess.move(candidates[0][0]); } catch { /* validation will catch */ }
                           } else {
                             let bestCandidate = candidates[0][0];
                             let bestIllegals = Infinity;
                             let bestVotes = candidates[0][1];
-                            const dets: { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean }[] = [];
+                            const dets: { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[] }[] = [];
 
                             for (const [candidate, voteCount] of candidates) {
                               const simChess = new Chess(passChess.fen());
@@ -502,7 +504,7 @@ export function ScoresheetReadPage() {
                                 }
                               }
 
-                              dets.push({ candidate, votes: voteCount, downstreamIllegals: illegals, chosen: false });
+                              dets.push({ candidate, votes: voteCount, downstreamIllegals: illegals, chosen: false, models: votersByCandidate[candidate] || [] });
                               if (illegals < bestIllegals || (illegals === bestIllegals && voteCount > bestVotes)) {
                                 bestIllegals = illegals;
                                 bestCandidate = candidate;
@@ -561,7 +563,12 @@ export function ScoresheetReadPage() {
                     const pass2 = runConsensusPass(pass1.moves);
 
                     const consensusMoves = pass2.moves;
-                    const voteDetails = pass2.details;
+                    // Combine pass1 and pass2 details for the vote info modal
+                    const voteDetails: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; pass1Choice?: string }[]> = {};
+                    for (const key of Object.keys(pass2.details)) {
+                      const p1Choice = pass1.details[key]?.find(d => d.chosen)?.candidate;
+                      voteDetails[key] = pass2.details[key].map(d => ({ ...d, pass1Choice: p1Choice }));
+                    }
 
                     // Remove trailing empty moves
                     while (consensusMoves.length > 0 && !consensusMoves[consensusMoves.length - 1].white && !consensusMoves[consensusMoves.length - 1].black) {
@@ -1363,7 +1370,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   rowsPerColumn?: number | null;
   modelDisagreements?: Set<string>;
   originalMoves?: Move[];
-  voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean }[]>;
+  voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; pass1Choice?: string }[]>;
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
@@ -1678,7 +1685,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
               <thead>
                 <tr className="border-b border-slate-600 text-slate-400">
                   <th className="py-1.5 text-left px-2">{t('coaches.voteCandidate')}</th>
-                  <th className="py-1.5 text-center px-2">{t('coaches.voteVotes')}</th>
+                  <th className="py-1.5 text-left px-2">Models</th>
                   <th className="py-1.5 text-center px-2">{t('coaches.voteIllegals')}</th>
                 </tr>
               </thead>
@@ -1688,12 +1695,26 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                     <td className="py-1.5 px-2 font-mono text-slate-100">
                       {d.candidate} {d.chosen && <span className="text-blue-400 text-xs">✓</span>}
                     </td>
-                    <td className="py-1.5 px-2 text-center text-slate-300">{d.votes}</td>
+                    <td className="py-1.5 px-2 text-slate-400 text-xs">
+                      {d.models?.join(', ') || '—'}
+                    </td>
                     <td className="py-1.5 px-2 text-center text-slate-300">{d.downstreamIllegals >= 100 ? t('coaches.voteItselfIllegal') : d.downstreamIllegals}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {/* Pass info */}
+            {(() => {
+              const details = voteDetails[voteInfoKey];
+              const pass1 = details[0]?.pass1Choice;
+              const pass2 = details.find(d => d.chosen)?.candidate;
+              if (!pass1 || pass1 === pass2) return null;
+              return (
+                <p className="text-xs text-slate-500 text-center">
+                  Pass 1 chose <span className="font-mono text-slate-300">{pass1}</span>, Pass 2 changed to <span className="font-mono text-slate-300">{pass2}</span>
+                </p>
+              );
+            })()}
             {voteDetails[voteInfoKey].every(d => !d.chosen) && (
               <p className="text-red-400 text-xs text-center">{t('coaches.voteAllIllegal')}</p>
             )}
