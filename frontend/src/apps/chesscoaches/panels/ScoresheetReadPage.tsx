@@ -103,7 +103,7 @@ export function ScoresheetReadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
-    scoresheetHandleEditSave, scoresheetReread, scoresheetCancel,
+    scoresheetHandleEditSave, scoresheetReread, scoresheetCancel, scoresheetClear,
   } = useCoachesData();
 
   const { preview, fileName, error, modelResults, reReads, models, startTime, analyzing } = scoresheet;
@@ -658,7 +658,7 @@ export function ScoresheetReadPage() {
                       setModelBoardPlys(p => { const rest = { ...p }; delete rest[consensusId]; return rest; });
                     };
                     return (
-                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)}>
+                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')} fileName={fileName || undefined}>
                         <h2 className="text-sm font-medium text-slate-300 mb-2 text-center">{t('coaches.consensus')} ({allModelMoves.length} {t('coaches.models')})</h2>
                         <div className="flex items-stretch" onClick={deselectConsensus}>
                           <div className="flex-1 hidden md:block" />
@@ -810,7 +810,7 @@ interface PlyEntry {
   san?: string;
 }
 
-function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: { preview: string; onImageClick: () => void; onReplace?: () => void; replaceLabel?: string; children: ReactNode }) {
+function ModelRow({ preview, onImageClick, onReplace, replaceLabel, fileName, children }: { preview: string; onImageClick: () => void; onReplace?: () => void; replaceLabel?: string; fileName?: string; children: ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tbodyTop, setTbodyTop] = useState(0);
   const [tbodyHeight, setTbodyHeight] = useState(0);
@@ -861,6 +861,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, children }: 
           style={{ top: 0, bottom: 0, left: 0, width: tablesLeft - 8 }}
         >
           <div className="flex flex-col items-center">
+            {fileName && <span className="text-slate-500 text-xs mb-1.5 truncate max-w-[200px]">{fileName}</span>}
             <img
               src={preview}
               alt="Scoresheet"
