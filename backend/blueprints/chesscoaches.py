@@ -233,17 +233,48 @@ def _scoresheet_parse_response(response_text):
     return result, warnings
 
 
-def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None, request_id=None, thinking_tokens=0):
+def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None, request_id=None, thinking_tokens=0, billing_tier='paid'):
     """Log a Gemini API call to the api_usage table."""
     try:
         with get_db() as conn:
             conn.execute(
-                """INSERT INTO api_usage (request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, elapsed_seconds, error)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                (request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, elapsed, error),
+                """INSERT INTO api_usage (request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed_seconds, error)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed, error),
             )
     except Exception as e:
         logger.error(f"[API Usage] Failed to log: {e}")
+
+
+# Models with no free tier — always use paid key
+_PAID_ONLY_MODELS = {'gemini-3.1-pro-preview'}
+
+
+def _gemini_generate(client_free, client_paid, model_id, contents, config=None):
+    """Try free API key first, fall back to paid on 429. Returns (response, billing_tier)."""
+    # Models with no free tier go straight to paid
+    if model_id in _PAID_ONLY_MODELS or client_free is None:
+        kwargs = {'model': model_id, 'contents': contents}
+        if config:
+            kwargs['config'] = config
+        return client_paid.models.generate_content(**kwargs), 'paid'
+
+    # Try free key first
+    try:
+        kwargs = {'model': model_id, 'contents': contents}
+        if config:
+            kwargs['config'] = config
+        response = client_free.models.generate_content(**kwargs)
+        return response, 'free'
+    except Exception as e:
+        err_str = str(e).lower()
+        if '429' in err_str or 'resource_exhausted' in err_str or 'rate' in err_str:
+            logger.info(f"[Gemini] Free quota exhausted for {model_id}, falling back to paid key")
+            kwargs = {'model': model_id, 'contents': contents}
+            if config:
+                kwargs['config'] = config
+            return client_paid.models.generate_content(**kwargs), 'paid'
+        raise
 
 
 SCORESHEET_MODELS = [
@@ -306,8 +337,9 @@ def reread_scoresheet():
     model_id = request.form.get('model_id', 'gemini-3-flash-preview')
     req_id = uuid.uuid4().hex[:12]
 
-    api_key = os.environ.get('GEMINI_API_KEY')
-    if not api_key:
+    paid_key = os.environ.get('GEMINI_API_KEY')
+    free_key = os.environ.get('GEMINI_FREE_API_KEY')
+    if not paid_key:
         return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
 
     # Replay confirmed moves to get board position
@@ -363,11 +395,12 @@ Return ONLY a JSON object:
   ]
 }}"""
 
-    client = genai.Client(api_key=api_key)
+    client_paid = genai.Client(api_key=paid_key)
+    client_free = genai.Client(api_key=free_key) if free_key else None
     start = time_module.time()
     try:
-        response = client.models.generate_content(
-            model=model_id,
+        response, tier = _gemini_generate(
+            client_free, client_paid, model_id,
             contents=[
                 types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
                 prompt,
@@ -385,7 +418,7 @@ Return ONLY a JSON object:
     in_tok = getattr(usage, 'prompt_token_count', 0) or 0
     out_tok = getattr(usage, 'candidates_token_count', 0) or 0
     think_tok = getattr(usage, 'thoughts_token_count', 0) or 0
-    _log_api_usage('reread', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok)
+    _log_api_usage('reread', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier)
     gemini_result, warnings = _scoresheet_parse_response(response.text)
     new_moves = gemini_result.get("moves", [])
 
@@ -594,8 +627,9 @@ def read_diagram():
     if not image_file.filename:
         return jsonify({"error": "Empty filename"}), 400
 
-    api_key = os.environ.get('GEMINI_API_KEY')
-    if not api_key:
+    paid_key = os.environ.get('GEMINI_API_KEY')
+    free_key = os.environ.get('GEMINI_FREE_API_KEY')
+    if not paid_key:
         logger.error("[Diagram] GEMINI_API_KEY not configured")
         return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
 
@@ -607,7 +641,8 @@ def read_diagram():
     req_id = uuid.uuid4().hex[:12]
 
     result_queue = queue.Queue()
-    client = genai.Client(api_key=api_key)
+    client_paid = genai.Client(api_key=paid_key)
+    client_free = genai.Client(api_key=free_key) if free_key else None
 
     def run_model(model_info):
         model_id = model_info["id"]
@@ -615,8 +650,8 @@ def read_diagram():
         logger.info(f"[Diagram] Starting {model_name} ({model_id})")
         start = time_module.time()
         try:
-            response = client.models.generate_content(
-                model=model_id,
+            response, tier = _gemini_generate(
+                client_free, client_paid, model_id,
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
                     DIAGRAM_READ_PROMPT,
@@ -631,9 +666,9 @@ def read_diagram():
             # Remove markdown code block if present
             if fen.startswith('fen\n'):
                 fen = fen[4:].strip()
-            logger.info(f"[Diagram] {model_name} responded in {elapsed}s: {fen[:80]} ({in_tok}+{out_tok}+{think_tok}t tokens)")
+            logger.info(f"[Diagram] {model_name} responded in {elapsed}s: {fen[:80]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "fen": fen, "elapsed": elapsed})
-            _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok)
+            _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier)
         except Exception as e:
             elapsed = round(time_module.time() - start)
             logger.error(f"[Diagram] {model_name} failed after {elapsed}s: {e}")
@@ -694,8 +729,9 @@ def read_scoresheet():
     if not image_file.filename:
         return jsonify({"error": "Empty filename"}), 400
 
-    api_key = os.environ.get('GEMINI_API_KEY')
-    if not api_key:
+    paid_key = os.environ.get('GEMINI_API_KEY')
+    free_key = os.environ.get('GEMINI_FREE_API_KEY')
+    if not paid_key:
         logger.error("[Scoresheet] GEMINI_API_KEY not configured")
         return jsonify({"error": "GEMINI_API_KEY not configured"}), 500
 
@@ -707,7 +743,8 @@ def read_scoresheet():
     req_id = uuid.uuid4().hex[:12]
 
     result_queue = queue.Queue()
-    client = genai.Client(api_key=api_key)
+    client_paid = genai.Client(api_key=paid_key)
+    client_free = genai.Client(api_key=free_key) if free_key else None
 
     def run_model(model_info):
         model_id = model_info["id"]
@@ -715,8 +752,8 @@ def read_scoresheet():
         logger.info(f"[Scoresheet] Starting {model_name} ({model_id})")
         start = time_module.time()
         try:
-            response = client.models.generate_content(
-                model=model_id,
+            response, tier = _gemini_generate(
+                client_free, client_paid, model_id,
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
                     SCORESHEET_READ_PROMPT,
@@ -728,7 +765,7 @@ def read_scoresheet():
             in_tok = getattr(usage, 'prompt_token_count', 0) or 0
             out_tok = getattr(usage, 'candidates_token_count', 0) or 0
             think_tok = getattr(usage, 'thoughts_token_count', 0) or 0
-            logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s ({in_tok}+{out_tok}+{think_tok}t tokens)")
+            logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
 
             result, warnings = _scoresheet_parse_response(response.text)
             result["moves"] = _scoresheet_validate_moves(result.get("moves", []))
@@ -740,7 +777,7 @@ def read_scoresheet():
             if warnings:
                 item["warnings"] = warnings
             result_queue.put(item)
-            _log_api_usage('scoresheet', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok)
+            _log_api_usage('scoresheet', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier)
 
         except Exception as e:
             elapsed = round(time_module.time() - start)

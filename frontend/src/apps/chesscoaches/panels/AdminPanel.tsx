@@ -63,6 +63,7 @@ interface ApiInvocation {
   total_output: number;
   elapsed_seconds: number;
   error_count: number;
+  free_count: number;
   cost_usd: number;
   created_at: string;
 }
@@ -398,7 +399,10 @@ export function AdminPanel() {
                             {' '}
                             {new Date(inv.created_at).toLocaleTimeString(language === 'fr' ? 'fr-FR' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
                           </td>
-                          <td className="px-2 py-1 text-slate-300">{FEATURE_LABELS[inv.feature] || inv.feature}</td>
+                          <td className="px-2 py-1 text-slate-300">
+                            {FEATURE_LABELS[inv.feature] || inv.feature}
+                            {inv.free_count > 0 && <span className="ml-1.5 text-[10px] text-emerald-400 bg-emerald-400/10 px-1 rounded">{inv.free_count} free</span>}
+                          </td>
                           <td className="px-2 py-1 text-slate-400 text-center">{inv.model_count}</td>
                           <td className="px-2 py-1 text-slate-400 text-center">{formatTokens((inv.total_input || 0) + (inv.total_output || 0))}</td>
                           <td className="px-2 py-1 text-slate-400 text-center">{inv.elapsed_seconds}s</td>

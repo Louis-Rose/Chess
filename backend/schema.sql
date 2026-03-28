@@ -442,6 +442,7 @@ CREATE TABLE IF NOT EXISTS api_usage (
     input_tokens INTEGER DEFAULT 0,
     output_tokens INTEGER DEFAULT 0,
     thinking_tokens INTEGER DEFAULT 0,
+    billing_tier TEXT DEFAULT 'paid',     -- 'free' or 'paid'
     elapsed_seconds INTEGER DEFAULT 0,
     error TEXT,                            -- NULL if successful
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

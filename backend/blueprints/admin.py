@@ -362,6 +362,7 @@ def get_api_usage():
         cursor = conn.execute('''
             SELECT id, feature, model_id, input_tokens, output_tokens,
                    COALESCE(thinking_tokens, 0) as thinking_tokens,
+                   COALESCE(billing_tier, 'paid') as billing_tier,
                    elapsed_seconds, error, created_at
             FROM api_usage
             ORDER BY created_at DESC
@@ -429,6 +430,7 @@ def get_api_usage():
                    SUM(COALESCE(thinking_tokens, 0)) as total_thinking,
                    MAX(elapsed_seconds) as elapsed_seconds,
                    SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) as error_count,
+                   SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'free' THEN 1 ELSE 0 END) as free_count,
                    MIN(created_at) as created_at
             FROM api_usage
             WHERE request_id IS NOT NULL
