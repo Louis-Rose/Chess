@@ -1562,11 +1562,11 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
         }
         const disagreementCount = modelDisagreements?.size || 0;
         return (
-          <div className="px-2 py-2 border-t border-slate-600/50 flex flex-col items-center gap-0.5 text-xs min-h-[3.5rem]">
-            {disagreementCount > 0 && <span className="text-red-400">{disagreementCount} {disagreementCount === 1 ? 'disagreement' : 'disagreements'}</span>}
-            {illegal > 0 && <span className="text-orange-400">{illegal} illegal {illegal === 1 ? 'move' : 'moves'}</span>}
-            {medium > 0 && <span className="text-yellow-400">{medium} uncertain {medium === 1 ? 'move' : 'moves'}</span>}
-            {low > 0 && <span className="text-red-400">{low} low confidence {low === 1 ? 'move' : 'moves'}</span>}
+          <div className="px-2 py-2 border-t border-slate-600/50 flex flex-col items-center gap-0.5 text-xs">
+            <span className={disagreementCount > 0 ? 'text-red-400' : 'text-slate-600'}>{disagreementCount} {disagreementCount === 1 ? 'disagreement' : 'disagreements'}</span>
+            <span className={illegal > 0 ? 'text-orange-400' : 'text-slate-600'}>{illegal} illegal {illegal === 1 ? 'move' : 'moves'}</span>
+            <span className={medium > 0 ? 'text-yellow-400' : 'text-slate-600'}>{medium} medium confidence {medium === 1 ? 'move' : 'moves'}</span>
+            <span className={low > 0 ? 'text-red-400' : 'text-slate-600'}>{low} low confidence {low === 1 ? 'move' : 'moves'}</span>
           </div>
         );
       })()}
