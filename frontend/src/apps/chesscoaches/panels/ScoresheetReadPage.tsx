@@ -312,7 +312,8 @@ export function ScoresheetReadPage() {
 
               {/* Status table — shows during and after analysis */}
               {models.length > 0 && (
-                <div className="bg-slate-700/30 rounded-lg overflow-hidden">
+                <div className="flex justify-center">
+                <div className="bg-slate-700/30 rounded-lg overflow-hidden inline-block min-w-[400px]">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
@@ -374,6 +375,7 @@ export function ScoresheetReadPage() {
                       })()}
                     </tbody>
                   </table>
+                </div>
                 </div>
               )}
               {analyzing && models.length === 0 && (
