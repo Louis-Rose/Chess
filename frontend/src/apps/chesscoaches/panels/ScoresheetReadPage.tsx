@@ -1256,8 +1256,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.white_confidence}
                       onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
-                      onVoteInfo={!showMoveInfo && voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setShowPass2Details(false); } : undefined}
-                      onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setShowPass2Details(false); } : undefined}
+                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setShowPass2Details(false); } : undefined}
+                      onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
                     />
                     <MoveCell
                       value={move.black || ''}
@@ -1269,8 +1269,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.black_confidence}
                       onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
-                      onVoteInfo={!showMoveInfo && voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setShowPass2Details(false); } : undefined}
-                      onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setShowPass2Details(false); } : undefined}
+                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setShowPass2Details(false); } : undefined}
+                      onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
                     />
                   </>;
                 };
@@ -2049,20 +2049,21 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onEd
           className="fixed z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg whitespace-nowrap"
           style={{ top: menuPos.top, left: menuPos.left }}
         >
-          {onVoteInfo && (
+          {onVoteInfo ? (
             <button
               onClick={(e) => { e.stopPropagation(); setShowMenu(false); onVoteInfo(); }}
-              className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-t-lg"
+              className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-lg"
             >
-              {t('coaches.voteInfo')}
+              See vote &amp; Edit
             </button>
-          )}
+          ) : (
           <button
             onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit(); }}
-            className={`block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-b-lg ${onVoteInfo ? 'border-t border-slate-600' : 'rounded-t-lg'}`}
+            className={`block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-lg`}
           >
             {t('coaches.editMove')}
           </button>
+          )}
         </div>,
         document.body
       )}
