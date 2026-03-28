@@ -1710,7 +1710,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
       {/* Vote info modal */}
       {voteInfoKey && voteDetails?.[voteInfoKey] && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px]"
+          className="fixed inset-0 z-50 flex items-center justify-center pl-64 bg-slate-900/60 backdrop-blur-[0.5px]"
           onClick={() => setVoteInfoKey(null)}
         >
           <div
@@ -1748,8 +1748,8 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                         const isChosen = move === chosen;
                         const conf = confByModel[name];
                         return (
-                          <tr key={name} className={`border-b border-slate-700/50 ${isChosen ? 'bg-blue-600/10' : ''}`}>
-                            <td className="py-1.5 px-2 text-slate-300 text-xs">{name}</td>
+                          <tr key={name} className="border-b border-slate-700/50">
+                            <td className="py-1.5 px-2 text-slate-100 text-xs">{name}</td>
                             <td className="py-1.5 px-2 text-center font-mono text-slate-100">{move || '—'}</td>
                             <td className={`py-1.5 px-2 text-center text-xs ${confColor(conf)}`}>{conf || '—'}</td>
                           </tr>
@@ -1757,13 +1757,13 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       })}
                       {/* Consensus rows */}
                       {pass1Choice && (
-                        <tr className="border-b border-slate-700/50 bg-slate-700/20">
-                          <td className="py-1.5 px-2 text-slate-400 text-xs">Consensus (Pass 1)</td>
-                          <td className="py-1.5 px-2 text-center font-mono text-slate-300">{pass1Choice}</td>
+                        <tr className="border-b border-slate-700/50">
+                          <td className="py-1.5 px-2 text-slate-100 text-xs">Consensus (Pass 1)</td>
+                          <td className="py-1.5 px-2 text-center font-mono text-slate-100">{pass1Choice}</td>
                         </tr>
                       )}
-                      <tr className={`border-b border-slate-700/50 ${chosen ? 'bg-blue-600/20' : 'bg-red-600/10'}`}>
-                        <td className="py-1.5 px-2 text-slate-200 text-xs font-medium">Consensus (Final)</td>
+                      <tr className="border-b border-slate-700/50">
+                        <td className="py-1.5 px-2 text-slate-100 text-xs font-medium">Consensus (Final)</td>
                         <td className="py-1.5 px-2 text-center font-mono text-slate-100">
                           {chosen || '—'} {chosen && <span className="text-blue-400 text-xs">✓</span>}
                         </td>
