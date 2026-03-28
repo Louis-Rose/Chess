@@ -1499,7 +1499,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                       value={move.white}
                       legal={move.white_legal}
                       highlight={d?.white}
-                      corrected={corrections?.has(`${move.number}-white`)}
+                      corrected={corrections?.has(`${move.number}-white`) || (originalMoves && originalMoves[idx]?.white !== move.white && move.white_legal !== false)}
                       active={activePly === idx * 2 + 1}
                       reason={move.white_reason}
                       confidence={move.white_confidence}
@@ -1511,7 +1511,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
                     <MoveCell
                       value={move.black || ''}
                       legal={move.black_legal}
-                      corrected={corrections?.has(`${move.number}-black`)}
+                      corrected={corrections?.has(`${move.number}-black`) || (originalMoves && originalMoves[idx]?.black !== move.black && move.black_legal !== false)}
                       highlight={d?.black}
                       active={activePly === idx * 2 + 2}
                       reason={move.black_reason}
