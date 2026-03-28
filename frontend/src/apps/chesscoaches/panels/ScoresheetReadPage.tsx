@@ -1256,8 +1256,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.white_confidence}
                       onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
-                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setShowPass2Details(false); } : undefined}
-                      onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
+                      onVoteInfo={!showMoveInfo && voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setShowPass2Details(false); } : undefined}
+                      onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setShowPass2Details(false); } : undefined}
                     />
                     <MoveCell
                       value={move.black || ''}
@@ -1269,8 +1269,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.black_confidence}
                       onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
-                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setShowPass2Details(false); } : undefined}
-                      onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
+                      onVoteInfo={!showMoveInfo && voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setShowPass2Details(false); } : undefined}
+                      onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setShowPass2Details(false); } : undefined}
                     />
                   </>;
                 };
@@ -1423,7 +1423,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     {isIllegalMove && hasDisagreement && ' · '}
                     {hasDisagreement && 'Models disagree'}
                     {(isIllegalMove || hasDisagreement) && isAutoResolved && ' · '}
-                    {isAutoResolved && (ambiguousCandidates ? `Ambiguous move : ${ambiguousCandidates}` : 'Auto-fixed')}
+                    {isAutoResolved && (ambiguousCandidates ? `Ambiguous move : ${ambiguousCandidates} ?` : 'Auto-fixed')}
                   </p>
                 );
               }
@@ -1527,16 +1527,30 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     <span className="flex items-center gap-1 text-slate-100"><span className="text-red-400">&#10007;</span> illegal move</span>
                   </div>
                   {onConfirmMove && (finalMove || chosen) && (
-                    <button
-                      onClick={() => {
-                        const [mn, cl] = voteInfoKey.split('-');
-                        onConfirmMove(parseInt(mn), cl as 'white' | 'black');
-                        setVoteInfoKey(null);
-                      }}
-                      className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors mt-1"
-                    >
-                      Confirm {finalMove || chosen}
-                    </button>
+                    <div className="flex gap-2 mt-1">
+                      <button
+                        onClick={() => {
+                          const [mn, cl] = voteInfoKey.split('-');
+                          onConfirmMove(parseInt(mn), cl as 'white' | 'black');
+                          setVoteInfoKey(null);
+                        }}
+                        className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
+                      >
+                        Confirm {finalMove || chosen}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const [mn, cl] = voteInfoKey.split('-');
+                          const idx = parseInt(mn) - 1;
+                          const val = moves[idx]?.[cl as 'white' | 'black'] || '';
+                          setVoteInfoKey(null);
+                          setEditing({ moveIdx: idx, color: cl as 'white' | 'black', value: val });
+                        }}
+                        className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm py-2 rounded-lg transition-colors"
+                      >
+                        No, edit move
+                      </button>
+                    </div>
                   )}
                 </>
               );
