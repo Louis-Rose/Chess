@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
-import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, X, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronDown, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Upload, ImageIcon, Clock, BookOpen, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronDown, RotateCcw, AlertTriangle } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -103,7 +103,7 @@ export function ScoresheetReadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
-    scoresheetHandleEditSave, scoresheetReread, scoresheetCancel, scoresheetClear,
+    scoresheetHandleEditSave, scoresheetReread, scoresheetClear,
   } = useCoachesData();
 
   const { preview, fileName, error, modelResults, reReads, models, startTime, analyzing } = scoresheet;
@@ -690,6 +690,7 @@ export function ScoresheetReadPage() {
                               rowsPerColumn={consensusRowsPerColumn}
                               modelDisagreements={modelDisagreements}
                               voteDetails={voteDetails}
+                              allModelNames={modelNames}
                             />
                             )}
                           </div>
@@ -1349,7 +1350,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, modelDisagreements, originalMoves, voteDetails }: {
+function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, modelDisagreements, originalMoves, voteDetails, allModelNames }: {
   label: string;
   moves: Move[];
   groundTruthMoves?: Move[];
@@ -1371,6 +1372,7 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
   modelDisagreements?: Set<string>;
   originalMoves?: Move[];
   voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; pass1Choice?: string }[]>;
+  allModelNames?: string[];
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
@@ -1681,43 +1683,67 @@ function MovesPanel({ label, moves, groundTruthMoves, disagreements, elapsed, er
             <h3 className="text-slate-100 font-medium text-center">
               {t('coaches.move')} {voteInfoKey.split('-')[0]} · {voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
             </h3>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-600 text-slate-400">
-                  <th className="py-1.5 text-left px-2">{t('coaches.voteCandidate')}</th>
-                  <th className="py-1.5 text-left px-2">Models</th>
-                  <th className="py-1.5 text-center px-2">{t('coaches.voteIllegals')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {voteDetails[voteInfoKey].map(d => (
-                  <tr key={d.candidate} className={`border-b border-slate-700/50 ${d.chosen ? 'bg-blue-600/20' : ''}`}>
-                    <td className="py-1.5 px-2 font-mono text-slate-100">
-                      {d.candidate} {d.chosen && <span className="text-blue-400 text-xs">✓</span>}
-                    </td>
-                    <td className="py-1.5 px-2 text-slate-400 text-xs">
-                      {d.models?.join(', ') || '—'}
-                    </td>
-                    <td className="py-1.5 px-2 text-center text-slate-300">{d.downstreamIllegals >= 100 ? t('coaches.voteItselfIllegal') : d.downstreamIllegals}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {/* Pass info */}
             {(() => {
               const details = voteDetails[voteInfoKey];
-              const pass1 = details[0]?.pass1Choice;
-              const pass2 = details.find(d => d.chosen)?.candidate;
-              if (!pass1 || pass1 === pass2) return null;
+              const names = allModelNames || [];
+              // Build model→move lookup
+              const modelToMove: Record<string, string> = {};
+              for (const d of details) {
+                for (const m of (d.models || [])) modelToMove[m] = d.candidate;
+              }
+              const chosen = details.find(d => d.chosen)?.candidate;
+              const pass1Choice = details[0]?.pass1Choice;
               return (
-                <p className="text-xs text-slate-500 text-center">
-                  Pass 1 chose <span className="font-mono text-slate-300">{pass1}</span>, Pass 2 changed to <span className="font-mono text-slate-300">{pass2}</span>
-                </p>
+                <>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-600 text-slate-400">
+                        <th className="py-1.5 text-left px-2">Model</th>
+                        <th className="py-1.5 text-center px-2">{t('coaches.voteCandidate')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {names.map(name => {
+                        const move = modelToMove[name];
+                        const isChosen = move === chosen;
+                        return (
+                          <tr key={name} className={`border-b border-slate-700/50 ${isChosen ? 'bg-blue-600/10' : ''}`}>
+                            <td className="py-1.5 px-2 text-slate-300 text-xs">{name}</td>
+                            <td className="py-1.5 px-2 text-center font-mono text-slate-100">{move || '—'}</td>
+                          </tr>
+                        );
+                      })}
+                      {/* Consensus rows */}
+                      {pass1Choice && (
+                        <tr className="border-b border-slate-700/50 bg-slate-700/20">
+                          <td className="py-1.5 px-2 text-slate-400 text-xs">Consensus (Pass 1)</td>
+                          <td className="py-1.5 px-2 text-center font-mono text-slate-300">{pass1Choice}</td>
+                        </tr>
+                      )}
+                      <tr className={`border-b border-slate-700/50 ${chosen ? 'bg-blue-600/20' : 'bg-red-600/10'}`}>
+                        <td className="py-1.5 px-2 text-slate-200 text-xs font-medium">Consensus (Final)</td>
+                        <td className="py-1.5 px-2 text-center font-mono text-slate-100">
+                          {chosen || '—'} {chosen && <span className="text-blue-400 text-xs">✓</span>}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  {details.length > 1 && (
+                    <div className="text-xs text-slate-500 space-y-1">
+                      {details.map(d => (
+                        <div key={d.candidate} className="flex justify-between px-2">
+                          <span className="font-mono text-slate-400">{d.candidate}</span>
+                          <span>{d.downstreamIllegals >= 100 ? <span className="text-red-400">{t('coaches.voteItselfIllegal')}</span> : <span>{d.downstreamIllegals} {t('coaches.voteIllegals').toLowerCase()}</span>}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {details.every(d => !d.chosen) && (
+                    <p className="text-red-400 text-xs text-center">{t('coaches.voteAllIllegal')}</p>
+                  )}
+                </>
               );
             })()}
-            {voteDetails[voteInfoKey].every(d => !d.chosen) && (
-              <p className="text-red-400 text-xs text-center">{t('coaches.voteAllIllegal')}</p>
-            )}
             <button
               onClick={() => setVoteInfoKey(null)}
               className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm py-2 rounded-lg transition-colors"
@@ -2165,20 +2191,20 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, confiden
           className="fixed z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg whitespace-nowrap"
           style={{ top: menuPos.top, left: menuPos.left }}
         >
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit(); }}
-            className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-t-lg"
-          >
-            {t('coaches.editMove')}
-          </button>
           {onVoteInfo && (
             <button
               onClick={(e) => { e.stopPropagation(); setShowMenu(false); onVoteInfo(); }}
-              className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-b-lg border-t border-slate-600"
+              className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-t-lg"
             >
               {t('coaches.voteInfo')}
             </button>
           )}
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit(); }}
+            className={`block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-b-lg ${onVoteInfo ? 'border-t border-slate-600' : 'rounded-t-lg'}`}
+          >
+            {t('coaches.editMove')}
+          </button>
         </div>,
         document.body
       )}
