@@ -103,10 +103,10 @@ export function ScoresheetReadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
-    scoresheetHandleEditSave, scoresheetReread, scoresheetCancel, scoresheetClear,
+    scoresheetHandleEditSave, scoresheetReread, scoresheetCancel,
   } = useCoachesData();
 
-  const { preview, fileName, error, modelResults, reReads, models, startTime, analyzing, azureResult } = scoresheet;
+  const { preview, fileName, error, modelResults, reReads, models, startTime, analyzing } = scoresheet;
 
   // Fetch ground truth for accuracy comparison
   const [groundTruth, setGroundTruth] = useState<{ white_player: string; black_player: string; result: string; moves: Move[] } | null>(null);
@@ -239,8 +239,6 @@ export function ScoresheetReadPage() {
 
   // Per-model board ply + source tracking
   const [modelBoardPlys, setModelBoardPlys] = useState<Record<string, { ply: number; source: 'gt' | 'read' | 'nav' }>>({});
-  // Per-model preview FEN (shown while editing, before save)
-  const [previewFens, setPreviewFens] = useState<Record<string, string | null>>({});
   // Consensus overrides: user edits on top of the computed consensus
   const [consensusOverrides, setConsensusOverrides] = useState<Move[] | null>(null);
 

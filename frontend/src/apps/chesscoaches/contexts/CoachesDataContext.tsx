@@ -549,29 +549,8 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const scoresheetAnalyzeAzure = useCallback(async (file: File, signal: AbortSignal) => {
-    setScoresheet(prev => ({ ...prev, azureResult: { moves: [], elapsed: 0, loading: true } }));
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      console.log(`[Scoresheet Azure] Uploading image: ${file.name} (${(file.size / 1024).toFixed(0)} KB)`);
-      const res = await fetch('/api/coaches/read-scoresheet-azure', { method: 'POST', body: formData, signal });
-      console.log(`[Scoresheet Azure] Response status: ${res.status}`);
-      if (res.ok) {
-        const json = await res.json();
-        console.log(`[Scoresheet Azure] Got ${json.moves?.length || 0} moves in ${json.elapsed}s`);
-        setScoresheet(prev => ({ ...prev, azureResult: { moves: json.moves, elapsed: json.elapsed, loading: false, rawLines: json.raw_lines, rawTables: json.raw_tables } }));
-      } else {
-        const json = await res.json().catch(() => ({ error: 'Failed' }));
-        console.error('[Scoresheet Azure] Error:', json.error);
-        setScoresheet(prev => ({ ...prev, azureResult: { moves: [], elapsed: 0, loading: false, error: json.error } }));
-      }
-    } catch (e) {
-      if (signal.aborted) { console.log('[Scoresheet Azure] Cancelled by user'); return; }
-      console.error('[Scoresheet Azure] Error:', e);
-      setScoresheet(prev => ({ ...prev, azureResult: { moves: [], elapsed: 0, loading: false, error: e instanceof Error ? e.message : 'Unknown error' } }));
-    }
-  }, []);
+  // Azure DI analysis — disabled, kept for future use
+  // const scoresheetAnalyzeAzure = useCallback(async (file: File, signal: AbortSignal) => { ... }, []);
 
   const scoresheetCancel = useCallback(() => {
     console.log('[Scoresheet] Cancelling analysis...');
