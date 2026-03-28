@@ -130,9 +130,9 @@ function shortModel(id: string): string {
 }
 
 const FEATURE_LABELS: Record<string, string> = {
-  scoresheet: 'Scoresheet',
+  scoresheet: 'Scoresheet \u2192 PGN',
   reread: 'Re-read',
-  diagram: 'Diagram',
+  diagram: 'Diagram \u2192 FEN',
 };
 
 export function AdminPanel() {
