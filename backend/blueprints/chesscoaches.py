@@ -2,7 +2,7 @@ import os
 import logging
 import requests as http_requests
 from flask import Blueprint, jsonify, request, Response
-from auth import login_required, admin_required
+from auth import login_required, admin_required, get_current_user
 from database import get_db, USE_POSTGRES
 
 logger = logging.getLogger(__name__)
@@ -233,14 +233,14 @@ def _scoresheet_parse_response(response_text):
     return result, warnings
 
 
-def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None, request_id=None, thinking_tokens=0, billing_tier='paid'):
+def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None, request_id=None, thinking_tokens=0, billing_tier='paid', user_id=None):
     """Log a Gemini API call to the api_usage table."""
     try:
         with get_db() as conn:
             conn.execute(
-                """INSERT INTO api_usage (request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed_seconds, error)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed, error),
+                """INSERT INTO api_usage (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed_seconds, error)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed, error),
             )
     except Exception as e:
         logger.error(f"[API Usage] Failed to log: {e}")
@@ -336,6 +336,7 @@ def reread_scoresheet():
     confirmed_moves = json_module.loads(request.form.get('confirmed_moves', '[]'))
     model_id = request.form.get('model_id', 'gemini-3-flash-preview')
     req_id = uuid.uuid4().hex[:12]
+    uid = get_current_user()
 
     paid_key = os.environ.get('GEMINI_PAID_API_KEY')
     free_key = os.environ.get('GEMINI_FREE_API_KEY')
@@ -410,7 +411,7 @@ Return ONLY a JSON object:
     except Exception as e:
         elapsed = round(time_module.time() - start)
         logger.error(f"[Scoresheet reread] {model_id} failed: {e}")
-        _log_api_usage('reread', model_id, 0, 0, elapsed, error=str(e), request_id=req_id)
+        _log_api_usage('reread', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid)
         return jsonify({"error": str(e)}), 500
 
     elapsed = round(time_module.time() - start)
@@ -418,7 +419,7 @@ Return ONLY a JSON object:
     in_tok = getattr(usage, 'prompt_token_count', 0) or 0
     out_tok = getattr(usage, 'candidates_token_count', 0) or 0
     think_tok = getattr(usage, 'thoughts_token_count', 0) or 0
-    _log_api_usage('reread', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier)
+    _log_api_usage('reread', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier, user_id=uid)
     gemini_result, warnings = _scoresheet_parse_response(response.text)
     new_moves = gemini_result.get("moves", [])
 
@@ -639,6 +640,7 @@ def read_diagram():
 
     THREAD_DONE = "THREAD_DONE"
     req_id = uuid.uuid4().hex[:12]
+    uid = get_current_user()
 
     result_queue = queue.Queue()
     client_paid = genai.Client(api_key=paid_key)
@@ -668,12 +670,12 @@ def read_diagram():
                 fen = fen[4:].strip()
             logger.info(f"[Diagram] {model_name} responded in {elapsed}s: {fen[:80]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "fen": fen, "elapsed": elapsed})
-            _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier)
+            _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier, user_id=uid)
         except Exception as e:
             elapsed = round(time_module.time() - start)
             logger.error(f"[Diagram] {model_name} failed after {elapsed}s: {e}")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
-            _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e), request_id=req_id)
+            _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid)
         finally:
             result_queue.put(THREAD_DONE)
 
@@ -741,6 +743,7 @@ def read_scoresheet():
 
     THREAD_DONE = "THREAD_DONE"
     req_id = uuid.uuid4().hex[:12]
+    uid = get_current_user()
 
     result_queue = queue.Queue()
     client_paid = genai.Client(api_key=paid_key)
@@ -777,13 +780,13 @@ def read_scoresheet():
             if warnings:
                 item["warnings"] = warnings
             result_queue.put(item)
-            _log_api_usage('scoresheet', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier)
+            _log_api_usage('scoresheet', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier, user_id=uid)
 
         except Exception as e:
             elapsed = round(time_module.time() - start)
             logger.error(f"[Scoresheet] {model_name} failed after {elapsed}s: {e}")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
-            _log_api_usage('scoresheet', model_id, 0, 0, elapsed, error=str(e), request_id=req_id)
+            _log_api_usage('scoresheet', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid)
         finally:
             result_queue.put(THREAD_DONE)
 

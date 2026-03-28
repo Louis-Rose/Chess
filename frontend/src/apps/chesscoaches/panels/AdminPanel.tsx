@@ -165,9 +165,11 @@ export function AdminPanel() {
   });
 
   const { data: apiUsage } = useQuery({
-    queryKey: ['admin-api-usage'],
+    queryKey: ['admin-api-usage', ignoreSelf],
     queryFn: async (): Promise<ApiUsageResponse> => {
-      const response = await axios.get('/api/admin/api-usage');
+      const response = await axios.get('/api/admin/api-usage', {
+        params: ignoreSelf ? { exclude_user_id: user?.id } : {},
+      });
       return response.data;
     },
     enabled: !!user?.is_admin,

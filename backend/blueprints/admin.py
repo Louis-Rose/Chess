@@ -357,21 +357,25 @@ def get_coach_time_spent():
 @admin_required
 def get_api_usage():
     """Get Gemini API usage history with cost breakdown."""
+    exclude_user_id = request.args.get('exclude_user_id', type=int)
+    user_filter = ' AND user_id != ?' if exclude_user_id else ''
+    user_params = (exclude_user_id,) if exclude_user_id else ()
     with get_db() as conn:
         # Per-call history (most recent first, cap at 200)
-        cursor = conn.execute('''
+        cursor = conn.execute(f'''
             SELECT id, feature, model_id, input_tokens, output_tokens,
                    COALESCE(thinking_tokens, 0) as thinking_tokens,
                    COALESCE(billing_tier, 'paid') as billing_tier,
                    elapsed_seconds, error, created_at
             FROM api_usage
+            WHERE 1=1 {user_filter}
             ORDER BY created_at DESC
             LIMIT 200
-        ''')
+        ''', user_params)
         rows = [dict(r) for r in cursor.fetchall()]
 
         # Per-model aggregates (thinking tokens billed at output rate)
-        cursor = conn.execute('''
+        cursor = conn.execute(f'''
             SELECT model_id,
                    COUNT(*) as call_count,
                    SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'paid' THEN 1 ELSE 0 END) as paid_count,
@@ -382,8 +386,9 @@ def get_api_usage():
                    SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) as error_count,
                    AVG(elapsed_seconds) as avg_elapsed
             FROM api_usage
+            WHERE 1=1 {user_filter}
             GROUP BY model_id
-        ''')
+        ''', user_params)
         by_model = []
         for r in cursor.fetchall():
             row = dict(r)
@@ -399,14 +404,15 @@ def get_api_usage():
         by_model.sort(key=lambda m: m['cost_usd'], reverse=True)
 
         # Per-feature aggregates (with cost computed from per-model pricing)
-        cursor = conn.execute('''
+        cursor = conn.execute(f'''
             SELECT feature, model_id, COUNT(*) as call_count,
                    SUM(input_tokens) as total_input,
                    SUM(output_tokens) as total_output,
                    SUM(COALESCE(thinking_tokens, 0)) as total_thinking
             FROM api_usage
+            WHERE 1=1 {user_filter}
             GROUP BY feature, model_id
-        ''')
+        ''', user_params)
         feature_agg = {}
         for r in cursor.fetchall():
             row = dict(r)
@@ -424,7 +430,7 @@ def get_api_usage():
         by_feature = [{'cost_usd': round(v['cost_usd'], 6), **v} for v in feature_agg.values()]
 
         # Per-invocation history (grouped by request_id)
-        cursor = conn.execute('''
+        cursor = conn.execute(f'''
             SELECT request_id, feature,
                    COUNT(*) as model_count,
                    SUM(input_tokens) as total_input,
@@ -435,11 +441,11 @@ def get_api_usage():
                    SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'free' THEN 1 ELSE 0 END) as free_count,
                    MIN(created_at) as created_at
             FROM api_usage
-            WHERE request_id IS NOT NULL
+            WHERE request_id IS NOT NULL {user_filter}
             GROUP BY request_id, feature
             ORDER BY MIN(created_at) DESC
             LIMIT 100
-        ''')
+        ''', user_params)
         invocations = []
         for r in cursor.fetchall():
             row = dict(r)
