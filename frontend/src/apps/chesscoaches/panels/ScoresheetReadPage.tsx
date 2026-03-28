@@ -1406,6 +1406,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
               const hasDisagreement = details.length > 1;
               const reason = moveObj?.[`${cl}_reason` as 'white_reason' | 'black_reason'];
               const isAutoResolved = reason?.startsWith('Ambiguous') || reason?.startsWith('Auto-fixed');
+              const ambiguousCandidates = reason?.match(/Ambiguous \((.+)\)/)?.[1]?.replace(/\//g, ' or ');
               if (isIllegalMove || hasDisagreement || isAutoResolved) {
                 return (
                   <p className="text-yellow-400 text-sm text-center">
@@ -1413,7 +1414,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     {isIllegalMove && hasDisagreement && ' · '}
                     {hasDisagreement && 'Models disagree'}
                     {(isIllegalMove || hasDisagreement) && isAutoResolved && ' · '}
-                    {isAutoResolved && 'Auto-resolved'}
+                    {isAutoResolved && (ambiguousCandidates ? `Ambiguous move : ${ambiguousCandidates}` : 'Auto-fixed')}
                   </p>
                 );
               }
@@ -1491,8 +1492,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                           <td className="py-1.5 px-2 text-center font-mono">
                             <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{finalMove}</span>
                           </td>
-                          <td className="py-1.5 px-2 text-center text-xs text-slate-100">
-                            {moves[parseInt(moveNumStr) - 1]?.[`${colorStr}_reason` as 'white_reason' | 'black_reason'] || 'disambiguated'}
+                          <td className="py-1.5 px-2 text-center text-xs text-yellow-400">
+                            Ambiguous move
                           </td>
                         </tr>
                       )}
