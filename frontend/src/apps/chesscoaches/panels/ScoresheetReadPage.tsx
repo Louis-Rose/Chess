@@ -406,7 +406,7 @@ export function ScoresheetReadPage() {
               )}
 
               {/* Results: consensus + individual reads */}
-              {(models.length > 0 || (analyzing && preview)) && (() => {
+              {models.length > 0 && (() => {
                 // Get column info from any model that has results (for GT panel consistency)
                 const anyResult = Object.values(modelResults).find(r => r?.result)?.result;
                 const sheetColumns = (anyResult as any)?.columns || 1;
