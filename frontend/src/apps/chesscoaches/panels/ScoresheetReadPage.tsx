@@ -2168,7 +2168,7 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, confiden
   const menuRef = useRef<HTMLDivElement>(null);
   const isLowConfidence = confidence === 'low';
   const isMediumConfidence = confidence === 'medium';
-  const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-red-900/50 text-red-200' : isLowConfidence ? 'bg-red-500/20 text-red-200' : isMediumConfidence ? 'bg-yellow-500/20 text-yellow-100' : 'text-slate-100';
+  const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : highlight ? 'bg-yellow-700/40 text-yellow-100' : isLowConfidence ? 'bg-red-500/20 text-red-200' : isMediumConfidence ? 'bg-yellow-500/20 text-yellow-100' : 'text-slate-100';
 
   // Close menu when this cell is no longer active
   useEffect(() => {
@@ -2208,7 +2208,7 @@ function MoveCell({ value, legal, highlight, corrected, active, reason, confiden
   return (
     <td
       ref={ref}
-      className={`px-2 py-1 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}${disputed ? ' ring-1 ring-inset ring-red-500' : ''}`}
+      className={`px-2 py-1 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}${disputed ? ' ring-1 ring-inset ring-yellow-500' : ''}`}
       onClick={handleClick}
     >
       <span className="inline-flex items-center justify-center gap-1 w-full">
