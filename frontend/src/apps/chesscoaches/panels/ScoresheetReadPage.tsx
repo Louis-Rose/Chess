@@ -2334,7 +2334,7 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onSh
           <button
             onClick={(e) => { if (!onVoteInfo) return; e.stopPropagation(); setShowMenu(false); onVoteInfo(); }}
             disabled={!onVoteInfo}
-            className={`block w-full px-4 py-2.5 text-xs text-left rounded-lg ${onVoteInfo ? 'text-slate-200 hover:bg-slate-700' : 'text-slate-500 cursor-not-allowed'}`}
+            className={`block w-full px-4 py-2.5 text-sm text-left rounded-lg ${onVoteInfo ? 'text-slate-200 hover:bg-slate-700' : 'text-slate-500 cursor-not-allowed'}`}
           >
             See votes &amp; Edit
           </button>
