@@ -1518,7 +1518,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       <tr className="border-b border-slate-600 text-slate-400">
                         <th className="py-1.5 text-left px-2">Model</th>
                         <th className="py-1.5 text-center px-2">{t('coaches.voteCandidate')}</th>
-                        <th className="py-1.5 text-center px-2">Confidence</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1530,7 +1529,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                           <tr key={name} className={`border-b border-slate-700/50 ${illegal ? 'opacity-40' : ''}`}>
                             <td className="py-1.5 px-2 text-slate-100 text-xs">{name}</td>
                             <td className="py-1.5 px-2 text-center font-mono text-slate-100">{move || '—'}{legalMark(move)}</td>
-                            <td className={`py-1.5 px-2 text-center text-xs ${confColor(conf)}`}>{conf || '—'}</td>
                           </tr>
                         );
                       })}
