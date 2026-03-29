@@ -955,35 +955,8 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                 // No Azure data — no highlight
                 return null;
               })()}
-              {/* Azure DI debug overlay — show all detected cell boundaries */}
-              {azureDebug && imgSize && (() => {
-                const scale = imgSize.w / imgSize.nw;
-                const scaledNH = imgSize.nh * scale;
-                return Object.entries(azureDebug.cells || {}).map(([key, cell]) => {
-                  const [r, c] = key.split('-').map(Number);
-                  const x = cell.x1 * imgSize.w;
-                  const y = cell.y1 * scaledNH;
-                  const w = (cell.x2 - cell.x1) * imgSize.w;
-                  const h = (cell.y2 - cell.y1) * scaledNH;
-                  return (
-                    <div
-                      key={key}
-                      className="absolute pointer-events-none"
-                      style={{ left: x, top: y, width: w, height: h, border: '1px solid rgba(239, 68, 68, 0.6)' }}
-                    >
-                      <span className="absolute top-0 left-0 text-[8px] text-red-400 bg-slate-900/70 px-0.5 leading-tight">{r},{c}</span>
-                    </div>
-                  );
-                });
-              })()}
             </div>
             {fileName && <span className="text-slate-100 text-sm mt-2 truncate max-w-[200px]">{fileName}</span>}
-            {azureDebug && (
-              <div className="text-[10px] text-slate-500 mt-1 text-center space-y-0.5">
-                <p>Azure DI: {azureDebug.row_count} rows × {azureDebug.col_count} cols · tilt {azureDebug.tilt ?? 0}°</p>
-                <p>{Object.keys(azureDebug.cells || {}).length} cells detected</p>
-              </div>
-            )}
           </div>
         </div>
       )}
