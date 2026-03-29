@@ -1700,10 +1700,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     const [mn, cl] = voteInfoKey.split('-');
                     const moveIdx = parseInt(mn) - 1;
                     const currentMove = finalMove || chosen;
-                    const reason = moves[moveIdx]?.[`${cl}_reason` as 'white_reason' | 'black_reason'];
-                    // Extract ambiguous candidates from reason like "Ambiguous (Nfd2/Nbd2)"
-                    const ambiguousMatch = reason?.match(/Ambiguous \((.+)\)/);
-                    const ambiguousCandidates = ambiguousMatch ? ambiguousMatch[1].split('/').map(s => s.trim()) : [];
                     // Determine button state based on board position
                     const targetMovePly = cl === 'white' ? moveIdx * 2 + 1 : moveIdx * 2 + 2;
                     const boardAtTarget = boardPly === targetMovePly;
