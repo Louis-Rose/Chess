@@ -1218,27 +1218,29 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
           </button>
         )}
       </div>
-      <div className="mt-1.5 text-sm text-center min-h-[44px]">
-        {safePly > 0 && entries[safePly]?.san && !inBranch && (
-          <p className="text-slate-300">
-            {t('coaches.move')} {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')}) : {entries[safePly].san}
-          </p>
-        )}
-        {safePly === 0 && !inBranch && (
-          <p className="text-slate-300">{t('coaches.startingPosition')}</p>
-        )}
-        {inBranch && branch && branchPly > 0 && (
-          <p className="text-slate-300">
-            {t('coaches.variation')} : {branch.sans[branchPly - 1]}
-          </p>
-        )}
-        {currentIllegal && (
-          <>
-            <p className="text-red-400">{t('coaches.illegalMove')}</p>
-            {currentIllegal.reason && <p className="text-red-400">{currentIllegal.reason}</p>}
-          </>
-        )}
-      </div>
+      {!compact && (
+        <div className="mt-1.5 text-sm text-center min-h-[44px]">
+          {safePly > 0 && entries[safePly]?.san && !inBranch && (
+            <p className="text-slate-300">
+              {t('coaches.move')} {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')}) : {entries[safePly].san}
+            </p>
+          )}
+          {safePly === 0 && !inBranch && (
+            <p className="text-slate-300">{t('coaches.startingPosition')}</p>
+          )}
+          {inBranch && branch && branchPly > 0 && (
+            <p className="text-slate-300">
+              {t('coaches.variation')} : {branch.sans[branchPly - 1]}
+            </p>
+          )}
+          {currentIllegal && (
+            <>
+              <p className="text-red-400">{t('coaches.illegalMove')}</p>
+              {currentIllegal.reason && <p className="text-red-400">{currentIllegal.reason}</p>}
+            </>
+          )}
+        </div>
+      )}
       {inBranch && (
         <div className="flex items-center gap-2 text-xs text-amber-400 mt-1">
           <span>{t('coaches.variation')} ({branch!.sans.length} {branch!.sans.length > 1 ? t('coaches.variationMovesPlural') : t('coaches.variationMoves')})</span>
@@ -1850,7 +1852,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                 autoActivate
                 previewFen={boardPreviewFen}
                 compact
-                targetPly={voteInfoKey ? (() => { const [mn, cl] = voteInfoKey.split('-'); const idx = parseInt(mn) - 1; return cl === 'white' ? idx * 2 : idx * 2 + 1; })() : undefined}
+                targetPly={voteInfoKey ? (() => { const [mn, cl] = voteInfoKey.split('-'); const idx = parseInt(mn) - 1; return cl === 'white' ? idx * 2 + 1 : idx * 2 + 2; })() : undefined}
                 targetLabel={voteInfoKey ? `Move ${voteInfoKey.split('-')[0]} · ${voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}` : undefined}
                 onDragSetMove={(san) => {
                   setVoteEditValue(san);
