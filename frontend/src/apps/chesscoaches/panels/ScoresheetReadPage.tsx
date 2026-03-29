@@ -1704,8 +1704,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     // Extract ambiguous candidates from reason like "Ambiguous (Nfd2/Nbd2)"
                     const ambiguousMatch = reason?.match(/Ambiguous \((.+)\)/);
                     const ambiguousCandidates = ambiguousMatch ? ambiguousMatch[1].split('/').map(s => s.trim()) : [];
-                    // All green button moves (confirm + ambiguous choices)
-                    const greenMoves = [currentMove, ...ambiguousCandidates.filter(c => c !== currentMove)];
                     // Determine button state based on board position
                     const targetMovePly = cl === 'white' ? moveIdx * 2 + 1 : moveIdx * 2 + 2;
                     const boardAtTarget = boardPly === targetMovePly;
