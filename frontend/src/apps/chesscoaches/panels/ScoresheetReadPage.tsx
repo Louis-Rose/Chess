@@ -1683,9 +1683,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                           <td className="py-1.5 px-2 text-center font-mono">
                             <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{finalMove}</span>
                           </td>
-                          <td className="py-1.5 px-2 text-center text-xs text-yellow-400">
-                            Ambiguous move
-                          </td>
+                          <td />
                         </tr>
                       )}
                     </tbody>
