@@ -76,8 +76,6 @@ export function ScoresheetReadPage() {
   }, [showImageModal, showExampleModal, closeModal]);
 
 
-  const [processingCollapsed, setProcessingCollapsed] = useState(false);
-  const [resultsCollapsed, setResultsCollapsed] = useState(false);
   const [modelsCollapsed, setModelsCollapsed] = useState(true);
   const [, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null>(null);
   const [highlightHintDismissed, setHighlightHintDismissed] = useState(() => {
@@ -256,18 +254,13 @@ export function ScoresheetReadPage() {
               {/* Error */}
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
-              {/* Processing status — collapsible panel */}
+              {/* Processing status */}
               {models.length > 0 && (
                 <div className="flex justify-center">
                 <div className="border border-slate-600/50 rounded-xl overflow-hidden inline-block min-w-[400px]">
-                  <button
-                    onClick={() => setProcessingCollapsed(c => !c)}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 hover:bg-slate-700/30 transition-colors"
-                  >
+                  <div className="w-full flex items-center justify-center px-6 py-3">
                     <span className="text-base text-slate-100 font-medium">Processing</span>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${processingCollapsed ? '' : 'rotate-180'}`} />
-                  </button>
-                  {!processingCollapsed && (
+                  </div>
                   <table className="w-full text-sm border-t border-slate-600/50">
                     <thead>
                       <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
@@ -341,7 +334,6 @@ export function ScoresheetReadPage() {
                       })()}
                     </tbody>
                   </table>
-                  )}
                 </div>
                 </div>
               )}
@@ -385,16 +377,11 @@ export function ScoresheetReadPage() {
 
                 return (
                 <div className="space-y-8">
-                  {/* Results — collapsible panel */}
+                  {/* Results */}
                   <div className="border border-slate-600/50 rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => setResultsCollapsed(c => !c)}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 hover:bg-slate-700/30 transition-colors"
-                    >
+                    <div className="w-full flex items-center justify-center px-6 py-3">
                       <span className="text-base text-slate-100 font-medium">{t('coaches.results') || 'Results'}</span>
-                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${resultsCollapsed ? '' : 'rotate-180'}`} />
-                    </button>
-                  {!resultsCollapsed && (
+                    </div>
                     <div className="border-t border-slate-600/50 py-4">
                   {(() => {
                     const modelEntries = models
@@ -1474,7 +1461,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.white_confidence}
 
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
-                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setVoteEditValue(move.white || ''); onMoveClick?.(moves, idx * 2); } : undefined}
+                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setVoteEditValue(move.white || ''); onMoveClick?.(moves, idx * 2 + 1); } : undefined}
                       onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
                     />
                     <MoveCell
@@ -1487,7 +1474,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.black_confidence}
 
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
-                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setVoteEditValue(move.black || ''); onMoveClick?.(moves, idx * 2 + 1); } : undefined}
+                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setVoteEditValue(move.black || ''); onMoveClick?.(moves, idx * 2 + 2); } : undefined}
                       onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
                     />
                   </>;
