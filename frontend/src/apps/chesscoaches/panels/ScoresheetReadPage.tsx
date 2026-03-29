@@ -934,14 +934,16 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                   const y = gridTop + rowInCol * rowHeight;
 
                   const tiltDeg = gridData.tilt || 0;
+                  // Add padding to be more forgiving of imprecise grid detection
+                  const pad = rowHeight * 0.15;
                   return (
                     <div
                       className="absolute pointer-events-none rounded-sm transition-all duration-200"
                       style={{
-                        left: x,
-                        top: y,
-                        width: xEnd - x,
-                        height: rowHeight,
+                        left: x - pad,
+                        top: y - pad,
+                        width: (xEnd - x) + pad * 2,
+                        height: rowHeight + pad * 2,
                         backgroundColor: 'rgba(59, 130, 246, 0.3)',
                         border: '2px solid rgba(59, 130, 246, 0.7)',
                         transform: tiltDeg ? `rotate(${tiltDeg}deg)` : undefined,
