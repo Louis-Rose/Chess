@@ -1297,7 +1297,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.white_confidence}
                       onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
-                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setShowPass2Details(false); } : undefined}
+                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setShowPass2Details(false); onMoveClick?.(moves, idx * 2); } : undefined}
                       onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
                     />
                     <MoveCell
@@ -1310,7 +1310,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.black_confidence}
                       onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
-                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setShowPass2Details(false); } : undefined}
+                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setShowPass2Details(false); onMoveClick?.(moves, idx * 2 + 1); } : undefined}
                       onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
                     />
                   </>;
@@ -1576,19 +1576,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   )}
                   {details.every(d => !d.chosen) && (
                     <p className="text-red-400 text-xs text-center">{t('coaches.voteAllIllegal')}</p>
-                  )}
-                  {onMoveClick && (
-                    <button
-                      onClick={() => {
-                        const [mn, cl] = voteInfoKey.split('-');
-                        const idx = parseInt(mn) - 1;
-                        const ply = cl === 'white' ? idx * 2 : idx * 2 + 1;
-                        onMoveClick(moves, ply);
-                      }}
-                      className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-1.5 rounded-lg transition-colors"
-                    >
-                      Show position before this move
-                    </button>
                   )}
                   {onConfirmMove && (finalMove || chosen) && (
                     <div className="flex gap-2 mt-1">
