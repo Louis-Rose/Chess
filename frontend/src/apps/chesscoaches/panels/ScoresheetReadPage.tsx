@@ -413,8 +413,25 @@ export function ScoresheetReadPage() {
                       .map(m => ({ name: m.name, moves: modelResults[m.id]!.result!.moves }));
                     const allModelMoves = modelEntries.map(e => e.moves);
                     const modelNames = modelEntries.map(e => e.name);
-                    const consensusReady = allModelMoves.length >= 2 && allModelMoves.length === models.length;
+                    const hasResults = allModelMoves.length >= 1;
+                    const allModelsFinished = allModelMoves.length === models.length;
+                    const consensusReady = allModelMoves.length >= 2 && allModelsFinished;
+                    const pendingReaders = models.length - allModelMoves.length;
                     const consensusId = '__consensus__';
+
+                    // Early display: if only 1 model has results, show its moves directly (read-only)
+                    let consensusMoves: Move[];
+                    let voteDetails: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string>; pass1Choice?: string }[]>;
+
+                    if (allModelMoves.length === 1) {
+                      // Single model — use its validated moves, no vote details
+                      consensusMoves = allModelMoves[0].map((m, i) => ({ ...m, number: i + 1 }));
+                      voteDetails = {};
+                    } else if (allModelMoves.length === 0) {
+                      consensusMoves = [];
+                      voteDetails = {};
+                    } else {
+
                     const maxLen = allModelMoves.length > 0 ? Math.max(...allModelMoves.map(mv => mv.length)) : 0;
                     // Two-pass smart consensus algorithm.
 
@@ -533,13 +550,15 @@ export function ScoresheetReadPage() {
                     // Pass 2: use Pass 1 results as downstream reference
                     const pass2 = runConsensusPass(pass1.moves);
 
-                    const consensusMoves = pass2.moves;
+                    consensusMoves = pass2.moves;
                     // Combine pass1 and pass2 details for the vote info modal
-                    const voteDetails: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string>; pass1Choice?: string }[]> = {};
+                    voteDetails = {};
                     for (const key of Object.keys(pass2.details)) {
                       const p1Choice = pass1.details[key]?.find(d => d.chosen)?.candidate;
                       voteDetails[key] = pass2.details[key].map(d => ({ ...d, pass1Choice: p1Choice }));
                     }
+
+                    } // end else (>= 2 models)
 
                     // Remove trailing empty moves
                     while (consensusMoves.length > 0 && !consensusMoves[consensusMoves.length - 1].white && !consensusMoves[consensusMoves.length - 1].black) {
@@ -646,7 +665,7 @@ export function ScoresheetReadPage() {
                     };
                     return (
                       <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData}>
-                        {consensusReady && !highlightHintDismissed && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)) && (
+                        {allModelsFinished && !highlightHintDismissed && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)) && (
                           <div className="flex justify-center mb-3">
                             <div className="inline-flex items-center gap-2 bg-slate-700/40 rounded-lg px-3 py-1.5">
                               <p className="text-slate-100 text-sm">Click on <span className="bg-yellow-500/25 text-yellow-100 px-1.5 py-0.5 rounded">highlighted moves</span> to double-check them</p>
@@ -659,7 +678,7 @@ export function ScoresheetReadPage() {
                         <div className="flex items-stretch" onClick={consensusReady ? deselectConsensus : undefined}>
                           <div className="flex-1 hidden md:block" />
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
-                            {!consensusReady ? (
+                            {!hasResults || consensusMoves.length === 0 ? (
                               <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[540px]">
                                 <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
                                   <Clock className="w-4 h-4 animate-spin" />
@@ -668,7 +687,7 @@ export function ScoresheetReadPage() {
                               </div>
                             ) : (
                             <MovesPanel
-                              label={t('coaches.consensus')}
+                              label={!allModelsFinished ? `${t('coaches.consensus')} — Waiting on ${pendingReaders} reader${pendingReaders > 1 ? 's' : ''}...` : t('coaches.consensus')}
                               moves={displayConsensusMoves}
 
                               disagreements={(() => {
@@ -684,7 +703,7 @@ export function ScoresheetReadPage() {
                               })()}
                               elapsed={0}
                               fileName={fileName}
-                              onEditSave={(confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey)}
+                              onEditSave={allModelsFinished ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
                               originalMoves={consensusOverrides ? consensusMoves : undefined}
                               onMoveClick={(movesArr, ply) => {
                                 setModelBoardPlys(p => ({ ...p, [consensusId]: { ply, source: 'read' as const } }));
@@ -697,9 +716,9 @@ export function ScoresheetReadPage() {
                               sheetColumns={consensusColumns}
                               rowsPerColumn={consensusRowsPerColumn}
                               modelDisagreements={modelDisagreements}
-                              voteDetails={voteDetails}
+                              voteDetails={allModelsFinished ? voteDetails : undefined}
                               allModelNames={modelNames}
-                              onConfirmMove={handleConfirmMove}
+                              onConfirmMove={allModelsFinished ? handleConfirmMove : undefined}
                               onPreview={(moveIdx, color, san) => {
                                 try {
                                   const chess = new Chess();
@@ -719,7 +738,7 @@ export function ScoresheetReadPage() {
                             )}
                           </div>
                           <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={consensusReady ? displayConsensusMoves : []} externalPly={consensusReady ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={consensusReady ? handleConsensusBoardPly : () => {}} disableDrag autoActivate={false} previewFen={consensusPreviewFen} highlightedPlies={consensusReady ? (() => {
+                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag autoActivate={false} previewFen={consensusPreviewFen} highlightedPlies={hasResults && allModelsFinished ? (() => {
                               const plies: number[] = [];
                               displayConsensusMoves.forEach((m, idx) => {
                                 const d = modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low';
