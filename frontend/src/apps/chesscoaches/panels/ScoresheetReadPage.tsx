@@ -1196,7 +1196,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
             </button>
             {targetPly !== undefined && (
               <button onClick={() => { exitBranch(); setPly(targetPly); playSoundForPly(targetPly); onPlyChange?.(targetPly); }} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-yellow-400 rounded-lg transition-colors flex items-center justify-center text-xs px-2">
-                {targetLabel || 'Go to move'}
+                {safePly === targetPly && !inBranch ? (targetLabel || 'Go to move').replace('Go to ', '') : (targetLabel || 'Go to move')}
               </button>
             )}
             <button onClick={goNext} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm">
