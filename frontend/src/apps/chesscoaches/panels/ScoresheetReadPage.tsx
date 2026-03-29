@@ -1620,8 +1620,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-[1px]"
           onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }}
         >
-          <div className="grid grid-cols-2 gap-6 items-start max-w-[1000px]" onClick={e => e.stopPropagation()}>
-          <div className="flex justify-end">
+          <div className="relative" onClick={e => e.stopPropagation()}>
+          <div>
           <div
             className="bg-slate-800 rounded-xl p-5 min-w-[300px] max-w-md shadow-xl border border-slate-600 space-y-3"
           >
@@ -1829,9 +1829,9 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             })()}
           </div>
           </div>
-          {/* Integrated board inside the modal */}
+          {/* Integrated board inside the modal — positioned to the right */}
           {boardMoves && (
-            <div className="hidden md:flex justify-start">
+            <div className="hidden md:block absolute left-full top-0 ml-6">
               <ModelBoard
                 moves={boardMoves}
                 externalPly={boardPly}
