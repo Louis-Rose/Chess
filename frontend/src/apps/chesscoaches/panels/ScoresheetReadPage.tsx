@@ -1740,28 +1740,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     const greenMoves = [currentMove, ...ambiguousCandidates.filter(c => c !== currentMove)];
                     return (<>
                       <div className="flex flex-col gap-1.5 mt-1">
-                        {onMoveClick && (
-                          <div className="flex gap-1.5">
-                            <button
-                              onClick={() => {
-                                const ply = cl === 'white' ? moveIdx * 2 : moveIdx * 2 + 1;
-                                onMoveClick(moves, ply);
-                              }}
-                              className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-1.5 rounded-lg transition-colors"
-                            >
-                              Position before
-                            </button>
-                            <button
-                              onClick={() => {
-                                const ply = cl === 'white' ? moveIdx * 2 + 1 : moveIdx * 2 + 2;
-                                onMoveClick(moves, ply);
-                              }}
-                              className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-1.5 rounded-lg transition-colors"
-                            >
-                              See {currentMove}
-                            </button>
-                          </div>
-                        )}
                         {ambiguousCandidates.length >= 2 ? (
                           <div className="flex gap-1.5">
                             {ambiguousCandidates.map(candidate => (
