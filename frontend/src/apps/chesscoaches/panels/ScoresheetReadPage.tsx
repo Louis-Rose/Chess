@@ -1839,7 +1839,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                 previewFen={boardPreviewFen}
                 compact
                 targetPly={voteInfoKey ? (() => { const [mn, cl] = voteInfoKey.split('-'); const idx = parseInt(mn) - 1; return cl === 'white' ? idx * 2 + 1 : idx * 2 + 2; })() : undefined}
-                targetLabel={voteInfoKey ? `Move ${voteInfoKey.split('-')[0]} · ${voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}` : undefined}
+                targetLabel={voteInfoKey ? `Go to Move ${voteInfoKey.split('-')[0]} (${voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')})` : undefined}
                 onDragSetMove={(san) => {
                   setVoteEditValue(san);
                   if (voteInfoKey) {
