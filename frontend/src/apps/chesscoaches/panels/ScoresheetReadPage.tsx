@@ -1139,15 +1139,23 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Modal board (onDragSetMove) always captures keyboard; others check activeModelBoardId
-      if (!onDragSetMove && activeModelBoardId !== instanceId) return;
-      if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
-      if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
-      if (e.key === 'Home') { e.preventDefault(); goFirst(); }
-      if (e.key === 'End') { e.preventDefault(); goLast(); }
+      if (onDragSetMove) {
+        // Modal board: capture keyboard exclusively using capture phase + stopImmediatePropagation
+        if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopImmediatePropagation(); goPrev(); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); goNext(); }
+        if (e.key === 'Home') { e.preventDefault(); e.stopImmediatePropagation(); goFirst(); }
+        if (e.key === 'End') { e.preventDefault(); e.stopImmediatePropagation(); goLast(); }
+      } else {
+        if (activeModelBoardId !== instanceId) return;
+        if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+        if (e.key === 'Home') { e.preventDefault(); goFirst(); }
+        if (e.key === 'End') { e.preventDefault(); goLast(); }
+      }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    // Modal board uses capture phase so it fires before and blocks the main board
+    window.addEventListener('keydown', handler, !!onDragSetMove);
+    return () => window.removeEventListener('keydown', handler, !!onDragSetMove);
   }, [instanceId, goPrev, goNext, goFirst, goLast, onDragSetMove]);
 
   const hlPlies = highlightedPlies || [];
@@ -1734,19 +1742,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                           >
                             Pick {voteEditValue}
                           </button>
-                        ) : voteEditValue ? (
-                          // Green — user confirmed the consensus move (or navigated back to it)
-                          <button
-                            onClick={() => {
-                              onConfirmMove(parseInt(mn), cl as 'white' | 'black');
-                              setVoteInfoKey(null); setVoteEditValue(null);
-                            }}
-                            className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
-                          >
-                            Confirm {currentMove}
-                          </button>
                         ) : boardAtTarget ? (
-                          // Green — board at the right ply, no variation played
+                          // Green — board is at the highlighted move's position
                           <button
                             onClick={() => {
                               onConfirmMove(parseInt(mn), cl as 'white' | 'black');
@@ -1757,7 +1754,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                             Confirm {currentMove}
                           </button>
                         ) : (
-                          // Gray — board navigated away, no selection
+                          // Gray — board is at a different ply
                           <button disabled className="w-full text-sm py-2 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
                             Confirm
                           </button>
