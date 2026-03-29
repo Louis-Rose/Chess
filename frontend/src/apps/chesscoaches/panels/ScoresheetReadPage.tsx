@@ -1781,7 +1781,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                         ))}
                       </div>
                       <div className="mt-2 pt-2 border-t border-slate-600/50 space-y-2">
-                        <p className="text-xs text-slate-100 text-center">Or play a move on the board</p>
+                        <p className="text-xs text-slate-100 text-center">Or play another move on the board</p>
                           <button
                             onClick={() => {
                               if (!onEditSave || !voteEditValue) return;
