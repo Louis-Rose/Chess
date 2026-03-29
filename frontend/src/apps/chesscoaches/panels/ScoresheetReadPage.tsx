@@ -840,7 +840,7 @@ interface PlyEntry {
 function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; col_dividers: number[] } }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
-  const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
+  const [imgSize, setImgSize] = useState<{ w: number; h: number; nw: number; nh: number } | null>(null);
   const [tbodyTop, setTbodyTop] = useState(0);
   const [tbodyHeight, setTbodyHeight] = useState(0);
 
@@ -898,7 +898,7 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                 className="object-cover object-top cursor-pointer hover:opacity-90 transition-opacity"
                 style={{ maxHeight: tbodyHeight }}
                 onClick={onImageClick}
-                onLoad={() => { if (imgRef.current) setImgSize({ w: imgRef.current.clientWidth, h: imgRef.current.clientHeight }); }}
+                onLoad={() => { if (imgRef.current) setImgSize({ w: imgRef.current.clientWidth, h: imgRef.current.clientHeight, nw: imgRef.current.naturalWidth, nh: imgRef.current.naturalHeight }); }}
               />
               {/* Highlight overlay for active move */}
               {activePly != null && activePly > 0 && totalMoves && imgSize && (() => {
@@ -908,27 +908,28 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                 const sheetCol = Math.floor(moveIdx / rows); // which column on the sheet
                 const rowInCol = moveIdx % rows; // which row within the column
 
-                const imgW = imgSize.w;
-                const imgH = imgSize.h;
+                // object-cover object-top: image is scaled to fill width, cropped from bottom
+                // We need to compute positions relative to the natural image, then scale to displayed size
+                const displayW = imgSize.w;
+                const displayH = imgSize.h;
+                const scale = displayW / imgSize.nw; // scale factor (width-based for object-cover)
 
                 if (gridData && gridData.col_dividers.length >= 4) {
-                  // Use AI-detected grid boundaries
                   const { top, bottom, col_dividers } = gridData;
-                  const gridTop = top * imgH;
-                  const gridHeight = (bottom - top) * imgH;
+                  // Convert grid fractions to pixel positions on the scaled natural image
+                  const scaledNH = imgSize.nh * scale;
+                  const gridTop = top * scaledNH;
+                  const gridHeight = (bottom - top) * scaledNH;
                   const rowHeight = gridHeight / rows;
 
-                  // col_dividers defines boundaries: for 2-col sheet [0, #1end, w1end, b1end, #2start, w2end, b2end]
-                  // Each sheet column has 3 sub-dividers: [numStart, whiteStart, blackStart, colEnd]
                   const divsPerCol = Math.floor(col_dividers.length / Math.max(sheetColumns, 1));
                   const colOffset = sheetCol * divsPerCol;
-                  // Within each column group: index 0=num start, 1=white start, 2=black start, 3=next col start
                   const whiteIdx = colOffset + 1;
                   const blackIdx = colOffset + 2;
                   const colEndIdx = colOffset + divsPerCol;
 
-                  const x = (isBlack ? col_dividers[blackIdx] : col_dividers[whiteIdx]) * imgW;
-                  const xEnd = (isBlack ? col_dividers[colEndIdx] : col_dividers[blackIdx]) * imgW;
+                  const x = (isBlack ? col_dividers[blackIdx] : col_dividers[whiteIdx]) * displayW;
+                  const xEnd = (isBlack ? col_dividers[colEndIdx] : col_dividers[blackIdx]) * displayW;
                   const y = gridTop + rowInCol * rowHeight;
 
                   return (
@@ -946,10 +947,11 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                   );
                 }
 
-                // Fallback: even grid division
+                // Fallback: even grid division using scaled natural dimensions
+                const scaledNH = imgSize.nh * scale;
                 const cols = Math.max(sheetColumns, 1);
-                const colWidth = imgW / cols;
-                const rowHeight = imgH / rows;
+                const colWidth = displayW / cols;
+                const rowHeight = scaledNH / rows;
                 const numWidth = colWidth * 0.15;
                 const cellWidth = (colWidth - numWidth) / 2;
                 const x = sheetCol * colWidth + numWidth + (isBlack ? cellWidth : 0);
