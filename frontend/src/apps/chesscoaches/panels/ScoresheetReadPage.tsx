@@ -1613,10 +1613,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   {details.every(d => !d.chosen) && (
                     <p className="text-red-400 text-xs text-center">{t('coaches.voteAllIllegal')}</p>
                   )}
-                  <div className="flex items-center justify-center gap-4 text-[10px] text-slate-500 pt-1">
-                    <span className="flex items-center gap-1 text-slate-100"><span className="text-green-400">&#10003;</span> legal move</span>
-                    <span className="flex items-center gap-1 text-slate-100"><span className="text-red-400">&#10007;</span> illegal move</span>
-                  </div>
                   {onMoveClick && (
                     <button
                       onClick={() => {
@@ -1657,6 +1653,10 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       </button>
                     </div>
                   )}
+                  <div className="flex items-center justify-center gap-4 text-[10px] text-slate-500 pt-1">
+                    <span className="flex items-center gap-1 text-slate-100"><span className="text-green-400">&#10003;</span> legal move</span>
+                    <span className="flex items-center gap-1 text-slate-100"><span className="text-red-400">&#10007;</span> illegal move</span>
+                  </div>
                 </>
               );
             })()}
