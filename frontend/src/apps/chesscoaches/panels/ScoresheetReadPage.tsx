@@ -1666,25 +1666,25 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
               const [moveNumStr, colorStr] = voteInfoKey.split('-');
               const finalMove = moves[parseInt(moveNumStr) - 1]?.[colorStr as 'white' | 'black'];
               const postValidationChanged = finalMove && chosen && finalMove.replace(/[+#x]/g, '') !== chosen;
-              // Track legality per candidate (>= 100 means itself illegal)
-              const candidateIllegal: Record<string, boolean> = {};
-              for (const d of details) candidateIllegal[d.candidate] = d.downstreamIllegals >= 100;
-              // Also check consensus-level legality for the final move
-              const moveObj = moves[parseInt(moveNumStr) - 1];
-              const consensusIllegal = moveObj?.[`${colorStr}_legal` as 'white_legal' | 'black_legal'] === false;
-              // The consensus move (before validation) — if illegal, any matching reader move is also illegal
-              const consensusMove = chosen;
+              // Build board position before this move for legality checks
+              const moveIdx = parseInt(moveNumStr) - 1;
+              const legalCheckChess = (() => {
+                try {
+                  const ch = new Chess();
+                  for (let i = 0; i < moveIdx; i++) {
+                    if (moves[i].white) try { ch.move(moves[i].white); } catch { break; }
+                    if (moves[i].black) try { ch.move(moves[i].black); } catch { break; }
+                  }
+                  if (colorStr === 'black' && moves[moveIdx]?.white) {
+                    try { ch.move(moves[moveIdx].white); } catch { /* */ }
+                  }
+                  return ch;
+                } catch { return null; }
+              })();
               const legalMark = (move?: string) => {
-                if (!move) return null;
-                // If consensus is illegal and this move matches it (same notation), show red
-                if (consensusIllegal && move.replace(/[+#x]/g, '') === consensusMove?.replace(/[+#x]/g, '')) {
-                  return <span className="text-red-400 text-[10px] ml-1">&#10007;</span>;
-                }
-                const illegal = candidateIllegal[move];
-                if (illegal === undefined) return null;
-                return illegal
-                  ? <span className="text-red-400 text-[10px] ml-1">&#10007;</span>
-                  : <span className="text-green-400 text-[10px] ml-1">&#10003;</span>;
+                if (!move || !legalCheckChess) return null;
+                try { legalCheckChess.move(move); legalCheckChess.undo(); return <span className="text-green-400 text-[10px] ml-1">&#10003;</span>; }
+                catch { return <span className="text-red-400 text-[10px] ml-1">&#10007;</span>; }
               };
               return (
                 <>
