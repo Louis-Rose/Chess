@@ -1733,60 +1733,25 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       .filter(alt => !ambiguousCandidates.includes(alt));
                     // All green button moves (confirm + ambiguous choices)
                     const greenMoves = [currentMove, ...ambiguousCandidates.filter(c => c !== currentMove)];
+                    // Determine button state based on board position
+                    const targetMovePly = cl === 'white' ? moveIdx * 2 + 1 : moveIdx * 2 + 2;
+                    const boardAtTarget = boardPly === targetMovePly;
+                    const isConsensusMove = !voteEditValue || voteEditValue === currentMove || greenMoves.includes(voteEditValue);
+                    const isUserMove = voteEditValue && !greenMoves.includes(voteEditValue);
+
                     return (<>
                       <div className="flex flex-col gap-1.5 mt-1">
-                        {ambiguousCandidates.length >= 2 ? (
-                          <div className="flex gap-1.5">
-                            {ambiguousCandidates.map(candidate => (
-                              <button
-                                key={candidate}
-                                onClick={() => {
-                                  if (candidate !== currentMove) {
-                                    const updated = moves.map((m, i) => i === moveIdx ? { ...m, [cl]: candidate } : m);
-                                    onEditSave?.(updated, `${mn}-${cl}`);
-                                  }
-                                  onConfirmMove(parseInt(mn), cl as 'white' | 'black');
-                                  setVoteInfoKey(null); setVoteEditValue(null);
-                                }}
-                                disabled={voteEditValue !== candidate && voteEditValue !== currentMove && voteEditValue !== null}
-                                className={`flex-1 text-sm py-2 rounded-lg transition-colors ${voteEditValue !== candidate && voteEditValue !== currentMove && voteEditValue !== null ? 'bg-emerald-900/50 text-emerald-400/50 cursor-not-allowed' : 'bg-emerald-700 hover:bg-emerald-600 text-white'}`}
-                              >
-                                Confirm {candidate}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              onConfirmMove(parseInt(mn), cl as 'white' | 'black');
-                              setVoteInfoKey(null);
-                            }}
-                            disabled={voteEditValue !== currentMove && voteEditValue !== null}
-                            className={`w-full text-sm py-2 rounded-lg transition-colors ${voteEditValue !== currentMove && voteEditValue !== null ? 'bg-emerald-900/50 text-emerald-400/50 cursor-not-allowed' : 'bg-emerald-700 hover:bg-emerald-600 text-white'}`}
-                          >
-                            Confirm {currentMove}
+                        <p className="text-xs text-slate-100 text-center">Confirm move, or play another move on the board</p>
+                        {!boardAtTarget ? (
+                          // Gray — board is at a different ply
+                          <button disabled className="w-full text-sm py-2 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
+                            Confirm
                           </button>
-                        )}
-                        {alternatives.map(alt => (
-                          <button
-                            key={alt}
-                            onClick={() => {
-                              const updated = moves.map((m, i) => i === moveIdx ? { ...m, [cl]: alt } : m);
-                              onEditSave?.(updated, `${mn}-${cl}`);
-                              onConfirmMove(parseInt(mn), cl as 'white' | 'black');
-                              setVoteInfoKey(null); setVoteEditValue(null);
-                            }}
-                            className="w-full bg-blue-700 hover:bg-blue-600 text-white text-sm py-2 rounded-lg transition-colors"
-                          >
-                            Choose {alt}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="mt-2 pt-2 border-t border-slate-600/50 space-y-2">
-                        <p className="text-xs text-slate-100 text-center">Or play another move on the board</p>
+                        ) : isUserMove ? (
+                          // Blue — user played a different move on the board
                           <button
                             onClick={() => {
-                              if (!onEditSave || !voteEditValue) return;
+                              if (!onEditSave) return;
                               const confirmed: Move[] = moves.map((m, i) => {
                                 const mc = { ...m };
                                 if (i === moveIdx) {
@@ -1803,12 +1768,27 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                               setVoteInfoKey(null);
                               onClearPreview?.();
                             }}
-                            disabled={!voteEditValue || greenMoves.includes(voteEditValue)}
-                            className={`w-full text-sm py-2 rounded-lg transition-colors ${!voteEditValue || greenMoves.includes(voteEditValue) ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
+                            className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm py-2 rounded-lg transition-colors"
                           >
-                            {voteEditValue && !greenMoves.includes(voteEditValue) ? `Confirm ${voteEditValue}` : 'Confirm'}
+                            Pick {voteEditValue}
                           </button>
-                        </div>
+                        ) : (
+                          // Green — board shows the consensus move
+                          <button
+                            onClick={() => {
+                              if (voteEditValue && voteEditValue !== currentMove && greenMoves.includes(voteEditValue)) {
+                                const updated = moves.map((m, i) => i === moveIdx ? { ...m, [cl]: voteEditValue } : m);
+                                onEditSave?.(updated, `${mn}-${cl}`);
+                              }
+                              onConfirmMove(parseInt(mn), cl as 'white' | 'black');
+                              setVoteInfoKey(null); setVoteEditValue(null);
+                            }}
+                            className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
+                          >
+                            Confirm {voteEditValue || currentMove}
+                          </button>
+                        )}
+                      </div>
                     </>);
                   })()}
                 </>
