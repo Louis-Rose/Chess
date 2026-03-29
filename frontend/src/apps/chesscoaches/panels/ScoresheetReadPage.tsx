@@ -675,7 +675,7 @@ export function ScoresheetReadPage() {
                               </div>
                             ) : (
                             <MovesPanel
-                              label={!allModelsFinished ? `${t('coaches.consensus')} · Waiting on ${pendingReaders} reader${pendingReaders > 1 ? 's' : ''}...` : t('coaches.consensus')}
+                              label={!allModelsFinished || analyzing ? `${t('coaches.consensus')} · Waiting on ${pendingReaders} reader${pendingReaders > 1 ? 's' : ''}...` : t('coaches.consensus')}
                               moves={displayConsensusMoves}
 
                               disagreements={(() => {
@@ -691,7 +691,7 @@ export function ScoresheetReadPage() {
                               })()}
                               elapsed={0}
                               fileName={fileName}
-                              onEditSave={allModelsFinished ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
+                              onEditSave={allModelsFinished && !analyzing ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
                               originalMoves={consensusOverrides ? consensusMoves : undefined}
                               onMoveClick={(movesArr, ply) => {
                                 setModelBoardPlys(p => ({ ...p, [consensusId]: { ply, source: 'read' as const } }));
@@ -704,9 +704,9 @@ export function ScoresheetReadPage() {
                               sheetColumns={consensusColumns}
                               rowsPerColumn={consensusRowsPerColumn}
                               modelDisagreements={modelDisagreements}
-                              voteDetails={allModelsFinished ? voteDetails : undefined}
+                              voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
                               allModelNames={modelNames}
-                              onConfirmMove={allModelsFinished ? handleConfirmMove : undefined}
+                              onConfirmMove={allModelsFinished && !analyzing ? handleConfirmMove : undefined}
                               onPreview={(moveIdx, color, san) => {
                                 try {
                                   const chess = new Chess();
