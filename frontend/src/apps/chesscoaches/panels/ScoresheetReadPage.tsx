@@ -1736,12 +1736,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     return (<>
                       <div className="flex flex-col gap-1.5 mt-1">
                         <p className="text-xs text-slate-100 text-center">Confirm move, or play another move on the board</p>
-                        {!boardAtTarget ? (
-                          // Gray — board is at a different ply
-                          <button disabled className="w-full text-sm py-2 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
-                            Confirm
-                          </button>
-                        ) : isUserMove ? (
+                        {isUserMove ? (
                           // Blue — user played a different move on the board
                           <button
                             onClick={() => {
@@ -1766,7 +1761,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                           >
                             Pick {voteEditValue}
                           </button>
-                        ) : (
+                        ) : boardAtTarget ? (
                           // Green — board shows the consensus move
                           <button
                             onClick={() => {
@@ -1780,6 +1775,11 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                             className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
                           >
                             Confirm {voteEditValue || currentMove}
+                          </button>
+                        ) : (
+                          // Gray — board is at a different ply
+                          <button disabled className="w-full text-sm py-2 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
+                            Confirm
                           </button>
                         )}
                       </div>
