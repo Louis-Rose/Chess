@@ -1617,7 +1617,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {/* Vote info modal with integrated board */}
       {voteInfoKey && voteDetails?.[voteInfoKey] && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[1.5px]"
+          className="fixed inset-0 z-50 flex items-center justify-center md:pl-64 bg-slate-900/60 backdrop-blur-[1.5px]"
           onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }}
         >
           <div className="relative" onClick={e => e.stopPropagation()}>
