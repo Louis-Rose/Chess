@@ -1085,9 +1085,11 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       const newFen = chess.fen();
       const san = move.san;
 
-      // When vote modal is open, drag sets the vote value instead of branching
+      // When vote modal is open, drag sets the vote value and creates a one-move branch
       if (onDragSetMove) {
         onDragSetMove(san);
+        setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
+        setBranchPly(1);
         playMoveSound(san.includes('x'));
         return;
       }
