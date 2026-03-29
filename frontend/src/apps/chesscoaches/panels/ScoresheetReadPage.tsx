@@ -687,7 +687,7 @@ export function ScoresheetReadPage() {
                               </div>
                             ) : (
                             <MovesPanel
-                              label={!allModelsFinished ? `${t('coaches.consensus')} — Waiting on ${pendingReaders} reader${pendingReaders > 1 ? 's' : ''}...` : t('coaches.consensus')}
+                              label={!allModelsFinished ? `${t('coaches.consensus')} · Waiting on ${pendingReaders} reader${pendingReaders > 1 ? 's' : ''}...` : t('coaches.consensus')}
                               moves={displayConsensusMoves}
 
                               disagreements={(() => {
