@@ -648,6 +648,7 @@ export function ScoresheetReadPage() {
                     };
                     const handleConsensusBoardPly = (ply: number) => {
                       setModelBoardPlys(prev => ({ ...prev, [consensusId]: { ply, source: 'nav' as const } }));
+                      setConsensusPreviewFen(null); // Clear drag preview when navigating
                     };
                     const deselectConsensus = () => {
                       setModelBoardPlys(p => { const rest = { ...p }; delete rest[consensusId]; return rest; });
