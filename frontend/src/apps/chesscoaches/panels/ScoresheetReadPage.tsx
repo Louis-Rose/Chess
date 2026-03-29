@@ -1099,6 +1099,10 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         if (p <= 1) { setBranch(null); playSoundForPly(safePly); return 0; }
         const san = branch?.sans[p - 2];
         if (san) playMoveSound(san.includes('x'));
+        // When going back to the first variation move, restore the vote selection
+        if (p - 1 === 1 && onDragSetMove && branch?.sans[0]) {
+          onDragSetMove(branch.sans[0]);
+        }
         return p - 1;
       });
     } else {
