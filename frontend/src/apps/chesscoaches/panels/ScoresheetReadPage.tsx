@@ -1059,7 +1059,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     if (hlPlies.length === 0) return;
     // Find the previous highlighted ply before the current position
     const prev = [...hlPlies].reverse().find(p => p < safePly);
-    const target = prev !== undefined ? prev : hlPlies[hlPlies.length - 1]; // wrap around
+    const target = prev !== undefined ? prev : 0; // go to starting position if already at first
     exitBranch();
     setPly(target);
     playSoundForPly(target);
