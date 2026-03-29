@@ -2269,21 +2269,13 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onEd
           className="fixed z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg whitespace-nowrap"
           style={{ top: menuPos.top, left: menuPos.left }}
         >
-          {onVoteInfo ? (
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowMenu(false); onVoteInfo(); }}
-              className="block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-lg"
-            >
-              See votes &amp; Edit
-            </button>
-          ) : (
           <button
-            onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit(); }}
-            className={`block w-full px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-700 text-left rounded-lg`}
+            onClick={(e) => { if (!onVoteInfo) return; e.stopPropagation(); setShowMenu(false); onVoteInfo(); }}
+            disabled={!onVoteInfo}
+            className={`block w-full px-4 py-2.5 text-xs text-left rounded-lg ${onVoteInfo ? 'text-slate-200 hover:bg-slate-700' : 'text-slate-500 cursor-not-allowed'}`}
           >
-            {t('coaches.editMove')}
+            See votes &amp; Edit
           </button>
-          )}
         </div>,
         document.body
       )}
