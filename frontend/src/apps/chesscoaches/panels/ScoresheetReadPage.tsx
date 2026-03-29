@@ -1058,18 +1058,20 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       const newFen = chess.fen();
       const san = move.san;
 
+      // Check if matches next main-line move
+      if (!inBranch && safePly < maxPly && entries[safePly + 1]?.san === san) {
+        if (onDragSetMove) onDragSetMove(san);
+        setPly(p => p + 1);
+        onPlyChange?.(safePly + 1);
+        playMoveSound(san.includes('x'));
+        return;
+      }
+
       // When vote modal is open and not yet in a branch, set the vote value and create a one-move branch
       if (onDragSetMove && !inBranch) {
         onDragSetMove(san);
         setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
         setBranchPly(1);
-        playMoveSound(san.includes('x'));
-        return;
-      }
-
-      // Check if matches next main-line move
-      if (!inBranch && safePly < maxPly && entries[safePly + 1]?.san === san) {
-        setPly(p => p + 1);
         playMoveSound(san.includes('x'));
         return;
       }
