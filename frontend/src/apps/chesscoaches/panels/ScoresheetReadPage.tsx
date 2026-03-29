@@ -951,7 +951,10 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                     const scaledNH = imgSize.nh * scale;
                     const x = cell.x1 * displayW;
                     const y = cell.y1 * scaledNH;
-                    const w = (cell.x2 - cell.x1) * displayW;
+                    // Clamp width: use next column's left edge if available
+                    const nextCell = gridData.cells[`${azureRow}-${azureCol + 1}`];
+                    const maxX2 = nextCell ? nextCell.x1 : cell.x2;
+                    const w = (Math.min(cell.x2, maxX2) - cell.x1) * displayW;
                     const h = (cell.y2 - cell.y1) * scaledNH;
                     const tiltDeg = gridData.tilt || 0;
                     const padY = h * 0.1;
