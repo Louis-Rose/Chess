@@ -34,7 +34,7 @@ export interface DiagramModelResult {
 export interface DiagramState {
   preview: string | null;
   imageFile: File | null;
-  models: { id: string; name: string }[];
+  models: { id: string; name: string; avg_elapsed?: number | null }[];
   modelResults: Record<string, DiagramModelResult>;
   analyzing: boolean;
   error: string;
@@ -101,7 +101,7 @@ export interface ScoresheetState {
   error: string;
   modelResults: Record<string, ScoresheetModelResult>;
   reReads: Record<string, ScoresheetReadEntry[]>;
-  models: { id: string; name: string }[];
+  models: { id: string; name: string; avg_elapsed?: number | null }[];
   startTime: number | null;
   analyzing: boolean;
   azureResult: ScoresheetAzureResult | null;

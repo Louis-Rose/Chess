@@ -258,9 +258,10 @@ export function ScoresheetReadPage() {
                   <table className="w-full text-sm border-t border-slate-600/50">
                     <thead>
                       <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
-                        <th className="px-4 py-2 text-left w-1/3">Model</th>
-                        <th className="px-4 py-2 text-center w-1/3">Status</th>
-                        <th className="px-4 py-2 text-center w-1/3">Time</th>
+                        <th className="px-4 py-2 text-left">Model</th>
+                        <th className="px-4 py-2 text-center">Status</th>
+                        <th className="px-4 py-2 text-center">Time</th>
+                        <th className="px-4 py-2 text-center">Avg</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/30">
@@ -287,6 +288,9 @@ export function ScoresheetReadPage() {
                                 <span className="text-slate-500">{liveGlobalElapsed}s</span>
                               )}
                             </td>
+                            <td className="px-4 py-2.5 text-center text-slate-500">
+                              {m.avg_elapsed ? `~${m.avg_elapsed}s` : '—'}
+                            </td>
                           </tr>
                         );
                       })}
@@ -312,6 +316,12 @@ export function ScoresheetReadPage() {
                               {done
                                 ? <span className="text-emerald-400">{maxElapsed}s</span>
                                 : <span className="text-slate-500">{liveGlobalElapsed}s</span>}
+                            </td>
+                            <td className="px-4 py-2.5 text-center text-slate-500">
+                              {(() => {
+                                const maxAvg = Math.max(...models.map(m => m.avg_elapsed || 0));
+                                return maxAvg > 0 ? `~${maxAvg}s` : '—';
+                              })()}
                             </td>
                           </tr>
                         );
