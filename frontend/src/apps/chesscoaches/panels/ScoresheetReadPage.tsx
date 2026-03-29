@@ -1667,8 +1667,15 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
               // Track legality per candidate (>= 100 means itself illegal)
               const candidateIllegal: Record<string, boolean> = {};
               for (const d of details) candidateIllegal[d.candidate] = d.downstreamIllegals >= 100;
+              // Also check consensus-level legality for the final move
+              const moveObj = moves[parseInt(moveNumStr) - 1];
+              const consensusIllegal = moveObj?.[`${colorStr}_legal` as 'white_legal' | 'black_legal'] === false;
               const legalMark = (move?: string) => {
                 if (!move) return null;
+                // If this is the final/chosen move and consensus flagged it illegal, show red
+                if ((move === finalMove || move === chosen) && consensusIllegal) {
+                  return <span className="text-red-400 text-[10px] ml-1">&#10007;</span>;
+                }
                 const illegal = candidateIllegal[move];
                 if (illegal === undefined) return null;
                 return illegal
