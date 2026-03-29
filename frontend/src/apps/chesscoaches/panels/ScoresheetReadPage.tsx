@@ -1694,10 +1694,17 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     const [mn, cl] = voteInfoKey.split('-');
                     const moveIdx = parseInt(mn) - 1;
                     const currentMove = finalMove || chosen;
-                    // Find legal alternative candidates (not the chosen one)
+                    const reason = moves[moveIdx]?.[`${cl}_reason` as 'white_reason' | 'black_reason'];
+                    // Extract ambiguous candidates from reason like "Ambiguous (Nfd2/Nbd2)"
+                    const ambiguousMatch = reason?.match(/Ambiguous \((.+)\)/);
+                    const ambiguousCandidates = ambiguousMatch ? ambiguousMatch[1].split('/').map(s => s.trim()) : [];
+                    // Find legal alternative candidates (not the chosen one, not ambiguous ones shown as green)
                     const alternatives = details
                       .filter(d => !d.chosen && d.downstreamIllegals < 100 && d.candidate !== currentMove)
-                      .map(d => d.candidate);
+                      .map(d => d.candidate)
+                      .filter(alt => !ambiguousCandidates.includes(alt));
+                    // All green button moves (confirm + ambiguous choices)
+                    const greenMoves = [currentMove, ...ambiguousCandidates.filter(c => c !== currentMove)];
                     return (<>
                       <div className="flex flex-col gap-1.5 mt-1">
                         {onMoveClick && (
@@ -1711,15 +1718,36 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                             Show position before this move
                           </button>
                         )}
-                        <button
-                          onClick={() => {
-                            onConfirmMove(parseInt(mn), cl as 'white' | 'black');
-                            setVoteInfoKey(null);
-                          }}
-                          className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
-                        >
-                          Confirm {currentMove}
-                        </button>
+                        {ambiguousCandidates.length >= 2 ? (
+                          <div className="flex gap-1.5">
+                            {ambiguousCandidates.map(candidate => (
+                              <button
+                                key={candidate}
+                                onClick={() => {
+                                  if (candidate !== currentMove) {
+                                    const updated = moves.map((m, i) => i === moveIdx ? { ...m, [cl]: candidate } : m);
+                                    onEditSave?.(updated, `${mn}-${cl}`);
+                                  }
+                                  onConfirmMove(parseInt(mn), cl as 'white' | 'black');
+                                  setVoteInfoKey(null); setVoteEditValue(null);
+                                }}
+                                className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
+                              >
+                                Confirm {candidate}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              onConfirmMove(parseInt(mn), cl as 'white' | 'black');
+                              setVoteInfoKey(null);
+                            }}
+                            className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
+                          >
+                            Confirm {currentMove}
+                          </button>
+                        )}
                         {alternatives.map(alt => (
                           <button
                             key={alt}
@@ -1737,7 +1765,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       </div>
                       <div className="mt-2 pt-2 border-t border-slate-600/50 space-y-2">
                         <p className="text-xs text-slate-400 text-center">Or enter a different move</p>
-                          <MoveSuggestions legalMoves={voteLegalMoves} color={cl as 'white' | 'black'} value={voteEditValue || ''} reason={moves[moveIdx]?.[`${cl}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
+                          <MoveSuggestions legalMoves={voteLegalMoves.filter(m => !greenMoves.includes(m))} color={cl as 'white' | 'black'} value={voteEditValue || ''} reason={moves[moveIdx]?.[`${cl}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
                             setVoteEditValue(san);
                             onPreview?.(moveIdx, cl as 'white' | 'black', san);
                             playMoveSound(san.includes('x'));
