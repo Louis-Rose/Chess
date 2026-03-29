@@ -39,7 +39,7 @@ export function ScoresheetReadPage() {
     scoresheetHandleEditSave, scoresheetReread, scoresheetClear,
   } = useCoachesData();
 
-  const { preview, fileName, error, modelResults, reReads, models, startTime, analyzing } = scoresheet;
+  const { preview, fileName, error, modelResults, reReads, models, startTime, analyzing, azureGrid } = scoresheet;
 
   // Pick up shared image from Web Share Target
   useEffect(() => {
@@ -355,7 +355,12 @@ export function ScoresheetReadPage() {
                 const rowsPerColumn = (anyResult as any)?.rows_per_column || null;
 
                 // Average grid boundaries across models that returned them
+                // Prefer Azure DI grid (precise cell bounding boxes) over Gemini's estimated grid
                 const gridData = (() => {
+                  if (azureGrid && azureGrid.col_dividers.length >= 4) {
+                    return azureGrid;
+                  }
+                  // Fallback: average Gemini grid estimates
                   const grids = Object.values(modelResults)
                     .map(r => (r?.result as any)?.grid)
                     .filter((g): g is { top: number; bottom: number; tilt?: number; col_dividers: number[] } =>
@@ -365,7 +370,6 @@ export function ScoresheetReadPage() {
                   const bottom = grids.reduce((s, g) => s + g.bottom, 0) / grids.length;
                   const tilts = grids.filter(g => typeof g.tilt === 'number').map(g => g.tilt!);
                   const tilt = tilts.length > 0 ? tilts.reduce((s, t) => s + t, 0) / tilts.length : 0;
-                  // Average col_dividers — use the most common length
                   const lenCounts = new Map<number, number>();
                   grids.forEach(g => lenCounts.set(g.col_dividers.length, (lenCounts.get(g.col_dividers.length) || 0) + 1));
                   const bestLen = [...lenCounts.entries()].sort((a, b) => b[1] - a[1])[0][0];

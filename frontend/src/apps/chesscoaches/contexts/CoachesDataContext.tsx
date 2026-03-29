@@ -105,12 +105,13 @@ export interface ScoresheetState {
   startTime: number | null;
   analyzing: boolean;
   azureResult: ScoresheetAzureResult | null;
+  azureGrid: { top: number; bottom: number; tilt: number; col_dividers: number[] } | null;
 }
 
 const SCORESHEET_INITIAL: ScoresheetState = {
   preview: null, fileName: null, imageFile: null, error: '',
   modelResults: {}, reReads: {}, models: [],
-  startTime: null, analyzing: false, azureResult: null,
+  startTime: null, analyzing: false, azureResult: null, azureGrid: null,
 };
 
 // ── Mistakes types ──
@@ -530,6 +531,8 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
           console.log(`[Scoresheet] SSE event:`, payload.type, payload.model_id || '');
           if (payload.type === 'models') {
             setScoresheet(prev => ({ ...prev, models: payload.models, startTime: Date.now() }));
+          } else if (payload.type === 'azure_grid') {
+            setScoresheet(prev => ({ ...prev, azureGrid: payload.grid }));
           } else if (payload.type === 'result') {
             const { model_id, name, result, error: err, elapsed, warnings } = payload;
             setScoresheet(prev => ({
@@ -582,7 +585,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     if (scoresheetAnalyzeAbortRef.current) scoresheetAnalyzeAbortRef.current.abort();
     const controller = new AbortController();
     scoresheetAnalyzeAbortRef.current = controller;
-    setScoresheet(prev => ({ ...prev, modelResults: {}, reReads: {}, azureResult: null }));
+    setScoresheet(prev => ({ ...prev, modelResults: {}, reReads: {}, azureResult: null, azureGrid: null }));
     scoresheetAnalyzeImage(file, controller.signal);
   }, [scoresheet.imageFile, scoresheetAnalyzeImage]);
 

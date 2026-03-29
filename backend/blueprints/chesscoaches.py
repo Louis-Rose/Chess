@@ -812,17 +812,153 @@ def read_scoresheet():
         finally:
             result_queue.put(THREAD_DONE)
 
+    # Azure DI thread for precise grid coordinates
+    def run_azure_grid():
+        """Call Azure Document Intelligence to get precise table cell bounding boxes."""
+        endpoint = os.environ.get('AZURE_DI_ENDPOINT', '').rstrip('/')
+        di_key = os.environ.get('AZURE_DI_KEY')
+        if not endpoint or not di_key:
+            logger.info("[Scoresheet] Azure DI not configured, skipping grid detection")
+            result_queue.put(THREAD_DONE)
+            return
+        try:
+            analyze_url = f"{endpoint}/documentintelligence/documentModels/prebuilt-layout:analyze?api-version=2024-11-30"
+            headers = {'Ocp-Apim-Subscription-Key': di_key, 'Content-Type': mime_type}
+            resp = http_requests.post(analyze_url, headers=headers, data=image_bytes, timeout=30)
+            if resp.status_code != 202:
+                logger.warning(f"[Scoresheet] Azure DI submit failed: {resp.status_code}")
+                result_queue.put(THREAD_DONE)
+                return
+            result_url = resp.headers.get('Operation-Location')
+            if not result_url:
+                result_queue.put(THREAD_DONE)
+                return
+            poll_headers = {'Ocp-Apim-Subscription-Key': di_key}
+            result_json = None
+            for _ in range(60):
+                time_module.sleep(1)
+                result_resp = http_requests.get(result_url, headers=poll_headers, timeout=10)
+                result_json = result_resp.json()
+                if result_json.get('status') in ('succeeded', 'failed'):
+                    break
+            if not result_json or result_json.get('status') != 'succeeded':
+                logger.warning("[Scoresheet] Azure DI analysis failed or timed out")
+                result_queue.put(THREAD_DONE)
+                return
+
+            analyze_result = result_json.get('analyzeResult', {})
+            tables = analyze_result.get('tables', [])
+            pages = analyze_result.get('pages', [])
+            if not tables or not pages:
+                result_queue.put(THREAD_DONE)
+                return
+
+            # Get page dimensions for normalization
+            page = pages[0]
+            page_w = page.get('width', 1)
+            page_h = page.get('height', 1)
+
+            # Find the largest table
+            table = max(tables, key=lambda t: t.get('rowCount', 0) * t.get('columnCount', 0))
+            cells = table.get('cells', [])
+            if not cells:
+                result_queue.put(THREAD_DONE)
+                return
+
+            # Extract bounding box per cell as normalized fractions
+            cell_bounds = {}  # (row, col) -> {x1, y1, x2, y2} normalized
+            for cell in cells:
+                r, c = cell['rowIndex'], cell['columnIndex']
+                regions = cell.get('boundingRegions', [])
+                if not regions:
+                    continue
+                polygon = regions[0].get('polygon', [])
+                if len(polygon) < 8:
+                    continue
+                # polygon is [x1,y1, x2,y2, x3,y3, x4,y4] — 4 corners
+                xs = [polygon[i] for i in range(0, 8, 2)]
+                ys = [polygon[i] for i in range(1, 8, 2)]
+                cell_bounds[(r, c)] = {
+                    'x1': min(xs) / page_w, 'y1': min(ys) / page_h,
+                    'x2': max(xs) / page_w, 'y2': max(ys) / page_h,
+                }
+
+            if not cell_bounds:
+                result_queue.put(THREAD_DONE)
+                return
+
+            # Compute grid: top, bottom, column dividers, tilt
+            all_y1 = [b['y1'] for b in cell_bounds.values()]
+            all_y2 = [b['y2'] for b in cell_bounds.values()]
+            grid_top = min(all_y1)
+            grid_bottom = max(all_y2)
+
+            # Column dividers: get unique column indices, find left/right edges
+            col_count = table.get('columnCount', 0)
+            col_edges = []  # list of (left, right) per column
+            for ci in range(col_count):
+                col_cells = [b for (r, c), b in cell_bounds.items() if c == ci]
+                if col_cells:
+                    col_edges.append((
+                        sum(b['x1'] for b in col_cells) / len(col_cells),
+                        sum(b['x2'] for b in col_cells) / len(col_cells),
+                    ))
+                else:
+                    col_edges.append(None)
+
+            # Build col_dividers: left edge of each col + right edge of last col
+            col_dividers = []
+            for edge in col_edges:
+                if edge:
+                    col_dividers.append(round(edge[0], 4))
+            if col_edges and col_edges[-1]:
+                col_dividers.append(round(col_edges[-1][1], 4))
+
+            # Estimate tilt from row 0 cells
+            tilt = 0.0
+            row0_cells = [(c, b) for (r, c), b in cell_bounds.items() if r == 0]
+            if len(row0_cells) >= 2:
+                row0_cells.sort(key=lambda x: x[0])
+                first = row0_cells[0][1]
+                last = row0_cells[-1][1]
+                dx = (last['x1'] + last['x2']) / 2 - (first['x1'] + first['x2']) / 2
+                dy = (last['y1'] + last['y2']) / 2 - (first['y1'] + first['y2']) / 2
+                if dx > 0:
+                    import math
+                    tilt = round(math.degrees(math.atan2(dy, dx)), 2)
+
+            azure_grid = {
+                'top': round(grid_top, 4),
+                'bottom': round(grid_bottom, 4),
+                'tilt': tilt,
+                'col_dividers': col_dividers,
+                'source': 'azure',
+            }
+            logger.info(f"[Scoresheet] Azure DI grid: {azure_grid}")
+            result_queue.put({"type": "azure_grid", "grid": azure_grid})
+
+        except Exception as e:
+            logger.error(f"[Scoresheet] Azure DI grid detection failed: {e}")
+        finally:
+            result_queue.put(THREAD_DONE)
+
     threads = []
     for m in SCORESHEET_MODELS:
         t = threading.Thread(target=run_model, args=(m,))
         t.start()
         threads.append(t)
 
+    # Start Azure DI in parallel for grid coordinates
+    azure_thread = threading.Thread(target=run_azure_grid)
+    azure_thread.start()
+    threads.append(azure_thread)
+    total_threads = len(SCORESHEET_MODELS) + 1  # +1 for Azure
+
     def generate():
         yield f"data: {json_module.dumps({'type': 'models', 'models': _enrich_models_with_avg()})}\n\n"
 
         threads_done = 0
-        while threads_done < len(SCORESHEET_MODELS):
+        while threads_done < total_threads:
             try:
                 item = result_queue.get(timeout=300)
                 if item is THREAD_DONE:
