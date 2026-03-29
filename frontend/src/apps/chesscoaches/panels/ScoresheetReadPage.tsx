@@ -736,7 +736,6 @@ export function ScoresheetReadPage() {
                     );
                   })()}
                     </div>
-                  )}
                   </div>
 
 
