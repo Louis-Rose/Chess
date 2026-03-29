@@ -1121,16 +1121,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
   const goPrev = useCallback(() => {
     if (inBranch) {
       setBranchPly(p => {
-        if (p <= 1) {
-          setBranch(null);
-          // When exiting a drag branch, go to the branch start position
-          if (onDragSetMove && targetPly !== undefined) {
-            setPly(targetPly);
-            onPlyChange?.(targetPly);
-          }
-          playSoundForPly(safePly);
-          return 0;
-        }
+        if (p <= 1) { setBranch(null); playSoundForPly(safePly); return 0; }
         const san = branch?.sans[p - 2];
         if (san) playMoveSound(san.includes('x'));
         return p - 1;
@@ -1142,7 +1133,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         return newP;
       });
     }
-  }, [inBranch, branch, safePly, playSoundForPly, onPlyChange, onDragSetMove, targetPly]);
+  }, [inBranch, branch, safePly, playSoundForPly, onPlyChange]);
   const goNext = useCallback(() => {
     if (branch && branchPly < branch.fens.length - 1) {
       const san = branch.sans[branchPly];
