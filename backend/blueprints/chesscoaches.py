@@ -927,14 +927,22 @@ def read_scoresheet():
                     import math
                     tilt = round(math.degrees(math.atan2(dy, dx)), 2)
 
+            # Build per-cell bounds for direct lookup: { "row-col": {x1,y1,x2,y2} }
+            cells_map = {}
+            for (r, c), b in cell_bounds.items():
+                cells_map[f"{r}-{c}"] = {k: round(v, 4) for k, v in b.items()}
+
             azure_grid = {
                 'top': round(grid_top, 4),
                 'bottom': round(grid_bottom, 4),
                 'tilt': tilt,
                 'col_dividers': col_dividers,
+                'col_count': col_count,
+                'row_count': table.get('rowCount', 0),
+                'cells': cells_map,
                 'source': 'azure',
             }
-            logger.info(f"[Scoresheet] Azure DI grid: {azure_grid}")
+            logger.info(f"[Scoresheet] Azure DI grid: top={grid_top:.3f} bottom={grid_bottom:.3f} tilt={tilt} cols={col_count} dividers={col_dividers}")
             result_queue.put({"type": "azure_grid", "grid": azure_grid})
 
         except Exception as e:

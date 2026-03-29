@@ -862,7 +862,7 @@ interface PlyEntry {
   san?: string;
 }
 
-function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[] } }) {
+function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; col_count?: number; row_count?: number; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }> } }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgSize, setImgSize] = useState<{ w: number; h: number; nw: number; nh: number } | null>(null);
@@ -938,9 +938,43 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                 const displayW = imgSize.w;
                 const scale = displayW / imgSize.nw; // scale factor (width-based for object-cover)
 
-                if (gridData && gridData.col_dividers.length >= 4) {
+                if (gridData && gridData.cells) {
+                  // Azure DI: direct per-cell bounding boxes
+                  const azureCols = gridData.col_count || 6;
+                  const colsPerSheet = Math.floor(azureCols / Math.max(sheetColumns, 1)); // typically 3
+                  const azureCol = sheetCol * colsPerSheet + (isBlack ? 2 : 1);
+                  const hasHeader = gridData.row_count ? gridData.row_count > rows : false;
+                  const azureRow = rowInCol + (hasHeader ? 1 : 0);
+                  const cell = gridData.cells[`${azureRow}-${azureCol}`];
+
+                  if (cell) {
+                    const scaledNH = imgSize.nh * scale;
+                    const x = cell.x1 * displayW;
+                    const y = cell.y1 * scaledNH;
+                    const w = (cell.x2 - cell.x1) * displayW;
+                    const h = (cell.y2 - cell.y1) * scaledNH;
+                    const tiltDeg = gridData.tilt || 0;
+                    const padY = h * 0.1;
+                    const padX = w * 0.1;
+                    return (
+                      <div
+                        className="absolute pointer-events-none rounded-sm transition-all duration-200"
+                        style={{
+                          left: x - padX,
+                          top: y - padY,
+                          width: w + padX * 2,
+                          height: h + padY * 2,
+                          backgroundColor: 'rgba(59, 130, 246, 0.3)',
+                          border: '2px solid rgba(59, 130, 246, 0.7)',
+                          transform: tiltDeg ? `rotate(${tiltDeg}deg)` : undefined,
+                          transformOrigin: 'left center',
+                        }}
+                      />
+                    );
+                  }
+                } else if (gridData && gridData.col_dividers.length >= 4) {
+                  // Gemini grid: use col_dividers
                   const { top, bottom, col_dividers } = gridData;
-                  // Convert grid fractions to pixel positions on the scaled natural image
                   const scaledNH = imgSize.nh * scale;
                   const gridTop = top * scaledNH;
                   const gridHeight = (bottom - top) * scaledNH;
@@ -957,7 +991,6 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                   const y = gridTop + rowInCol * rowHeight;
 
                   const tiltDeg = gridData.tilt || 0;
-                  // Add padding to be more forgiving of imprecise grid detection
                   const padY = rowHeight * 0.2;
                   const padX = (xEnd - x) * 0.2;
                   return (
