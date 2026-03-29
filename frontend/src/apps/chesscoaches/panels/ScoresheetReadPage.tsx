@@ -1726,17 +1726,11 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     // Extract ambiguous candidates from reason like "Ambiguous (Nfd2/Nbd2)"
                     const ambiguousMatch = reason?.match(/Ambiguous \((.+)\)/);
                     const ambiguousCandidates = ambiguousMatch ? ambiguousMatch[1].split('/').map(s => s.trim()) : [];
-                    // Find legal alternative candidates (not the chosen one, not ambiguous ones shown as green)
-                    const alternatives = details
-                      .filter(d => !d.chosen && d.downstreamIllegals < 100 && d.candidate !== currentMove)
-                      .map(d => d.candidate)
-                      .filter(alt => !ambiguousCandidates.includes(alt));
                     // All green button moves (confirm + ambiguous choices)
                     const greenMoves = [currentMove, ...ambiguousCandidates.filter(c => c !== currentMove)];
                     // Determine button state based on board position
                     const targetMovePly = cl === 'white' ? moveIdx * 2 + 1 : moveIdx * 2 + 2;
                     const boardAtTarget = boardPly === targetMovePly;
-                    const isConsensusMove = !voteEditValue || voteEditValue === currentMove || greenMoves.includes(voteEditValue);
                     const isUserMove = voteEditValue && !greenMoves.includes(voteEditValue);
 
                     return (<>
