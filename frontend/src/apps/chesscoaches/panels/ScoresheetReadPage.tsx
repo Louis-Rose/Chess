@@ -240,6 +240,17 @@ export function ScoresheetReadPage() {
             />
           ) : (
             <div className="space-y-4">
+              {/* New scoresheet button — top of results */}
+              <div className="flex justify-center">
+                <button
+                  onClick={() => { scoresheetClear(); fileInputRef.current?.click(); }}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
+                >
+                  <Upload className="w-4 h-4" />
+                  {t('coaches.replaceImage')}
+                </button>
+              </div>
+
               {/* Error */}
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
@@ -612,7 +623,7 @@ export function ScoresheetReadPage() {
                       setModelBoardPlys(p => { const rest = { ...p }; delete rest[consensusId]; return rest; });
                     };
                     return (
-                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} onReplace={() => { scoresheetClear(); fileInputRef.current?.click(); }} replaceLabel={t('coaches.replaceImage')} fileName={fileName || undefined}>
+                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined}>
                         {consensusReady && !highlightHintDismissed && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)) && (
                           <div className="flex justify-center mb-3">
                             <div className="inline-flex items-center gap-2 bg-slate-700/40 rounded-lg px-3 py-1.5">
@@ -806,7 +817,7 @@ interface PlyEntry {
   san?: string;
 }
 
-function ModelRow({ preview, onImageClick, onReplace, replaceLabel, fileName, children }: { preview: string; onImageClick: () => void; onReplace?: () => void; replaceLabel?: string; fileName?: string; children: ReactNode }) {
+function ModelRow({ preview, onImageClick, fileName, children }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tbodyTop, setTbodyTop] = useState(0);
   const [tbodyHeight, setTbodyHeight] = useState(0);
@@ -865,15 +876,6 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, fileName, ch
               onClick={onImageClick}
             />
             {fileName && <span className="text-slate-100 text-sm mt-2 truncate max-w-[200px]">{fileName}</span>}
-            {onReplace && (
-              <button
-                onClick={onReplace}
-                className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors mt-3"
-              >
-                <Upload className="w-4 h-4" />
-                {replaceLabel || 'Replace photo'}
-              </button>
-            )}
           </div>
         </div>
       )}
