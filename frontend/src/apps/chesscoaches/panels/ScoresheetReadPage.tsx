@@ -79,7 +79,7 @@ export function ScoresheetReadPage() {
   const [processingCollapsed, setProcessingCollapsed] = useState(false);
   const [resultsCollapsed, setResultsCollapsed] = useState(false);
   const [modelsCollapsed, setModelsCollapsed] = useState(true);
-  const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null>(null);
+  const [, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null>(null);
   const [highlightHintDismissed, setHighlightHintDismissed] = useState(() => {
     const dismissed = localStorage.getItem('scoresheet_hint_dismissed');
     return dismissed === new Date().toISOString().split('T')[0];
