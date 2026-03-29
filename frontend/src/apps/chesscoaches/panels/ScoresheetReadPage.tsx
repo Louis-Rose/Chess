@@ -641,7 +641,7 @@ export function ScoresheetReadPage() {
                       setModelBoardPlys(p => { const rest = { ...p }; delete rest[consensusId]; return rest; });
                     };
                     return (
-                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData} azureDebug={azureGrid}>
+                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData}>
                         {allModelsFinished && !highlightHintDismissed && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)) && (
                           <div className="flex justify-center mb-3">
                             <div className="inline-flex items-center gap-2 bg-slate-700/40 rounded-lg px-3 py-1.5">
@@ -839,7 +839,7 @@ interface PlyEntry {
   san?: string;
 }
 
-function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData, azureDebug }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number }; azureDebug?: { cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; tilt?: number } | null }) {
+function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number } }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgSize, setImgSize] = useState<{ w: number; h: number; nw: number; nh: number } | null>(null);
