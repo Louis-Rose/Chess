@@ -1011,7 +1011,7 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
 let activeModelBoardId = 0;
 let nextModelBoardId = 0;
 
-function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate, previewFen, highlightedPlies, onDragSetMove }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; autoActivate?: boolean; previewFen?: string | null; highlightedPlies?: number[]; onDragSetMove?: (san: string) => void }) {
+function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate, previewFen, highlightedPlies, onDragSetMove, compact, targetPly, targetLabel }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; autoActivate?: boolean; previewFen?: string | null; highlightedPlies?: number[]; onDragSetMove?: (san: string) => void; compact?: boolean; targetPly?: number; targetLabel?: string }) {
   const { t } = useLanguage();
   const [instanceId] = useState(() => ++nextModelBoardId);
   const [ply, setPly] = useState(0);
@@ -1196,18 +1196,27 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       ) : null}
       <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={disableDrag ? undefined : handleUserMove} highlightSquares={ambiguousSquares} />
       <div className="flex justify-center gap-1.5 mt-1.5 w-full">
-        <button onClick={goFirst} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
-          <ChevronFirst className="w-6 h-6" />
-        </button>
+        {!compact && (
+          <button onClick={goFirst} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+            <ChevronFirst className="w-6 h-6" />
+          </button>
+        )}
         <button onClick={goPrev} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
           <ChevronLeft className="w-6 h-6" />
         </button>
+        {compact && targetPly !== undefined && (
+          <button onClick={() => { exitBranch(); setPly(targetPly); playSoundForPly(targetPly); onPlyChange?.(targetPly); }} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-yellow-400 rounded-lg transition-colors flex items-center justify-center text-xs px-2">
+            {targetLabel || 'Go to move'}
+          </button>
+        )}
         <button onClick={goNext} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
           <ChevronRight className="w-6 h-6" />
         </button>
-        <button onClick={goLast} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
-          <ChevronLast className="w-6 h-6" />
-        </button>
+        {!compact && (
+          <button onClick={goLast} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+            <ChevronLast className="w-6 h-6" />
+          </button>
+        )}
       </div>
       <div className="mt-1.5 text-sm text-center min-h-[44px]">
         {safePly > 0 && entries[safePly]?.san && !inBranch && (
@@ -1840,9 +1849,11 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                 disableDrag={false}
                 autoActivate
                 previewFen={boardPreviewFen}
+                compact
+                targetPly={voteInfoKey ? (() => { const [mn, cl] = voteInfoKey.split('-'); const idx = parseInt(mn) - 1; return cl === 'white' ? idx * 2 : idx * 2 + 1; })() : undefined}
+                targetLabel={voteInfoKey ? `Move ${voteInfoKey.split('-')[0]} · ${voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}` : undefined}
                 onDragSetMove={(san) => {
                   setVoteEditValue(san);
-                  // Also trigger preview to show the position after this move
                   if (voteInfoKey) {
                     const [mn, cl] = voteInfoKey.split('-');
                     onPreview?.(parseInt(mn) - 1, cl as 'white' | 'black', san);
