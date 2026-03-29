@@ -1245,7 +1245,6 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       {inBranch && (
         <div className="flex items-center gap-2 text-xs text-amber-400 mt-1">
           <span>{t('coaches.variation')} ({branch!.sans.length} {branch!.sans.length > 1 ? t('coaches.variationMovesPlural') : t('coaches.variationMoves')})</span>
-          <button onClick={() => { exitBranch(); }} className="text-slate-400 hover:text-white underline">{t('coaches.backToMainLine')}</button>
         </div>
       )}
     </div>
