@@ -1054,55 +1054,11 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     return () => window.removeEventListener('keydown', handler);
   }, [instanceId, goPrev, goNext, goFirst, goLast]);
 
-  // Highlighted move navigation
   const hlPlies = highlightedPlies || [];
-  const currentHlIndex = hlPlies.findIndex(p => p === safePly);
-  const isOnHighlighted = currentHlIndex !== -1;
-  const goNextHighlight = useCallback(() => {
-    if (hlPlies.length === 0) return;
-    // Find the next highlighted ply after the current position
-    const next = hlPlies.find(p => p > safePly);
-    const target = next !== undefined ? next : hlPlies[0]; // wrap around
-    exitBranch();
-    setPly(target);
-    playSoundForPly(target);
-    onPlyChange?.(target);
-  }, [hlPlies, safePly, exitBranch, playSoundForPly, onPlyChange]);
-  const goPrevHighlight = useCallback(() => {
-    if (hlPlies.length === 0) return;
-    // Find the previous highlighted ply before the current position
-    const prev = [...hlPlies].reverse().find(p => p < safePly);
-    const target = prev !== undefined ? prev : 0; // go to starting position if already at first
-    exitBranch();
-    setPly(target);
-    playSoundForPly(target);
-    onPlyChange?.(target);
-  }, [hlPlies, safePly, exitBranch, playSoundForPly, onPlyChange]);
 
   return (
     <div className="flex flex-col items-center w-[480px]" onClick={activate}>
-      {hlPlies.length > 0 ? (
-        <div className="flex items-center gap-2 mb-1.5 w-full justify-center">
-          <button
-            onClick={goPrevHighlight}
-            className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-yellow-400 rounded-lg transition-colors flex items-center justify-center"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-sm text-yellow-400">
-            {isOnHighlighted
-              ? `Highlighted ${currentHlIndex + 1} / ${hlPlies.length}`
-              : `${hlPlies.length} highlighted move${hlPlies.length > 1 ? 's' : ''}`
-            }
-          </span>
-          <button
-            onClick={goNextHighlight}
-            className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-yellow-400 rounded-lg transition-colors flex items-center justify-center"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      ) : highlightedPlies && moves.length > 0 ? (
+      {highlightedPlies && hlPlies.length === 0 && moves.length > 0 ? (
         <div className="flex items-center gap-2 mb-1.5 w-full justify-center">
           <span className="text-sm text-emerald-400 inline-flex items-center gap-1.5">
             <Check className="w-4 h-4" />
