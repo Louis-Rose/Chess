@@ -308,6 +308,7 @@ Extract ALL moves from the scoresheet and return them as a JSON object with this
   "grid": {
     "top": 0.05,
     "bottom": 0.95,
+    "tilt": -1.2,
     "col_dividers": [0.0, 0.08, 0.28, 0.48, 0.55, 0.75, 1.0]
   },
   "moves": [
@@ -331,6 +332,7 @@ Rules:
 - "grid": describes the layout of the moves grid as fractions of the image (0.0 to 1.0):
   - "top": Y fraction where the first row of moves starts (below any header)
   - "bottom": Y fraction where the last row of moves ends
+  - "tilt": rotation angle in degrees of the grid lines relative to horizontal. Positive = clockwise tilt, negative = counter-clockwise. 0 if the grid is perfectly straight. Typically between -5 and 5.
   - "col_dividers": X fractions for each vertical divider in the grid, from left to right. For a 2-column scoresheet with columns [#, White, Black, #, White, Black], provide 7 values. For a 1-column scoresheet [#, White, Black], provide 4 values. Always starts with 0.0 and ends with 1.0.
 
 Return ONLY the JSON object, no other text."""

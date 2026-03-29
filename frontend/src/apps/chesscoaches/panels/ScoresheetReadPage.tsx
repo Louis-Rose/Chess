@@ -358,11 +358,13 @@ export function ScoresheetReadPage() {
                 const gridData = (() => {
                   const grids = Object.values(modelResults)
                     .map(r => (r?.result as any)?.grid)
-                    .filter((g): g is { top: number; bottom: number; col_dividers: number[] } =>
+                    .filter((g): g is { top: number; bottom: number; tilt?: number; col_dividers: number[] } =>
                       g && typeof g.top === 'number' && typeof g.bottom === 'number' && Array.isArray(g.col_dividers));
                   if (grids.length === 0) return undefined;
                   const top = grids.reduce((s, g) => s + g.top, 0) / grids.length;
                   const bottom = grids.reduce((s, g) => s + g.bottom, 0) / grids.length;
+                  const tilts = grids.filter(g => typeof g.tilt === 'number').map(g => g.tilt!);
+                  const tilt = tilts.length > 0 ? tilts.reduce((s, t) => s + t, 0) / tilts.length : 0;
                   // Average col_dividers — use the most common length
                   const lenCounts = new Map<number, number>();
                   grids.forEach(g => lenCounts.set(g.col_dividers.length, (lenCounts.get(g.col_dividers.length) || 0) + 1));
@@ -370,7 +372,7 @@ export function ScoresheetReadPage() {
                   const matching = grids.filter(g => g.col_dividers.length === bestLen);
                   const col_dividers = Array.from({ length: bestLen }, (_, i) =>
                     matching.reduce((s, g) => s + g.col_dividers[i], 0) / matching.length);
-                  return { top, bottom, col_dividers };
+                  return { top, bottom, tilt, col_dividers };
                 })();
 
                 // Compute cross-model disagreements
@@ -837,7 +839,7 @@ interface PlyEntry {
   san?: string;
 }
 
-function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; col_dividers: number[] } }) {
+function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[] } }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgSize, setImgSize] = useState<{ w: number; h: number; nw: number; nh: number } | null>(null);
@@ -932,6 +934,7 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                   const xEnd = (isBlack ? col_dividers[colEndIdx] : col_dividers[blackIdx]) * displayW;
                   const y = gridTop + rowInCol * rowHeight;
 
+                  const tiltDeg = gridData.tilt || 0;
                   return (
                     <div
                       className="absolute pointer-events-none rounded-sm transition-all duration-200"
@@ -942,6 +945,8 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                         height: rowHeight,
                         backgroundColor: 'rgba(59, 130, 246, 0.3)',
                         border: '2px solid rgba(59, 130, 246, 0.7)',
+                        transform: tiltDeg ? `rotate(${tiltDeg}deg)` : undefined,
+                        transformOrigin: 'left center',
                       }}
                     />
                   );
