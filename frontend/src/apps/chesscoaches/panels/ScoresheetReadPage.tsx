@@ -1139,7 +1139,8 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (activeModelBoardId !== instanceId) return;
+      // Modal board (onDragSetMove) always captures keyboard; others check activeModelBoardId
+      if (!onDragSetMove && activeModelBoardId !== instanceId) return;
       if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
       if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
       if (e.key === 'Home') { e.preventDefault(); goFirst(); }
@@ -1147,7 +1148,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [instanceId, goPrev, goNext, goFirst, goLast]);
+  }, [instanceId, goPrev, goNext, goFirst, goLast, onDragSetMove]);
 
   const hlPlies = highlightedPlies || [];
 
