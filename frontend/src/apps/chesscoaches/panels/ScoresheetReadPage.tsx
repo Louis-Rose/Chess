@@ -1683,6 +1683,10 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       )}
                     </tbody>
                   </table>
+                  <div className="flex items-center justify-center gap-4 text-[10px] text-slate-500 pt-1">
+                    <span className="flex items-center gap-1 text-slate-100"><span className="text-green-400">&#10003;</span> legal move</span>
+                    <span className="flex items-center gap-1 text-slate-100"><span className="text-red-400">&#10007;</span> illegal move</span>
+                  </div>
                   {details.every(d => !d.chosen) && (
                     <p className="text-red-400 text-xs text-center">{t('coaches.voteAllIllegal')}</p>
                   )}
@@ -1753,15 +1757,11 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                             disabled={!voteEditValue}
                             className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm py-2 rounded-lg transition-colors"
                           >
-                            {t('coaches.save')} {voteEditValue}
+                            Confirm {voteEditValue}
                           </button>
                         </div>
                     </>);
                   })()}
-                  <div className="flex items-center justify-center gap-4 text-[10px] text-slate-500 pt-1">
-                    <span className="flex items-center gap-1 text-slate-100"><span className="text-green-400">&#10003;</span> legal move</span>
-                    <span className="flex items-center gap-1 text-slate-100"><span className="text-red-400">&#10007;</span> illegal move</span>
-                  </div>
                 </>
               );
             })()}
