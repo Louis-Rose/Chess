@@ -624,7 +624,7 @@ export function ScoresheetReadPage() {
                       setModelBoardPlys(p => { const rest = { ...p }; delete rest[consensusId]; return rest; });
                     };
                     return (
-                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined}>
+                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length}>
                         {consensusReady && !highlightHintDismissed && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)) && (
                           <div className="flex justify-center mb-3">
                             <div className="inline-flex items-center gap-2 bg-slate-700/40 rounded-lg px-3 py-1.5">
@@ -818,8 +818,10 @@ interface PlyEntry {
   san?: string;
 }
 
-function ModelRow({ preview, onImageClick, fileName, children }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode }) {
+function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
   const [tbodyTop, setTbodyTop] = useState(0);
   const [tbodyHeight, setTbodyHeight] = useState(0);
 
@@ -869,13 +871,54 @@ function ModelRow({ preview, onImageClick, fileName, children }: { preview: stri
           style={{ top: 0, bottom: 0, left: 0, width: tablesLeft - 8 }}
         >
           <div className="flex flex-col items-center">
-            <img
-              src={preview}
-              alt="Scoresheet"
-              className="rounded-xl object-cover object-top cursor-pointer hover:opacity-90 transition-opacity"
-              style={{ maxHeight: tbodyHeight }}
-              onClick={onImageClick}
-            />
+            <div className="relative">
+              <img
+                ref={imgRef}
+                src={preview}
+                alt="Scoresheet"
+                className="rounded-xl object-cover object-top cursor-pointer hover:opacity-90 transition-opacity"
+                style={{ maxHeight: tbodyHeight }}
+                onClick={onImageClick}
+                onLoad={() => { if (imgRef.current) setImgSize({ w: imgRef.current.clientWidth, h: imgRef.current.clientHeight }); }}
+              />
+              {/* Highlight overlay for active move */}
+              {activePly != null && activePly > 0 && totalMoves && imgSize && (() => {
+                const rows = rowsPerColumn || Math.ceil(totalMoves / Math.max(sheetColumns, 1));
+                const cols = Math.max(sheetColumns, 1);
+                const moveIdx = Math.floor((activePly - 1) / 2); // 0-based move index
+                const isBlack = activePly % 2 === 0;
+                const sheetCol = Math.floor(moveIdx / rows); // which column on the sheet
+                const rowInCol = moveIdx % rows; // which row within the column
+
+                const imgW = imgSize.w;
+                const imgH = imgSize.h;
+
+                // Each sheet column contains: move number + white cell + black cell
+                // So horizontally: cols groups, each with 3 sub-cells (number, white, black)
+                const colWidth = imgW / cols;
+                const rowHeight = imgH / rows;
+                // Within a column: ~15% for move number, ~42.5% white, ~42.5% black
+                const numWidth = colWidth * 0.15;
+                const cellWidth = (colWidth - numWidth) / 2;
+
+                const x = sheetCol * colWidth + numWidth + (isBlack ? cellWidth : 0);
+                const y = rowInCol * rowHeight;
+
+                return (
+                  <div
+                    className="absolute pointer-events-none rounded-sm transition-all duration-200"
+                    style={{
+                      left: x,
+                      top: y,
+                      width: cellWidth,
+                      height: rowHeight,
+                      backgroundColor: 'rgba(59, 130, 246, 0.3)',
+                      border: '2px solid rgba(59, 130, 246, 0.7)',
+                    }}
+                  />
+                );
+              })()}
+            </div>
             {fileName && <span className="text-slate-100 text-sm mt-2 truncate max-w-[200px]">{fileName}</span>}
           </div>
         </div>
@@ -1510,7 +1553,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   ? <span className="text-red-400 text-[10px] ml-1">&#10007;</span>
                   : <span className="text-green-400 text-[10px] ml-1">&#10003;</span>;
               };
-              const confColor = (c?: string) => c === 'high' ? 'text-emerald-400' : c === 'medium' ? 'text-yellow-400' : c === 'low' ? 'text-red-400' : 'text-slate-600';
               return (
                 <>
                   <table className="w-full text-sm">
@@ -1523,7 +1565,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     <tbody>
                       {names.map(name => {
                         const move = modelToMove[name];
-                        const conf = confByModel[name];
                         const illegal = move ? candidateIllegal[move] : false;
                         return (
                           <tr key={name} className={`border-b border-slate-700/50 ${illegal ? 'opacity-40' : ''}`}>
