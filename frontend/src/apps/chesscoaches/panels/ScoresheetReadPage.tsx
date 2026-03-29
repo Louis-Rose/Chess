@@ -1096,7 +1096,16 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
   const goPrev = useCallback(() => {
     if (inBranch) {
       setBranchPly(p => {
-        if (p <= 1) { setBranch(null); playSoundForPly(safePly); return 0; }
+        if (p <= 1) {
+          setBranch(null);
+          playSoundForPly(safePly);
+          if (onDragSetMove) {
+            // Clear vote selection and preview, sync parent ply
+            onDragSetMove('');
+            onPlyChange?.(safePly);
+          }
+          return 0;
+        }
         const san = branch?.sans[p - 2];
         if (san) playMoveSound(san.includes('x'));
         // When going back to the first variation move, restore the vote selection
@@ -1112,7 +1121,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         return newP;
       });
     }
-  }, [inBranch, branch, safePly, playSoundForPly, onPlyChange]);
+  }, [inBranch, branch, safePly, playSoundForPly, onPlyChange, onDragSetMove]);
   const goNext = useCallback(() => {
     if (branch && branchPly < branch.fens.length - 1) {
       const san = branch.sans[branchPly];
