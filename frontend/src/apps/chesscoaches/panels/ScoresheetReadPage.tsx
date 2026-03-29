@@ -1532,7 +1532,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
               const names = allModelNames || [];
               // Build model→move lookup
               const modelToMove: Record<string, string> = {};
-              const confByModel = details[0]?.confidenceByModel || {};
               for (const d of details) {
                 for (const m of (d.models || [])) modelToMove[m] = d.candidate;
               }
