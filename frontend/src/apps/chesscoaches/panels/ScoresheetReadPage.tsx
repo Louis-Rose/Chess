@@ -1577,33 +1577,53 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   {details.every(d => !d.chosen) && (
                     <p className="text-red-400 text-xs text-center">{t('coaches.voteAllIllegal')}</p>
                   )}
-                  {onConfirmMove && (finalMove || chosen) && (
-                    <div className="flex gap-2 mt-1">
-                      <button
-                        onClick={() => {
-                          const [mn, cl] = voteInfoKey.split('-');
-                          onConfirmMove(parseInt(mn), cl as 'white' | 'black');
-                          setVoteInfoKey(null);
-                        }}
-                        className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
-                      >
-                        Confirm {finalMove || chosen}
-                      </button>
-                      <button
-                        onClick={() => {
-                          const [mn, cl] = voteInfoKey.split('-');
-                          const idx = parseInt(mn) - 1;
-                          const val = moves[idx]?.[cl as 'white' | 'black'] || '';
-                          setEditFromVoteKey(voteInfoKey);
-                          setVoteInfoKey(null);
-                          setEditing({ moveIdx: idx, color: cl as 'white' | 'black', value: val });
-                        }}
-                        className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm py-2 rounded-lg transition-colors"
-                      >
-                        No, edit move
-                      </button>
-                    </div>
-                  )}
+                  {onConfirmMove && (finalMove || chosen) && (() => {
+                    const [mn, cl] = voteInfoKey.split('-');
+                    const moveIdx = parseInt(mn) - 1;
+                    const currentMove = finalMove || chosen;
+                    // Find legal alternative candidates (not the chosen one)
+                    const alternatives = details
+                      .filter(d => !d.chosen && d.downstreamIllegals < 100 && d.candidate !== currentMove)
+                      .map(d => d.candidate);
+                    return (
+                      <div className="flex flex-col gap-1.5 mt-1">
+                        <button
+                          onClick={() => {
+                            onConfirmMove(parseInt(mn), cl as 'white' | 'black');
+                            setVoteInfoKey(null);
+                          }}
+                          className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
+                        >
+                          Confirm {currentMove}
+                        </button>
+                        {alternatives.map(alt => (
+                          <button
+                            key={alt}
+                            onClick={() => {
+                              const updated = moves.map((m, i) => i === moveIdx ? { ...m, [cl]: alt } : m);
+                              onEditSave?.(updated, `${mn}-${cl}`);
+                              onConfirmMove(parseInt(mn), cl as 'white' | 'black');
+                              setVoteInfoKey(null);
+                            }}
+                            className="w-full bg-blue-700 hover:bg-blue-600 text-white text-sm py-2 rounded-lg transition-colors"
+                          >
+                            Choose {alt}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => {
+                            const val = moves[moveIdx]?.[cl as 'white' | 'black'] || '';
+                            setEditFromVoteKey(voteInfoKey);
+                            setVoteInfoKey(null);
+                            setEditing({ moveIdx, color: cl as 'white' | 'black', value: val });
+                          }}
+                          className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm py-2 rounded-lg transition-colors"
+                        >
+                          No, other move
+                        </button>
+                      </div>
+                    );
+                  })()}
                   <div className="flex items-center justify-center gap-4 text-[10px] text-slate-500 pt-1">
                     <span className="flex items-center gap-1 text-slate-100"><span className="text-green-400">&#10003;</span> legal move</span>
                     <span className="flex items-center gap-1 text-slate-100"><span className="text-red-400">&#10007;</span> illegal move</span>
