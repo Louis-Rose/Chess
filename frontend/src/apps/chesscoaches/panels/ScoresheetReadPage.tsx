@@ -79,6 +79,7 @@ export function ScoresheetReadPage() {
   const [processingCollapsed, setProcessingCollapsed] = useState(false);
   const [resultsCollapsed, setResultsCollapsed] = useState(false);
   const [modelsCollapsed, setModelsCollapsed] = useState(true);
+  const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null>(null);
   const [highlightHintDismissed, setHighlightHintDismissed] = useState(() => {
     const dismissed = localStorage.getItem('scoresheet_hint_dismissed');
     return dismissed === new Date().toISOString().split('T')[0];
@@ -707,6 +708,7 @@ export function ScoresheetReadPage() {
                               voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
                               allModelNames={modelNames}
                               onConfirmMove={allModelsFinished && !analyzing ? handleConfirmMove : undefined}
+                              onVoteStateChange={setVoteState}
                               onPreview={(moveIdx, color, san) => {
                                 try {
                                   const chess = new Chess();
@@ -726,7 +728,7 @@ export function ScoresheetReadPage() {
                             )}
                           </div>
                           <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag autoActivate={false} previewFen={consensusPreviewFen} highlightedPlies={hasResults && allModelsFinished ? (() => {
+                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} onDragSetMove={voteState ? (san) => { voteState.setEditValue(san); } : undefined} highlightedPlies={hasResults && allModelsFinished ? (() => {
                               const plies: number[] = [];
                               displayConsensusMoves.forEach((m, idx) => {
                                 const d = modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low';
@@ -1004,7 +1006,7 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
 let activeModelBoardId = 0;
 let nextModelBoardId = 0;
 
-function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate, previewFen, highlightedPlies }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; autoActivate?: boolean; previewFen?: string | null; highlightedPlies?: number[] }) {
+function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate, previewFen, highlightedPlies, onDragSetMove }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; autoActivate?: boolean; previewFen?: string | null; highlightedPlies?: number[]; onDragSetMove?: (san: string) => void }) {
   const { t } = useLanguage();
   const [instanceId] = useState(() => ++nextModelBoardId);
   const [ply, setPly] = useState(0);
@@ -1092,6 +1094,13 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       const newFen = chess.fen();
       const san = move.san;
 
+      // When vote modal is open, drag sets the vote value instead of branching
+      if (onDragSetMove) {
+        onDragSetMove(san);
+        playMoveSound(san.includes('x'));
+        return;
+      }
+
       // Check if matches next main-line move
       if (!inBranch && safePly < maxPly && entries[safePly + 1]?.san === san) {
         setPly(p => p + 1);
@@ -1113,7 +1122,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       }
       playMoveSound(san.includes('x'));
     } catch { /* invalid move */ }
-  }, [currentFen, inBranch, branch, branchPly, safePly, maxPly, entries]);
+  }, [currentFen, inBranch, branch, branchPly, safePly, maxPly, entries, onDragSetMove]);
 
   // Navigation
   const goPrev = useCallback(() => {
@@ -1255,7 +1264,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, onConfirmMove }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, onConfirmMove, onVoteStateChange }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1279,6 +1288,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   allModelNames?: string[];
   showMoveInfo?: boolean;
   onConfirmMove?: (moveNumber: number, color: 'white' | 'black') => void;
+  onVoteStateChange?: (state: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null) => void;
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
@@ -1305,6 +1315,21 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       return chess.moves().sort();
     } catch { return []; }
   }, [voteInfoKey, moves]);
+  // Notify parent when vote modal opens/closes (for board drag integration)
+  useEffect(() => {
+    if (!onVoteStateChange) return;
+    if (voteInfoKey) {
+      const [mn, cl] = voteInfoKey.split('-');
+      onVoteStateChange({
+        setEditValue: (san: string) => { setVoteEditValue(san); },
+        moveIdx: parseInt(mn) - 1,
+        color: cl as 'white' | 'black',
+      });
+    } else {
+      onVoteStateChange(null);
+    }
+  }, [voteInfoKey, onVoteStateChange]);
+
   const [moveInfoKey, setMoveInfoKey] = useState<string | null>(null);
   const hasIllegalMoves = moves.some(m => m.white_legal === false || m.black_legal === false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1581,19 +1606,20 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
         document.body
       )}
 
-      {/* Vote info modal */}
-      {voteInfoKey && voteDetails?.[voteInfoKey] && createPortal(
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center pl-64 bg-slate-900/60 backdrop-blur-[0.5px]"
-          onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }}
-        >
+      {/* Vote info panel (inline, not a portal overlay) */}
+      {voteInfoKey && voteDetails?.[voteInfoKey] && (
           <div
-            className="bg-slate-800 rounded-xl p-5 min-w-[300px] max-w-md shadow-xl border border-slate-600 space-y-3"
-            onClick={e => e.stopPropagation()}
+            className="bg-slate-800 rounded-xl p-5 min-w-[300px] max-w-md shadow-xl border border-slate-600 space-y-3 mt-3"
           >
-            <h3 className="text-slate-100 font-medium text-center">
-              {t('coaches.move')} {voteInfoKey.split('-')[0]} · {voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
-            </h3>
+            <div className="flex items-center justify-between">
+              <div />
+              <h3 className="text-slate-100 font-medium text-center">
+                {t('coaches.move')} {voteInfoKey.split('-')[0]} · {voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
+              </h3>
+              <button onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }} className="text-slate-500 hover:text-slate-300 transition-colors">
+                <span className="text-sm">✕</span>
+              </button>
+            </div>
             {(() => {
               const details = voteDetails[voteInfoKey];
               const [mn, cl] = voteInfoKey.split('-');
@@ -1816,8 +1842,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
               );
             })()}
           </div>
-        </div>,
-        document.body
       )}
 
       {/* Move info modal (for individual reads) */}
