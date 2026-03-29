@@ -1427,7 +1427,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       active={activePly === idx * 2 + 1}
                       reason={move.white_reason}
                       confidence={move.white_confidence}
-                      onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
+
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
                       onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setVoteEditValue(move.white || ''); onMoveClick?.(moves, idx * 2); } : undefined}
                       onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
@@ -1440,7 +1440,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       active={activePly === idx * 2 + 2}
                       reason={move.black_reason}
                       confidence={move.black_confidence}
-                      onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
+
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
                       onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setVoteEditValue(move.black || ''); onMoveClick?.(moves, idx * 2 + 1); } : undefined}
                       onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
@@ -2186,7 +2186,7 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselec
   );
 }
 
-function MoveCell({ value, legal, highlight, corrected, active, confidence, onEdit, onShowBoard, onVoteInfo, onMoveInfo }: {
+function MoveCell({ value, legal, highlight, corrected, active, confidence, onShowBoard, onVoteInfo, onMoveInfo }: {
   value: string;
   legal?: boolean;
   highlight?: boolean;
@@ -2194,12 +2194,10 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onEd
   active?: boolean;
   reason?: string;
   confidence?: 'high' | 'medium' | 'low';
-  onEdit: () => void;
   onShowBoard?: () => void;
   onVoteInfo?: () => void;
   onMoveInfo?: () => void;
 }) {
-  const { t } = useLanguage();
   const [showMenu, setShowMenu] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLTableCellElement>(null);
