@@ -1085,8 +1085,8 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       const newFen = chess.fen();
       const san = move.san;
 
-      // When vote modal is open, drag sets the vote value and creates a one-move branch
-      if (onDragSetMove) {
+      // When vote modal is open and not yet in a branch, set the vote value and create a one-move branch
+      if (onDragSetMove && !inBranch) {
         onDragSetMove(san);
         setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
         setBranchPly(1);
@@ -1109,6 +1109,8 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
           sans: [...branch.sans.slice(0, branchPly), san],
         });
         setBranchPly(branchPly + 1);
+        // Clear vote selection when extending beyond the first variation move
+        if (onDragSetMove) onDragSetMove('');
       } else {
         setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
         setBranchPly(1);
@@ -1804,6 +1806,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                 targetPly={voteInfoKey ? (() => { const [mn, cl] = voteInfoKey.split('-'); const idx = parseInt(mn) - 1; return cl === 'white' ? idx * 2 + 1 : idx * 2 + 2; })() : undefined}
                 targetLabel={voteInfoKey ? `Go to Move ${voteInfoKey.split('-')[0]} (${voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')})` : undefined}
                 onDragSetMove={(san) => {
+                  if (!san) { setVoteEditValue(null); onClearPreview?.(); return; }
                   setVoteEditValue(san);
                   if (voteInfoKey) {
                     const [mn, cl] = voteInfoKey.split('-');
