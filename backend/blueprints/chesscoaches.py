@@ -305,12 +305,6 @@ Extract ALL moves from the scoresheet and return them as a JSON object with this
   "result": "1-0, 0-1, 1/2-1/2, or * if unreadable/ongoing",
   "columns": 2,
   "rows_per_column": 15,
-  "grid": {
-    "top": 0.05,
-    "bottom": 0.95,
-    "tilt": -1.2,
-    "col_dividers": [0.0, 0.08, 0.28, 0.48, 0.55, 0.75, 1.0]
-  },
   "moves": [
     {"number": 1, "white": "e4", "white_confidence": "high", "black": "e5", "black_confidence": "high"},
     {"number": 2, "white": "Nf3", "white_confidence": "high", "black": "Nc6", "black_confidence": "medium"}
@@ -329,11 +323,6 @@ Rules:
 - For each move, include a confidence level: "high" (clearly readable), "medium" (somewhat ambiguous), or "low" (hard to read/guessing)
 - "columns": how many columns of moves the scoresheet has (usually 1, 2, or 3)
 - "rows_per_column": how many move rows fit in each column on the sheet
-- "grid": describes the layout of the moves grid as fractions of the image (0.0 to 1.0):
-  - "top": Y fraction where the first row of moves starts (below any header)
-  - "bottom": Y fraction where the last row of moves ends
-  - "tilt": rotation angle in degrees of the grid lines relative to horizontal. Positive = clockwise tilt, negative = counter-clockwise. 0 if the grid is perfectly straight. Typically between -5 and 5.
-  - "col_dividers": X fractions for each vertical divider in the grid, from left to right. For a 2-column scoresheet with columns [#, White, Black, #, White, Black], provide 7 values. For a 1-column scoresheet [#, White, Black], provide 4 values. Always starts with 0.0 and ends with 1.0.
 
 Return ONLY the JSON object, no other text."""
 

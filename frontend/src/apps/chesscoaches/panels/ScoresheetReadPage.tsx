@@ -355,28 +355,12 @@ export function ScoresheetReadPage() {
                 const rowsPerColumn = (anyResult as any)?.rows_per_column || null;
 
                 // Average grid boundaries across models that returned them
-                // Prefer Azure DI grid for active move highlight, fall back to Gemini
+                // Azure DI provides grid cell coordinates; no Gemini grid fallback
                 const gridData = (() => {
                   if (azureGrid && azureGrid.cells && Object.keys(azureGrid.cells).length > 0) {
                     return azureGrid;
                   }
-                  // Fallback: average Gemini grid estimates
-                  const grids = Object.values(modelResults)
-                    .map(r => (r?.result as any)?.grid)
-                    .filter((g): g is { top: number; bottom: number; tilt?: number; col_dividers: number[] } =>
-                      g && typeof g.top === 'number' && typeof g.bottom === 'number' && Array.isArray(g.col_dividers));
-                  if (grids.length === 0) return undefined;
-                  const top = grids.reduce((s, g) => s + g.top, 0) / grids.length;
-                  const bottom = grids.reduce((s, g) => s + g.bottom, 0) / grids.length;
-                  const tilts = grids.filter(g => typeof g.tilt === 'number').map(g => g.tilt!);
-                  const tilt = tilts.length > 0 ? tilts.reduce((s, t) => s + t, 0) / tilts.length : 0;
-                  const lenCounts = new Map<number, number>();
-                  grids.forEach(g => lenCounts.set(g.col_dividers.length, (lenCounts.get(g.col_dividers.length) || 0) + 1));
-                  const bestLen = [...lenCounts.entries()].sort((a, b) => b[1] - a[1])[0][0];
-                  const matching = grids.filter(g => g.col_dividers.length === bestLen);
-                  const col_dividers = Array.from({ length: bestLen }, (_, i) =>
-                    matching.reduce((s, g) => s + g.col_dividers[i], 0) / matching.length);
-                  return { top, bottom, tilt, col_dividers };
+                  return undefined;
                 })();
 
                 // Compute cross-model disagreements
@@ -973,67 +957,10 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                       />
                     );
                   }
-                } else if (gridData && gridData.col_dividers.length >= 4) {
-                  // Gemini grid: use col_dividers
-                  const { top, bottom, col_dividers } = gridData;
-                  const scaledNH = imgSize.nh * scale;
-                  const gridTop = top * scaledNH;
-                  const gridHeight = (bottom - top) * scaledNH;
-                  const rowHeight = gridHeight / rows;
-
-                  const divsPerCol = Math.floor(col_dividers.length / Math.max(sheetColumns, 1));
-                  const colOffset = sheetCol * divsPerCol;
-                  const whiteIdx = colOffset + 1;
-                  const blackIdx = colOffset + 2;
-                  const colEndIdx = colOffset + divsPerCol;
-
-                  const x = (isBlack ? col_dividers[blackIdx] : col_dividers[whiteIdx]) * displayW;
-                  const xEnd = (isBlack ? col_dividers[colEndIdx] : col_dividers[blackIdx]) * displayW;
-                  const y = gridTop + rowInCol * rowHeight;
-
-                  const tiltDeg = gridData.tilt || 0;
-                  const padY = rowHeight * 0.2;
-                  const padX = (xEnd - x) * 0.2;
-                  return (
-                    <div
-                      className="absolute pointer-events-none rounded-sm transition-all duration-200"
-                      style={{
-                        left: x - padX,
-                        top: y - padY,
-                        width: (xEnd - x) + padX * 2,
-                        height: rowHeight + padY * 2,
-                        backgroundColor: 'rgba(59, 130, 246, 0.3)',
-                        border: '2px solid rgba(59, 130, 246, 0.7)',
-                        transform: tiltDeg ? `rotate(${tiltDeg}deg)` : undefined,
-                        transformOrigin: 'left center',
-                      }}
-                    />
-                  );
                 }
 
-                // Fallback: even grid division using scaled natural dimensions
-                const scaledNH = imgSize.nh * scale;
-                const cols = Math.max(sheetColumns, 1);
-                const colWidth = displayW / cols;
-                const rowHeight = scaledNH / rows;
-                const numWidth = colWidth * 0.15;
-                const cellWidth = (colWidth - numWidth) / 2;
-                const x = sheetCol * colWidth + numWidth + (isBlack ? cellWidth : 0);
-                const y = rowInCol * rowHeight;
-
-                return (
-                  <div
-                    className="absolute pointer-events-none rounded-sm transition-all duration-200"
-                    style={{
-                      left: x,
-                      top: y,
-                      width: cellWidth,
-                      height: rowHeight,
-                      backgroundColor: 'rgba(59, 130, 246, 0.3)',
-                      border: '2px solid rgba(59, 130, 246, 0.7)',
-                    }}
-                  />
-                );
+                // No Azure data — no highlight
+                return null;
               })()}
               {/* Azure DI debug overlay — show all detected cell boundaries */}
               {azureDebug && imgSize && (() => {
