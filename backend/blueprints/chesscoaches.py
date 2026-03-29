@@ -269,9 +269,9 @@ def _gemini_generate(client_free, client_paid, model_id, contents, config=None):
 
 
 SCORESHEET_MODELS = [
-    {"id": "gemini-3-flash-preview", "name": "Gemini 3 Flash"},
-    {"id": "gemini-3.1-pro-preview", "name": "Gemini 3.1 Pro"},
-    {"id": "gemini-3.1-flash-lite-preview", "name": "Gemini 3.1 Flash-Lite"},
+    {"id": "gemini-3-flash-preview", "name": "Reader 1"},
+    {"id": "gemini-3.1-pro-preview", "name": "Reader 2"},
+    {"id": "gemini-3.1-flash-lite-preview", "name": "Reader 3"},
 ]
 
 SCORESHEET_READ_PROMPT = """You are analyzing a handwritten chess tournament scoresheet image.
