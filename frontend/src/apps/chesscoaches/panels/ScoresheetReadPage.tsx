@@ -935,8 +935,8 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
 
                   const tiltDeg = gridData.tilt || 0;
                   // Add padding to be more forgiving of imprecise grid detection
-                  const padY = rowHeight * 0.15;
-                  const padX = (xEnd - x) * 0.15;
+                  const padY = rowHeight * 0.2;
+                  const padX = (xEnd - x) * 0.2;
                   return (
                     <div
                       className="absolute pointer-events-none rounded-sm transition-all duration-200"
