@@ -1722,7 +1722,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       </div>
                       <div className="mt-2 pt-2 border-t border-slate-600/50 space-y-2">
                         <p className="text-xs text-slate-400 text-center">Or enter a different move</p>
-                          <MoveSuggestions legalMoves={voteLegalMoves} color={cl as 'white' | 'black'} value={voteEditValue} reason={moves[moveIdx]?.[`${cl}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
+                          <MoveSuggestions legalMoves={voteLegalMoves} color={cl as 'white' | 'black'} value={voteEditValue || ''} reason={moves[moveIdx]?.[`${cl}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
                             setVoteEditValue(san);
                             onPreview?.(moveIdx, cl as 'white' | 'black', san);
                             playMoveSound(san.includes('x'));
