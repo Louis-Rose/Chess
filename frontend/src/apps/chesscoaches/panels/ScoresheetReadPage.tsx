@@ -354,6 +354,25 @@ export function ScoresheetReadPage() {
                 const sheetColumns = (anyResult as any)?.columns || 1;
                 const rowsPerColumn = (anyResult as any)?.rows_per_column || null;
 
+                // Average grid boundaries across models that returned them
+                const gridData = (() => {
+                  const grids = Object.values(modelResults)
+                    .map(r => (r?.result as any)?.grid)
+                    .filter((g): g is { top: number; bottom: number; col_dividers: number[] } =>
+                      g && typeof g.top === 'number' && typeof g.bottom === 'number' && Array.isArray(g.col_dividers));
+                  if (grids.length === 0) return undefined;
+                  const top = grids.reduce((s, g) => s + g.top, 0) / grids.length;
+                  const bottom = grids.reduce((s, g) => s + g.bottom, 0) / grids.length;
+                  // Average col_dividers — use the most common length
+                  const lenCounts = new Map<number, number>();
+                  grids.forEach(g => lenCounts.set(g.col_dividers.length, (lenCounts.get(g.col_dividers.length) || 0) + 1));
+                  const bestLen = [...lenCounts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+                  const matching = grids.filter(g => g.col_dividers.length === bestLen);
+                  const col_dividers = Array.from({ length: bestLen }, (_, i) =>
+                    matching.reduce((s, g) => s + g.col_dividers[i], 0) / matching.length);
+                  return { top, bottom, col_dividers };
+                })();
+
                 // Compute cross-model disagreements
                 const allModelMovesForDisagreement = models
                   .map(m => modelResults[m.id]?.result?.moves)
@@ -624,7 +643,7 @@ export function ScoresheetReadPage() {
                       setModelBoardPlys(p => { const rest = { ...p }; delete rest[consensusId]; return rest; });
                     };
                     return (
-                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length}>
+                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData}>
                         {consensusReady && !highlightHintDismissed && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)) && (
                           <div className="flex justify-center mb-3">
                             <div className="inline-flex items-center gap-2 bg-slate-700/40 rounded-lg px-3 py-1.5">
@@ -818,7 +837,7 @@ interface PlyEntry {
   san?: string;
 }
 
-function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number }) {
+function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; col_dividers: number[] } }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
@@ -884,7 +903,6 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
               {/* Highlight overlay for active move */}
               {activePly != null && activePly > 0 && totalMoves && imgSize && (() => {
                 const rows = rowsPerColumn || Math.ceil(totalMoves / Math.max(sheetColumns, 1));
-                const cols = Math.max(sheetColumns, 1);
                 const moveIdx = Math.floor((activePly - 1) / 2); // 0-based move index
                 const isBlack = activePly % 2 === 0;
                 const sheetCol = Math.floor(moveIdx / rows); // which column on the sheet
@@ -893,14 +911,47 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                 const imgW = imgSize.w;
                 const imgH = imgSize.h;
 
-                // Each sheet column contains: move number + white cell + black cell
-                // So horizontally: cols groups, each with 3 sub-cells (number, white, black)
+                if (gridData && gridData.col_dividers.length >= 4) {
+                  // Use AI-detected grid boundaries
+                  const { top, bottom, col_dividers } = gridData;
+                  const gridTop = top * imgH;
+                  const gridHeight = (bottom - top) * imgH;
+                  const rowHeight = gridHeight / rows;
+
+                  // col_dividers defines boundaries: for 2-col sheet [0, #1end, w1end, b1end, #2start, w2end, b2end]
+                  // Each sheet column has 3 sub-dividers: [numStart, whiteStart, blackStart, colEnd]
+                  const divsPerCol = Math.floor(col_dividers.length / Math.max(sheetColumns, 1));
+                  const colOffset = sheetCol * divsPerCol;
+                  // Within each column group: index 0=num start, 1=white start, 2=black start, 3=next col start
+                  const whiteIdx = colOffset + 1;
+                  const blackIdx = colOffset + 2;
+                  const colEndIdx = colOffset + divsPerCol;
+
+                  const x = (isBlack ? col_dividers[blackIdx] : col_dividers[whiteIdx]) * imgW;
+                  const xEnd = (isBlack ? col_dividers[colEndIdx] : col_dividers[blackIdx]) * imgW;
+                  const y = gridTop + rowInCol * rowHeight;
+
+                  return (
+                    <div
+                      className="absolute pointer-events-none rounded-sm transition-all duration-200"
+                      style={{
+                        left: x,
+                        top: y,
+                        width: xEnd - x,
+                        height: rowHeight,
+                        backgroundColor: 'rgba(59, 130, 246, 0.3)',
+                        border: '2px solid rgba(59, 130, 246, 0.7)',
+                      }}
+                    />
+                  );
+                }
+
+                // Fallback: even grid division
+                const cols = Math.max(sheetColumns, 1);
                 const colWidth = imgW / cols;
                 const rowHeight = imgH / rows;
-                // Within a column: ~15% for move number, ~42.5% white, ~42.5% black
                 const numWidth = colWidth * 0.15;
                 const cellWidth = (colWidth - numWidth) / 2;
-
                 const x = sheetCol * colWidth + numWidth + (isBlack ? cellWidth : 0);
                 const y = rowInCol * rowHeight;
 
