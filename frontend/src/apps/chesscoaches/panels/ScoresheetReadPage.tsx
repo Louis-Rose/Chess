@@ -1786,15 +1786,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       </div>
                       <div className="mt-2 pt-2 border-t border-slate-600/50 space-y-2">
                         <p className="text-xs text-slate-100 text-center">Or play a move on the board</p>
-                          <MoveSuggestions legalMoves={voteLegalMoves.filter(m => !greenMoves.includes(m))} color={cl as 'white' | 'black'} value={voteEditValue || ''} reason={moves[moveIdx]?.[`${cl}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
-                            setVoteEditValue(san);
-                            onPreview?.(moveIdx, cl as 'white' | 'black', san);
-                            playMoveSound(san.includes('x'));
-                          }} onDeselect={() => {
-                            const orig = moves[moveIdx]?.[cl as 'white' | 'black'] || '';
-                            setVoteEditValue(orig);
-                            onClearPreview?.();
-                          }} />
                           <button
                             onClick={() => {
                               if (!onEditSave || !voteEditValue) return;
