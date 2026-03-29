@@ -709,6 +709,10 @@ export function ScoresheetReadPage() {
                               allModelNames={modelNames}
                               onConfirmMove={allModelsFinished && !analyzing ? handleConfirmMove : undefined}
                               onVoteStateChange={setVoteState}
+                              boardMoves={displayConsensusMoves}
+                              boardPly={modelBoardPlys[consensusId]?.ply}
+                              onBoardPlyChange={handleConsensusBoardPly}
+                              boardPreviewFen={consensusPreviewFen}
                               onPreview={(moveIdx, color, san) => {
                                 try {
                                   const chess = new Chess();
@@ -728,7 +732,7 @@ export function ScoresheetReadPage() {
                             )}
                           </div>
                           <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} onDragSetMove={voteState ? (san) => { voteState.setEditValue(san); } : undefined} highlightedPlies={hasResults && allModelsFinished ? (() => {
+                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag autoActivate={false} previewFen={consensusPreviewFen} highlightedPlies={hasResults && allModelsFinished ? (() => {
                               const plies: number[] = [];
                               displayConsensusMoves.forEach((m, idx) => {
                                 const d = modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low';
@@ -1264,7 +1268,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, onConfirmMove, onVoteStateChange }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, onConfirmMove, onVoteStateChange, boardMoves, boardPly, onBoardPlyChange, boardPreviewFen }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1289,6 +1293,10 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   showMoveInfo?: boolean;
   onConfirmMove?: (moveNumber: number, color: 'white' | 'black') => void;
   onVoteStateChange?: (state: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null) => void;
+  boardMoves?: Move[];
+  boardPly?: number;
+  onBoardPlyChange?: (ply: number) => void;
+  boardPreviewFen?: string | null;
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
@@ -1606,20 +1614,19 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
         document.body
       )}
 
-      {/* Vote info panel (inline, not a portal overlay) */}
-      {voteInfoKey && voteDetails?.[voteInfoKey] && (
+      {/* Vote info modal with integrated board */}
+      {voteInfoKey && voteDetails?.[voteInfoKey] && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-[1px]"
+          onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }}
+        >
+          <div className="flex gap-4 items-start" onClick={e => e.stopPropagation()}>
           <div
-            className="bg-slate-800 rounded-xl p-5 min-w-[300px] max-w-md shadow-xl border border-slate-600 space-y-3 mt-3"
+            className="bg-slate-800 rounded-xl p-5 min-w-[300px] max-w-md shadow-xl border border-slate-600 space-y-3"
           >
-            <div className="flex items-center justify-between">
-              <div />
-              <h3 className="text-slate-100 font-medium text-center">
-                {t('coaches.move')} {voteInfoKey.split('-')[0]} · {voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
-              </h3>
-              <button onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }} className="text-slate-500 hover:text-slate-300 transition-colors">
-                <span className="text-sm">✕</span>
-              </button>
-            </div>
+            <h3 className="text-slate-100 font-medium text-center">
+              {t('coaches.move')} {voteInfoKey.split('-')[0]} · {voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
+            </h3>
             {(() => {
               const details = voteDetails[voteInfoKey];
               const [mn, cl] = voteInfoKey.split('-');
@@ -1842,6 +1849,23 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
               );
             })()}
           </div>
+          {/* Integrated board inside the modal */}
+          {boardMoves && (
+            <div className="hidden md:block">
+              <ModelBoard
+                moves={boardMoves}
+                externalPly={boardPly}
+                onPlyChange={onBoardPlyChange}
+                disableDrag={false}
+                autoActivate={false}
+                previewFen={boardPreviewFen}
+                onDragSetMove={(san) => { setVoteEditValue(san); }}
+              />
+            </div>
+          )}
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Move info modal (for individual reads) */}
