@@ -355,11 +355,8 @@ export function ScoresheetReadPage() {
                 const rowsPerColumn = (anyResult as any)?.rows_per_column || null;
 
                 // Average grid boundaries across models that returned them
-                // Prefer Azure DI grid (precise cell bounding boxes) over Gemini's estimated grid
+                // Use Gemini grid estimates for active move highlight (Azure grid used for debug overlay only)
                 const gridData = (() => {
-                  if (azureGrid && azureGrid.col_dividers.length >= 4) {
-                    return azureGrid;
-                  }
                   // Fallback: average Gemini grid estimates
                   const grids = Object.values(modelResults)
                     .map(r => (r?.result as any)?.grid)
@@ -668,7 +665,7 @@ export function ScoresheetReadPage() {
                       setModelBoardPlys(p => { const rest = { ...p }; delete rest[consensusId]; return rest; });
                     };
                     return (
-                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData}>
+                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData} azureDebug={azureGrid}>
                         {allModelsFinished && !highlightHintDismissed && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)) && (
                           <div className="flex justify-center mb-3">
                             <div className="inline-flex items-center gap-2 bg-slate-700/40 rounded-lg px-3 py-1.5">
@@ -862,7 +859,7 @@ interface PlyEntry {
   san?: string;
 }
 
-function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; col_count?: number; row_count?: number; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }> } }) {
+function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData, azureDebug }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[] }; azureDebug?: { cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; tilt?: number } | null }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgSize, setImgSize] = useState<{ w: number; h: number; nw: number; nh: number } | null>(null);
@@ -938,44 +935,7 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                 const displayW = imgSize.w;
                 const scale = displayW / imgSize.nw; // scale factor (width-based for object-cover)
 
-                if (gridData && gridData.cells) {
-                  // Azure DI: direct per-cell bounding boxes
-                  const azureCols = gridData.col_count || 6;
-                  const colsPerSheet = Math.floor(azureCols / Math.max(sheetColumns, 1)); // typically 3
-                  const azureCol = sheetCol * colsPerSheet + (isBlack ? 2 : 1);
-                  const hasHeader = gridData.row_count ? gridData.row_count > rows : false;
-                  const azureRow = rowInCol + (hasHeader ? 1 : 0);
-                  const cell = gridData.cells[`${azureRow}-${azureCol}`];
-
-                  if (cell) {
-                    const scaledNH = imgSize.nh * scale;
-                    const x = cell.x1 * displayW;
-                    const y = cell.y1 * scaledNH;
-                    // Clamp width: use next column's left edge if available
-                    const nextCell = gridData.cells[`${azureRow}-${azureCol + 1}`];
-                    const maxX2 = nextCell ? nextCell.x1 : cell.x2;
-                    const w = (Math.min(cell.x2, maxX2) - cell.x1) * displayW;
-                    const h = (cell.y2 - cell.y1) * scaledNH;
-                    const tiltDeg = gridData.tilt || 0;
-                    const padY = h * 0.1;
-                    const padX = w * 0.1;
-                    return (
-                      <div
-                        className="absolute pointer-events-none rounded-sm transition-all duration-200"
-                        style={{
-                          left: x - padX,
-                          top: y - padY,
-                          width: w + padX * 2,
-                          height: h + padY * 2,
-                          backgroundColor: 'rgba(59, 130, 246, 0.3)',
-                          border: '2px solid rgba(59, 130, 246, 0.7)',
-                          transform: tiltDeg ? `rotate(${tiltDeg}deg)` : undefined,
-                          transformOrigin: 'left center',
-                        }}
-                      />
-                    );
-                  }
-                } else if (gridData && gridData.col_dividers.length >= 4) {
+                if (gridData && gridData.col_dividers.length >= 4) {
                   // Gemini grid: use col_dividers
                   const { top, bottom, col_dividers } = gridData;
                   const scaledNH = imgSize.nh * scale;
@@ -1037,8 +997,35 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                   />
                 );
               })()}
+              {/* Azure DI debug overlay — show all detected cell boundaries */}
+              {azureDebug && imgSize && (() => {
+                const scale = imgSize.w / imgSize.nw;
+                const scaledNH = imgSize.nh * scale;
+                return Object.entries(azureDebug.cells || {}).map(([key, cell]) => {
+                  const [r, c] = key.split('-').map(Number);
+                  const x = cell.x1 * imgSize.w;
+                  const y = cell.y1 * scaledNH;
+                  const w = (cell.x2 - cell.x1) * imgSize.w;
+                  const h = (cell.y2 - cell.y1) * scaledNH;
+                  return (
+                    <div
+                      key={key}
+                      className="absolute pointer-events-none"
+                      style={{ left: x, top: y, width: w, height: h, border: '1px solid rgba(239, 68, 68, 0.6)' }}
+                    >
+                      <span className="absolute top-0 left-0 text-[8px] text-red-400 bg-slate-900/70 px-0.5 leading-tight">{r},{c}</span>
+                    </div>
+                  );
+                });
+              })()}
             </div>
             {fileName && <span className="text-slate-100 text-sm mt-2 truncate max-w-[200px]">{fileName}</span>}
+            {azureDebug && (
+              <div className="text-[10px] text-slate-500 mt-1 text-center space-y-0.5">
+                <p>Azure DI: {azureDebug.row_count} rows × {azureDebug.col_count} cols · tilt {azureDebug.tilt ?? 0}°</p>
+                <p>{Object.keys(azureDebug.cells || {}).length} cells detected</p>
+              </div>
+            )}
           </div>
         </div>
       )}

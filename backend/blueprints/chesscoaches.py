@@ -956,11 +956,11 @@ def read_scoresheet():
         t.start()
         threads.append(t)
 
-    # Azure DI grid detection disabled — results were inaccurate
-    # azure_thread = threading.Thread(target=run_azure_grid)
-    # azure_thread.start()
-    # threads.append(azure_thread)
-    total_threads = len(SCORESHEET_MODELS)
+    # Azure DI grid detection — for debug visualization
+    azure_thread = threading.Thread(target=run_azure_grid)
+    azure_thread.start()
+    threads.append(azure_thread)
+    total_threads = len(SCORESHEET_MODELS) + 1
 
     def generate():
         yield f"data: {json_module.dumps({'type': 'models', 'models': _enrich_models_with_avg()})}\n\n"
