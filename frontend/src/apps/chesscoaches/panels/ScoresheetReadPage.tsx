@@ -1764,7 +1764,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                         ))}
                       </div>
                       <div className="mt-2 pt-2 border-t border-slate-600/50 space-y-2">
-                        <p className="text-xs text-slate-400 text-center">Or enter a different move</p>
+                        <p className="text-xs text-slate-100 text-center">Or enter a different move</p>
                           <MoveSuggestions legalMoves={voteLegalMoves.filter(m => !greenMoves.includes(m))} color={cl as 'white' | 'black'} value={voteEditValue || ''} reason={moves[moveIdx]?.[`${cl}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
                             setVoteEditValue(san);
                             onPreview?.(moveIdx, cl as 'white' | 'black', san);
@@ -1793,10 +1793,10 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                               setVoteInfoKey(null);
                               onClearPreview?.();
                             }}
-                            disabled={!voteEditValue}
-                            className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm py-2 rounded-lg transition-colors"
+                            disabled={!voteEditValue || greenMoves.includes(voteEditValue)}
+                            className={`w-full text-sm py-2 rounded-lg transition-colors ${!voteEditValue || greenMoves.includes(voteEditValue) ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
                           >
-                            Confirm {voteEditValue}
+                            {voteEditValue && !greenMoves.includes(voteEditValue) ? `Confirm ${voteEditValue}` : 'Confirm'}
                           </button>
                         </div>
                     </>);
