@@ -355,8 +355,11 @@ export function ScoresheetReadPage() {
                 const rowsPerColumn = (anyResult as any)?.rows_per_column || null;
 
                 // Average grid boundaries across models that returned them
-                // Use Gemini grid estimates for active move highlight (Azure grid used for debug overlay only)
+                // Prefer Azure DI grid for active move highlight, fall back to Gemini
                 const gridData = (() => {
+                  if (azureGrid && azureGrid.cells && Object.keys(azureGrid.cells).length > 0) {
+                    return azureGrid;
+                  }
                   // Fallback: average Gemini grid estimates
                   const grids = Object.values(modelResults)
                     .map(r => (r?.result as any)?.grid)
@@ -935,7 +938,42 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                 const displayW = imgSize.w;
                 const scale = displayW / imgSize.nw; // scale factor (width-based for object-cover)
 
-                if (gridData && gridData.col_dividers.length >= 4) {
+                if (gridData && gridData.cells) {
+                  // Azure DI: direct per-cell bounding boxes
+                  // Azure detects data columns only (W, B, W, B) — no move number columns
+                  const azureCols = gridData.col_count || 4;
+                  const colsPerSheet = Math.floor(azureCols / Math.max(sheetColumns, 1)); // typically 2
+                  const azureCol = sheetCol * colsPerSheet + (isBlack ? 1 : 0);
+                  const hasHeader = gridData.row_count ? gridData.row_count > rows : false;
+                  const azureRow = rowInCol + (hasHeader ? 1 : 0);
+                  const cell = gridData.cells[`${azureRow}-${azureCol}`];
+
+                  if (cell) {
+                    const scaledNH = imgSize.nh * scale;
+                    const x = cell.x1 * displayW;
+                    const y = cell.y1 * scaledNH;
+                    const w = (cell.x2 - cell.x1) * displayW;
+                    const h = (cell.y2 - cell.y1) * scaledNH;
+                    const tiltDeg = gridData.tilt || 0;
+                    const padY = h * 0.1;
+                    const padX = w * 0.1;
+                    return (
+                      <div
+                        className="absolute pointer-events-none rounded-sm transition-all duration-200"
+                        style={{
+                          left: x - padX,
+                          top: y - padY,
+                          width: w + padX * 2,
+                          height: h + padY * 2,
+                          backgroundColor: 'rgba(59, 130, 246, 0.3)',
+                          border: '2px solid rgba(59, 130, 246, 0.7)',
+                          transform: tiltDeg ? `rotate(${tiltDeg}deg)` : undefined,
+                          transformOrigin: 'left center',
+                        }}
+                      />
+                    );
+                  }
+                } else if (gridData && gridData.col_dividers.length >= 4) {
                   // Gemini grid: use col_dividers
                   const { top, bottom, col_dividers } = gridData;
                   const scaledNH = imgSize.nh * scale;
