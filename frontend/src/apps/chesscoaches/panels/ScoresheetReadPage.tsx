@@ -890,12 +890,12 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
           style={{ top: 0, bottom: 0, left: 0, width: tablesLeft - 8 }}
         >
           <div className="flex flex-col items-center">
-            <div className="relative">
+            <div className="relative overflow-hidden rounded-xl">
               <img
                 ref={imgRef}
                 src={preview}
                 alt="Scoresheet"
-                className="rounded-xl object-cover object-top cursor-pointer hover:opacity-90 transition-opacity"
+                className="object-cover object-top cursor-pointer hover:opacity-90 transition-opacity"
                 style={{ maxHeight: tbodyHeight }}
                 onClick={onImageClick}
                 onLoad={() => { if (imgRef.current) setImgSize({ w: imgRef.current.clientWidth, h: imgRef.current.clientHeight }); }}
