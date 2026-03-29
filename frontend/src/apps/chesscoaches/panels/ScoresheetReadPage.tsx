@@ -1303,24 +1303,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   const [showIllegalModal, setShowIllegalModal] = useState(false);
   const [voteInfoKey, setVoteInfoKey] = useState<string | null>(null);
   const [voteEditValue, setVoteEditValue] = useState<string | null>(null); // inline edit within vote modal
-  const voteLegalMoves = useMemo(() => {
-    if (!voteInfoKey) return [];
-    const [mn, cl] = voteInfoKey.split('-');
-    const moveIdx = parseInt(mn) - 1;
-    try {
-      const chess = new Chess();
-      for (let i = 0; i < moveIdx; i++) {
-        const m = moves[i];
-        if (m.white) try { chess.move(m.white); } catch { break; }
-        if (m.black) try { chess.move(m.black); } catch { break; }
-      }
-      if (cl === 'black') {
-        const m = moves[moveIdx];
-        if (m?.white) try { chess.move(m.white); } catch { /* */ }
-      }
-      return chess.moves().sort();
-    } catch { return []; }
-  }, [voteInfoKey, moves]);
   // Notify parent when vote modal opens/closes (for board drag integration)
   useEffect(() => {
     if (!onVoteStateChange) return;
