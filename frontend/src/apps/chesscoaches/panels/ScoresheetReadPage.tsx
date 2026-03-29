@@ -1748,7 +1748,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                                   onConfirmMove(parseInt(mn), cl as 'white' | 'black');
                                   setVoteInfoKey(null); setVoteEditValue(null);
                                 }}
-                                className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
+                                disabled={voteEditValue !== candidate && voteEditValue !== currentMove && voteEditValue !== null}
+                                className={`flex-1 text-sm py-2 rounded-lg transition-colors ${voteEditValue !== candidate && voteEditValue !== currentMove && voteEditValue !== null ? 'bg-emerald-900/50 text-emerald-400/50 cursor-not-allowed' : 'bg-emerald-700 hover:bg-emerald-600 text-white'}`}
                               >
                                 Confirm {candidate}
                               </button>
@@ -1760,7 +1761,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                               onConfirmMove(parseInt(mn), cl as 'white' | 'black');
                               setVoteInfoKey(null);
                             }}
-                            className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
+                            disabled={voteEditValue !== currentMove && voteEditValue !== null}
+                            className={`w-full text-sm py-2 rounded-lg transition-colors ${voteEditValue !== currentMove && voteEditValue !== null ? 'bg-emerald-900/50 text-emerald-400/50 cursor-not-allowed' : 'bg-emerald-700 hover:bg-emerald-600 text-white'}`}
                           >
                             Confirm {currentMove}
                           </button>
