@@ -1081,7 +1081,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
   return (
     <div className="flex flex-col items-center w-[480px]" onClick={activate}>
-      {hlPlies.length > 0 && (
+      {hlPlies.length > 0 ? (
         <div className="flex items-center gap-2 mb-1.5 w-full justify-center">
           <button
             onClick={goPrevHighlight}
@@ -1102,7 +1102,14 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
-      )}
+      ) : highlightedPlies && moves.length > 0 ? (
+        <div className="flex items-center gap-2 mb-1.5 w-full justify-center">
+          <span className="text-sm text-emerald-400 inline-flex items-center gap-1.5">
+            <Check className="w-4 h-4" />
+            Verification complete — PGN is ready
+          </span>
+        </div>
+      ) : null}
       <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={disableDrag ? undefined : handleUserMove} highlightSquares={ambiguousSquares} />
       <div className="flex justify-center gap-1.5 mt-1.5 w-full">
         <button onClick={goFirst} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
