@@ -1708,12 +1708,13 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     // Determine button state based on board position
                     const targetMovePly = cl === 'white' ? moveIdx * 2 + 1 : moveIdx * 2 + 2;
                     const boardAtTarget = boardPly === targetMovePly;
-                    const isUserMove = voteEditValue && !greenMoves.includes(voteEditValue);
+                    // Button state: blue (user picked a different move), green (consensus/matching), gray (no selection)
+                    const userPickedDifferent = voteEditValue && voteEditValue !== currentMove;
 
                     return (<>
                       <div className="flex flex-col gap-1.5 mt-1">
                         <p className="text-xs text-slate-100 text-center">Confirm move, or play another move on the board</p>
-                        {isUserMove ? (
+                        {voteEditValue && userPickedDifferent ? (
                           // Blue — user played a different move on the board
                           <button
                             onClick={() => {
@@ -1738,23 +1739,30 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                           >
                             Pick {voteEditValue}
                           </button>
-                        ) : boardAtTarget ? (
-                          // Green — board shows the consensus move
+                        ) : voteEditValue ? (
+                          // Green — user confirmed the consensus move (or navigated back to it)
                           <button
                             onClick={() => {
-                              if (voteEditValue && voteEditValue !== currentMove && greenMoves.includes(voteEditValue)) {
-                                const updated = moves.map((m, i) => i === moveIdx ? { ...m, [cl]: voteEditValue } : m);
-                                onEditSave?.(updated, `${mn}-${cl}`);
-                              }
                               onConfirmMove(parseInt(mn), cl as 'white' | 'black');
                               setVoteInfoKey(null); setVoteEditValue(null);
                             }}
                             className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
                           >
-                            Confirm {voteEditValue || currentMove}
+                            Confirm {currentMove}
+                          </button>
+                        ) : boardAtTarget ? (
+                          // Green — board at the right ply, no variation played
+                          <button
+                            onClick={() => {
+                              onConfirmMove(parseInt(mn), cl as 'white' | 'black');
+                              setVoteInfoKey(null); setVoteEditValue(null);
+                            }}
+                            className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
+                          >
+                            Confirm {currentMove}
                           </button>
                         ) : (
-                          // Gray — board is at a different ply
+                          // Gray — board navigated away, no selection
                           <button disabled className="w-full text-sm py-2 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
                             Confirm
                           </button>
