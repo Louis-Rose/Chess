@@ -1429,7 +1429,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.white_confidence}
                       onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
-                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); onMoveClick?.(moves, idx * 2); } : undefined}
+                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setVoteEditValue(move.white || ''); onMoveClick?.(moves, idx * 2); } : undefined}
                       onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
                     />
                     <MoveCell
@@ -1442,7 +1442,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.black_confidence}
                       onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
-                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); onMoveClick?.(moves, idx * 2 + 1); } : undefined}
+                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setVoteEditValue(move.black || ''); onMoveClick?.(moves, idx * 2 + 1); } : undefined}
                       onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
                     />
                   </>;
@@ -1719,18 +1719,9 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                             Choose {alt}
                           </button>
                         ))}
-                        <button
-                          onClick={() => {
-                            const val = moves[moveIdx]?.[cl as 'white' | 'black'] || '';
-                            setVoteEditValue(voteEditValue !== null ? null : val);
-                          }}
-                          className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm py-2 rounded-lg transition-colors"
-                        >
-                          {voteEditValue !== null ? 'Cancel edit' : 'No, other move'}
-                        </button>
                       </div>
-                      {voteEditValue !== null && (
-                        <div className="mt-2 pt-2 border-t border-slate-600/50 space-y-2">
+                      <div className="mt-2 pt-2 border-t border-slate-600/50 space-y-2">
+                        <p className="text-xs text-slate-400 text-center">Or enter a different move</p>
                           <MoveSuggestions legalMoves={voteLegalMoves} color={cl as 'white' | 'black'} value={voteEditValue} reason={moves[moveIdx]?.[`${cl}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
                             setVoteEditValue(san);
                             onPreview?.(moveIdx, cl as 'white' | 'black', san);
@@ -1765,7 +1756,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                             {t('coaches.save')} {voteEditValue}
                           </button>
                         </div>
-                      )}
                     </>);
                   })()}
                   <div className="flex items-center justify-center gap-4 text-[10px] text-slate-500 pt-1">
