@@ -243,8 +243,9 @@ export function ScoresheetReadPage() {
               {/* New scoresheet button — top of results */}
               <div className="flex justify-center">
                 <button
-                  onClick={() => { scoresheetClear(); fileInputRef.current?.click(); }}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
+                  onClick={() => { if (!analyzing) { scoresheetClear(); fileInputRef.current?.click(); } }}
+                  disabled={analyzing}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm ${analyzing ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
                 >
                   <Upload className="w-4 h-4" />
                   {t('coaches.replaceImage')}
