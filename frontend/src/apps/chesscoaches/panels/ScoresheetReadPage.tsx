@@ -1839,7 +1839,14 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                 disableDrag={false}
                 autoActivate
                 previewFen={boardPreviewFen}
-                onDragSetMove={(san) => { setVoteEditValue(san); }}
+                onDragSetMove={(san) => {
+                  setVoteEditValue(san);
+                  // Also trigger preview to show the position after this move
+                  if (voteInfoKey) {
+                    const [mn, cl] = voteInfoKey.split('-');
+                    onPreview?.(parseInt(mn) - 1, cl as 'white' | 'black', san);
+                  }
+                }}
               />
             </div>
           )}
@@ -2174,6 +2181,10 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselec
     if (!value) return null;
     return getPieceKey(value);
   });
+  // Sync piece filter when value changes externally (e.g., drag on board)
+  useEffect(() => {
+    if (value) setPieceFilter(getPieceKey(value));
+  }, [value]);
   const isWhite = color === 'white';
 
   // Extract suggested moves from ambiguous reason (e.g., "Ambiguous (N5h4/N3h4) → N5h4")
