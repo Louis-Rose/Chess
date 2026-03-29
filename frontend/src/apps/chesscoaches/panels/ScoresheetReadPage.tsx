@@ -78,7 +78,7 @@ export function ScoresheetReadPage() {
 
   const [processingCollapsed, setProcessingCollapsed] = useState(false);
   const [resultsCollapsed, setResultsCollapsed] = useState(false);
-  const [modelsCollapsed, setModelsCollapsed] = useState(false);
+  const [modelsCollapsed, setModelsCollapsed] = useState(true);
   const [highlightHintDismissed, setHighlightHintDismissed] = useState(() => {
     const dismissed = localStorage.getItem('scoresheet_hint_dismissed');
     return dismissed === new Date().toISOString().split('T')[0];
@@ -323,18 +323,7 @@ export function ScoresheetReadPage() {
                 </div>
               )}
 
-              {/* Re-analyze button — between Processing and Results */}
-              {!analyzing && preview && models.length > 0 && (
-                <div className="flex justify-center py-2">
-                  <button
-                    onClick={() => { activeModelBoardId = 0; scoresheetStartOneRead(); }}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    {t('coaches.reanalyze')}
-                  </button>
-                </div>
-              )}
+              {/* Re-analyze button — hidden for now */}
 
               {/* Results: consensus + individual reads */}
               {models.length > 0 && (() => {
@@ -687,7 +676,16 @@ export function ScoresheetReadPage() {
                             )}
                           </div>
                           <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={consensusReady ? displayConsensusMoves : []} externalPly={consensusReady ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={consensusReady ? handleConsensusBoardPly : () => {}} disableDrag autoActivate={false} previewFen={consensusPreviewFen} />
+                            <ModelBoard moves={consensusReady ? displayConsensusMoves : []} externalPly={consensusReady ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={consensusReady ? handleConsensusBoardPly : () => {}} disableDrag autoActivate={false} previewFen={consensusPreviewFen} highlightedPlies={consensusReady ? (() => {
+                              const plies: number[] = [];
+                              displayConsensusMoves.forEach((m, idx) => {
+                                const d = modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low';
+                                const dBlack = modelDisagreements.has(`${m.number}-black`) || !!m.black_reason || m.black_legal === false || m.black_confidence === 'low';
+                                if (d && !(m as any).white_confirmed) plies.push(idx * 2 + 1);
+                                if (dBlack && m.black && !(m as any).black_confirmed) plies.push(idx * 2 + 2);
+                              });
+                              return plies;
+                            })() : undefined} />
                           </div>
                         </div>
                       </ModelRow>
@@ -706,7 +704,7 @@ export function ScoresheetReadPage() {
                       onClick={() => setModelsCollapsed(c => !c)}
                       className="w-full flex items-center justify-center gap-2 px-6 py-3 hover:bg-slate-700/30 transition-colors"
                     >
-                      <span className="text-base text-slate-100 font-medium">{t('coaches.individualReads') || 'Individual model reads'}</span>
+                      <span className="text-base text-slate-100 font-medium">{t('coaches.individualReads') || 'See Individual Reads'}</span>
                       <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${modelsCollapsed ? '' : 'rotate-180'}`} />
                     </button>
                     {!modelsCollapsed && (
@@ -879,7 +877,7 @@ function ModelRow({ preview, onImageClick, onReplace, replaceLabel, fileName, ch
 let activeModelBoardId = 0;
 let nextModelBoardId = 0;
 
-function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate, previewFen }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; autoActivate?: boolean; previewFen?: string | null }) {
+function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate, previewFen, highlightedPlies }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; autoActivate?: boolean; previewFen?: string | null; highlightedPlies?: number[] }) {
   const { t } = useLanguage();
   const [instanceId] = useState(() => ++nextModelBoardId);
   const [ply, setPly] = useState(0);
@@ -1043,8 +1041,55 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     return () => window.removeEventListener('keydown', handler);
   }, [instanceId, goPrev, goNext, goFirst, goLast]);
 
+  // Highlighted move navigation
+  const hlPlies = highlightedPlies || [];
+  const currentHlIndex = hlPlies.findIndex(p => p === safePly);
+  const isOnHighlighted = currentHlIndex !== -1;
+  const goNextHighlight = useCallback(() => {
+    if (hlPlies.length === 0) return;
+    // Find the next highlighted ply after the current position
+    const next = hlPlies.find(p => p > safePly);
+    const target = next !== undefined ? next : hlPlies[0]; // wrap around
+    exitBranch();
+    setPly(target);
+    playSoundForPly(target);
+    onPlyChange?.(target);
+  }, [hlPlies, safePly, exitBranch, playSoundForPly, onPlyChange]);
+  const goPrevHighlight = useCallback(() => {
+    if (hlPlies.length === 0) return;
+    // Find the previous highlighted ply before the current position
+    const prev = [...hlPlies].reverse().find(p => p < safePly);
+    const target = prev !== undefined ? prev : hlPlies[hlPlies.length - 1]; // wrap around
+    exitBranch();
+    setPly(target);
+    playSoundForPly(target);
+    onPlyChange?.(target);
+  }, [hlPlies, safePly, exitBranch, playSoundForPly, onPlyChange]);
+
   return (
     <div className="flex flex-col items-center w-[480px]" onClick={activate}>
+      {hlPlies.length > 0 && (
+        <div className="flex items-center gap-2 mb-1.5 w-full justify-center">
+          <button
+            onClick={goPrevHighlight}
+            className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-yellow-400 rounded-lg transition-colors flex items-center justify-center"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-sm text-yellow-400">
+            {isOnHighlighted
+              ? `Highlighted ${currentHlIndex + 1} / ${hlPlies.length}`
+              : `${hlPlies.length} highlighted move${hlPlies.length > 1 ? 's' : ''}`
+            }
+          </span>
+          <button
+            onClick={goNextHighlight}
+            className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-yellow-400 rounded-lg transition-colors flex items-center justify-center"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={disableDrag ? undefined : handleUserMove} highlightSquares={ambiguousSquares} />
       <div className="flex justify-center gap-1.5 mt-1.5 w-full">
         <button onClick={goFirst} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
