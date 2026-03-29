@@ -1672,10 +1672,12 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
               // Also check consensus-level legality for the final move
               const moveObj = moves[parseInt(moveNumStr) - 1];
               const consensusIllegal = moveObj?.[`${colorStr}_legal` as 'white_legal' | 'black_legal'] === false;
+              // The consensus move (before validation) — if illegal, any matching reader move is also illegal
+              const consensusMove = chosen;
               const legalMark = (move?: string) => {
                 if (!move) return null;
-                // If this is the final/chosen move and consensus flagged it illegal, show red
-                if ((move === finalMove || move === chosen) && consensusIllegal) {
+                // If consensus is illegal and this move matches it (same notation), show red
+                if (consensusIllegal && move.replace(/[+#x]/g, '') === consensusMove?.replace(/[+#x]/g, '')) {
                   return <span className="text-red-400 text-[10px] ml-1">&#10007;</span>;
                 }
                 const illegal = candidateIllegal[move];
