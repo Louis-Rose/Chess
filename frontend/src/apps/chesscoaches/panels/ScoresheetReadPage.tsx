@@ -1837,7 +1837,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                 externalPly={boardPly}
                 onPlyChange={onBoardPlyChange}
                 disableDrag={false}
-                autoActivate={false}
+                autoActivate
                 previewFen={boardPreviewFen}
                 onDragSetMove={(san) => { setVoteEditValue(san); }}
               />
