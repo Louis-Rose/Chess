@@ -1696,7 +1696,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     const alternatives = details
                       .filter(d => !d.chosen && d.downstreamIllegals < 100 && d.candidate !== currentMove)
                       .map(d => d.candidate);
-                    return (
+                    return (<>
                       <div className="flex flex-col gap-1.5 mt-1">
                         <button
                           onClick={() => {
@@ -1768,7 +1768,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                           </button>
                         </div>
                       )}
-                    );
+                    </>);
                   })()}
                   <div className="flex items-center justify-center gap-4 text-[10px] text-slate-500 pt-1">
                     <span className="flex items-center gap-1 text-slate-100"><span className="text-green-400">&#10003;</span> legal move</span>
