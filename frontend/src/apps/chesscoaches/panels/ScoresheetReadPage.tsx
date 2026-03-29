@@ -1306,7 +1306,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
     } catch { return []; }
   }, [voteInfoKey, moves]);
   const [moveInfoKey, setMoveInfoKey] = useState<string | null>(null);
-  const [showPass2Details, setShowPass2Details] = useState(false);
   const hasIllegalMoves = moves.some(m => m.white_legal === false || m.black_legal === false);
   const inputRef = useRef<HTMLInputElement>(null);
   const rereadStartRef = useRef<number | null>(null);
@@ -1430,7 +1429,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.white_confidence}
                       onEdit={() => { setEditing({ moveIdx: idx, color: 'white', value: move.white }); onMoveClick?.(moves, idx * 2 + 1); }}
                       onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
-                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setShowPass2Details(false); onMoveClick?.(moves, idx * 2); } : undefined}
+                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); onMoveClick?.(moves, idx * 2); } : undefined}
                       onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
                     />
                     <MoveCell
@@ -1443,7 +1442,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       confidence={move.black_confidence}
                       onEdit={() => { if (move.black !== undefined) { setEditing({ moveIdx: idx, color: 'black', value: move.black || '' }); onMoveClick?.(moves, idx * 2 + 2); } }}
                       onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
-                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setShowPass2Details(false); onMoveClick?.(moves, idx * 2 + 1); } : undefined}
+                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); onMoveClick?.(moves, idx * 2 + 1); } : undefined}
                       onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
                     />
                   </>;
@@ -1495,7 +1494,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
           >
             {editFromVoteKey && (
               <button
-                onClick={() => { setEditing(null); onClearPreview?.(); setVoteInfoKey(editFromVoteKey); setEditFromVoteKey(null); setShowPass2Details(false); }}
+                onClick={() => { setEditing(null); onClearPreview?.(); setVoteInfoKey(editFromVoteKey); setEditFromVoteKey(null); }}
                 className="text-slate-400 hover:text-slate-200 text-xs mb-2 transition-colors"
               >
                 &larr; Back to votes
@@ -1626,7 +1625,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                 for (const m of (d.models || [])) modelToMove[m] = d.candidate;
               }
               const chosen = details.find(d => d.chosen)?.candidate;
-              const pass1Choice = details[0]?.pass1Choice;
               // Look up the final post-validation move (disambiguation etc.)
               const [moveNumStr, colorStr] = voteInfoKey.split('-');
               const finalMove = moves[parseInt(moveNumStr) - 1]?.[colorStr as 'white' | 'black'];
