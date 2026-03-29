@@ -1643,15 +1643,9 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                           </tr>
                         );
                       })}
-                      {/* Consensus rows */}
-                      {pass1Choice && (
-                        <tr className="border-b border-slate-700/50">
-                          <td className="py-1.5 px-2 text-slate-100 text-xs">Consensus (Pass 1)</td>
-                          <td className="py-1.5 px-2 text-center font-mono text-slate-100">{pass1Choice}{legalMark(pass1Choice)}</td>
-                        </tr>
-                      )}
-                      <tr className={`border-b border-slate-700/50 ${details.length > 1 ? 'cursor-pointer hover:bg-slate-700/30' : ''}`} onClick={details.length > 1 ? () => setShowPass2Details(p => !p) : undefined}>
-                        <td className="py-1.5 px-2 text-slate-100 text-xs font-medium">Consensus (Pass 2) {details.length > 1 && <span className="text-slate-500 text-[10px]">{showPass2Details ? '▲' : '▼'}</span>}</td>
+                      {/* Consensus row */}
+                      <tr className="border-b border-slate-700/50">
+                        <td className="py-1.5 px-2 text-slate-100 text-xs font-medium">{t('coaches.consensus')}</td>
                         <td className="py-1.5 px-2 text-center font-mono">
                           {postValidationChanged
                             ? <span className="text-slate-100">{chosen}{legalMark(chosen)}</span>
@@ -1672,17 +1666,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       )}
                     </tbody>
                   </table>
-                  {details.length > 1 && showPass2Details && (
-                    <div className="text-xs text-slate-500 space-y-1">
-                      <span className="text-slate-400 font-medium">Pass 2 details</span>
-                      {details.map(d => (
-                        <div key={d.candidate} className="flex justify-between px-2">
-                          <span className="font-mono text-slate-400">{d.candidate}</span>
-                          <span>{d.downstreamIllegals >= 100 ? <span className="text-red-400">{t('coaches.voteItselfIllegal')}</span> : <span>results in {d.downstreamIllegals} illegal {d.downstreamIllegals === 1 ? 'move' : 'moves'}</span>}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                   {details.every(d => !d.chosen) && (
                     <p className="text-red-400 text-xs text-center">{t('coaches.voteAllIllegal')}</p>
                   )}
