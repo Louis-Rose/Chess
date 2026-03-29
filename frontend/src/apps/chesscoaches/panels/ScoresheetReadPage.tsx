@@ -1286,6 +1286,25 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   const [liveElapsed, setLiveElapsed] = useState(0);
   const [showIllegalModal, setShowIllegalModal] = useState(false);
   const [voteInfoKey, setVoteInfoKey] = useState<string | null>(null);
+  const [voteEditValue, setVoteEditValue] = useState<string | null>(null); // inline edit within vote modal
+  const voteLegalMoves = useMemo(() => {
+    if (!voteInfoKey) return [];
+    const [mn, cl] = voteInfoKey.split('-');
+    const moveIdx = parseInt(mn) - 1;
+    try {
+      const chess = new Chess();
+      for (let i = 0; i < moveIdx; i++) {
+        const m = moves[i];
+        if (m.white) try { chess.move(m.white); } catch { break; }
+        if (m.black) try { chess.move(m.black); } catch { break; }
+      }
+      if (cl === 'black') {
+        const m = moves[moveIdx];
+        if (m?.white) try { chess.move(m.white); } catch { /* */ }
+      }
+      return chess.moves().sort();
+    } catch { return []; }
+  }, [voteInfoKey, moves]);
   const [moveInfoKey, setMoveInfoKey] = useState<string | null>(null);
   const [showPass2Details, setShowPass2Details] = useState(false);
   const hasIllegalMoves = moves.some(m => m.white_legal === false || m.black_legal === false);
@@ -1567,7 +1586,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {voteInfoKey && voteDetails?.[voteInfoKey] && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center pl-64 bg-slate-900/60 backdrop-blur-[0.5px]"
-          onClick={() => setVoteInfoKey(null)}
+          onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }}
         >
           <div
             className="bg-slate-800 rounded-xl p-5 min-w-[300px] max-w-md shadow-xl border border-slate-600 space-y-3"
@@ -1695,7 +1714,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                               const updated = moves.map((m, i) => i === moveIdx ? { ...m, [cl]: alt } : m);
                               onEditSave?.(updated, `${mn}-${cl}`);
                               onConfirmMove(parseInt(mn), cl as 'white' | 'black');
-                              setVoteInfoKey(null);
+                              setVoteInfoKey(null); setVoteEditValue(null);
                             }}
                             className="w-full bg-blue-700 hover:bg-blue-600 text-white text-sm py-2 rounded-lg transition-colors"
                           >
@@ -1705,15 +1724,50 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                         <button
                           onClick={() => {
                             const val = moves[moveIdx]?.[cl as 'white' | 'black'] || '';
-                            setEditFromVoteKey(voteInfoKey);
-                            setVoteInfoKey(null);
-                            setEditing({ moveIdx, color: cl as 'white' | 'black', value: val });
+                            setVoteEditValue(voteEditValue !== null ? null : val);
                           }}
                           className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm py-2 rounded-lg transition-colors"
                         >
-                          No, other move
+                          {voteEditValue !== null ? 'Cancel edit' : 'No, other move'}
                         </button>
                       </div>
+                      {voteEditValue !== null && (
+                        <div className="mt-2 pt-2 border-t border-slate-600/50 space-y-2">
+                          <MoveSuggestions legalMoves={voteLegalMoves} color={cl as 'white' | 'black'} value={voteEditValue} reason={moves[moveIdx]?.[`${cl}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
+                            setVoteEditValue(san);
+                            onPreview?.(moveIdx, cl as 'white' | 'black', san);
+                            playMoveSound(san.includes('x'));
+                          }} onDeselect={() => {
+                            const orig = moves[moveIdx]?.[cl as 'white' | 'black'] || '';
+                            setVoteEditValue(orig);
+                            onClearPreview?.();
+                          }} />
+                          <button
+                            onClick={() => {
+                              if (!onEditSave || !voteEditValue) return;
+                              const confirmed: Move[] = moves.map((m, i) => {
+                                const mc = { ...m };
+                                if (i === moveIdx) {
+                                  mc[cl as 'white' | 'black'] = voteEditValue;
+                                  (mc as any)[`${cl}_confirmed`] = true;
+                                  delete (mc as any)[`${cl}_reason`];
+                                }
+                                delete mc.white_legal;
+                                delete mc.black_legal;
+                                return mc;
+                              });
+                              onEditSave(confirmed, `${mn}-${cl}`);
+                              setVoteEditValue(null);
+                              setVoteInfoKey(null);
+                              onClearPreview?.();
+                            }}
+                            disabled={!voteEditValue}
+                            className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm py-2 rounded-lg transition-colors"
+                          >
+                            {t('coaches.save')} {voteEditValue}
+                          </button>
+                        </div>
+                      )}
                     );
                   })()}
                   <div className="flex items-center justify-center gap-4 text-[10px] text-slate-500 pt-1">
