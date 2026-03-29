@@ -245,7 +245,7 @@ export function ScoresheetReadPage() {
                 <button
                   onClick={() => { if (!analyzing) { scoresheetClear(); fileInputRef.current?.click(); } }}
                   disabled={analyzing}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm ${analyzing ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors text-sm ${analyzing ? 'bg-slate-800 border-slate-600 text-slate-600 cursor-not-allowed' : 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-300'}`}
                 >
                   <Upload className="w-4 h-4" />
                   {t('coaches.replaceImage')}
