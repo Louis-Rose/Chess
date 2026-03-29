@@ -913,7 +913,6 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                 // object-cover object-top: image is scaled to fill width, cropped from bottom
                 // We need to compute positions relative to the natural image, then scale to displayed size
                 const displayW = imgSize.w;
-                const displayH = imgSize.h;
                 const scale = displayW / imgSize.nw; // scale factor (width-based for object-cover)
 
                 if (gridData && gridData.col_dividers.length >= 4) {
