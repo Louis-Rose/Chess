@@ -1097,10 +1097,10 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     if (inBranch) {
       setBranchPly(p => {
         if (p <= 1) {
-          setBranch(null);
+          // Keep branch in memory (branchPly=0 means we're at the branch start)
+          // so pressing next can re-enter the variation
           playSoundForPly(safePly);
           if (onDragSetMove) {
-            // Clear vote selection and preview, sync parent ply
             onDragSetMove('');
             onPlyChange?.(safePly);
           }
@@ -1108,13 +1108,14 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         }
         const san = branch?.sans[p - 2];
         if (san) playMoveSound(san.includes('x'));
-        // When going back to the first variation move, restore the vote selection
         if (p - 1 === 1 && onDragSetMove && branch?.sans[0]) {
           onDragSetMove(branch.sans[0]);
         }
         return p - 1;
       });
     } else {
+      // Moving away from branch start — destroy the branch
+      if (branch) setBranch(null);
       setPly(p => {
         const newP = Math.max(0, p - 1);
         if (newP !== p) { playSoundForPly(p); onPlyChange?.(newP); }
@@ -1126,15 +1127,24 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     if (branch && branchPly < branch.fens.length - 1) {
       const san = branch.sans[branchPly];
       if (san) playMoveSound(san.includes('x'));
+      // Restore vote value when re-entering the branch at move 1
+      if (branchPly === 0 && onDragSetMove && branch.sans[0]) {
+        onDragSetMove(branch.sans[0]);
+      }
+      // Clear vote value when going past the first variation move
+      if (branchPly >= 1 && onDragSetMove) {
+        onDragSetMove('');
+      }
       setBranchPly(p => p + 1);
-    } else if (!inBranch) {
+    } else if (!inBranch && !branch) {
+      // Only advance mainline if there's no branch to re-enter
       setPly(p => {
         const newP = Math.min(maxPly, p + 1);
         if (newP !== p) { playSoundForPly(newP); onPlyChange?.(newP); }
         return newP;
       });
     }
-  }, [branch, branchPly, inBranch, maxPly, playSoundForPly, onPlyChange]);
+  }, [branch, branchPly, inBranch, maxPly, playSoundForPly, onPlyChange, onDragSetMove]);
 
   const goFirst = useCallback(() => {
     exitBranch(); setPly(p => { if (p !== 0) { playSoundForPly(p); onPlyChange?.(0); } return 0; });
