@@ -1512,7 +1512,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   <p className="text-yellow-400 text-sm text-center">
                     {isIllegalMove && 'Illegal move'}
                     {isIllegalMove && hasDisagreement && ' · '}
-                    {hasDisagreement && 'Models disagree'}
+                    {hasDisagreement && 'Readers disagree'}
                     {(isIllegalMove || hasDisagreement) && isAutoResolved && ' · '}
                     {isAutoResolved && (ambiguousCandidates ? `Ambiguous move : ${ambiguousCandidates} ?` : 'Auto-fixed')}
                   </p>
