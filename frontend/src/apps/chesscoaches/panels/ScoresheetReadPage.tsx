@@ -1673,7 +1673,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   const ch = new Chess();
                   for (let i = 0; i < moveIdx; i++) {
                     if (moves[i].white) try { ch.move(moves[i].white); } catch { break; }
-                    if (moves[i].black) try { ch.move(moves[i].black); } catch { break; }
+                    if (moves[i].black) try { ch.move(moves[i].black!); } catch { break; }
                   }
                   if (colorStr === 'black' && moves[moveIdx]?.white) {
                     try { ch.move(moves[moveIdx].white); } catch { /* */ }
@@ -1698,7 +1698,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     <tbody>
                       {names.map(name => {
                         const move = modelToMove[name];
-                        const illegal = move ? candidateIllegal[move] : false;
+                        const illegal = move && legalCheckChess ? (() => { try { legalCheckChess.move(move); legalCheckChess.undo(); return false; } catch { return true; } })() : false;
                         return (
                           <tr key={name} className={`border-b border-slate-700/50 ${illegal ? 'opacity-40' : ''}`}>
                             <td className="py-1.5 px-2 text-slate-100 text-xs">{name}</td>
