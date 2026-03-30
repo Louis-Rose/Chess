@@ -939,8 +939,8 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                     const w = (cell.x2 - cell.x1) * displayW;
                     const h = (cell.y2 - cell.y1) * scaledNH;
                     const tiltDeg = gridData.tilt || 0;
-                    const padY = h * 0.1;
-                    const padX = w * 0.1;
+                    const padY = h * 0.2;
+                    const padX = w * 0.2;
                     return (
                       <div
                         className="absolute pointer-events-none rounded-sm transition-all duration-200"
@@ -1698,8 +1698,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             const cell = gridData.cells[`${azureRow}-${azureCol}`];
             if (!cell) return null;
             // Expand crop area with padding
-            const padX = (cell.x2 - cell.x1) * 0.5;
-            const padY = (cell.y2 - cell.y1) * 0.5;
+            const padX = (cell.x2 - cell.x1) * 0.2;
+            const padY = (cell.y2 - cell.y1) * 0.2;
             const cx1 = Math.max(0, cell.x1 - padX);
             const cy1 = Math.max(0, cell.y1 - padY);
             const cx2 = Math.min(1, cell.x2 + padX);
