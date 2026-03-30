@@ -1141,6 +1141,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         onDragSetMove(san);
         setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
         setBranchPly(1);
+        onPlyChange?.(safePly + 1);
         playMoveSound(san.includes('x'));
         return;
       }
