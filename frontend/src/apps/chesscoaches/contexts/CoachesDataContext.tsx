@@ -529,7 +529,8 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
         buffer = lines.pop() || '';
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
-          const payload = JSON.parse(line.slice(6));
+          let payload;
+          try { payload = JSON.parse(line.slice(6)); } catch { console.warn('[Scoresheet] Failed to parse SSE line:', line); continue; }
           console.log(`[Scoresheet] SSE event:`, payload.type, payload.model_id || '');
           if (payload.type === 'models') {
             setScoresheet(prev => ({ ...prev, models: payload.models, startTime: Date.now() }));
