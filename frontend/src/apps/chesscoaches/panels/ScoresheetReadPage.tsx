@@ -1235,13 +1235,15 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
               <ChevronLeft className="w-4 h-4" /> Previous
             </button>
             <div className="flex-1 py-2.5 bg-slate-700 rounded-lg flex items-center justify-center px-2">
-              {safePly > 0 ? (
-                <span className="text-sm text-slate-100">
-                  {t('coaches.move')} {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')})
-                </span>
-              ) : (
-                <span className="text-sm text-slate-400">Start</span>
-              )}
+              {(() => {
+                const displayPly = inBranch ? (branch!.startPly + branchPly) : safePly;
+                if (displayPly <= 0) return <span className="text-sm text-slate-400">Start</span>;
+                return (
+                  <span className="text-sm text-slate-100">
+                    {t('coaches.move')} {Math.ceil(displayPly / 2)} ({displayPly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')})
+                  </span>
+                );
+              })()}
             </div>
             <button onClick={goNext} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm">
               Next <ChevronRight className="w-4 h-4" />
@@ -1292,11 +1294,6 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
               {currentIllegal.reason && <p className="text-red-400">{currentIllegal.reason}</p>}
             </>
           )}
-        </div>
-      )}
-      {inBranch && (
-        <div className="flex items-center gap-2 text-xs text-amber-400 mt-1">
-          <span>{t('coaches.variation')} ({branch!.sans.length} {branch!.sans.length > 1 ? t('coaches.variationMovesPlural') : t('coaches.variationMoves')})</span>
         </div>
       )}
     </div>
@@ -1816,7 +1813,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                             }}
                             className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm py-2 rounded-lg transition-colors"
                           >
-                            Pick {voteEditValue}
+                            Pick {voteEditValue} instead
                           </button>
                         ) : boardAtTarget ? (
                           // Green — board is at the highlighted move's position

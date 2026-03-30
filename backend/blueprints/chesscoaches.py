@@ -274,24 +274,33 @@ SCORESHEET_MODELS = [
     {"id": "gemini-3.1-flash-lite-preview", "name": "Reader 3"},
 ]
 
-def _get_model_avg_elapsed():
-    """Get average elapsed seconds per model for scoresheet reads (rounded up)."""
+def _get_model_avg_elapsed(user_id=None):
+    """Get average elapsed seconds per model for scoresheet reads (rounded up), optionally filtered by user."""
     import math
     try:
         with get_db() as conn:
-            rows = conn.execute(
-                """SELECT model_id, AVG(elapsed_seconds) as avg_elapsed
-                   FROM api_usage
-                   WHERE feature = 'scoresheet' AND error IS NULL AND elapsed_seconds > 0
-                   GROUP BY model_id"""
-            ).fetchall()
+            if user_id:
+                rows = conn.execute(
+                    """SELECT model_id, AVG(elapsed_seconds) as avg_elapsed
+                       FROM api_usage
+                       WHERE feature = 'scoresheet' AND error IS NULL AND elapsed_seconds > 0 AND user_id = ?
+                       GROUP BY model_id""",
+                    (user_id,)
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """SELECT model_id, AVG(elapsed_seconds) as avg_elapsed
+                       FROM api_usage
+                       WHERE feature = 'scoresheet' AND error IS NULL AND elapsed_seconds > 0
+                       GROUP BY model_id"""
+                ).fetchall()
             return {r['model_id']: int(math.ceil(r['avg_elapsed'])) for r in rows}
     except Exception:
         return {}
 
-def _enrich_models_with_avg():
+def _enrich_models_with_avg(user_id=None):
     """Return SCORESHEET_MODELS with avg_elapsed field added."""
-    avgs = _get_model_avg_elapsed()
+    avgs = _get_model_avg_elapsed(user_id)
     return [{**m, "avg_elapsed": avgs.get(m["id"])} for m in SCORESHEET_MODELS]
 
 SCORESHEET_READ_PROMPT = """You are analyzing a handwritten chess tournament scoresheet image.
@@ -697,7 +706,7 @@ def read_diagram():
         threads.append(t)
 
     def generate():
-        yield f"data: {json_module.dumps({'type': 'models', 'models': _enrich_models_with_avg()})}\n\n"
+        yield f"data: {json_module.dumps({'type': 'models', 'models': _enrich_models_with_avg(uid)})}\n\n"
 
         threads_done = 0
         while threads_done < len(SCORESHEET_MODELS):
@@ -952,7 +961,7 @@ def read_scoresheet():
     total_threads = len(SCORESHEET_MODELS) + 1
 
     def generate():
-        yield f"data: {json_module.dumps({'type': 'models', 'models': _enrich_models_with_avg()})}\n\n"
+        yield f"data: {json_module.dumps({'type': 'models', 'models': _enrich_models_with_avg(uid)})}\n\n"
 
         threads_done = 0
         while threads_done < total_threads:
