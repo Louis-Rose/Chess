@@ -11,6 +11,10 @@ export default {
         shimmer: {
           '100%': { transform: 'translateX(100%)' },
         },
+        'loading-pulse': {
+          '0%, 100%': { opacity: '0.3' },
+          '50%': { opacity: '0.15' },
+        },
       },
     },
   },

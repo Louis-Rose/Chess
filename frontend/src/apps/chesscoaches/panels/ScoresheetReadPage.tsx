@@ -1455,7 +1455,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {error && <p className="text-red-400 text-center py-3 text-xs px-2 break-words max-w-sm mx-auto">{error}</p>}
 
       {/* Moves table */}
-      <div className={`${loading ? 'opacity-50 pointer-events-none animate-pulse' : ''}`}>
+      <div className={`${loading ? 'pointer-events-none animate-[loading-pulse_2s_ease-in-out_infinite]' : ''}`}>
       {moves.length > 0 && (() => {
         const split = sheetColumns > 1 || moves.length > 15;
         const splitAt = split ? (rowsPerColumn || Math.ceil(moves.length / sheetColumns)) : moves.length;
