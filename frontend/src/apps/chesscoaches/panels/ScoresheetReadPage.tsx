@@ -10,6 +10,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { PanelShell } from '../components/PanelShell';
 import { UploadBox } from '../components/UploadBox';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { useCoachesData, getCoachesPrefs, saveCoachesPrefs } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
 import { BoardPreview } from '../components/BoardPreview';
@@ -33,6 +34,7 @@ function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result
 
 export function ScoresheetReadPage() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
@@ -664,7 +666,7 @@ export function ScoresheetReadPage() {
                               </div>
                             ) : (
                             <MovesPanel
-                              label={!allModelsFinished || analyzing ? `${t('coaches.consensus')} · Waiting on ${pendingReaders} reader${pendingReaders > 1 ? 's' : ''}...` : t('coaches.consensus')}
+                              label={!allModelsFinished || analyzing ? `Waiting on ${pendingReaders} reader${pendingReaders > 1 ? 's' : ''}...` : t('coaches.consensus')}
                               moves={displayConsensusMoves}
 
                               disagreements={(() => {
@@ -740,8 +742,8 @@ export function ScoresheetReadPage() {
 
 
 
-                  {/* Individual model reads — collapsible */}
-                  <div className="flex justify-center">
+                  {/* Individual model reads — collapsible, admin only */}
+                  {user?.is_admin ? <div className="flex justify-center">
                   <div className="border border-slate-600/50 rounded-xl overflow-hidden inline-block">
                     <button
                       onClick={() => setModelsCollapsed(c => !c)}
@@ -790,7 +792,7 @@ export function ScoresheetReadPage() {
                       </div>
                     )}
                   </div>
-                  </div>
+                  </div> : null}
 
                   {/* Azure DI section — disabled, kept for future use */}
 
@@ -1049,51 +1051,6 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     if (p > 0 && entries[p]?.san) playMoveSound(entries[p].san!.includes('x'));
   }, [entries]);
 
-  // Handle user move (drag & drop)
-  const handleUserMove = useCallback((from: string, to: string) => {
-    try {
-      const chess = new Chess(currentFen);
-      const move = chess.move({ from, to, promotion: 'q' });
-      if (!move) return;
-      const newFen = chess.fen();
-      const san = move.san;
-
-      // Check if matches next main-line move
-      if (!inBranch && safePly < maxPly && entries[safePly + 1]?.san === san) {
-        if (onDragSetMove) onDragSetMove(san);
-        setPly(p => p + 1);
-        onPlyChange?.(safePly + 1);
-        playMoveSound(san.includes('x'));
-        return;
-      }
-
-      // When vote modal is open and not yet in a branch, set the vote value and create a one-move branch
-      if (onDragSetMove && !inBranch) {
-        onDragSetMove(san);
-        setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
-        setBranchPly(1);
-        playMoveSound(san.includes('x'));
-        return;
-      }
-
-      // Diverges — create or extend branch
-      if (inBranch && branch) {
-        setBranch({
-          ...branch,
-          fens: [...branch.fens.slice(0, branchPly + 1), newFen],
-          sans: [...branch.sans.slice(0, branchPly), san],
-        });
-        setBranchPly(branchPly + 1);
-        // Clear vote selection when extending beyond the first variation move
-        if (onDragSetMove) onDragSetMove('');
-      } else {
-        setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
-        setBranchPly(1);
-      }
-      playMoveSound(san.includes('x'));
-    } catch { /* invalid move */ }
-  }, [currentFen, inBranch, branch, branchPly, safePly, maxPly, entries, onDragSetMove]);
-
   // Navigation
   const goPrev = useCallback(() => {
     if (inBranch) {
@@ -1154,6 +1111,57 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
   const goLast = useCallback(() => {
     exitBranch(); setPly(p => { if (p !== maxPly) { playSoundForPly(maxPly); onPlyChange?.(maxPly); } return maxPly; });
   }, [exitBranch, maxPly, playSoundForPly, onPlyChange]);
+
+  // Handle user move (drag & drop)
+  const handleUserMove = useCallback((from: string, to: string) => {
+    // Detect reverse of last move (dragging piece back) → go previous
+    const lastMove = inBranch && branch ? null : entries[safePly]?.lastMove;
+    if (lastMove && from === lastMove.to && to === lastMove.from) {
+      goPrev();
+      return;
+    }
+    try {
+      const chess = new Chess(currentFen);
+      const move = chess.move({ from, to, promotion: 'q' });
+      if (!move) return;
+      const newFen = chess.fen();
+      const san = move.san;
+
+      // Check if matches next main-line move
+      if (!inBranch && safePly < maxPly && entries[safePly + 1]?.san === san) {
+        if (onDragSetMove) onDragSetMove(san);
+        setPly(p => p + 1);
+        onPlyChange?.(safePly + 1);
+        playMoveSound(san.includes('x'));
+        return;
+      }
+
+      // When vote modal is open and not yet in a branch, set the vote value and create a one-move branch
+      if (onDragSetMove && !inBranch) {
+        onDragSetMove(san);
+        setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
+        setBranchPly(1);
+        playMoveSound(san.includes('x'));
+        return;
+      }
+
+      // Diverges — create or extend branch
+      if (inBranch && branch) {
+        setBranch({
+          ...branch,
+          fens: [...branch.fens.slice(0, branchPly + 1), newFen],
+          sans: [...branch.sans.slice(0, branchPly), san],
+        });
+        setBranchPly(branchPly + 1);
+        // Clear vote selection when extending beyond the first variation move
+        if (onDragSetMove) onDragSetMove('');
+      } else {
+        setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
+        setBranchPly(1);
+      }
+      playMoveSound(san.includes('x'));
+    } catch { /* invalid move */ }
+  }, [currentFen, inBranch, branch, branchPly, safePly, maxPly, entries, onDragSetMove, goPrev]);
 
   // Activate this board on any click, then keyboard only responds to active board
   const activate = useCallback(() => { activeModelBoardId = instanceId; }, [instanceId]);
@@ -1623,10 +1631,10 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
           className="fixed inset-0 z-50 flex items-center justify-center md:pl-64 bg-slate-900/60 backdrop-blur-[1.5px]"
           onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }}
         >
-          <div className="relative" onClick={e => e.stopPropagation()}>
+          <div className="bg-slate-800 rounded-2xl p-4 shadow-xl border border-slate-600 flex items-start gap-4" onClick={e => e.stopPropagation()}>
           <div>
           <div
-            className="bg-slate-800 rounded-xl p-5 min-w-[300px] max-w-md shadow-xl border border-slate-600 space-y-3"
+            className="bg-slate-700/50 rounded-xl p-5 min-w-[300px] max-w-md space-y-3"
           >
             <h3 className="text-slate-100 font-medium text-center">
               {t('coaches.move')} {voteInfoKey.split('-')[0]} · {voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
@@ -1799,7 +1807,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
           </div>
           {/* Integrated board inside the modal — positioned to the right */}
           {boardMoves && (
-            <div className="hidden md:block absolute left-full top-0 ml-6 bg-slate-800 rounded-xl p-3 border border-slate-600">
+            <div className="hidden md:block">
               <ModelBoard
                 moves={boardMoves}
                 externalPly={boardPly}
