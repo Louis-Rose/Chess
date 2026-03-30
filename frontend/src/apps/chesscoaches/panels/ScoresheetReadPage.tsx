@@ -663,8 +663,8 @@ export function ScoresheetReadPage() {
                           );
                           if (hasIssues && !highlightHintDismissed) return (
                             <div className="flex justify-center mb-3">
-                              <div className="inline-flex items-center gap-2 bg-slate-700/40 rounded-lg px-3 py-1.5">
-                                <p className="text-slate-100 text-sm">Click on <span className="bg-yellow-500/25 text-yellow-100 px-1.5 py-0.5 rounded">highlighted moves</span> to double-check them</p>
+                              <div className="inline-flex items-center gap-2 bg-slate-700/40 rounded-lg px-3 py-1.5 max-w-sm">
+                                <p className="text-slate-100 text-sm text-center">Click on <span className="bg-yellow-500/25 text-yellow-100 px-1.5 py-0.5 rounded">highlighted moves</span><br className="sm:hidden" /> to double-check them</p>
                                 <button onClick={() => { setHighlightHintDismissed(true); localStorage.setItem('scoresheet_hint_dismissed', new Date().toISOString().split('T')[0]); }} className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0">
                                   <span className="text-xs">&#10005;</span>
                                 </button>
