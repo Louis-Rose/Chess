@@ -1,6 +1,6 @@
 // Scoresheet reader page — reads scoresheets with Gemini, supports iterative correction
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import { Upload, ImageIcon, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, AlertTriangle } from 'lucide-react';
@@ -1414,79 +1414,67 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {/* Moves table */}
       <div className={`${loading ? 'pointer-events-none' : ''}`}>
       {moves.length > 0 && (() => {
-        const split = sheetColumns > 1 || moves.length > 15;
-        const splitAt = split ? (rowsPerColumn || Math.ceil(moves.length / sheetColumns)) : moves.length;
-        const leftMoves = moves.slice(0, splitAt);
-        const rightMoves = split ? moves.slice(splitAt) : [];
-        const rows = Math.max(leftMoves.length, rightMoves.length);
+        const numCols = sheetColumns > 1 ? sheetColumns : (moves.length > 15 ? 2 : 1);
+        const perCol = rowsPerColumn || Math.ceil(moves.length / numCols);
+        const columns = Array.from({ length: numCols }, (_, c) => moves.slice(c * perCol, (c + 1) * perCol));
+        const rows = Math.max(...columns.map(col => col.length));
+
+        const renderHalf = (move: Move | undefined, idx: number, d: { white: boolean; black: boolean } | undefined) => {
+          if (!move) return <><td className="px-2 py-1" /><td className="px-2 py-1" /><td className="px-2 py-1" /></>;
+          return <>
+            <td className="px-2 py-1 text-slate-500 text-center font-mono">{move.number}</td>
+            <MoveCell
+              value={move.white}
+              legal={move.white_legal}
+              highlight={(d?.white || !!move.white_reason) && !(move as any).white_confirmed}
+              corrected={corrections?.has(`${move.number}-white`) || (originalMoves && originalMoves[idx]?.white !== move.white && move.white_legal !== false) || !!(move as any).white_confirmed}
+              active={activePly === idx * 2 + 1}
+              reason={move.white_reason}
+              confidence={move.white_confidence}
+              onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
+              onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setVoteEditValue(move.white || ''); onMoveClick?.(moves, idx * 2 + 1); } : undefined}
+              onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
+            />
+            <MoveCell
+              value={move.black || ''}
+              legal={move.black_legal}
+              corrected={corrections?.has(`${move.number}-black`) || (originalMoves && originalMoves[idx]?.black !== move.black && move.black_legal !== false) || !!(move as any).black_confirmed}
+              highlight={(d?.black || !!move.black_reason) && !(move as any).black_confirmed}
+              active={activePly === idx * 2 + 2}
+              reason={move.black_reason}
+              confidence={move.black_confidence}
+              onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
+              onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setVoteEditValue(move.black || ''); onMoveClick?.(moves, idx * 2 + 2); } : undefined}
+              onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
+            />
+          </>;
+        };
 
         return (
           <table className="w-full text-sm">
             <thead className="bg-slate-700">
               <tr className="border-b border-slate-600">
-                <th className="px-2 py-1.5 text-slate-400 font-medium text-center w-8">#</th>
-                <th className="px-2 py-1.5 text-slate-400 font-medium text-center">White</th>
-                <th className="px-2 py-1.5 text-slate-400 font-medium text-center">Black</th>
-                {split && <>
-                  <th className="px-2 py-1.5 text-slate-400 font-medium text-center w-8 border-l border-slate-600">#</th>
-                  <th className="px-2 py-1.5 text-slate-400 font-medium text-center">White</th>
-                  <th className="px-2 py-1.5 text-slate-400 font-medium text-center">Black</th>
-                </>}
+                {columns.map((_, c) => (
+                  <React.Fragment key={c}>
+                    <th className={`px-2 py-1.5 text-slate-400 font-medium text-center w-8 ${c > 0 ? 'border-l border-slate-600' : ''}`}>#</th>
+                    <th className="px-2 py-1.5 text-slate-400 font-medium text-center">White</th>
+                    <th className="px-2 py-1.5 text-slate-400 font-medium text-center">Black</th>
+                  </React.Fragment>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {Array.from({ length: rows }, (_, i) => {
-                const left = leftMoves[i];
-                const right = rightMoves[i];
-                const leftIdx = i;
-                const rightIdx = splitAt + i;
-                const dLeft = left ? disagreements.get(left.number) : undefined;
-                const dRight = right ? disagreements.get(right.number) : undefined;
-
-                const renderHalf = (move: Move | undefined, idx: number, d: { white: boolean; black: boolean } | undefined) => {
-                  if (!move) return <><td className="px-2 py-1" /><td className="px-2 py-1" /><td className="px-2 py-1" /></>;
-                  return <>
-                    <td className="px-2 py-1 text-slate-500 text-center font-mono">{move.number}</td>
-                    <MoveCell
-                      value={move.white}
-                      legal={move.white_legal}
-                      highlight={(d?.white || !!move.white_reason) && !(move as any).white_confirmed}
-                      corrected={corrections?.has(`${move.number}-white`) || (originalMoves && originalMoves[idx]?.white !== move.white && move.white_legal !== false) || !!(move as any).white_confirmed}
-                      active={activePly === idx * 2 + 1}
-                      reason={move.white_reason}
-                      confidence={move.white_confidence}
-
-                      onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
-                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setVoteEditValue(move.white || ''); onMoveClick?.(moves, idx * 2 + 1); } : undefined}
-                      onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
-                    />
-                    <MoveCell
-                      value={move.black || ''}
-                      legal={move.black_legal}
-                      corrected={corrections?.has(`${move.number}-black`) || (originalMoves && originalMoves[idx]?.black !== move.black && move.black_legal !== false) || !!(move as any).black_confirmed}
-                      highlight={(d?.black || !!move.black_reason) && !(move as any).black_confirmed}
-                      active={activePly === idx * 2 + 2}
-                      reason={move.black_reason}
-                      confidence={move.black_confidence}
-
-                      onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
-                      onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setVoteEditValue(move.black || ''); onMoveClick?.(moves, idx * 2 + 2); } : undefined}
-                      onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
-                    />
-                  </>;
-                };
-
-                return (
-                  <tr key={i} className="border-b border-slate-600/30 last:border-0">
-                    {renderHalf(left, leftIdx, dLeft)}
-                    {split && <>{right ? (
-                      <>{renderHalf(right, rightIdx, dRight)}</>
-                    ) : (
-                      <><td className="px-1.5 py-0.5 border-l border-slate-600/30" /><td className="px-1.5 py-0.5" /><td className="px-1.5 py-0.5" /></>
-                    )}</>}
-                  </tr>
-                );
-              })}
+              {Array.from({ length: rows }, (_, i) => (
+                <tr key={i} className="border-b border-slate-600/30 last:border-0">
+                  {columns.map((col, c) => {
+                    const move = col[i];
+                    const idx = c * perCol + i;
+                    const d = move ? disagreements.get(move.number) : undefined;
+                    if (!move && c > 0) return <React.Fragment key={c}><td className={`px-1.5 py-0.5 ${c > 0 ? 'border-l border-slate-600/30' : ''}`} /><td className="px-1.5 py-0.5" /><td className="px-1.5 py-0.5" /></React.Fragment>;
+                    return <React.Fragment key={c}>{renderHalf(move, idx, d)}</React.Fragment>;
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         );
