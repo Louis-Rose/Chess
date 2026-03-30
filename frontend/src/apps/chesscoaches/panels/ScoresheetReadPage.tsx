@@ -1710,7 +1710,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             const containerW = 280;
             const containerH = containerW * (cropH / cropW);
             return (
-              <div className="rounded-lg overflow-hidden mb-3 border border-slate-600" style={{ width: containerW, height: containerH }}>
+              <div className="rounded-lg overflow-hidden mb-3 border border-slate-600 mx-auto" style={{ width: containerW, height: containerH }}>
                 <img
                   src={scoresheetPreview}
                   alt="Scoresheet cell"
