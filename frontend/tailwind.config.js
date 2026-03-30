@@ -16,6 +16,9 @@ export default {
           '50%': { opacity: '0.15' },
         },
       },
+      animation: {
+        'loading-pulse': 'loading-pulse 2s ease-in-out infinite',
+      },
     },
   },
   plugins: [],
