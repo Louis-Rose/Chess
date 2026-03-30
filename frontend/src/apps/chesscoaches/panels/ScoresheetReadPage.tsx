@@ -1200,7 +1200,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         </div>
       ) : null}
       <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={disableDrag ? undefined : handleUserMove} highlightSquares={ambiguousSquares} />
-      <div className="flex justify-center gap-1.5 mt-1.5 w-full">
+      <div className="relative flex justify-center gap-1.5 mt-1.5 w-full">
         {!compact && (
           <button onClick={goFirst} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
             <ChevronFirst className="w-6 h-6" />
@@ -1208,6 +1208,11 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         )}
         {compact ? (
           <>
+            {safePly > 0 && (
+              <span className="absolute -top-6 left-0 right-0 text-center text-xs text-slate-100">
+                {t('coaches.move')} {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')})
+              </span>
+            )}
             <button onClick={goPrev} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm">
               <ChevronLeft className="w-4 h-4" /> Previous
             </button>
@@ -1417,9 +1422,9 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   return (
     <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[320px]">
       {/* Header */}
-      <div className="px-3 py-2.5 border-b border-slate-600 flex items-center justify-center gap-2">
+      <div className="px-3 py-2.5 border-b border-slate-600 relative flex items-center justify-center">
         <span className="text-slate-100 font-medium text-sm">{label}</span>
-        <div className="flex items-center gap-1">
+        <div className="absolute right-3 flex items-center gap-1">
           <Clock className={`w-3 h-3 text-slate-400${rereading ? ' animate-spin' : ''}`} />
           <span className="text-slate-400 text-xs">{rereading ? liveElapsed : elapsed}s</span>
         </div>
@@ -1631,7 +1636,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
           className="fixed inset-0 z-50 flex items-center justify-center md:pl-64 bg-slate-900/60 backdrop-blur-[1.5px]"
           onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }}
         >
-          <div className="bg-slate-800 rounded-2xl p-4 shadow-xl border border-slate-600 flex items-start gap-4" onClick={e => e.stopPropagation()}>
+          <div className="bg-slate-800 rounded-2xl p-4 shadow-xl border border-slate-600 flex items-center gap-4" onClick={e => e.stopPropagation()}>
           <div>
           <div
             className="bg-slate-700/50 rounded-xl p-5 min-w-[300px] max-w-md space-y-3"
