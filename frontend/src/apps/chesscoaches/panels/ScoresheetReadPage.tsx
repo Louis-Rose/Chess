@@ -680,7 +680,7 @@ export function ScoresheetReadPage() {
                                 });
                                 return m;
                               })()}
-                              elapsed={0}
+                              elapsed={!allModelsFinished || analyzing ? liveGlobalElapsed : Math.max(...models.map(m => modelResults[m.id]?.elapsed || 0))}
                               fileName={fileName}
                               onEditSave={allModelsFinished && !analyzing ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
                               originalMoves={consensusOverrides ? consensusMoves : undefined}
@@ -1199,7 +1199,29 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
           </span>
         </div>
       ) : null}
+      {/* Player bar — Black (top) */}
+      {(() => {
+        const isBlackTurn = currentFen.split(' ')[1] === 'b';
+        return (
+          <div className={`w-full flex items-center gap-2 px-2 py-1 rounded-t-lg ${isBlackTurn ? 'bg-slate-600/50' : ''}`}>
+            <span className="w-3 h-3 rounded-full bg-slate-900 border border-slate-500 inline-block" />
+            <span className="text-xs text-slate-300">Black</span>
+            {isBlackTurn && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+          </div>
+        );
+      })()}
       <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={disableDrag ? undefined : handleUserMove} highlightSquares={ambiguousSquares} />
+      {/* Player bar — White (bottom) */}
+      {(() => {
+        const isWhiteTurn = currentFen.split(' ')[1] === 'w';
+        return (
+          <div className={`w-full flex items-center gap-2 px-2 py-1 rounded-b-lg ${isWhiteTurn ? 'bg-slate-600/50' : ''}`}>
+            <span className="w-3 h-3 rounded-full bg-slate-100 border border-slate-400 inline-block" />
+            <span className="text-xs text-slate-300">White</span>
+            {isWhiteTurn && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+          </div>
+        );
+      })()}
       <div className="relative flex justify-center gap-1.5 mt-1.5 w-full">
         {!compact && (
           <button onClick={goFirst} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
@@ -1208,20 +1230,22 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         )}
         {compact ? (
           <>
-            {safePly > 0 && (
-              <span className="absolute -top-6 left-0 right-0 text-center text-xs text-slate-100">
-                {t('coaches.move')} {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')})
-              </span>
-            )}
-            <button onClick={goPrev} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm">
+            <button onClick={goPrev} className="shrink-0 w-[90px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm">
               <ChevronLeft className="w-4 h-4" /> Previous
             </button>
             {targetPly !== undefined && (
-              <button onClick={() => { exitBranch(); setPly(targetPly); playSoundForPly(targetPly); onPlyChange?.(targetPly); }} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-yellow-400 rounded-lg transition-colors flex items-center justify-center text-xs px-2">
-                {safePly === targetPly && !inBranch ? (targetLabel || 'Go to move').replace('Go to ', '') : (targetLabel || 'Go to move')}
+              <button onClick={() => { exitBranch(); setPly(targetPly); playSoundForPly(targetPly); onPlyChange?.(targetPly); }} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors flex flex-col items-center justify-center px-2">
+                {safePly > 0 && (
+                  <span className="text-[10px] text-slate-400 leading-tight">
+                    {t('coaches.move')} {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')})
+                  </span>
+                )}
+                <span className="text-xs text-yellow-400">
+                  {safePly === targetPly && !inBranch ? (targetLabel || 'Go to move').replace('Go to ', '') : (targetLabel || 'Go to move')}
+                </span>
               </button>
             )}
-            <button onClick={goNext} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm">
+            <button onClick={goNext} className="shrink-0 w-[90px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm">
               Next <ChevronRight className="w-4 h-4" />
             </button>
           </>
@@ -1633,7 +1657,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {/* Vote info modal with integrated board */}
       {voteInfoKey && voteDetails?.[voteInfoKey] && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center md:pl-64 bg-slate-900/60 backdrop-blur-[1.5px]"
+          className="fixed inset-0 z-50 flex items-center justify-center md:pl-64 bg-slate-900/70 backdrop-blur-[3px]"
           onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }}
         >
           <div className="bg-slate-800 rounded-2xl p-4 shadow-xl border border-slate-600 flex items-center gap-4" onClick={e => e.stopPropagation()}>
@@ -1642,7 +1666,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             className="bg-slate-700/50 rounded-xl p-5 min-w-[300px] max-w-md space-y-3"
           >
             <h3 className="text-slate-100 font-medium text-center">
-              {t('coaches.move')} {voteInfoKey.split('-')[0]} · {voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
+              {t('coaches.move')} {voteInfoKey.split('-')[0]} ({voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')})
             </h3>
             {(() => {
               const details = voteDetails[voteInfoKey];
@@ -1703,7 +1727,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                 <>
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-slate-600 text-slate-400">
+                      <tr className="border-b border-slate-600 text-slate-100">
                         <th className="py-1.5 text-left px-2">Model</th>
                         <th className="py-1.5 text-center px-2">{t('coaches.voteCandidate')}</th>
                       </tr>
@@ -1733,7 +1757,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                         <tr className="border-b border-slate-700/50">
                           <td className="py-1.5 px-2 text-slate-100 text-xs font-medium">After validation</td>
                           <td className="py-1.5 px-2 text-center font-mono">
-                            <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{finalMove}</span>
+                            <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{finalMove}{legalMark(finalMove)}</span>
                           </td>
                           <td />
                         </tr>
