@@ -74,6 +74,8 @@ export interface ScoresheetModelResult {
   elapsed: number;
   warnings?: string[];
   rereading?: boolean;
+  tier?: string;
+  retry?: { free_error: string; free_elapsed: number };
 }
 
 export interface ScoresheetReadEntry {
@@ -533,11 +535,17 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
             setScoresheet(prev => ({ ...prev, models: payload.models, startTime: Date.now() }));
           } else if (payload.type === 'azure_grid') {
             setScoresheet(prev => ({ ...prev, azureGrid: payload.grid }));
-          } else if (payload.type === 'result') {
-            const { model_id, name, result, error: err, elapsed, warnings } = payload;
+          } else if (payload.type === 'retry') {
+            const { model_id, free_error, free_elapsed } = payload;
             setScoresheet(prev => ({
               ...prev,
-              modelResults: { ...prev.modelResults, [model_id]: { ...prev.modelResults[model_id], name, result, error: err, elapsed, warnings } },
+              modelResults: { ...prev.modelResults, [model_id]: { ...prev.modelResults[model_id], retry: { free_error, free_elapsed } } },
+            }));
+          } else if (payload.type === 'result') {
+            const { model_id, name, result, error: err, elapsed, warnings, tier, retry } = payload;
+            setScoresheet(prev => ({
+              ...prev,
+              modelResults: { ...prev.modelResults, [model_id]: { ...prev.modelResults[model_id], name, result, error: err, elapsed, warnings, tier, retry: retry || prev.modelResults[model_id]?.retry } },
             }));
           }
         }

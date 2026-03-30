@@ -250,22 +250,30 @@ def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, erro
 _PAID_ONLY_MODELS = {'gemini-3.1-pro-preview'}
 
 
-def _gemini_generate(client_free, client_paid, model_id, contents, config=None):
-    """Try free API key first, fall back to paid on any error. Returns (response, billing_tier)."""
+def _gemini_generate(client_free, client_paid, model_id, contents, config=None, on_retry=None):
+    """Try free API key first, fall back to paid on any error. Returns (response, billing_tier, retry_info).
+    retry_info is None if no retry, or a dict with error/elapsed details if free key failed."""
+    import time as _t
     kwargs = {'model': model_id, 'contents': contents}
     if config:
         kwargs['config'] = config
 
     # Models with no free tier go straight to paid
     if model_id in _PAID_ONLY_MODELS or client_free is None:
-        return client_paid.models.generate_content(**kwargs), 'paid'
+        return client_paid.models.generate_content(**kwargs), 'paid', None
 
     # Try free key first, fall back to paid on any failure
+    free_start = _t.time()
     try:
-        return client_free.models.generate_content(**kwargs), 'free'
+        return client_free.models.generate_content(**kwargs), 'free', None
     except Exception as e:
-        logger.info(f"[Gemini] Free key failed for {model_id} ({type(e).__name__}), falling back to paid key")
-        return client_paid.models.generate_content(**kwargs), 'paid'
+        free_elapsed = round(_t.time() - free_start)
+        error_type = type(e).__name__
+        logger.info(f"[Gemini] Free key failed for {model_id} ({error_type}) after {free_elapsed}s, falling back to paid key")
+        retry_info = {'free_error': f'{error_type}: {e}', 'free_elapsed': free_elapsed}
+        if on_retry:
+            on_retry(retry_info)
+        return client_paid.models.generate_content(**kwargs), 'paid', retry_info
 
 
 SCORESHEET_MODELS = [
@@ -420,7 +428,7 @@ Return ONLY a JSON object:
     client_free = genai.Client(api_key=free_key) if free_key else None
     start = time_module.time()
     try:
-        response, tier = _gemini_generate(
+        response, tier, _ = _gemini_generate(
             client_free, client_paid, model_id,
             contents=[
                 types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
@@ -672,7 +680,7 @@ def read_diagram():
         logger.info(f"[Diagram] Starting {model_name} ({model_id})")
         start = time_module.time()
         try:
-            response, tier = _gemini_generate(
+            response, tier, _ = _gemini_generate(
                 client_free, client_paid, model_id,
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
@@ -775,13 +783,18 @@ def read_scoresheet():
         logger.info(f"[Scoresheet] Starting {model_name} ({model_id})")
         start = time_module.time()
         try:
-            response, tier = _gemini_generate(
+            def on_retry(retry_info):
+                result_queue.put({"type": "retry", "model_id": model_id, "name": model_name,
+                                  "free_error": retry_info['free_error'], "free_elapsed": retry_info['free_elapsed']})
+
+            response, tier, retry_info = _gemini_generate(
                 client_free, client_paid, model_id,
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
                     SCORESHEET_READ_PROMPT,
                 ],
                 config={"response_mime_type": "application/json"},
+                on_retry=on_retry,
             )
             elapsed = round(time_module.time() - start)
             usage = getattr(response, 'usage_metadata', None)
@@ -796,9 +809,11 @@ def read_scoresheet():
             move_count = len(result.get("moves", []))
             logger.info(f"[Scoresheet] {model_name}: {move_count} moves")
             item = {"type": "result", "model_id": model_id, "name": model_name, "result": result, "elapsed": elapsed,
-                    "input_tokens": in_tok, "output_tokens": out_tok}
+                    "input_tokens": in_tok, "output_tokens": out_tok, "tier": tier}
             if warnings:
                 item["warnings"] = warnings
+            if retry_info:
+                item["retry"] = retry_info
             result_queue.put(item)
             _log_api_usage('scoresheet', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier, user_id=uid)
 
