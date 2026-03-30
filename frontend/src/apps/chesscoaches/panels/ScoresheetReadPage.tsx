@@ -1055,27 +1055,25 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
   // Navigation
   const goPrev = useCallback(() => {
     if (inBranch) {
-      setBranchPly(p => {
-        if (p <= 1) {
-          // Keep branch in memory (branchPly=0 means we're at the branch start)
-          // so pressing next can re-enter the variation
-          playSoundForPly(safePly);
-          if (onDragSetMove) {
-            onDragSetMove('');
-            onPlyChange?.(safePly);
+      if (branchPly <= 1) {
+        // Exit and destroy branch immediately
+        playSoundForPly(safePly);
+        if (onDragSetMove) {
+          onDragSetMove('');
+          onPlyChange?.(safePly);
+        }
+        exitBranch();
+      } else {
+        setBranchPly(p => {
+          const san = branch?.sans[p - 2];
+          if (san) playMoveSound(san.includes('x'));
+          if (p - 1 === 1 && onDragSetMove && branch?.sans[0]) {
+            onDragSetMove(branch.sans[0]);
           }
-          return 0;
-        }
-        const san = branch?.sans[p - 2];
-        if (san) playMoveSound(san.includes('x'));
-        if (p - 1 === 1 && onDragSetMove && branch?.sans[0]) {
-          onDragSetMove(branch.sans[0]);
-        }
-        return p - 1;
-      });
+          return p - 1;
+        });
+      }
     } else {
-      // Moving away from branch start — destroy the branch
-      if (branch) setBranch(null);
       setPly(p => {
         const newP = Math.max(0, p - 1);
         if (newP !== p) { playSoundForPly(p); onPlyChange?.(newP); }
@@ -1084,20 +1082,15 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     }
   }, [inBranch, branch, safePly, playSoundForPly, onPlyChange, onDragSetMove]);
   const goNext = useCallback(() => {
-    if (branch && branchPly < branch.fens.length - 1) {
+    if (inBranch && branch && branchPly < branch.fens.length - 1) {
       const san = branch.sans[branchPly];
       if (san) playMoveSound(san.includes('x'));
-      // Restore vote value when re-entering the branch at move 1
-      if (branchPly === 0 && onDragSetMove && branch.sans[0]) {
-        onDragSetMove(branch.sans[0]);
-      }
       // Clear vote value when going past the first variation move
       if (branchPly >= 1 && onDragSetMove) {
         onDragSetMove('');
       }
       setBranchPly(p => p + 1);
-    } else if (!inBranch && !branch) {
-      // Only advance mainline if there's no branch to re-enter
+    } else if (!inBranch) {
       setPly(p => {
         const newP = Math.min(maxPly, p + 1);
         if (newP !== p) { playSoundForPly(newP); onPlyChange?.(newP); }
