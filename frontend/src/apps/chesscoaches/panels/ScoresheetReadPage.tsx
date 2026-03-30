@@ -3,14 +3,13 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
-import { Upload, ImageIcon, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ChevronDown, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Upload, ImageIcon, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, AlertTriangle } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { PanelShell } from '../components/PanelShell';
 import { UploadBox } from '../components/UploadBox';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { useAuth } from '../../../contexts/AuthContext';
 import { useCoachesData, getCoachesPrefs, saveCoachesPrefs } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
 import { BoardPreview } from '../components/BoardPreview';
@@ -34,14 +33,13 @@ function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result
 
 export function ScoresheetReadPage() {
   const { t } = useLanguage();
-  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
-    scoresheetHandleEditSave, scoresheetReread, scoresheetClear,
+    scoresheetClear,
   } = useCoachesData();
 
-  const { preview, fileName, error, modelResults, reReads, models, startTime, analyzing, azureGrid } = scoresheet;
+  const { preview, fileName, error, modelResults, models, startTime, analyzing, azureGrid } = scoresheet;
 
   // Pick up shared image from Web Share Target
   useEffect(() => {
@@ -78,7 +76,6 @@ export function ScoresheetReadPage() {
   }, [showImageModal, showExampleModal, closeModal]);
 
 
-  const [modelsCollapsed, setModelsCollapsed] = useState(true);
   const [, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null>(null);
   const [highlightHintDismissed, setHighlightHintDismissed] = useState(() => {
     const dismissed = localStorage.getItem('scoresheet_hint_dismissed');
@@ -1272,33 +1269,6 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 }
 
 
-function ModelPanelLoading({ name, startTime }: { name: string; startTime: number | null }) {
-  const { t } = useLanguage();
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    if (!startTime) return;
-    setElapsed(Math.round((Date.now() - startTime) / 1000));
-    const id = setInterval(() => setElapsed(Math.round((Date.now() - startTime) / 1000)), 1000);
-    return () => clearInterval(id);
-  }, [startTime]);
-
-  return (
-    <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[260px]">
-      <div className="px-2 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
-        <span className="text-slate-100 font-medium text-xs">{name}</span>
-        <div className="flex items-center gap-1">
-          <Clock className="w-3 h-3 text-slate-400" />
-          <span className="text-slate-400 text-xs">{elapsed}s</span>
-        </div>
-      </div>
-      <div className="flex items-center justify-center gap-2 py-12 text-slate-500 animate-pulse-sync">
-        <Clock className="w-4 h-4 animate-spin" />
-        <span className="text-xs">{t('coaches.analyzing')}</span>
-      </div>
-    </div>
-  );
-}
 
 function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, loading, onConfirmMove, onVoteStateChange, boardMoves, boardPly, onBoardPlyChange, boardPreviewFen, scoresheetPreview, gridData }: {
   label: string;
