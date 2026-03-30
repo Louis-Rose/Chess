@@ -1010,7 +1010,13 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
   const maxPly = entries.length - 1;
   const safePly = Math.min(ply, maxPly);
   const currentFen = previewFen || (inBranch ? branch!.fens[branchPly] : entries[safePly].fen);
-  const currentLastMove = previewFen ? null : (inBranch ? null : entries[safePly].lastMove);
+  const currentLastMove = previewFen ? null : (inBranch && branch && branchPly > 0 ? (() => {
+    try {
+      const chess = new Chess(branch.fens[branchPly - 1]);
+      const move = chess.move(branch.sans[branchPly - 1]);
+      return move ? { from: move.from, to: move.to } : null;
+    } catch { return null; }
+  })() : entries[safePly].lastMove);
   const currentIllegal = inBranch ? undefined : entries[safePly].illegal;
 
   // Compute highlight squares for ambiguous moves
@@ -1783,8 +1789,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     return (<>
                       <div className="flex flex-col gap-1.5 mt-1">
                         <p className="text-sm text-slate-100 text-center">Confirm move, or play another move on the board</p>
-                        {voteEditValue && userPickedDifferent ? (
-                          // Blue — user played a different move on the board
+                        {voteEditValue && userPickedDifferent && boardAtTarget ? (
+                          // Blue — user played a different move on the board (and board is at the right ply)
                           <button
                             onClick={() => {
                               if (!onEditSave) return;
