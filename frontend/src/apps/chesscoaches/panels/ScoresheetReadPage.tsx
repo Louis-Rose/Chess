@@ -1462,7 +1462,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
 
 
   return (
-    <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[320px]">
+    <div className={`bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[320px] ${loading ? 'animate-loading-pulse' : ''}`}>
       {/* Header */}
       <div className="px-3 py-2.5 border-b border-slate-600 relative flex items-center justify-center">
         <span className="text-slate-100 font-medium text-sm">{label}</span>
@@ -1476,7 +1476,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {error && <p className="text-red-400 text-center py-3 text-xs px-2 break-words max-w-sm mx-auto">{error}</p>}
 
       {/* Moves table */}
-      <div className={`${loading ? 'pointer-events-none animate-loading-pulse' : ''}`}>
+      <div className={`${loading ? 'pointer-events-none' : ''}`}>
       {moves.length > 0 && (() => {
         const split = sheetColumns > 1 || moves.length > 15;
         const splitAt = split ? (rowsPerColumn || Math.ceil(moves.length / sheetColumns)) : moves.length;
