@@ -20,8 +20,8 @@ html, body {
 
 /* Loading pulse for dimmed tables while waiting for readers */
 @keyframes loading-pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.15; }
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.2; }
 }
 .animate-loading-pulse {
   animation: loading-pulse 2s ease-in-out infinite;
