@@ -1213,7 +1213,6 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     return () => window.removeEventListener('keydown', handler, !!onDragSetMove);
   }, [instanceId, goPrev, goNext, goFirst, goLast, onDragSetMove]);
 
-  const hlPlies = highlightedPlies || [];
 
   return (
     <div className="flex flex-col items-center w-[480px]" onClick={activate}>
