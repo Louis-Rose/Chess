@@ -369,6 +369,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
   // ── Scoresheet state ──
   const [scoresheet, setScoresheet] = useState<ScoresheetState>(SCORESHEET_INITIAL);
   const scoresheetAnalyzeAbortRef = useRef<AbortController | null>(null);
+  const retryInfoRef = useRef<Record<string, { free_error: string; free_elapsed: number }>>({});
 
   // ── Clear scoresheet on logout ──
   const { user } = useAuth();
@@ -506,6 +507,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
 
   const scoresheetAnalyzeImage = useCallback(async (file: File, signal: AbortSignal) => {
     setScoresheet(prev => ({ ...prev, error: '', modelResults: {}, reReads: {}, models: [], analyzing: true }));
+    retryInfoRef.current = {};
     try {
       const formData = new FormData();
       formData.append('image', file);
@@ -537,16 +539,16 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
           } else if (payload.type === 'azure_grid') {
             setScoresheet(prev => ({ ...prev, azureGrid: payload.grid }));
           } else if (payload.type === 'retry') {
-            const { model_id, name, free_error, free_elapsed } = payload;
-            setScoresheet(prev => ({
-              ...prev,
-              modelResults: { ...prev.modelResults, [model_id]: { ...prev.modelResults[model_id], name: name || prev.modelResults[model_id]?.name || '', elapsed: prev.modelResults[model_id]?.elapsed || 0, retry: { free_error, free_elapsed } } },
-            }));
+            // Store retry info — will be merged into modelResults when the final result arrives
+            const { model_id, free_error, free_elapsed } = payload;
+            retryInfoRef.current[model_id] = { free_error, free_elapsed };
+            console.log(`[Scoresheet] ${model_id} retrying after free key failed (${free_elapsed}s)`);
           } else if (payload.type === 'result') {
             const { model_id, name, result, error: err, elapsed, warnings, tier, retry } = payload;
+            const retryInfo = retry || retryInfoRef.current[model_id] || undefined;
             setScoresheet(prev => ({
               ...prev,
-              modelResults: { ...prev.modelResults, [model_id]: { ...prev.modelResults[model_id], name, result, error: err, elapsed, warnings, tier, retry: retry || prev.modelResults[model_id]?.retry } },
+              modelResults: { ...prev.modelResults, [model_id]: { ...prev.modelResults[model_id], name, result, error: err, elapsed, warnings, tier, retry: retryInfo } },
             }));
           }
         }

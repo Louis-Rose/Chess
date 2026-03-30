@@ -282,8 +282,6 @@ export function ScoresheetReadPage() {
                                 failed
                                   ? <span className="text-red-400 inline-flex items-center gap-1"><AlertTriangle className="w-4 h-4" /> {t('coaches.status.error')}</span>
                                   : <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-4 h-4" /> {mr?.retry ? t('coaches.status.doneRetried') : t('coaches.status.done')}</span>
-                              ) : mr?.retry ? (
-                                <span className="text-yellow-400 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> {t('coaches.status.retrying')}</span>
                               ) : (
                                 <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> {t('coaches.status.reading')}</span>
                               )}
