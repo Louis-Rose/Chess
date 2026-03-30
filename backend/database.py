@@ -608,6 +608,15 @@ def init_db():
                 if not conn._cursor.fetchone():
                     conn.execute("ALTER TABLE api_usage ADD COLUMN billing_tier TEXT DEFAULT 'paid'")
                     print("[Database] Added billing_tier column to api_usage")
+                # Migration: Add retry columns if missing
+                conn.execute("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'api_usage' AND column_name = 'retry_free_error'
+                """)
+                if not conn._cursor.fetchone():
+                    conn.execute("ALTER TABLE api_usage ADD COLUMN retry_free_error TEXT")
+                    conn.execute("ALTER TABLE api_usage ADD COLUMN retry_free_elapsed INTEGER")
+                    print("[Database] Added retry columns to api_usage")
 
             # Migration: Tag admin account as coaches app user
             conn.execute("UPDATE users SET registered_app = 'coaches' WHERE email = 'rose.louis.mail@gmail.com' AND registered_app IS NULL")

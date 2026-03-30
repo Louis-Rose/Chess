@@ -66,6 +66,8 @@ interface ApiInvocationModel {
   elapsed_seconds: number;
   error: string | null;
   cost_usd: number;
+  retry_free_error?: string | null;
+  retry_free_elapsed?: number | null;
 }
 
 interface ApiInvocation {
@@ -521,7 +523,10 @@ export function AdminPanel() {
                                       {inv.models.map((m, i) => (
                                         <tr key={i} className={m.error ? 'text-red-400/70' : ''}>
                                           <td className="px-2 py-0.5 font-mono">{shortModel(m.model_id)}</td>
-                                          <td className="px-2 py-0.5 text-center">{m.billing_tier === 'free' ? <span className="text-emerald-400">free</span> : <span className="text-slate-500">paid</span>}</td>
+                                          <td className="px-2 py-0.5 text-center">
+                                            {m.billing_tier === 'free' ? <span className="text-emerald-400">free</span> : <span className="text-slate-500">paid</span>}
+                                            {m.retry_free_error && <span className="text-yellow-400 text-[10px] ml-1" title={`Free key failed after ${m.retry_free_elapsed}s: ${m.retry_free_error}`}>⟳{m.retry_free_elapsed}s</span>}
+                                          </td>
                                           <td className="px-2 py-0.5 text-slate-400 text-center">{formatTokens(m.input_tokens)}</td>
                                           <td className="px-2 py-0.5 text-slate-400 text-center">{formatTokens(m.output_tokens)}</td>
                                           <td className="px-2 py-0.5 text-center">{m.thinking_tokens ? <span className="text-amber-400">{formatTokens(m.thinking_tokens)}</span> : <span className="text-slate-600">0</span>}</td>

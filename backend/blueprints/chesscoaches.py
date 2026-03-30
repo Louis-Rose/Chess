@@ -233,14 +233,14 @@ def _scoresheet_parse_response(response_text):
     return result, warnings
 
 
-def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None, request_id=None, thinking_tokens=0, billing_tier='paid', user_id=None):
+def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None, request_id=None, thinking_tokens=0, billing_tier='paid', user_id=None, retry_free_error=None, retry_free_elapsed=None):
     """Log a Gemini API call to the api_usage table."""
     try:
         with get_db() as conn:
             conn.execute(
-                """INSERT INTO api_usage (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed_seconds, error)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed, error),
+                """INSERT INTO api_usage (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed_seconds, error, retry_free_error, retry_free_elapsed)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed, error, retry_free_error, retry_free_elapsed),
             )
     except Exception as e:
         logger.error(f"[API Usage] Failed to log: {e}")
@@ -815,7 +815,9 @@ def read_scoresheet():
             if retry_info:
                 item["retry"] = retry_info
             result_queue.put(item)
-            _log_api_usage('scoresheet', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier, user_id=uid)
+            _log_api_usage('scoresheet', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier, user_id=uid,
+                           retry_free_error=retry_info['free_error'] if retry_info else None,
+                           retry_free_elapsed=retry_info['free_elapsed'] if retry_info else None)
 
         except Exception as e:
             elapsed = round(time_module.time() - start)

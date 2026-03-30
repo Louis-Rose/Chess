@@ -366,7 +366,8 @@ def get_api_usage():
             SELECT id, feature, model_id, input_tokens, output_tokens,
                    COALESCE(thinking_tokens, 0) as thinking_tokens,
                    COALESCE(billing_tier, 'paid') as billing_tier,
-                   elapsed_seconds, error, created_at
+                   elapsed_seconds, error, created_at,
+                   retry_free_error, retry_free_elapsed
             FROM api_usage
             WHERE 1=1 {user_filter}
             ORDER BY created_at DESC
@@ -456,7 +457,9 @@ def get_api_usage():
                        SUM(COALESCE(thinking_tokens, 0)) as thinking_tokens,
                        COALESCE(billing_tier, 'paid') as billing_tier,
                        MAX(elapsed_seconds) as elapsed_seconds,
-                       MAX(error) as error
+                       MAX(error) as error,
+                       MAX(retry_free_error) as retry_free_error,
+                       MAX(retry_free_elapsed) as retry_free_elapsed
                 FROM api_usage WHERE request_id = ?
                 GROUP BY model_id, billing_tier
             ''', (row['request_id'],))
