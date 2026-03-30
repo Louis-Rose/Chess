@@ -681,6 +681,7 @@ export function ScoresheetReadPage() {
                                 return m;
                               })()}
                               elapsed={!allModelsFinished || analyzing ? liveGlobalElapsed : Math.max(...models.map(m => modelResults[m.id]?.elapsed || 0))}
+                              loading={!allModelsFinished || analyzing}
                               fileName={fileName}
                               onEditSave={allModelsFinished && !analyzing ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
                               originalMoves={consensusOverrides ? consensusMoves : undefined}
@@ -1230,22 +1231,19 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         )}
         {compact ? (
           <>
-            <button onClick={goPrev} className="shrink-0 w-[90px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm">
+            <button onClick={goPrev} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm">
               <ChevronLeft className="w-4 h-4" /> Previous
             </button>
-            {targetPly !== undefined && (
-              <button onClick={() => { exitBranch(); setPly(targetPly); playSoundForPly(targetPly); onPlyChange?.(targetPly); }} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors flex flex-col items-center justify-center px-2">
-                {safePly > 0 && (
-                  <span className="text-[10px] text-slate-400 leading-tight">
-                    {t('coaches.move')} {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')})
-                  </span>
-                )}
-                <span className="text-xs text-yellow-400">
-                  {safePly === targetPly && !inBranch ? (targetLabel || 'Go to move').replace('Go to ', '') : (targetLabel || 'Go to move')}
+            <div className="flex-1 py-2.5 bg-slate-700 rounded-lg flex items-center justify-center px-2">
+              {safePly > 0 ? (
+                <span className="text-sm text-slate-100">
+                  {t('coaches.move')} {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')})
                 </span>
-              </button>
-            )}
-            <button onClick={goNext} className="shrink-0 w-[90px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm">
+              ) : (
+                <span className="text-sm text-slate-400">Start</span>
+              )}
+            </div>
+            <button onClick={goNext} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm">
               Next <ChevronRight className="w-4 h-4" />
             </button>
           </>
@@ -1265,6 +1263,14 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
           </button>
         )}
       </div>
+      {compact && targetPly !== undefined && (
+        <button
+          onClick={() => { exitBranch(); setPly(targetPly); playSoundForPly(targetPly); onPlyChange?.(targetPly); }}
+          className={`w-full mt-1.5 py-2 rounded-lg transition-colors text-sm ${safePly === targetPly && !inBranch ? 'bg-slate-700 text-slate-400 cursor-default' : 'bg-slate-700 hover:bg-slate-600 text-yellow-400'}`}
+        >
+          {safePly === targetPly && !inBranch ? 'At highlighted move' : 'Go to highlighted move'}
+        </button>
+      )}
       {!compact && (
         <div className="mt-1.5 text-sm text-center min-h-[44px]">
           {safePly > 0 && entries[safePly]?.san && !inBranch && (
@@ -1326,7 +1332,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, onConfirmMove, onVoteStateChange, boardMoves, boardPly, onBoardPlyChange, boardPreviewFen }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, loading, onConfirmMove, onVoteStateChange, boardMoves, boardPly, onBoardPlyChange, boardPreviewFen }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1349,6 +1355,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string>; pass1Choice?: string }[]>;
   allModelNames?: string[];
   showMoveInfo?: boolean;
+  loading?: boolean;
   onConfirmMove?: (moveNumber: number, color: 'white' | 'black') => void;
   onVoteStateChange?: (state: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null) => void;
   boardMoves?: Move[];
@@ -1458,6 +1465,12 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {error && <p className="text-red-400 text-center py-3 text-xs px-2 break-words max-w-sm mx-auto">{error}</p>}
 
       {/* Moves table */}
+      <div className={`relative ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
+      {loading && (
+        <div className="absolute inset-0 z-10 overflow-hidden">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-400/10 to-transparent" />
+        </div>
+      )}
       {moves.length > 0 && (() => {
         const split = sheetColumns > 1 || moves.length > 15;
         const splitAt = split ? (rowsPerColumn || Math.ceil(moves.length / sheetColumns)) : moves.length;
@@ -1554,6 +1567,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
         <ChesscomAnalysisButton moves={moves} meta={meta} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
         <LichessStudyButton moves={moves} meta={meta} fileName={fileName} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
       </>)}
+      </div>
 
       {/* Edit modal */}
       {editing && (
