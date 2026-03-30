@@ -857,7 +857,16 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
 
   return (
     <div ref={containerRef} className="relative" style={{ minHeight: tbodyHeight > 0 ? tbodyTop + tbodyHeight + 60 : undefined }}>
-      {/* Image positioned absolutely, vertically centered with the row */}
+      {/* Mobile: image shown above the table */}
+      <div className="md:hidden flex justify-center mb-3">
+        <img
+          src={preview}
+          alt="Scoresheet"
+          className="max-h-[200px] rounded-xl object-contain cursor-pointer"
+          onClick={onImageClick}
+        />
+      </div>
+      {/* Desktop: image positioned absolutely, vertically centered with the row */}
       {tbodyHeight > 0 && tablesLeft > 0 && (
         <div
           className="absolute hidden md:flex items-center justify-center"
