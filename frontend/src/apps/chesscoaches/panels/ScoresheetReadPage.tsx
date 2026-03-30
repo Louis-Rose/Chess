@@ -258,15 +258,15 @@ export function ScoresheetReadPage() {
                 <div className="flex justify-center">
                 <div className="border border-slate-600/50 rounded-xl overflow-hidden inline-block min-w-[400px]">
                   <div className="w-full flex items-center justify-center px-6 py-3">
-                    <span className="text-base text-slate-100 font-medium">Processing</span>
+                    <span className="text-base text-slate-100 font-medium">{t('coaches.processing')}</span>
                   </div>
                   <table className="w-full text-sm border-t border-slate-600/50">
                     <thead>
                       <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
-                        <th className="px-4 py-2 text-left">Model</th>
-                        <th className="px-4 py-2 text-center">Status</th>
-                        <th className="px-4 py-2 text-center">Time</th>
-                        <th className="px-4 py-2 text-center">Avg</th>
+                        <th className="px-4 py-2 text-left">{t('coaches.processing.model')}</th>
+                        <th className="px-4 py-2 text-center">{t('coaches.processing.status')}</th>
+                        <th className="px-4 py-2 text-center">{t('coaches.processing.time')}</th>
+                        <th className="px-4 py-2 text-center">{t('coaches.processing.avg')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/30">
@@ -280,12 +280,12 @@ export function ScoresheetReadPage() {
                             <td className="px-4 py-2.5 text-center">
                               {done ? (
                                 failed
-                                  ? <span className="text-red-400 inline-flex items-center gap-1"><AlertTriangle className="w-4 h-4" /> Error</span>
-                                  : <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-4 h-4" /> Done{mr?.retry ? ' (retried)' : ''}</span>
+                                  ? <span className="text-red-400 inline-flex items-center gap-1"><AlertTriangle className="w-4 h-4" /> {t('coaches.status.error')}</span>
+                                  : <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-4 h-4" /> {mr?.retry ? t('coaches.status.doneRetried') : t('coaches.status.done')}</span>
                               ) : mr?.retry ? (
-                                <span className="text-yellow-400 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> Retrying...</span>
+                                <span className="text-yellow-400 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> {t('coaches.status.retrying')}</span>
                               ) : (
-                                <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> Reading...</span>
+                                <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> {t('coaches.status.reading')}</span>
                               )}
                             </td>
                             <td className="px-4 py-2.5 text-center">
@@ -311,10 +311,10 @@ export function ScoresheetReadPage() {
                         const maxElapsed = Math.max(...models.map(m => modelResults[m.id]?.elapsed || 0));
                         const done = allDone && hasConsensus;
                         const status = done
-                          ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-4 h-4" /> Done</span>
+                          ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-4 h-4" /> {t('coaches.status.done')}</span>
                           : hasConsensus
-                            ? <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> Computing...</span>
-                            : <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> Waiting...</span>;
+                            ? <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> {t('coaches.status.computing')}</span>
+                            : <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> {t('coaches.status.waiting')}</span>;
                         return (
                           <tr>
                             <td className="px-4 py-2.5 text-slate-200 font-medium">{t('coaches.consensus')}</td>
