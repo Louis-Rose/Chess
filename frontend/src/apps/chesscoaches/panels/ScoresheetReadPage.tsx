@@ -276,7 +276,7 @@ export function ScoresheetReadPage() {
                         const failed = !!mr?.error;
                         return (
                           <tr key={m.id}>
-                            <td className="px-4 py-2.5 text-slate-200 font-medium">{m.name}</td>
+                            <td className="px-4 py-2.5 text-slate-200 font-medium">{t('coaches.reader')} {m.name.replace(/^Reader\s*/, '')}</td>
                             <td className="px-4 py-2.5 text-center">
                               {done ? (
                                 failed
@@ -685,7 +685,7 @@ export function ScoresheetReadPage() {
                               </div>
                             ) : (
                             <MovesPanel
-                              label={!allModelsFinished || analyzing ? `Waiting on ${pendingReaders} reader${pendingReaders > 1 ? 's' : ''}...` : t('coaches.consensus')}
+                              label={!allModelsFinished || analyzing ? t(pendingReaders > 1 ? 'coaches.waitingOnReadersPlural' : 'coaches.waitingOnReaders').replace('{n}', String(pendingReaders)) : t('coaches.consensus')}
                               moves={displayConsensusMoves}
 
                               disagreements={(() => {
@@ -1685,7 +1685,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   <p className="text-yellow-400 text-sm text-center">
                     {isIllegalMove && 'Illegal move'}
                     {isIllegalMove && hasDisagreement && ' · '}
-                    {hasDisagreement && 'Readers disagree'}
+                    {hasDisagreement && t('coaches.readersDisagree')}
                     {(isIllegalMove || hasDisagreement) && isAutoResolved && ' · '}
                     {isAutoResolved && (ambiguousCandidates ? `Ambiguous move : ${ambiguousCandidates} ?` : 'Auto-fixed')}
                   </p>
@@ -1741,7 +1741,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                         const illegal = move && legalCheckChess ? (() => { try { legalCheckChess.move(move); legalCheckChess.undo(); return false; } catch { return true; } })() : false;
                         return (
                           <tr key={name} className={`border-b border-slate-700/50 ${illegal ? 'opacity-40' : ''}`}>
-                            <td className="py-1.5 px-2 text-slate-100 text-xs">{name}</td>
+                            <td className="py-1.5 px-2 text-slate-100 text-xs">{t('coaches.reader')} {name.replace(/^Reader\s*/, '')}</td>
                             <td className="py-1.5 px-2 text-center font-mono text-slate-100">{move || '—'}{legalMark(move)}</td>
                           </tr>
                         );

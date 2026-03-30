@@ -410,6 +410,10 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.status.retrying': 'Retrying...',
     'coaches.status.computing': 'Computing...',
     'coaches.status.waiting': 'Waiting...',
+    'coaches.reader': 'Reader',
+    'coaches.waitingOnReaders': 'Waiting on {n} reader...',
+    'coaches.waitingOnReadersPlural': 'Waiting on {n} readers...',
+    'coaches.readersDisagree': 'Readers disagree',
     'coaches.navAdmin': 'Admin',
     // Admin panel
     'coaches.admin.user1': 'user',
@@ -841,6 +845,10 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.status.retrying': 'Nouvel essai...',
     'coaches.status.computing': 'Calcul...',
     'coaches.status.waiting': 'En attente...',
+    'coaches.reader': 'Lecteur',
+    'coaches.waitingOnReaders': 'En attente de {n} lecteur...',
+    'coaches.waitingOnReadersPlural': 'En attente de {n} lecteurs...',
+    'coaches.readersDisagree': 'Les lecteurs divergent',
     'coaches.navAdmin': 'Admin',
     // Admin panel
     'coaches.admin.user1': 'utilisateur',
