@@ -1270,8 +1270,15 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         <button
           onClick={() => { exitBranch(); setPly(targetPly); playSoundForPly(targetPly); onPlyChange?.(targetPly); if (onDragSetMove) onDragSetMove(''); }}
           className={`w-full mt-1.5 py-2 rounded-lg transition-colors text-sm ${safePly === targetPly && !inBranch ? 'bg-slate-700 text-slate-400 cursor-default' : 'bg-slate-700 hover:bg-slate-600 text-yellow-400'}`}
+          disabled={safePly === targetPly && !inBranch}
         >
-          {safePly === targetPly && !inBranch ? 'Currently at highlighted move' : 'Go to highlighted move'}
+          {(() => {
+            const effectivePly = inBranch && branch ? branch.startPly + branchPly : safePly;
+            const diff = targetPly - effectivePly;
+            if (diff === 0 && !inBranch) return 'Currently at highlighted move';
+            const sign = diff > 0 ? `+${diff}` : `${diff}`;
+            return `Go to highlighted move (${sign})`;
+          })()}
         </button>
       )}
       {!compact && (
