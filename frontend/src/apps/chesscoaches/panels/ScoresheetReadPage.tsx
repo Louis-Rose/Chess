@@ -646,15 +646,36 @@ export function ScoresheetReadPage() {
                     };
                     return (
                       <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData}>
-                        {allModelsFinished && !highlightHintDismissed && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)) && (
-                          <div className="flex justify-center mb-3">
-                            <div className="inline-flex items-center gap-2 bg-slate-700/40 rounded-lg px-3 py-1.5">
-                              <p className="text-slate-100 text-sm">Click on <span className="bg-yellow-500/25 text-yellow-100 px-1.5 py-0.5 rounded">highlighted moves</span> to double-check them</p>
-                              <button onClick={() => { setHighlightHintDismissed(true); localStorage.setItem('scoresheet_hint_dismissed', new Date().toISOString().split('T')[0]); }} className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0">
-                                <span className="text-xs">&#10005;</span>
-                              </button>
+                        {allModelsFinished && (() => {
+                          const hasIssues = modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false);
+                          const unresolvedPlies: number[] = [];
+                          displayConsensusMoves.forEach((m, idx) => {
+                            const d = modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low';
+                            const dBlack = modelDisagreements.has(`${m.number}-black`) || !!m.black_reason || m.black_legal === false || m.black_confidence === 'low';
+                            if (d && !(m as any).white_confirmed) unresolvedPlies.push(idx * 2 + 1);
+                            if (dBlack && m.black && !(m as any).black_confirmed) unresolvedPlies.push(idx * 2 + 2);
+                          });
+                          const allVerified = hasIssues && unresolvedPlies.length === 0;
+                          if (allVerified) return (
+                            <div className="flex justify-center mb-3">
+                              <span className="text-sm text-emerald-400 inline-flex items-center gap-1.5">
+                                <Check className="w-4 h-4" />
+                                Verification complete — PGN is ready
+                              </span>
                             </div>
-                          </div>
+                          );
+                          if (hasIssues && !highlightHintDismissed) return (
+                            <div className="flex justify-center mb-3">
+                              <div className="inline-flex items-center gap-2 bg-slate-700/40 rounded-lg px-3 py-1.5">
+                                <p className="text-slate-100 text-sm">Click on <span className="bg-yellow-500/25 text-yellow-100 px-1.5 py-0.5 rounded">highlighted moves</span> to double-check them</p>
+                                <button onClick={() => { setHighlightHintDismissed(true); localStorage.setItem('scoresheet_hint_dismissed', new Date().toISOString().split('T')[0]); }} className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0">
+                                  <span className="text-xs">&#10005;</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                          return null;
+                        })()
                         )}
                         <div className="flex items-stretch" onClick={consensusReady ? deselectConsensus : undefined}>
                           <div className="flex-1 hidden md:block" />
@@ -1197,14 +1218,6 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
   return (
     <div className="flex flex-col items-center w-[480px]" onClick={activate}>
-      {highlightedPlies && hlPlies.length === 0 && moves.length > 0 ? (
-        <div className="flex items-center gap-2 mb-1.5 w-full justify-center">
-          <span className="text-sm text-emerald-400 inline-flex items-center gap-1.5">
-            <Check className="w-4 h-4" />
-            Verification complete — PGN is ready
-          </span>
-        </div>
-      ) : null}
       {/* Player bar — Black (top) */}
       {(() => {
         const isBlackTurn = currentFen.split(' ')[1] === 'b';
