@@ -767,58 +767,6 @@ export function ScoresheetReadPage() {
 
 
 
-                  {/* Individual model reads — collapsible, admin only */}
-                  {user?.is_admin ? <div className="flex justify-center">
-                  <div className="border border-slate-600/50 rounded-xl overflow-hidden inline-block">
-                    <button
-                      onClick={() => setModelsCollapsed(c => !c)}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 hover:bg-slate-700/30 transition-colors"
-                    >
-                      <span className="text-base text-slate-100 font-medium">{t('coaches.individualReads') || 'See Individual Reads'}</span>
-                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${modelsCollapsed ? '' : 'rotate-180'}`} />
-                    </button>
-                    {!modelsCollapsed && (
-                      <div className="flex flex-wrap gap-3 items-start justify-center px-4 py-4 border-t border-slate-600/50">
-                        {models.map((m) => {
-                          const mr = modelResults[m.id];
-                          const reRead = reReads[m.id]?.[0];
-                          const currentMoves = mr?.result?.moves || [];
-                          const modelColumns = (mr?.result as any)?.columns || sheetColumns;
-                          const modelRowsPerColumn = (mr?.result as any)?.rows_per_column || rowsPerColumn;
-                          const currentElapsed = mr?.elapsed || 0;
-                          const currentError = mr?.error;
-                          const isRereading = mr?.rereading || false;
-                          const corrections = reRead?.corrections;
-                          return (
-                            <div key={m.id}>
-                              {!mr ? (
-                                <ModelPanelLoading name={m.name} startTime={startTime} />
-                              ) : (
-                                <MovesPanel
-                                  label={mr?.name || m.name}
-                                  moves={currentMoves}
-    
-                                  disagreements={new Map()}
-                                  elapsed={currentElapsed}
-                                  error={currentError}
-                                  fileName={fileName}
-                                  rereading={isRereading}
-                                  corrections={corrections}
-                                  onEditSave={(confirmed, corrKey) => { scoresheetHandleEditSave(m.id, 0, confirmed, corrKey); }}
-                                  onReread={() => scoresheetReread(m.id)}
-                                  sheetColumns={modelColumns}
-                                  rowsPerColumn={modelRowsPerColumn}
-                                  showMoveInfo
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  </div> : null}
-
                   {/* Azure DI section — disabled, kept for future use */}
 
                   {/* Old status bar removed — replaced by status table at top */}
