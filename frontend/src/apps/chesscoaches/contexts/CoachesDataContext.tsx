@@ -537,10 +537,10 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
           } else if (payload.type === 'azure_grid') {
             setScoresheet(prev => ({ ...prev, azureGrid: payload.grid }));
           } else if (payload.type === 'retry') {
-            const { model_id, free_error, free_elapsed } = payload;
+            const { model_id, name, free_error, free_elapsed } = payload;
             setScoresheet(prev => ({
               ...prev,
-              modelResults: { ...prev.modelResults, [model_id]: { ...prev.modelResults[model_id], retry: { free_error, free_elapsed } } },
+              modelResults: { ...prev.modelResults, [model_id]: { name: name || prev.modelResults[model_id]?.name || '', elapsed: prev.modelResults[model_id]?.elapsed || 0, ...prev.modelResults[model_id], retry: { free_error, free_elapsed } } },
             }));
           } else if (payload.type === 'result') {
             const { model_id, name, result, error: err, elapsed, warnings, tier, retry } = payload;
