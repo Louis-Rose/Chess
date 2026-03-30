@@ -1167,7 +1167,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
 
   return (
-    <div className="flex flex-col items-center w-[480px]" onClick={activate}>
+    <div className="flex flex-col items-center w-full max-w-[480px]" onClick={activate}>
       {/* Player bar — Black (top) */}
       {(() => {
         const isBlackTurn = currentFen.split(' ')[1] === 'b';
@@ -1604,7 +1604,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
           className="fixed inset-0 z-50 flex items-center justify-center md:pl-64 bg-slate-900/70 backdrop-blur-[3px]"
           onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }}
         >
-          <div className="bg-slate-800 rounded-2xl p-4 shadow-xl border border-slate-600 flex items-center gap-4" onClick={e => e.stopPropagation()}>
+          <div className="bg-slate-800 rounded-2xl p-4 shadow-xl border border-slate-600 flex flex-col md:flex-row items-center gap-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
           <div>
           {/* Zoomed scoresheet cell snippet */}
           {scoresheetPreview && gridData?.cells && (() => {
@@ -1825,7 +1825,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
           </div>
           {/* Integrated board inside the modal — positioned to the right */}
           {boardMoves && (
-            <div className="hidden md:block">
+            <div>
               <ModelBoard
                 moves={boardMoves}
                 externalPly={boardPly}
