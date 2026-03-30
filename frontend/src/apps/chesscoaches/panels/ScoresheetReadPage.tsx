@@ -721,6 +721,8 @@ export function ScoresheetReadPage() {
                                 } catch { setConsensusPreviewFen(null); }
                               }}
                               onClearPreview={() => setConsensusPreviewFen(null)}
+                              scoresheetPreview={preview}
+                              gridData={gridData}
                             />
                             )}
                           </div>
@@ -1339,7 +1341,7 @@ function ModelPanelLoading({ name, startTime }: { name: string; startTime: numbe
   );
 }
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, loading, onConfirmMove, onVoteStateChange, boardMoves, boardPly, onBoardPlyChange, boardPreviewFen }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, loading, onConfirmMove, onVoteStateChange, boardMoves, boardPly, onBoardPlyChange, boardPreviewFen, scoresheetPreview, gridData }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1369,6 +1371,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   boardPly?: number;
   onBoardPlyChange?: (ply: number) => void;
   boardPreviewFen?: string | null;
+  scoresheetPreview?: string | null;
+  gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number };
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
@@ -1678,6 +1682,51 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
         >
           <div className="bg-slate-800 rounded-2xl p-4 shadow-xl border border-slate-600 flex items-center gap-4" onClick={e => e.stopPropagation()}>
           <div>
+          {/* Zoomed scoresheet cell snippet */}
+          {scoresheetPreview && gridData?.cells && (() => {
+            const [mnStr, colorStr] = voteInfoKey.split('-');
+            const moveIdx = parseInt(mnStr) - 1;
+            const isBlack = colorStr === 'black';
+            const rows = rowsPerColumn || Math.ceil(moves.length / Math.max(sheetColumns, 1));
+            const sheetCol = Math.floor(moveIdx / rows);
+            const rowInCol = moveIdx % rows;
+            const azureCols = gridData.col_count || 4;
+            const colsPerSheet = Math.floor(azureCols / Math.max(sheetColumns, 1));
+            const azureCol = sheetCol * colsPerSheet + (isBlack ? 1 : 0);
+            const hasHeader = gridData.row_count ? gridData.row_count > rows : false;
+            const azureRow = rowInCol + (hasHeader ? 1 : 0);
+            const cell = gridData.cells[`${azureRow}-${azureCol}`];
+            if (!cell) return null;
+            // Expand crop area with padding
+            const padX = (cell.x2 - cell.x1) * 0.5;
+            const padY = (cell.y2 - cell.y1) * 0.5;
+            const cx1 = Math.max(0, cell.x1 - padX);
+            const cy1 = Math.max(0, cell.y1 - padY);
+            const cx2 = Math.min(1, cell.x2 + padX);
+            const cy2 = Math.min(1, cell.y2 + padY);
+            const cropW = cx2 - cx1;
+            const cropH = cy2 - cy1;
+            // Clip the image to show only the cell area, scaled up
+            const containerW = 280;
+            const containerH = containerW * (cropH / cropW);
+            return (
+              <div className="rounded-lg overflow-hidden mb-3 border border-slate-600" style={{ width: containerW, height: containerH }}>
+                <img
+                  src={scoresheetPreview}
+                  alt="Scoresheet cell"
+                  draggable={false}
+                  style={{
+                    display: 'block',
+                    width: containerW / cropW,
+                    height: containerH / cropH,
+                    marginLeft: -(cx1 / cropW) * containerW,
+                    marginTop: -(cy1 / cropH) * containerH,
+                    maxWidth: 'none',
+                  }}
+                />
+              </div>
+            );
+          })()}
           <div
             className="bg-slate-700/50 rounded-xl p-5 min-w-[300px] max-w-md space-y-3"
           >
