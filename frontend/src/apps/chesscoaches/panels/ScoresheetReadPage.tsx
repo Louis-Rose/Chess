@@ -973,7 +973,7 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
 let activeModelBoardId = 0;
 let nextModelBoardId = 0;
 
-function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate, previewFen, highlightedPlies, onDragSetMove, compact, targetPly, targetLabel }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; autoActivate?: boolean; previewFen?: string | null; highlightedPlies?: number[]; onDragSetMove?: (san: string) => void; compact?: boolean; targetPly?: number; targetLabel?: string }) {
+function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate, previewFen, highlightedPlies, onDragSetMove, compact, targetPly }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; autoActivate?: boolean; previewFen?: string | null; highlightedPlies?: number[]; onDragSetMove?: (san: string) => void; compact?: boolean; targetPly?: number }) {
   const { t } = useLanguage();
   const [instanceId] = useState(() => ++nextModelBoardId);
   const [ply, setPly] = useState(0);
@@ -1860,7 +1860,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                 previewFen={boardPreviewFen}
                 compact
                 targetPly={voteInfoKey ? (() => { const [mn, cl] = voteInfoKey.split('-'); const idx = parseInt(mn) - 1; return cl === 'white' ? idx * 2 + 1 : idx * 2 + 2; })() : undefined}
-                targetLabel={voteInfoKey ? `Go to Move ${voteInfoKey.split('-')[0]} (${voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')})` : undefined}
+
                 onDragSetMove={(san) => {
                   if (!san) { setVoteEditValue(null); onClearPreview?.(); return; }
                   setVoteEditValue(san);
