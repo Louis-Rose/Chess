@@ -1137,11 +1137,12 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       }
 
       // When vote modal is open and not yet in a branch, set the vote value and create a one-move branch
+      // Note: do NOT call onPlyChange here — it would update externalPly which triggers an effect
+      // that destroys the branch we just created (feedback loop via parent state)
       if (onDragSetMove && !inBranch) {
         onDragSetMove(san);
         setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
         setBranchPly(1);
-        onPlyChange?.(safePly + 1);
         playMoveSound(san.includes('x'));
         return;
       }
@@ -1790,8 +1791,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     return (<>
                       <div className="flex flex-col gap-1.5 mt-1">
                         <p className="text-sm text-slate-100 text-center">Confirm move, or play another move on the board</p>
-                        {voteEditValue && userPickedDifferent && boardAtTarget ? (
-                          // Blue — user played a different move on the board (and board is at the right ply)
+                        {voteEditValue && userPickedDifferent ? (
+                          // Blue — user played a different move on the board
                           <button
                             onClick={() => {
                               if (!onEditSave) return;
