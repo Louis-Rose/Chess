@@ -18,6 +18,15 @@ html, body {
   animation: pulse-sync 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* Loading pulse for dimmed tables while waiting for readers */
+@keyframes loading-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.15; }
+}
+.animate-loading-pulse {
+  animation: loading-pulse 2s ease-in-out infinite;
+}
+
 /* Hide scrollbar but keep scroll functionality */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */
