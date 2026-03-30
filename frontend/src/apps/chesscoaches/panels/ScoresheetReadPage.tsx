@@ -675,8 +675,7 @@ export function ScoresheetReadPage() {
                             </div>
                           );
                           return null;
-                        })()
-                        )}
+                        })()}
                         <div className="flex items-stretch" onClick={consensusReady ? deselectConsensus : undefined}>
                           <div className="flex-1 hidden md:block" />
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
