@@ -1782,7 +1782,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
 
                     return (<>
                       <div className="flex flex-col gap-1.5 mt-1">
-                        <p className="text-base text-slate-100 text-center">Confirm move, or play another move on the board</p>
+                        <p className="text-sm text-slate-100 text-center">Confirm move, or play another move on the board</p>
                         {voteEditValue && userPickedDifferent ? (
                           // Blue — user played a different move on the board
                           <button
