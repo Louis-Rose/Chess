@@ -24,7 +24,7 @@ html, body {
   50% { opacity: 0.2; }
 }
 .animate-loading-pulse {
-  animation: loading-pulse 2s ease-in-out infinite;
+  animation: loading-pulse 2.5s ease-in-out infinite;
 }
 
 /* Hide scrollbar but keep scroll functionality */
