@@ -407,6 +407,7 @@ def get_api_usage():
         # Per-feature aggregates (with cost computed from per-model pricing)
         cursor = conn.execute(f'''
             SELECT feature, model_id, COUNT(*) as call_count,
+                   COUNT(DISTINCT request_id) as invocation_count,
                    SUM(input_tokens) as total_input,
                    SUM(output_tokens) as total_output,
                    SUM(COALESCE(thinking_tokens, 0)) as total_thinking
@@ -422,8 +423,9 @@ def get_api_usage():
             billed_output = (row['total_output'] or 0) + (row['total_thinking'] or 0)
             cost = ((row['total_input'] or 0) * pricing['input'] + billed_output * pricing['output']) / 1_000_000
             if f not in feature_agg:
-                feature_agg[f] = {'feature': f, 'call_count': 0, 'total_input': 0, 'total_output': 0, 'total_thinking': 0, 'cost_usd': 0}
+                feature_agg[f] = {'feature': f, 'call_count': 0, 'invocation_count': 0, 'total_input': 0, 'total_output': 0, 'total_thinking': 0, 'cost_usd': 0}
             feature_agg[f]['call_count'] += row['call_count']
+            feature_agg[f]['invocation_count'] = max(feature_agg[f]['invocation_count'], row['invocation_count'])
             feature_agg[f]['total_input'] += row['total_input'] or 0
             feature_agg[f]['total_output'] += row['total_output'] or 0
             feature_agg[f]['total_thinking'] += row['total_thinking'] or 0

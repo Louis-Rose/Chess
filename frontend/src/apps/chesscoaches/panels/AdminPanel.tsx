@@ -87,7 +87,7 @@ interface ApiInvocation {
 interface ApiUsageResponse {
   history: ApiUsageRow[];
   by_model: ApiUsageByModel[];
-  by_feature: { feature: string; call_count: number; total_input: number; total_output: number; cost_usd: number }[];
+  by_feature: { feature: string; call_count: number; invocation_count?: number; total_input: number; total_output: number; cost_usd: number }[];
   invocations: ApiInvocation[];
   total_cost_usd: number;
   pricing: Record<string, { input: number; output: number }>;
@@ -399,7 +399,7 @@ export function AdminPanel() {
                   <tbody className="divide-y divide-slate-700/50">
                     {apiUsage.by_feature.map(f => {
                       const featureInvocations = apiUsage.invocations.filter(i => i.feature === f.feature);
-                      const uses = featureInvocations.length || f.call_count;
+                      const uses = f.invocation_count || featureInvocations.length || f.call_count;
                       const avgTime = featureInvocations.length > 0
                         ? Math.round(featureInvocations.reduce((s, i) => s + i.elapsed_seconds, 0) / featureInvocations.length)
                         : 0;
