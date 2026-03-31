@@ -744,7 +744,7 @@ export function ScoresheetReadPage() {
                             />
                             )}
                           </div>
-                          <div className="flex-1 hidden md:flex justify-center items-center -mb-20 max-w-[400px]" onClick={e => e.stopPropagation()}>
+                          <div className="flex-1 hidden md:flex justify-center items-center max-w-[400px]" onClick={e => e.stopPropagation()}>
                             <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag autoActivate={false} previewFen={consensusPreviewFen} highlightedPlies={hasResults && allModelsFinished ? (() => {
                               const plies: number[] = [];
                               displayConsensusMoves.forEach((m, idx) => {
