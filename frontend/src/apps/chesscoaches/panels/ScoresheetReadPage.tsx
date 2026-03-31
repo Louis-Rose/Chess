@@ -782,8 +782,7 @@ export function ScoresheetReadPage() {
                               const moveObj = displayConsensusMoves[moveIdx];
                               if (!moveObj) return null;
                               const displayMove = moveObj[colorStr] || '—';
-                              const isIllegal = moveObj[`${colorStr}_legal` as 'white_legal' | 'black_legal'] === false;
-                              const reason = moveObj[`${colorStr}_reason` as 'white_reason' | 'black_reason'];
+
                               // Zoomed scoresheet cell
                               const cellCrop = preview && gridData?.cells ? (() => {
                                 const rows = consensusRowsPerColumn || Math.ceil(displayConsensusMoves.length / Math.max(consensusColumns, 1));
@@ -819,13 +818,6 @@ export function ScoresheetReadPage() {
                                     Move {moveIdx + 1} - {colorStr === 'black' ? 'Black' : 'White'}
                                     {reviewTotal > 0 && <> ({reviewIndex >= 0 ? reviewIndex + 1 : '—'}/{reviewTotal} moves to review)</>}
                                   </p>
-                                  {(isIllegal || reason) && (
-                                    <p className="text-yellow-400 text-xs text-center">
-                                      {isIllegal && 'Illegal move'}
-                                      {isIllegal && reason && ' · '}
-                                      {reason}
-                                    </p>
-                                  )}
                                   <div className="flex items-center justify-center gap-3 py-1">
                                     {cellCrop && (
                                       <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0" style={{ width: cellCrop.cW, height: cellCrop.cH }}>
