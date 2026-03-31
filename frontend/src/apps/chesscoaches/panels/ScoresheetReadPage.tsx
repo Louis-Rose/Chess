@@ -1047,10 +1047,20 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     if (p > 0 && entries[p]?.san) playMoveSound(entries[p].san!.includes('x'));
   }, [entries]);
 
-  // Emit ply change to parent, marking it so the externalPly echo is skipped
+  // Emit ply change to parent, batched via rAF so rapid navigation doesn't
+  // trigger a parent re-render on every keystroke
+  const pendingEmit = useRef<number | null>(null);
+  const rafId = useRef(0);
   const emitPly = useCallback((p: number) => {
     lastEmittedPly.current = p;
-    onPlyChange?.(p);
+    pendingEmit.current = p;
+    cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(() => {
+      if (pendingEmit.current !== null) {
+        onPlyChange?.(pendingEmit.current);
+        pendingEmit.current = null;
+      }
+    });
   }, [onPlyChange]);
 
   // Navigation
