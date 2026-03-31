@@ -499,7 +499,7 @@ export function ScoresheetReadPage() {
                         for (const modelMv of allModelMoves) {
                           const val = modelMv[i]?.[color];
                           if (val) {
-                            const normalized = normalizeForVoting(val);
+                            const normalized = val.replace(/[+#x]/g, '');
                             votes[normalized] = (votes[normalized] || 0) + 1;
                           }
                         }
