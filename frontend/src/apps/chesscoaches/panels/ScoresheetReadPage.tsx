@@ -305,58 +305,7 @@ export function ScoresheetReadPage() {
                 );
               })()}
 
-              {/* Old model status table — kept for debugging
-              {models.length > 0 && (
-                <div className="flex justify-center">
-                <div className="border border-slate-600/50 rounded-xl overflow-hidden inline-block min-w-[400px]">
-                  <div className="w-full flex items-center justify-center px-6 py-3">
-                    <span className="text-base text-slate-100 font-medium">{t('coaches.processing')}</span>
-                  </div>
-                  <table className="w-full text-sm border-t border-slate-600/50">
-                    <thead>
-                      <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
-                        <th className="px-4 py-2 text-left">{t('coaches.processing.model')}</th>
-                        <th className="px-4 py-2 text-center">{t('coaches.processing.status')}</th>
-                        <th className="px-4 py-2 text-center">{t('coaches.processing.time')}</th>
-                        <th className="px-4 py-2 text-center">{t('coaches.processing.avg')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-700/30">
-                      {models.map(m => {
-                        const mr = modelResults[m.id];
-                        const done = !!(mr?.result || mr?.error);
-                        const failed = !!mr?.error;
-                        return (
-                          <tr key={m.id}>
-                            <td className="px-4 py-2.5 text-slate-200 font-medium">{t('coaches.reader')} {m.name.replace(/^Reader\s*/, '')}</td>
-                            <td className="px-4 py-2.5 text-center">
-                              {done ? (
-                                failed
-                                  ? <span className="text-red-400 inline-flex items-center gap-1"><AlertTriangle className="w-4 h-4" /> {t('coaches.status.error')}</span>
-                                  : <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-4 h-4" /> {mr?.retry ? t('coaches.status.doneRetried') : t('coaches.status.done')}</span>
-                              ) : (
-                                <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> {t('coaches.status.reading')}</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-2.5 text-center">
-                              {done ? (
-                                failed ? <span className="text-red-400">—</span> : <span className="text-emerald-400">{mr?.elapsed}s</span>
-                              ) : (
-                                <span className="text-slate-500">{liveGlobalElapsed}s</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-2.5 text-center text-slate-500">
-                              {m.avg_elapsed ? `~${m.avg_elapsed}s` : '—'}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                </div>
-              )}
-              */}
+              {/* Old model status table removed — see git history (commit 6309c734) */}
 
               {/* Re-analyze button — hidden for now */}
 
