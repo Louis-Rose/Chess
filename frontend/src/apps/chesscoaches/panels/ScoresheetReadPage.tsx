@@ -1172,7 +1172,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         if (e.key === 'Home') { e.preventDefault(); e.stopImmediatePropagation(); goFirst(); }
         if (e.key === 'End') { e.preventDefault(); e.stopImmediatePropagation(); goLast(); }
       } else {
-        if (activeModelBoardId !== instanceId) return;
+        if (activeModelBoardId !== 0 && activeModelBoardId !== instanceId) return;
         if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
         if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
         if (e.key === 'Home') { e.preventDefault(); goFirst(); }
@@ -1181,7 +1181,11 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     };
     // Modal board uses capture phase so it fires before and blocks the main board
     window.addEventListener('keydown', handler, !!onDragSetMove);
-    return () => window.removeEventListener('keydown', handler, !!onDragSetMove);
+    return () => {
+      window.removeEventListener('keydown', handler, !!onDragSetMove);
+      // When modal board unmounts, release active state so main board can respond to keys
+      if (onDragSetMove && activeModelBoardId === instanceId) activeModelBoardId = 0;
+    };
   }, [instanceId, goPrev, goNext, goFirst, goLast, onDragSetMove]);
 
 
