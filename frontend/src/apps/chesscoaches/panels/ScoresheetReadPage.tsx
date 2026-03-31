@@ -1506,15 +1506,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {/* Review summary bar */}
       {unresolvedMoves && unresolvedMoves.length > 0 && (
         <div className="px-3 py-2 border-b border-yellow-500/20 bg-yellow-500/10 text-center">
-          <p className="text-sm text-slate-100 mb-1.5">You need to review those moves</p>
-          <p className="text-sm text-yellow-300 text-center">
-            {unresolvedMoves.map(({ moveNumber, color }, i) => (
-              <span key={`${moveNumber}-${color}`}>
-                {i > 0 && ', '}
-                {moveNumber} ({color === 'white' ? 'White' : 'Black'})
-              </span>
-            ))}
-          </p>
+          <p className="text-base text-slate-100">Moves to review : {unresolvedMoves.length}</p>
         </div>
       )}
 
