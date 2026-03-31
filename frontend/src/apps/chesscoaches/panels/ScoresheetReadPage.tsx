@@ -870,8 +870,8 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
       {/* Desktop: image positioned absolutely, vertically centered with the row */}
       {tbodyHeight > 0 && tablesLeft > 0 && (
         <div
-          className="absolute hidden md:flex items-center justify-center"
-          style={{ top: 0, bottom: 0, left: 0, width: Math.min(tablesLeft - 8, 320) }}
+          className="absolute hidden md:flex items-center justify-center px-4"
+          style={{ top: 0, bottom: 0, left: 0, width: tablesLeft }}
         >
           <div className="flex flex-col items-center">
             <div className="relative overflow-hidden rounded-xl">
@@ -879,7 +879,7 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                 ref={imgRef}
                 src={preview}
                 alt="Scoresheet"
-                className="object-cover object-top cursor-pointer hover:opacity-90 transition-opacity"
+                className="object-cover object-top cursor-pointer hover:opacity-90 transition-opacity max-w-[320px]"
                 style={{ maxHeight: tbodyHeight }}
                 onClick={onImageClick}
                 onLoad={() => { if (imgRef.current) setImgSize({ w: imgRef.current.clientWidth, h: imgRef.current.clientHeight, nw: imgRef.current.naturalWidth, nh: imgRef.current.naturalHeight }); }}
