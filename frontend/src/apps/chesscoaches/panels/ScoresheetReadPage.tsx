@@ -733,7 +733,16 @@ export function ScoresheetReadPage() {
                               return plies;
                             })() : undefined} />
                             {/* Move detail panel — always visible, placeholder while processing */}
-                            {(!allModelsFinished || analyzing || !voteState) ? (
+                            {allModelsFinished && allVerified ? (
+                              <div className="w-full flex items-center justify-center bg-slate-700/50 rounded-xl p-6 animate-[fadeIn_0.4s_ease-out]">
+                                <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
+                                  <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
+                                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                                  </span>
+                                  <span className="text-sm text-emerald-300 font-medium">Verification complete — PGN is ready</span>
+                                </div>
+                              </div>
+                            ) : (!allModelsFinished || analyzing || !voteState) ? (
                               <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4">
                                 <p className="text-base text-slate-500 font-medium text-center">Move — - —</p>
                                 <div className="text-center py-1">
@@ -855,17 +864,6 @@ export function ScoresheetReadPage() {
                                 </div>
                               );
                             })()}
-                            {/* PGN ready badge */}
-                            {allModelsFinished && allVerified && (
-                              <div className="w-full animate-[fadeIn_0.4s_ease-out]">
-                                <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
-                                  <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
-                                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                                  </span>
-                                  <span className="text-sm text-emerald-300 font-medium">Verification complete — PGN is ready</span>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </div>
                         {/* Mobile: image above table */}
@@ -1648,8 +1646,10 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             <p className="text-sm text-slate-100">Moves to review : {unresolvedMoves.length}</p>
           </div>
         )}
-        <ChesscomAnalysisButton moves={moves} meta={meta} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
-        <LichessStudyButton moves={moves} meta={meta} fileName={fileName} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
+        <div className={voteDetails && (!unresolvedMoves || unresolvedMoves.length === 0) ? 'animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30 rounded-lg' : ''}>
+          <ChesscomAnalysisButton moves={moves} meta={meta} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
+          <LichessStudyButton moves={moves} meta={meta} fileName={fileName} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
+        </div>
       </>)}
       </div>
 
