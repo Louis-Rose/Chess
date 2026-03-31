@@ -27,6 +27,10 @@ html, body {
   animation: loading-pulse 2.5s ease-in-out infinite;
 }
 
+@keyframes borderPulse {
+  0%, 100% { border-color: rgba(234, 179, 8, 0.15); }
+  50% { border-color: rgba(234, 179, 8, 0.6); }
+}
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
