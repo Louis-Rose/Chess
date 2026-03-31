@@ -1203,21 +1203,21 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         )}
         {compact ? (
           <>
-            <button onClick={goPrev} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm">
+            <button onClick={goPrev} className="flex-1 py-1.5 2xl:py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-xs 2xl:text-sm">
               <ChevronLeft className="w-4 h-4" /> Previous
             </button>
-            <div className="flex-1 py-2.5 bg-slate-700 rounded-lg flex items-center justify-center px-2">
+            <div className="flex-1 py-1.5 2xl:py-2.5 bg-slate-700 rounded-lg flex items-center justify-center px-2">
               {(() => {
                 const displayPly = inBranch ? (branch!.startPly + branchPly) : safePly;
-                if (displayPly <= 0) return <span className="text-sm text-slate-400">Start</span>;
+                if (displayPly <= 0) return <span className="text-xs 2xl:text-sm text-slate-400">Start</span>;
                 return (
-                  <span className="text-sm text-slate-100">
+                  <span className="text-xs 2xl:text-sm text-slate-100">
                     {t('coaches.move')} {Math.ceil(displayPly / 2)} ({displayPly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')})
                   </span>
                 );
               })()}
             </div>
-            <button onClick={goNext} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm">
+            <button onClick={goNext} className="flex-1 py-1.5 2xl:py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-xs 2xl:text-sm">
               Next <ChevronRight className="w-4 h-4" />
             </button>
           </>
@@ -1240,7 +1240,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       {compact && targetPly !== undefined && (
         <button
           onClick={() => { exitBranch(); setPly(targetPly); playSoundForPly(targetPly); onPlyChange?.(targetPly); if (onDragSetMove) onDragSetMove(''); }}
-          className={`w-full mt-1.5 py-2 rounded-lg transition-colors text-sm ${safePly === targetPly && !inBranch ? 'bg-slate-700 text-slate-400 cursor-default' : 'bg-slate-700 hover:bg-slate-600 text-yellow-400'}`}
+          className={`w-full mt-1 2xl:mt-1.5 py-1.5 2xl:py-2 rounded-lg transition-colors text-xs 2xl:text-sm ${safePly === targetPly && !inBranch ? 'bg-slate-700 text-slate-400 cursor-default' : 'bg-slate-700 hover:bg-slate-600 text-yellow-400'}`}
           disabled={safePly === targetPly && !inBranch}
         >
           {(() => {
@@ -1608,7 +1608,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
           className="fixed inset-0 z-50 flex items-center justify-center md:pl-56 2xl:pl-64 bg-slate-900/70 backdrop-blur-[3px]"
           onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }}
         >
-          <div className="bg-slate-800 rounded-2xl p-4 shadow-xl border border-slate-600 flex flex-col md:flex-row items-center gap-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-slate-800 rounded-2xl p-3 2xl:p-4 shadow-xl border border-slate-600 flex flex-col md:flex-row items-center gap-3 2xl:gap-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
           <div>
           {/* Zoomed scoresheet cell snippet */}
           {scoresheetPreview && gridData?.cells && (() => {
@@ -1635,7 +1635,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             const cropW = cx2 - cx1;
             const cropH = cy2 - cy1;
             // Clip the image to show only the cell area, scaled up
-            const containerW = 280;
+            const containerW = window.innerWidth >= 1536 ? 280 : 200;
             const containerH = containerW * (cropH / cropW);
             return (
               <div className="rounded-lg overflow-hidden mb-3 border border-slate-600 mx-auto" style={{ width: containerW, height: containerH }}>
@@ -1656,7 +1656,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             );
           })()}
           <div
-            className="bg-slate-700/50 rounded-xl p-5 min-w-[300px] max-w-md space-y-3"
+            className="bg-slate-700/50 rounded-xl p-3 2xl:p-5 min-w-[240px] 2xl:min-w-[300px] max-w-md space-y-2 2xl:space-y-3"
           >
             <h3 className="text-slate-100 font-medium text-center">
               {t('coaches.move')} {voteInfoKey.split('-')[0]} ({voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')})
