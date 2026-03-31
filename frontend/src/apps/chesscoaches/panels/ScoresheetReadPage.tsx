@@ -770,7 +770,7 @@ export function ScoresheetReadPage() {
                                   <p className="text-lg text-slate-500 font-semibold">Read as <span className="font-mono">———</span></p>
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                  <p className="text-sm text-slate-500 text-center">Drag a piece on the board and then confirm</p>
+                                  <p className="text-base text-slate-500 text-center">Drag a piece on the board and then confirm</p>
                                   <div className="flex justify-center">
                                     <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">Confirm</button>
                                   </div>
@@ -835,7 +835,7 @@ export function ScoresheetReadPage() {
                                     <p className="text-lg text-slate-100 font-semibold">Read as <span className="font-mono">{displayMove}</span></p>
                                   </div>
                                   <div className="flex flex-col gap-1.5">
-                                    <p className="text-sm text-slate-100 text-center">Drag a piece on the board and then confirm</p>
+                                    <p className="text-base text-slate-100 text-center">Drag a piece on the board and then confirm</p>
                                     <div className="flex justify-center">
                                     {userPickedMove ? (
                                       userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
