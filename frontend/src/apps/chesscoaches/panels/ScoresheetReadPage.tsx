@@ -1462,7 +1462,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {/* Review summary bar */}
       {unresolvedMoves && unresolvedMoves.length > 0 && (
         <div className="px-3 py-2 border-b border-yellow-500/20 bg-yellow-500/10 text-center">
-          <p className="text-xs text-yellow-200/80 mb-1.5">Review these moves before exporting the PGN:</p>
+          <p className="text-xs text-yellow-200/80 mb-1.5">You need to review those moves:</p>
           <div className="flex flex-wrap gap-1.5 justify-center">
             {unresolvedMoves.map(({ moveNumber, color, ply }) => (
               <button
