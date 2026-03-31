@@ -765,12 +765,12 @@ export function ScoresheetReadPage() {
                             {/* Move detail panel — always visible, placeholder while processing */}
                             {(!allModelsFinished || analyzing || !voteState) ? (
                               <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4">
-                                <p className="text-lg text-slate-500 font-medium text-center">Move — - — (—/— moves to review)</p>
+                                <p className="text-base text-slate-500 font-medium text-center">Move — - — (—/— moves to review)</p>
                                 <div className="text-center py-1">
-                                <p className="text-base text-slate-500">Read as <span className="font-mono">———</span></p>
+                                <p className="text-sm text-slate-500">Read as <span className="font-mono">———</span></p>
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                  <p className="text-base text-slate-500 text-center">Drag a piece on the board and then confirm</p>
+                                  <p className="text-sm text-slate-500 text-center">Drag a piece on the board and then confirm</p>
                                   <div className="flex justify-center">
                                     <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">Confirm</button>
                                   </div>
@@ -814,7 +814,7 @@ export function ScoresheetReadPage() {
 
                               return (
                                 <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3]">
-                                  <p className="text-lg text-slate-100 font-medium text-center">
+                                  <p className="text-base text-slate-100 font-medium text-center">
                                     Move {moveIdx + 1} - {colorStr === 'black' ? 'Black' : 'White'}
                                     {reviewTotal > 0 && <> ({reviewIndex >= 0 ? reviewIndex + 1 : '—'}/{reviewTotal} moves to review)</>}
                                   </p>
@@ -824,10 +824,10 @@ export function ScoresheetReadPage() {
                                         <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
                                       </div>
                                     )}
-                                    <p className="text-base text-slate-100">Read as <span className="font-mono font-semibold">{displayMove}</span></p>
+                                    <p className="text-sm text-slate-100">Read as <span className="font-mono font-semibold">{displayMove}</span></p>
                                   </div>
                                   <div className="flex flex-col gap-1.5">
-                                    <p className="text-base text-slate-100 text-center">Drag a piece on the board and then confirm</p>
+                                    <p className="text-sm text-slate-100 text-center">Drag a piece on the board and then confirm</p>
                                     <div className="flex justify-center">
                                     {userPickedMove ? (
                                       userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
