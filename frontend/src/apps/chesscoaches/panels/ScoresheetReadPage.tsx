@@ -789,7 +789,7 @@ export function ScoresheetReadPage() {
                                 const cH = cW * (cropH / cropW);
                                 return { cx1, cy1, cropW, cropH, cW, cH };
                               })() : null;
-                              const targetPly = colorStr === 'white' ? moveIdx * 2 + 1 : moveIdx * 2 + 2;
+
                               return (
                                 <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4">
                                   <h3 className="text-slate-100 font-medium text-sm text-center">
