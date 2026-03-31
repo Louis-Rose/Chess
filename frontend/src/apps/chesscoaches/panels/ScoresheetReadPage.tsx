@@ -765,7 +765,7 @@ export function ScoresheetReadPage() {
                             {/* Move detail panel — always visible, placeholder while processing */}
                             {(!allModelsFinished || analyzing || !voteState) ? (
                               <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4">
-                                <p className="text-sm text-slate-500 font-medium text-center">— / — moves to review — Move — (—)</p>
+                                <p className="text-sm text-slate-500 font-medium text-center">Move — - — (—/— moves to review)</p>
                                 <div className="text-center py-1">
                                   <p className="text-lg text-slate-500 font-semibold">Read as <span className="font-mono">———</span></p>
                                 </div>
@@ -816,8 +816,8 @@ export function ScoresheetReadPage() {
                               return (
                                 <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3]">
                                   <p className="text-sm text-slate-100 font-medium text-center">
-                                    {reviewTotal > 0 && <>{reviewIndex >= 0 ? reviewIndex + 1 : '—'} / {reviewTotal} moves to review — </>}
-                                    Move {moveIdx + 1} ({colorStr === 'black' ? 'Black' : 'White'})
+                                    Move {moveIdx + 1} - {colorStr === 'black' ? 'Black' : 'White'}
+                                    {reviewTotal > 0 && <> ({reviewIndex >= 0 ? reviewIndex + 1 : '—'}/{reviewTotal} moves to review)</>}
                                   </p>
                                   {(isIllegal || reason) && (
                                     <p className="text-yellow-400 text-xs text-center">
