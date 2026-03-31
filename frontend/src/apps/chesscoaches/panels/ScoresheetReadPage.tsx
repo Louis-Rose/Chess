@@ -807,8 +807,7 @@ export function ScoresheetReadPage() {
                                     </div>
                                   )}
                                   <div className="text-center py-1">
-                                    <span className="text-xs text-slate-400">Read as</span>
-                                    <p className="text-lg font-mono text-slate-100 font-semibold">{displayMove}</p>
+                                    <p className="text-lg text-slate-100 font-semibold">Read as <span className="font-mono">{displayMove}</span></p>
                                   </div>
                                   <div className="flex flex-col gap-1.5">
                                     <p className="text-sm text-slate-100 text-center">Confirm, or drag a piece on the board</p>
