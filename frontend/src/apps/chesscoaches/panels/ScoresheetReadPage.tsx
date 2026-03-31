@@ -811,18 +811,20 @@ export function ScoresheetReadPage() {
                                   </div>
                                   <div className="flex flex-col gap-1.5">
                                     <p className="text-sm text-slate-100 text-center">Confirm, or drag a piece on the board</p>
+                                    <div className="flex justify-center">
                                     {boardAtTarget ? (
                                       <button
                                         onClick={() => handleConfirmMove(moveIdx + 1, colorStr)}
-                                        className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-xs py-1.5 rounded-lg transition-colors"
+                                        className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
                                       >
                                         Confirm {displayMove}
                                       </button>
                                     ) : (
-                                      <button disabled className="w-full text-xs py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
+                                      <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
                                         Confirm
                                       </button>
                                     )}
+                                    </div>
                                   </div>
                                 </div>
                               );
