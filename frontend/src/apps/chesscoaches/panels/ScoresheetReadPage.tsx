@@ -1503,16 +1503,14 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {unresolvedMoves && unresolvedMoves.length > 0 && (
         <div className="px-3 py-2 border-b border-yellow-500/20 bg-yellow-500/10 text-center">
           <p className="text-sm text-slate-100 mb-1.5">You need to review those moves</p>
-          <div className="flex flex-wrap gap-1.5 justify-center">
-            {unresolvedMoves.map(({ moveNumber, color }) => (
-              <span
-                key={`${moveNumber}-${color}`}
-                className="text-sm text-yellow-300"
-              >
+          <p className="text-sm text-yellow-300 text-center">
+            {unresolvedMoves.map(({ moveNumber, color }, i) => (
+              <span key={`${moveNumber}-${color}`}>
+                {i > 0 && ', '}
                 {moveNumber} ({color === 'white' ? 'White' : 'Black'})
               </span>
             ))}
-          </div>
+          </p>
         </div>
       )}
 
