@@ -1698,7 +1698,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             );
           })()}
           <div
-            className="bg-slate-700/50 rounded-xl p-3 2xl:p-5 min-w-[240px] 2xl:min-w-[300px] max-w-md space-y-2 2xl:space-y-3"
+            className="bg-slate-700/50 rounded-xl p-3 2xl:p-5 min-w-[200px] 2xl:min-w-[280px] max-w-sm space-y-2 2xl:space-y-3"
           >
             <h3 className="text-slate-100 font-medium text-center">
               {t('coaches.move')} {voteInfoKey.split('-')[0]} ({voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')})
@@ -1763,7 +1763,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-600 text-slate-100">
-                        <th className="py-1.5 text-left px-2">Model</th>
+                        <th className="py-1.5 text-center px-2">Model</th>
                         <th className="py-1.5 text-center px-2">{t('coaches.voteCandidate')}</th>
                       </tr>
                     </thead>
@@ -1773,14 +1773,14 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                         const illegal = move && legalCheckChess ? (() => { try { legalCheckChess.move(move); legalCheckChess.undo(); return false; } catch { return true; } })() : false;
                         return (
                           <tr key={name} className={`border-b border-slate-700/50 ${illegal ? 'opacity-40' : ''}`}>
-                            <td className="py-1.5 px-2 text-slate-100 text-xs">{t('coaches.reader')} {name.replace(/^Reader\s*/, '')}</td>
+                            <td className="py-1.5 px-2 text-slate-100 text-xs text-center">{t('coaches.reader')} {name.replace(/^Reader\s*/, '')}</td>
                             <td className="py-1.5 px-2 text-center font-mono text-slate-100">{move || '—'}{legalMark(move)}</td>
                           </tr>
                         );
                       })}
                       {/* Consensus row */}
                       <tr className="border-b border-slate-700/50">
-                        <td className="py-1.5 px-2 text-slate-100 text-xs font-medium">{t('coaches.consensus')}</td>
+                        <td className="py-1.5 px-2 text-slate-100 text-xs font-medium text-center">{t('coaches.consensus')}</td>
                         <td className="py-1.5 px-2 text-center font-mono">
                           {postValidationChanged
                             ? <span className="text-slate-100">{chosen}{legalMark(chosen)}</span>
@@ -1790,7 +1790,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                       </tr>
                       {postValidationChanged && (
                         <tr className="border-b border-slate-700/50">
-                          <td className="py-1.5 px-2 text-slate-100 text-xs font-medium">After validation</td>
+                          <td className="py-1.5 px-2 text-slate-100 text-xs font-medium text-center">After validation</td>
                           <td className="py-1.5 px-2 text-center font-mono">
                             <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{finalMove}{legalMark(finalMove)}</span>
                           </td>
