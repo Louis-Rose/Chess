@@ -755,8 +755,22 @@ export function ScoresheetReadPage() {
                               });
                               return plies;
                             })() : undefined} />
-                            {/* Move detail panel */}
-                            {voteState && allModelsFinished && !analyzing && (() => {
+                            {/* Move detail panel — always visible, placeholder while processing */}
+                            {(!allModelsFinished || analyzing || !voteState) ? (
+                              <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4">
+                                <p className="text-xs text-slate-400 text-center">— / — moves to review</p>
+                                <h3 className="text-slate-500 font-medium text-sm text-center">Move — (—)</h3>
+                                <div className="text-center py-1">
+                                  <p className="text-lg text-slate-500 font-semibold">Read as <span className="font-mono">———</span></p>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  <p className="text-sm text-slate-500 text-center">Drag a piece on the board and then confirm</p>
+                                  <div className="flex justify-center">
+                                    <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">Confirm</button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : voteState && (() => {
                               const moveIdx = voteState.moveIdx;
                               const colorStr = voteState.color;
                               const moveObj = displayConsensusMoves[moveIdx];
@@ -1493,7 +1507,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             {unresolvedMoves.map(({ moveNumber, color }) => (
               <span
                 key={`${moveNumber}-${color}`}
-                className="px-2 py-0.5 rounded text-sm bg-yellow-500/30 text-yellow-100"
+                className="text-sm text-yellow-300"
               >
                 {moveNumber} ({color === 'white' ? 'White' : 'Black'})
               </span>
