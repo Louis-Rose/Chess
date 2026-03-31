@@ -98,9 +98,9 @@ export function ScoresheetReadPage() {
   }, [showImageModal, showExampleModal, closeModal]);
 
 
-  const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void } | null>(null);
+  const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void; clearSelection: () => void } | null>(null);
   const [userPickedMove, setUserPickedMove] = useState<string | null>(null);
-  const handleVoteStateChange = useCallback((s: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void } | null) => {
+  const handleVoteStateChange = useCallback((s: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void; clearSelection: () => void } | null) => {
     setVoteState(prev => {
       if (prev && s && prev.moveIdx === s.moveIdx && prev.color === s.color) return s;
       setUserPickedMove(null);
@@ -803,12 +803,8 @@ export function ScoresheetReadPage() {
                                           onClick={() => {
                                             handleConfirmMove(moveIdx + 1, colorStr);
                                             setUserPickedMove(null);
-                                            // Advance to next unresolved move
-                                            const currentKey = `${moveIdx + 1}-${colorStr}`;
-                                            const remaining = unresolvedMovesList.filter(u => `${u.moveNumber}-${u.color}` !== currentKey);
-                                            if (remaining.length > 0 && voteState) {
-                                              voteState.goToMove(remaining[0].moveNumber, remaining[0].color, remaining[0].ply);
-                                            }
+                                            // Clear selection — auto-select effect will pick the next unresolved move after re-render
+                                            if (voteState) voteState.clearSelection();
                                           }}
                                           className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
                                         >
@@ -841,12 +837,8 @@ export function ScoresheetReadPage() {
                                             }
                                             setConsensusOverrides([...current]);
                                             setUserPickedMove(null);
-                                            // Advance to next unresolved move
-                                            const currentKey = `${moveIdx + 1}-${colorStr}`;
-                                            const remaining = unresolvedMovesList.filter(u => `${u.moveNumber}-${u.color}` !== currentKey);
-                                            if (remaining.length > 0 && voteState) {
-                                              voteState.goToMove(remaining[0].moveNumber, remaining[0].color, remaining[0].ply);
-                                            }
+                                            // Clear selection — auto-select effect will pick the next unresolved move after re-render
+                                            if (voteState) voteState.clearSelection();
                                           }}
                                           className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
                                         >
@@ -1439,7 +1431,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
 
   showMoveInfo?: boolean;
   loading?: boolean;
-  onVoteStateChange?: (state: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void } | null) => void;
+  onVoteStateChange?: (state: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void; clearSelection: () => void } | null) => void;
   unresolvedMoves?: { moveNumber: number; color: 'white' | 'black'; ply: number }[];
 }) {
   const { t } = useLanguage();
@@ -1462,6 +1454,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
           setVoteInfoKey(`${moveNumber}-${color}`);
           onMoveClick?.(moves, ply);
         },
+        clearSelection: () => { setVoteInfoKey(null); },
       });
     } else {
       onVoteStateChange(null);
