@@ -792,7 +792,7 @@ export function ScoresheetReadPage() {
       {showExampleModal && (
         <div
           onClick={closeModal}
-          className="fixed inset-0 z-50 flex items-center justify-center pl-64 bg-slate-900/60 backdrop-blur-[0.5px] cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center pl-56 2xl:pl-64 bg-slate-900/60 backdrop-blur-[0.5px] cursor-pointer"
         >
           <img
             src="/cropping_example.jpeg"
@@ -1506,7 +1506,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {/* Edit modal */}
       {editing && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center pl-64 bg-slate-900/20 backdrop-blur-[0.5px]"
+          className="fixed inset-0 z-50 flex items-center justify-center pl-56 2xl:pl-64 bg-slate-900/20 backdrop-blur-[0.5px]"
           onClick={() => { setEditing(null); onClearPreview?.(); setEditFromVoteKey(null); }}
         >
           <div
@@ -1605,7 +1605,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {/* Vote info modal with integrated board */}
       {voteInfoKey && voteDetails?.[voteInfoKey] && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center md:pl-64 bg-slate-900/70 backdrop-blur-[3px]"
+          className="fixed inset-0 z-50 flex items-center justify-center md:pl-56 2xl:pl-64 bg-slate-900/70 backdrop-blur-[3px]"
           onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }}
         >
           <div className="bg-slate-800 rounded-2xl p-4 shadow-xl border border-slate-600 flex flex-col md:flex-row items-center gap-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -1869,7 +1869,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
         const isHighlighted = legal === false || !!reason;
         return createPortal(
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center pl-64 bg-slate-900/60 backdrop-blur-[0.5px]"
+            className="fixed inset-0 z-50 flex items-center justify-center pl-56 2xl:pl-64 bg-slate-900/60 backdrop-blur-[0.5px]"
             onClick={() => setMoveInfoKey(null)}
           >
             <div
