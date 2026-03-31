@@ -19,6 +19,15 @@ import { pieceImageUrl } from '../utils/pieces';
 import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
+/** Normalize a SAN for consensus voting — strip +, #, x, and disambiguation so Nbd2/Nfd2/Nd2 all match. */
+function normalizeForVoting(san: string): string {
+  let s = san.replace(/[+#x]/g, '');
+  // Strip disambiguation: e.g. Nbd2 → Nd2, R1e1 → Re1, Qh4e1 → Qe1
+  const m = s.match(/^([KQRBN])([a-h]?[1-8]?)([a-h][1-8])$/);
+  if (m) s = m[1] + m[3];
+  return s;
+}
+
 /** Replay moves on a board and return copies with canonical SAN (correct +/# annotations). */
 function normalizeMoves(moves: Move[]): Move[] {
   const chess = new Chess();
@@ -347,7 +356,7 @@ export function ScoresheetReadPage() {
                       const values = new Set<string>();
                       for (const mv of allModelMovesForDisagreement) {
                         const val = mv[i]?.[color];
-                        if (val) values.add(val.replace(/[+#x]/g, ''));
+                        if (val) values.add(normalizeForVoting(val));
                       }
                       if (values.size > 1) modelDisagreements.add(`${i + 1}-${color}`);
                     }
@@ -406,7 +415,7 @@ export function ScoresheetReadPage() {
                             const moveObj = allModelMoves[mi][i];
                             const val = moveObj?.[color];
                             if (val) {
-                              const normalized = val.replace(/[+#x]/g, '');
+                              const normalized = normalizeForVoting(val);
                               votes[normalized] = (votes[normalized] || 0) + 1;
                               if (!votersByCandidate[normalized]) votersByCandidate[normalized] = [];
                               votersByCandidate[normalized].push(modelNames[mi]);
@@ -492,7 +501,7 @@ export function ScoresheetReadPage() {
                         for (const modelMv of allModelMoves) {
                           const val = modelMv[i]?.[color];
                           if (val) {
-                            const normalized = val.replace(/[+#x]/g, '');
+                            const normalized = normalizeForVoting(val);
                             votes[normalized] = (votes[normalized] || 0) + 1;
                           }
                         }
