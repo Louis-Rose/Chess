@@ -97,7 +97,6 @@ export function ScoresheetReadPage() {
 
 
   const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null>(null);
-  const [inlinePanelEl, setInlinePanelEl] = useState<HTMLDivElement | null>(null);
 
   // ── Live elapsed timer for status table ──
   const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
@@ -743,28 +742,8 @@ export function ScoresheetReadPage() {
                               modelDisagreements={modelDisagreements}
                               voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
 
-                              onConfirmMove={allModelsFinished && !analyzing ? handleConfirmMove : undefined}
                               onVoteStateChange={setVoteState}
-                              boardPly={modelBoardPlys[consensusId]?.ply}
-                              onPreview={(moveIdx, color, san) => {
-                                try {
-                                  const chess = new Chess();
-                                  for (let i = 0; i < moveIdx; i++) {
-                                    if (displayConsensusMoves[i].white) try { chess.move(displayConsensusMoves[i].white); } catch { break; }
-                                    if (displayConsensusMoves[i].black) try { chess.move(displayConsensusMoves[i].black!); } catch { break; }
-                                  }
-                                  if (color === 'black' && displayConsensusMoves[moveIdx]?.white) {
-                                    try { chess.move(displayConsensusMoves[moveIdx].white); } catch { /* */ }
-                                  }
-                                  chess.move(san);
-                                  setConsensusPreviewFen(chess.fen());
-                                } catch { setConsensusPreviewFen(null); }
-                              }}
-                              onClearPreview={() => setConsensusPreviewFen(null)}
-                              scoresheetPreview={preview}
-                              gridData={gridData}
                               unresolvedMoves={hasIssues && !allVerified ? unresolvedMovesList : undefined}
-                              inlinePanelContainer={inlinePanelEl}
                             />
                             )}
                           </div>
@@ -782,8 +761,81 @@ export function ScoresheetReadPage() {
                               });
                               return plies;
                             })() : undefined} />
-                            {/* Inline panel renders here via portal */}
-                            <div ref={setInlinePanelEl} className="w-full" />
+                            {/* Move detail panel */}
+                            {voteState && allModelsFinished && !analyzing && (() => {
+                              const moveIdx = voteState.moveIdx;
+                              const colorStr = voteState.color;
+                              const moveObj = displayConsensusMoves[moveIdx];
+                              if (!moveObj) return null;
+                              const displayMove = moveObj[colorStr] || '—';
+                              const isIllegal = moveObj[`${colorStr}_legal` as 'white_legal' | 'black_legal'] === false;
+                              const reason = moveObj[`${colorStr}_reason` as 'white_reason' | 'black_reason'];
+                              // Zoomed scoresheet cell
+                              const cellCrop = preview && gridData?.cells ? (() => {
+                                const rows = consensusRowsPerColumn || Math.ceil(displayConsensusMoves.length / Math.max(consensusColumns, 1));
+                                const sheetCol = Math.floor(moveIdx / rows);
+                                const rowInCol = moveIdx % rows;
+                                const azureCols = gridData.col_count || 4;
+                                const colsPerSection = Math.round(azureCols / Math.max(consensusColumns, 1));
+                                const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
+                                const azureCol = sheetCol * colsPerSection + moveNumOffset + (colorStr === 'black' ? 1 : 0);
+                                const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
+                                const azureRow = rowInCol + rowOffset;
+                                const cell = gridData.cells![`${azureRow}-${azureCol}`];
+                                if (!cell) return null;
+                                const padX = (cell.x2 - cell.x1) * 0.2;
+                                const padY = (cell.y2 - cell.y1) * 0.2;
+                                const cx1 = Math.max(0, cell.x1 - padX);
+                                const cy1 = Math.max(0, cell.y1 - padY);
+                                const cx2 = Math.min(1, cell.x2 + padX);
+                                const cy2 = Math.min(1, cell.y2 + padY);
+                                const cropW = cx2 - cx1;
+                                const cropH = cy2 - cy1;
+                                const cW = 180;
+                                const cH = cW * (cropH / cropW);
+                                return { cx1, cy1, cropW, cropH, cW, cH };
+                              })() : null;
+                              const targetPly = colorStr === 'white' ? moveIdx * 2 + 1 : moveIdx * 2 + 2;
+                              const boardAtTarget = modelBoardPlys[consensusId]?.ply === targetPly;
+                              return (
+                                <div className="w-full space-y-2 px-2">
+                                  <h3 className="text-slate-100 font-medium text-sm text-center">
+                                    Move {moveIdx + 1} ({colorStr === 'black' ? 'Black' : 'White'})
+                                  </h3>
+                                  {(isIllegal || reason) && (
+                                    <p className="text-yellow-400 text-xs text-center">
+                                      {isIllegal && 'Illegal move'}
+                                      {isIllegal && reason && ' · '}
+                                      {reason}
+                                    </p>
+                                  )}
+                                  {cellCrop && (
+                                    <div className="rounded-lg overflow-hidden border border-slate-600 mx-auto" style={{ width: cellCrop.cW, height: cellCrop.cH }}>
+                                      <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
+                                    </div>
+                                  )}
+                                  <div className="text-center py-1">
+                                    <span className="text-xs text-slate-400">Read as</span>
+                                    <p className="text-lg font-mono text-slate-100 font-semibold">{displayMove}</p>
+                                  </div>
+                                  <div className="flex flex-col gap-1.5">
+                                    <p className="text-xs text-slate-400 text-center">Confirm, or drag a piece on the board</p>
+                                    {boardAtTarget ? (
+                                      <button
+                                        onClick={() => handleConfirmMove(moveIdx + 1, colorStr)}
+                                        className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-xs py-1.5 rounded-lg transition-colors"
+                                      >
+                                        Confirm {displayMove}
+                                      </button>
+                                    ) : (
+                                      <button disabled className="w-full text-xs py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
+                                        Confirm
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       </ModelRow>
@@ -1327,7 +1379,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
 
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, showMoveInfo, loading, onConfirmMove, onVoteStateChange, boardPly, scoresheetPreview, gridData, unresolvedMoves, inlinePanelContainer }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange, unresolvedMoves }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1351,13 +1403,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
 
   showMoveInfo?: boolean;
   loading?: boolean;
-  onConfirmMove?: (moveNumber: number, color: 'white' | 'black') => void;
   onVoteStateChange?: (state: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null) => void;
-  boardPly?: number;
-  scoresheetPreview?: string | null;
   unresolvedMoves?: { moveNumber: number; color: 'white' | 'black'; ply: number }[];
-  gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number };
-  inlinePanelContainer?: HTMLDivElement | null;
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
@@ -1575,177 +1622,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             {t('coaches.rereadFromEdit')}
           </button>
         )}
-        {/* Inline move detail panel — always visible, portaled to right column on desktop */}
-        {voteDetails && (() => {
-          const panelContent = (
-        <div className={inlinePanelContainer ? 'px-3 py-3 space-y-2' : 'border-t border-slate-600/50 px-3 py-3 space-y-2'}>
-          {!voteInfoKey || !voteDetails[voteInfoKey] ? (
-            /* Placeholder when no move selected */
-            <div className="text-center py-3">
-              <p className="text-xs text-slate-500">Click a move to see details</p>
-            </div>
-          ) : (() => {
-            const [mnStr, colorStr] = voteInfoKey.split('-');
-            const moveIdx = parseInt(mnStr) - 1;
-            const moveObj = moves[moveIdx];
-            const isBlack = colorStr === 'black';
-            return (<>
-              {/* Header */}
-              <h3 className="text-slate-100 font-medium text-sm text-center">
-                {t('coaches.move')} {mnStr} ({isBlack ? t('coaches.moveBlack') : t('coaches.moveWhite')})
-              </h3>
-              {/* Status line */}
-              {(() => {
-                const details = voteDetails[voteInfoKey];
-                const isIllegalMove = moveObj?.[`${colorStr}_legal` as 'white_legal' | 'black_legal'] === false;
-                const hasDisagreement = details.length > 1;
-                const reason = moveObj?.[`${colorStr}_reason` as 'white_reason' | 'black_reason'];
-                const isAutoResolved = reason?.startsWith('Ambiguous') || reason?.startsWith('Auto-fixed');
-                const ambiguousCandidates = reason?.match(/Ambiguous \((.+)\)/)?.[1]?.replace(/\//g, ' or ');
-                if (isIllegalMove || hasDisagreement || isAutoResolved) {
-                  return (
-                    <p className="text-yellow-400 text-xs text-center">
-                      {isIllegalMove && 'Illegal move'}
-                      {isIllegalMove && hasDisagreement && ' · '}
-                      {hasDisagreement && t('coaches.readersDisagree')}
-                      {(isIllegalMove || hasDisagreement) && isAutoResolved && ' · '}
-                      {isAutoResolved && (ambiguousCandidates ? `Ambiguous: ${ambiguousCandidates}` : 'Auto-fixed')}
-                    </p>
-                  );
-                }
-                return null;
-              })()}
-              {/* Zoomed scoresheet cell */}
-              {scoresheetPreview && gridData?.cells && (() => {
-                const rows = rowsPerColumn || Math.ceil(moves.length / Math.max(sheetColumns, 1));
-                const sheetCol = Math.floor(moveIdx / rows);
-                const rowInCol = moveIdx % rows;
-                const azureCols = gridData.col_count || 4;
-                const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
-                const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
-                const azureCol = sheetCol * colsPerSection + moveNumOffset + (isBlack ? 1 : 0);
-                const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
-                const azureRow = rowInCol + rowOffset;
-                const cell = gridData.cells[`${azureRow}-${azureCol}`];
-                if (!cell) return null;
-                const padX = (cell.x2 - cell.x1) * 0.2;
-                const padY = (cell.y2 - cell.y1) * 0.2;
-                const cx1 = Math.max(0, cell.x1 - padX);
-                const cy1 = Math.max(0, cell.y1 - padY);
-                const cx2 = Math.min(1, cell.x2 + padX);
-                const cy2 = Math.min(1, cell.y2 + padY);
-                const cropW = cx2 - cx1;
-                const cropH = cy2 - cy1;
-                const containerW = 180;
-                const containerH = containerW * (cropH / cropW);
-                return (
-                  <div className="rounded-lg overflow-hidden border border-slate-600 mx-auto" style={{ width: containerW, height: containerH }}>
-                    <img
-                      src={scoresheetPreview}
-                      alt="Scoresheet cell"
-                      draggable={false}
-                      style={{
-                        display: 'block',
-                        width: containerW / cropW,
-                        height: containerH / cropH,
-                        marginLeft: -(cx1 / cropW) * containerW,
-                        marginTop: -(cy1 / cropH) * containerH,
-                        maxWidth: 'none',
-                      }}
-                    />
-                  </div>
-                );
-              })()}
-              {/* Move result */}
-              {(() => {
-                const details = voteDetails[voteInfoKey];
-                const chosen = details.find(d => d.chosen)?.candidate;
-                const finalMove = moveObj?.[colorStr as 'white' | 'black'];
-                const displayMove = finalMove || chosen || '—';
-                const legalCheckChess = (() => {
-                  try {
-                    const ch = new Chess();
-                    for (let i = 0; i < moveIdx; i++) {
-                      if (moves[i].white) try { ch.move(moves[i].white); } catch { break; }
-                      if (moves[i].black) try { ch.move(moves[i].black!); } catch { break; }
-                    }
-                    if (colorStr === 'black' && moves[moveIdx]?.white) {
-                      try { ch.move(moves[moveIdx].white); } catch { /* */ }
-                    }
-                    return ch;
-                  } catch { return null; }
-                })();
-                const legalMark = (move?: string) => {
-                  if (!move || !legalCheckChess) return null;
-                  try { legalCheckChess.move(move); legalCheckChess.undo(); return <span className="text-green-400 text-[10px] ml-1">&#10003;</span>; }
-                  catch { return <span className="text-red-400 text-[10px] ml-1">&#10007;</span>; }
-                };
-                return (
-                  <>
-                    <div className="text-center py-1">
-                      <span className="text-xs text-slate-400">Read as</span>
-                      <p className="text-lg font-mono text-slate-100 font-semibold">{displayMove}{legalMark(displayMove)}</p>
-                    </div>
-                    {/* Confirm / pick actions */}
-                    {onConfirmMove && (finalMove || chosen) && (() => {
-                      const currentMove = finalMove || chosen;
-                      const targetMovePly = colorStr === 'white' ? moveIdx * 2 + 1 : moveIdx * 2 + 2;
-                      const boardAtTarget = boardPly === targetMovePly;
-                      const userPickedDifferent = voteEditValue && voteEditValue !== currentMove;
-                      return (
-                        <div className="flex flex-col gap-1.5 mt-1">
-                          <p className="text-xs text-slate-400 text-center">Confirm, or drag a piece on the board</p>
-                          {voteEditValue && userPickedDifferent ? (
-                            <button
-                              onClick={() => {
-                                if (!onEditSave) return;
-                                const confirmed: Move[] = moves.map((m, i) => {
-                                  const mc = { ...m };
-                                  if (i === moveIdx) {
-                                    mc[colorStr as 'white' | 'black'] = voteEditValue;
-                                    (mc as any)[`${colorStr}_confirmed`] = true;
-                                    delete (mc as any)[`${colorStr}_reason`];
-                                  }
-                                  delete mc.white_legal;
-                                  delete mc.black_legal;
-                                  return mc;
-                                });
-                                onEditSave(confirmed, `${mnStr}-${colorStr}`);
-                                setVoteEditValue(null);
-                                setVoteInfoKey(null);
-                                onClearPreview?.();
-                              }}
-                              className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
-                            >
-                              Pick {voteEditValue} instead
-                            </button>
-                          ) : boardAtTarget ? (
-                            <button
-                              onClick={() => {
-                                onConfirmMove(parseInt(mnStr), colorStr as 'white' | 'black');
-                                setVoteInfoKey(null); setVoteEditValue(null);
-                              }}
-                              className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-xs py-1.5 rounded-lg transition-colors"
-                            >
-                              Confirm {currentMove}
-                            </button>
-                          ) : (
-                            <button disabled className="w-full text-xs py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
-                              Confirm
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </>
-                );
-              })()}
-            </>);
-          })()}
-        </div>
-          );
-          return inlinePanelContainer ? createPortal(panelContent, inlinePanelContainer) : panelContent;
-        })()}
         <ChesscomAnalysisButton moves={moves} meta={meta} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
         <LichessStudyButton moves={moves} meta={meta} fileName={fileName} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
       </>)}
