@@ -899,10 +899,13 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
 
                 if (gridData && gridData.cells) {
                   // Azure DI: direct per-cell bounding boxes
-                  // Azure detects data columns only (W, B, W, B) — no move number columns
+                  // Azure detects all columns including move numbers: [#, W, B, #, W, B, ...]
+                  // colsPerSection is typically 3 (#, W, B) or 2 (W, B) depending on the sheet
                   const azureCols = gridData.col_count || 4;
-                  const colsPerSheet = Math.floor(azureCols / Math.max(sheetColumns, 1)); // typically 2
-                  const azureCol = sheetCol * colsPerSheet + (isBlack ? 1 : 0);
+                  const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
+                  // If colsPerSection is 3+, first col in each section is the move number — skip it
+                  const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
+                  const azureCol = sheetCol * colsPerSection + moveNumOffset + (isBlack ? 1 : 0);
                   const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
                   const azureRow = rowInCol + rowOffset;
                   const cell = gridData.cells[`${azureRow}-${azureCol}`];
@@ -1631,10 +1634,11 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             const sheetCol = Math.floor(moveIdx / rows);
             const rowInCol = moveIdx % rows;
             const azureCols = gridData.col_count || 4;
-            const colsPerSheet = Math.floor(azureCols / Math.max(sheetColumns, 1));
-            const azureCol = sheetCol * colsPerSheet + (isBlack ? 1 : 0);
-            const hasHeader = gridData.row_count ? gridData.row_count > rows : false;
-            const azureRow = rowInCol + (hasHeader ? 1 : 0);
+            const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
+            const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
+            const azureCol = sheetCol * colsPerSection + moveNumOffset + (isBlack ? 1 : 0);
+            const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
+            const azureRow = rowInCol + rowOffset;
             const cell = gridData.cells[`${azureRow}-${azureCol}`];
             if (!cell) return null;
             // Expand crop area with padding
