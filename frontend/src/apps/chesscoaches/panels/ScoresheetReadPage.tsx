@@ -97,10 +97,6 @@ export function ScoresheetReadPage() {
 
 
   const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null>(null);
-  const [highlightHintDismissed, setHighlightHintDismissed] = useState(() => {
-    const dismissed = localStorage.getItem('scoresheet_hint_dismissed');
-    return dismissed === new Date().toISOString().split('T')[0];
-  });
 
   // ── Live elapsed timer for status table ──
   const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
@@ -671,36 +667,36 @@ export function ScoresheetReadPage() {
                     const deselectConsensus = () => {
                       setModelBoardPlys(p => { const rest = { ...p }; delete rest[consensusId]; return rest; });
                     };
+                    // Compute unresolved moves for review bar
+                    const hasIssues = allModelsFinished && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false));
+                    const unresolvedPlies: number[] = [];
+                    if (allModelsFinished) {
+                      displayConsensusMoves.forEach((m, idx) => {
+                        const d = modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low';
+                        const dBlack = modelDisagreements.has(`${m.number}-black`) || !!m.black_reason || m.black_legal === false || m.black_confidence === 'low';
+                        if (d && !(m as any).white_confirmed) unresolvedPlies.push(idx * 2 + 1);
+                        if (dBlack && m.black && !(m as any).black_confirmed) unresolvedPlies.push(idx * 2 + 2);
+                      });
+                    }
+                    const allVerified = hasIssues && unresolvedPlies.length === 0;
+                    const unresolvedMovesList = unresolvedPlies.map(ply => {
+                      const moveIdx = Math.floor((ply - 1) / 2);
+                      const color = ply % 2 === 1 ? 'white' : 'black';
+                      return { moveNumber: moveIdx + 1, color: color as 'white' | 'black', ply };
+                    });
+
                     return (
                       <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData}>
-                        {allModelsFinished && (() => {
-                          const hasIssues = modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false);
-                          const unresolvedPlies: number[] = [];
-                          displayConsensusMoves.forEach((m, idx) => {
-                            const d = modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low';
-                            const dBlack = modelDisagreements.has(`${m.number}-black`) || !!m.black_reason || m.black_legal === false || m.black_confidence === 'low';
-                            if (d && !(m as any).white_confirmed) unresolvedPlies.push(idx * 2 + 1);
-                            if (dBlack && m.black && !(m as any).black_confirmed) unresolvedPlies.push(idx * 2 + 2);
-                          });
-                          const allVerified = hasIssues && unresolvedPlies.length === 0;
-                          // unresolvedMoves list for the summary bar inside MovesPanel
-                          const unresolvedMovesList = unresolvedPlies.map(ply => {
-                            const moveIdx = Math.floor((ply - 1) / 2);
-                            const color = ply % 2 === 1 ? 'white' : 'black';
-                            return { moveNumber: moveIdx + 1, color: color as 'white' | 'black', ply };
-                          });
-                          if (allVerified) return (
-                            <div className="flex justify-center mb-3 animate-[fadeIn_0.4s_ease-out]">
-                              <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
-                                <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
-                                  <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                                </span>
-                                <span className="text-sm text-emerald-300 font-medium">Verification complete — PGN is ready</span>
-                              </div>
+                        {allModelsFinished && allVerified && (
+                          <div className="flex justify-center mb-3 animate-[fadeIn_0.4s_ease-out]">
+                            <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
+                                <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                              </span>
+                              <span className="text-sm text-emerald-300 font-medium">Verification complete — PGN is ready</span>
                             </div>
-                          );
-                          return null;
-                        })()}
+                          </div>
+                        )}
                         <div className="flex items-stretch justify-center md:gap-6 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
                             {!hasResults || consensusMoves.length === 0 ? (
