@@ -18,13 +18,33 @@ import { pieceImageUrl } from '../utils/pieces';
 import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
+/** Replay moves on a board and return copies with canonical SAN (correct +/# annotations). */
+function normalizeMoves(moves: Move[]): Move[] {
+  const chess = new Chess();
+  return moves.map(m => {
+    const out: Move = { ...m };
+    for (const color of ['white', 'black'] as const) {
+      const san = m[color];
+      if (!san) continue;
+      try {
+        const move = chess.move(san);
+        if (move) { out[color] = move.san; }
+      } catch {
+        // illegal move — keep original text
+      }
+    }
+    return out;
+  });
+}
+
 function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result?: string }): string {
   const headers = [
     `[White "${meta?.white || '?'}"]`,
     `[Black "${meta?.black || '?'}"]`,
     `[Result "${meta?.result || '*'}"]`,
   ].join('\n');
-  const moveText = moves.map(m =>
+  const normalized = normalizeMoves(moves);
+  const moveText = normalized.map(m =>
     `${m.number}. ${m.white}${m.black ? ' ' + m.black : ''}`
   ).join(' ');
   return `${headers}\n\n${moveText} ${meta?.result || '*'}\n`;
@@ -631,8 +651,25 @@ export function ScoresheetReadPage() {
 
                     const consensusColumns = sheetColumns;
                     const consensusRowsPerColumn = rowsPerColumn;
-                    // Apply overrides on top of computed consensus
-                    const displayConsensusMoves = consensusOverrides || consensusMoves;
+
+                    // Build consensus meta (player names + result) from model results
+                    const consensusMeta: { white?: string; black?: string; result?: string } = {};
+                    {
+                      const results = Object.values(modelResults).map(mr => mr?.result).filter(Boolean);
+                      const pick = (vals: (string | undefined)[]) => {
+                        const counts: Record<string, number> = {};
+                        for (const v of vals) { if (v) counts[v] = (counts[v] || 0) + 1; }
+                        const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+                        return sorted[0]?.[0] || undefined;
+                      };
+                      consensusMeta.white = pick(results.map(r => r!.white_player));
+                      consensusMeta.black = pick(results.map(r => r!.black_player));
+                      consensusMeta.result = pick(results.map(r => r!.result));
+                    }
+
+                    // Apply overrides on top of computed consensus, then normalize +/# annotations
+                    const rawConsensusMoves = consensusOverrides || consensusMoves;
+                    const displayConsensusMoves = normalizeMoves(rawConsensusMoves);
                     const handleConsensusEditSave = (_readIdx: number, confirmed: Move[], _corrKey: string) => {
                       // Re-validate with chess.js
                       const ch = new Chess();
@@ -728,6 +765,7 @@ export function ScoresheetReadPage() {
                               })()}
                               elapsed={!allModelsFinished || analyzing ? liveGlobalElapsed : Math.max(...models.map(m => modelResults[m.id]?.elapsed || 0))}
                               loading={!allModelsFinished || analyzing}
+                              meta={consensusMeta}
                               fileName={fileName}
                               onEditSave={allModelsFinished && !analyzing ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
                               originalMoves={consensusOverrides ? consensusMoves : undefined}
@@ -1454,6 +1492,15 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
 
       {error && <p className="text-red-400 text-center py-3 text-xs px-2 break-words max-w-sm mx-auto">{error}</p>}
 
+      {/* Game result */}
+      {meta?.result && meta.result !== '*' && (
+        <div className="px-3 py-1.5 border-b border-slate-600/30 text-center">
+          <span className="text-slate-300 text-xs">
+            {meta.white || '?'} vs {meta.black || '?'} — <span className="font-semibold text-slate-100">{meta.result}</span>
+          </span>
+        </div>
+      )}
+
       {/* Moves table */}
       <div className={`${loading ? 'pointer-events-none' : ''}`}>
       {moves.length > 0 && (() => {
@@ -1962,7 +2009,8 @@ function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }
   const { t } = useLanguage();
   const handleClick = () => {
     if (hasIllegalMoves) { onIllegalClick?.(); return; }
-    const moveText = moves.map(m =>
+    const normalized = normalizeMoves(moves);
+    const moveText = normalized.map(m =>
       `${m.number}. ${m.white}${m.black ? ' ' + m.black : ''}`
     ).join(' ');
     const pgn = `[White "${meta?.white || '?'}"]\n[Black "${meta?.black || '?'}"]\n[Result "${meta?.result || '*'}"]\n[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]\n\n${moveText} ${meta?.result || '*'}`;
