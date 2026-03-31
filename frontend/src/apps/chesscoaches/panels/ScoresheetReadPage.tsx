@@ -1650,18 +1650,12 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   </div>
                 );
               })()}
-              {/* Move read result / vote table */}
+              {/* Move result */}
               {(() => {
                 const details = voteDetails[voteInfoKey];
-                const names = allModelNames || [];
-                const modelToMove: Record<string, string> = {};
-                for (const d of details) {
-                  for (const m of (d.models || [])) modelToMove[m] = d.candidate;
-                }
                 const chosen = details.find(d => d.chosen)?.candidate;
                 const finalMove = moveObj?.[colorStr as 'white' | 'black'];
-                const postValidationChanged = finalMove && chosen && finalMove.replace(/[+#x]/g, '') !== chosen;
-                const hasDisagreement = details.length > 1;
+                const displayMove = finalMove || chosen || '—';
                 const legalCheckChess = (() => {
                   try {
                     const ch = new Chess();
@@ -1680,52 +1674,12 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   try { legalCheckChess.move(move); legalCheckChess.undo(); return <span className="text-green-400 text-[10px] ml-1">&#10003;</span>; }
                   catch { return <span className="text-red-400 text-[10px] ml-1">&#10007;</span>; }
                 };
-                const displayMove = finalMove || chosen || '—';
                 return (
                   <>
-                    {hasDisagreement ? (
-                      /* Show per-model breakdown only when models disagree */
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b border-slate-600 text-slate-100">
-                            <th className="py-1 text-center px-2">Model</th>
-                            <th className="py-1 text-center px-2">{t('coaches.voteCandidate')}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {names.map(name => {
-                            const move = modelToMove[name];
-                            const illegal = move && legalCheckChess ? (() => { try { legalCheckChess.move(move); legalCheckChess.undo(); return false; } catch { return true; } })() : false;
-                            return (
-                              <tr key={name} className={`border-b border-slate-700/50 ${illegal ? 'opacity-40' : ''}`}>
-                                <td className="py-1 px-2 text-slate-100 text-center">{t('coaches.reader')} {name.replace(/^Reader\s*/, '')}</td>
-                                <td className="py-1 px-2 text-center font-mono text-slate-100">{move || '—'}{legalMark(move)}</td>
-                              </tr>
-                            );
-                          })}
-                          <tr className="border-b border-slate-700/50">
-                            <td className="py-1 px-2 text-slate-100 text-xs font-medium text-center">{t('coaches.consensus')}</td>
-                            <td className="py-1 px-2 text-center font-mono">
-                              <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{displayMove}{legalMark(displayMove)}</span>
-                            </td>
-                          </tr>
-                          {postValidationChanged && (
-                            <tr className="border-b border-slate-700/50">
-                              <td className="py-1 px-2 text-slate-100 text-xs font-medium text-center">After validation</td>
-                              <td className="py-1 px-2 text-center font-mono">
-                                <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{finalMove}{legalMark(finalMove)}</span>
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    ) : (
-                      /* All models agree — just show the move */
-                      <div className="text-center py-1">
-                        <span className="text-xs text-slate-400">Read as</span>
-                        <p className="text-lg font-mono text-slate-100 font-semibold">{displayMove}{legalMark(displayMove)}</p>
-                      </div>
-                    )}
+                    <div className="text-center py-1">
+                      <span className="text-xs text-slate-400">Read as</span>
+                      <p className="text-lg font-mono text-slate-100 font-semibold">{displayMove}{legalMark(displayMove)}</p>
+                    </div>
                     {/* Confirm / pick actions */}
                     {onConfirmMove && (finalMove || chosen) && (() => {
                       const currentMove = finalMove || chosen;
