@@ -947,13 +947,39 @@ def read_scoresheet():
             for (r, c), b in cell_bounds.items():
                 cells_map[f"{r}-{c}"] = {k: round(v, 4) for k, v in b.items()}
 
+            # Detect which row is the first move row by examining cell content
+            # Look for the first row where col 0 contains "01" or "1" (move number)
+            cell_content = {}  # (row, col) -> content string
+            for cell in cells:
+                content = cell.get('content', '').strip()
+                if content:
+                    cell_content[(cell['rowIndex'], cell['columnIndex'])] = content
+
+            first_move_row = 0
+            row_count = table.get('rowCount', 0)
+            for r in range(row_count):
+                # Check if any cell in this row contains "01" or "1" as a move number
+                col0_content = cell_content.get((r, 0), '')
+                if col0_content in ('01', '1', '01.', '1.'):
+                    first_move_row = r
+                    break
+                # Also check if cell content looks like a chess move (e.g. "Nf3", "e4", "d4")
+                # Move numbers might be in column 0, moves in columns 1+
+                import re
+                if re.match(r'^[01][\.\s]*$', col0_content):
+                    first_move_row = r
+                    break
+
+            logger.info(f"[Scoresheet] Azure DI first_move_row={first_move_row} (row_count={row_count})")
+
             azure_grid = {
                 'top': round(grid_top, 4),
                 'bottom': round(grid_bottom, 4),
                 'tilt': tilt,
                 'col_dividers': col_dividers,
                 'col_count': col_count,
-                'row_count': table.get('rowCount', 0),
+                'row_count': row_count,
+                'first_move_row': first_move_row,
                 'cells': cells_map,
                 'source': 'azure',
             }

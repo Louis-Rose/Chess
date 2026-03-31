@@ -107,7 +107,7 @@ export interface ScoresheetState {
   startTime: number | null;
   analyzing: boolean;
   azureResult: ScoresheetAzureResult | null;
-  azureGrid: { top: number; bottom: number; tilt: number; col_dividers: number[]; col_count?: number; row_count?: number; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }> } | null;
+  azureGrid: { top: number; bottom: number; tilt: number; col_dividers: number[]; col_count?: number; row_count?: number; first_move_row?: number; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }> } | null;
 }
 
 const SCORESHEET_INITIAL: ScoresheetState = {

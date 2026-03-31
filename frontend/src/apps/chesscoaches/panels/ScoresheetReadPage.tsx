@@ -812,7 +812,7 @@ interface PlyEntry {
   san?: string;
 }
 
-function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number } }) {
+function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number } }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgSize, setImgSize] = useState<{ w: number; h: number; nw: number; nh: number } | null>(null);
@@ -903,8 +903,8 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                   const azureCols = gridData.col_count || 4;
                   const colsPerSheet = Math.floor(azureCols / Math.max(sheetColumns, 1)); // typically 2
                   const azureCol = sheetCol * colsPerSheet + (isBlack ? 1 : 0);
-                  const hasHeader = gridData.row_count ? gridData.row_count > rows : false;
-                  const azureRow = rowInCol + (hasHeader ? 1 : 0);
+                  const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
+                  const azureRow = rowInCol + rowOffset;
                   const cell = gridData.cells[`${azureRow}-${azureCol}`];
 
                   if (cell) {
@@ -1324,7 +1324,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   onBoardPlyChange?: (ply: number) => void;
   boardPreviewFen?: string | null;
   scoresheetPreview?: string | null;
-  gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number };
+  gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number };
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
