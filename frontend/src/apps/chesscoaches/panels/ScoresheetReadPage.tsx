@@ -97,6 +97,7 @@ export function ScoresheetReadPage() {
 
 
   const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null>(null);
+  const [userPickedMove, setUserPickedMove] = useState<string | null>(null);
 
   // ── Live elapsed timer for status table ──
   const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
@@ -733,7 +734,7 @@ export function ScoresheetReadPage() {
                               modelDisagreements={modelDisagreements}
                               voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
 
-                              onVoteStateChange={setVoteState}
+                              onVoteStateChange={(s) => { setVoteState(s); setUserPickedMove(null); }}
                               unresolvedMoves={hasIssues && !allVerified ? unresolvedMovesList : undefined}
                             />
                             )}
@@ -741,8 +742,9 @@ export function ScoresheetReadPage() {
                           {/* Right: board + detail panel */}
                           <div className="flex flex-col items-start gap-3 max-w-[400px] self-start" onClick={e => e.stopPropagation()}>
                             <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
-                              if (!san) { voteState.setEditValue(''); return; }
+                              if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
                               voteState.setEditValue(san);
+                              setUserPickedMove(san);
                             } : undefined} highlightedPlies={hasResults && allModelsFinished ? (() => {
                               const plies: number[] = [];
                               displayConsensusMoves.forEach((m, idx) => {
@@ -810,15 +812,35 @@ export function ScoresheetReadPage() {
                                     <p className="text-lg text-slate-100 font-semibold">Read as <span className="font-mono">{displayMove}</span></p>
                                   </div>
                                   <div className="flex flex-col gap-1.5">
-                                    <p className="text-sm text-slate-100 text-center">Confirm, or drag a piece on the board</p>
+                                    <p className="text-sm text-slate-100 text-center">Drag a piece on the board and then confirm</p>
                                     <div className="flex justify-center">
-                                    {boardAtTarget ? (
-                                      <button
-                                        onClick={() => handleConfirmMove(moveIdx + 1, colorStr)}
-                                        className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
-                                      >
-                                        Confirm {displayMove}
-                                      </button>
+                                    {userPickedMove ? (
+                                      userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
+                                        <button
+                                          onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); }}
+                                          className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
+                                        >
+                                          Confirm {displayMove}
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => {
+                                            const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
+                                            if (current[moveIdx]) {
+                                              current[moveIdx][colorStr] = userPickedMove;
+                                              (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
+                                              delete (current[moveIdx] as any)[`${colorStr}_reason`];
+                                              delete current[moveIdx].white_legal;
+                                              delete current[moveIdx].black_legal;
+                                            }
+                                            setConsensusOverrides([...current]);
+                                            setUserPickedMove(null);
+                                          }}
+                                          className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
+                                        >
+                                          Pick {userPickedMove}
+                                        </button>
+                                      )
                                     ) : (
                                       <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
                                         Confirm
