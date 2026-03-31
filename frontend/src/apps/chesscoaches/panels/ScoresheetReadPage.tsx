@@ -98,6 +98,13 @@ export function ScoresheetReadPage() {
 
   const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null>(null);
   const [userPickedMove, setUserPickedMove] = useState<string | null>(null);
+  const handleVoteStateChange = useCallback((s: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null) => {
+    setVoteState(prev => {
+      if (prev && s && prev.moveIdx === s.moveIdx && prev.color === s.color) return s;
+      setUserPickedMove(null);
+      return s;
+    });
+  }, []);
 
   // ── Live elapsed timer for status table ──
   const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
@@ -734,7 +741,7 @@ export function ScoresheetReadPage() {
                               modelDisagreements={modelDisagreements}
                               voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
 
-                              onVoteStateChange={(s) => { setVoteState(s); setUserPickedMove(null); }}
+                              onVoteStateChange={handleVoteStateChange}
                               unresolvedMoves={hasIssues && !allVerified ? unresolvedMovesList : undefined}
                             />
                             )}
