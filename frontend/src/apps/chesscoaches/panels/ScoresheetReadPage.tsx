@@ -1172,11 +1172,11 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       const newFen = chess.fen();
       const san = move.san;
 
-      // Check if matches next main-line move
-      if (!inBranch && safePly < maxPly && entries[safePly + 1]?.san === san) {
+      // Check if matches the arrow move (displayed move) or next main-line move
+      const nextMainPly = showArrow ? safePly : safePly + 1;
+      if (!inBranch && nextMainPly <= maxPly && entries[nextMainPly]?.san === san) {
         if (onDragSetMove) onDragSetMove(san);
-        setPly(p => p + 1);
-        emitPly(safePly + 1);
+        if (!showArrow) { setPly(p => p + 1); emitPly(safePly + 1); }
         playMoveSound(san.includes('x'));
         return;
       }
@@ -1208,7 +1208,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       }
       playMoveSound(san.includes('x'));
     } catch { /* invalid move */ }
-  }, [currentFen, inBranch, branch, branchPly, safePly, maxPly, entries, onDragSetMove, goPrev]);
+  }, [currentFen, inBranch, branch, branchPly, safePly, maxPly, entries, onDragSetMove, goPrev, showArrow]);
 
   // Activate this board on any click, then keyboard only responds to active board
   const activate = useCallback(() => { activeModelBoardId = instanceId; }, [instanceId]);
