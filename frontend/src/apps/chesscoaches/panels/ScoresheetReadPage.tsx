@@ -1467,9 +1467,9 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
         const rows = Math.max(...columns.map(col => col.length));
 
         const renderHalf = (move: Move | undefined, idx: number, d: { white: boolean; black: boolean } | undefined) => {
-          if (!move) return <><td className="px-2 py-1" /><td className="px-2 py-1" /><td className="px-2 py-1" /></>;
+          if (!move) return <><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /></>;
           return <>
-            <td className="px-2 py-1 text-slate-500 text-center font-mono">{move.number}</td>
+            <td className="px-3 py-1.5 text-slate-500 text-center font-mono">{move.number}</td>
             <MoveCell
               value={move.white}
               legal={move.white_legal}
@@ -1498,14 +1498,14 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
         };
 
         return (
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead className="bg-slate-700">
               <tr className="border-b border-slate-600">
                 {columns.map((_, c) => (
                   <React.Fragment key={c}>
-                    <th className={`px-2 py-1.5 text-slate-400 font-medium text-center w-8 ${c > 0 ? 'border-l border-slate-600' : ''}`}>#</th>
-                    <th className="px-2 py-1.5 text-slate-400 font-medium text-center">White</th>
-                    <th className="px-2 py-1.5 text-slate-400 font-medium text-center">Black</th>
+                    <th className={`px-3 py-2 text-slate-400 font-medium text-center w-8 ${c > 0 ? 'border-l border-slate-600' : ''}`}>#</th>
+                    <th className="px-3 py-2 text-slate-400 font-medium text-center">White</th>
+                    <th className="px-3 py-2 text-slate-400 font-medium text-center">Black</th>
                   </React.Fragment>
                 ))}
               </tr>
@@ -1517,7 +1517,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                     const move = col[i];
                     const idx = c * perCol + i;
                     const d = move ? disagreements.get(move.number) : undefined;
-                    if (!move && c > 0) return <React.Fragment key={c}><td className={`px-1.5 py-0.5 ${c > 0 ? 'border-l border-slate-600/30' : ''}`} /><td className="px-1.5 py-0.5" /><td className="px-1.5 py-0.5" /></React.Fragment>;
+                    if (!move && c > 0) return <React.Fragment key={c}><td className={`px-3 py-1.5 ${c > 0 ? 'border-l border-slate-600/30' : ''}`} /><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /></React.Fragment>;
                     return <React.Fragment key={c}>{renderHalf(move, idx, d)}</React.Fragment>;
                   })}
                 </tr>
@@ -2093,7 +2093,7 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onSh
 
   return (
     <td
-      className={`px-2 py-1 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}`}
+      className={`px-3 py-1.5 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}`}
       onClick={handleClick}
     >
       <span className="inline-flex items-center justify-center gap-1 w-full">
