@@ -826,12 +826,12 @@ export function ScoresheetReadPage() {
                                       {reason}
                                     </p>
                                   )}
-                                  {cellCrop && (
-                                    <div className="rounded-lg overflow-hidden border border-slate-600 mx-auto" style={{ width: cellCrop.cW, height: cellCrop.cH }}>
-                                      <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
-                                    </div>
-                                  )}
-                                  <div className="text-center py-1">
+                                  <div className="flex items-center justify-center gap-3 py-1">
+                                    {cellCrop && (
+                                      <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0" style={{ width: cellCrop.cW, height: cellCrop.cH }}>
+                                        <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
+                                      </div>
+                                    )}
                                     <p className="text-lg text-slate-100 font-semibold">Read as <span className="font-mono">{displayMove}</span></p>
                                   </div>
                                   <div className="flex flex-col gap-1.5">
