@@ -19,15 +19,6 @@ import { pieceImageUrl } from '../utils/pieces';
 import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
-/** Normalize a SAN for consensus voting — strip +, #, x, and disambiguation so Nbd2/Nfd2/Nd2 all match. */
-function normalizeForVoting(san: string): string {
-  let s = san.replace(/[+#x]/g, '');
-  // Strip disambiguation: e.g. Nbd2 → Nd2, R1e1 → Re1, Qh4e1 → Qe1
-  const m = s.match(/^([KQRBN])([a-h]?[1-8]?)([a-h][1-8])$/);
-  if (m) s = m[1] + m[3];
-  return s;
-}
-
 /** Replay moves on a board and return copies with canonical SAN (correct +/# annotations). */
 function normalizeMoves(moves: Move[]): Move[] {
   const chess = new Chess();
@@ -356,7 +347,7 @@ export function ScoresheetReadPage() {
                       const values = new Set<string>();
                       for (const mv of allModelMovesForDisagreement) {
                         const val = mv[i]?.[color];
-                        if (val) values.add(normalizeForVoting(val));
+                        if (val) values.add(val.replace(/[+#x]/g, ''));
                       }
                       if (values.size > 1) modelDisagreements.add(`${i + 1}-${color}`);
                     }
@@ -415,7 +406,7 @@ export function ScoresheetReadPage() {
                             const moveObj = allModelMoves[mi][i];
                             const val = moveObj?.[color];
                             if (val) {
-                              const normalized = normalizeForVoting(val);
+                              const normalized = val.replace(/[+#x]/g, '');
                               votes[normalized] = (votes[normalized] || 0) + 1;
                               if (!votersByCandidate[normalized]) votersByCandidate[normalized] = [];
                               votersByCandidate[normalized].push(modelNames[mi]);
@@ -440,9 +431,16 @@ export function ScoresheetReadPage() {
                             for (const [candidate, voteCount] of candidates) {
                               const simChess = new Chess(passChess.fen());
                               let illegals = 0;
-                              try { simChess.move(candidate); } catch { illegals += 100; }
+                              let skipDownstream = false;
+                              try { simChess.move(candidate); } catch {
+                                // Check if it's ambiguous (multiple legal moves match piece+destination)
+                                const pieceM = candidate.match(/^([KQRBN])/);
+                                const destM = candidate.match(/([a-h][1-8])$/);
+                                const isAmbiguous = pieceM && destM && simChess.moves().filter(m => m.startsWith(pieceM[1]) && m.endsWith(destM[1])).length > 1;
+                                if (isAmbiguous) { skipDownstream = true; } else { illegals += 100; }
+                              }
 
-                              if (illegals === 0) {
+                              if (illegals === 0 && !skipDownstream) {
                                 // Simulate remaining moves using the downstream reference
                                 if (color === 'white' && downstreamRef[i]?.black) {
                                   try { simChess.move(downstreamRef[i].black!); } catch { illegals++; }
