@@ -1446,19 +1446,13 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
         <div className="px-3 py-2 border-b border-yellow-500/20 bg-yellow-500/10 text-center">
           <p className="text-sm text-yellow-200/80 mb-1.5">You need to review those moves:</p>
           <div className="flex flex-wrap gap-1.5 justify-center">
-            {unresolvedMoves.map(({ moveNumber, color, ply }) => (
-              <button
+            {unresolvedMoves.map(({ moveNumber, color }) => (
+              <span
                 key={`${moveNumber}-${color}`}
-                onClick={() => {
-                  setVoteInfoKey(`${moveNumber}-${color}`);
-                  const san = moves[moveNumber - 1]?.[color];
-                  setVoteEditValue(san || '');
-                  onMoveClick?.(moves, ply);
-                }}
-                className={`px-2 py-0.5 rounded text-xs transition-colors ${voteInfoKey === `${moveNumber}-${color}` ? 'bg-yellow-500/40 text-yellow-100' : 'bg-slate-700/60 text-yellow-300 hover:bg-yellow-500/25'}`}
+                className="px-2 py-0.5 rounded text-sm bg-yellow-500/30 text-yellow-100"
               >
                 {moveNumber} ({color === 'white' ? 'White' : 'Black'})
-              </button>
+              </span>
             ))}
           </div>
         </div>
