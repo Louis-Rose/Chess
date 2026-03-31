@@ -1601,7 +1601,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
         )}
         {unresolvedMoves && unresolvedMoves.length > 0 && (
           <div className="px-3 py-2 border-t border-yellow-500/20 bg-yellow-500/10 text-center">
-            <p className="text-base text-slate-100">Moves to review : {unresolvedMoves.length}</p>
+            <p className="text-sm text-slate-100">Moves to review : {unresolvedMoves.length}</p>
           </div>
         )}
         <ChesscomAnalysisButton moves={moves} meta={meta} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
