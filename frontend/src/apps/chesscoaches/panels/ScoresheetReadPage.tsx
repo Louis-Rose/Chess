@@ -254,17 +254,18 @@ export function ScoresheetReadPage() {
             />
           ) : (
             <div className="space-y-4">
-              {/* New scoresheet button — top of results */}
+              {/* New scoresheet button — only after processing is done */}
+              {!analyzing && (
               <div className="flex justify-center">
                 <button
-                  onClick={() => { if (!analyzing) { scoresheetClear(); fileInputRef.current?.click(); } }}
-                  disabled={analyzing}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors text-sm ${analyzing ? 'bg-slate-800 border-slate-600 text-slate-600 cursor-not-allowed' : 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-300'}`}
+                  onClick={() => { scoresheetClear(); fileInputRef.current?.click(); }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors text-sm bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-300"
                 >
                   <Upload className="w-4 h-4" />
                   {t('coaches.replaceImage')}
                 </button>
               </div>
+              )}
 
               {/* Error */}
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
