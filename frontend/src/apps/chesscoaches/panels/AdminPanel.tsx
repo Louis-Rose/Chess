@@ -512,6 +512,7 @@ export function AdminPanel() {
                                       <tr className="text-slate-500 text-[10px] uppercase">
                                         <th className="px-2 py-1 text-left">Model</th>
                                         <th className="px-2 py-1 text-center">Tier</th>
+                                        <th className="px-2 py-1 text-center">Retry</th>
                                         <th className="px-2 py-1 text-center">Input</th>
                                         <th className="px-2 py-1 text-center">Output</th>
                                         <th className="px-2 py-1 text-center">Thinking</th>
@@ -524,8 +525,18 @@ export function AdminPanel() {
                                         <tr key={i} className={m.error ? 'text-red-400/70' : ''}>
                                           <td className="px-2 py-0.5 font-mono">{shortModel(m.model_id)}</td>
                                           <td className="px-2 py-0.5 text-center">
-                                            {m.billing_tier === 'free' ? <span className="text-emerald-400">free</span> : <span className="text-slate-500">paid</span>}
-                                            {m.retry_free_error && <span className="text-yellow-400 text-[10px] ml-1" title={`Free key failed after ${m.retry_free_elapsed}s: ${m.retry_free_error}`}>⟳{m.retry_free_elapsed}s</span>}
+                                            {m.retry_free_error ? (
+                                              <span title={m.retry_free_error}>
+                                                <span className="text-red-400/70 line-through">free</span>
+                                                <span className="text-slate-600 mx-0.5">→</span>
+                                                <span className="text-slate-500">paid</span>
+                                              </span>
+                                            ) : m.billing_tier === 'free' ? <span className="text-emerald-400">free</span> : <span className="text-slate-500">paid</span>}
+                                          </td>
+                                          <td className="px-2 py-0.5 text-center">
+                                            {m.retry_free_error ? (
+                                              <span className="text-yellow-400" title={m.retry_free_error}>free {m.retry_free_elapsed}s</span>
+                                            ) : <span className="text-slate-600">—</span>}
                                           </td>
                                           <td className="px-2 py-0.5 text-slate-400 text-center">{formatTokens(m.input_tokens)}</td>
                                           <td className="px-2 py-0.5 text-slate-400 text-center">{formatTokens(m.output_tokens)}</td>
