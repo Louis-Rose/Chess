@@ -483,6 +483,7 @@ export function ScoresheetReadPage() {
                               (move as any)[`${color}_reason`] = 'All options are illegal — please correct manually';
                               const fen = passChess.fen().split(' ');
                               fen[1] = fen[1] === 'w' ? 'b' : 'w';
+                              fen[3] = '-'; // clear en-passant square to keep FEN valid
                               passChess.load(fen.join(' '));
                             } else {
                               for (const d of dets) { if (d.candidate === bestCandidate) d.chosen = true; }
@@ -491,6 +492,7 @@ export function ScoresheetReadPage() {
                               try { passChess.move(bestCandidate); } catch {
                                 const fen = passChess.fen().split(' ');
                                 fen[1] = fen[1] === 'w' ? 'b' : 'w';
+                                fen[3] = '-'; // clear en-passant square to keep FEN valid
                                 passChess.load(fen.join(' '));
                               }
                             }
@@ -596,6 +598,7 @@ export function ScoresheetReadPage() {
                           (cm as any)[`${color}_legal`] = false;
                           const fen = valChess.fen().split(' ');
                           fen[1] = fen[1] === 'w' ? 'b' : 'w';
+                          fen[3] = '-'; // clear en-passant square to keep FEN valid
                           valChess.load(fen.join(' '));
                         }
                       }
@@ -671,7 +674,7 @@ export function ScoresheetReadPage() {
                           );
                           return null;
                         })()}
-                        <div className="flex items-stretch justify-center md:justify-start" onClick={consensusReady ? deselectConsensus : undefined}>
+                        <div className="flex items-stretch justify-center md:justify-start md:gap-6 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           <div className="flex-1 hidden md:block" />
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
                             {!hasResults || consensusMoves.length === 0 ? (
@@ -741,7 +744,7 @@ export function ScoresheetReadPage() {
                             />
                             )}
                           </div>
-                          <div className="flex-1 hidden md:flex justify-center items-center -mb-20" onClick={e => e.stopPropagation()}>
+                          <div className="flex-1 hidden md:flex justify-center items-center -mb-20 max-w-[400px]" onClick={e => e.stopPropagation()}>
                             <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag autoActivate={false} previewFen={consensusPreviewFen} highlightedPlies={hasResults && allModelsFinished ? (() => {
                               const plies: number[] = [];
                               displayConsensusMoves.forEach((m, idx) => {
@@ -976,6 +979,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
           // Flip turn so next move validates from the right side
           const fen = chess.fen().split(' ');
           fen[1] = fen[1] === 'w' ? 'b' : 'w';
+          fen[3] = '-'; // clear en-passant square to keep FEN valid
           chess.load(fen.join(' '));
         }
       }
