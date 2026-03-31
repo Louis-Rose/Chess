@@ -1522,12 +1522,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
         </div>
       )}
 
-      {/* Review summary bar */}
-      {unresolvedMoves && unresolvedMoves.length > 0 && (
-        <div className="px-3 py-2 border-b border-yellow-500/20 bg-yellow-500/10 text-center">
-          <p className="text-base text-slate-100">Moves to review : {unresolvedMoves.length}</p>
-        </div>
-      )}
+
 
       {/* Moves table */}
       <div className={`${loading ? 'pointer-events-none' : ''}`}>
@@ -1611,6 +1606,11 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             <RotateCcw className="w-3.5 h-3.5" />
             {t('coaches.rereadFromEdit')}
           </button>
+        )}
+        {unresolvedMoves && unresolvedMoves.length > 0 && (
+          <div className="px-3 py-2 border-t border-yellow-500/20 bg-yellow-500/10 text-center">
+            <p className="text-base text-slate-100">Moves to review : {unresolvedMoves.length}</p>
+          </div>
         )}
         <ChesscomAnalysisButton moves={moves} meta={meta} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
         <LichessStudyButton moves={moves} meta={meta} fileName={fileName} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
