@@ -374,7 +374,7 @@ export function ScoresheetReadPage() {
                     const hasResults = allModelMoves.length >= 1;
                     const allModelsFinished = allModelMoves.length === models.length;
                     const consensusReady = allModelMoves.length >= 2 && allModelsFinished;
-                    const pendingReaders = models.length - allModelMoves.length;
+
                     const consensusId = '__consensus__';
 
                     // Early display: if only 1 model has results, show its moves directly (read-only)
@@ -1412,7 +1412,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   const [liveElapsed, setLiveElapsed] = useState(0);
   const [showIllegalModal, setShowIllegalModal] = useState(false);
   const [voteInfoKey, setVoteInfoKey] = useState<string | null>(null);
-  const [voteEditValue, setVoteEditValue] = useState<string | null>(null); // inline edit within vote modal
+  const [, setVoteEditValue] = useState<string | null>(null);
   // Notify parent when vote modal opens/closes (for board drag integration)
   useEffect(() => {
     if (!onVoteStateChange) return;
