@@ -956,6 +956,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
   const { t } = useLanguage();
   const [instanceId] = useState(() => ++nextModelBoardId);
   const [ply, setPly] = useState(0);
+  const lastEmittedPly = useRef<number | undefined>(undefined);
 
   // Branch (variation) state
   const [branch, setBranch] = useState<{ startPly: number; fens: string[]; sans: string[] } | null>(null);
@@ -1030,13 +1031,24 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     if (autoActivate && maxPly > 0 && activeModelBoardId === 0) activeModelBoardId = instanceId;
     prevMaxPlyRef.current = maxPly;
   }, [maxPly, exitBranch, autoActivate, instanceId]);
-  useEffect(() => { if (externalPly !== undefined) { setPly(externalPly); exitBranch(); activeModelBoardId = instanceId; } }, [externalPly, exitBranch, instanceId]);
+  useEffect(() => {
+    if (externalPly !== undefined && externalPly !== lastEmittedPly.current) {
+      setPly(externalPly); exitBranch(); activeModelBoardId = instanceId;
+    }
+    lastEmittedPly.current = undefined;
+  }, [externalPly, exitBranch, instanceId]);
 
 
   // Play sound for a given ply (called from navigation actions, not from effects)
   const playSoundForPly = useCallback((p: number) => {
     if (p > 0 && entries[p]?.san) playMoveSound(entries[p].san!.includes('x'));
   }, [entries]);
+
+  // Emit ply change to parent, marking it so the externalPly echo is skipped
+  const emitPly = useCallback((p: number) => {
+    lastEmittedPly.current = p;
+    onPlyChange?.(p);
+  }, [onPlyChange]);
 
   // Navigation
   const goPrev = useCallback(() => {
@@ -1046,7 +1058,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         playSoundForPly(safePly);
         if (onDragSetMove) {
           onDragSetMove('');
-          onPlyChange?.(safePly);
+          emitPly(safePly);
         }
         exitBranch();
       } else {
@@ -1062,11 +1074,11 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     } else {
       setPly(p => {
         const newP = Math.max(0, p - 1);
-        if (newP !== p) { playSoundForPly(p); onPlyChange?.(newP); }
+        if (newP !== p) { playSoundForPly(p); emitPly(newP); }
         return newP;
       });
     }
-  }, [inBranch, branch, safePly, playSoundForPly, onPlyChange, onDragSetMove]);
+  }, [inBranch, branch, safePly, playSoundForPly, emitPly, onDragSetMove]);
   const goNext = useCallback(() => {
     if (inBranch && branch && branchPly < branch.fens.length - 1) {
       const san = branch.sans[branchPly];
@@ -1079,18 +1091,18 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     } else if (!inBranch) {
       setPly(p => {
         const newP = Math.min(maxPly, p + 1);
-        if (newP !== p) { playSoundForPly(newP); onPlyChange?.(newP); }
+        if (newP !== p) { playSoundForPly(newP); emitPly(newP); }
         return newP;
       });
     }
-  }, [branch, branchPly, inBranch, maxPly, playSoundForPly, onPlyChange, onDragSetMove]);
+  }, [branch, branchPly, inBranch, maxPly, playSoundForPly, emitPly, onDragSetMove]);
 
   const goFirst = useCallback(() => {
-    exitBranch(); setPly(p => { if (p !== 0) { playSoundForPly(p); onPlyChange?.(0); } return 0; });
-  }, [exitBranch, playSoundForPly, onPlyChange]);
+    exitBranch(); setPly(p => { if (p !== 0) { playSoundForPly(p); emitPly(0); } return 0; });
+  }, [exitBranch, playSoundForPly, emitPly]);
   const goLast = useCallback(() => {
-    exitBranch(); setPly(p => { if (p !== maxPly) { playSoundForPly(maxPly); onPlyChange?.(maxPly); } return maxPly; });
-  }, [exitBranch, maxPly, playSoundForPly, onPlyChange]);
+    exitBranch(); setPly(p => { if (p !== maxPly) { playSoundForPly(maxPly); emitPly(maxPly); } return maxPly; });
+  }, [exitBranch, maxPly, playSoundForPly, emitPly]);
 
   // Handle user move (drag & drop)
   const handleUserMove = useCallback((from: string, to: string) => {
@@ -1111,7 +1123,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       if (!inBranch && safePly < maxPly && entries[safePly + 1]?.san === san) {
         if (onDragSetMove) onDragSetMove(san);
         setPly(p => p + 1);
-        onPlyChange?.(safePly + 1);
+        emitPly(safePly + 1);
         playMoveSound(san.includes('x'));
         return;
       }
@@ -1239,7 +1251,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       </div>
       {compact && targetPly !== undefined && (
         <button
-          onClick={() => { exitBranch(); setPly(targetPly); playSoundForPly(targetPly); onPlyChange?.(targetPly); if (onDragSetMove) onDragSetMove(''); }}
+          onClick={() => { exitBranch(); setPly(targetPly); playSoundForPly(targetPly); emitPly(targetPly); if (onDragSetMove) onDragSetMove(''); }}
           className={`w-full mt-1 2xl:mt-1.5 py-1.5 2xl:py-2 rounded-lg transition-colors text-xs 2xl:text-sm ${safePly === targetPly && !inBranch ? 'bg-slate-700 text-slate-400 cursor-default' : 'bg-slate-700 hover:bg-slate-600 text-yellow-400'}`}
           disabled={safePly === targetPly && !inBranch}
         >
