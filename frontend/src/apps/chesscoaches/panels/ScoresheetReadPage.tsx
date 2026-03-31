@@ -1218,10 +1218,10 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         )}
         {compact ? (
           <>
-            <button onClick={goPrev} className="flex-1 py-1.5 2xl:py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-xs 2xl:text-sm">
+            <button onClick={goPrev} className="flex-1 py-1 2xl:py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-xs 2xl:text-sm">
               <ChevronLeft className="w-4 h-4" /> Previous
             </button>
-            <div className="flex-1 py-1.5 2xl:py-2.5 bg-slate-700 rounded-lg flex items-center justify-center px-2">
+            <div className="flex-1 py-1 2xl:py-2.5 bg-slate-700 rounded-lg flex items-center justify-center px-2 text-center">
               {(() => {
                 const displayPly = inBranch ? (branch!.startPly + branchPly) : safePly;
                 if (displayPly <= 0) return <span className="text-xs 2xl:text-sm text-slate-400">Start</span>;
@@ -1232,7 +1232,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
                 );
               })()}
             </div>
-            <button onClick={goNext} className="flex-1 py-1.5 2xl:py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-xs 2xl:text-sm">
+            <button onClick={goNext} className="flex-1 py-1 2xl:py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-xs 2xl:text-sm">
               Next <ChevronRight className="w-4 h-4" />
             </button>
           </>
