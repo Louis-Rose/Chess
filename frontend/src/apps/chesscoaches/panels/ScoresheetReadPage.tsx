@@ -803,8 +803,7 @@ export function ScoresheetReadPage() {
                                 return { cx1, cy1, cropW, cropH, cW, cH };
                               })() : null;
 
-                              const reviewIndex = unresolvedMovesList.findIndex(u => u.moveNumber === moveIdx + 1 && u.color === colorStr);
-                              const reviewTotal = unresolvedMovesList.length;
+
 
                               return (
                                 <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3]">
