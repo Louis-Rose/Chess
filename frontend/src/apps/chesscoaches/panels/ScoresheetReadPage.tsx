@@ -790,8 +790,14 @@ export function ScoresheetReadPage() {
                                 return { cx1, cy1, cropW, cropH, cW, cH };
                               })() : null;
 
+                              const reviewIndex = unresolvedMovesList.findIndex(u => u.moveNumber === moveIdx + 1 && u.color === colorStr);
+                              const reviewTotal = unresolvedMovesList.length;
+
                               return (
                                 <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4">
+                                  {reviewTotal > 0 && (
+                                    <p className="text-xs text-slate-400 text-center">{reviewIndex >= 0 ? reviewIndex + 1 : '—'} / {reviewTotal} moves to review</p>
+                                  )}
                                   <h3 className="text-slate-100 font-medium text-sm text-center">
                                     Move {moveIdx + 1} ({colorStr === 'black' ? 'Black' : 'White'})
                                   </h3>
