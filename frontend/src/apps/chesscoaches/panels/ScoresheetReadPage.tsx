@@ -275,7 +275,7 @@ export function ScoresheetReadPage() {
                 const finishedCount = models.filter(m => !!(modelResults[m.id]?.result || modelResults[m.id]?.error)).length;
                 const allDone = finishedCount === models.length;
                 const pct = models.length > 0 ? Math.round((finishedCount / models.length) * 100) : 0;
-                const maxAvg = Math.max(...models.map(m => m.avg_elapsed || 0));
+                const maxAvg = Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)) * 1.3);
                 return (
                   <div className="flex justify-center">
                     <div className="inline-block min-w-[300px] max-w-[400px] w-full">
