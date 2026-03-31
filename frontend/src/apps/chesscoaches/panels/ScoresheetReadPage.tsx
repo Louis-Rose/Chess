@@ -1018,8 +1018,8 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
   const maxPly = entries.length - 1;
   const safePly = Math.min(ply, maxPly);
-  // When at targetPly, show position BEFORE the move with an arrow overlay
-  const showArrow = targetPly !== undefined && safePly === targetPly && safePly > 0 && !inBranch && !previewFen;
+  // Show position BEFORE the move with an arrow overlay for all moves
+  const showArrow = safePly > 0 && !inBranch && !previewFen;
   const displayPly = showArrow ? safePly - 1 : safePly;
   const currentFen = previewFen || (inBranch ? branch!.fens[branchPly] : entries[displayPly].fen);
   const currentLastMove = previewFen ? null : (inBranch && branch && branchPly > 0 ? (() => {
