@@ -767,7 +767,7 @@ export function ScoresheetReadPage() {
                               <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4">
                                 <p className="text-lg text-slate-500 font-medium text-center">Move — - — (—/— moves to review)</p>
                                 <div className="text-center py-1">
-                                <p className="text-sm text-slate-500">Read as <span className="font-mono">———</span></p>
+                                <p className="text-base text-slate-500">Read as <span className="font-mono">———</span></p>
                                 </div>
                                 <div className="flex flex-col gap-1.5">
                                   <p className="text-base text-slate-500 text-center">Drag a piece on the board and then confirm</p>
@@ -824,7 +824,7 @@ export function ScoresheetReadPage() {
                                         <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
                                       </div>
                                     )}
-                                    <p className="text-sm text-slate-100">Read as <span className="font-mono font-semibold">{displayMove}</span></p>
+                                    <p className="text-base text-slate-100">Read as <span className="font-mono font-semibold">{displayMove}</span></p>
                                   </div>
                                   <div className="flex flex-col gap-1.5">
                                     <p className="text-base text-slate-100 text-center">Drag a piece on the board and then confirm</p>
