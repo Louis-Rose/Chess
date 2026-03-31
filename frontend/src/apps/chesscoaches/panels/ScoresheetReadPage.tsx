@@ -687,8 +687,7 @@ export function ScoresheetReadPage() {
                           );
                           return null;
                         })()}
-                        <div className="flex items-stretch justify-center md:justify-start md:gap-6 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
-                          <div className="flex-1 hidden md:block" />
+                        <div className="flex items-stretch justify-center md:gap-6 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
                             {!hasResults || consensusMoves.length === 0 ? (
                               <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[540px]">
