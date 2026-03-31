@@ -686,7 +686,7 @@ export function ScoresheetReadPage() {
                         )}
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4 items-start" onClick={consensusReady ? deselectConsensus : undefined}>
                           {/* Left: scoresheet image */}
-                          <div className="flex justify-end items-start" onClick={e => e.stopPropagation()}>
+                          <div className="flex justify-end items-center" onClick={e => e.stopPropagation()}>
                             <ScoreSheetImage preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData} />
                           </div>
                           {/* Center: moves table */}
