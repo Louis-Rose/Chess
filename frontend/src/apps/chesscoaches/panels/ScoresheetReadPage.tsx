@@ -1282,12 +1282,6 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
               {t('coaches.variation')} : {branch.sans[branchPly - 1]}
             </p>
           )}
-          {currentIllegal && (
-            <>
-              <p className="text-red-400">{t('coaches.illegalMove')}</p>
-              {currentIllegal.reason && <p className="text-red-400">{currentIllegal.reason}</p>}
-            </>
-          )}
         </div>
       )}
     </div>
