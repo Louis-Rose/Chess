@@ -2153,7 +2153,8 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onSh
 }) {
   const isLowConfidence = confidence === 'low';
   const isIllegal = legal === false;
-  const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : (highlight || isIllegal || isLowConfidence) ? 'bg-yellow-500/25 text-yellow-100' : 'text-slate-100';
+  const bg = corrected ? 'bg-green-900/50 text-green-200' : (highlight || isIllegal || isLowConfidence) ? 'bg-yellow-500/25 text-yellow-100' : 'text-slate-100';
+  const border = active ? 'ring-2 ring-blue-400 ring-inset' : '';
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -2164,7 +2165,7 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onSh
 
   return (
     <td
-      className={`px-3 py-1.5 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}`}
+      className={`px-3 py-1.5 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg} ${border}`}
       onClick={handleClick}
     >
       <span className="inline-flex items-center justify-center gap-1 w-full">
