@@ -771,7 +771,11 @@ export function ScoresheetReadPage() {
                               const colorStr = voteState.color;
                               const moveObj = displayConsensusMoves[moveIdx];
                               if (!moveObj) return null;
-                              const displayMove = moveObj[colorStr] || '—';
+                              const resolvedMove = moveObj[colorStr] || '—';
+                              const moveReason = moveObj[`${colorStr}_reason` as 'white_reason' | 'black_reason'];
+                              const isAmbiguous = moveReason?.startsWith('Ambiguous');
+                              const ambiguousOptions = isAmbiguous ? moveReason!.match(/Ambiguous \((.+)\)/)?.[1]?.replace(/\//g, ' or ') : null;
+                              const displayMove = ambiguousOptions || resolvedMove;
 
                               // Zoomed scoresheet cell
                               const cellCrop = preview && gridData?.cells ? (() => {
@@ -974,6 +978,7 @@ interface PlyEntry {
   lastMove: { from: string; to: string } | null;
   illegal?: { moveNumber: number; color: 'white' | 'black'; san: string; reason?: string };
   san?: string;
+  reason?: string;
 }
 
 function ScoreSheetImage({ preview, onImageClick, fileName, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number } }) {
@@ -1051,11 +1056,12 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       for (const color of ['white', 'black'] as const) {
         const san = m[color];
         if (!san) continue;
+        const moveReason = m[`${color}_reason` as 'white_reason' | 'black_reason'];
         try {
           const move = chess.move(san);
-          result.push({ fen: chess.fen(), lastMove: move ? { from: move.from, to: move.to } : null, san });
+          result.push({ fen: chess.fen(), lastMove: move ? { from: move.from, to: move.to } : null, san, reason: moveReason });
         } catch {
-          const reason = m[`${color}_reason` as 'white_reason' | 'black_reason'];
+          const reason = moveReason;
           result.push({ fen: chess.fen(), lastMove: null, illegal: { moveNumber: m.number, color, san, reason }, san });
           // Flip turn so next move validates from the right side
           const fen = chess.fen().split(' ');
@@ -1081,7 +1087,28 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       return move ? { from: move.from, to: move.to } : null;
     } catch { return null; }
   })() : showArrow ? null : entries[displayPly].lastMove);
-  const currentArrow = showArrow ? entries[safePly].lastMove : null;
+  const currentArrow: { from: string; to: string } | { from: string; to: string }[] | null = showArrow ? (() => {
+    // For ambiguous moves, show both possible arrows
+    const entry = entries[safePly];
+    if (entry?.reason?.startsWith('Ambiguous')) {
+      const match = entry.reason.match(/Ambiguous \((.+)\)/);
+      if (match) {
+        const candidates = match[1].split('/').map(s => s.trim());
+        try {
+          const ch = new Chess(entries[displayPly].fen);
+          const arrows: { from: string; to: string }[] = [];
+          for (const san of candidates) {
+            try {
+              const m = ch.move(san);
+              if (m) { arrows.push({ from: m.from, to: m.to }); ch.undo(); }
+            } catch { /* skip */ }
+          }
+          if (arrows.length > 1) return arrows;
+        } catch { /* fall through */ }
+      }
+    }
+    return entry.lastMove;
+  })() : null;
   const currentIllegal = inBranch ? undefined : entries[displayPly].illegal;
 
   // Compute highlight squares for ambiguous moves
