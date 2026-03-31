@@ -741,7 +741,7 @@ export function ScoresheetReadPage() {
                               rowsPerColumn={consensusRowsPerColumn}
                               modelDisagreements={modelDisagreements}
                               voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
-                              allModelNames={modelNames}
+
                               onConfirmMove={allModelsFinished && !analyzing ? handleConfirmMove : undefined}
                               onVoteStateChange={setVoteState}
                               boardPly={modelBoardPlys[consensusId]?.ply}
@@ -1323,7 +1323,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
 
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, loading, onConfirmMove, onVoteStateChange, boardPly, scoresheetPreview, gridData, unresolvedMoves }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, showMoveInfo, loading, onConfirmMove, onVoteStateChange, boardPly, scoresheetPreview, gridData, unresolvedMoves }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1344,7 +1344,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   modelDisagreements?: Set<string>;
   originalMoves?: Move[];
   voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string>; pass1Choice?: string }[]>;
-  allModelNames?: string[];
+
   showMoveInfo?: boolean;
   loading?: boolean;
   onConfirmMove?: (moveNumber: number, color: 'white' | 'black') => void;
