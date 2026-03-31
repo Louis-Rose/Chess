@@ -283,7 +283,10 @@ export function ScoresheetReadPage() {
                   <div className="flex justify-center">
                     <div className="inline-block min-w-[300px] max-w-[400px] w-full">
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-sm text-slate-300">{t('coaches.processing')}</span>
+                        <span className="text-sm text-slate-300 inline-flex items-center gap-1.5">
+                          {!allDone && <Clock className="w-3.5 h-3.5 animate-spin" />}
+                          {t('coaches.processing')}
+                        </span>
                         <span className="text-xs text-slate-400">
                           {allDone
                             ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {t('coaches.status.done')}</span>
