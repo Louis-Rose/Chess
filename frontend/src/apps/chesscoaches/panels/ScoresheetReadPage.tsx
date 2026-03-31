@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import type { ReactNode } from 'react';
+
 import { Upload, ImageIcon, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
@@ -673,8 +673,7 @@ export function ScoresheetReadPage() {
                       return { moveNumber: moveIdx + 1, color: color as 'white' | 'black', ply };
                     });
 
-                    return (
-                      <ModelRow key={consensusId} preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData}>
+                    return (<>
                         {allModelsFinished && allVerified && (
                           <div className="flex justify-center mb-3 animate-[fadeIn_0.4s_ease-out]">
                             <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
@@ -685,9 +684,13 @@ export function ScoresheetReadPage() {
                             </div>
                           </div>
                         )}
-                        <div className="flex items-start justify-center md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
-                          <div className="flex-1 hidden md:block" />
-                          <div className="flex-shrink-0 self-start" data-tables onClick={e => e.stopPropagation()}>
+                        <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4 items-start" onClick={consensusReady ? deselectConsensus : undefined}>
+                          {/* Left: scoresheet image */}
+                          <div className="flex justify-end items-start" onClick={e => e.stopPropagation()}>
+                            <ScoreSheetImage preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData} />
+                          </div>
+                          {/* Center: moves table */}
+                          <div className="self-start" onClick={e => e.stopPropagation()}>
                             {!hasResults || consensusMoves.length === 0 ? (
                               <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[540px]">
                                 <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
@@ -735,7 +738,8 @@ export function ScoresheetReadPage() {
                             />
                             )}
                           </div>
-                          <div className="hidden md:flex flex-col items-center gap-3 flex-1 max-w-[400px]" onClick={e => e.stopPropagation()}>
+                          {/* Right: board + detail panel */}
+                          <div className="flex flex-col items-start gap-3 max-w-[400px]" onClick={e => e.stopPropagation()}>
                             <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                               if (!san) { voteState.setEditValue(''); return; }
                               voteState.setEditValue(san);
@@ -826,8 +830,35 @@ export function ScoresheetReadPage() {
                             })()}
                           </div>
                         </div>
-                      </ModelRow>
-                    );
+                        {/* Mobile: image above table */}
+                        <div className="md:hidden flex flex-col items-center gap-3">
+                          <img src={preview} alt="Scoresheet" className="max-h-[200px] rounded-xl object-contain cursor-pointer" onClick={() => setShowImageModal(true)} />
+                          {!hasResults || consensusMoves.length === 0 ? (
+                            <div className="bg-slate-700/50 rounded-xl overflow-hidden min-w-[320px]">
+                              <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
+                                <Clock className="w-4 h-4 animate-spin" />
+                                <span className="text-sm">{t('coaches.analyzing')}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <MovesPanel
+                              label={!allModelsFinished || analyzing ? `${t('coaches.processing')}...` : t('coaches.consensus')}
+                              moves={displayConsensusMoves}
+                              disagreements={new Map()}
+                              elapsed={!allModelsFinished || analyzing ? liveGlobalElapsed : Math.max(...models.map(m => modelResults[m.id]?.elapsed || 0))}
+                              loading={!allModelsFinished || analyzing}
+                              meta={consensusMeta}
+                              fileName={fileName}
+                              onMoveClick={(movesArr, ply) => {
+                                setModelBoardPlys(p => ({ ...p, [consensusId]: { ply, source: 'read' as const } }));
+                              }}
+                              activePly={modelBoardPlys[consensusId]?.ply}
+                              sheetColumns={consensusColumns}
+                              rowsPerColumn={consensusRowsPerColumn}
+                            />
+                          )}
+                        </div>
+                    </>);
                   })()}
                     </div>
                   </div>
@@ -892,141 +923,54 @@ interface PlyEntry {
   san?: string;
 }
 
-function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; children: ReactNode; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number } }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+function ScoreSheetImage({ preview, onImageClick, fileName, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number } }) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgSize, setImgSize] = useState<{ w: number; h: number; nw: number; nh: number } | null>(null);
-  const [tbodyTop, setTbodyTop] = useState(0);
-  const [tbodyHeight, setTbodyHeight] = useState(0);
 
-  const [tablesLeft, setTablesLeft] = useState(0);
-
-  useEffect(() => {
-    const measure = () => {
-      const container = containerRef.current;
-      if (!container) return;
-      const thead = container.querySelector('[data-tables] thead');
-      const tbody = container.querySelector('[data-tables] tbody');
-      const tables = container.querySelector('[data-tables]');
-      if (!tables) return;
-      const containerRect = container.getBoundingClientRect();
-      const tablesRect = tables.getBoundingClientRect();
-      setTablesLeft(tablesRect.left - containerRect.left);
-      if (thead && tbody) {
-        const theadRect = thead.getBoundingClientRect();
-        const tbodyRect = tbody.getBoundingClientRect();
-        setTbodyTop(theadRect.top - containerRect.top);
-        setTbodyHeight(tbodyRect.bottom - theadRect.top);
-      } else {
-        // Loading state: use a reasonable default height close to final table size
-        setTbodyTop(tablesRect.top - containerRect.top);
-        setTbodyHeight(Math.max(tablesRect.height, 500));
-      }
-    };
-    measure();
-    // Re-measure after layout settles (tables may render after initial mount)
-    const timer = setTimeout(measure, 200);
-    const observer = new ResizeObserver(measure);
-    if (containerRef.current) observer.observe(containerRef.current);
-    const tablesEl = containerRef.current?.querySelector('[data-tables]');
-    if (tablesEl) observer.observe(tablesEl);
-    // Re-measure when DOM changes (e.g. loading → results)
-    const mutationObs = new MutationObserver(measure);
-    if (containerRef.current) mutationObs.observe(containerRef.current, { childList: true, subtree: true });
-    return () => { observer.disconnect(); mutationObs.disconnect(); clearTimeout(timer); };
-  }, []);
+  const highlight = activePly != null && activePly > 0 && totalMoves && imgSize && gridData?.cells ? (() => {
+    const rows = rowsPerColumn || Math.ceil(totalMoves / Math.max(sheetColumns, 1));
+    const moveIdx = Math.floor((activePly - 1) / 2);
+    const isBlack = activePly % 2 === 0;
+    const sheetCol = Math.floor(moveIdx / rows);
+    const rowInCol = moveIdx % rows;
+    const scale = imgSize.w / imgSize.nw;
+    const azureCols = gridData.col_count || 4;
+    const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
+    const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
+    const azureCol = sheetCol * colsPerSection + moveNumOffset + (isBlack ? 1 : 0);
+    const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
+    const cell = gridData.cells![`${rowInCol + rowOffset}-${azureCol}`];
+    if (!cell) return null;
+    const scaledNH = imgSize.nh * scale;
+    const x = cell.x1 * imgSize.w, y = cell.y1 * scaledNH;
+    const w = (cell.x2 - cell.x1) * imgSize.w, h = (cell.y2 - cell.y1) * scaledNH;
+    const pad = { x: w * 0.2, y: h * 0.2 };
+    return { left: x - pad.x, top: y - pad.y, width: w + pad.x * 2, height: h + pad.y * 2, tilt: gridData.tilt || 0 };
+  })() : null;
 
   return (
-    <div ref={containerRef} className="relative" style={{ minHeight: tbodyHeight > 0 ? tbodyTop + tbodyHeight + 60 : undefined }}>
-      {/* Mobile: image shown above the table */}
-      <div className="md:hidden flex justify-center mb-3">
+    <div className="flex flex-col items-center">
+      <div className="relative overflow-hidden rounded-xl">
         <img
+          ref={imgRef}
           src={preview}
           alt="Scoresheet"
-          className="max-h-[200px] rounded-xl object-contain cursor-pointer"
+          className="object-cover object-top cursor-pointer hover:opacity-90 transition-opacity max-w-[320px] max-h-[600px]"
           onClick={onImageClick}
+          onLoad={() => { if (imgRef.current) setImgSize({ w: imgRef.current.clientWidth, h: imgRef.current.clientHeight, nw: imgRef.current.naturalWidth, nh: imgRef.current.naturalHeight }); }}
         />
+        {highlight && (
+          <div
+            className="absolute pointer-events-none rounded-sm transition-all duration-200"
+            style={{
+              left: highlight.left, top: highlight.top, width: highlight.width, height: highlight.height,
+              backgroundColor: 'rgba(59, 130, 246, 0.3)', border: '2px solid rgba(59, 130, 246, 0.7)',
+              transform: highlight.tilt ? `rotate(${highlight.tilt}deg)` : undefined, transformOrigin: 'left center',
+            }}
+          />
+        )}
       </div>
-      {/* Desktop: image positioned absolutely, vertically centered with the row */}
-      {tbodyHeight > 0 && tablesLeft > 0 && (
-        <div
-          className="absolute hidden md:flex items-center justify-center px-4"
-          style={{ top: tbodyTop, bottom: 0, left: 0, width: tablesLeft }}
-        >
-          <div className="flex flex-col items-center">
-            <div className="relative overflow-hidden rounded-xl">
-              <img
-                ref={imgRef}
-                src={preview}
-                alt="Scoresheet"
-                className="object-cover object-top cursor-pointer hover:opacity-90 transition-opacity max-w-[320px]"
-                style={{ maxHeight: tbodyHeight }}
-                onClick={onImageClick}
-                onLoad={() => { if (imgRef.current) setImgSize({ w: imgRef.current.clientWidth, h: imgRef.current.clientHeight, nw: imgRef.current.naturalWidth, nh: imgRef.current.naturalHeight }); }}
-              />
-              {/* Highlight overlay for active move */}
-              {activePly != null && activePly > 0 && totalMoves && imgSize && (() => {
-                const rows = rowsPerColumn || Math.ceil(totalMoves / Math.max(sheetColumns, 1));
-                const moveIdx = Math.floor((activePly - 1) / 2); // 0-based move index
-                const isBlack = activePly % 2 === 0;
-                const sheetCol = Math.floor(moveIdx / rows); // which column on the sheet
-                const rowInCol = moveIdx % rows; // which row within the column
-
-                // object-cover object-top: image is scaled to fill width, cropped from bottom
-                // We need to compute positions relative to the natural image, then scale to displayed size
-                const displayW = imgSize.w;
-                const scale = displayW / imgSize.nw; // scale factor (width-based for object-cover)
-
-                if (gridData && gridData.cells) {
-                  // Azure DI: direct per-cell bounding boxes
-                  // Azure detects all columns including move numbers: [#, W, B, #, W, B, ...]
-                  // colsPerSection is typically 3 (#, W, B) or 2 (W, B) depending on the sheet
-                  const azureCols = gridData.col_count || 4;
-                  const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
-                  // If colsPerSection is 3+, first col in each section is the move number — skip it
-                  const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
-                  const azureCol = sheetCol * colsPerSection + moveNumOffset + (isBlack ? 1 : 0);
-                  const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
-                  const azureRow = rowInCol + rowOffset;
-                  const cell = gridData.cells[`${azureRow}-${azureCol}`];
-
-                  if (cell) {
-                    const scaledNH = imgSize.nh * scale;
-                    const x = cell.x1 * displayW;
-                    const y = cell.y1 * scaledNH;
-                    const w = (cell.x2 - cell.x1) * displayW;
-                    const h = (cell.y2 - cell.y1) * scaledNH;
-                    const tiltDeg = gridData.tilt || 0;
-                    const padY = h * 0.2;
-                    const padX = w * 0.2;
-                    return (
-                      <div
-                        className="absolute pointer-events-none rounded-sm transition-all duration-200"
-                        style={{
-                          left: x - padX,
-                          top: y - padY,
-                          width: w + padX * 2,
-                          height: h + padY * 2,
-                          backgroundColor: 'rgba(59, 130, 246, 0.3)',
-                          border: '2px solid rgba(59, 130, 246, 0.7)',
-                          transform: tiltDeg ? `rotate(${tiltDeg}deg)` : undefined,
-                          transformOrigin: 'left center',
-                        }}
-                      />
-                    );
-                  }
-                }
-
-                // No Azure data — no highlight
-                return null;
-              })()}
-            </div>
-            {fileName && <span className="text-slate-100 text-sm mt-2 truncate max-w-full">{fileName}</span>}
-          </div>
-        </div>
-      )}
-      {/* Content with left/right margins for image/board space */}
-      {children}
+      {fileName && <span className="text-slate-100 text-sm mt-2 truncate max-w-full">{fileName}</span>}
     </div>
   );
 }
