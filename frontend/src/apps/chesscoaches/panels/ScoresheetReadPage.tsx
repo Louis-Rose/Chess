@@ -683,6 +683,12 @@ export function ScoresheetReadPage() {
                             if (dBlack && m.black && !(m as any).black_confirmed) unresolvedPlies.push(idx * 2 + 2);
                           });
                           const allVerified = hasIssues && unresolvedPlies.length === 0;
+                          // unresolvedMoves list for the summary bar inside MovesPanel
+                          const unresolvedMovesList = unresolvedPlies.map(ply => {
+                            const moveIdx = Math.floor((ply - 1) / 2);
+                            const color = ply % 2 === 1 ? 'white' : 'black';
+                            return { moveNumber: moveIdx + 1, color: color as 'white' | 'black', ply };
+                          });
                           if (allVerified) return (
                             <div className="flex justify-center mb-3 animate-[fadeIn_0.4s_ease-out]">
                               <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
@@ -690,16 +696,6 @@ export function ScoresheetReadPage() {
                                   <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                                 </span>
                                 <span className="text-sm text-emerald-300 font-medium">Verification complete — PGN is ready</span>
-                              </div>
-                            </div>
-                          );
-                          if (hasIssues && !highlightHintDismissed) return (
-                            <div className="flex justify-center mb-3">
-                              <div className="inline-flex items-center gap-2 bg-slate-700/40 rounded-lg px-3 py-1.5 max-w-sm">
-                                <p className="text-slate-100 text-sm text-center">Click on <span className="bg-yellow-500/25 text-yellow-100 px-1.5 py-0.5 rounded">highlighted moves</span><br className="sm:hidden" /> to double-check them</p>
-                                <button onClick={() => { setHighlightHintDismissed(true); localStorage.setItem('scoresheet_hint_dismissed', new Date().toISOString().split('T')[0]); }} className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0">
-                                  <span className="text-xs">&#10005;</span>
-                                </button>
                               </div>
                             </div>
                           );
@@ -769,6 +765,7 @@ export function ScoresheetReadPage() {
                               onClearPreview={() => setConsensusPreviewFen(null)}
                               scoresheetPreview={preview}
                               gridData={gridData}
+                              unresolvedMoves={hasIssues && !allVerified ? unresolvedMovesList : undefined}
                             />
                             )}
                           </div>
@@ -1329,7 +1326,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
 
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, loading, onConfirmMove, onVoteStateChange, boardPly, scoresheetPreview, gridData }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, loading, onConfirmMove, onVoteStateChange, boardPly, scoresheetPreview, gridData, unresolvedMoves }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1357,6 +1354,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   onVoteStateChange?: (state: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null) => void;
   boardPly?: number;
   scoresheetPreview?: string | null;
+  unresolvedMoves?: { moveNumber: number; color: 'white' | 'black'; ply: number }[];
   gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number };
 }) {
   const { t } = useLanguage();
@@ -1466,6 +1464,29 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
           <span className="text-slate-300 text-xs">
             {meta.white || '?'} vs {meta.black || '?'} — <span className="font-semibold text-slate-100">{meta.result}</span>
           </span>
+        </div>
+      )}
+
+      {/* Review summary bar */}
+      {unresolvedMoves && unresolvedMoves.length > 0 && (
+        <div className="px-3 py-2 border-b border-yellow-500/20 bg-yellow-500/10">
+          <p className="text-xs text-yellow-200/80 mb-1.5">Review these moves before exporting the PGN:</p>
+          <div className="flex flex-wrap gap-1.5">
+            {unresolvedMoves.map(({ moveNumber, color, ply }) => (
+              <button
+                key={`${moveNumber}-${color}`}
+                onClick={() => {
+                  setVoteInfoKey(`${moveNumber}-${color}`);
+                  const san = moves[moveNumber - 1]?.[color];
+                  setVoteEditValue(san || '');
+                  onMoveClick?.(moves, ply);
+                }}
+                className={`px-2 py-0.5 rounded text-xs font-mono transition-colors ${voteInfoKey === `${moveNumber}-${color}` ? 'bg-yellow-500/40 text-yellow-100' : 'bg-slate-700/60 text-yellow-300 hover:bg-yellow-500/25'}`}
+              >
+                #{moveNumber}{color === 'white' ? 'w' : 'b'}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
