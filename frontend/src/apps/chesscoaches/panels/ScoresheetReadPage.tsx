@@ -1355,6 +1355,15 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
     }
   }, [voteInfoKey, onVoteStateChange]);
 
+  // Auto-select first unresolved move when results are ready
+  useEffect(() => {
+    if (unresolvedMoves && unresolvedMoves.length > 0 && !voteInfoKey) {
+      const first = unresolvedMoves[0];
+      setVoteInfoKey(`${first.moveNumber}-${first.color}`);
+      onMoveClick?.(moves, first.ply);
+    }
+  }, [unresolvedMoves]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [moveInfoKey, setMoveInfoKey] = useState<string | null>(null);
   const hasIllegalMoves = moves.some(m => m.white_legal === false || m.black_legal === false);
   const inputRef = useRef<HTMLInputElement>(null);
