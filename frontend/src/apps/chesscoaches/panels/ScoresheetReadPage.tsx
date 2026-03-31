@@ -273,7 +273,39 @@ export function ScoresheetReadPage() {
               {/* Error */}
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
-              {/* Processing status */}
+              {/* Processing progress bar */}
+              {models.length > 0 && (() => {
+                const finishedCount = models.filter(m => !!(modelResults[m.id]?.result || modelResults[m.id]?.error)).length;
+                const allDone = finishedCount === models.length;
+                const pct = models.length > 0 ? Math.round((finishedCount / models.length) * 100) : 0;
+                const maxAvg = Math.max(...models.map(m => m.avg_elapsed || 0));
+                return (
+                  <div className="flex justify-center">
+                    <div className="inline-block min-w-[300px] max-w-[400px] w-full">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-sm text-slate-300">{t('coaches.processing')}</span>
+                        <span className="text-xs text-slate-400">
+                          {allDone
+                            ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {t('coaches.status.done')}</span>
+                            : <>{liveGlobalElapsed}s{maxAvg > 0 ? ` / ~${maxAvg}s` : ''}</>
+                          }
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ease-out ${allDone ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-center mt-1">
+                        <span className="text-xs text-slate-500">{pct}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Old model status table — kept for debugging
               {models.length > 0 && (
                 <div className="flex justify-center">
                 <div className="border border-slate-600/50 rounded-xl overflow-hidden inline-block min-w-[400px]">
@@ -319,43 +351,12 @@ export function ScoresheetReadPage() {
                           </tr>
                         );
                       })}
-                      {/* Consensus row — always visible */}
-                      {(() => {
-                        const finishedCount = models.filter(m => !!(modelResults[m.id]?.result || modelResults[m.id]?.error)).length;
-                        const allDone = finishedCount === models.length;
-                        const hasConsensus = models
-                          .map(m => modelResults[m.id]?.result?.moves)
-                          .filter((mv): mv is Move[] => !!mv && mv.length > 0).length >= 2;
-                        const maxElapsed = Math.max(...models.map(m => modelResults[m.id]?.elapsed || 0));
-                        const done = allDone && hasConsensus;
-                        const status = done
-                          ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-4 h-4" /> {t('coaches.status.done')}</span>
-                          : hasConsensus
-                            ? <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> {t('coaches.status.computing')}</span>
-                            : <span className="text-slate-500 inline-flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> {t('coaches.status.waiting')}</span>;
-                        return (
-                          <tr>
-                            <td className="px-4 py-2.5 text-slate-200 font-medium">{t('coaches.consensus')}</td>
-                            <td className="px-4 py-2.5 text-center">{status}</td>
-                            <td className="px-4 py-2.5 text-center">
-                              {done
-                                ? <span className="text-emerald-400">{maxElapsed}s</span>
-                                : <span className="text-slate-500">{liveGlobalElapsed}s</span>}
-                            </td>
-                            <td className="px-4 py-2.5 text-center text-slate-500">
-                              {(() => {
-                                const maxAvg = Math.max(...models.map(m => m.avg_elapsed || 0));
-                                return maxAvg > 0 ? `~${maxAvg}s` : '—';
-                              })()}
-                            </td>
-                          </tr>
-                        );
-                      })()}
                     </tbody>
                   </table>
                 </div>
                 </div>
               )}
+              */}
 
               {/* Re-analyze button — hidden for now */}
 
