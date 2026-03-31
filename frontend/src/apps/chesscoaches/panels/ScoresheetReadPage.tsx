@@ -871,7 +871,7 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
       {tbodyHeight > 0 && tablesLeft > 0 && (
         <div
           className="absolute hidden md:flex items-center justify-center px-4"
-          style={{ top: 0, bottom: 0, left: 0, width: tablesLeft }}
+          style={{ top: tbodyTop, height: tbodyHeight, left: 0, width: tablesLeft }}
         >
           <div className="flex flex-col items-center">
             <div className="relative overflow-hidden rounded-xl">

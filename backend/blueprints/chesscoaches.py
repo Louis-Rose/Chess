@@ -234,16 +234,22 @@ def _scoresheet_parse_response(response_text):
 
 
 def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None, request_id=None, thinking_tokens=0, billing_tier='paid', user_id=None, retry_free_error=None, retry_free_elapsed=None):
-    """Log a Gemini API call to the api_usage table."""
-    try:
-        with get_db() as conn:
-            conn.execute(
-                """INSERT INTO api_usage (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed_seconds, error, retry_free_error, retry_free_elapsed)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed, error, retry_free_error, retry_free_elapsed),
-            )
-    except Exception as e:
-        logger.error(f"[API Usage] Failed to log: {e}")
+    """Log a Gemini API call to the api_usage table. Retries on DB lock."""
+    import time as _t
+    for attempt in range(3):
+        try:
+            with get_db() as conn:
+                conn.execute(
+                    """INSERT INTO api_usage (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed_seconds, error, retry_free_error, retry_free_elapsed)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed, error, retry_free_error, retry_free_elapsed),
+                )
+            return
+        except Exception as e:
+            if attempt < 2:
+                _t.sleep(0.5)
+            else:
+                logger.error(f"[API Usage] Failed to log after 3 attempts: {e}")
 
 
 # Models with no free tier — always use paid key
