@@ -616,8 +616,23 @@ export function ScoresheetReadPage() {
                       const idx = moveNumber - 1;
                       if (current[idx]) {
                         delete (current[idx] as any)[`${color}_reason`];
-                        // Clear the disagreement highlight by ensuring the move is marked as confirmed
                         (current[idx] as any)[`${color}_confirmed`] = true;
+                      }
+                      // Re-validate all moves from scratch
+                      const ch = new Chess();
+                      for (const cm of current) {
+                        for (const col of ['white', 'black'] as const) {
+                          const san = cm[col];
+                          if (!san) continue;
+                          try { ch.move(san); (cm as any)[`${col}_legal`] = true; }
+                          catch {
+                            (cm as any)[`${col}_legal`] = false;
+                            const f = ch.fen().split(' ');
+                            f[1] = f[1] === 'w' ? 'b' : 'w';
+                            f[3] = '-';
+                            ch.load(f.join(' '));
+                          }
+                        }
                       }
                       setConsensusOverrides([...current]);
                     };
@@ -807,8 +822,22 @@ export function ScoresheetReadPage() {
                                               current[moveIdx][colorStr] = userPickedMove;
                                               (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
                                               delete (current[moveIdx] as any)[`${colorStr}_reason`];
-                                              delete current[moveIdx].white_legal;
-                                              delete current[moveIdx].black_legal;
+                                            }
+                                            // Re-validate all moves from scratch
+                                            const ch = new Chess();
+                                            for (const cm of current) {
+                                              for (const col of ['white', 'black'] as const) {
+                                                const san = cm[col];
+                                                if (!san) continue;
+                                                try { ch.move(san); (cm as any)[`${col}_legal`] = true; }
+                                                catch {
+                                                  (cm as any)[`${col}_legal`] = false;
+                                                  const f = ch.fen().split(' ');
+                                                  f[1] = f[1] === 'w' ? 'b' : 'w';
+                                                  f[3] = '-';
+                                                  ch.load(f.join(' '));
+                                                }
+                                              }
                                             }
                                             setConsensusOverrides([...current]);
                                             setUserPickedMove(null);
