@@ -1182,7 +1182,13 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       const nextMainPly = showArrow ? safePly : safePly + 1;
       if (!inBranch && nextMainPly <= maxPly && entries[nextMainPly]?.san === san) {
         if (onDragSetMove) onDragSetMove(san);
-        if (!showArrow) { setPly(p => p + 1); emitPly(safePly + 1); }
+        if (showArrow) {
+          // Show the result of the drag by creating a one-move branch
+          setBranch({ startPly: displayPly, fens: [entries[displayPly].fen, newFen], sans: [san] });
+          setBranchPly(1);
+        } else {
+          setPly(p => p + 1); emitPly(safePly + 1);
+        }
         playMoveSound(san.includes('x'));
         return;
       }
@@ -1214,7 +1220,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       }
       playMoveSound(san.includes('x'));
     } catch { /* invalid move */ }
-  }, [currentFen, inBranch, branch, branchPly, safePly, maxPly, entries, onDragSetMove, goPrev, showArrow]);
+  }, [currentFen, inBranch, branch, branchPly, safePly, maxPly, entries, onDragSetMove, goPrev, showArrow, displayPly]);
 
   // Activate this board on any click, then keyboard only responds to active board
   const activate = useCallback(() => { activeModelBoardId = instanceId; }, [instanceId]);
