@@ -684,7 +684,7 @@ export function ScoresheetReadPage() {
                             </div>
                           </div>
                         )}
-                        <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4 items-start" onClick={consensusReady ? deselectConsensus : undefined}>
+                        <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           {/* Left: scoresheet image */}
                           <div className="flex justify-end items-center" onClick={e => e.stopPropagation()}>
                             <ScoreSheetImage preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData} />
@@ -739,7 +739,7 @@ export function ScoresheetReadPage() {
                             )}
                           </div>
                           {/* Right: board + detail panel */}
-                          <div className="flex flex-col items-start gap-3 max-w-[400px]" onClick={e => e.stopPropagation()}>
+                          <div className="flex flex-col items-start gap-3 max-w-[400px] self-start" onClick={e => e.stopPropagation()}>
                             <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                               if (!san) { voteState.setEditValue(''); return; }
                               voteState.setEditValue(san);
@@ -1444,7 +1444,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {/* Review summary bar */}
       {unresolvedMoves && unresolvedMoves.length > 0 && (
         <div className="px-3 py-2 border-b border-yellow-500/20 bg-yellow-500/10 text-center">
-          <p className="text-sm text-yellow-200/80 mb-1.5">You need to review those moves:</p>
+          <p className="text-sm text-slate-100 mb-1.5">You need to review those moves</p>
           <div className="flex flex-wrap gap-1.5 justify-center">
             {unresolvedMoves.map(({ moveNumber, color }) => (
               <span
