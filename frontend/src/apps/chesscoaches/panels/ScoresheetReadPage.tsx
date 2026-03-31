@@ -298,7 +298,7 @@ export function ScoresheetReadPage() {
                         />
                       </div>
                       <div className="text-center mt-1">
-                        <span className="text-xs text-slate-500">{pct}%</span>
+                        <span className={`text-sm font-medium ${allDone ? 'text-emerald-500' : 'text-blue-500'}`}>{pct}%</span>
                       </div>
                       {(() => {
                         const r = Object.values(modelResults).find(mr => mr?.result)?.result;
