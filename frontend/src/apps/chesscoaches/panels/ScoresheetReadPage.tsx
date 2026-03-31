@@ -369,7 +369,35 @@ export function ScoresheetReadPage() {
                         const val = mv[i]?.[color];
                         if (val) values.add(val.replace(/[+#x]/g, ''));
                       }
-                      if (values.size > 1) modelDisagreements.add(`${i + 1}-${color}`);
+                      if (values.size > 1) {
+                        // Skip if consensus move is legal, backed by 2+ models, and all dissenters are illegal
+                        const key = `${i + 1}-${color}`;
+                        const details = voteDetails?.[key];
+                        const consensusMove = consensusMoves[i]?.[color];
+                        const consensusLegal = consensusMoves[i]?.[`${color}_legal` as 'white_legal' | 'black_legal'];
+                        if (details && consensusMove && consensusLegal !== false) {
+                          const chosen = details.find(d => d.chosen);
+                          if (chosen && chosen.votes >= 2) {
+                            const allDissentersIllegal = details.every(d => d.chosen || (() => {
+                              // Check if this candidate is illegal
+                              try {
+                                const ch = new Chess();
+                                for (let j = 0; j < i; j++) {
+                                  if (consensusMoves[j]?.white) try { ch.move(consensusMoves[j].white); } catch { break; }
+                                  if (consensusMoves[j]?.black) try { ch.move(consensusMoves[j].black!); } catch { break; }
+                                }
+                                if (color === 'black' && consensusMoves[i]?.white) {
+                                  try { ch.move(consensusMoves[i].white); } catch { /* */ }
+                                }
+                                ch.move(d.candidate);
+                                return false; // legal
+                              } catch { return true; } // illegal
+                            })());
+                            if (allDissentersIllegal) continue; // skip this disagreement
+                          }
+                        }
+                        modelDisagreements.add(key);
+                      }
                     }
                   }
                 }
