@@ -698,7 +698,8 @@ export function ScoresheetReadPage() {
                             </div>
                           </div>
                         )}
-                        <div className="flex items-start justify-center md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
+                        <div className="flex items-start justify-center md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
+                          <div className="flex-1 hidden md:block" />
                           <div className="flex-shrink-0 self-start" data-tables onClick={e => e.stopPropagation()}>
                             {!hasResults || consensusMoves.length === 0 ? (
                               <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[540px]">
@@ -747,7 +748,7 @@ export function ScoresheetReadPage() {
                             />
                             )}
                           </div>
-                          <div className="hidden md:flex flex-col items-center gap-3 max-w-[400px] flex-shrink-0" onClick={e => e.stopPropagation()}>
+                          <div className="hidden md:flex flex-col items-center gap-3 flex-1 max-w-[400px]" onClick={e => e.stopPropagation()}>
                             <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                               if (!san) { voteState.setEditValue(''); return; }
                               voteState.setEditValue(san);
