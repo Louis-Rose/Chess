@@ -961,17 +961,23 @@ def read_scoresheet():
                 if content:
                     cell_content[(cell['rowIndex'], cell['columnIndex'])] = content
 
+            import re
             first_move_row = 0
             row_count = table.get('rowCount', 0)
+            # Header keywords that indicate a non-move row (case-insensitive)
+            header_words = {'white', 'black', 'blanc', 'noir', 'weiss', 'schwarz', 'blanco', 'negro', 'bianco', 'nero'}
             for r in range(row_count):
+                # Check if this row is a header row (contains WHITE/BLACK etc.)
+                row_texts = [cell_content.get((r, c), '').lower().strip() for c in range(col_count)]
+                is_header = any(t in header_words for t in row_texts)
+                if is_header:
+                    first_move_row = r + 1
+                    continue
                 # Check if any cell in this row contains "01" or "1" as a move number
                 col0_content = cell_content.get((r, 0), '')
                 if col0_content in ('01', '1', '01.', '1.'):
                     first_move_row = r
                     break
-                # Also check if cell content looks like a chess move (e.g. "Nf3", "e4", "d4")
-                # Move numbers might be in column 0, moves in columns 1+
-                import re
                 if re.match(r'^[01][\.\s]*$', col0_content):
                     first_move_row = r
                     break
