@@ -529,50 +529,6 @@ export function ScoresheetReadPage() {
                         if (!san) continue;
                         try { valChess.move(san); (cm as any)[`${color}_legal`] = true; }
                         catch {
-                          // Check if it's an ambiguity: find legal moves by same piece to same square
-                          const pieceMatch = san.match(/^([KQRBN])/);
-                          const destMatch = san.match(/([a-h][1-8])/);
-                          if (pieceMatch && destMatch) {
-                            const piece = pieceMatch[1];
-                            const dest = destMatch[1];
-                            const candidates = valChess.moves().filter(m => m.startsWith(piece) && m.includes(dest));
-                            if (candidates.length > 1) {
-                              // Ambiguity! Try each candidate, pick the one with fewest downstream illegals
-                              let bestAmbig = candidates[0];
-                              let bestAmbigIllegals = Infinity;
-                              for (const cand of candidates) {
-                                const simA = new Chess(valChess.fen());
-                                let ill = 0;
-                                try { simA.move(cand); } catch { ill += 100; }
-                                if (ill === 0) {
-                                  for (let j = ci; j < consensusMoves.length; j++) {
-                                    for (const c2 of ['white', 'black'] as const) {
-                                      if (j === ci && c2 === color) continue; // skip current
-                                      if (j === ci && color === 'black') continue; // already past white
-                                      const s2 = consensusMoves[j]?.[c2];
-                                      if (!s2) continue;
-                                      try { simA.move(s2); } catch { ill++; }
-                                    }
-                                  }
-                                }
-                                if (ill < bestAmbigIllegals) { bestAmbigIllegals = ill; bestAmbig = cand; }
-                              }
-                              // Auto-resolve: use the best disambiguation
-                              (cm as any)[color] = bestAmbig;
-                              (cm as any)[`${color}_reason`] = `Ambiguous (${candidates.join('/')}) → ${bestAmbig}`;
-                              try { valChess.move(bestAmbig); (cm as any)[`${color}_legal`] = true; }
-                              catch { (cm as any)[`${color}_legal`] = false; }
-                              continue;
-                            } else if (candidates.length === 1) {
-                              // Only one legal move by this piece to this square — auto-fix
-                              (cm as any)[color] = candidates[0];
-                              (cm as any)[`${color}_reason`] = `Auto-fixed → ${candidates[0]}`;
-                              try { valChess.move(candidates[0]); (cm as any)[`${color}_legal`] = true; }
-                              catch { (cm as any)[`${color}_legal`] = false; }
-                              continue;
-                            }
-                          }
-                          // Not ambiguity, just illegal
                           (cm as any)[`${color}_legal`] = false;
                           const fen = valChess.fen().split(' ');
                           fen[1] = fen[1] === 'w' ? 'b' : 'w';
@@ -1083,24 +1039,24 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     } catch { return null; }
   })() : showArrow ? null : entries[displayPly].lastMove);
   const currentArrow: { from: string; to: string } | { from: string; to: string }[] | null = showArrow ? (() => {
-    // For ambiguous moves, show both possible arrows
     const entry = entries[safePly];
-    if (entry?.reason?.startsWith('Ambiguous')) {
-      const match = entry.reason.match(/Ambiguous \((.+)\)/);
-      if (match) {
-        const candidates = match[1].split('/').map(s => s.trim());
-        try {
-          const ch = new Chess(entries[displayPly].fen);
-          const arrows: { from: string; to: string }[] = [];
-          for (const san of candidates) {
-            try {
-              const m = ch.move(san);
-              if (m) { arrows.push({ from: m.from, to: m.to }); ch.undo(); }
-            } catch { /* skip */ }
+    // If the move failed (illegal/ambiguous), try to show possible arrows from the position
+    if (!entry.lastMove && entry.san) {
+      try {
+        const ch = new Chess(entries[displayPly].fen);
+        const san = entry.san;
+        const pieceMatch = san.match(/^([KQRBN])/);
+        const destMatch = san.match(/([a-h][1-8])/);
+        if (pieceMatch && destMatch) {
+          const piece = pieceMatch[1];
+          const dest = destMatch[1];
+          const candidates = ch.moves({ verbose: true }).filter(m => m.san.startsWith(piece) && m.to === dest);
+          if (candidates.length >= 1) {
+            const arrows = candidates.map(m => ({ from: m.from, to: m.to }));
+            return arrows.length > 1 ? arrows : arrows[0];
           }
-          if (arrows.length > 1) return arrows;
-        } catch { /* fall through */ }
-      }
+        }
+      } catch { /* fall through */ }
     }
     return entry.lastMove;
   })() : null;
