@@ -627,7 +627,7 @@ export function ScoresheetReadPage() {
 
                     // Apply overrides on top of computed consensus, then normalize +/# annotations
                     const rawConsensusMoves = consensusOverrides || consensusMoves;
-                    const displayConsensusMoves = normalizeMoves(rawConsensusMoves);
+                    const displayConsensusMoves = rawConsensusMoves;
                     const handleConsensusEditSave = (_readIdx: number, confirmed: Move[], _corrKey: string) => {
                       // Re-validate with chess.js
                       const ch = new Chess();
