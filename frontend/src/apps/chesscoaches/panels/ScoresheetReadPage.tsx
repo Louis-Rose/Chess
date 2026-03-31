@@ -1244,8 +1244,8 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       })()}
       <div className="relative flex justify-center gap-1.5 mt-1.5 w-full">
         {!compact && (
-          <button onClick={goFirst} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
-            <ChevronFirst className="w-6 h-6" />
+          <button onClick={goFirst} className="flex-1 max-w-[80px] py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+            <ChevronFirst className="w-5 h-5" />
           </button>
         )}
         {compact ? (
@@ -1270,17 +1270,17 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
           </>
         ) : (
           <>
-            <button onClick={goPrev} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
-              <ChevronLeft className="w-6 h-6" />
+            <button onClick={goPrev} className="flex-1 max-w-[80px] py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+              <ChevronLeft className="w-5 h-5" />
             </button>
-            <button onClick={goNext} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
-              <ChevronRight className="w-6 h-6" />
+            <button onClick={goNext} className="flex-1 max-w-[80px] py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+              <ChevronRight className="w-5 h-5" />
             </button>
           </>
         )}
         {!compact && (
-          <button onClick={goLast} className="flex-1 max-w-[80px] py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
-            <ChevronLast className="w-6 h-6" />
+          <button onClick={goLast} className="flex-1 max-w-[80px] py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+            <ChevronLast className="w-5 h-5" />
           </button>
         )}
       </div>
@@ -1298,23 +1298,6 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
             return `Go to highlighted move (${sign})`;
           })()}
         </button>
-      )}
-      {!compact && (
-        <div className="mt-1.5 text-sm text-center min-h-[44px]">
-          {safePly > 0 && entries[safePly]?.san && !inBranch && (
-            <p className="text-slate-300">
-              {t('coaches.move')} {Math.ceil(safePly / 2)} ({safePly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')}) : {entries[safePly].san}
-            </p>
-          )}
-          {safePly === 0 && !inBranch && (
-            <p className="text-slate-300">{t('coaches.startingPosition')}</p>
-          )}
-          {inBranch && branch && branchPly > 0 && (
-            <p className="text-slate-300">
-              {t('coaches.variation')} : {branch.sans[branchPly - 1]}
-            </p>
-          )}
-        </div>
       )}
     </div>
   );
