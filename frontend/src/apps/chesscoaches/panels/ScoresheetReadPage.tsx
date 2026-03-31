@@ -1839,7 +1839,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
           </div>
           {/* Integrated board inside the modal — positioned to the right */}
           {boardMoves && (
-            <div>
+            <div className="w-[280px] 2xl:w-auto">
               <ModelBoard
                 moves={boardMoves}
                 externalPly={boardPly}
