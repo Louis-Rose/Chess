@@ -1280,7 +1280,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       {(() => {
         const isBlackTurn = currentFen.split(' ')[1] === 'b';
         return (
-          <div className={`w-full flex items-center gap-2 px-2 py-1 rounded-t-lg ${isBlackTurn ? 'bg-slate-600/50' : ''}`}>
+          <div className="w-full flex items-center gap-2 px-2 py-1 rounded-t-lg bg-slate-600/50">
             <span className="w-3 h-3 rounded-full bg-slate-900 border border-slate-500 inline-block" />
             <span className="text-xs text-slate-300">Black</span>
             {isBlackTurn && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
@@ -1292,7 +1292,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       {(() => {
         const isWhiteTurn = currentFen.split(' ')[1] === 'w';
         return (
-          <div className={`w-full flex items-center gap-2 px-2 py-1 rounded-b-lg ${isWhiteTurn ? 'bg-slate-600/50' : ''}`}>
+          <div className="w-full flex items-center gap-2 px-2 py-1 rounded-b-lg bg-slate-600/50">
             <span className="w-3 h-3 rounded-full bg-slate-100 border border-slate-400 inline-block" />
             <span className="text-xs text-slate-300">White</span>
             {isWhiteTurn && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
