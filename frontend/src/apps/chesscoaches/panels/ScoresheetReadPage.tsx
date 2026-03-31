@@ -682,16 +682,6 @@ export function ScoresheetReadPage() {
                     });
 
                     return (<>
-                        {allModelsFinished && allVerified && (
-                          <div className="flex justify-center mb-3 animate-[fadeIn_0.4s_ease-out]">
-                            <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
-                              <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
-                                <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                              </span>
-                              <span className="text-sm text-emerald-300 font-medium">Verification complete — PGN is ready</span>
-                            </div>
-                          </div>
-                        )}
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           {/* Left: scoresheet image */}
                           <div className="flex justify-end items-center" onClick={e => e.stopPropagation()}>
@@ -880,6 +870,17 @@ export function ScoresheetReadPage() {
                                 </div>
                               );
                             })()}
+                            {/* PGN ready badge */}
+                            {allModelsFinished && allVerified && (
+                              <div className="w-full animate-[fadeIn_0.4s_ease-out]">
+                                <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
+                                  <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
+                                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                                  </span>
+                                  <span className="text-sm text-emerald-300 font-medium">Verification complete — PGN is ready</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                         {/* Mobile: image above table */}
