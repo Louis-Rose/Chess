@@ -771,11 +771,7 @@ export function ScoresheetReadPage() {
                               const colorStr = voteState.color;
                               const moveObj = displayConsensusMoves[moveIdx];
                               if (!moveObj) return null;
-                              const resolvedMove = moveObj[colorStr] || '—';
-                              const moveReason = moveObj[`${colorStr}_reason` as 'white_reason' | 'black_reason'];
-                              const isAmbiguous = moveReason?.startsWith('Ambiguous');
-                              const ambiguousOptions = isAmbiguous ? moveReason!.match(/Ambiguous \((.+)\)/)?.[1]?.replace(/\//g, ' or ') : null;
-                              const displayMove = ambiguousOptions || resolvedMove;
+                              const displayMove = moveObj[colorStr] || '—';
 
                               // Zoomed scoresheet cell
                               const cellCrop = preview && gridData?.cells ? (() => {
