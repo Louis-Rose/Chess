@@ -871,7 +871,7 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
       {tbodyHeight > 0 && tablesLeft > 0 && (
         <div
           className="absolute hidden md:flex items-center justify-center px-4"
-          style={{ top: tbodyTop, height: tbodyHeight, left: 0, width: tablesLeft }}
+          style={{ top: tbodyTop, bottom: 0, left: 0, width: tablesLeft }}
         >
           <div className="flex flex-col items-center">
             <div className="relative overflow-hidden rounded-xl">
@@ -1047,20 +1047,10 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     if (p > 0 && entries[p]?.san) playMoveSound(entries[p].san!.includes('x'));
   }, [entries]);
 
-  // Emit ply change to parent, batched via rAF so rapid navigation doesn't
-  // trigger a parent re-render on every keystroke
-  const pendingEmit = useRef<number | null>(null);
-  const rafId = useRef(0);
+  // Emit ply change to parent, marking it so the externalPly echo is skipped
   const emitPly = useCallback((p: number) => {
     lastEmittedPly.current = p;
-    pendingEmit.current = p;
-    cancelAnimationFrame(rafId.current);
-    rafId.current = requestAnimationFrame(() => {
-      if (pendingEmit.current !== null) {
-        onPlyChange?.(pendingEmit.current);
-        pendingEmit.current = null;
-      }
-    });
+    onPlyChange?.(p);
   }, [onPlyChange]);
 
   // Navigation
