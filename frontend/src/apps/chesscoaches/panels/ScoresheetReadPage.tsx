@@ -849,7 +849,7 @@ export function ScoresheetReadPage() {
                               loading={!allModelsFinished || analyzing}
                               meta={consensusMeta}
                               fileName={fileName}
-                              onMoveClick={(movesArr, ply) => {
+                              onMoveClick={(_movesArr, ply) => {
                                 setModelBoardPlys(p => ({ ...p, [consensusId]: { ply, source: 'read' as const } }));
                               }}
                               activePly={modelBoardPlys[consensusId]?.ply}
