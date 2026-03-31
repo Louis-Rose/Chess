@@ -96,7 +96,7 @@ export function ScoresheetReadPage() {
   }, [showImageModal, showExampleModal, closeModal]);
 
 
-  const [, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null>(null);
+  const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null>(null);
   const [highlightHintDismissed, setHighlightHintDismissed] = useState(() => {
     const dismissed = localStorage.getItem('scoresheet_hint_dismissed');
     return dismissed === new Date().toISOString().split('T')[0];
@@ -751,10 +751,7 @@ export function ScoresheetReadPage() {
                               allModelNames={modelNames}
                               onConfirmMove={allModelsFinished && !analyzing ? handleConfirmMove : undefined}
                               onVoteStateChange={setVoteState}
-                              boardMoves={displayConsensusMoves}
                               boardPly={modelBoardPlys[consensusId]?.ply}
-                              onBoardPlyChange={handleConsensusBoardPly}
-                              boardPreviewFen={consensusPreviewFen}
                               onPreview={(moveIdx, color, san) => {
                                 try {
                                   const chess = new Chess();
@@ -776,7 +773,10 @@ export function ScoresheetReadPage() {
                             )}
                           </div>
                           <div className="flex-1 hidden md:flex justify-center items-center max-w-[400px] -mb-16" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag autoActivate={false} previewFen={consensusPreviewFen} highlightedPlies={hasResults && allModelsFinished ? (() => {
+                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
+                              if (!san) { voteState.setEditValue(''); return; }
+                              voteState.setEditValue(san);
+                            } : undefined} highlightedPlies={hasResults && allModelsFinished ? (() => {
                               const plies: number[] = [];
                               displayConsensusMoves.forEach((m, idx) => {
                                 const d = modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low';
@@ -1329,7 +1329,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
 
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, loading, onConfirmMove, onVoteStateChange, boardMoves, boardPly, onBoardPlyChange, boardPreviewFen, scoresheetPreview, gridData }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, allModelNames, showMoveInfo, loading, onConfirmMove, onVoteStateChange, boardPly, scoresheetPreview, gridData }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1355,10 +1355,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   loading?: boolean;
   onConfirmMove?: (moveNumber: number, color: 'white' | 'black') => void;
   onVoteStateChange?: (state: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null) => void;
-  boardMoves?: Move[];
   boardPly?: number;
-  onBoardPlyChange?: (ply: number) => void;
-  boardPreviewFen?: string | null;
   scoresheetPreview?: string | null;
   gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number };
 }) {
@@ -1555,6 +1552,207 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             {t('coaches.rereadFromEdit')}
           </button>
         )}
+        {/* Inline vote/edit panel */}
+        {voteInfoKey && voteDetails?.[voteInfoKey] && (() => {
+          const [mnStr, colorStr] = voteInfoKey.split('-');
+          const moveIdx = parseInt(mnStr) - 1;
+          const moveObj = moves[moveIdx];
+          const isBlack = colorStr === 'black';
+          return (
+            <div className="border-t border-slate-600/50 px-3 py-3 space-y-2">
+              {/* Header with dismiss */}
+              <div className="flex items-center justify-between">
+                <h3 className="text-slate-100 font-medium text-sm">
+                  {t('coaches.move')} {mnStr} ({isBlack ? t('coaches.moveBlack') : t('coaches.moveWhite')})
+                </h3>
+                <button onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }} className="text-slate-500 hover:text-slate-300 transition-colors text-xs">&#10005;</button>
+              </div>
+              {/* Status line */}
+              {(() => {
+                const details = voteDetails[voteInfoKey];
+                const isIllegalMove = moveObj?.[`${colorStr}_legal` as 'white_legal' | 'black_legal'] === false;
+                const hasDisagreement = details.length > 1;
+                const reason = moveObj?.[`${colorStr}_reason` as 'white_reason' | 'black_reason'];
+                const isAutoResolved = reason?.startsWith('Ambiguous') || reason?.startsWith('Auto-fixed');
+                const ambiguousCandidates = reason?.match(/Ambiguous \((.+)\)/)?.[1]?.replace(/\//g, ' or ');
+                if (isIllegalMove || hasDisagreement || isAutoResolved) {
+                  return (
+                    <p className="text-yellow-400 text-xs text-center">
+                      {isIllegalMove && 'Illegal move'}
+                      {isIllegalMove && hasDisagreement && ' · '}
+                      {hasDisagreement && t('coaches.readersDisagree')}
+                      {(isIllegalMove || hasDisagreement) && isAutoResolved && ' · '}
+                      {isAutoResolved && (ambiguousCandidates ? `Ambiguous: ${ambiguousCandidates}` : 'Auto-fixed')}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
+              {/* Zoomed scoresheet cell */}
+              {scoresheetPreview && gridData?.cells && (() => {
+                const rows = rowsPerColumn || Math.ceil(moves.length / Math.max(sheetColumns, 1));
+                const sheetCol = Math.floor(moveIdx / rows);
+                const rowInCol = moveIdx % rows;
+                const azureCols = gridData.col_count || 4;
+                const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
+                const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
+                const azureCol = sheetCol * colsPerSection + moveNumOffset + (isBlack ? 1 : 0);
+                const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
+                const azureRow = rowInCol + rowOffset;
+                const cell = gridData.cells[`${azureRow}-${azureCol}`];
+                if (!cell) return null;
+                const padX = (cell.x2 - cell.x1) * 0.2;
+                const padY = (cell.y2 - cell.y1) * 0.2;
+                const cx1 = Math.max(0, cell.x1 - padX);
+                const cy1 = Math.max(0, cell.y1 - padY);
+                const cx2 = Math.min(1, cell.x2 + padX);
+                const cy2 = Math.min(1, cell.y2 + padY);
+                const cropW = cx2 - cx1;
+                const cropH = cy2 - cy1;
+                const containerW = 180;
+                const containerH = containerW * (cropH / cropW);
+                return (
+                  <div className="rounded-lg overflow-hidden border border-slate-600 mx-auto" style={{ width: containerW, height: containerH }}>
+                    <img
+                      src={scoresheetPreview}
+                      alt="Scoresheet cell"
+                      draggable={false}
+                      style={{
+                        display: 'block',
+                        width: containerW / cropW,
+                        height: containerH / cropH,
+                        marginLeft: -(cx1 / cropW) * containerW,
+                        marginTop: -(cy1 / cropH) * containerH,
+                        maxWidth: 'none',
+                      }}
+                    />
+                  </div>
+                );
+              })()}
+              {/* Vote table */}
+              {(() => {
+                const details = voteDetails[voteInfoKey];
+                const names = allModelNames || [];
+                const modelToMove: Record<string, string> = {};
+                for (const d of details) {
+                  for (const m of (d.models || [])) modelToMove[m] = d.candidate;
+                }
+                const chosen = details.find(d => d.chosen)?.candidate;
+                const finalMove = moveObj?.[colorStr as 'white' | 'black'];
+                const postValidationChanged = finalMove && chosen && finalMove.replace(/[+#x]/g, '') !== chosen;
+                const legalCheckChess = (() => {
+                  try {
+                    const ch = new Chess();
+                    for (let i = 0; i < moveIdx; i++) {
+                      if (moves[i].white) try { ch.move(moves[i].white); } catch { break; }
+                      if (moves[i].black) try { ch.move(moves[i].black!); } catch { break; }
+                    }
+                    if (colorStr === 'black' && moves[moveIdx]?.white) {
+                      try { ch.move(moves[moveIdx].white); } catch { /* */ }
+                    }
+                    return ch;
+                  } catch { return null; }
+                })();
+                const legalMark = (move?: string) => {
+                  if (!move || !legalCheckChess) return null;
+                  try { legalCheckChess.move(move); legalCheckChess.undo(); return <span className="text-green-400 text-[10px] ml-1">&#10003;</span>; }
+                  catch { return <span className="text-red-400 text-[10px] ml-1">&#10007;</span>; }
+                };
+                return (
+                  <>
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-600 text-slate-100">
+                          <th className="py-1 text-center px-2">Model</th>
+                          <th className="py-1 text-center px-2">{t('coaches.voteCandidate')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {names.map(name => {
+                          const move = modelToMove[name];
+                          const illegal = move && legalCheckChess ? (() => { try { legalCheckChess.move(move); legalCheckChess.undo(); return false; } catch { return true; } })() : false;
+                          return (
+                            <tr key={name} className={`border-b border-slate-700/50 ${illegal ? 'opacity-40' : ''}`}>
+                              <td className="py-1 px-2 text-slate-100 text-center">{t('coaches.reader')} {name.replace(/^Reader\s*/, '')}</td>
+                              <td className="py-1 px-2 text-center font-mono text-slate-100">{move || '—'}{legalMark(move)}</td>
+                            </tr>
+                          );
+                        })}
+                        <tr className="border-b border-slate-700/50">
+                          <td className="py-1 px-2 text-slate-100 text-xs font-medium text-center">{t('coaches.consensus')}</td>
+                          <td className="py-1 px-2 text-center font-mono">
+                            {postValidationChanged
+                              ? <span className="text-slate-100">{chosen}{legalMark(chosen)}</span>
+                              : <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{chosen || '—'}{legalMark(chosen)}</span>}
+                          </td>
+                        </tr>
+                        {postValidationChanged && (
+                          <tr className="border-b border-slate-700/50">
+                            <td className="py-1 px-2 text-slate-100 text-xs font-medium text-center">After validation</td>
+                            <td className="py-1 px-2 text-center font-mono">
+                              <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{finalMove}{legalMark(finalMove)}</span>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                    {/* Confirm / pick actions */}
+                    {onConfirmMove && (finalMove || chosen) && (() => {
+                      const currentMove = finalMove || chosen;
+                      const targetMovePly = colorStr === 'white' ? moveIdx * 2 + 1 : moveIdx * 2 + 2;
+                      const boardAtTarget = boardPly === targetMovePly;
+                      const userPickedDifferent = voteEditValue && voteEditValue !== currentMove;
+                      return (
+                        <div className="flex flex-col gap-1.5 mt-1">
+                          <p className="text-xs text-slate-400 text-center">Confirm, or drag a piece on the board</p>
+                          {voteEditValue && userPickedDifferent ? (
+                            <button
+                              onClick={() => {
+                                if (!onEditSave) return;
+                                const confirmed: Move[] = moves.map((m, i) => {
+                                  const mc = { ...m };
+                                  if (i === moveIdx) {
+                                    mc[colorStr as 'white' | 'black'] = voteEditValue;
+                                    (mc as any)[`${colorStr}_confirmed`] = true;
+                                    delete (mc as any)[`${colorStr}_reason`];
+                                  }
+                                  delete mc.white_legal;
+                                  delete mc.black_legal;
+                                  return mc;
+                                });
+                                onEditSave(confirmed, `${mnStr}-${colorStr}`);
+                                setVoteEditValue(null);
+                                setVoteInfoKey(null);
+                                onClearPreview?.();
+                              }}
+                              className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
+                            >
+                              Pick {voteEditValue} instead
+                            </button>
+                          ) : boardAtTarget ? (
+                            <button
+                              onClick={() => {
+                                onConfirmMove(parseInt(mnStr), colorStr as 'white' | 'black');
+                                setVoteInfoKey(null); setVoteEditValue(null);
+                              }}
+                              className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-xs py-1.5 rounded-lg transition-colors"
+                            >
+                              Confirm {currentMove}
+                            </button>
+                          ) : (
+                            <button disabled className="w-full text-xs py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
+                              Confirm
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </>
+                );
+              })()}
+            </div>
+          );
+        })()}
         <ChesscomAnalysisButton moves={moves} meta={meta} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
         <LichessStudyButton moves={moves} meta={meta} fileName={fileName} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
       </>)}
@@ -1659,260 +1857,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
         document.body
       )}
 
-      {/* Vote info modal with integrated board */}
-      {voteInfoKey && voteDetails?.[voteInfoKey] && createPortal(
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center md:pl-56 2xl:pl-64 bg-slate-900/70 backdrop-blur-[3px]"
-          onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }}
-        >
-          <div className="bg-slate-800 rounded-2xl p-3 2xl:p-4 shadow-xl border border-slate-600 flex flex-col md:flex-row items-center gap-3 2xl:gap-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-          <div>
-          {/* Zoomed scoresheet cell snippet */}
-          {scoresheetPreview && gridData?.cells && (() => {
-            const [mnStr, colorStr] = voteInfoKey.split('-');
-            const moveIdx = parseInt(mnStr) - 1;
-            const isBlack = colorStr === 'black';
-            const rows = rowsPerColumn || Math.ceil(moves.length / Math.max(sheetColumns, 1));
-            const sheetCol = Math.floor(moveIdx / rows);
-            const rowInCol = moveIdx % rows;
-            const azureCols = gridData.col_count || 4;
-            const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
-            const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
-            const azureCol = sheetCol * colsPerSection + moveNumOffset + (isBlack ? 1 : 0);
-            const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
-            const azureRow = rowInCol + rowOffset;
-            const cell = gridData.cells[`${azureRow}-${azureCol}`];
-            if (!cell) return null;
-            // Expand crop area with padding
-            const padX = (cell.x2 - cell.x1) * 0.2;
-            const padY = (cell.y2 - cell.y1) * 0.2;
-            const cx1 = Math.max(0, cell.x1 - padX);
-            const cy1 = Math.max(0, cell.y1 - padY);
-            const cx2 = Math.min(1, cell.x2 + padX);
-            const cy2 = Math.min(1, cell.y2 + padY);
-            const cropW = cx2 - cx1;
-            const cropH = cy2 - cy1;
-            // Clip the image to show only the cell area, scaled up
-            const containerW = window.innerWidth >= 1536 ? 280 : 200;
-            const containerH = containerW * (cropH / cropW);
-            return (
-              <div className="rounded-lg overflow-hidden mb-3 border border-slate-600 mx-auto" style={{ width: containerW, height: containerH }}>
-                <img
-                  src={scoresheetPreview}
-                  alt="Scoresheet cell"
-                  draggable={false}
-                  style={{
-                    display: 'block',
-                    width: containerW / cropW,
-                    height: containerH / cropH,
-                    marginLeft: -(cx1 / cropW) * containerW,
-                    marginTop: -(cy1 / cropH) * containerH,
-                    maxWidth: 'none',
-                  }}
-                />
-              </div>
-            );
-          })()}
-          <div
-            className="bg-slate-700/50 rounded-xl p-3 2xl:p-5 min-w-[200px] 2xl:min-w-[280px] max-w-sm space-y-2 2xl:space-y-3"
-          >
-            <h3 className="text-slate-100 font-medium text-center">
-              {t('coaches.move')} {voteInfoKey.split('-')[0]} ({voteInfoKey.split('-')[1] === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')})
-            </h3>
-            {(() => {
-              const details = voteDetails[voteInfoKey];
-              const [mn, cl] = voteInfoKey.split('-');
-              const moveObj = moves[parseInt(mn) - 1];
-              const isIllegalMove = moveObj?.[`${cl}_legal` as 'white_legal' | 'black_legal'] === false;
-              const hasDisagreement = details.length > 1;
-              const reason = moveObj?.[`${cl}_reason` as 'white_reason' | 'black_reason'];
-              const isAutoResolved = reason?.startsWith('Ambiguous') || reason?.startsWith('Auto-fixed');
-              const ambiguousCandidates = reason?.match(/Ambiguous \((.+)\)/)?.[1]?.replace(/\//g, ' or ');
-              if (isIllegalMove || hasDisagreement || isAutoResolved) {
-                return (
-                  <p className="text-yellow-400 text-sm text-center">
-                    {isIllegalMove && 'Illegal move'}
-                    {isIllegalMove && hasDisagreement && ' · '}
-                    {hasDisagreement && t('coaches.readersDisagree')}
-                    {(isIllegalMove || hasDisagreement) && isAutoResolved && ' · '}
-                    {isAutoResolved && (ambiguousCandidates ? `Ambiguous move : ${ambiguousCandidates} ?` : 'Auto-fixed')}
-                  </p>
-                );
-              }
-              return null;
-            })()}
-            {(() => {
-              const details = voteDetails[voteInfoKey];
-              const names = allModelNames || [];
-              // Build model→move lookup
-              const modelToMove: Record<string, string> = {};
-              for (const d of details) {
-                for (const m of (d.models || [])) modelToMove[m] = d.candidate;
-              }
-              const chosen = details.find(d => d.chosen)?.candidate;
-              // Look up the final post-validation move (disambiguation etc.)
-              const [moveNumStr, colorStr] = voteInfoKey.split('-');
-              const finalMove = moves[parseInt(moveNumStr) - 1]?.[colorStr as 'white' | 'black'];
-              const postValidationChanged = finalMove && chosen && finalMove.replace(/[+#x]/g, '') !== chosen;
-              // Build board position before this move for legality checks
-              const moveIdx = parseInt(moveNumStr) - 1;
-              const legalCheckChess = (() => {
-                try {
-                  const ch = new Chess();
-                  for (let i = 0; i < moveIdx; i++) {
-                    if (moves[i].white) try { ch.move(moves[i].white); } catch { break; }
-                    if (moves[i].black) try { ch.move(moves[i].black!); } catch { break; }
-                  }
-                  if (colorStr === 'black' && moves[moveIdx]?.white) {
-                    try { ch.move(moves[moveIdx].white); } catch { /* */ }
-                  }
-                  return ch;
-                } catch { return null; }
-              })();
-              const legalMark = (move?: string) => {
-                if (!move || !legalCheckChess) return null;
-                try { legalCheckChess.move(move); legalCheckChess.undo(); return <span className="text-green-400 text-[10px] ml-1">&#10003;</span>; }
-                catch { return <span className="text-red-400 text-[10px] ml-1">&#10007;</span>; }
-              };
-              return (
-                <>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-600 text-slate-100">
-                        <th className="py-1.5 text-center px-2">Model</th>
-                        <th className="py-1.5 text-center px-2">{t('coaches.voteCandidate')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {names.map(name => {
-                        const move = modelToMove[name];
-                        const illegal = move && legalCheckChess ? (() => { try { legalCheckChess.move(move); legalCheckChess.undo(); return false; } catch { return true; } })() : false;
-                        return (
-                          <tr key={name} className={`border-b border-slate-700/50 ${illegal ? 'opacity-40' : ''}`}>
-                            <td className="py-1.5 px-2 text-slate-100 text-xs text-center">{t('coaches.reader')} {name.replace(/^Reader\s*/, '')}</td>
-                            <td className="py-1.5 px-2 text-center font-mono text-slate-100">{move || '—'}{legalMark(move)}</td>
-                          </tr>
-                        );
-                      })}
-                      {/* Consensus row */}
-                      <tr className="border-b border-slate-700/50">
-                        <td className="py-1.5 px-2 text-slate-100 text-xs font-medium text-center">{t('coaches.consensus')}</td>
-                        <td className="py-1.5 px-2 text-center font-mono">
-                          {postValidationChanged
-                            ? <span className="text-slate-100">{chosen}{legalMark(chosen)}</span>
-                            : <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{chosen || '—'}{legalMark(chosen)}</span>}
-                        </td>
-                        <td />
-                      </tr>
-                      {postValidationChanged && (
-                        <tr className="border-b border-slate-700/50">
-                          <td className="py-1.5 px-2 text-slate-100 text-xs font-medium text-center">After validation</td>
-                          <td className="py-1.5 px-2 text-center font-mono">
-                            <span className="bg-blue-600/30 text-slate-100 px-2 py-0.5 rounded">{finalMove}{legalMark(finalMove)}</span>
-                          </td>
-                          <td />
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                  <div className="flex items-center justify-center gap-4 text-[10px] text-slate-500 pt-1">
-                    <span className="flex items-center gap-1 text-slate-100"><span className="text-green-400">&#10003;</span> legal move</span>
-                    <span className="flex items-center gap-1 text-slate-100"><span className="text-red-400">&#10007;</span> illegal move</span>
-                  </div>
-                  {details.every(d => !d.chosen) && (
-                    <p className="text-red-400 text-xs text-center">{t('coaches.voteAllIllegal')}</p>
-                  )}
-                  {onConfirmMove && (finalMove || chosen) && (() => {
-                    const [mn, cl] = voteInfoKey.split('-');
-                    const moveIdx = parseInt(mn) - 1;
-                    const currentMove = finalMove || chosen;
-                    // Determine button state based on board position
-                    const targetMovePly = cl === 'white' ? moveIdx * 2 + 1 : moveIdx * 2 + 2;
-                    const boardAtTarget = boardPly === targetMovePly;
-                    // Button state: blue (user picked a different move), green (consensus/matching), gray (no selection)
-                    const userPickedDifferent = voteEditValue && voteEditValue !== currentMove;
-
-                    return (<>
-                      <div className="flex flex-col gap-1.5 mt-1">
-                        <p className="text-sm text-slate-100 text-center">Confirm move, or play another move on the board</p>
-                        {voteEditValue && userPickedDifferent ? (
-                          // Blue — user played a different move on the board
-                          <button
-                            onClick={() => {
-                              if (!onEditSave) return;
-                              const confirmed: Move[] = moves.map((m, i) => {
-                                const mc = { ...m };
-                                if (i === moveIdx) {
-                                  mc[cl as 'white' | 'black'] = voteEditValue;
-                                  (mc as any)[`${cl}_confirmed`] = true;
-                                  delete (mc as any)[`${cl}_reason`];
-                                }
-                                delete mc.white_legal;
-                                delete mc.black_legal;
-                                return mc;
-                              });
-                              onEditSave(confirmed, `${mn}-${cl}`);
-                              setVoteEditValue(null);
-                              setVoteInfoKey(null);
-                              onClearPreview?.();
-                            }}
-                            className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm py-2 rounded-lg transition-colors"
-                          >
-                            Pick {voteEditValue} instead
-                          </button>
-                        ) : boardAtTarget ? (
-                          // Green — board is at the highlighted move's position
-                          <button
-                            onClick={() => {
-                              onConfirmMove(parseInt(mn), cl as 'white' | 'black');
-                              setVoteInfoKey(null); setVoteEditValue(null);
-                            }}
-                            className="w-full bg-emerald-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition-colors"
-                          >
-                            Confirm {currentMove}
-                          </button>
-                        ) : (
-                          // Gray — board is at a different ply
-                          <button disabled className="w-full text-sm py-2 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
-                            Confirm
-                          </button>
-                        )}
-                      </div>
-                    </>);
-                  })()}
-                </>
-              );
-            })()}
-          </div>
-          </div>
-          {/* Integrated board inside the modal — positioned to the right */}
-          {boardMoves && (
-            <div className="w-[280px] 2xl:w-auto">
-              <ModelBoard
-                moves={boardMoves}
-                externalPly={boardPly}
-                onPlyChange={onBoardPlyChange}
-                disableDrag={false}
-                autoActivate
-                previewFen={boardPreviewFen}
-                compact
-                targetPly={voteInfoKey ? (() => { const [mn, cl] = voteInfoKey.split('-'); const idx = parseInt(mn) - 1; return cl === 'white' ? idx * 2 + 1 : idx * 2 + 2; })() : undefined}
-
-                onDragSetMove={(san) => {
-                  if (!san) { setVoteEditValue(null); onClearPreview?.(); return; }
-                  setVoteEditValue(san);
-                  if (voteInfoKey) {
-                    const [mn, cl] = voteInfoKey.split('-');
-                    onPreview?.(parseInt(mn) - 1, cl as 'white' | 'black', san);
-                  }
-                }}
-              />
-            </div>
-          )}
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* Old vote modal removed — now inline in MovesPanel */}
 
       {/* Move info modal (for individual reads) */}
       {moveInfoKey && (() => {
