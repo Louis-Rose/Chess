@@ -97,6 +97,7 @@ export function ScoresheetReadPage() {
 
 
   const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black' } | null>(null);
+  const [inlinePanelEl, setInlinePanelEl] = useState<HTMLDivElement | null>(null);
 
   // ── Live elapsed timer for status table ──
   const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
@@ -698,8 +699,8 @@ export function ScoresheetReadPage() {
                             </div>
                           </div>
                         )}
-                        <div className="flex items-stretch justify-center md:gap-6 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
-                          <div className="flex flex-wrap gap-3 items-start flex-shrink-0" data-tables onClick={e => e.stopPropagation()}>
+                        <div className="flex items-start justify-center md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
+                          <div className="flex-shrink-0 self-start" data-tables onClick={e => e.stopPropagation()}>
                             {!hasResults || consensusMoves.length === 0 ? (
                               <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[540px]">
                                 <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
@@ -763,10 +764,11 @@ export function ScoresheetReadPage() {
                               scoresheetPreview={preview}
                               gridData={gridData}
                               unresolvedMoves={hasIssues && !allVerified ? unresolvedMovesList : undefined}
+                              inlinePanelContainer={inlinePanelEl}
                             />
                             )}
                           </div>
-                          <div className="flex-1 hidden md:flex justify-center items-center max-w-[400px] -mb-16" onClick={e => e.stopPropagation()}>
+                          <div className="hidden md:flex flex-col items-center gap-3 max-w-[400px] flex-shrink-0" onClick={e => e.stopPropagation()}>
                             <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                               if (!san) { voteState.setEditValue(''); return; }
                               voteState.setEditValue(san);
@@ -780,6 +782,8 @@ export function ScoresheetReadPage() {
                               });
                               return plies;
                             })() : undefined} />
+                            {/* Inline panel renders here via portal */}
+                            <div ref={setInlinePanelEl} className="w-full" />
                           </div>
                         </div>
                       </ModelRow>
@@ -1323,7 +1327,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
 
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, showMoveInfo, loading, onConfirmMove, onVoteStateChange, boardPly, scoresheetPreview, gridData, unresolvedMoves }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, showMoveInfo, loading, onConfirmMove, onVoteStateChange, boardPly, scoresheetPreview, gridData, unresolvedMoves, inlinePanelContainer }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1353,6 +1357,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   scoresheetPreview?: string | null;
   unresolvedMoves?: { moveNumber: number; color: 'white' | 'black'; ply: number }[];
   gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number };
+  inlinePanelContainer?: HTMLDivElement | null;
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
@@ -1570,9 +1575,10 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             {t('coaches.rereadFromEdit')}
           </button>
         )}
-        {/* Inline move detail panel — always visible */}
-        {voteDetails && (
-        <div className="border-t border-slate-600/50 px-3 py-3 space-y-2">
+        {/* Inline move detail panel — always visible, portaled to right column on desktop */}
+        {voteDetails && (() => {
+          const panelContent = (
+        <div className={inlinePanelContainer ? 'px-3 py-3 space-y-2' : 'border-t border-slate-600/50 px-3 py-3 space-y-2'}>
           {!voteInfoKey || !voteDetails[voteInfoKey] ? (
             /* Placeholder when no move selected */
             <div className="text-center py-3">
@@ -1737,7 +1743,9 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             </>);
           })()}
         </div>
-        )}
+          );
+          return inlinePanelContainer ? createPortal(panelContent, inlinePanelContainer) : panelContent;
+        })()}
         <ChesscomAnalysisButton moves={moves} meta={meta} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
         <LichessStudyButton moves={moves} meta={meta} fileName={fileName} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
       </>)}
