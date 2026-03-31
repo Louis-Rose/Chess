@@ -1476,7 +1476,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
               value={move.white}
               legal={move.white_legal}
               highlight={(d?.white || !!move.white_reason) && !(move as any).white_confirmed}
-              corrected={corrections?.has(`${move.number}-white`) || (originalMoves && originalMoves[idx]?.white?.replace(/[+#]/g, '') !== move.white?.replace(/[+#]/g, '') && move.white_legal !== false) || !!(move as any).white_confirmed}
+              corrected={corrections?.has(`${move.number}-white`)}
               active={activePly === idx * 2 + 1}
               reason={move.white_reason}
               confidence={move.white_confidence}
@@ -1487,7 +1487,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             <MoveCell
               value={move.black || ''}
               legal={move.black_legal}
-              corrected={corrections?.has(`${move.number}-black`) || (originalMoves && originalMoves[idx]?.black?.replace(/[+#]/g, '') !== move.black?.replace(/[+#]/g, '') && move.black_legal !== false) || !!(move as any).black_confirmed}
+              corrected={corrections?.has(`${move.number}-black`)}
               highlight={(d?.black || !!move.black_reason) && !(move as any).black_confirmed}
               active={activePly === idx * 2 + 2}
               reason={move.black_reason}
