@@ -10,6 +10,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { PanelShell } from '../components/PanelShell';
 import { UploadBox } from '../components/UploadBox';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { useCoachesData, getCoachesPrefs, saveCoachesPrefs } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
 import { BoardPreview } from '../components/BoardPreview';
@@ -53,6 +54,7 @@ function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result
 
 export function ScoresheetReadPage() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
@@ -885,6 +887,41 @@ export function ScoresheetReadPage() {
                         <Upload className="w-4 h-4" />
                         {t('coaches.replaceImage')}
                       </button>
+                    </div>
+                  )}
+
+                  {/* Debug: per-model reads — admin only */}
+                  {user?.is_admin && models.length > 0 && Object.keys(modelResults).length > 0 && (
+                    <div className="border border-slate-600/50 rounded-xl overflow-hidden mx-4 mb-4">
+                      <div className="px-4 py-2 bg-slate-700/50 text-slate-400 text-xs font-medium">Debug — Per-model reads</div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-slate-600 bg-slate-700/30">
+                              <th className="px-2 py-1 text-slate-400 text-center">#</th>
+                              {models.map(m => (
+                                <th key={m.id} className="px-2 py-1 text-slate-400 text-center" colSpan={2}>{m.name} ({modelResults[m.id]?.elapsed || '—'}s)</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Array.from({ length: Math.max(...models.map(m => modelResults[m.id]?.result?.moves?.length || 0), 0) }, (_, i) => (
+                              <tr key={i} className="border-b border-slate-700/30">
+                                <td className="px-2 py-0.5 text-slate-500 text-center">{i + 1}</td>
+                                {models.map(m => {
+                                  const move = modelResults[m.id]?.result?.moves?.[i];
+                                  return (
+                                    <React.Fragment key={m.id}>
+                                      <td className="px-2 py-0.5 text-slate-300 text-center font-mono">{move?.white || ''}</td>
+                                      <td className="px-2 py-0.5 text-slate-300 text-center font-mono">{move?.black || ''}</td>
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </div>
