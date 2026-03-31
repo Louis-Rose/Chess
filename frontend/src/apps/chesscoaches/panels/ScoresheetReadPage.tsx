@@ -303,6 +303,19 @@ export function ScoresheetReadPage() {
                       <div className="text-center mt-1">
                         <span className="text-xs text-slate-500">{pct}%</span>
                       </div>
+                      {(() => {
+                        const r = Object.values(modelResults).find(mr => mr?.result)?.result;
+                        if (!r) return null;
+                        const parts: string[] = [];
+                        if (r.white_player || r.black_player) parts.push(`${r.white_player || '?'} vs ${r.black_player || '?'}`);
+                        if (r.result && r.result !== '*') parts.push(r.result);
+                        if (r.date) parts.push(r.date);
+                        if (r.event) parts.push(r.event);
+                        if (parts.length === 0) return null;
+                        return (
+                          <p className="text-xs text-slate-400 text-center mt-2">{parts.join(' — ')}</p>
+                        );
+                      })()}
                     </div>
                   </div>
                 );
