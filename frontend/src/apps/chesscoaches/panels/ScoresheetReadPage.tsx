@@ -1570,21 +1570,24 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             {t('coaches.rereadFromEdit')}
           </button>
         )}
-        {/* Inline vote/edit panel */}
-        {voteInfoKey && voteDetails?.[voteInfoKey] && (() => {
-          const [mnStr, colorStr] = voteInfoKey.split('-');
-          const moveIdx = parseInt(mnStr) - 1;
-          const moveObj = moves[moveIdx];
-          const isBlack = colorStr === 'black';
-          return (
-            <div className="border-t border-slate-600/50 px-3 py-3 space-y-2">
-              {/* Header with dismiss */}
-              <div className="flex items-center justify-between">
-                <h3 className="text-slate-100 font-medium text-sm">
-                  {t('coaches.move')} {mnStr} ({isBlack ? t('coaches.moveBlack') : t('coaches.moveWhite')})
-                </h3>
-                <button onClick={() => { setVoteInfoKey(null); setVoteEditValue(null); onClearPreview?.(); }} className="text-slate-500 hover:text-slate-300 transition-colors text-xs">&#10005;</button>
-              </div>
+        {/* Inline move detail panel — always visible */}
+        {voteDetails && (
+        <div className="border-t border-slate-600/50 px-3 py-3 space-y-2">
+          {!voteInfoKey || !voteDetails[voteInfoKey] ? (
+            /* Placeholder when no move selected */
+            <div className="text-center py-3">
+              <p className="text-xs text-slate-500">Click a move to see details</p>
+            </div>
+          ) : (() => {
+            const [mnStr, colorStr] = voteInfoKey.split('-');
+            const moveIdx = parseInt(mnStr) - 1;
+            const moveObj = moves[moveIdx];
+            const isBlack = colorStr === 'black';
+            return (<>
+              {/* Header */}
+              <h3 className="text-slate-100 font-medium text-sm text-center">
+                {t('coaches.move')} {mnStr} ({isBlack ? t('coaches.moveBlack') : t('coaches.moveWhite')})
+              </h3>
               {/* Status line */}
               {(() => {
                 const details = voteDetails[voteInfoKey];
@@ -1768,9 +1771,10 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
                   </>
                 );
               })()}
-            </div>
-          );
-        })()}
+            </>);
+          })()}
+        </div>
+        )}
         <ChesscomAnalysisButton moves={moves} meta={meta} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
         <LichessStudyButton moves={moves} meta={meta} fileName={fileName} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
       </>)}
@@ -2310,75 +2314,25 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onSh
   onVoteInfo?: () => void;
   onMoveInfo?: () => void;
 }) {
-  const [showMenu, setShowMenu] = useState(false);
-  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
-  const ref = useRef<HTMLTableCellElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const isLowConfidence = confidence === 'low';
   const isIllegal = legal === false;
   const bg = active ? 'bg-blue-600/40 text-blue-100' : corrected ? 'bg-green-900/50 text-green-200' : (highlight || isIllegal || isLowConfidence) ? 'bg-yellow-500/25 text-yellow-100' : 'text-slate-100';
 
-  // Close menu when this cell is no longer active
-  useEffect(() => {
-    if (!active && showMenu) setShowMenu(false);
-  }, [active, showMenu]);
-
-  useEffect(() => {
-    if (!showMenu) return;
-    const handle = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (ref.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      setShowMenu(false);
-    };
-    const updatePos = () => {
-      if (ref.current && menuRef.current) {
-        const rect = ref.current.getBoundingClientRect();
-        menuRef.current.style.top = `${rect.bottom + 4}px`;
-        menuRef.current.style.left = `${rect.left + rect.width / 2}px`;
-      }
-    };
-    document.addEventListener('mousedown', handle);
-    window.addEventListener('scroll', updatePos, true);
-    return () => { document.removeEventListener('mousedown', handle); window.removeEventListener('scroll', updatePos, true); };
-  }, [showMenu]);
-
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onMoveInfo) { onMoveInfo(); return; }
+    if (onVoteInfo) { onVoteInfo(); return; }
     if (onShowBoard) onShowBoard();
-    if (ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      setMenuPos({ top: rect.bottom + 4, left: rect.left + rect.width / 2 });
-    }
-    setShowMenu(!showMenu);
   };
 
   return (
     <td
-      ref={ref}
       className={`px-2 py-1 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg}`}
       onClick={handleClick}
     >
       <span className="inline-flex items-center justify-center gap-1 w-full">
         {value}
       </span>
-      {showMenu && createPortal(
-        <div
-          ref={menuRef}
-          className="fixed z-[100] -translate-x-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg whitespace-nowrap"
-          style={{ top: menuPos.top, left: menuPos.left }}
-        >
-          <button
-            onClick={(e) => { if (!onVoteInfo) return; e.stopPropagation(); setShowMenu(false); onVoteInfo(); }}
-            disabled={!onVoteInfo}
-            className={`block w-full px-4 py-2.5 text-sm text-left rounded-lg ${onVoteInfo ? 'text-slate-200 hover:bg-slate-700' : 'text-slate-500 cursor-not-allowed'}`}
-          >
-            See votes &amp; Edit
-          </button>
-        </div>,
-        document.body
-      )}
     </td>
   );
 }
