@@ -811,7 +811,7 @@ export function ScoresheetReadPage() {
                                     <p className="text-lg font-mono text-slate-100 font-semibold">{displayMove}</p>
                                   </div>
                                   <div className="flex flex-col gap-1.5">
-                                    <p className="text-xs text-slate-400 text-center">Confirm, or drag a piece on the board</p>
+                                    <p className="text-sm text-slate-100 text-center">Confirm, or drag a piece on the board</p>
                                     {boardAtTarget ? (
                                       <button
                                         onClick={() => handleConfirmMove(moveIdx + 1, colorStr)}
@@ -1445,7 +1445,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {/* Review summary bar */}
       {unresolvedMoves && unresolvedMoves.length > 0 && (
         <div className="px-3 py-2 border-b border-yellow-500/20 bg-yellow-500/10 text-center">
-          <p className="text-xs text-yellow-200/80 mb-1.5">You need to review those moves:</p>
+          <p className="text-sm text-yellow-200/80 mb-1.5">You need to review those moves:</p>
           <div className="flex flex-wrap gap-1.5 justify-center">
             {unresolvedMoves.map(({ moveNumber, color, ply }) => (
               <button
