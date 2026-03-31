@@ -1011,15 +1011,19 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
   const maxPly = entries.length - 1;
   const safePly = Math.min(ply, maxPly);
-  const currentFen = previewFen || (inBranch ? branch!.fens[branchPly] : entries[safePly].fen);
+  // When at targetPly, show position BEFORE the move with an arrow overlay
+  const showArrow = targetPly !== undefined && safePly === targetPly && safePly > 0 && !inBranch && !previewFen;
+  const displayPly = showArrow ? safePly - 1 : safePly;
+  const currentFen = previewFen || (inBranch ? branch!.fens[branchPly] : entries[displayPly].fen);
   const currentLastMove = previewFen ? null : (inBranch && branch && branchPly > 0 ? (() => {
     try {
       const chess = new Chess(branch.fens[branchPly - 1]);
       const move = chess.move(branch.sans[branchPly - 1]);
       return move ? { from: move.from, to: move.to } : null;
     } catch { return null; }
-  })() : entries[safePly].lastMove);
-  const currentIllegal = inBranch ? undefined : entries[safePly].illegal;
+  })() : showArrow ? null : entries[displayPly].lastMove);
+  const currentArrow = showArrow ? entries[safePly].lastMove : null;
+  const currentIllegal = inBranch ? undefined : entries[displayPly].illegal;
 
   // Compute highlight squares for ambiguous moves
   const ambiguousSquares = useMemo(() => {
@@ -1220,7 +1224,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
           </div>
         );
       })()}
-      <BoardPreview fen={currentFen} lastMove={currentLastMove} onUserMove={disableDrag ? undefined : handleUserMove} highlightSquares={ambiguousSquares} />
+      <BoardPreview fen={currentFen} lastMove={currentLastMove} arrow={currentArrow} onUserMove={disableDrag ? undefined : handleUserMove} highlightSquares={ambiguousSquares} />
       {/* Player bar — White (bottom) */}
       {(() => {
         const isWhiteTurn = currentFen.split(' ')[1] === 'w';

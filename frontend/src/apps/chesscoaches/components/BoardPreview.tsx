@@ -22,11 +22,12 @@ function fenToBoard(fen: string): (string | null)[][] {
 interface BoardPreviewProps {
   fen: string;
   lastMove?: { from: string; to: string } | null;
+  arrow?: { from: string; to: string } | null;
   onUserMove?: (from: string, to: string) => void;
   highlightSquares?: string[];
 }
 
-export function BoardPreview({ fen, lastMove, onUserMove, highlightSquares }: BoardPreviewProps) {
+export function BoardPreview({ fen, lastMove, arrow, onUserMove, highlightSquares }: BoardPreviewProps) {
   const board = useMemo(() => fenToBoard(fen), [fen]);
   const boardRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ piece: string; fromR: number; fromC: number; x: number; y: number } | null>(null);
@@ -125,6 +126,33 @@ export function BoardPreview({ fen, lastMove, onUserMove, highlightSquares }: Bo
           );
         })}
       </div>
+      {arrow && (() => {
+        const fromC = arrow.from.charCodeAt(0) - 97;
+        const fromR = 7 - (parseInt(arrow.from[1]) - 1);
+        const toC = arrow.to.charCodeAt(0) - 97;
+        const toR = 7 - (parseInt(arrow.to[1]) - 1);
+        const x1 = (fromC + 0.5) * 12.5;
+        const y1 = (fromR + 0.5) * 12.5;
+        const x2 = (toC + 0.5) * 12.5;
+        const y2 = (toR + 0.5) * 12.5;
+        // Shorten the line so the arrowhead doesn't overshoot
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        const shorten = 2.5;
+        const ex = x2 - (dx / len) * shorten;
+        const ey = y2 - (dy / len) * shorten;
+        return (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100">
+            <defs>
+              <marker id="arrowhead" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
+                <polygon points="0 0, 3 1.5, 0 3" fill="rgba(255,170,0,0.9)" />
+              </marker>
+            </defs>
+            <line x1={x1} y1={y1} x2={ex} y2={ey} stroke="rgba(255,170,0,0.9)" strokeWidth="2.2" strokeLinecap="round" markerEnd="url(#arrowhead)" />
+            <circle cx={x1} cy={y1} r="2" fill="rgba(255,170,0,0.7)" />
+          </svg>
+        );
+      })()}
       {dragging && (
         <img
           src={pieceImageUrl(dragging.piece)}
