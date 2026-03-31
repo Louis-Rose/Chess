@@ -938,7 +938,7 @@ function ModelRow({ preview, onImageClick, fileName, children, activePly, sheetC
                 return null;
               })()}
             </div>
-            {fileName && <span className="text-slate-100 text-sm mt-2 truncate max-w-[200px]">{fileName}</span>}
+            {fileName && <span className="text-slate-100 text-sm mt-2 truncate max-w-full">{fileName}</span>}
           </div>
         </div>
       )}
