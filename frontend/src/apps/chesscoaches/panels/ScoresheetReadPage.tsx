@@ -709,7 +709,7 @@ export function ScoresheetReadPage() {
                               </div>
                             ) : (
                             <MovesPanel
-                              label={!allModelsFinished || analyzing ? t(pendingReaders > 1 ? 'coaches.waitingOnReadersPlural' : 'coaches.waitingOnReaders').replace('{n}', String(pendingReaders)) : t('coaches.consensus')}
+                              label={!allModelsFinished || analyzing ? `${t('coaches.processing')}...` : t('coaches.consensus')}
                               moves={displayConsensusMoves}
 
                               disagreements={(() => {
