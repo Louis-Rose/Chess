@@ -671,11 +671,13 @@ export function ScoresheetReadPage() {
                           });
                           const allVerified = hasIssues && unresolvedPlies.length === 0;
                           if (allVerified) return (
-                            <div className="flex justify-center mb-3">
-                              <span className="text-sm text-emerald-400 inline-flex items-center gap-1.5">
-                                <Check className="w-4 h-4" />
-                                Verification complete — PGN is ready
-                              </span>
+                            <div className="flex justify-center mb-3 animate-[fadeIn_0.4s_ease-out]">
+                              <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
+                                <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
+                                  <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                                </span>
+                                <span className="text-sm text-emerald-300 font-medium">Verification complete — PGN is ready</span>
+                              </div>
                             </div>
                           );
                           if (hasIssues && !highlightHintDismissed) return (
