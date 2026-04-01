@@ -1399,11 +1399,18 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     } else if (!inBranch) {
       setPly(p => {
         const newP = Math.min(maxPly, p + 1);
-        if (newP !== p) { playSoundForPly(newP); emitPly(newP); }
+        if (newP !== p) {
+          playSoundForPly(newP);
+          emitPly(newP);
+          // When advancing past the arrow move, set it as the picked move
+          if (showArrow && newP === p + 1 && entries[p]?.san && onDragSetMove) {
+            onDragSetMove(entries[p].san!);
+          }
+        }
         return newP;
       });
     }
-  }, [branch, branchPly, inBranch, maxPly, playSoundForPly, emitPly, onDragSetMove]);
+  }, [branch, branchPly, inBranch, maxPly, playSoundForPly, emitPly, onDragSetMove, showArrow, entries]);
 
   const goFirst = useCallback(() => {
     exitBranch(); setPly(p => { if (p !== 0) { playSoundForPly(p); emitPly(0); } return 0; });
