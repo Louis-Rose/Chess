@@ -326,8 +326,6 @@ Extract ALL moves from the scoresheet and return them as a JSON object with this
   "event": "Tournament name or empty string if unreadable",
   "date": "Date or empty string if unreadable",
   "result": "1-0, 0-1, 1/2-1/2, or * if unreadable/ongoing",
-  "columns": 2,
-  "rows_per_column": 15,
   "moves": [
     {"number": 1, "white": "e4", "white_confidence": "high", "black": "e5", "black_confidence": "high"},
     {"number": 2, "white": "Nf3", "white_confidence": "high", "black": "Nc6", "black_confidence": "medium"}
@@ -344,9 +342,6 @@ Rules:
 - Chess moves always end with a rank digit (1-8), optionally followed by + or #. If you see a letter "l" or "I" at the end, it is the digit "1". Do not output moves ending in letters like "Reel" — that should be "Re1".
 - Castling: O-O (kingside), O-O-O (queenside)
 - For each move, include a confidence level: "high" (clearly readable), "medium" (somewhat ambiguous), or "low" (hard to read/guessing)
-- "columns": how many columns of moves the scoresheet has (usually 1, 2, or 3)
-- "rows_per_column": how many move rows fit in each column on the sheet
-
 Return ONLY the JSON object, no other text."""
 
 

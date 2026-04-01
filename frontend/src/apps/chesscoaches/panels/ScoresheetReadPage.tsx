@@ -332,10 +332,10 @@ export function ScoresheetReadPage() {
 
               {/* Results: consensus + individual reads */}
               {models.length > 0 && (() => {
-                // Get column info from any model that has results (for GT panel consistency)
-                const anyResult = Object.values(modelResults).find(r => r?.result)?.result;
-                const sheetColumns = (anyResult as any)?.columns || 1;
-                const rowsPerColumn = (anyResult as any)?.rows_per_column || null;
+                // Derive sheet column layout from Azure grid data (for image highlight mapping)
+                const azureColCount = gridData?.col_count || 0;
+                const sheetColumns = azureColCount >= 6 ? 2 : 1;
+                const rowsPerColumn = gridData?.row_count ? Math.ceil((gridData.row_count - (gridData.first_move_row || 0)) / 1) : null;
 
                 // Average grid boundaries across models that returned them
                 // Azure DI provides grid cell coordinates; no Gemini grid fallback
@@ -583,8 +583,6 @@ export function ScoresheetReadPage() {
                       if (allDissentersIllegal) modelDisagreements.delete(key);
                     }
 
-                    const consensusColumns = sheetColumns;
-                    const consensusRowsPerColumn = rowsPerColumn;
 
                     // Build consensus meta (player names + result) from model results
                     const consensusMeta: { white?: string; black?: string; result?: string } = {};
@@ -677,7 +675,7 @@ export function ScoresheetReadPage() {
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           {/* Left: scoresheet image */}
                           <div className="flex justify-end items-center" onClick={e => e.stopPropagation()}>
-                            <ScoreSheetImage preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={consensusColumns} rowsPerColumn={consensusRowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData} />
+                            <ScoreSheetImage preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData} />
                           </div>
                           {/* Center: moves table */}
                           <div className="self-start" onClick={e => e.stopPropagation()}>
@@ -718,8 +716,7 @@ export function ScoresheetReadPage() {
                                 if (san) playMoveSound(san.includes('x'));
                               }}
                               activePly={modelBoardPlys[consensusId]?.ply}
-                              sheetColumns={consensusColumns}
-                              rowsPerColumn={consensusRowsPerColumn}
+
                               modelDisagreements={modelDisagreements}
                               voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
 
@@ -776,11 +773,11 @@ export function ScoresheetReadPage() {
 
                               // Zoomed scoresheet cell
                               const cellCrop = preview && gridData?.cells ? (() => {
-                                const rows = consensusRowsPerColumn || Math.ceil(displayConsensusMoves.length / Math.max(consensusColumns, 1));
+                                const rows = rowsPerColumn || Math.ceil(displayConsensusMoves.length / Math.max(sheetColumns, 1));
                                 const sheetCol = Math.floor(moveIdx / rows);
                                 const rowInCol = moveIdx % rows;
                                 const azureCols = gridData.col_count || 4;
-                                const colsPerSection = Math.round(azureCols / Math.max(consensusColumns, 1));
+                                const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
                                 const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
                                 const azureCol = sheetCol * colsPerSection + moveNumOffset + (colorStr === 'black' ? 1 : 0);
                                 const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
@@ -917,8 +914,7 @@ export function ScoresheetReadPage() {
                                 if (san) playMoveSound(san.includes('x'));
                               }}
                               activePly={modelBoardPlys[consensusId]?.ply}
-                              sheetColumns={consensusColumns}
-                              rowsPerColumn={consensusRowsPerColumn}
+
                               modelDisagreements={modelDisagreements}
                               voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
                               onVoteStateChange={handleVoteStateChange}
@@ -1522,7 +1518,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
 
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, sheetColumns = 1, rowsPerColumn, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange, unresolvedMoves }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange, unresolvedMoves }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1538,8 +1534,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   activePly?: number;
   onPreview?: (moveIdx: number, color: 'white' | 'black', san: string) => void;
   onClearPreview?: () => void;
-  sheetColumns?: number;
-  rowsPerColumn?: number | null;
+
   modelDisagreements?: Set<string>;
   originalMoves?: Move[];
   voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string>; pass1Choice?: string }[]>;
@@ -1678,8 +1673,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
       {/* Moves table */}
       <div className={`${loading ? 'pointer-events-none' : ''}`}>
       {moves.length > 0 && (() => {
-        const numCols = sheetColumns > 1 ? sheetColumns : (moves.length > 15 ? 2 : 1);
-        const perCol = rowsPerColumn || Math.ceil(moves.length / numCols);
+        const numCols = 2;
+        const perCol = Math.ceil(moves.length / numCols);
         const columns = Array.from({ length: numCols }, (_, c) => moves.slice(c * perCol, (c + 1) * perCol));
         const rows = Math.max(...columns.map(col => col.length));
 
