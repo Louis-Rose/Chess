@@ -713,7 +713,6 @@ export function ScoresheetReadPage() {
                               elapsed={!allModelsFinished || analyzing ? liveGlobalElapsed : Math.max(...models.map(m => modelResults[m.id]?.elapsed || 0))}
                               loading={!allModelsFinished || analyzing}
                               meta={consensusMeta}
-                              fileName={fileName}
                               onEditSave={allModelsFinished && !analyzing ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
                               originalMoves={consensusOverrides ? consensusMoves : undefined}
                               onMoveClick={(movesArr, ply) => {
@@ -890,7 +889,6 @@ export function ScoresheetReadPage() {
                               elapsed={!allModelsFinished || analyzing ? liveGlobalElapsed : Math.max(...models.map(m => modelResults[m.id]?.elapsed || 0))}
                               loading={!allModelsFinished || analyzing}
                               meta={consensusMeta}
-                              fileName={fileName}
                               onEditSave={allModelsFinished && !analyzing ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
                               onMoveClick={(movesArr, ply) => {
                                 setModelBoardPlys(p => ({ ...p, [consensusId]: { ply, source: 'read' as const } }));
@@ -1563,14 +1561,13 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
 
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileName, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange, unresolvedMoves }: {
+function MovesPanel({ label, moves, disagreements, elapsed, error, meta, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange, unresolvedMoves }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
   elapsed: number;
   error?: string;
   meta?: { white?: string; black?: string; result?: string };
-  fileName?: string | null;
   rereading?: boolean;
   corrections?: Set<string>;
   onEditSave?: (confirmed: Move[], correctionKey: string) => void;
@@ -1626,7 +1623,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
   }, [unresolvedMoves]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [moveInfoKey, setMoveInfoKey] = useState<string | null>(null);
-  const hasIllegalMoves = moves.some(m => m.white_legal === false || m.black_legal === false);
   const inputRef = useRef<HTMLInputElement>(null);
   const rereadStartRef = useRef<number | null>(null);
 
