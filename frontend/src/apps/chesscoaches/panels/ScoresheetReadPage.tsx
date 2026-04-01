@@ -696,23 +696,86 @@ export function ScoresheetReadPage() {
                     const rawConsensusMoves = consensusOverrides || consensusMoves;
                     const displayConsensusMoves = normalizeMoves(rawConsensusMoves);
                     const handleConsensusEditSave = (_readIdx: number, confirmed: Move[], _corrKey: string) => {
-                      // Re-validate with chess.js
+                      rerunConsensusAfterEdit(confirmed);
+                    };
+                    // Re-run consensus for non-confirmed moves after a user edit
+                    const rerunConsensusAfterEdit = (current: Move[]) => {
+                      // Replay confirmed moves to get the correct board position
                       const ch = new Chess();
-                      for (const cm of confirmed) {
+                      for (const cm of current) {
                         for (const col of ['white', 'black'] as const) {
                           const san = cm[col];
                           if (!san) continue;
-                          try { ch.move(san); (cm as any)[`${col}_legal`] = true; }
-                          catch {
-                            (cm as any)[`${col}_legal`] = false;
-                            const f = ch.fen().split(' ');
-                            f[1] = f[1] === 'w' ? 'b' : 'w';
-                            ch.load(f.join(' '));
+                          if ((cm as any)[`${col}_confirmed`]) {
+                            // Confirmed move — play it, try disambiguation if needed
+                            try { ch.move(san); (cm as any)[`${col}_legal`] = true; }
+                            catch {
+                              const pm = san.match(/^([KQRBN])/);
+                              const dm = san.match(/([a-h][1-8])$/);
+                              if (pm && dm) {
+                                const disambig = ch.moves().find(m => m.startsWith(pm[1]) && m.includes(dm[1]));
+                                if (disambig) { try { ch.move(disambig); (cm as any)[`${col}_legal`] = true; } catch { (cm as any)[`${col}_legal`] = false; } }
+                                else { (cm as any)[`${col}_legal`] = false; }
+                              } else {
+                                (cm as any)[`${col}_legal`] = false;
+                              }
+                              if ((cm as any)[`${col}_legal`] === false) {
+                                const f = ch.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; ch.load(f.join(' '));
+                              }
+                            }
+                          } else {
+                            // Non-confirmed move — re-pick from model votes using current position
+                            const ply = (cm.number - 1) * 2 + (col === 'black' ? 1 : 0);
+                            const modelVals = allModelMoves.map(mv => mv[cm.number - 1]?.[col]).filter(Boolean) as string[];
+                            if (modelVals.length > 0) {
+                              // Group by normalized form, pick best original
+                              const votes: Record<string, { count: number; originals: Record<string, number> }> = {};
+                              for (const v of modelVals) {
+                                const norm = v.replace(/[+#x]/g, '');
+                                if (!votes[norm]) votes[norm] = { count: 0, originals: {} };
+                                votes[norm].count++;
+                                votes[norm].originals[v] = (votes[norm].originals[v] || 0) + 1;
+                              }
+                              const sorted = Object.entries(votes).sort((a, b) => b[1].count - a[1].count);
+                              // Pick the candidate that works best from current position
+                              let bestMove = sorted[0][0];
+                              let bestOrig = Object.entries(sorted[0][1].originals).sort((a, b) => b[1] - a[1])[0][0];
+                              if (sorted.length > 1) {
+                                // Test each candidate from current position
+                                let bestIll = Infinity;
+                                let bestVotes = 0;
+                                for (const [norm, { count, originals }] of sorted) {
+                                  const orig = Object.entries(originals).sort((a, b) => b[1] - a[1])[0][0];
+                                  const sim = new Chess(ch.fen());
+                                  let ill = 0;
+                                  try { sim.move(orig); } catch {
+                                    // Check ambiguity
+                                    const pm = orig.match(/^([KQRBN])/);
+                                    const dm = orig.match(/([a-h][1-8])$/);
+                                    const ambig = pm && dm ? sim.moves().filter(m => m.startsWith(pm[1]) && m.includes(dm[1])) : [];
+                                    if (ambig.length > 0) { try { sim.move(ambig[0]); } catch { ill += 100; } }
+                                    else { ill += 100; }
+                                  }
+                                  const illDelta = bestIll - ill;
+                                  if ((illDelta >= 3) || (illDelta > -3 && count > bestVotes)) {
+                                    bestIll = ill; bestMove = norm; bestOrig = orig; bestVotes = count;
+                                  }
+                                }
+                              }
+                              cm[col] = bestOrig;
+                            }
+                            // Validate
+                            try { ch.move(cm[col]!); (cm as any)[`${col}_legal`] = true; }
+                            catch {
+                              (cm as any)[`${col}_legal`] = false;
+                              const f = ch.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; ch.load(f.join(' '));
+                            }
                           }
                         }
                       }
-                      setConsensusOverrides(confirmed);
+                      setConsensusOverrides([...current]);
                     };
+
                     const handleConfirmMove = (moveNumber: number, color: 'white' | 'black') => {
                       const current = consensusOverrides || [...consensusMoves.map(m => ({ ...m }))];
                       const idx = moveNumber - 1;
@@ -720,23 +783,7 @@ export function ScoresheetReadPage() {
                         delete (current[idx] as any)[`${color}_reason`];
                         (current[idx] as any)[`${color}_confirmed`] = true;
                       }
-                      // Re-validate all moves from scratch
-                      const ch = new Chess();
-                      for (const cm of current) {
-                        for (const col of ['white', 'black'] as const) {
-                          const san = cm[col];
-                          if (!san) continue;
-                          try { ch.move(san); (cm as any)[`${col}_legal`] = true; }
-                          catch {
-                            (cm as any)[`${col}_legal`] = false;
-                            const f = ch.fen().split(' ');
-                            f[1] = f[1] === 'w' ? 'b' : 'w';
-                            f[3] = '-';
-                            ch.load(f.join(' '));
-                          }
-                        }
-                      }
-                      setConsensusOverrides([...current]);
+                      rerunConsensusAfterEdit(current);
                     };
                     const handleConsensusBoardPly = (ply: number) => {
                       setModelBoardPlys(prev => ({ ...prev, [consensusId]: { ply, source: 'nav' as const } }));
@@ -902,15 +949,8 @@ export function ScoresheetReadPage() {
                                               (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
                                               delete (current[moveIdx] as any)[`${colorStr}_reason`];
                                             }
-                                            const ch = new Chess();
-                                            for (const cm of current) {
-                                              for (const col of ['white', 'black'] as const) {
-                                                const san = cm[col]; if (!san) continue;
-                                                try { ch.move(san); (cm as any)[`${col}_legal`] = true; }
-                                                catch { (cm as any)[`${col}_legal`] = false; const f = ch.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; ch.load(f.join(' ')); }
-                                              }
-                                            }
-                                            setConsensusOverrides([...current]); setUserPickedMove(null);
+                                            rerunConsensusAfterEdit(current);
+                                            setUserPickedMove(null);
                                             if (voteState) voteState.clearSelection();
                                           }}
                                           className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
@@ -1076,16 +1116,7 @@ export function ScoresheetReadPage() {
                                               (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
                                               delete (current[moveIdx] as any)[`${colorStr}_reason`];
                                             }
-                                            const ch = new Chess();
-                                            for (const cm of current) {
-                                              for (const col of ['white', 'black'] as const) {
-                                                const san = cm[col];
-                                                if (!san) continue;
-                                                try { ch.move(san); (cm as any)[`${col}_legal`] = true; }
-                                                catch { (cm as any)[`${col}_legal`] = false; const f = ch.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; ch.load(f.join(' ')); }
-                                              }
-                                            }
-                                            setConsensusOverrides([...current]);
+                                            rerunConsensusAfterEdit(current);
                                             setUserPickedMove(null);
                                             if (voteState) voteState.clearSelection();
                                           }}
