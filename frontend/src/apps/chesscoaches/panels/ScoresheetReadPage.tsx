@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
-import { Upload, ImageIcon, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { Upload, ImageIcon, FileText, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -276,30 +276,28 @@ export function ScoresheetReadPage() {
               </div>
             </div>
           ) : !preview ? (
-            <>
+            <div className="space-y-3">
+              <p className="text-slate-400 text-sm text-center">{t('coaches.uploadExplanation')}</p>
               <UploadBox
                 onClick={() => fileInputRef.current?.click()}
                 icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
                 title={t('coaches.uploadPrompt')}
               />
-              <div className="text-center mt-4">
-                <button
-                  onClick={async () => {
-                    const res = await fetch('/sample_scoresheet.jpeg');
-                    const blob = await res.blob();
-                    const file = new File([blob], 'sample_scoresheet.jpeg', { type: 'image/jpeg' });
-                    const { preview: dataUrl } = await compressImage(file);
-                    setCropSrc(dataUrl);
-                    setCropFileName(file.name);
-                    setCrop({ unit: '%', x: 0, y: 0, width: 100, height: 100 });
-                    setCompletedCrop(undefined);
-                  }}
-                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-2"
-                >
-                  {t('coaches.trySample')}
-                </button>
-              </div>
-            </>
+              <UploadBox
+                onClick={async () => {
+                  const res = await fetch('/sample_scoresheet.jpeg');
+                  const blob = await res.blob();
+                  const file = new File([blob], 'sample_scoresheet.jpeg', { type: 'image/jpeg' });
+                  const { preview: dataUrl } = await compressImage(file);
+                  setCropSrc(dataUrl);
+                  setCropFileName(file.name);
+                  setCrop({ unit: '%', x: 0, y: 0, width: 100, height: 100 });
+                  setCompletedCrop(undefined);
+                }}
+                icon={<FileText className="w-10 h-10 text-slate-400" />}
+                title={t('coaches.trySample')}
+              />
+            </div>
           ) : (
             <div className="space-y-4">
               {/* Error */}
