@@ -952,12 +952,36 @@ export function ScoresheetReadPage() {
                               const moveObj = displayConsensusMoves[moveIdx];
                               if (!moveObj) return null;
                               const displayMove = moveObj[colorStr] || '—';
+                              const cellCrop = preview && gridData?.cells ? (() => {
+                                const rows = rowsPerColumn || Math.ceil(displayConsensusMoves.length / Math.max(sheetColumns, 1));
+                                const sheetCol = Math.floor(moveIdx / rows);
+                                const rowInCol = moveIdx % rows;
+                                const azureCols = gridData.col_count || 4;
+                                const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
+                                const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
+                                const azureCol = sheetCol * colsPerSection + moveNumOffset + (colorStr === 'black' ? 1 : 0);
+                                const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
+                                const azureRow = rowInCol + rowOffset;
+                                const cell = gridData.cells![`${azureRow}-${azureCol}`];
+                                if (!cell) return null;
+                                const padX = (cell.x2 - cell.x1) * 0.2, padY = (cell.y2 - cell.y1) * 0.2;
+                                const cx1 = Math.max(0, cell.x1 - padX), cy1 = Math.max(0, cell.y1 - padY);
+                                const cx2 = Math.min(1, cell.x2 + padX), cy2 = Math.min(1, cell.y2 + padY);
+                                const cropW = cx2 - cx1, cropH = cy2 - cy1;
+                                const cW = 180, cH = cW * (cropH / cropW);
+                                return { cx1, cy1, cropW, cropH, cW, cH };
+                              })() : null;
                               return (
                                 <div className="w-full max-w-[400px] space-y-2 bg-slate-700/50 rounded-xl p-4 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3]">
                                   <p className="text-base text-slate-100 font-medium text-center">
                                     Move {moveIdx + 1} - {colorStr === 'black' ? 'Black' : 'White'}
                                   </p>
-                                  <div className="text-center py-1">
+                                  <div className="flex items-center justify-center gap-3 py-1">
+                                    {cellCrop && (
+                                      <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0" style={{ width: cellCrop.cW, height: cellCrop.cH }}>
+                                        <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
+                                      </div>
+                                    )}
                                     <p className="text-sm text-slate-100">Read as <span className="font-mono font-semibold">{displayMove}</span></p>
                                   </div>
                                   <div className="flex flex-col gap-1.5">
