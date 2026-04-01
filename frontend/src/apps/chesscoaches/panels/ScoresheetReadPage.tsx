@@ -1971,13 +1971,17 @@ function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }
   onIllegalClick?: () => void;
 }) {
   const { t } = useLanguage();
-  const handleClick = () => {
+  const [copied, setCopied] = useState(false);
+  const handleClick = async () => {
     if (hasIllegalMoves) { onIllegalClick?.(); return; }
     const normalized = normalizeMoves(moves);
     const moveText = normalized.map(m =>
       `${m.number}. ${m.white}${m.black ? ' ' + m.black : ''}`
     ).join(' ');
     const pgn = `[White "${meta?.white || '?'}"]\n[Black "${meta?.black || '?'}"]\n[Result "${meta?.result || '*'}"]\n[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]\n\n${moveText} ${meta?.result || '*'}`;
+    try { await navigator.clipboard.writeText(pgn); } catch { /* fallback: still open */ }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
     window.open(`https://www.chess.com/analysis?pgn=${encodeURIComponent(pgn)}`, '_blank');
   };
   return (
@@ -1985,7 +1989,11 @@ function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }
       onClick={handleClick}
       className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-sm text-slate-200 hover:bg-slate-600/40 transition-colors flex items-center justify-center gap-1.5"
     >
-      <ExternalLink className="w-3.5 h-3.5" /> {t('coaches.lichess.openChesscom')}
+      {copied ? (
+        <><Check className="w-3.5 h-3.5 text-emerald-400" /> PGN copied — paste it in Chess.com</>
+      ) : (
+        <><ExternalLink className="w-3.5 h-3.5" /> {t('coaches.lichess.openChesscom')}</>
+      )}
     </button>
   );
 }
