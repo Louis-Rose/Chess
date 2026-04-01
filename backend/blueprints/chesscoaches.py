@@ -10,6 +10,24 @@ logger = logging.getLogger(__name__)
 coaches_bp = Blueprint('coaches', __name__)
 
 GROUND_TRUTH_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'scoresheets')
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'scoresheet_uploads')
+
+MIME_TO_EXT = {'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/heic': '.heic'}
+
+
+def _save_upload(user_id, request_id, image_bytes, mime_type, feature='scoresheet'):
+    """Persist an uploaded image to disk under data/scoresheet_uploads/<user_id>/."""
+    try:
+        user_dir = os.path.join(UPLOAD_DIR, str(user_id))
+        os.makedirs(user_dir, exist_ok=True)
+        ext = MIME_TO_EXT.get(mime_type, '.jpg')
+        filename = f"{feature}_{request_id}{ext}"
+        path = os.path.join(user_dir, filename)
+        with open(path, 'wb') as f:
+            f.write(image_bytes)
+        logger.info(f"[Upload] Saved {len(image_bytes)} bytes to {path}")
+    except Exception as e:
+        logger.error(f"[Upload] Failed to save image: {e}")
 
 
 @coaches_bp.route('/api/coaches/ground-truth/<name>', methods=['GET'])
@@ -366,6 +384,7 @@ def reread_scoresheet():
     model_id = request.form.get('model_id', 'gemini-3-flash-preview')
     req_id = uuid.uuid4().hex[:12]
     uid = get_current_user()
+    _save_upload(uid, req_id, image_bytes, mime_type, 'reread')
 
     paid_key = os.environ.get('GEMINI_PAID_API_KEY')
     free_key = os.environ.get('GEMINI_FREE_API_KEY')
@@ -484,9 +503,11 @@ def read_scoresheet_azure():
     if 'image' not in request.files:
         return jsonify({"error": "No image file provided"}), 400
 
+    import uuid as uuid_module
     image_file = request.files['image']
     image_bytes = image_file.read()
     mime_type = image_file.content_type or 'image/jpeg'
+    _save_upload(get_current_user(), uuid_module.uuid4().hex[:12], image_bytes, mime_type, 'scoresheet_azure')
 
     endpoint = os.environ.get('AZURE_DI_ENDPOINT', '').rstrip('/')
     key = os.environ.get('AZURE_DI_KEY')
@@ -670,6 +691,7 @@ def read_diagram():
     THREAD_DONE = "THREAD_DONE"
     req_id = uuid.uuid4().hex[:12]
     uid = get_current_user()
+    _save_upload(uid, req_id, image_bytes, mime_type, 'diagram')
 
     result_queue = queue.Queue()
     client_paid = genai.Client(api_key=paid_key)
@@ -773,6 +795,7 @@ def read_scoresheet():
     THREAD_DONE = "THREAD_DONE"
     req_id = uuid.uuid4().hex[:12]
     uid = get_current_user()
+    _save_upload(uid, req_id, image_bytes, mime_type, 'scoresheet')
 
     result_queue = queue.Queue()
     client_paid = genai.Client(api_key=paid_key)

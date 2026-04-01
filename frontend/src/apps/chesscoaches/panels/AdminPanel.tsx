@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Loader2, ChevronUp, ChevronDown, Clock, Cpu, AlertTriangle } from 'lucide-react';
+import { Shield, Loader2, ChevronUp, ChevronDown, Clock, Cpu, AlertTriangle, Download, Image } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -93,6 +93,12 @@ interface ApiUsageResponse {
   pricing: Record<string, { input: number; output: number }>;
 }
 
+interface UserUpload {
+  filename: string;
+  size: number;
+  created_at: number;
+}
+
 type SortColumn = 'name' | 'created_at' | 'last_active' | 'total_seconds' | 'session_count';
 type SortDirection = 'asc' | 'desc';
 
@@ -156,6 +162,7 @@ export function AdminPanel() {
   const { t, language } = useLanguage();
   const [ignoreSelf, setIgnoreSelf] = useState(false);
   const [expandedInvocation, setExpandedInvocation] = useState<string | null>(null);
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_seconds');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
@@ -188,6 +195,15 @@ export function AdminPanel() {
       return response.data;
     },
     enabled: !!user?.is_admin,
+  });
+
+  const { data: uploadsData, isLoading: uploadsLoading } = useQuery({
+    queryKey: ['admin-user-uploads', expandedUserId],
+    queryFn: async (): Promise<{ uploads: UserUpload[] }> => {
+      const response = await axios.get(`/api/admin/user-uploads/${expandedUserId}`);
+      return response.data;
+    },
+    enabled: expandedUserId !== null,
   });
 
   // Filter out self if checkbox is checked
@@ -314,27 +330,70 @@ export function AdminPanel() {
               </thead>
               <tbody className="divide-y divide-slate-700/50">
                 {sortedUsers.map(u => (
-                  <tr key={u.id} className="hover:bg-slate-700/30 transition-colors">
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        {u.picture ? (
-                          <img src={u.picture} alt="" className="w-6 h-6 rounded-full" />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs text-slate-300">
-                            {(u.name || u.email).charAt(0).toUpperCase()}
+                  <React.Fragment key={u.id}>
+                    <tr
+                      onClick={() => setExpandedUserId(prev => prev === u.id ? null : u.id)}
+                      className="hover:bg-slate-700/30 transition-colors cursor-pointer"
+                    >
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          {u.picture ? (
+                            <img src={u.picture} alt="" className="w-6 h-6 rounded-full" />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs text-slate-300">
+                              {(u.name || u.email).charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-slate-200 truncate">{u.name || u.email}</p>
+                            <p className="text-slate-500 text-xs truncate">{u.email}</p>
                           </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-slate-200 truncate">{u.name || u.email}</p>
-                          <p className="text-slate-500 text-xs truncate">{u.email}</p>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{formatDate(u.created_at, language)}</td>
-                    <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{timeAgo(u.last_active, language)}</td>
-                    <td className="px-3 py-2 text-slate-400 text-center">{u.session_count || 0}</td>
-                    <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{formatDuration(u.total_seconds)}</td>
-                  </tr>
+                      </td>
+                      <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{formatDate(u.created_at, language)}</td>
+                      <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{timeAgo(u.last_active, language)}</td>
+                      <td className="px-3 py-2 text-slate-400 text-center">{u.session_count || 0}</td>
+                      <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{formatDuration(u.total_seconds)}</td>
+                    </tr>
+                    {expandedUserId === u.id && (
+                      <tr>
+                        <td colSpan={5} className="px-3 py-3 bg-slate-800/50">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Image className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm text-slate-300 font-medium">Uploads</span>
+                          </div>
+                          {uploadsLoading ? (
+                            <div className="flex justify-center py-3">
+                              <Loader2 className="w-4 h-4 text-slate-500 animate-spin" />
+                            </div>
+                          ) : !uploadsData?.uploads?.length ? (
+                            <p className="text-slate-500 text-xs italic">No uploads yet</p>
+                          ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                              {uploadsData.uploads.map(file => (
+                                <a
+                                  key={file.filename}
+                                  href={`/api/admin/user-uploads/${u.id}/${file.filename}`}
+                                  onClick={e => e.stopPropagation()}
+                                  className="group relative bg-slate-700/50 rounded-lg overflow-hidden border border-slate-600 hover:border-blue-500 transition-colors"
+                                >
+                                  <img
+                                    src={`/api/admin/user-uploads/${u.id}/${file.filename}`}
+                                    alt={file.filename}
+                                    className="w-full h-24 object-cover"
+                                  />
+                                  <div className="p-1.5 flex items-center justify-between">
+                                    <span className="text-xs text-slate-400 truncate">{file.filename}</span>
+                                    <Download className="w-3 h-3 text-slate-500 group-hover:text-blue-400 flex-shrink-0" />
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

@@ -1,8 +1,9 @@
 """Admin routes blueprint — analytics, user management, and maintenance endpoints."""
 
 import logging
+import os
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 
 from auth import admin_required
 from database import get_db, USE_POSTGRES
@@ -1335,3 +1336,38 @@ def cleanup_orphaned_transactions():
         'deleted': deleted_count,
         'details': orphaned[:20]  # Show first 20 for reference
     })
+
+
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'scoresheet_uploads')
+
+
+@admin_bp.route('/api/admin/user-uploads/<int:user_id>', methods=['GET'])
+@admin_required
+def list_user_uploads(user_id):
+    """List all uploaded images for a given user."""
+    user_dir = os.path.join(UPLOAD_DIR, str(user_id))
+    if not os.path.isdir(user_dir):
+        return jsonify({'uploads': []})
+    files = []
+    for fname in sorted(os.listdir(user_dir), reverse=True):
+        fpath = os.path.join(user_dir, fname)
+        if os.path.isfile(fpath):
+            stat = os.stat(fpath)
+            files.append({
+                'filename': fname,
+                'size': stat.st_size,
+                'created_at': stat.st_mtime,
+            })
+    return jsonify({'uploads': files})
+
+
+@admin_bp.route('/api/admin/user-uploads/<int:user_id>/<filename>', methods=['GET'])
+@admin_required
+def serve_user_upload(user_id, filename):
+    """Serve a specific uploaded image for download."""
+    # Prevent path traversal
+    safe_name = os.path.basename(filename)
+    fpath = os.path.join(UPLOAD_DIR, str(user_id), safe_name)
+    if not os.path.isfile(fpath):
+        return jsonify({'error': 'File not found'}), 404
+    return send_file(fpath, as_attachment=True, download_name=safe_name)
