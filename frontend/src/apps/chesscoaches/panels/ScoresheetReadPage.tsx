@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
-import { Upload, ImageIcon, FileText, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { Upload, ImageIcon, FileText, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, X } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -324,13 +324,22 @@ export function ScoresheetReadPage() {
                 const maxAvg = Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)) * 1.3);
                 return (
                   <div className="flex justify-center">
-                    <div className="inline-block min-w-[300px] max-w-[400px] w-full">
+                    <div className="relative bg-slate-700/40 rounded-xl p-4 min-w-[300px] max-w-[400px] w-full">
+                      {!allDone && (
+                        <button
+                          onClick={() => scoresheetClear()}
+                          className="absolute top-2 right-2 w-6 h-6 bg-slate-600/80 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors"
+                          title={t('coaches.cancel')}
+                        >
+                          <X className="w-3.5 h-3.5 text-slate-300" />
+                        </button>
+                      )}
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-sm text-slate-300 inline-flex items-center gap-1.5">
                           {!allDone && <Clock className="w-3.5 h-3.5 animate-spin" />}
                           {t('coaches.processing')}
                         </span>
-                        <span className="text-sm text-slate-400">
+                        <span className="text-sm text-slate-400 mr-6">
                           {allDone
                             ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {t('coaches.status.done')}</span>
                             : <>{liveGlobalElapsed}s{maxAvg > 0 ? <> / ~{maxAvg}s (estimated)</> : ''}</>
