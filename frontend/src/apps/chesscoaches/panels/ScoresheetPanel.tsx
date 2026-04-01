@@ -50,7 +50,7 @@ export function ScoresheetPanel() {
               </div>
             ) : (
               <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 text-center">
-                <p className="text-slate-500 text-sm">{t('coaches.sectionEmpty')}</p>
+                <p className="text-slate-500 text-sm italic">{t('coaches.comingSoon')}</p>
               </div>
             )}
           </div>
