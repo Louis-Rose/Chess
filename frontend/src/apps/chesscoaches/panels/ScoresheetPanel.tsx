@@ -22,6 +22,9 @@ export function ScoresheetPanel() {
           <div key={titleKey}>
             {idx > 0 && <div className="border-t border-slate-700 my-6" />}
             <div className="max-w-4xl mx-[5%] md:mx-auto flex flex-col items-center">
+              <h2 className="text-xl font-bold text-slate-100 uppercase tracking-wider mb-3 text-center">
+                {t(titleKey)}
+              </h2>
               <p className="text-slate-200 text-lg mb-6">{t('coaches.homePrompt')}</p>
               <div className="flex justify-center w-full">
                 {enabledItems.map(({ path, labelKey, icon: Icon, bgColor }) => (

@@ -277,12 +277,17 @@ export function ScoresheetReadPage() {
             </div>
           ) : !preview ? (
             <div className="space-y-3">
-              <p className="text-slate-400 text-sm text-center">{t('coaches.uploadExplanation')}</p>
+              <p className="text-slate-200 text-lg text-center">{t('coaches.uploadExplanation')}</p>
               <UploadBox
                 onClick={() => fileInputRef.current?.click()}
                 icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
                 title={t('coaches.uploadPrompt')}
               />
+              <div className="flex items-center gap-3 max-w-lg mx-auto">
+                <div className="flex-1 h-px bg-slate-600" />
+                <span className="text-slate-500 text-xs uppercase tracking-wider">{t('coaches.or')}</span>
+                <div className="flex-1 h-px bg-slate-600" />
+              </div>
               <UploadBox
                 onClick={async () => {
                   const res = await fetch('/sample_scoresheet.jpeg');
