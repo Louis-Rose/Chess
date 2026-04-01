@@ -332,19 +332,18 @@ export function ScoresheetReadPage() {
 
               {/* Results: consensus + individual reads */}
               {models.length > 0 && (() => {
-                // Derive sheet column layout from Azure grid data (for image highlight mapping)
-                const azureColCount = gridData?.col_count || 0;
-                const sheetColumns = azureColCount >= 6 ? 2 : 1;
-                const rowsPerColumn = gridData?.row_count ? Math.ceil((gridData.row_count - (gridData.first_move_row || 0)) / 1) : null;
-
-                // Average grid boundaries across models that returned them
-                // Azure DI provides grid cell coordinates; no Gemini grid fallback
+                // Azure DI provides grid cell coordinates
                 const gridData = (() => {
                   if (azureGrid && azureGrid.cells && Object.keys(azureGrid.cells).length > 0) {
                     return azureGrid;
                   }
                   return undefined;
                 })();
+
+                // Derive sheet column layout from Azure grid data (for image highlight mapping)
+                const azureColCount = gridData?.col_count || 0;
+                const sheetColumns = azureColCount >= 6 ? 2 : 1;
+                const rowsPerColumn = gridData?.row_count ? Math.ceil((gridData.row_count - (gridData.first_move_row || 0)) / 1) : null;
 
                 // Compute cross-model disagreements
                 const allModelMovesForDisagreement = models
