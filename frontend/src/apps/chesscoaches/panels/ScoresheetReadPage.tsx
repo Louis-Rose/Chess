@@ -201,6 +201,9 @@ export function ScoresheetReadPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // Sample loading state
+  const [loadingSample, setLoadingSample] = useState(false);
+
   // Auto-run one read after crop confirm
   const [autoRun, setAutoRun] = useState(false);
   useEffect(() => {
@@ -275,7 +278,7 @@ export function ScoresheetReadPage() {
                 </button>
               </div>
             </div>
-          ) : !preview ? (
+          ) : !preview && !loadingSample ? (
             <div className="space-y-3">
               <p className="text-slate-200 text-lg text-center my-6">{t('coaches.uploadExplanation')}</p>
               <UploadBox
@@ -289,17 +292,24 @@ export function ScoresheetReadPage() {
                 <div className="flex-1 h-px bg-slate-600" />
               </div>
               <UploadBox
-                onClick={async () => {
-                  const res = await fetch('/sample_scoresheet.jpeg');
-                  const blob = await res.blob();
-                  const file = new File([blob], 'sample_scoresheet.jpeg', { type: 'image/jpeg' });
-                  const dataUrl = URL.createObjectURL(blob);
-                  scoresheetSetImage(file, dataUrl, file.name);
-                  setAutoRun(true);
+                onClick={() => {
+                  setLoadingSample(true);
+                  fetch('/sample_scoresheet.jpeg')
+                    .then(r => r.blob())
+                    .then(blob => {
+                      const file = new File([blob], 'sample_scoresheet.jpeg', { type: 'image/jpeg' });
+                      scoresheetSetImage(file, URL.createObjectURL(blob), file.name);
+                      setLoadingSample(false);
+                      setAutoRun(true);
+                    });
                 }}
                 icon={<FileText className="w-10 h-10 text-slate-400" />}
                 title={t('coaches.trySample')}
               />
+            </div>
+          ) : !preview ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
             </div>
           ) : (
             <div className="space-y-4">
