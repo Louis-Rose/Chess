@@ -1036,16 +1036,16 @@ export function ScoresheetReadPage() {
                       <div className="border border-slate-600/50 rounded-xl overflow-hidden mt-4">
                         <div className="px-4 py-2 bg-slate-700/50 text-slate-400 text-xs font-medium">Debug — Per-model reads & consensus</div>
                         <div className="overflow-x-auto">
-                          <table className="w-full text-xs">
+                          <table className="text-xs" style={{ tableLayout: 'auto' }}>
                             <thead>
                               <tr className="border-b border-slate-600 bg-slate-700/30">
-                                <th className="px-2 py-1 text-slate-400 text-center">#</th>
-                                <th className="px-2 py-1 text-slate-400 text-center">Col</th>
+                                <th className="px-1 py-1 text-slate-400 text-center w-8">#</th>
+                                <th className="px-1 py-1 text-slate-400 text-center w-6"></th>
                                 {models.map(m => (
-                                  <th key={m.id} className="px-2 py-1 text-slate-400 text-center">{m.name} ({modelResults[m.id]?.elapsed || '—'}s)</th>
+                                  <th key={m.id} className="px-1 py-1 text-slate-400 text-center whitespace-nowrap">R{m.name.replace(/^Reader\s*/, '')} ({modelResults[m.id]?.elapsed || '—'}s)</th>
                                 ))}
-                                <th className="px-2 py-1 text-slate-400 text-center font-bold">Consensus</th>
-                                <th className="px-2 py-1 text-slate-400 text-center">Flags</th>
+                                <th className="px-1 py-1 text-slate-400 text-center font-bold">Result</th>
+                                <th className="px-1 py-1 text-slate-400 text-left">Flags</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1058,28 +1058,34 @@ export function ScoresheetReadPage() {
                                   const isIllegal = cm[`${color}_legal` as 'white_legal' | 'black_legal'] === false;
                                   const hasDisagreement = modelDisagreements.has(`${cm.number}-${color}`);
                                   const reason = cm[`${color}_reason` as 'white_reason' | 'black_reason'];
+                                  const detailKey = `${cm.number}-${color}`;
+                                  const details = voteDetails[detailKey];
                                   const flags: string[] = [];
                                   if (hasDisagreement) flags.push('disagree');
                                   if (isIllegal) flags.push('illegal');
                                   if (cm[`${color}_confidence` as 'white_confidence' | 'black_confidence'] === 'low') flags.push('low-conf');
-                                  if (isConfirmed) flags.push('confirmed');
+                                  if (isConfirmed) flags.push('✓');
                                   if (reason) flags.push(reason);
+                                  // Add downstream illegals info when there's a disagreement
+                                  if (details && details.length > 1) {
+                                    flags.push(details.map(d => `${d.candidate}:${d.downstreamIllegals}↓${d.chosen ? '✓' : ''}`).join(' '));
+                                  }
                                   const rowBg = isHighlighted && !isConfirmed ? 'bg-yellow-500/10' : isConfirmed ? 'bg-green-900/20' : '';
                                   return (
                                     <tr key={`${i}-${color}`} className={`border-b border-slate-700/30 ${rowBg}`}>
-                                      <td className="px-2 py-0.5 text-slate-500 text-center">{cm.number}</td>
-                                      <td className="px-2 py-0.5 text-slate-500 text-center">{color === 'white' ? 'W' : 'B'}</td>
+                                      <td className="px-1 py-0.5 text-slate-500 text-center">{cm.number}</td>
+                                      <td className="px-1 py-0.5 text-slate-500 text-center">{color === 'white' ? 'W' : 'B'}</td>
                                       {models.map(m => {
                                         const modelMove = modelResults[m.id]?.result?.moves?.[i]?.[color];
                                         const differs = modelMove && san && modelMove.replace(/[+#x]/g, '') !== san.replace(/[+#x]/g, '');
                                         return (
-                                          <td key={m.id} className={`px-2 py-0.5 text-center font-mono ${differs ? 'text-red-400 font-bold' : 'text-slate-300'}`}>
+                                          <td key={m.id} className={`px-1 py-0.5 text-center font-mono ${differs ? 'text-red-400 font-bold' : 'text-slate-300'}`}>
                                             {modelMove || '—'}
                                           </td>
                                         );
                                       })}
-                                      <td className="px-2 py-0.5 text-center font-mono font-bold text-slate-100">{san || '—'}</td>
-                                      <td className="px-2 py-0.5 text-slate-500 text-xs">{flags.length > 0 ? flags.join(', ') : ''}</td>
+                                      <td className="px-1 py-0.5 text-center font-mono font-bold text-slate-100">{san || '—'}</td>
+                                      <td className="px-1 py-0.5 text-slate-400 text-xs whitespace-nowrap">{flags.length > 0 ? flags.join(' · ') : ''}</td>
                                     </tr>
                                   );
                                 })
