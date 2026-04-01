@@ -92,13 +92,14 @@ export function ScoresheetReadPage() {
 
   const [showImageModal, setShowImageModal] = useState(false);
   const [showExampleModal, setShowExampleModal] = useState(false);
-  const closeModal = useCallback(() => { setShowImageModal(false); setShowExampleModal(false); }, []);
+  const [zoomedCell, setZoomedCell] = useState<{ cx1: number; cy1: number; cropW: number; cropH: number; cW: number; cH: number } | null>(null);
+  const closeModal = useCallback(() => { setShowImageModal(false); setShowExampleModal(false); setZoomedCell(null); }, []);
   useEffect(() => {
-    if (!showImageModal && !showExampleModal) return;
+    if (!showImageModal && !showExampleModal && !zoomedCell) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [showImageModal, showExampleModal, closeModal]);
+  }, [showImageModal, showExampleModal, zoomedCell, closeModal]);
 
 
   const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void; clearSelection: () => void } | null>(null);
@@ -786,7 +787,7 @@ export function ScoresheetReadPage() {
                                   </p>
                                   <div className="flex items-center justify-center gap-3 py-1">
                                     {cellCrop && (
-                                      <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" style={{ width: cellCrop.cW, height: cellCrop.cH }} onClick={() => setShowImageModal(true)}>
+                                      <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" style={{ width: cellCrop.cW, height: cellCrop.cH }} onClick={() => setZoomedCell(cellCrop)}>
                                         <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
                                       </div>
                                     )}
@@ -956,7 +957,7 @@ export function ScoresheetReadPage() {
                                   </p>
                                   <div className="flex items-center justify-center gap-3 py-1">
                                     {cellCrop && (
-                                      <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" style={{ width: cellCrop.cW, height: cellCrop.cH }} onClick={() => setShowImageModal(true)}>
+                                      <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" style={{ width: cellCrop.cW, height: cellCrop.cH }} onClick={() => setZoomedCell(cellCrop)}>
                                         <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
                                       </div>
                                     )}
@@ -1098,6 +1099,30 @@ export function ScoresheetReadPage() {
             alt="Scoresheet"
             className="max-w-[90vw] max-h-[90vh] rounded-xl object-contain"
           />
+        </div>
+      )}
+
+      {/* Zoomed cell modal */}
+      {zoomedCell && preview && (
+        <div
+          onClick={closeModal}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px] cursor-pointer"
+        >
+          <div className="rounded-xl overflow-hidden border border-slate-600" style={{ width: zoomedCell.cW * 3, height: zoomedCell.cH * 3 }}>
+            <img
+              src={preview}
+              alt="Zoomed cell"
+              draggable={false}
+              style={{
+                display: 'block',
+                width: (zoomedCell.cW * 3) / zoomedCell.cropW,
+                height: (zoomedCell.cH * 3) / zoomedCell.cropH,
+                marginLeft: -(zoomedCell.cx1 / zoomedCell.cropW) * (zoomedCell.cW * 3),
+                marginTop: -(zoomedCell.cy1 / zoomedCell.cropH) * (zoomedCell.cH * 3),
+                maxWidth: 'none',
+              }}
+            />
+          </div>
         </div>
       )}
 
