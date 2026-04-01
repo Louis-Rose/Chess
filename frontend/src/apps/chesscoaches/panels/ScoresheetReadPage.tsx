@@ -836,11 +836,13 @@ export function ScoresheetReadPage() {
                                 </div>
                               );
                             })()}
-                            {/* Export buttons — under edit panel */}
-                            <div className={`w-full bg-slate-700/50 rounded-xl overflow-hidden mt-2 ${allVerified ? 'animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30' : ''}`}>
-                              <ChesscomAnalysisButton moves={displayConsensusMoves} meta={consensusMeta} hasIllegalMoves={displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)} onIllegalClick={() => {}} />
-                              <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)} onIllegalClick={() => {}} />
+                            {/* Export buttons — only after verification */}
+                            {allVerified && (
+                            <div className="w-full bg-slate-700/50 rounded-xl overflow-hidden mt-2 animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30">
+                              <ChesscomAnalysisButton moves={displayConsensusMoves} meta={consensusMeta} hasIllegalMoves={false} onIllegalClick={() => {}} />
+                              <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={false} onIllegalClick={() => {}} />
                             </div>
+                            )}
                           </div>
                           {/* Right: board */}
                           <div className="flex flex-col items-center justify-center gap-3 max-w-[400px]" onClick={e => e.stopPropagation()}>
@@ -1013,11 +1015,13 @@ export function ScoresheetReadPage() {
                               );
                             })()}
                             <div ref={mobileEditRef} />
-                            {/* Mobile export buttons */}
-                            <div className={`w-full max-w-[400px] bg-slate-700/50 rounded-xl overflow-hidden ${allVerified ? 'animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30' : ''}`}>
-                              <ChesscomAnalysisButton moves={displayConsensusMoves} meta={consensusMeta} hasIllegalMoves={displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)} onIllegalClick={() => {}} />
-                              <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)} onIllegalClick={() => {}} />
+                            {/* Mobile export buttons — only after verification */}
+                            {allVerified && (
+                            <div className="w-full max-w-[400px] bg-slate-700/50 rounded-xl overflow-hidden animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30">
+                              <ChesscomAnalysisButton moves={displayConsensusMoves} meta={consensusMeta} hasIllegalMoves={false} onIllegalClick={() => {}} />
+                              <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={false} onIllegalClick={() => {}} />
                             </div>
+                            )}
                             <div ref={mobileExportRef} />
                           </>)}
                         </div>
