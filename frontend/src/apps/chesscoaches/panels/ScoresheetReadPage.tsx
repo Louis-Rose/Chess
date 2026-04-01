@@ -467,7 +467,9 @@ export function ScoresheetReadPage() {
                               }
 
                               dets.push({ candidate, votes: voteCount, downstreamIllegals: illegals, chosen: false, models: votersByCandidate[candidate] || [], confidenceByModel });
-                              if (illegals < bestIllegals || (illegals === bestIllegals && voteCount > bestVotes)) {
+                              // Prefer more votes, unless downstream illegals difference is significant (3+)
+                              const illegalsDelta = bestIllegals - illegals;
+                              if ((illegalsDelta >= 3) || (illegalsDelta > -3 && voteCount > bestVotes)) {
                                 bestIllegals = illegals;
                                 bestCandidate = candidate;
                                 bestVotes = voteCount;
