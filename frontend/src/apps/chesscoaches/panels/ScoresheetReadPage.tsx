@@ -1003,6 +1003,11 @@ export function ScoresheetReadPage() {
                                 </div>
                               );
                             })()}
+                            {/* Mobile export buttons */}
+                            <div className={`w-full max-w-[400px] bg-slate-700/50 rounded-xl overflow-hidden ${allVerified ? 'animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30' : ''}`}>
+                              <ChesscomAnalysisButton moves={displayConsensusMoves} meta={consensusMeta} hasIllegalMoves={displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)} onIllegalClick={() => {}} />
+                              <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)} onIllegalClick={() => {}} />
+                            </div>
                             <div ref={mobileEditRef} />
                           </>)}
                         </div>
@@ -1757,7 +1762,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, fileNam
             <p className="text-sm text-slate-100">Moves to review : {unresolvedMoves.length}</p>
           </div>
         )}
-        <div className={voteDetails && (!unresolvedMoves || unresolvedMoves.length === 0) ? 'animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30 rounded-lg' : ''}>
+        <div className={`hidden md:block ${voteDetails && (!unresolvedMoves || unresolvedMoves.length === 0) ? 'animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30 rounded-lg' : ''}`}>
           <ChesscomAnalysisButton moves={moves} meta={meta} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
           <LichessStudyButton moves={moves} meta={meta} fileName={fileName} hasIllegalMoves={hasIllegalMoves} onIllegalClick={() => setShowIllegalModal(true)} />
         </div>
