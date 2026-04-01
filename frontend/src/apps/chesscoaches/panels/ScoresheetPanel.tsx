@@ -13,19 +13,20 @@ export function ScoresheetPanel() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 flex flex-col min-h-[calc(100dvh-80px)]">
       <PWAInstallPrompt className="max-w-4xl mx-[5%] md:mx-auto mb-4 mt-2 md:mt-0" />
-      <div className="border-t border-slate-700 mb-6" />
 
-      {NAV_SECTIONS.map(({ titleKey, items }, idx) => {
+      {NAV_SECTIONS.map(({ titleKey, items }) => {
         const enabledItems = items.filter(({ path }) => path === '/scoresheets');
         if (enabledItems.length === 0) return null;
         return (
           <div key={titleKey}>
-            {idx > 0 && <div className="border-t border-slate-700 my-6" />}
             <div className="max-w-4xl mx-[5%] md:mx-auto flex flex-col items-center">
-              <h2 className="text-xl font-bold text-slate-100 uppercase tracking-wider mb-3 text-center">
-                {t(titleKey)}
-              </h2>
-              <div className="border-t border-slate-700 w-full mb-6" />
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-px bg-slate-600" />
+                <h2 className="text-xl font-bold text-slate-100 uppercase tracking-wider text-center">
+                  {t(titleKey)}
+                </h2>
+                <div className="w-16 h-px bg-slate-600" />
+              </div>
               <p className="text-slate-200 text-lg mb-6">{t('coaches.homePrompt')}</p>
               <div className="flex justify-center w-full">
                 {enabledItems.map(({ path, labelKey, icon: Icon, bgColor }) => (
@@ -49,7 +50,6 @@ export function ScoresheetPanel() {
         );
       })}
 
-      <div className="border-t border-slate-700 mt-6" />
       <div className="flex-1" />
       <div className="text-center pb-4">
         <button
