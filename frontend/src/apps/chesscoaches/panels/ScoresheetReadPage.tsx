@@ -741,7 +741,7 @@ export function ScoresheetReadPage() {
                                 // Test each candidate from current position
                                 let bestIll = Infinity;
                                 let bestVotes = 0;
-                                for (const [norm, { count, originals }] of sorted) {
+                                for (const [, { count, originals }] of sorted) {
                                   const orig = Object.entries(originals).sort((a, b) => b[1] - a[1])[0][0];
                                   const sim = new Chess(ch.fen());
                                   let ill = 0;
