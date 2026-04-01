@@ -149,23 +149,35 @@ function CoachesNavSidebar() {
                 {t(titleKey)}
               </div>
               {items.length > 0 ? (
-                items.map(({ path, labelKey, icon: Icon }) => (
-                  <NavLink
-                    key={path}
-                    to={path}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                        isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-                      }`
-                    }
-                  >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    {t(labelKey)}
-                  </NavLink>
-                ))
+                items.map(({ path, labelKey, icon: Icon }) => {
+                  const enabled = path === '/scoresheets';
+                  return enabled ? (
+                    <NavLink
+                      key={path}
+                      to={path}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                        }`
+                      }
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      {t(labelKey)}
+                    </NavLink>
+                  ) : (
+                    <div
+                      key={path}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default"
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      <span>{t(labelKey)}</span>
+                      <span className="ml-auto text-xs italic">{t('coaches.comingSoon')}</span>
+                    </div>
+                  );
+                })
               ) : (
                 <div className="px-3 py-2 text-xs text-slate-500 text-center italic">
-                  {t('coaches.sectionEmpty')}
+                  {t('coaches.comingSoon')}
                 </div>
               )}
             </div>
