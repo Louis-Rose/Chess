@@ -1357,6 +1357,21 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
   // Handle user move (drag & drop)
   const handleUserMove = useCallback((from: string, to: string) => {
     // Detect reverse of last move (dragging piece back) → go previous
+    // If in a 1-move branch (user already dragged), exit branch first so they can pick a different move
+    if (inBranch && branch && branchPly === 1 && onDragSetMove) {
+      exitBranch();
+      // Now try the new move from the pre-branch position
+      try {
+        const chess = new Chess(entries[displayPly].fen);
+        const move = chess.move({ from, to, promotion: 'q' });
+        if (!move) return;
+        onDragSetMove(move.san);
+        setBranch({ startPly: displayPly, fens: [entries[displayPly].fen, chess.fen()], sans: [move.san] });
+        setBranchPly(1);
+        playMoveSound(move.san.includes('x'));
+      } catch { /* invalid move */ }
+      return;
+    }
     const lastMove = inBranch && branch ? null : entries[safePly]?.lastMove;
     if (lastMove && from === lastMove.to && to === lastMove.from) {
       goPrev();
