@@ -1011,9 +1011,10 @@ export function ScoresheetReadPage() {
                               );
                             })()}
                             <div ref={mobileEditRef} />
-                            {/* Mobile export: copy PGN to clipboard */}
-                            <div className={`w-full max-w-[400px] ${allVerified ? 'animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30 rounded-xl' : ''}`}>
-                              <CopyPgnButton moves={displayConsensusMoves} meta={consensusMeta} />
+                            {/* Mobile export buttons */}
+                            <div className={`w-full max-w-[400px] bg-slate-700/50 rounded-xl overflow-hidden ${allVerified ? 'animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30' : ''}`}>
+                              <ChesscomAnalysisButton moves={displayConsensusMoves} meta={consensusMeta} hasIllegalMoves={displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)} onIllegalClick={() => {}} />
+                              <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)} onIllegalClick={() => {}} />
                             </div>
                             <div ref={mobileExportRef} />
                           </>)}
@@ -1990,28 +1991,6 @@ function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }
 }
 
 
-function CopyPgnButton({ moves, meta }: { moves: Move[]; meta?: { white?: string; black?: string; result?: string } }) {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    const pgn = buildPgn(moves, meta);
-    navigator.clipboard.writeText(pgn).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-  return (
-    <button
-      onClick={handleCopy}
-      className="w-full px-2 py-2.5 text-center text-sm text-slate-200 hover:bg-slate-600/40 transition-colors flex items-center justify-center gap-1.5"
-    >
-      {copied ? (
-        <><Check className="w-3.5 h-3.5 text-emerald-400" /> PGN copied!</>
-      ) : (
-        <><ExternalLink className="w-3.5 h-3.5" /> Copy PGN to clipboard</>
-      )}
-    </button>
-  );
-}
 
 function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onIllegalClick }: {
   moves: Move[];
