@@ -732,26 +732,9 @@ export function ScoresheetReadPage() {
                               unresolvedMoves={hasIssues && !allVerified ? unresolvedMovesList : undefined}
                             />
                             )}
-                          </div>
-                          {/* Right: board + detail panel */}
-                          <div className="flex flex-col items-start gap-3 max-w-[400px] self-start" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
-                              if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
-                              voteState.setEditValue(san);
-                              setUserPickedMove(san);
-                            } : undefined} highlightedPlies={hasResults && allModelsFinished ? (() => {
-                              const plies: number[] = [];
-                              displayConsensusMoves.forEach((m, idx) => {
-                                const d = modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low';
-                                const dBlack = modelDisagreements.has(`${m.number}-black`) || !!m.black_reason || m.black_legal === false || m.black_confidence === 'low';
-                                if (d && !(m as any).white_confirmed) plies.push(idx * 2 + 1);
-                                if (dBlack && m.black && !(m as any).black_confirmed) plies.push(idx * 2 + 2);
-                              });
-                              return plies;
-                            })() : undefined} />
-                            {/* Move detail panel — always visible, placeholder while processing */}
+                            {/* Edit panel — under the moves table */}
                             {allModelsFinished && allVerified ? (
-                              <div className="w-full flex justify-center animate-[fadeIn_0.4s_ease-out]">
+                              <div className="w-full flex justify-center py-2 animate-[fadeIn_0.4s_ease-out]">
                                 <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
                                   <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
                                     <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
@@ -760,10 +743,10 @@ export function ScoresheetReadPage() {
                                 </div>
                               </div>
                             ) : (!allModelsFinished || analyzing || !voteState) ? (
-                              <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4">
+                              <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2">
                                 <p className="text-base text-slate-500 font-medium text-center">Move — - —</p>
                                 <div className="text-center py-1">
-                                <p className="text-sm text-slate-500">Read as <span className="font-mono">———</span></p>
+                                  <p className="text-sm text-slate-500">Read as <span className="font-mono">———</span></p>
                                 </div>
                                 <div className="flex flex-col gap-1.5">
                                   <p className="text-sm text-slate-500 text-center">Drag a piece on the board and then confirm</p>
@@ -778,8 +761,6 @@ export function ScoresheetReadPage() {
                               const moveObj = displayConsensusMoves[moveIdx];
                               if (!moveObj) return null;
                               const displayMove = moveObj[colorStr] || '—';
-
-                              // Zoomed scoresheet cell
                               const cellCrop = preview && gridData?.cells ? (() => {
                                 const rows = rowsPerColumn || Math.ceil(displayConsensusMoves.length / Math.max(sheetColumns, 1));
                                 const sheetCol = Math.floor(moveIdx / rows);
@@ -792,23 +773,15 @@ export function ScoresheetReadPage() {
                                 const azureRow = rowInCol + rowOffset;
                                 const cell = gridData.cells![`${azureRow}-${azureCol}`];
                                 if (!cell) return null;
-                                const padX = (cell.x2 - cell.x1) * 0.2;
-                                const padY = (cell.y2 - cell.y1) * 0.2;
-                                const cx1 = Math.max(0, cell.x1 - padX);
-                                const cy1 = Math.max(0, cell.y1 - padY);
-                                const cx2 = Math.min(1, cell.x2 + padX);
-                                const cy2 = Math.min(1, cell.y2 + padY);
-                                const cropW = cx2 - cx1;
-                                const cropH = cy2 - cy1;
-                                const cW = 180;
-                                const cH = cW * (cropH / cropW);
+                                const padX = (cell.x2 - cell.x1) * 0.2, padY = (cell.y2 - cell.y1) * 0.2;
+                                const cx1 = Math.max(0, cell.x1 - padX), cy1 = Math.max(0, cell.y1 - padY);
+                                const cx2 = Math.min(1, cell.x2 + padX), cy2 = Math.min(1, cell.y2 + padY);
+                                const cropW = cx2 - cx1, cropH = cy2 - cy1;
+                                const cW = 180, cH = cW * (cropH / cropW);
                                 return { cx1, cy1, cropW, cropH, cW, cH };
                               })() : null;
-
-
-
                               return (
-                                <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3]">
+                                <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3]">
                                   <p className="text-base text-slate-100 font-medium text-center">
                                     Move {moveIdx + 1} - {colorStr === 'black' ? 'Black' : 'White'}
                                   </p>
@@ -826,12 +799,7 @@ export function ScoresheetReadPage() {
                                     {userPickedMove ? (
                                       userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
                                         <button
-                                          onClick={() => {
-                                            handleConfirmMove(moveIdx + 1, colorStr);
-                                            setUserPickedMove(null);
-                                            // Clear selection — auto-select effect will pick the next unresolved move after re-render
-                                            if (voteState) voteState.clearSelection();
-                                          }}
+                                          onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); if (voteState) voteState.clearSelection(); }}
                                           className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
                                         >
                                           Confirm {displayMove}
@@ -845,25 +813,15 @@ export function ScoresheetReadPage() {
                                               (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
                                               delete (current[moveIdx] as any)[`${colorStr}_reason`];
                                             }
-                                            // Re-validate all moves from scratch
                                             const ch = new Chess();
                                             for (const cm of current) {
                                               for (const col of ['white', 'black'] as const) {
-                                                const san = cm[col];
-                                                if (!san) continue;
+                                                const san = cm[col]; if (!san) continue;
                                                 try { ch.move(san); (cm as any)[`${col}_legal`] = true; }
-                                                catch {
-                                                  (cm as any)[`${col}_legal`] = false;
-                                                  const f = ch.fen().split(' ');
-                                                  f[1] = f[1] === 'w' ? 'b' : 'w';
-                                                  f[3] = '-';
-                                                  ch.load(f.join(' '));
-                                                }
+                                                catch { (cm as any)[`${col}_legal`] = false; const f = ch.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; ch.load(f.join(' ')); }
                                               }
                                             }
-                                            setConsensusOverrides([...current]);
-                                            setUserPickedMove(null);
-                                            // Clear selection — auto-select effect will pick the next unresolved move after re-render
+                                            setConsensusOverrides([...current]); setUserPickedMove(null);
                                             if (voteState) voteState.clearSelection();
                                           }}
                                           className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
@@ -872,15 +830,30 @@ export function ScoresheetReadPage() {
                                         </button>
                                       )
                                     ) : (
-                                      <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
-                                        Confirm
-                                      </button>
+                                      <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">Confirm</button>
                                     )}
                                     </div>
                                   </div>
                                 </div>
                               );
                             })()}
+                          </div>
+                          {/* Right: board */}
+                          <div className="flex flex-col items-start gap-3 max-w-[400px] self-start" onClick={e => e.stopPropagation()}>
+                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
+                              if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
+                              voteState.setEditValue(san);
+                              setUserPickedMove(san);
+                            } : undefined} highlightedPlies={hasResults && allModelsFinished ? (() => {
+                              const plies: number[] = [];
+                              displayConsensusMoves.forEach((m, idx) => {
+                                const d = modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low';
+                                const dBlack = modelDisagreements.has(`${m.number}-black`) || !!m.black_reason || m.black_legal === false || m.black_confidence === 'low';
+                                if (d && !(m as any).white_confirmed) plies.push(idx * 2 + 1);
+                                if (dBlack && m.black && !(m as any).black_confirmed) plies.push(idx * 2 + 2);
+                              });
+                              return plies;
+                            })() : undefined} />
                           </div>
                         </div>
                         {/* Mobile: image above table */}
