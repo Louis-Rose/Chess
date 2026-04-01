@@ -2,9 +2,9 @@
 
 import React, { useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Loader2, ChevronUp, ChevronDown, Clock, Cpu, AlertTriangle, Download, Image } from 'lucide-react';
+import { Shield, Loader2, ChevronUp, ChevronDown, Clock, Cpu, AlertTriangle, Download, Image, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -160,6 +160,7 @@ const FEATURE_LABELS: Record<string, string> = {
 export function AdminPanel() {
   const { user, isLoading: authLoading } = useAuth();
   const { t, language } = useLanguage();
+  const queryClient = useQueryClient();
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
   const [expandedInvocation, setExpandedInvocation] = useState<string | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
@@ -378,22 +379,35 @@ export function AdminPanel() {
                           ) : (
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                               {uploadsData.uploads.map(file => (
-                                <a
+                                <div
                                   key={file.filename}
-                                  href={`/api/admin/user-uploads/${u.id}/${file.filename}`}
-                                  onClick={e => e.stopPropagation()}
                                   className="group relative bg-slate-700/50 rounded-lg overflow-hidden border border-slate-600 hover:border-blue-500 transition-colors"
                                 >
-                                  <img
-                                    src={`/api/admin/user-uploads/${u.id}/${file.filename}`}
-                                    alt={file.filename}
-                                    className="w-full h-24 object-cover"
-                                  />
-                                  <div className="p-1.5 flex items-center justify-between">
-                                    <span className="text-xs text-slate-400 truncate">{file.filename}</span>
-                                    <Download className="w-3 h-3 text-slate-500 group-hover:text-blue-400 flex-shrink-0" />
-                                  </div>
-                                </a>
+                                  <button
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      await axios.delete(`/api/admin/user-uploads/${u.id}/${file.filename}`);
+                                      queryClient.invalidateQueries({ queryKey: ['admin-user-uploads', u.id] });
+                                    }}
+                                    className="absolute top-1 right-1 z-10 w-5 h-5 bg-slate-900/80 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors"
+                                  >
+                                    <X className="w-3 h-3 text-slate-300" />
+                                  </button>
+                                  <a
+                                    href={`/api/admin/user-uploads/${u.id}/${file.filename}`}
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    <img
+                                      src={`/api/admin/user-uploads/${u.id}/${file.filename}`}
+                                      alt={file.filename}
+                                      className="w-full h-24 object-cover"
+                                    />
+                                    <div className="p-1.5 flex items-center justify-between">
+                                      <span className="text-xs text-slate-400 truncate">{file.filename}</span>
+                                      <Download className="w-3 h-3 text-slate-500 group-hover:text-blue-400 flex-shrink-0" />
+                                    </div>
+                                  </a>
+                                </div>
                               ))}
                             </div>
                           )}

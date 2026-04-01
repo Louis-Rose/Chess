@@ -1379,3 +1379,15 @@ def serve_user_upload(user_id, filename):
     if not os.path.isfile(fpath):
         return jsonify({'error': 'File not found'}), 404
     return send_file(fpath, as_attachment=True, download_name=safe_name)
+
+
+@admin_bp.route('/api/admin/user-uploads/<int:user_id>/<filename>', methods=['DELETE'])
+@admin_required
+def delete_user_upload(user_id, filename):
+    """Delete a specific uploaded image."""
+    safe_name = os.path.basename(filename)
+    fpath = os.path.join(UPLOAD_DIR, str(user_id), safe_name)
+    if not os.path.isfile(fpath):
+        return jsonify({'error': 'File not found'}), 404
+    os.remove(fpath)
+    return jsonify({'success': True})
