@@ -786,7 +786,7 @@ export function ScoresheetReadPage() {
                                   </p>
                                   <div className="flex items-center justify-center gap-3 py-1">
                                     {cellCrop && (
-                                      <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0" style={{ width: cellCrop.cW, height: cellCrop.cH }}>
+                                      <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" style={{ width: cellCrop.cW, height: cellCrop.cH }} onClick={() => setShowImageModal(true)}>
                                         <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
                                       </div>
                                     )}
@@ -956,7 +956,7 @@ export function ScoresheetReadPage() {
                                   </p>
                                   <div className="flex items-center justify-center gap-3 py-1">
                                     {cellCrop && (
-                                      <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0" style={{ width: cellCrop.cW, height: cellCrop.cH }}>
+                                      <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" style={{ width: cellCrop.cW, height: cellCrop.cH }} onClick={() => setShowImageModal(true)}>
                                         <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
                                       </div>
                                     )}
