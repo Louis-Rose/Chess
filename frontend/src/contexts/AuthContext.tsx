@@ -5,20 +5,12 @@ import posthog from 'posthog-js';
 import axios from 'axios';
 
 // Emails excluded from PostHog tracking (e.g., admin/developer accounts)
-// TODO: re-enable exclusion after testing PostHog
-// const POSTHOG_EXCLUDED_EMAILS = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com'];
-const POSTHOG_EXCLUDED_EMAILS: string[] = [];
+const POSTHOG_EXCLUDED_EMAILS = ['rose.louis.mail@gmail.com', 'u6965441974@gmail.com'];
 const POSTHOG_EXCLUDED_KEY = 'posthog-excluded';
 
-// TODO: re-enable exclusion check after testing PostHog
 // Check on module load if user was previously excluded - opt out immediately
-// if (typeof window !== 'undefined' && localStorage.getItem(POSTHOG_EXCLUDED_KEY) === 'true') {
-//   posthog.opt_out_capturing();
-// }
-// Clear stale exclusion flag so PostHog starts capturing
-if (typeof window !== 'undefined') {
-  localStorage.removeItem(POSTHOG_EXCLUDED_KEY);
-  posthog.opt_in_capturing();
+if (typeof window !== 'undefined' && localStorage.getItem(POSTHOG_EXCLUDED_KEY) === 'true') {
+  posthog.opt_out_capturing();
 }
 
 interface UserPreferences {
