@@ -755,7 +755,7 @@ export function ScoresheetReadPage() {
                                   }
                                   const illDelta = bestIll - ill;
                                   if ((illDelta >= 3) || (illDelta > -3 && count > bestVotes)) {
-                                    bestIll = ill; bestMove = norm; bestOrig = orig; bestVotes = count;
+                                    bestIll = ill; bestOrig = orig; bestVotes = count;
                                   }
                                 }
                               }
