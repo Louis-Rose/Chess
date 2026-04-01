@@ -57,6 +57,8 @@ export function ScoresheetReadPage() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mobileEditRef = useRef<HTMLDivElement>(null);
+  const mobileExportRef = useRef<HTMLDivElement>(null);
+  const prevAllVerifiedRef = useRef(false);
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
     scoresheetClear,
@@ -664,6 +666,11 @@ export function ScoresheetReadPage() {
                       });
                     }
                     const allVerified = (hasIssues || hasConfirmedMoves) && unresolvedPlies.length === 0;
+                    // Scroll to export buttons on mobile when verification completes
+                    if (allVerified && !prevAllVerifiedRef.current) {
+                      setTimeout(() => mobileExportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 200);
+                    }
+                    prevAllVerifiedRef.current = allVerified;
                     const unresolvedMovesList = unresolvedPlies.map(ply => {
                       const moveIdx = Math.floor((ply - 1) / 2);
                       const color = ply % 2 === 1 ? 'white' : 'black';
@@ -1009,6 +1016,7 @@ export function ScoresheetReadPage() {
                               <ChesscomAnalysisButton moves={displayConsensusMoves} meta={consensusMeta} hasIllegalMoves={displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)} onIllegalClick={() => {}} />
                               <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false)} onIllegalClick={() => {}} />
                             </div>
+                            <div ref={mobileExportRef} />
                           </>)}
                         </div>
                     </>);
