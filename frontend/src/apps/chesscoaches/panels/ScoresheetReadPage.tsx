@@ -868,7 +868,8 @@ export function ScoresheetReadPage() {
                           </div>
                         </div>
                         {/* Mobile: image above table */}
-                        <div className="md:hidden flex flex-col items-center gap-3">
+                        {/* Mobile layout: image → table → board → edit panel */}
+                        <div className="md:hidden flex flex-col items-center gap-3 px-2">
                           <img src={preview} alt="Scoresheet" className="max-h-[200px] rounded-xl object-contain cursor-pointer" onClick={() => setShowImageModal(true)} />
                           {!hasResults || consensusMoves.length === 0 ? (
                             <div className="bg-slate-700/50 rounded-xl overflow-hidden min-w-[320px]">
@@ -877,23 +878,126 @@ export function ScoresheetReadPage() {
                                 <span className="text-sm">{t('coaches.analyzing')}</span>
                               </div>
                             </div>
-                          ) : (
+                          ) : (<>
                             <MovesPanel
                               label={!allModelsFinished || analyzing ? `${t('coaches.processing')}...` : t('coaches.consensus')}
                               moves={displayConsensusMoves}
-                              disagreements={new Map()}
+                              disagreements={(() => {
+                                const m = new Map<number, { white: boolean; black: boolean }>();
+                                modelDisagreements.forEach(key => {
+                                  const [numStr, color] = key.split('-');
+                                  const num = parseInt(numStr);
+                                  const existing = m.get(num) || { white: false, black: false };
+                                  existing[color as 'white' | 'black'] = true;
+                                  m.set(num, existing);
+                                });
+                                return m;
+                              })()}
                               elapsed={!allModelsFinished || analyzing ? liveGlobalElapsed : Math.max(...models.map(m => modelResults[m.id]?.elapsed || 0))}
                               loading={!allModelsFinished || analyzing}
                               meta={consensusMeta}
                               fileName={fileName}
-                              onMoveClick={(_movesArr, ply) => {
+                              onEditSave={allModelsFinished && !analyzing ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
+                              onMoveClick={(movesArr, ply) => {
                                 setModelBoardPlys(p => ({ ...p, [consensusId]: { ply, source: 'read' as const } }));
+                                const moveIdx = Math.floor((ply - 1) / 2);
+                                const color = ply % 2 === 1 ? 'white' : 'black';
+                                const san = movesArr[moveIdx]?.[color];
+                                if (san) playMoveSound(san.includes('x'));
                               }}
                               activePly={modelBoardPlys[consensusId]?.ply}
                               sheetColumns={consensusColumns}
                               rowsPerColumn={consensusRowsPerColumn}
+                              modelDisagreements={modelDisagreements}
+                              voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
+                              onVoteStateChange={handleVoteStateChange}
+                              unresolvedMoves={hasIssues && !allVerified ? unresolvedMovesList : undefined}
                             />
-                          )}
+                            {/* Mobile board */}
+                            <div className="w-full max-w-[400px]">
+                              <ModelBoard moves={displayConsensusMoves} externalPly={modelBoardPlys[consensusId]?.ply || 0} onPlyChange={handleConsensusBoardPly} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
+                                if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
+                                voteState.setEditValue(san);
+                                setUserPickedMove(san);
+                              } : undefined} />
+                            </div>
+                            {/* Mobile edit panel */}
+                            {allModelsFinished && allVerified ? (
+                              <div className="w-full max-w-[400px] flex items-center justify-center bg-slate-700/50 rounded-xl p-6 animate-[fadeIn_0.4s_ease-out]">
+                                <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
+                                  <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
+                                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                                  </span>
+                                  <span className="text-sm text-emerald-300 font-medium">Verification complete — PGN is ready</span>
+                                </div>
+                              </div>
+                            ) : voteState && (() => {
+                              const moveIdx = voteState.moveIdx;
+                              const colorStr = voteState.color;
+                              const moveObj = displayConsensusMoves[moveIdx];
+                              if (!moveObj) return null;
+                              const displayMove = moveObj[colorStr] || '—';
+                              return (
+                                <div className="w-full max-w-[400px] space-y-2 bg-slate-700/50 rounded-xl p-4 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3]">
+                                  <p className="text-base text-slate-100 font-medium text-center">
+                                    Move {moveIdx + 1} - {colorStr === 'black' ? 'Black' : 'White'}
+                                  </p>
+                                  <div className="text-center py-1">
+                                    <p className="text-sm text-slate-100">Read as <span className="font-mono font-semibold">{displayMove}</span></p>
+                                  </div>
+                                  <div className="flex flex-col gap-1.5">
+                                    <p className="text-sm text-slate-100 text-center">Drag a piece on the board and then confirm</p>
+                                    <div className="flex justify-center">
+                                    {userPickedMove ? (
+                                      userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
+                                        <button
+                                          onClick={() => {
+                                            handleConfirmMove(moveIdx + 1, colorStr);
+                                            setUserPickedMove(null);
+                                            if (voteState) voteState.clearSelection();
+                                          }}
+                                          className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
+                                        >
+                                          Confirm {displayMove}
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => {
+                                            const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
+                                            if (current[moveIdx]) {
+                                              current[moveIdx][colorStr] = userPickedMove;
+                                              (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
+                                              delete (current[moveIdx] as any)[`${colorStr}_reason`];
+                                            }
+                                            const ch = new Chess();
+                                            for (const cm of current) {
+                                              for (const col of ['white', 'black'] as const) {
+                                                const san = cm[col];
+                                                if (!san) continue;
+                                                try { ch.move(san); (cm as any)[`${col}_legal`] = true; }
+                                                catch { (cm as any)[`${col}_legal`] = false; const f = ch.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; ch.load(f.join(' ')); }
+                                              }
+                                            }
+                                            setConsensusOverrides([...current]);
+                                            setUserPickedMove(null);
+                                            if (voteState) voteState.clearSelection();
+                                          }}
+                                          className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
+                                        >
+                                          Pick {userPickedMove}
+                                        </button>
+                                      )
+                                    ) : (
+                                      <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
+                                        Confirm
+                                      </button>
+                                    )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </>)}
                         </div>
                     </>);
                   })()}
