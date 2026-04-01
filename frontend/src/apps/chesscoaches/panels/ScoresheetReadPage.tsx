@@ -276,11 +276,30 @@ export function ScoresheetReadPage() {
               </div>
             </div>
           ) : !preview ? (
-            <UploadBox
-              onClick={() => fileInputRef.current?.click()}
-              icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
-              title={t('coaches.uploadPrompt')}
-            />
+            <>
+              <UploadBox
+                onClick={() => fileInputRef.current?.click()}
+                icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
+                title={t('coaches.uploadPrompt')}
+              />
+              <div className="text-center mt-4">
+                <button
+                  onClick={async () => {
+                    const res = await fetch('/sample_scoresheet.jpeg');
+                    const blob = await res.blob();
+                    const file = new File([blob], 'sample_scoresheet.jpeg', { type: 'image/jpeg' });
+                    const { preview: dataUrl } = await compressImage(file);
+                    setCropSrc(dataUrl);
+                    setCropFileName(file.name);
+                    setCrop({ unit: '%', x: 0, y: 0, width: 100, height: 100 });
+                    setCompletedCrop(undefined);
+                  }}
+                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-2"
+                >
+                  {t('coaches.trySample')}
+                </button>
+              </div>
+            </>
           ) : (
             <div className="space-y-4">
               {/* Error */}
