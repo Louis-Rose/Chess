@@ -420,6 +420,7 @@ export function ScoresheetReadPage() {
                           const votes: Record<string, number> = {};
                           const votersByCandidate: Record<string, string[]> = {};
                           const confidenceByModel: Record<string, string> = {};
+                          const originalForms: Record<string, Record<string, number>> = {}; // normalized → { original → count }
                           for (let mi = 0; mi < allModelMoves.length; mi++) {
                             const moveObj = allModelMoves[mi][i];
                             const val = moveObj?.[color];
@@ -428,16 +429,24 @@ export function ScoresheetReadPage() {
                               votes[normalized] = (votes[normalized] || 0) + 1;
                               if (!votersByCandidate[normalized]) votersByCandidate[normalized] = [];
                               votersByCandidate[normalized].push(modelNames[mi]);
+                              if (!originalForms[normalized]) originalForms[normalized] = {};
+                              originalForms[normalized][val] = (originalForms[normalized][val] || 0) + 1;
                               const conf = moveObj?.[`${color}_confidence` as 'white_confidence' | 'black_confidence'];
                               if (conf) confidenceByModel[modelNames[mi]] = conf;
                             }
                           }
+                          // Pick the most common original form for each normalized candidate
+                          const bestOriginal = (normalized: string) => {
+                            const forms = originalForms[normalized];
+                            if (!forms) return normalized;
+                            return Object.entries(forms).sort((a, b) => b[1] - a[1])[0][0];
+                          };
                           const candidates = Object.entries(votes).sort((a, b) => b[1] - a[1]);
                           if (candidates.length === 0) continue;
 
                           const detailKey = `${i + 1}-${color}`;
                           if (candidates.length === 1) {
-                            (move as any)[color] = candidates[0][0];
+                            (move as any)[color] = bestOriginal(candidates[0][0]);
                             details[detailKey] = [{ candidate: candidates[0][0], votes: candidates[0][1], downstreamIllegals: 0, chosen: true, models: votersByCandidate[candidates[0][0]] || [], confidenceByModel }];
                             try { passChess.move(candidates[0][0]); } catch {
                               // If ambiguous, pick disambiguation with fewest downstream illegals
@@ -532,7 +541,7 @@ export function ScoresheetReadPage() {
                             const allIllegal = dets.every(d => d.downstreamIllegals >= 100);
                             if (allIllegal) {
                               details[detailKey] = dets;
-                              (move as any)[color] = candidates[0][0];
+                              (move as any)[color] = bestOriginal(candidates[0][0]);
                               (move as any)[`${color}_legal`] = false;
                               (move as any)[`${color}_reason`] = 'All options are illegal — please correct manually';
                               const fen = passChess.fen().split(' ');
@@ -542,7 +551,7 @@ export function ScoresheetReadPage() {
                             } else {
                               for (const d of dets) { if (d.candidate === bestCandidate) d.chosen = true; }
                               details[detailKey] = dets;
-                              (move as any)[color] = bestCandidate;
+                              (move as any)[color] = bestOriginal(bestCandidate);
                               try { passChess.move(bestCandidate); } catch {
                                 // If ambiguous, pick best disambiguation to advance board
                                 const pm = bestCandidate.match(/^([KQRBN])/);
@@ -575,15 +584,21 @@ export function ScoresheetReadPage() {
                       const mv: Move = { number: i + 1, white: '' };
                       for (const color of ['white', 'black'] as const) {
                         const votes: Record<string, number> = {};
+                        const origForms: Record<string, Record<string, number>> = {};
                         for (const modelMv of allModelMoves) {
                           const val = modelMv[i]?.[color];
                           if (val) {
                             const normalized = val.replace(/[+#x]/g, '');
                             votes[normalized] = (votes[normalized] || 0) + 1;
+                            if (!origForms[normalized]) origForms[normalized] = {};
+                            origForms[normalized][val] = (origForms[normalized][val] || 0) + 1;
                           }
                         }
                         const sorted = Object.entries(votes).sort((a, b) => b[1] - a[1]);
-                        if (sorted.length > 0) (mv as any)[color] = sorted[0][0];
+                        if (sorted.length > 0) {
+                          const forms = origForms[sorted[0][0]];
+                          (mv as any)[color] = Object.entries(forms).sort((a, b) => b[1] - a[1])[0][0];
+                        }
                       }
                       majorityMoves.push(mv);
                     }
