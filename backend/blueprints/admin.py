@@ -325,17 +325,19 @@ def list_coach_users():
 def get_coach_time_spent():
     """Get daily time spent stats for coaches app users only (from launch date)."""
     COACHES_LAUNCH_DATE = '2026-03-23'
-    exclude_user_id = request.args.get('exclude_user_id', type=int)
+    user_ids_raw = request.args.get('user_ids', '')
+    user_ids = [int(x) for x in user_ids_raw.split(',') if x.strip().isdigit()] if user_ids_raw else []
     with get_db() as conn:
-        if exclude_user_id:
-            cursor = conn.execute('''
+        if user_ids:
+            placeholders = ','.join(['?' for _ in user_ids])
+            cursor = conn.execute(f'''
                 SELECT a.activity_date, SUM(a.seconds) as total_seconds
                 FROM user_activity a
                 JOIN users u ON a.user_id = u.id
-                WHERE u.registered_app = 'coaches' AND a.activity_date >= ? AND u.id != ?
+                WHERE u.registered_app = 'coaches' AND a.activity_date >= ? AND u.id IN ({placeholders})
                 GROUP BY a.activity_date
                 ORDER BY a.activity_date ASC
-            ''', (COACHES_LAUNCH_DATE, exclude_user_id))
+            ''', (COACHES_LAUNCH_DATE, *user_ids))
         else:
             cursor = conn.execute('''
                 SELECT a.activity_date, SUM(a.seconds) as total_seconds
@@ -358,9 +360,15 @@ def get_coach_time_spent():
 @admin_required
 def get_api_usage():
     """Get Gemini API usage history with cost breakdown."""
-    exclude_user_id = request.args.get('exclude_user_id', type=int)
-    user_filter = ' AND user_id != ?' if exclude_user_id else ''
-    user_params = (exclude_user_id,) if exclude_user_id else ()
+    user_ids_raw = request.args.get('user_ids', '')
+    user_ids = [int(x) for x in user_ids_raw.split(',') if x.strip().isdigit()] if user_ids_raw else []
+    if user_ids:
+        placeholders = ','.join(['?' for _ in user_ids])
+        user_filter = f' AND user_id IN ({placeholders})'
+        user_params = tuple(user_ids)
+    else:
+        user_filter = ''
+        user_params = ()
     with get_db() as conn:
         # Per-call history (most recent first, cap at 200)
         cursor = conn.execute(f'''

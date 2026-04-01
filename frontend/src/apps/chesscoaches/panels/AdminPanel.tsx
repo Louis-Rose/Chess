@@ -160,13 +160,26 @@ const FEATURE_LABELS: Record<string, string> = {
 export function AdminPanel() {
   const { user, isLoading: authLoading } = useAuth();
   const { t, language } = useLanguage();
-  const [ignoreSelf, setIgnoreSelf] = useState(false);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
   const [expandedInvocation, setExpandedInvocation] = useState<string | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_seconds');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  const { data: rawData, isLoading, error } = useQuery({
+  const toggleUser = (id: number) => {
+    setSelectedUserIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const userIdsParam = useMemo(() => {
+    if (selectedUserIds.size === 0) return undefined;
+    return [...selectedUserIds].join(',');
+  }, [selectedUserIds]);
+
+  const { data, isLoading, error } = useQuery({
     queryKey: ['admin-coach-users'],
     queryFn: async (): Promise<AdminUsersResponse> => {
       const response = await axios.get('/api/admin/coach-users');
@@ -176,10 +189,10 @@ export function AdminPanel() {
   });
 
   const { data: timeSpentData } = useQuery({
-    queryKey: ['admin-coach-time-spent', ignoreSelf],
+    queryKey: ['admin-coach-time-spent', userIdsParam],
     queryFn: async (): Promise<TimeSpentDay[]> => {
       const response = await axios.get('/api/admin/coach-time-spent', {
-        params: ignoreSelf ? { exclude_user_id: user?.id } : {},
+        params: userIdsParam ? { user_ids: userIdsParam } : {},
       });
       return response.data.daily_stats;
     },
@@ -187,10 +200,10 @@ export function AdminPanel() {
   });
 
   const { data: apiUsage } = useQuery({
-    queryKey: ['admin-api-usage', ignoreSelf],
+    queryKey: ['admin-api-usage', userIdsParam],
     queryFn: async (): Promise<ApiUsageResponse> => {
       const response = await axios.get('/api/admin/api-usage', {
-        params: ignoreSelf ? { exclude_user_id: user?.id } : {},
+        params: userIdsParam ? { user_ids: userIdsParam } : {},
       });
       return response.data;
     },
@@ -205,14 +218,6 @@ export function AdminPanel() {
     },
     enabled: expandedUserId !== null,
   });
-
-  // Filter out self if checkbox is checked
-  const data = useMemo(() => {
-    if (!rawData) return rawData;
-    if (!ignoreSelf || !user) return rawData;
-    const filtered = rawData.users.filter(u => u.id !== user.id);
-    return { users: filtered, total: filtered.length };
-  }, [rawData, ignoreSelf, user]);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -287,20 +292,12 @@ export function AdminPanel() {
   return (
     <PanelShell title={t('coaches.navAdmin')}>
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-amber-500" />
-            <span className="text-slate-400 text-sm">{data?.total ?? 0} {(data?.total ?? 0) === 1 ? t('coaches.admin.user1') : t('coaches.admin.users')}</span>
-          </div>
-          <label className="flex items-center gap-2 cursor-pointer text-slate-400 text-sm">
-            <input
-              type="checkbox"
-              checked={ignoreSelf}
-              onChange={e => setIgnoreSelf(e.target.checked)}
-              className="rounded border-slate-600 bg-slate-700 text-green-600 focus:ring-green-500 focus:ring-offset-0 cursor-pointer"
-            />
-            {t('coaches.admin.ignoreSelf')}
-          </label>
+        <div className="flex items-center gap-2">
+          <Shield className="w-5 h-5 text-amber-500" />
+          <span className="text-slate-400 text-sm">{data?.total ?? 0} {(data?.total ?? 0) === 1 ? t('coaches.admin.user1') : t('coaches.admin.users')}</span>
+          {selectedUserIds.size > 0 && (
+            <span className="text-xs text-blue-400 ml-2">({selectedUserIds.size} selected)</span>
+          )}
         </div>
 
         {/* Users Table */}
@@ -311,6 +308,7 @@ export function AdminPanel() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
+                  <th className="w-8 px-2 py-2" />
                   <th className="px-3 py-2 text-left cursor-pointer hover:text-slate-200" onClick={() => handleSort('name')}>
                     {t('coaches.admin.user')} <SortIcon column="name" />
                   </th>
@@ -333,8 +331,17 @@ export function AdminPanel() {
                   <React.Fragment key={u.id}>
                     <tr
                       onClick={() => setExpandedUserId(prev => prev === u.id ? null : u.id)}
-                      className="hover:bg-slate-700/30 transition-colors cursor-pointer"
+                      className={`hover:bg-slate-700/30 transition-colors cursor-pointer ${selectedUserIds.has(u.id) ? 'bg-slate-700/20' : ''}`}
                     >
+                      <td className="px-2 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.has(u.id)}
+                          onChange={() => toggleUser(u.id)}
+                          onClick={e => e.stopPropagation()}
+                          className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
+                        />
+                      </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
                           {u.picture ? (
@@ -357,7 +364,7 @@ export function AdminPanel() {
                     </tr>
                     {expandedUserId === u.id && (
                       <tr>
-                        <td colSpan={5} className="px-3 py-3 bg-slate-800/50">
+                        <td colSpan={6} className="px-3 py-3 bg-slate-800/50">
                           <div className="flex items-center gap-2 mb-2">
                             <Image className="w-4 h-4 text-slate-400" />
                             <span className="text-sm text-slate-300 font-medium">Uploads</span>
