@@ -19,7 +19,7 @@ import { pieceImageUrl } from '../utils/pieces';
 import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
-/** Replay moves on a board and return copies with canonical SAN (correct +/# annotations). */
+/** Replay moves on a board and return copies with correct +/# annotations only (keeps original move text). */
 function normalizeMoves(moves: Move[]): Move[] {
   const chess = new Chess();
   return moves.map(m => {
@@ -29,7 +29,12 @@ function normalizeMoves(moves: Move[]): Move[] {
       if (!san) continue;
       try {
         const move = chess.move(san);
-        if (move) { out[color] = move.san; }
+        if (move) {
+          // Keep original text but fix check/checkmate suffix
+          const base = san.replace(/[+#]/g, '');
+          const suffix = move.san.endsWith('#') ? '#' : move.san.endsWith('+') ? '+' : '';
+          out[color] = base + suffix;
+        }
       } catch {
         // illegal move — keep original text
       }
@@ -605,7 +610,7 @@ export function ScoresheetReadPage() {
 
                     // Apply overrides on top of computed consensus, then normalize +/# annotations
                     const rawConsensusMoves = consensusOverrides || consensusMoves;
-                    const displayConsensusMoves = rawConsensusMoves;
+                    const displayConsensusMoves = normalizeMoves(rawConsensusMoves);
                     const handleConsensusEditSave = (_readIdx: number, confirmed: Move[], _corrKey: string) => {
                       // Re-validate with chess.js
                       const ch = new Chess();
