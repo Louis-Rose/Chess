@@ -566,24 +566,34 @@ export function ScoresheetReadPage() {
                         }
                       }
                     }
-                    // Remove disagreements where consensus is legal, backed by 2+ models, and all dissenters are illegal
+                    // Remove disagreements where consensus is confident:
+                    // - chosen has 2+ votes AND all dissenters are illegal, OR
+                    // - chosen has 2+ votes AND all losers have strictly more downstream illegals
                     for (const key of [...modelDisagreements]) {
-                      const [numStr, colorStr] = key.split('-');
-                      const idx = parseInt(numStr) - 1;
-                      const color = colorStr as 'white' | 'black';
                       const details = voteDetails?.[key];
-                      const cMove = consensusMoves[idx]?.[color];
-                      const cLegal = consensusMoves[idx]?.[`${color}_legal` as 'white_legal' | 'black_legal'];
-                      if (!details || !cMove || cLegal === false) continue;
+                      if (!details) continue;
                       const chosen = details.find((d: { chosen: boolean }) => d.chosen);
                       if (!chosen || chosen.votes < 2) continue;
+
+                      // Check if all losers have more downstream illegals
+                      const losersWorse = details.every((d: { chosen: boolean; downstreamIllegals: number }) => {
+                        if (d.chosen) return true;
+                        return d.downstreamIllegals > chosen.downstreamIllegals;
+                      });
+                      if (losersWorse) { modelDisagreements.delete(key); continue; }
+
+                      // Check if all dissenters are illegal moves
+                      const [numStr, colorStr] = key.split('-');
+                      const idx = parseInt(numStr) - 1;
+                      const cLegal = consensusMoves[idx]?.[`${colorStr}_legal` as 'white_legal' | 'black_legal'];
+                      if (cLegal === false) continue;
                       const ch = new Chess();
                       try {
                         for (let j = 0; j < idx; j++) {
                           if (consensusMoves[j]?.white) ch.move(consensusMoves[j].white);
                           if (consensusMoves[j]?.black) ch.move(consensusMoves[j].black!);
                         }
-                        if (color === 'black' && consensusMoves[idx]?.white) ch.move(consensusMoves[idx].white);
+                        if (colorStr === 'black' && consensusMoves[idx]?.white) ch.move(consensusMoves[idx].white);
                       } catch { continue; }
                       const allDissentersIllegal = details.every((d: { chosen: boolean; candidate: string }) => {
                         if (d.chosen) return true;
