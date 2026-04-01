@@ -16,10 +16,20 @@ MIME_TO_EXT = {'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp',
 
 
 def _save_upload(user_id, request_id, image_bytes, mime_type, feature='scoresheet'):
-    """Persist an uploaded image to disk under data/scoresheet_uploads/<user_id>/."""
+    """Persist an uploaded image to disk under data/scoresheet_uploads/<user_id>/. Skips duplicates by content hash."""
+    import hashlib
     try:
         user_dir = os.path.join(UPLOAD_DIR, str(user_id))
         os.makedirs(user_dir, exist_ok=True)
+        # Check for duplicate content
+        digest = hashlib.md5(image_bytes).hexdigest()[:16]
+        for existing in os.listdir(user_dir):
+            existing_path = os.path.join(user_dir, existing)
+            if os.path.isfile(existing_path) and os.path.getsize(existing_path) == len(image_bytes):
+                with open(existing_path, 'rb') as f:
+                    if hashlib.md5(f.read()).hexdigest()[:16] == digest:
+                        logger.info(f"[Upload] Duplicate skipped (matches {existing})")
+                        return
         ext = MIME_TO_EXT.get(mime_type, '.jpg')
         filename = f"{feature}_{request_id}{ext}"
         path = os.path.join(user_dir, filename)
