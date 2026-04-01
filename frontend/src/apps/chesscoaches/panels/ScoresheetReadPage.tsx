@@ -749,7 +749,7 @@ export function ScoresheetReadPage() {
                             })() : undefined} />
                             {/* Move detail panel — always visible, placeholder while processing */}
                             {allModelsFinished && allVerified ? (
-                              <div className="w-full flex items-center justify-center bg-slate-700/50 rounded-xl p-6 animate-[fadeIn_0.4s_ease-out]">
+                              <div className="w-full flex justify-center animate-[fadeIn_0.4s_ease-out]">
                                 <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
                                   <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
                                     <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
@@ -936,7 +936,7 @@ export function ScoresheetReadPage() {
                             </div>
                             {/* Mobile edit panel */}
                             {allModelsFinished && allVerified ? (
-                              <div className="w-full max-w-[400px] flex items-center justify-center bg-slate-700/50 rounded-xl p-6 animate-[fadeIn_0.4s_ease-out]">
+                              <div className="w-full max-w-[400px] flex justify-center animate-[fadeIn_0.4s_ease-out]">
                                 <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
                                   <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
                                     <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
