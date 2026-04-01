@@ -439,7 +439,34 @@ export function ScoresheetReadPage() {
                           if (candidates.length === 1) {
                             (move as any)[color] = candidates[0][0];
                             details[detailKey] = [{ candidate: candidates[0][0], votes: candidates[0][1], downstreamIllegals: 0, chosen: true, models: votersByCandidate[candidates[0][0]] || [], confidenceByModel }];
-                            try { passChess.move(candidates[0][0]); } catch { /* validation will catch */ }
+                            try { passChess.move(candidates[0][0]); } catch {
+                              // If ambiguous, pick disambiguation with fewest downstream illegals
+                              const pm = candidates[0][0].match(/^([KQRBN])/);
+                              const dm = candidates[0][0].match(/([a-h][1-8])$/);
+                              if (pm && dm) {
+                                const ambigMoves = passChess.moves().filter(m => m.startsWith(pm[1]) && m.includes(dm[1]));
+                                if (ambigMoves.length > 1) {
+                                  let bestAm = ambigMoves[0];
+                                  let bestAmIll = Infinity;
+                                  for (const am of ambigMoves) {
+                                    const simA = new Chess(passChess.fen());
+                                    let ill = 0;
+                                    try { simA.move(am); } catch { continue; }
+                                    for (let j = i + 1; j < maxLen; j++) {
+                                      for (const c of ['white', 'black'] as const) {
+                                        const s = downstreamRef[j]?.[c];
+                                        if (!s) continue;
+                                        try { simA.move(s); } catch { ill++; }
+                                      }
+                                    }
+                                    if (ill < bestAmIll) { bestAmIll = ill; bestAm = am; }
+                                  }
+                                  try { passChess.move(bestAm); } catch { /* give up */ }
+                                } else if (ambigMoves.length === 1) {
+                                  try { passChess.move(ambigMoves[0]); } catch { /* give up */ }
+                                }
+                              }
+                            }
                           } else {
                             let bestCandidate = candidates[0][0];
                             let bestIllegals = Infinity;
@@ -454,8 +481,28 @@ export function ScoresheetReadPage() {
                                 // Check if it's ambiguous (multiple legal moves match piece+destination)
                                 const pieceM = candidate.match(/^([KQRBN])/);
                                 const destM = candidate.match(/([a-h][1-8])$/);
-                                const isAmbiguous = pieceM && destM && simChess.moves().filter(m => m.startsWith(pieceM[1]) && m.endsWith(destM[1])).length > 1;
-                                if (isAmbiguous) { skipDownstream = true; } else { illegals += 100; }
+                                const ambigMoves = pieceM && destM ? simChess.moves().filter(m => m.startsWith(pieceM[1]) && m.includes(destM[1])) : [];
+                                if (ambigMoves.length > 1) {
+                                  // Ambiguous — pick disambiguation with fewest downstream illegals
+                                  let bestAmbig = ambigMoves[0];
+                                  let bestAmbigIll = Infinity;
+                                  for (const am of ambigMoves) {
+                                    const simA = new Chess(simChess.fen());
+                                    let ill = 0;
+                                    try { simA.move(am); } catch { ill += 100; }
+                                    if (ill === 0) {
+                                      for (let j = i + 1; j < maxLen; j++) {
+                                        for (const c of ['white', 'black'] as const) {
+                                          const s = downstreamRef[j]?.[c];
+                                          if (!s) continue;
+                                          try { simA.move(s); } catch { ill++; }
+                                        }
+                                      }
+                                    }
+                                    if (ill < bestAmbigIll) { bestAmbigIll = ill; bestAmbig = am; }
+                                  }
+                                  try { simChess.move(bestAmbig); } catch { skipDownstream = true; }
+                                } else { illegals += 100; }
                               }
 
                               if (illegals === 0 && !skipDownstream) {
@@ -497,10 +544,22 @@ export function ScoresheetReadPage() {
                               details[detailKey] = dets;
                               (move as any)[color] = bestCandidate;
                               try { passChess.move(bestCandidate); } catch {
-                                const fen = passChess.fen().split(' ');
-                                fen[1] = fen[1] === 'w' ? 'b' : 'w';
-                                fen[3] = '-'; // clear en-passant square to keep FEN valid
-                                passChess.load(fen.join(' '));
+                                // If ambiguous, pick best disambiguation to advance board
+                                const pm = bestCandidate.match(/^([KQRBN])/);
+                                const dm = bestCandidate.match(/([a-h][1-8])$/);
+                                let advanced = false;
+                                if (pm && dm) {
+                                  const ambigMoves = passChess.moves().filter(m => m.startsWith(pm[1]) && m.includes(dm[1]));
+                                  if (ambigMoves.length > 0) {
+                                    try { passChess.move(ambigMoves[0]); advanced = true; } catch { /* */ }
+                                  }
+                                }
+                                if (!advanced) {
+                                  const fen = passChess.fen().split(' ');
+                                  fen[1] = fen[1] === 'w' ? 'b' : 'w';
+                                  fen[3] = '-';
+                                  passChess.load(fen.join(' '));
+                                }
                               }
                             }
                           }
