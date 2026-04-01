@@ -294,10 +294,8 @@ export function ScoresheetReadPage() {
                   const blob = await res.blob();
                   const file = new File([blob], 'sample_scoresheet.jpeg', { type: 'image/jpeg' });
                   const { preview: dataUrl } = await compressImage(file);
-                  setCropSrc(dataUrl);
-                  setCropFileName(file.name);
-                  setCrop({ unit: '%', x: 0, y: 0, width: 100, height: 100 });
-                  setCompletedCrop(undefined);
+                  scoresheetSetImage(file, dataUrl, file.name);
+                  setAutoRun(true);
                 }}
                 icon={<FileText className="w-10 h-10 text-slate-400" />}
                 title={t('coaches.trySample')}
