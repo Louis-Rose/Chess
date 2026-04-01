@@ -1408,15 +1408,15 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         if (newP !== p) {
           playSoundForPly(newP);
           emitPly(newP);
-          // When advancing past the arrow move, set it as the picked move
-          if (showArrow && newP === p + 1 && entries[p]?.san && onDragSetMove) {
+          // When advancing past the target arrow move, set it as the picked move
+          if (showArrow && targetPly !== undefined && p === targetPly && newP === p + 1 && entries[p]?.san && onDragSetMove) {
             onDragSetMove(entries[p].san!);
           }
         }
         return newP;
       });
     }
-  }, [branch, branchPly, inBranch, maxPly, playSoundForPly, emitPly, onDragSetMove, showArrow, entries]);
+  }, [branch, branchPly, inBranch, maxPly, playSoundForPly, emitPly, onDragSetMove, showArrow, entries, targetPly]);
 
   const goFirst = useCallback(() => {
     exitBranch(); setPly(p => { if (p !== 0) { playSoundForPly(p); emitPly(0); } return 0; });
