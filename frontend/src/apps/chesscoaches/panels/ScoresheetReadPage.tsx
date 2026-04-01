@@ -1970,7 +1970,6 @@ function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }
   hasIllegalMoves?: boolean;
   onIllegalClick?: () => void;
 }) {
-  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const handleClick = async () => {
     if (hasIllegalMoves) { onIllegalClick?.(); return; }
