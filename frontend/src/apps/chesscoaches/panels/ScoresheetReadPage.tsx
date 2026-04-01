@@ -56,6 +56,7 @@ export function ScoresheetReadPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mobileEditRef = useRef<HTMLDivElement>(null);
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
     scoresheetClear,
@@ -107,6 +108,16 @@ export function ScoresheetReadPage() {
       return s;
     });
   }, []);
+
+  // Scroll to mobile edit panel when first move is selected for review
+  const hasScrolledToEdit = useRef(false);
+  useEffect(() => {
+    if (voteState && mobileEditRef.current && !hasScrolledToEdit.current) {
+      hasScrolledToEdit.current = true;
+      setTimeout(() => mobileEditRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
+    }
+    if (!voteState) hasScrolledToEdit.current = false;
+  }, [voteState]);
 
   // ── Live elapsed timer for status table ──
   const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
@@ -922,6 +933,7 @@ export function ScoresheetReadPage() {
                               } : undefined} />
                             </div>
                             {/* Mobile edit panel */}
+                            <div ref={mobileEditRef} />
                             {allModelsFinished && allVerified ? (
                               <div className="w-full max-w-[400px] flex items-center justify-center bg-slate-700/50 rounded-xl p-6 animate-[fadeIn_0.4s_ease-out]">
                                 <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
