@@ -725,7 +725,6 @@ export function ScoresheetReadPage() {
                             }
                           } else {
                             // Non-confirmed move — re-pick from model votes using current position
-                            const ply = (cm.number - 1) * 2 + (col === 'black' ? 1 : 0);
                             const modelVals = allModelMoves.map(mv => mv[cm.number - 1]?.[col]).filter(Boolean) as string[];
                             if (modelVals.length > 0) {
                               // Group by normalized form, pick best original
@@ -737,8 +736,6 @@ export function ScoresheetReadPage() {
                                 votes[norm].originals[v] = (votes[norm].originals[v] || 0) + 1;
                               }
                               const sorted = Object.entries(votes).sort((a, b) => b[1].count - a[1].count);
-                              // Pick the candidate that works best from current position
-                              let bestMove = sorted[0][0];
                               let bestOrig = Object.entries(sorted[0][1].originals).sort((a, b) => b[1] - a[1])[0][0];
                               if (sorted.length > 1) {
                                 // Test each candidate from current position
