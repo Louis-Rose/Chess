@@ -25,6 +25,7 @@ export function ScoresheetPanel() {
               <h2 className="text-xl font-bold text-slate-100 uppercase tracking-wider mb-3 text-center">
                 {t(titleKey)}
               </h2>
+              <div className="border-t border-slate-700 w-full mb-6" />
               <p className="text-slate-200 text-lg mb-6">{t('coaches.homePrompt')}</p>
               <div className="flex justify-center w-full">
                 {enabledItems.map(({ path, labelKey, icon: Icon, bgColor }) => (
