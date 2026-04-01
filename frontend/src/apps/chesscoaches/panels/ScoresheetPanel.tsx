@@ -21,16 +21,14 @@ export function ScoresheetPanel() {
         return (
           <div key={titleKey}>
             {idx > 0 && <div className="border-t border-slate-700 my-6" />}
-            <div className="max-w-4xl mx-[5%] md:mx-auto">
-              <h2 className="text-xl font-bold text-slate-100 uppercase tracking-wider mb-3 text-center">
-                {t(titleKey)}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {enabledItems.map(({ path, labelKey, icon: Icon, hoverColor, bgColor }) => (
+            <div className="max-w-4xl mx-[5%] md:mx-auto flex flex-col items-center">
+              <p className="text-slate-400 text-sm mb-6">{t('coaches.homePrompt')}</p>
+              <div className="flex justify-center w-full">
+                {enabledItems.map(({ path, labelKey, icon: Icon, bgColor }) => (
                   <div
                     key={path}
                     onClick={() => navigate(path)}
-                    className={`relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[120px] flex items-center justify-center ${hoverColor} transition-colors cursor-pointer`}
+                    className="relative bg-slate-800 border-2 border-blue-500/60 rounded-xl p-5 w-full max-w-sm h-[120px] flex items-center justify-center hover:border-blue-400 hover:bg-slate-750 transition-colors cursor-pointer shadow-lg shadow-blue-500/10"
                   >
                     <div className={`absolute top-5 left-5 w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center`}>
                       <Icon className="w-5 h-5 text-white" />
@@ -38,7 +36,7 @@ export function ScoresheetPanel() {
                     <h3 className="text-lg font-bold text-slate-100 select-text text-center px-12 py-4">
                       {t(labelKey)}
                     </h3>
-                    <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-500" />
+                    <ChevronRight className="absolute top-3 right-3 w-5 h-5 text-slate-400" />
                   </div>
                 ))}
               </div>
