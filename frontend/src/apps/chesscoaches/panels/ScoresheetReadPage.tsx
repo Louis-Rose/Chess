@@ -344,7 +344,7 @@ export function ScoresheetReadPage() {
 
                 // Derive sheet column layout from Azure grid data (for image highlight mapping)
                 const azureColCount = gridData?.col_count || 0;
-                const sheetColumns = azureColCount >= 6 ? 2 : 1;
+                const sheetColumns = azureColCount >= 4 ? 2 : 1;
                 const rowsPerColumn = gridData?.row_count ? Math.ceil((gridData.row_count - (gridData.first_move_row || 0)) / 1) : null;
 
                 // Compute cross-model disagreements
