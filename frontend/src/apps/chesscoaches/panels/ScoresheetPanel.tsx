@@ -19,14 +19,14 @@ export function ScoresheetPanel() {
         if (enabledItems.length === 0) return null;
         return (
           <div key={titleKey}>
+            <div className="border-t border-slate-700" />
             <div className="max-w-4xl mx-[5%] md:mx-auto flex flex-col items-center">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-px bg-slate-600" />
-                <h2 className="text-xl font-bold text-slate-100 uppercase tracking-wider text-center">
-                  {t(titleKey)}
-                </h2>
-                <div className="w-16 h-px bg-slate-600" />
-              </div>
+              <h2 className="text-xl font-bold text-slate-100 uppercase tracking-wider text-center my-3">
+                {t(titleKey)}
+              </h2>
+            </div>
+            <div className="border-t border-slate-700 mb-6" />
+            <div className="max-w-4xl mx-[5%] md:mx-auto flex flex-col items-center">
               <p className="text-slate-200 text-lg mb-6">{t('coaches.homePrompt')}</p>
               <div className="flex justify-center w-full">
                 {enabledItems.map(({ path, labelKey, icon: Icon, bgColor }) => (
