@@ -843,7 +843,7 @@ export function ScoresheetReadPage() {
                             </div>
                           </div>
                           {/* Right: board */}
-                          <div className="flex flex-col items-start gap-3 max-w-[400px] self-start" onClick={e => e.stopPropagation()}>
+                          <div className="flex flex-col items-center justify-center gap-3 max-w-[400px]" onClick={e => e.stopPropagation()}>
                             <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                               if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
                               voteState.setEditValue(san);
