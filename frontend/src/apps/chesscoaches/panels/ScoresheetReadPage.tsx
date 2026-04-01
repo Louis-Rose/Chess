@@ -784,7 +784,14 @@ export function ScoresheetReadPage() {
                     };
                     const handleConsensusBoardPly = (ply: number) => {
                       setModelBoardPlys(prev => ({ ...prev, [consensusId]: { ply, source: 'nav' as const } }));
-                      setConsensusPreviewFen(null); // Clear drag preview when navigating
+                      setConsensusPreviewFen(null);
+                      setUserPickedMove(null);
+                      // Update edit panel to match current ply
+                      if (ply > 0 && voteState) {
+                        const moveIdx = Math.floor((ply - 1) / 2);
+                        const color = ply % 2 === 1 ? 'white' : 'black';
+                        voteState.goToMove(moveIdx + 1, color as 'white' | 'black', ply);
+                      }
                     };
                     const deselectConsensus = () => {
                       setModelBoardPlys(p => { const rest = { ...p }; delete rest[consensusId]; return rest; });
