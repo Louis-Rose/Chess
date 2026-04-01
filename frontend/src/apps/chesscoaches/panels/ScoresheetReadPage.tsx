@@ -645,6 +645,7 @@ export function ScoresheetReadPage() {
                     };
                     // Compute unresolved moves for review bar
                     const hasIssues = allModelsFinished && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false));
+                    const hasConfirmedMoves = displayConsensusMoves.some(m => (m as any).white_confirmed || (m as any).black_confirmed);
                     const unresolvedPlies: number[] = [];
                     if (allModelsFinished) {
                       displayConsensusMoves.forEach((m, idx) => {
@@ -654,7 +655,7 @@ export function ScoresheetReadPage() {
                         if (dBlack && m.black && !(m as any).black_confirmed) unresolvedPlies.push(idx * 2 + 2);
                       });
                     }
-                    const allVerified = hasIssues && unresolvedPlies.length === 0;
+                    const allVerified = (hasIssues || hasConfirmedMoves) && unresolvedPlies.length === 0;
                     const unresolvedMovesList = unresolvedPlies.map(ply => {
                       const moveIdx = Math.floor((ply - 1) / 2);
                       const color = ply % 2 === 1 ? 'white' : 'black';
