@@ -1,12 +1,18 @@
 // Root app with routing
-// TODO: Add analytics tracking for route changes
 
-import { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import posthog from 'posthog-js';
 
 const ChessCoachesApp = lazy(() => import('./apps/chesscoaches/ChessCoachesApp').then(m => ({ default: m.ChessCoachesApp })));
 
 function App() {
+  const location = useLocation();
+
+  useEffect(() => {
+    posthog.capture('$pageview');
+  }, [location.pathname]);
+
   return (
     <Suspense fallback={<div className="h-dvh bg-slate-800" />}>
       <Routes>

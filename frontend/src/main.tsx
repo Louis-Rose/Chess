@@ -21,10 +21,7 @@ if (new URLSearchParams(window.location.search).has('no_track')) {
   posthog.opt_out_capturing()
 }
 
-// TODO: re-enable PostHog exclusion after testing
-// const isPostHogExcluded = localStorage.getItem('posthog-excluded') === 'true'
-localStorage.removeItem('posthog-excluded')
-const isPostHogExcluded = false
+const isPostHogExcluded = localStorage.getItem('posthog-excluded') === 'true'
 
 // PostHog config
 // Note: Minimum session recording duration is configured in PostHog dashboard (Project Settings > Session Replay)
@@ -34,6 +31,8 @@ const posthogOptions = {
   person_profiles: 'identified_only' as const,
   session_idle_timeout_seconds: 600,
   enable_recording_console_log: false,
+  capture_pageview: false, // We capture manually on SPA route changes
+  capture_pageleave: true,
   session_recording: {
     maskAllInputs: false,
     maskTextSelector: '',
