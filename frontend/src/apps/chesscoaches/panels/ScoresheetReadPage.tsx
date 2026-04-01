@@ -1994,7 +1994,7 @@ function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }
       className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-sm text-slate-200 hover:bg-slate-600/40 transition-colors flex items-center justify-center gap-1.5"
     >
       {copied ? (
-        <><ExternalLink className="w-3.5 h-3.5 text-emerald-400" /> PGN copied — tap again to open Chess.com</>
+        <><ExternalLink className="w-3.5 h-3.5 text-emerald-400" /> PGN copied — click again to open Chess.com</>
       ) : (
         <><ExternalLink className="w-3.5 h-3.5" /> Copy-Paste into Chess.com app</>
       )}
