@@ -293,7 +293,7 @@ export function ScoresheetReadPage() {
                   const res = await fetch('/sample_scoresheet.jpeg');
                   const blob = await res.blob();
                   const file = new File([blob], 'sample_scoresheet.jpeg', { type: 'image/jpeg' });
-                  const { preview: dataUrl } = await compressImage(file);
+                  const dataUrl = URL.createObjectURL(blob);
                   scoresheetSetImage(file, dataUrl, file.name);
                   setAutoRun(true);
                 }}
