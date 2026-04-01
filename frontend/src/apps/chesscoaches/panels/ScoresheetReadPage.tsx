@@ -933,7 +933,6 @@ export function ScoresheetReadPage() {
                               } : undefined} />
                             </div>
                             {/* Mobile edit panel */}
-                            <div ref={mobileEditRef} />
                             {allModelsFinished && allVerified ? (
                               <div className="w-full max-w-[400px] flex items-center justify-center bg-slate-700/50 rounded-xl p-6 animate-[fadeIn_0.4s_ease-out]">
                                 <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
@@ -1009,6 +1008,7 @@ export function ScoresheetReadPage() {
                                 </div>
                               );
                             })()}
+                            <div ref={mobileEditRef} />
                           </>)}
                         </div>
                     </>);
