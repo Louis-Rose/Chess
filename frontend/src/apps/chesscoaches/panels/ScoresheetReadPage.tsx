@@ -1981,8 +1981,10 @@ function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }
     const pgn = `[White "${meta?.white || '?'}"]\n[Black "${meta?.black || '?'}"]\n[Result "${meta?.result || '*'}"]\n[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]\n\n${moveText} ${meta?.result || '*'}`;
     try { await navigator.clipboard.writeText(pgn); } catch { /* fallback: still open */ }
     setCopied(true);
-    setTimeout(() => setCopied(false), 3000);
-    window.open(`https://www.chess.com/analysis?pgn=${encodeURIComponent(pgn)}`, '_blank');
+    setTimeout(() => {
+      window.open(`https://www.chess.com/analysis?pgn=${encodeURIComponent(pgn)}`, '_blank');
+    }, 1500);
+    setTimeout(() => setCopied(false), 4000);
   };
   return (
     <button
