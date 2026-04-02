@@ -9,6 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
+import { NAV_SECTIONS } from '../ChessCoachesLayout';
 
 interface AdminUser {
   id: number;
@@ -158,15 +159,12 @@ const FEATURE_LABELS: Record<string, string> = {
   diagram: 'Diagram \u2192 FEN',
 };
 
-// Coaches app features (matches frontend routes and backend KNOWN_PAGES)
-const COACH_FEATURES: { id: string; label: string }[] = [
-  { id: 'scoresheets', label: 'Scoresheets' },
-  { id: 'diagram', label: 'Diagram' },
-  { id: 'mistakes', label: 'Mistake Finder' },
-  { id: 'students', label: 'Students' },
-  { id: 'calendar', label: 'Calendar' },
-  { id: 'payments', label: 'Payments' },
-];
+// Enabled features — derived from NAV_SECTIONS with same filter as sidebar
+const ENABLED_FEATURE_FILTER = (path: string) => path === '/scoresheets';
+const COACH_FEATURES: { id: string; labelKey: string }[] = NAV_SECTIONS
+  .flatMap(s => s.items)
+  .filter(({ path }) => ENABLED_FEATURE_FILTER(path))
+  .map(({ path, labelKey }) => ({ id: path.slice(1), labelKey }));
 
 export function AdminPanel() {
   const { user, isLoading: authLoading } = useAuth();
@@ -538,7 +536,7 @@ export function AdminPanel() {
                       className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
                     />
                   </td>
-                  <td className="px-3 py-2 text-slate-200">{page.label}</td>
+                  <td className="px-3 py-2 text-slate-200">{t(page.labelKey)}</td>
                 </tr>
               ))}
             </tbody>}
