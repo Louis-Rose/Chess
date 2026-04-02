@@ -355,7 +355,7 @@ export function AdminPanel() {
                 >
                   <th className="w-8 px-2 py-2">
                     <div className="flex items-center justify-center gap-1">
-                      {usersCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
+                      {usersCollapsed ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronUp className="w-5 h-5 text-slate-400" />}
                     </div>
                   </th>
                   <th className="px-3 py-2 text-left text-sm normal-case tracking-normal text-slate-300" colSpan={usersCollapsed ? 6 : 1}>
@@ -501,7 +501,7 @@ export function AdminPanel() {
                 onClick={() => setFeaturesCollapsed(c => !c)}
               >
                 <th className="w-8 px-2 py-2">
-                  {featuresCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400 mx-auto" /> : <ChevronUp className="w-4 h-4 text-slate-400 mx-auto" />}
+                  {featuresCollapsed ? <ChevronDown className="w-5 h-5 text-slate-400 mx-auto" /> : <ChevronUp className="w-5 h-5 text-slate-400 mx-auto" />}
                 </th>
                 <th className="px-3 py-2 text-left text-sm normal-case tracking-normal text-slate-300" colSpan={featuresCollapsed ? 1 : 1}>
                   <div className="flex items-center gap-2">
@@ -519,7 +519,7 @@ export function AdminPanel() {
                       onClick={e => e.stopPropagation()}
                       className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
                     />}
-                    <span>{COACH_FEATURES.length} features</span>
+                    <span>{COACH_FEATURES.length} {COACH_FEATURES.length === 1 ? 'feature' : 'features'}</span>
                     {selectedFeatures.size > 0 && <span className="text-blue-400">({selectedFeatures.size} selected)</span>}
                   </div>
                 </th>
@@ -545,17 +545,17 @@ export function AdminPanel() {
 
         {/* Time Spent Chart */}
         {chartData.length > 0 && (
-          <div className="bg-slate-700/30 rounded-lg p-4">
+          <div className="rounded-lg border border-slate-700 overflow-hidden">
             <div
-              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 cursor-pointer hover:bg-slate-700/70 transition-colors"
               onClick={() => setChartCollapsed(c => !c)}
             >
-              {chartCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
+              {chartCollapsed ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronUp className="w-5 h-5 text-slate-400" />}
               <Clock className="w-4 h-4 text-slate-400" />
               <h3 className="text-sm font-medium text-slate-300">{t('coaches.admin.dailyTimeSpent')}</h3>
             </div>
             {!chartCollapsed && (
-              <div className="mt-3">
+              <div className="p-4">
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
