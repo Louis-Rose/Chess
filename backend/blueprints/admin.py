@@ -499,7 +499,7 @@ def get_api_usage():
             FROM api_usage a
             LEFT JOIN users u ON a.user_id = u.id
             WHERE a.request_id IS NOT NULL {user_filter.replace('user_id', 'a.user_id')}
-            GROUP BY a.request_id, a.feature
+            GROUP BY a.request_id, a.feature, a.user_id, u.name, u.picture
             ORDER BY MIN(a.created_at) DESC
             LIMIT 100
         ''', user_params)
