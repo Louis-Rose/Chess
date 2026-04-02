@@ -320,8 +320,8 @@ export function AdminPanel() {
                       className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
                     />
                   </th>
-                  <th className="px-3 py-2 text-left" onClick={e => { e.stopPropagation(); handleSort('name'); }}>
-                    <span className="cursor-pointer hover:text-slate-200">
+                  <th className="px-3 py-2 text-left">
+                    <span className="hover:text-slate-200">
                       {data?.total ?? 0} {(data?.total ?? 0) === 1 ? t('coaches.admin.user1') : t('coaches.admin.users')}
                       {selectedUserIds.size > 0 && <span className="text-blue-400 ml-2 normal-case">({selectedUserIds.size} selected)</span>}
                     </span>
