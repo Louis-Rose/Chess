@@ -166,6 +166,7 @@ export function AdminPanel() {
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_seconds');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [usersCollapsed, setUsersCollapsed] = useState(false);
 
   const toggleUser = (id: number) => {
     setSelectedUserIds(prev => {
@@ -293,14 +294,6 @@ export function AdminPanel() {
   return (
     <PanelShell title={t('coaches.navAdmin')}>
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-amber-500" />
-          <span className="text-slate-400 text-sm">{data?.total ?? 0} {(data?.total ?? 0) === 1 ? t('coaches.admin.user1') : t('coaches.admin.users')}</span>
-          {selectedUserIds.size > 0 && (
-            <span className="text-xs text-blue-400 ml-2">({selectedUserIds.size} selected)</span>
-          )}
-        </div>
-
         {/* Users Table */}
         {error ? (
           <p className="text-red-400 text-center py-8">{t('coaches.admin.failedLoad')}</p>
@@ -308,8 +301,11 @@ export function AdminPanel() {
           <div className="overflow-x-auto rounded-lg border border-slate-700">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
-                  <th className="w-8 px-2 py-2">
+                <tr
+                  className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:bg-slate-700/70 transition-colors"
+                  onClick={() => setUsersCollapsed(c => !c)}
+                >
+                  <th className="w-8 px-2 py-2" onClick={e => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={sortedUsers.length > 0 && selectedUserIds.size === sortedUsers.length}
@@ -324,24 +320,28 @@ export function AdminPanel() {
                       className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
                     />
                   </th>
-                  <th className="px-3 py-2 text-left cursor-pointer hover:text-slate-200" onClick={() => handleSort('name')}>
-                    {t('coaches.admin.user')} <SortIcon column="name" />
+                  <th className="px-3 py-2 text-left" onClick={e => { e.stopPropagation(); handleSort('name'); }}>
+                    <span className="cursor-pointer hover:text-slate-200">
+                      {data?.total ?? 0} {(data?.total ?? 0) === 1 ? t('coaches.admin.user1') : t('coaches.admin.users')}
+                      {selectedUserIds.size > 0 && <span className="text-blue-400 ml-2 normal-case">({selectedUserIds.size} selected)</span>}
+                    </span>
+                    <span className="ml-2">{usersCollapsed ? <ChevronDown className="w-3 h-3 inline" /> : <ChevronUp className="w-3 h-3 inline" />}</span>
                   </th>
-                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('created_at')}>
+                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('created_at'); }}>
                     {t('coaches.admin.joined')} <SortIcon column="created_at" />
                   </th>
-                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('last_active')}>
+                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('last_active'); }}>
                     {t('coaches.admin.lastActive')} <SortIcon column="last_active" />
                   </th>
-                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('session_count')}>
+                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('session_count'); }}>
                     {t('coaches.admin.sessions')} <SortIcon column="session_count" />
                   </th>
-                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={() => handleSort('total_seconds')}>
+                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('total_seconds'); }}>
                     {t('coaches.admin.time')} <SortIcon column="total_seconds" />
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700/50">
+              {!usersCollapsed && <tbody className="divide-y divide-slate-700/50">
                 {sortedUsers.map(u => (
                   <React.Fragment key={u.id}>
                     <tr
@@ -430,7 +430,7 @@ export function AdminPanel() {
                     )}
                   </React.Fragment>
                 ))}
-              </tbody>
+              </tbody>}
             </table>
           </div>
         )}
