@@ -320,24 +320,24 @@ export function AdminPanel() {
                       className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
                     />
                   </th>
-                  <th className="px-3 py-2 text-left">
-                    <span className="hover:text-slate-200">
-                      {data?.total ?? 0} {(data?.total ?? 0) === 1 ? t('coaches.admin.user1') : t('coaches.admin.users')}
-                      {selectedUserIds.size > 0 && <span className="text-blue-400 ml-2 normal-case">({selectedUserIds.size} selected)</span>}
-                    </span>
-                    <span className="ml-2">{usersCollapsed ? <ChevronDown className="w-3 h-3 inline" /> : <ChevronUp className="w-3 h-3 inline" />}</span>
+                  <th className="px-3 py-2 text-left text-sm normal-case tracking-normal text-slate-300" colSpan={usersCollapsed ? 5 : 1}>
+                    {data?.total ?? 0} {(data?.total ?? 0) === 1 ? t('coaches.admin.user1') : t('coaches.admin.users')}
+                    {selectedUserIds.size > 0 && <span className="text-blue-400 ml-2">({selectedUserIds.size} selected)</span>}
                   </th>
-                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('created_at'); }}>
-                    {t('coaches.admin.joined')} <SortIcon column="created_at" />
-                  </th>
-                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('last_active'); }}>
-                    {t('coaches.admin.lastActive')} <SortIcon column="last_active" />
-                  </th>
-                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('session_count'); }}>
-                    {t('coaches.admin.sessions')} <SortIcon column="session_count" />
-                  </th>
-                  <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('total_seconds'); }}>
-                    {t('coaches.admin.time')} <SortIcon column="total_seconds" />
+                  {!usersCollapsed && <>
+                    <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('created_at'); }}>
+                      {t('coaches.admin.joined')} <SortIcon column="created_at" />
+                    </th>
+                    <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('last_active'); }}>
+                      {t('coaches.admin.lastActive')} <SortIcon column="last_active" />
+                    </th>
+                    <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('session_count'); }}>
+                      {t('coaches.admin.sessions')} <SortIcon column="session_count" />
+                    </th>
+                  </>}
+                  <th className="px-3 py-2 text-right">
+                    {!usersCollapsed && <span className="cursor-pointer hover:text-slate-200 mr-2" onClick={e => { e.stopPropagation(); handleSort('total_seconds'); }}>{t('coaches.admin.time')} <SortIcon column="total_seconds" /></span>}
+                    {usersCollapsed ? <ChevronDown className="w-4 h-4 inline text-slate-400" /> : <ChevronUp className="w-4 h-4 inline text-slate-400" />}
                   </th>
                 </tr>
               </thead>
