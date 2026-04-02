@@ -317,24 +317,8 @@ export function AdminPanel() {
     return result;
   }, [timeSpentData, language]);
 
-  // Filter API usage data by selected features (only API feature keys, not page keys)
-  const filteredApiUsage = useMemo(() => {
-    if (!apiUsage) return undefined;
-    const apiFeatureKeys = new Set(apiUsage.by_feature.map(f => f.feature));
-    const selectedApiFeatures = [...selectedFeatures].filter(f => apiFeatureKeys.has(f));
-    // All API features selected (or all features selected) = no filter
-    if (selectedApiFeatures.length === apiFeatureKeys.size) return apiUsage;
-    const selected = new Set(selectedApiFeatures);
-    return {
-      ...apiUsage,
-      by_feature: apiUsage.by_feature.filter(f => selected.has(f.feature)),
-      by_model: apiUsage.by_model,
-      invocations: apiUsage.invocations.filter(i => selected.has(i.feature)),
-      total_cost_usd: apiUsage.by_feature
-        .filter(f => selected.has(f.feature))
-        .reduce((sum, f) => sum + f.cost_usd, 0),
-    };
-  }, [apiUsage, selectedFeatures]);
+  // API usage is filtered by user selection only (not page/feature selection)
+  const filteredApiUsage = apiUsage;
 
   if (!authLoading && (!user || !user.is_admin)) {
     return <Navigate to="/" replace />;
