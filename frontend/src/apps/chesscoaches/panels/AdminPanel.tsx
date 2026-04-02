@@ -306,24 +306,30 @@ export function AdminPanel() {
                   className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:bg-slate-700/70 transition-colors"
                   onClick={() => setUsersCollapsed(c => !c)}
                 >
-                  <th className="w-8 px-2 py-2" onClick={e => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      checked={sortedUsers.length > 0 && selectedUserIds.size === sortedUsers.length}
-                      ref={el => { if (el) el.indeterminate = selectedUserIds.size > 0 && selectedUserIds.size < sortedUsers.length; }}
-                      onChange={() => {
-                        if (selectedUserIds.size === sortedUsers.length) {
-                          setSelectedUserIds(new Set());
-                        } else {
-                          setSelectedUserIds(new Set(sortedUsers.map(u => u.id)));
-                        }
-                      }}
-                      className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
-                    />
+                  <th className="w-8 px-2 py-2">
+                    <div className="flex items-center justify-center gap-1">
+                      {usersCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
+                    </div>
                   </th>
                   <th className="px-3 py-2 text-left text-sm normal-case tracking-normal text-slate-300" colSpan={usersCollapsed ? 5 : 1}>
-                    {data?.total ?? 0} {(data?.total ?? 0) === 1 ? t('coaches.admin.user1') : t('coaches.admin.users')}
-                    {selectedUserIds.size > 0 && <span className="text-blue-400 ml-2">({selectedUserIds.size} selected)</span>}
+                    <div className="flex items-center gap-2">
+                      {!usersCollapsed && <input
+                        type="checkbox"
+                        checked={sortedUsers.length > 0 && selectedUserIds.size === sortedUsers.length}
+                        ref={el => { if (el) el.indeterminate = selectedUserIds.size > 0 && selectedUserIds.size < sortedUsers.length; }}
+                        onChange={() => {
+                          if (selectedUserIds.size === sortedUsers.length) {
+                            setSelectedUserIds(new Set());
+                          } else {
+                            setSelectedUserIds(new Set(sortedUsers.map(u => u.id)));
+                          }
+                        }}
+                        onClick={e => e.stopPropagation()}
+                        className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
+                      />}
+                      <span>{data?.total ?? 0} {(data?.total ?? 0) === 1 ? t('coaches.admin.user1') : t('coaches.admin.users')}</span>
+                      {selectedUserIds.size > 0 && <span className="text-blue-400">({selectedUserIds.size} selected)</span>}
+                    </div>
                   </th>
                   {!usersCollapsed && <>
                     <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('created_at'); }}>
@@ -335,11 +341,10 @@ export function AdminPanel() {
                     <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('session_count'); }}>
                       {t('coaches.admin.sessions')} <SortIcon column="session_count" />
                     </th>
+                    <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('total_seconds'); }}>
+                      {t('coaches.admin.time')} <SortIcon column="total_seconds" />
+                    </th>
                   </>}
-                  <th className="px-3 py-2 text-right">
-                    {!usersCollapsed && <span className="cursor-pointer hover:text-slate-200 mr-2" onClick={e => { e.stopPropagation(); handleSort('total_seconds'); }}>{t('coaches.admin.time')} <SortIcon column="total_seconds" /></span>}
-                    {usersCollapsed ? <ChevronDown className="w-4 h-4 inline text-slate-400" /> : <ChevronUp className="w-4 h-4 inline text-slate-400" />}
-                  </th>
                 </tr>
               </thead>
               {!usersCollapsed && <tbody className="divide-y divide-slate-700/50">
@@ -440,14 +445,12 @@ export function AdminPanel() {
         {chartData.length > 0 && (
           <div className="bg-slate-700/30 rounded-lg p-4">
             <div
-              className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => setChartCollapsed(c => !c)}
             >
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-slate-400" />
-                <h3 className="text-sm font-medium text-slate-300">{t('coaches.admin.dailyTimeSpent')}</h3>
-              </div>
               {chartCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
+              <Clock className="w-4 h-4 text-slate-400" />
+              <h3 className="text-sm font-medium text-slate-300">{t('coaches.admin.dailyTimeSpent')}</h3>
             </div>
             {!chartCollapsed && (
               <div className="mt-3">
