@@ -317,12 +317,12 @@ def list_coach_users():
                 user['last_active'] = user['last_active'].isoformat() + 'Z'
             users.append(user)
 
-        # Compute per-user API cost
+        # Compute per-user API cost (only paid calls)
         cursor = conn.execute('''
             SELECT user_id, model_id,
-                   SUM(input_tokens) as total_input,
-                   SUM(output_tokens) as total_output,
-                   SUM(COALESCE(thinking_tokens, 0)) as total_thinking
+                   SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'paid' THEN input_tokens ELSE 0 END) as paid_input,
+                   SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'paid' THEN output_tokens ELSE 0 END) as paid_output,
+                   SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'paid' THEN COALESCE(thinking_tokens, 0) ELSE 0 END) as paid_thinking
             FROM api_usage
             WHERE user_id IS NOT NULL
             GROUP BY user_id, model_id
@@ -331,8 +331,8 @@ def list_coach_users():
         for row in cursor.fetchall():
             r = dict(row)
             pricing = GEMINI_PRICING.get(r['model_id'], {'input': 0, 'output': 0})
-            billed_output = (r['total_output'] or 0) + (r['total_thinking'] or 0)
-            cost = ((r['total_input'] or 0) * pricing['input'] + billed_output * pricing['output']) / 1_000_000
+            billed_output = (r['paid_output'] or 0) + (r['paid_thinking'] or 0)
+            cost = ((r['paid_input'] or 0) * pricing['input'] + billed_output * pricing['output']) / 1_000_000
             user_costs[r['user_id']] = user_costs.get(r['user_id'], 0) + cost
         for user in users:
             user['cost_usd'] = round(user_costs.get(user['id'], 0), 6)
@@ -426,7 +426,7 @@ def get_api_usage():
         ''', user_params)
         rows = [dict(r) for r in cursor.fetchall()]
 
-        # Per-model aggregates (thinking tokens billed at output rate)
+        # Per-model aggregates (only paid calls contribute to cost)
         cursor = conn.execute(f'''
             SELECT model_id,
                    COUNT(*) as call_count,
@@ -435,6 +435,9 @@ def get_api_usage():
                    SUM(input_tokens) as total_input,
                    SUM(output_tokens) as total_output,
                    SUM(COALESCE(thinking_tokens, 0)) as total_thinking,
+                   SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'paid' THEN input_tokens ELSE 0 END) as paid_input,
+                   SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'paid' THEN output_tokens ELSE 0 END) as paid_output,
+                   SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'paid' THEN COALESCE(thinking_tokens, 0) ELSE 0 END) as paid_thinking,
                    SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) as error_count,
                    AVG(elapsed_seconds) as avg_elapsed
             FROM api_usage
@@ -445,9 +448,9 @@ def get_api_usage():
         for r in cursor.fetchall():
             row = dict(r)
             pricing = GEMINI_PRICING.get(row['model_id'], {'input': 0, 'output': 0})
-            billed_output = (row['total_output'] or 0) + (row['total_thinking'] or 0)
+            billed_output = (row['paid_output'] or 0) + (row['paid_thinking'] or 0)
             row['cost_usd'] = round(
-                (row['total_input'] or 0) * pricing['input'] / 1_000_000
+                (row['paid_input'] or 0) * pricing['input'] / 1_000_000
                 + billed_output * pricing['output'] / 1_000_000,
                 6,
             )
@@ -455,13 +458,16 @@ def get_api_usage():
             by_model.append(row)
         by_model.sort(key=lambda m: m['cost_usd'], reverse=True)
 
-        # Per-feature aggregates (with cost computed from per-model pricing)
+        # Per-feature aggregates (only paid calls contribute to cost)
         cursor = conn.execute(f'''
             SELECT feature, model_id, COUNT(*) as call_count,
                    COUNT(DISTINCT request_id) as invocation_count,
                    SUM(input_tokens) as total_input,
                    SUM(output_tokens) as total_output,
-                   SUM(COALESCE(thinking_tokens, 0)) as total_thinking
+                   SUM(COALESCE(thinking_tokens, 0)) as total_thinking,
+                   SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'paid' THEN input_tokens ELSE 0 END) as paid_input,
+                   SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'paid' THEN output_tokens ELSE 0 END) as paid_output,
+                   SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'paid' THEN COALESCE(thinking_tokens, 0) ELSE 0 END) as paid_thinking
             FROM api_usage
             WHERE 1=1 {user_filter}
             GROUP BY feature, model_id
@@ -471,8 +477,8 @@ def get_api_usage():
             row = dict(r)
             f = row['feature']
             pricing = GEMINI_PRICING.get(row['model_id'], {'input': 0, 'output': 0})
-            billed_output = (row['total_output'] or 0) + (row['total_thinking'] or 0)
-            cost = ((row['total_input'] or 0) * pricing['input'] + billed_output * pricing['output']) / 1_000_000
+            billed_output = (row['paid_output'] or 0) + (row['paid_thinking'] or 0)
+            cost = ((row['paid_input'] or 0) * pricing['input'] + billed_output * pricing['output']) / 1_000_000
             if f not in feature_agg:
                 feature_agg[f] = {'feature': f, 'call_count': 0, 'invocation_count': 0, 'total_input': 0, 'total_output': 0, 'total_thinking': 0, 'cost_usd': 0}
             feature_agg[f]['call_count'] += row['call_count']
@@ -523,9 +529,12 @@ def get_api_usage():
             models = []
             for m in cursor2.fetchall():
                 md = dict(m)
-                p = GEMINI_PRICING.get(md['model_id'], {'input': 0, 'output': 0})
-                billed_out = (md['output_tokens'] or 0) + (md['thinking_tokens'] or 0)
-                md['cost_usd'] = round(((md['input_tokens'] or 0) * p['input'] + billed_out * p['output']) / 1_000_000, 6)
+                if md['billing_tier'] == 'free':
+                    md['cost_usd'] = 0
+                else:
+                    p = GEMINI_PRICING.get(md['model_id'], {'input': 0, 'output': 0})
+                    billed_out = (md['output_tokens'] or 0) + (md['thinking_tokens'] or 0)
+                    md['cost_usd'] = round(((md['input_tokens'] or 0) * p['input'] + billed_out * p['output']) / 1_000_000, 6)
                 cost += md['cost_usd']
                 models.append(md)
             models.sort(key=lambda m: m['cost_usd'], reverse=True)
