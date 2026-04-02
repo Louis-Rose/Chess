@@ -292,15 +292,14 @@ export function AdminPanel() {
     });
   }, [data?.users, sortColumn, sortDirection]);
 
-  // Fill in missing dates so the chart has no gaps
+  // Fill in missing dates so the chart has no gaps (always show date range even with no data)
   const chartData = useMemo(() => {
-    if (!timeSpentData || timeSpentData.length === 0) return [];
     const LAUNCH = '2026-03-23';
     const today = new Date().toISOString().split('T')[0];
     const start = new Date(LAUNCH);
     const end = new Date(today);
     const byDate: Record<string, number> = {};
-    timeSpentData.forEach(d => { byDate[d.activity_date] = d.total_seconds; });
+    (timeSpentData || []).forEach(d => { byDate[d.activity_date] = d.total_seconds; });
 
     const result: { date: string; label: string; minutes: number }[] = [];
     const cur = new Date(start);
