@@ -309,7 +309,21 @@ export function AdminPanel() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
-                  <th className="w-8 px-2 py-2" />
+                  <th className="w-8 px-2 py-2">
+                    <input
+                      type="checkbox"
+                      checked={sortedUsers.length > 0 && selectedUserIds.size === sortedUsers.length}
+                      ref={el => { if (el) el.indeterminate = selectedUserIds.size > 0 && selectedUserIds.size < sortedUsers.length; }}
+                      onChange={() => {
+                        if (selectedUserIds.size === sortedUsers.length) {
+                          setSelectedUserIds(new Set());
+                        } else {
+                          setSelectedUserIds(new Set(sortedUsers.map(u => u.id)));
+                        }
+                      }}
+                      className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
+                    />
+                  </th>
                   <th className="px-3 py-2 text-left cursor-pointer hover:text-slate-200" onClick={() => handleSort('name')}>
                     {t('coaches.admin.user')} <SortIcon column="name" />
                   </th>
