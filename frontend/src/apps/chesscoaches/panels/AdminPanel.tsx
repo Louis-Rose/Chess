@@ -167,6 +167,7 @@ export function AdminPanel() {
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_seconds');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [usersCollapsed, setUsersCollapsed] = useState(false);
+  const [chartCollapsed, setChartCollapsed] = useState(false);
 
   const toggleUser = (id: number) => {
     setSelectedUserIds(prev => {
@@ -438,24 +439,34 @@ export function AdminPanel() {
         {/* Time Spent Chart */}
         {chartData.length > 0 && (
           <div className="bg-slate-700/30 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="w-4 h-4 text-slate-400" />
-              <h3 className="text-sm font-medium text-slate-300">{t('coaches.admin.dailyTimeSpent')}</h3>
+            <div
+              className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setChartCollapsed(c => !c)}
+            >
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-slate-400" />
+                <h3 className="text-sm font-medium text-slate-300">{t('coaches.admin.dailyTimeSpent')}</h3>
+              </div>
+              {chartCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
             </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
-                <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} ticks={(() => { const max = Math.max(...chartData.map(d => d.minutes)); const ceil = Math.max(60, Math.ceil(max / 60) * 60); return Array.from({ length: ceil / 30 + 1 }, (_, i) => i * 30); })()} domain={[0, (max: number) => Math.max(60, Math.ceil(max / 60) * 60)]} />
-                <Tooltip
-                  cursor={false}
-                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-                  labelStyle={{ color: '#e2e8f0' }}
-                  formatter={(value) => [`${value} min`, t('coaches.admin.time')]}
-                />
-                <Bar dataKey="minutes" fill="#16a34a" radius={[2, 2, 0, 0]} activeBar={false} />
-              </BarChart>
-            </ResponsiveContainer>
+            {!chartCollapsed && (
+              <div className="mt-3">
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
+                    <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} ticks={(() => { const max = Math.max(...chartData.map(d => d.minutes)); const ceil = Math.max(60, Math.ceil(max / 60) * 60); return Array.from({ length: ceil / 30 + 1 }, (_, i) => i * 30); })()} domain={[0, (max: number) => Math.max(60, Math.ceil(max / 60) * 60)]} />
+                    <Tooltip
+                      cursor={false}
+                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+                      labelStyle={{ color: '#e2e8f0' }}
+                      formatter={(value) => [`${value} min`, t('coaches.admin.time')]}
+                    />
+                    <Bar dataKey="minutes" fill="#16a34a" radius={[2, 2, 0, 0]} activeBar={false} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         )}
 
