@@ -2,9 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { Loader2, ChevronUp, ChevronDown, Clock, Cpu, AlertTriangle, Download, Image, X } from 'lucide-react';
+import { Loader2, ChevronUp, ChevronDown, Clock, Cpu, AlertTriangle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -83,6 +83,9 @@ interface ApiInvocation {
   free_count: number;
   cost_usd: number;
   created_at: string;
+  user_id: number | null;
+  user_name: string | null;
+  user_picture: string | null;
   models: ApiInvocationModel[];
 }
 
@@ -176,10 +179,9 @@ const COACH_FEATURES: { id: string; labelKey: string }[] = NAV_SECTIONS
 export function AdminPanel() {
   const { user, isLoading: authLoading } = useAuth();
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
+
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
   const [expandedInvocation, setExpandedInvocation] = useState<string | null>(null);
-  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_seconds');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [usersCollapsed, setUsersCollapsed] = useState(false);
@@ -265,15 +267,6 @@ export function AdminPanel() {
     enabled: !!user?.is_admin,
   });
 
-  const { data: uploadsData, isLoading: uploadsLoading } = useQuery({
-    queryKey: ['admin-user-uploads', expandedUserId],
-    queryFn: async (): Promise<{ uploads: UserUpload[] }> => {
-      const response = await axios.get(`/api/admin/user-uploads/${expandedUserId}`);
-      return response.data;
-    },
-    enabled: expandedUserId !== null,
-  });
-
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
       setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
@@ -350,6 +343,21 @@ export function AdminPanel() {
         .reduce((sum, f) => sum + f.cost_usd, 0),
     };
   }, [apiUsage, selectedFeatures]);
+
+  const expandedInvocationUserId = useMemo(() => {
+    if (!expandedInvocation || !filteredApiUsage) return null;
+    const inv = filteredApiUsage.invocations.find(i => i.request_id === expandedInvocation);
+    return inv?.user_id ?? null;
+  }, [expandedInvocation, filteredApiUsage]);
+
+  const { data: uploadsData, isLoading: uploadsLoading } = useQuery({
+    queryKey: ['admin-user-uploads', expandedInvocationUserId],
+    queryFn: async (): Promise<{ uploads: UserUpload[] }> => {
+      const response = await axios.get(`/api/admin/user-uploads/${expandedInvocationUserId}`);
+      return response.data;
+    },
+    enabled: expandedInvocationUserId !== null,
+  });
 
   if (!authLoading && (!user || !user.is_admin)) {
     return <Navigate to="/" replace />;
@@ -434,8 +442,7 @@ export function AdminPanel() {
                 {sortedUsers.map(u => (
                   <React.Fragment key={u.id}>
                     <tr
-                      onClick={() => setExpandedUserId(prev => prev === u.id ? null : u.id)}
-                      className={`hover:bg-slate-700/30 transition-colors cursor-pointer ${selectedUserIds.has(u.id) ? 'bg-slate-700/20' : ''}`}
+                      className={`hover:bg-slate-700/30 transition-colors ${selectedUserIds.has(u.id) ? 'bg-slate-700/20' : ''}`}
                     >
                       <td className="px-2 py-2 text-center">
                         <input
@@ -467,57 +474,6 @@ export function AdminPanel() {
                       <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{formatDuration(u.total_seconds)}</td>
                       <td className="px-3 py-2 text-green-400 text-right whitespace-nowrap font-medium">{formatCost(u.cost_usd || 0)}</td>
                     </tr>
-                    {expandedUserId === u.id && (
-                      <tr>
-                        <td colSpan={7} className="px-3 py-3 bg-slate-800/50">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Image className="w-4 h-4 text-slate-400" />
-                            <span className="text-sm text-slate-300 font-medium">Uploads</span>
-                          </div>
-                          {uploadsLoading ? (
-                            <div className="flex justify-center py-3">
-                              <Loader2 className="w-4 h-4 text-slate-500 animate-spin" />
-                            </div>
-                          ) : !uploadsData?.uploads?.length ? (
-                            <p className="text-slate-500 text-xs italic">No uploads yet</p>
-                          ) : (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                              {uploadsData.uploads.map(file => (
-                                <div
-                                  key={file.filename}
-                                  className="group relative bg-slate-700/50 rounded-lg overflow-hidden border border-slate-600 hover:border-blue-500 transition-colors"
-                                >
-                                  <button
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      await axios.delete(`/api/admin/user-uploads/${u.id}/${file.filename}`);
-                                      queryClient.invalidateQueries({ queryKey: ['admin-user-uploads', u.id] });
-                                    }}
-                                    className="absolute top-1 right-1 z-10 w-5 h-5 bg-slate-900/80 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors"
-                                  >
-                                    <X className="w-3 h-3 text-slate-300" />
-                                  </button>
-                                  <a
-                                    href={`/api/admin/user-uploads/${u.id}/${file.filename}`}
-                                    onClick={e => e.stopPropagation()}
-                                  >
-                                    <img
-                                      src={`/api/admin/user-uploads/${u.id}/${file.filename}`}
-                                      alt={file.filename}
-                                      className="w-full h-24 object-cover"
-                                    />
-                                    <div className="p-1.5 flex items-center justify-between">
-                                      <span className="text-xs text-slate-400 truncate">{file.filename}</span>
-                                      <Download className="w-3 h-3 text-slate-500 group-hover:text-blue-400 flex-shrink-0" />
-                                    </div>
-                                  </a>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    )}
                   </React.Fragment>
                 ))}
               </tbody>}
@@ -713,6 +669,7 @@ export function AdminPanel() {
                     <thead className="sticky top-0">
                       <tr className="bg-slate-700/80 text-slate-400 uppercase tracking-wider">
                         <th className="px-2 py-1.5 text-left">Time</th>
+                        <th className="px-2 py-1.5 text-left">User</th>
                         <th className="px-2 py-1.5 text-left">Feature</th>
                         <th className="px-2 py-1.5 text-center">Models</th>
                         <th className="px-2 py-1.5 text-center">Tokens</th>
@@ -734,6 +691,18 @@ export function AdminPanel() {
                                 {' '}
                                 {new Date(inv.created_at).toLocaleTimeString(language === 'fr' ? 'fr-FR' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
                               </td>
+                              <td className="px-2 py-1 text-slate-400">
+                                <div className="flex items-center gap-1">
+                                  {inv.user_picture ? (
+                                    <img src={inv.user_picture} alt="" className="w-4 h-4 rounded-full" />
+                                  ) : (
+                                    <div className="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-[8px] text-slate-300">
+                                      {(inv.user_name || '?').charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <span className="truncate max-w-[80px]">{inv.user_name?.split(' ')[0] || '—'}</span>
+                                </div>
+                              </td>
                               <td className="px-2 py-1 text-slate-300">
                                 {FEATURE_LABELS[inv.feature] || inv.feature}
                                 {inv.free_count > 0 && <span className="ml-1.5 text-[10px] text-emerald-400 bg-emerald-400/10 px-1 rounded">{inv.free_count} free</span>}
@@ -749,7 +718,7 @@ export function AdminPanel() {
                             </tr>
                             {expanded && inv.models && (
                               <tr>
-                                <td colSpan={6} className="px-2 py-2 bg-slate-800/50">
+                                <td colSpan={7} className="px-2 py-2 bg-slate-800/50">
                                   <table className="w-full text-xs">
                                     <thead>
                                       <tr className="text-slate-500 text-[10px] uppercase">
@@ -790,6 +759,28 @@ export function AdminPanel() {
                                       ))}
                                     </tbody>
                                   </table>
+                                  {/* Uploads for this user */}
+                                  {uploadsLoading ? (
+                                    <div className="flex justify-center py-2">
+                                      <Loader2 className="w-3 h-3 text-slate-500 animate-spin" />
+                                    </div>
+                                  ) : uploadsData?.uploads?.length ? (
+                                    <div className="mt-2 flex gap-2 flex-wrap">
+                                      {uploadsData.uploads.map(file => (
+                                        <a
+                                          key={file.filename}
+                                          href={`/api/admin/user-uploads/${inv.user_id}/${file.filename}`}
+                                          className="block w-16 h-16 rounded border border-slate-600 hover:border-blue-500 overflow-hidden transition-colors"
+                                        >
+                                          <img
+                                            src={`/api/admin/user-uploads/${inv.user_id}/${file.filename}`}
+                                            alt={file.filename}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        </a>
+                                      ))}
+                                    </div>
+                                  ) : null}
                                 </td>
                               </tr>
                             )}

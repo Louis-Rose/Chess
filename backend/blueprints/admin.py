@@ -485,19 +485,22 @@ def get_api_usage():
 
         # Per-invocation history (grouped by request_id)
         cursor = conn.execute(f'''
-            SELECT request_id, feature,
+            SELECT a.request_id, a.feature,
                    COUNT(*) as model_count,
-                   SUM(input_tokens) as total_input,
-                   SUM(output_tokens) as total_output,
-                   SUM(COALESCE(thinking_tokens, 0)) as total_thinking,
-                   MAX(elapsed_seconds) as elapsed_seconds,
-                   SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) as error_count,
-                   SUM(CASE WHEN COALESCE(billing_tier, 'paid') = 'free' THEN 1 ELSE 0 END) as free_count,
-                   MIN(created_at) as created_at
-            FROM api_usage
-            WHERE request_id IS NOT NULL {user_filter}
-            GROUP BY request_id, feature
-            ORDER BY MIN(created_at) DESC
+                   SUM(a.input_tokens) as total_input,
+                   SUM(a.output_tokens) as total_output,
+                   SUM(COALESCE(a.thinking_tokens, 0)) as total_thinking,
+                   MAX(a.elapsed_seconds) as elapsed_seconds,
+                   SUM(CASE WHEN a.error IS NOT NULL THEN 1 ELSE 0 END) as error_count,
+                   SUM(CASE WHEN COALESCE(a.billing_tier, 'paid') = 'free' THEN 1 ELSE 0 END) as free_count,
+                   MIN(a.created_at) as created_at,
+                   a.user_id,
+                   u.name as user_name, u.picture as user_picture
+            FROM api_usage a
+            LEFT JOIN users u ON a.user_id = u.id
+            WHERE a.request_id IS NOT NULL {user_filter.replace('user_id', 'a.user_id')}
+            GROUP BY a.request_id, a.feature
+            ORDER BY MIN(a.created_at) DESC
             LIMIT 100
         ''', user_params)
         invocations = []
