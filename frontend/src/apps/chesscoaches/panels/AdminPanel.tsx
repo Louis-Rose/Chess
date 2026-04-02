@@ -158,16 +158,14 @@ const FEATURE_LABELS: Record<string, string> = {
   diagram: 'Diagram \u2192 FEN',
 };
 
-// Coaches app pages (matches frontend routes and backend KNOWN_PAGES)
-const COACH_PAGES: { id: string; label: string }[] = [
-  { id: 'home', label: 'Home' },
+// Coaches app features (matches frontend routes and backend KNOWN_PAGES)
+const COACH_FEATURES: { id: string; label: string }[] = [
   { id: 'scoresheets', label: 'Scoresheets' },
   { id: 'diagram', label: 'Diagram' },
   { id: 'mistakes', label: 'Mistake Finder' },
   { id: 'students', label: 'Students' },
   { id: 'calendar', label: 'Calendar' },
   { id: 'payments', label: 'Payments' },
-  { id: 'about', label: 'About' },
 ];
 
 export function AdminPanel() {
@@ -207,8 +205,8 @@ export function AdminPanel() {
 
   const pagesParam = useMemo(() => {
     if (selectedFeatures.size === 0) return undefined;
-    // Only pass page-type features (from COACH_PAGES), not API features
-    const pageIds = new Set(COACH_PAGES.map(p => p.id));
+    // Only pass page-type features (from COACH_FEATURES), not API features
+    const pageIds = new Set(COACH_FEATURES.map(p => p.id));
     const selected = [...selectedFeatures].filter(f => pageIds.has(f));
     return selected.length > 0 ? selected.join(',') : undefined;
   }, [selectedFeatures]);
@@ -511,26 +509,26 @@ export function AdminPanel() {
                   <div className="flex items-center gap-2">
                     {!featuresCollapsed && <input
                       type="checkbox"
-                      checked={selectedFeatures.size === COACH_PAGES.length}
-                      ref={el => { if (el) el.indeterminate = selectedFeatures.size > 0 && selectedFeatures.size < COACH_PAGES.length; }}
+                      checked={selectedFeatures.size === COACH_FEATURES.length}
+                      ref={el => { if (el) el.indeterminate = selectedFeatures.size > 0 && selectedFeatures.size < COACH_FEATURES.length; }}
                       onChange={() => {
-                        if (selectedFeatures.size === COACH_PAGES.length) {
+                        if (selectedFeatures.size === COACH_FEATURES.length) {
                           setSelectedFeatures(new Set());
                         } else {
-                          setSelectedFeatures(new Set(COACH_PAGES.map(p => p.id)));
+                          setSelectedFeatures(new Set(COACH_FEATURES.map(p => p.id)));
                         }
                       }}
                       onClick={e => e.stopPropagation()}
                       className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
                     />}
-                    <span>{COACH_PAGES.length} pages</span>
+                    <span>{COACH_FEATURES.length} features</span>
                     {selectedFeatures.size > 0 && <span className="text-blue-400">({selectedFeatures.size} selected)</span>}
                   </div>
                 </th>
               </tr>
             </thead>
             {!featuresCollapsed && <tbody className="divide-y divide-slate-700/50">
-              {COACH_PAGES.map(page => (
+              {COACH_FEATURES.map(page => (
                 <tr key={page.id} className={`hover:bg-slate-700/30 transition-colors ${selectedFeatures.has(page.id) ? 'bg-slate-700/20' : ''}`}>
                   <td className="px-2 py-2 text-center">
                     <input
