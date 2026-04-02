@@ -168,6 +168,16 @@ export function AdminPanel() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [usersCollapsed, setUsersCollapsed] = useState(false);
   const [chartCollapsed, setChartCollapsed] = useState(false);
+  const [featuresCollapsed, setFeaturesCollapsed] = useState(false);
+  const [selectedFeatures, setSelectedFeatures] = useState<Set<string>>(new Set());
+
+  const toggleFeature = (feature: string) => {
+    setSelectedFeatures(prev => {
+      const next = new Set(prev);
+      if (next.has(feature)) next.delete(feature); else next.add(feature);
+      return next;
+    });
+  };
 
   const toggleUser = (id: number) => {
     setSelectedUserIds(prev => {
@@ -270,6 +280,27 @@ export function AdminPanel() {
     }
     return result;
   }, [timeSpentData, language]);
+
+  // Derive available features from API usage data
+  const availableFeatures = useMemo(() => {
+    if (!apiUsage?.by_feature) return [];
+    return apiUsage.by_feature.map(f => f.feature);
+  }, [apiUsage?.by_feature]);
+
+  // Filter API usage data by selected features (empty = show all)
+  const filteredApiUsage = useMemo(() => {
+    if (!apiUsage) return undefined;
+    if (selectedFeatures.size === 0) return apiUsage;
+    return {
+      ...apiUsage,
+      by_feature: apiUsage.by_feature.filter(f => selectedFeatures.has(f.feature)),
+      by_model: apiUsage.by_model, // model aggregates don't break down by feature, keep as-is
+      invocations: apiUsage.invocations.filter(i => selectedFeatures.has(i.feature)),
+      total_cost_usd: apiUsage.by_feature
+        .filter(f => selectedFeatures.has(f.feature))
+        .reduce((sum, f) => sum + f.cost_usd, 0),
+    };
+  }, [apiUsage, selectedFeatures]);
 
   if (!authLoading && (!user || !user.is_admin)) {
     return <Navigate to="/" replace />;
@@ -441,6 +472,68 @@ export function AdminPanel() {
           </div>
         )}
 
+        {/* Features Table */}
+        {availableFeatures.length > 0 && (
+          <div className="overflow-x-auto rounded-lg border border-slate-700">
+            <table className="w-full text-sm">
+              <thead>
+                <tr
+                  className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:bg-slate-700/70 transition-colors"
+                  onClick={() => setFeaturesCollapsed(c => !c)}
+                >
+                  <th className="w-8 px-2 py-2">
+                    {featuresCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400 mx-auto" /> : <ChevronUp className="w-4 h-4 text-slate-400 mx-auto" />}
+                  </th>
+                  <th className="px-3 py-2 text-left text-sm normal-case tracking-normal text-slate-300" colSpan={featuresCollapsed ? 3 : 1}>
+                    <div className="flex items-center gap-2">
+                      {!featuresCollapsed && <input
+                        type="checkbox"
+                        checked={availableFeatures.length > 0 && selectedFeatures.size === availableFeatures.length}
+                        ref={el => { if (el) el.indeterminate = selectedFeatures.size > 0 && selectedFeatures.size < availableFeatures.length; }}
+                        onChange={() => {
+                          if (selectedFeatures.size === availableFeatures.length) {
+                            setSelectedFeatures(new Set());
+                          } else {
+                            setSelectedFeatures(new Set(availableFeatures));
+                          }
+                        }}
+                        onClick={e => e.stopPropagation()}
+                        className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
+                      />}
+                      <span>{availableFeatures.length} {availableFeatures.length === 1 ? 'feature' : 'features'}</span>
+                      {selectedFeatures.size > 0 && <span className="text-blue-400">({selectedFeatures.size} selected)</span>}
+                    </div>
+                  </th>
+                  {!featuresCollapsed && <>
+                    <th className="px-3 py-2 text-center">{t('coaches.admin.sessions')}</th>
+                    <th className="px-3 py-2 text-right">Cost</th>
+                  </>}
+                </tr>
+              </thead>
+              {!featuresCollapsed && <tbody className="divide-y divide-slate-700/50">
+                {availableFeatures.map(feature => {
+                  const stats = apiUsage?.by_feature.find(f => f.feature === feature);
+                  return (
+                    <tr key={feature} className={`hover:bg-slate-700/30 transition-colors ${selectedFeatures.has(feature) ? 'bg-slate-700/20' : ''}`}>
+                      <td className="px-2 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedFeatures.has(feature)}
+                          onChange={() => toggleFeature(feature)}
+                          className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-slate-200">{FEATURE_LABELS[feature] || feature}</td>
+                      <td className="px-3 py-2 text-slate-400 text-center">{stats?.invocation_count || stats?.call_count || 0}</td>
+                      <td className="px-3 py-2 text-green-400 text-right font-medium">{formatCost(stats?.cost_usd || 0)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>}
+            </table>
+          </div>
+        )}
+
         {/* Time Spent Chart */}
         {chartData.length > 0 && (
           <div className="bg-slate-700/30 rounded-lg p-4">
@@ -474,7 +567,7 @@ export function AdminPanel() {
         )}
 
         {/* Gemini API Usage */}
-        {apiUsage && (
+        {filteredApiUsage && (
           <div className="bg-slate-700/30 rounded-lg p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -483,7 +576,7 @@ export function AdminPanel() {
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <div className="flex items-center gap-1">
-                  <span className="text-green-400 font-medium">{formatCost(apiUsage.total_cost_usd)}</span>
+                  <span className="text-green-400 font-medium">{formatCost(filteredApiUsage.total_cost_usd)}</span>
                   <span className="text-slate-500">total</span>
                 </div>
                 <a href="https://aistudio.google.com/spend" target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">Google Billing</a>
@@ -491,7 +584,7 @@ export function AdminPanel() {
             </div>
 
             {/* Per-feature summary */}
-            {apiUsage.by_feature.length > 0 && (
+            {filteredApiUsage.by_feature.length > 0 && (
               <div className="overflow-x-auto rounded-lg border border-slate-600/50">
                 <table className="w-full text-sm">
                   <thead>
@@ -505,8 +598,8 @@ export function AdminPanel() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/50">
-                    {apiUsage.by_feature.map(f => {
-                      const featureInvocations = apiUsage.invocations.filter(i => i.feature === f.feature);
+                    {filteredApiUsage.by_feature.map(f => {
+                      const featureInvocations = filteredApiUsage.invocations.filter(i => i.feature === f.feature);
                       const uses = f.invocation_count || featureInvocations.length || f.call_count;
                       const avgTime = featureInvocations.length > 0
                         ? Math.round(featureInvocations.reduce((s, i) => s + i.elapsed_seconds, 0) / featureInvocations.length)
@@ -528,7 +621,7 @@ export function AdminPanel() {
             )}
 
             {/* Cost per model */}
-            {apiUsage.by_model.length > 0 && (
+            {filteredApiUsage.by_model.length > 0 && (
               <div className="overflow-x-auto rounded-lg border border-slate-600/50">
                 <table className="w-full text-sm">
                   <thead>
@@ -546,7 +639,7 @@ export function AdminPanel() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/50">
-                    {apiUsage.by_model.map(m => (
+                    {filteredApiUsage.by_model.map(m => (
                       <tr key={m.model_id} className="hover:bg-slate-700/30">
                         <td className="px-3 py-2 text-slate-200 font-mono text-xs">{shortModel(m.model_id)}</td>
                         <td className="px-3 py-2 text-slate-400 text-center">{m.call_count}</td>
@@ -570,9 +663,9 @@ export function AdminPanel() {
             )}
 
             {/* Invocation history (feature-level) */}
-            {apiUsage.invocations.length > 0 && (
+            {filteredApiUsage.invocations.length > 0 && (
               <div>
-                <h4 className="text-xs text-slate-500 mb-2">History ({apiUsage.invocations.length} invocations)</h4>
+                <h4 className="text-xs text-slate-500 mb-2">History ({filteredApiUsage.invocations.length} invocations)</h4>
                 <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-600/50">
                   <table className="w-full text-xs">
                     <thead className="sticky top-0">
@@ -586,7 +679,7 @@ export function AdminPanel() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/30">
-                      {apiUsage.invocations.map(inv => {
+                      {filteredApiUsage.invocations.map(inv => {
                         const expanded = expandedInvocation === inv.request_id;
                         return (
                           <React.Fragment key={inv.request_id}>
@@ -667,7 +760,7 @@ export function AdminPanel() {
               </div>
             )}
 
-            {apiUsage.by_model.length === 0 && (
+            {filteredApiUsage.by_model.length === 0 && (
               <p className="text-slate-500 text-sm text-center py-4">No API calls recorded yet</p>
             )}
           </div>
