@@ -545,11 +545,36 @@ def get_api_usage():
     # Compute total cost
     total_cost = sum(m['cost_usd'] for m in by_model)
 
+    # Daily successful invocation counts (grouped by feature and date)
+    with get_db() as conn:
+        cursor = conn.execute(f'''
+            SELECT feature,
+                   SUBSTR(MIN(created_at), 1, 10) as invocation_date,
+                   COUNT(*) as total_count,
+                   SUM(CASE WHEN error IS NULL THEN 1 ELSE 0 END) as success_count
+            FROM api_usage
+            WHERE request_id IS NOT NULL {user_filter}
+            GROUP BY feature, request_id
+        ''', user_params)
+        daily_agg: dict = {}
+        for r in cursor.fetchall():
+            row = dict(r)
+            # Only count invocations where at least one model succeeded
+            if (row['success_count'] or 0) == 0:
+                continue
+            key = (row['feature'], row['invocation_date'])
+            daily_agg[key] = daily_agg.get(key, 0) + 1
+        daily_invocations = [
+            {'feature': f, 'date': d, 'count': c}
+            for (f, d), c in sorted(daily_agg.items())
+        ]
+
     return jsonify({
         'history': rows,
         'by_model': by_model,
         'by_feature': by_feature,
         'invocations': invocations,
+        'daily_invocations': daily_invocations,
         'total_cost_usd': round(total_cost, 6),
         'pricing': GEMINI_PRICING,
     })

@@ -94,6 +94,7 @@ interface ApiUsageResponse {
   by_model: ApiUsageByModel[];
   by_feature: { feature: string; call_count: number; invocation_count?: number; total_input: number; total_output: number; cost_usd: number }[];
   invocations: ApiInvocation[];
+  daily_invocations: { feature: string; date: string; count: number }[];
   total_cost_usd: number;
   pricing: Record<string, { input: number; output: number }>;
 }
@@ -258,7 +259,7 @@ export function AdminPanel() {
   const { data: apiUsage } = useQuery({
     queryKey: ['admin-api-usage', userIdsParam],
     queryFn: async (): Promise<ApiUsageResponse> => {
-      if (nothingSelected) return { history: [], by_model: [], by_feature: [], invocations: [], total_cost_usd: 0, pricing: {} };
+      if (nothingSelected) return { history: [], by_model: [], by_feature: [], invocations: [], daily_invocations: [], total_cost_usd: 0, pricing: {} };
       const params: Record<string, string> = {};
       if (userIdsParam) params.user_ids = userIdsParam;
       const response = await axios.get('/api/admin/api-usage', { params });
@@ -331,18 +332,46 @@ export function AdminPanel() {
     if (allCovered && selectedFeatures.size > 0) return apiUsage;
     // None selected = empty
     if (selectedApiFeatures.size === 0) {
-      return { ...apiUsage, by_feature: [], by_model: [], invocations: [], total_cost_usd: 0 };
+      return { ...apiUsage, by_feature: [], by_model: [], invocations: [], daily_invocations: [], total_cost_usd: 0 };
     }
     return {
       ...apiUsage,
       by_feature: apiUsage.by_feature.filter(f => selectedApiFeatures.has(f.feature)),
-      by_model: apiUsage.by_model, // keep model breakdown (already filtered by user)
+      by_model: apiUsage.by_model,
       invocations: apiUsage.invocations.filter(i => selectedApiFeatures.has(i.feature)),
+      daily_invocations: apiUsage.daily_invocations.filter(d => selectedApiFeatures.has(d.feature)),
       total_cost_usd: apiUsage.by_feature
         .filter(f => selectedApiFeatures.has(f.feature))
         .reduce((sum, f) => sum + f.cost_usd, 0),
     };
   }, [apiUsage, selectedFeatures]);
+
+  // Cumulative daily invocation chart data
+  const invocationChartData = useMemo(() => {
+    const daily = filteredApiUsage?.daily_invocations;
+    if (!daily || daily.length === 0) return [];
+    const LAUNCH = '2026-03-23';
+    const today = new Date().toISOString().split('T')[0];
+    const byDate: Record<string, number> = {};
+    daily.forEach(d => { byDate[d.date] = (byDate[d.date] || 0) + d.count; });
+    const result: { date: string; label: string; count: number; cumulative: number }[] = [];
+    const cur = new Date(LAUNCH);
+    const end = new Date(today);
+    let cumulative = 0;
+    while (cur <= end) {
+      const key = cur.toISOString().split('T')[0];
+      const count = byDate[key] || 0;
+      cumulative += count;
+      result.push({
+        date: key,
+        label: cur.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long' }),
+        count,
+        cumulative,
+      });
+      cur.setDate(cur.getDate() + 1);
+    }
+    return result;
+  }, [filteredApiUsage?.daily_invocations, language]);
 
   const expandedInvocationUserId = useMemo(() => {
     if (!expandedInvocation || !filteredApiUsage) return null;
@@ -615,6 +644,27 @@ export function AdminPanel() {
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Cumulative invocations chart */}
+            {invocationChartData.length > 0 && (
+              <div>
+                <h4 className="text-xs text-slate-500 mb-2">Images processed</h4>
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart data={invocationChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
+                    <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} allowDecimals={false} />
+                    <Tooltip
+                      cursor={false}
+                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+                      labelStyle={{ color: '#e2e8f0' }}
+                      formatter={(value) => [`${value}`, 'Images']}
+                    />
+                    <Bar dataKey="count" fill="#8b5cf6" radius={[2, 2, 0, 0]} activeBar={false} name="Day" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             )}
 
