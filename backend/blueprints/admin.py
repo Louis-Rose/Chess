@@ -317,6 +317,26 @@ def list_coach_users():
                 user['last_active'] = user['last_active'].isoformat() + 'Z'
             users.append(user)
 
+        # Compute per-user API cost
+        cursor = conn.execute('''
+            SELECT user_id, model_id,
+                   SUM(input_tokens) as total_input,
+                   SUM(output_tokens) as total_output,
+                   SUM(COALESCE(thinking_tokens, 0)) as total_thinking
+            FROM api_usage
+            WHERE user_id IS NOT NULL
+            GROUP BY user_id, model_id
+        ''')
+        user_costs: dict = {}
+        for row in cursor.fetchall():
+            r = dict(row)
+            pricing = GEMINI_PRICING.get(r['model_id'], {'input': 0, 'output': 0})
+            billed_output = (r['total_output'] or 0) + (r['total_thinking'] or 0)
+            cost = ((r['total_input'] or 0) * pricing['input'] + billed_output * pricing['output']) / 1_000_000
+            user_costs[r['user_id']] = user_costs.get(r['user_id'], 0) + cost
+        for user in users:
+            user['cost_usd'] = round(user_costs.get(user['id'], 0), 6)
+
     return jsonify({'users': users, 'total': len(users)})
 
 

@@ -21,6 +21,7 @@ interface AdminUser {
   last_active: string | null;
   session_count: number;
   sign_in_count: number;
+  cost_usd: number;
 }
 
 interface AdminUsersResponse {
@@ -99,7 +100,7 @@ interface UserUpload {
   created_at: number;
 }
 
-type SortColumn = 'name' | 'created_at' | 'last_active' | 'total_seconds' | 'session_count';
+type SortColumn = 'name' | 'created_at' | 'last_active' | 'total_seconds' | 'session_count' | 'cost_usd';
 type SortDirection = 'asc' | 'desc';
 
 function formatDuration(totalSeconds: number): string {
@@ -272,6 +273,7 @@ export function AdminPanel() {
         case 'last_active': cmp = (a.last_active ? new Date(a.last_active).getTime() : 0) - (b.last_active ? new Date(b.last_active).getTime() : 0); break;
         case 'total_seconds': cmp = a.total_seconds - b.total_seconds; break;
         case 'session_count': cmp = (a.session_count || 0) - (b.session_count || 0); break;
+        case 'cost_usd': cmp = (a.cost_usd || 0) - (b.cost_usd || 0); break;
       }
       return sortDirection === 'asc' ? cmp : -cmp;
     });
@@ -360,7 +362,7 @@ export function AdminPanel() {
                       {usersCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
                     </div>
                   </th>
-                  <th className="px-3 py-2 text-left text-sm normal-case tracking-normal text-slate-300" colSpan={usersCollapsed ? 5 : 1}>
+                  <th className="px-3 py-2 text-left text-sm normal-case tracking-normal text-slate-300" colSpan={usersCollapsed ? 6 : 1}>
                     <div className="flex items-center gap-2">
                       {!usersCollapsed && <input
                         type="checkbox"
@@ -392,6 +394,9 @@ export function AdminPanel() {
                     </th>
                     <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('total_seconds'); }}>
                       {t('coaches.admin.time')} <SortIcon column="total_seconds" />
+                    </th>
+                    <th className="px-3 py-2 text-right cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('cost_usd'); }}>
+                      Cost <SortIcon column="cost_usd" />
                     </th>
                   </>}
                 </tr>
@@ -431,10 +436,11 @@ export function AdminPanel() {
                       <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{timeAgo(u.last_active, language)}</td>
                       <td className="px-3 py-2 text-slate-400 text-center">{u.session_count || 0}</td>
                       <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{formatDuration(u.total_seconds)}</td>
+                      <td className="px-3 py-2 text-green-400 text-right whitespace-nowrap font-medium">{formatCost(u.cost_usd || 0)}</td>
                     </tr>
                     {expandedUserId === u.id && (
                       <tr>
-                        <td colSpan={6} className="px-3 py-3 bg-slate-800/50">
+                        <td colSpan={7} className="px-3 py-3 bg-slate-800/50">
                           <div className="flex items-center gap-2 mb-2">
                             <Image className="w-4 h-4 text-slate-400" />
                             <span className="text-sm text-slate-300 font-medium">Uploads</span>
