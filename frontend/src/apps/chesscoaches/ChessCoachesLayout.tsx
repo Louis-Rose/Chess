@@ -140,14 +140,12 @@ function CoachesNavSidebar() {
             {t('coaches.navHome')}
           </NavLink>
 
-          <div className="h-px bg-slate-700 my-1.5" />
-
-          {NAV_SECTIONS.map(({ titleKey, items }, idx) => {
+          {NAV_SECTIONS.map(({ titleKey, items }) => {
             const enabledItems = items.filter(({ path }) => path === '/scoresheets');
             if (enabledItems.length === 0) return null;
             return (
               <div key={titleKey}>
-                {idx > 0 && <div className="h-px bg-slate-700 my-1.5" />}
+                <div className="h-px bg-slate-700 my-1.5" />
                 <div className="text-xs font-bold text-slate-300 uppercase tracking-wider px-3 pt-2 pb-1 text-center">
                   {t(titleKey)}
                 </div>
