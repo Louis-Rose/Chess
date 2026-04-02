@@ -159,6 +159,13 @@ const FEATURE_LABELS: Record<string, string> = {
   diagram: 'Diagram \u2192 FEN',
 };
 
+// Map page ids to their associated API feature names
+const PAGE_TO_API_FEATURES: Record<string, string[]> = {
+  scoresheets: ['scoresheet', 'reread'],
+  diagram: ['diagram'],
+  mistakes: ['mistakes'],
+};
+
 // Enabled features — derived from NAV_SECTIONS with same filter as sidebar
 const ENABLED_FEATURE_FILTER = (path: string) => path === '/scoresheets';
 const COACH_FEATURES: { id: string; labelKey: string }[] = NAV_SECTIONS
@@ -316,8 +323,33 @@ export function AdminPanel() {
     return result;
   }, [timeSpentData, language]);
 
-  // API usage is filtered by user selection only (not page/feature selection)
-  const filteredApiUsage = apiUsage;
+  // Filter API usage by selected features (map page ids to API feature names)
+  const filteredApiUsage = useMemo(() => {
+    if (!apiUsage) return undefined;
+    // Derive which API features are selected based on page selection
+    const selectedApiFeatures = new Set<string>();
+    for (const pageId of selectedFeatures) {
+      const apiFeatures = PAGE_TO_API_FEATURES[pageId];
+      if (apiFeatures) apiFeatures.forEach(f => selectedApiFeatures.add(f));
+    }
+    // All API features covered = no filter needed
+    const allApiFeatures = new Set(apiUsage.by_feature.map(f => f.feature));
+    const allCovered = [...allApiFeatures].every(f => selectedApiFeatures.has(f));
+    if (allCovered && selectedFeatures.size > 0) return apiUsage;
+    // None selected = empty
+    if (selectedApiFeatures.size === 0) {
+      return { ...apiUsage, by_feature: [], by_model: [], invocations: [], total_cost_usd: 0 };
+    }
+    return {
+      ...apiUsage,
+      by_feature: apiUsage.by_feature.filter(f => selectedApiFeatures.has(f.feature)),
+      by_model: apiUsage.by_model, // keep model breakdown (already filtered by user)
+      invocations: apiUsage.invocations.filter(i => selectedApiFeatures.has(i.feature)),
+      total_cost_usd: apiUsage.by_feature
+        .filter(f => selectedApiFeatures.has(f.feature))
+        .reduce((sum, f) => sum + f.cost_usd, 0),
+    };
+  }, [apiUsage, selectedFeatures]);
 
   if (!authLoading && (!user || !user.is_admin)) {
     return <Navigate to="/" replace />;
