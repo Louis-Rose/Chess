@@ -549,7 +549,7 @@ def get_api_usage():
     with get_db() as conn:
         cursor = conn.execute(f'''
             SELECT feature,
-                   SUBSTR(MIN(created_at), 1, 10) as invocation_date,
+                   MIN(created_at) as invocation_date,
                    COUNT(*) as total_count,
                    SUM(CASE WHEN error IS NULL THEN 1 ELSE 0 END) as success_count
             FROM api_usage
@@ -562,7 +562,8 @@ def get_api_usage():
             # Only count invocations where at least one model succeeded
             if (row['success_count'] or 0) == 0:
                 continue
-            key = (row['feature'], row['invocation_date'])
+            inv_date = str(row['invocation_date'])[:10]
+            key = (row['feature'], inv_date)
             daily_agg[key] = daily_agg.get(key, 0) + 1
         daily_invocations = [
             {'feature': f, 'date': d, 'count': c}
