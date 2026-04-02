@@ -1,6 +1,6 @@
 // Admin panel for coaches app (admin only)
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -178,7 +178,8 @@ export function AdminPanel() {
   const [usersCollapsed, setUsersCollapsed] = useState(false);
   const [chartCollapsed, setChartCollapsed] = useState(false);
   const [featuresCollapsed, setFeaturesCollapsed] = useState(false);
-  const [selectedFeatures, setSelectedFeatures] = useState<Set<string>>(new Set());
+  const [selectedFeatures, setSelectedFeatures] = useState<Set<string>>(() => new Set(COACH_FEATURES.map(f => f.id)));
+  const [usersInitialized, setUsersInitialized] = useState(false);
 
   const toggleFeature = (feature: string) => {
     setSelectedFeatures(prev => {
@@ -196,19 +197,6 @@ export function AdminPanel() {
     });
   };
 
-  const userIdsParam = useMemo(() => {
-    if (selectedUserIds.size === 0) return undefined;
-    return [...selectedUserIds].join(',');
-  }, [selectedUserIds]);
-
-  const pagesParam = useMemo(() => {
-    if (selectedFeatures.size === 0) return undefined;
-    // Only pass page-type features (from COACH_FEATURES), not API features
-    const pageIds = new Set(COACH_FEATURES.map(p => p.id));
-    const selected = [...selectedFeatures].filter(f => pageIds.has(f));
-    return selected.length > 0 ? selected.join(',') : undefined;
-  }, [selectedFeatures]);
-
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-coach-users'],
     queryFn: async (): Promise<AdminUsersResponse> => {
@@ -218,9 +206,37 @@ export function AdminPanel() {
     enabled: !!user?.is_admin,
   });
 
+  // Select all users by default once data loads
+  useEffect(() => {
+    if (data?.users && !usersInitialized) {
+      setSelectedUserIds(new Set(data.users.map(u => u.id)));
+      setUsersInitialized(true);
+    }
+  }, [data?.users, usersInitialized]);
+
+  // "all selected" = no filter (undefined), "none selected" = empty string sentinel to exclude everything
+  const userIdsParam = useMemo(() => {
+    if (!data?.users) return undefined;
+    if (selectedUserIds.size === 0) return '';
+    if (selectedUserIds.size === data.users.length) return undefined;
+    return [...selectedUserIds].join(',');
+  }, [selectedUserIds, data?.users]);
+
+  const pagesParam = useMemo(() => {
+    if (selectedFeatures.size === 0) return '';
+    const pageIds = new Set(COACH_FEATURES.map(p => p.id));
+    const selected = [...selectedFeatures].filter(f => pageIds.has(f));
+    if (selected.length === 0) return undefined;
+    if (selected.length === COACH_FEATURES.length) return undefined;
+    return selected.join(',');
+  }, [selectedFeatures]);
+
+  const nothingSelected = userIdsParam === '';
+
   const { data: timeSpentData } = useQuery({
     queryKey: ['admin-coach-time-spent', userIdsParam, pagesParam],
     queryFn: async (): Promise<TimeSpentDay[]> => {
+      if (nothingSelected || pagesParam === '') return [];
       const params: Record<string, string> = {};
       if (userIdsParam) params.user_ids = userIdsParam;
       if (pagesParam) params.pages = pagesParam;
@@ -233,9 +249,10 @@ export function AdminPanel() {
   const { data: apiUsage } = useQuery({
     queryKey: ['admin-api-usage', userIdsParam],
     queryFn: async (): Promise<ApiUsageResponse> => {
-      const response = await axios.get('/api/admin/api-usage', {
-        params: userIdsParam ? { user_ids: userIdsParam } : {},
-      });
+      if (nothingSelected) return { history: [], by_model: [], by_feature: [], invocations: [], total_cost_usd: 0, pricing: {} };
+      const params: Record<string, string> = {};
+      if (userIdsParam) params.user_ids = userIdsParam;
+      const response = await axios.get('/api/admin/api-usage', { params });
       return response.data;
     },
     enabled: !!user?.is_admin,
@@ -305,7 +322,8 @@ export function AdminPanel() {
     if (!apiUsage) return undefined;
     const apiFeatureKeys = new Set(apiUsage.by_feature.map(f => f.feature));
     const selectedApiFeatures = [...selectedFeatures].filter(f => apiFeatureKeys.has(f));
-    if (selectedApiFeatures.length === 0) return apiUsage;
+    // All API features selected (or all features selected) = no filter
+    if (selectedApiFeatures.length === apiFeatureKeys.size) return apiUsage;
     const selected = new Set(selectedApiFeatures);
     return {
       ...apiUsage,
