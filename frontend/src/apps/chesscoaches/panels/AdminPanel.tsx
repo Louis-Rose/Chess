@@ -393,7 +393,7 @@ export function AdminPanel() {
                   </th>
                   <th className="px-3 py-2 text-left text-sm normal-case tracking-normal text-slate-300" colSpan={usersCollapsed ? 6 : 1}>
                     <div className="flex items-center gap-2">
-                      {!usersCollapsed && <input
+                      <input
                         type="checkbox"
                         checked={sortedUsers.length > 0 && selectedUserIds.size === sortedUsers.length}
                         ref={el => { if (el) el.indeterminate = selectedUserIds.size > 0 && selectedUserIds.size < sortedUsers.length; }}
@@ -406,7 +406,7 @@ export function AdminPanel() {
                         }}
                         onClick={e => e.stopPropagation()}
                         className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
-                      />}
+                      />
                       <span>{data?.total ?? 0} {(data?.total ?? 0) === 1 ? t('coaches.admin.user1') : t('coaches.admin.users')}</span>
                       {selectedUserIds.size > 0 && <span className="text-blue-400">({selectedUserIds.size} selected)</span>}
                     </div>
@@ -538,7 +538,7 @@ export function AdminPanel() {
                 </th>
                 <th className="px-3 py-2 text-left text-sm normal-case tracking-normal text-slate-300" colSpan={featuresCollapsed ? 1 : 1}>
                   <div className="flex items-center gap-2">
-                    {!featuresCollapsed && <input
+                    <input
                       type="checkbox"
                       checked={selectedFeatures.size === COACH_FEATURES.length}
                       ref={el => { if (el) el.indeterminate = selectedFeatures.size > 0 && selectedFeatures.size < COACH_FEATURES.length; }}
@@ -551,7 +551,7 @@ export function AdminPanel() {
                       }}
                       onClick={e => e.stopPropagation()}
                       className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
-                    />}
+                    />
                     <span>{COACH_FEATURES.length} {COACH_FEATURES.length === 1 ? 'feature' : 'features'}</span>
                     {selectedFeatures.size > 0 && <span className="text-blue-400">({selectedFeatures.size} selected)</span>}
                   </div>
