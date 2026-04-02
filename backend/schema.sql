@@ -194,6 +194,19 @@ CREATE TABLE IF NOT EXISTS page_activity (
     UNIQUE(user_id, page)
 );
 
+-- Page-level daily activity tracking (for per-page daily charts)
+CREATE TABLE IF NOT EXISTS page_daily_activity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    activity_date TEXT NOT NULL,  -- YYYY-MM-DD
+    page TEXT NOT NULL,
+    seconds INTEGER DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(user_id, activity_date, page)
+);
+CREATE INDEX IF NOT EXISTS idx_page_daily_activity_date ON page_daily_activity(activity_date);
+CREATE INDEX IF NOT EXISTS idx_page_daily_activity_user ON page_daily_activity(user_id);
+
 -- Earnings alert preferences (email notifications)
 CREATE TABLE IF NOT EXISTS earnings_alert_preferences (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

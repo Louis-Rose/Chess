@@ -206,14 +206,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const events: (keyof WindowEventMap)[] = ['mousemove', 'click', 'keydown', 'scroll', 'touchstart'];
     events.forEach(e => window.addEventListener(e, markActive, { passive: true }));
 
+    const COACHES_PAGES = new Set(['calendar', 'students', 'payments', 'scoresheets', 'mistakes', 'diagram', 'about', 'admin']);
+
     const getPageFromPath = (path: string): string => {
-      // Extract page from path like /investing/portfolio -> portfolio
       const parts = path.split('/').filter(Boolean);
+      // Coaches app: pages at root level
+      if (parts.length === 0) return 'home';
+      if (COACHES_PAGES.has(parts[0])) {
+        if (parts[0] === 'students' && parts[1]) return 'students'; // /students/:id -> students
+        return parts[0];
+      }
+      // Investing app: /investing/portfolio, etc.
       if (parts[0] === 'investing' && parts[1]) {
-        // Handle stock/:ticker -> stock/AAPL
-        if (parts[1] === 'stock' && parts[2]) {
-          return `stock/${parts[2]}`;
-        }
+        if (parts[1] === 'stock' && parts[2]) return `stock/${parts[2]}`;
         return parts[1];
       }
       return 'other';

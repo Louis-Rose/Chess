@@ -157,6 +157,18 @@ const FEATURE_LABELS: Record<string, string> = {
   diagram: 'Diagram \u2192 FEN',
 };
 
+// Coaches app pages (matches frontend routes and backend KNOWN_PAGES)
+const COACH_PAGES: { id: string; label: string }[] = [
+  { id: 'home', label: 'Home' },
+  { id: 'scoresheets', label: 'Scoresheets' },
+  { id: 'diagram', label: 'Diagram' },
+  { id: 'mistakes', label: 'Mistake Finder' },
+  { id: 'students', label: 'Students' },
+  { id: 'calendar', label: 'Calendar' },
+  { id: 'payments', label: 'Payments' },
+  { id: 'about', label: 'About' },
+];
+
 export function AdminPanel() {
   const { user, isLoading: authLoading } = useAuth();
   const { t, language } = useLanguage();
@@ -192,6 +204,14 @@ export function AdminPanel() {
     return [...selectedUserIds].join(',');
   }, [selectedUserIds]);
 
+  const pagesParam = useMemo(() => {
+    if (selectedFeatures.size === 0) return undefined;
+    // Only pass page-type features (from COACH_PAGES), not API features
+    const pageIds = new Set(COACH_PAGES.map(p => p.id));
+    const selected = [...selectedFeatures].filter(f => pageIds.has(f));
+    return selected.length > 0 ? selected.join(',') : undefined;
+  }, [selectedFeatures]);
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-coach-users'],
     queryFn: async (): Promise<AdminUsersResponse> => {
@@ -202,11 +222,12 @@ export function AdminPanel() {
   });
 
   const { data: timeSpentData } = useQuery({
-    queryKey: ['admin-coach-time-spent', userIdsParam],
+    queryKey: ['admin-coach-time-spent', userIdsParam, pagesParam],
     queryFn: async (): Promise<TimeSpentDay[]> => {
-      const response = await axios.get('/api/admin/coach-time-spent', {
-        params: userIdsParam ? { user_ids: userIdsParam } : {},
-      });
+      const params: Record<string, string> = {};
+      if (userIdsParam) params.user_ids = userIdsParam;
+      if (pagesParam) params.pages = pagesParam;
+      const response = await axios.get('/api/admin/coach-time-spent', { params });
       return response.data.daily_stats;
     },
     enabled: !!user?.is_admin,
@@ -281,23 +302,20 @@ export function AdminPanel() {
     return result;
   }, [timeSpentData, language]);
 
-  // Derive available features from API usage data
-  const availableFeatures = useMemo(() => {
-    if (!apiUsage?.by_feature) return [];
-    return apiUsage.by_feature.map(f => f.feature);
-  }, [apiUsage?.by_feature]);
-
-  // Filter API usage data by selected features (empty = show all)
+  // Filter API usage data by selected features (only API feature keys, not page keys)
   const filteredApiUsage = useMemo(() => {
     if (!apiUsage) return undefined;
-    if (selectedFeatures.size === 0) return apiUsage;
+    const apiFeatureKeys = new Set(apiUsage.by_feature.map(f => f.feature));
+    const selectedApiFeatures = [...selectedFeatures].filter(f => apiFeatureKeys.has(f));
+    if (selectedApiFeatures.length === 0) return apiUsage;
+    const selected = new Set(selectedApiFeatures);
     return {
       ...apiUsage,
-      by_feature: apiUsage.by_feature.filter(f => selectedFeatures.has(f.feature)),
-      by_model: apiUsage.by_model, // model aggregates don't break down by feature, keep as-is
-      invocations: apiUsage.invocations.filter(i => selectedFeatures.has(i.feature)),
+      by_feature: apiUsage.by_feature.filter(f => selected.has(f.feature)),
+      by_model: apiUsage.by_model,
+      invocations: apiUsage.invocations.filter(i => selected.has(i.feature)),
       total_cost_usd: apiUsage.by_feature
-        .filter(f => selectedFeatures.has(f.feature))
+        .filter(f => selected.has(f.feature))
         .reduce((sum, f) => sum + f.cost_usd, 0),
     };
   }, [apiUsage, selectedFeatures]);
@@ -472,67 +490,56 @@ export function AdminPanel() {
           </div>
         )}
 
-        {/* Features Table */}
-        {availableFeatures.length > 0 && (
-          <div className="overflow-x-auto rounded-lg border border-slate-700">
-            <table className="w-full text-sm">
-              <thead>
-                <tr
-                  className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:bg-slate-700/70 transition-colors"
-                  onClick={() => setFeaturesCollapsed(c => !c)}
-                >
-                  <th className="w-8 px-2 py-2">
-                    {featuresCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400 mx-auto" /> : <ChevronUp className="w-4 h-4 text-slate-400 mx-auto" />}
-                  </th>
-                  <th className="px-3 py-2 text-left text-sm normal-case tracking-normal text-slate-300" colSpan={featuresCollapsed ? 3 : 1}>
-                    <div className="flex items-center gap-2">
-                      {!featuresCollapsed && <input
-                        type="checkbox"
-                        checked={availableFeatures.length > 0 && selectedFeatures.size === availableFeatures.length}
-                        ref={el => { if (el) el.indeterminate = selectedFeatures.size > 0 && selectedFeatures.size < availableFeatures.length; }}
-                        onChange={() => {
-                          if (selectedFeatures.size === availableFeatures.length) {
-                            setSelectedFeatures(new Set());
-                          } else {
-                            setSelectedFeatures(new Set(availableFeatures));
-                          }
-                        }}
-                        onClick={e => e.stopPropagation()}
-                        className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
-                      />}
-                      <span>{availableFeatures.length} {availableFeatures.length === 1 ? 'feature' : 'features'}</span>
-                      {selectedFeatures.size > 0 && <span className="text-blue-400">({selectedFeatures.size} selected)</span>}
-                    </div>
-                  </th>
-                  {!featuresCollapsed && <>
-                    <th className="px-3 py-2 text-center">{t('coaches.admin.sessions')}</th>
-                    <th className="px-3 py-2 text-right">Cost</th>
-                  </>}
+        {/* Pages / Features Table */}
+        <div className="overflow-x-auto rounded-lg border border-slate-700">
+          <table className="w-full text-sm">
+            <thead>
+              <tr
+                className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:bg-slate-700/70 transition-colors"
+                onClick={() => setFeaturesCollapsed(c => !c)}
+              >
+                <th className="w-8 px-2 py-2">
+                  {featuresCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400 mx-auto" /> : <ChevronUp className="w-4 h-4 text-slate-400 mx-auto" />}
+                </th>
+                <th className="px-3 py-2 text-left text-sm normal-case tracking-normal text-slate-300" colSpan={featuresCollapsed ? 1 : 1}>
+                  <div className="flex items-center gap-2">
+                    {!featuresCollapsed && <input
+                      type="checkbox"
+                      checked={selectedFeatures.size === COACH_PAGES.length}
+                      ref={el => { if (el) el.indeterminate = selectedFeatures.size > 0 && selectedFeatures.size < COACH_PAGES.length; }}
+                      onChange={() => {
+                        if (selectedFeatures.size === COACH_PAGES.length) {
+                          setSelectedFeatures(new Set());
+                        } else {
+                          setSelectedFeatures(new Set(COACH_PAGES.map(p => p.id)));
+                        }
+                      }}
+                      onClick={e => e.stopPropagation()}
+                      className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
+                    />}
+                    <span>{COACH_PAGES.length} pages</span>
+                    {selectedFeatures.size > 0 && <span className="text-blue-400">({selectedFeatures.size} selected)</span>}
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            {!featuresCollapsed && <tbody className="divide-y divide-slate-700/50">
+              {COACH_PAGES.map(page => (
+                <tr key={page.id} className={`hover:bg-slate-700/30 transition-colors ${selectedFeatures.has(page.id) ? 'bg-slate-700/20' : ''}`}>
+                  <td className="px-2 py-2 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedFeatures.has(page.id)}
+                      onChange={() => toggleFeature(page.id)}
+                      className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-slate-200">{page.label}</td>
                 </tr>
-              </thead>
-              {!featuresCollapsed && <tbody className="divide-y divide-slate-700/50">
-                {availableFeatures.map(feature => {
-                  const stats = apiUsage?.by_feature.find(f => f.feature === feature);
-                  return (
-                    <tr key={feature} className={`hover:bg-slate-700/30 transition-colors ${selectedFeatures.has(feature) ? 'bg-slate-700/20' : ''}`}>
-                      <td className="px-2 py-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedFeatures.has(feature)}
-                          onChange={() => toggleFeature(feature)}
-                          className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-slate-200">{FEATURE_LABELS[feature] || feature}</td>
-                      <td className="px-3 py-2 text-slate-400 text-center">{stats?.invocation_count || stats?.call_count || 0}</td>
-                      <td className="px-3 py-2 text-green-400 text-right font-medium">{formatCost(stats?.cost_usd || 0)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>}
-            </table>
-          </div>
-        )}
+              ))}
+            </tbody>}
+          </table>
+        </div>
 
         {/* Time Spent Chart */}
         {chartData.length > 0 && (

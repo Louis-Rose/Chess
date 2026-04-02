@@ -327,8 +327,30 @@ def get_coach_time_spent():
     COACHES_LAUNCH_DATE = '2026-03-23'
     user_ids_raw = request.args.get('user_ids', '')
     user_ids = [int(x) for x in user_ids_raw.split(',') if x.strip().isdigit()] if user_ids_raw else []
+    pages_raw = request.args.get('pages', '')
+    pages = [p.strip() for p in pages_raw.split(',') if p.strip()] if pages_raw else []
+
     with get_db() as conn:
-        if user_ids:
+        if pages:
+            # Query from page_daily_activity when filtering by pages
+            conditions = ['u.registered_app = ?', 'a.activity_date >= ?']
+            params: list = ['coaches', COACHES_LAUNCH_DATE]
+            page_ph = ','.join(['?' for _ in pages])
+            conditions.append(f'a.page IN ({page_ph})')
+            params.extend(pages)
+            if user_ids:
+                user_ph = ','.join(['?' for _ in user_ids])
+                conditions.append(f'u.id IN ({user_ph})')
+                params.extend(user_ids)
+            cursor = conn.execute(f'''
+                SELECT a.activity_date, SUM(a.seconds) as total_seconds
+                FROM page_daily_activity a
+                JOIN users u ON a.user_id = u.id
+                WHERE {' AND '.join(conditions)}
+                GROUP BY a.activity_date
+                ORDER BY a.activity_date ASC
+            ''', params)
+        elif user_ids:
             placeholders = ','.join(['?' for _ in user_ids])
             cursor = conn.execute(f'''
                 SELECT a.activity_date, SUM(a.seconds) as total_seconds

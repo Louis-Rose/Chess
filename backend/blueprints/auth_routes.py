@@ -390,9 +390,15 @@ def activity_heartbeat():
     device_type = data.get('device_type')
 
     # Normalize page names to categories
+    KNOWN_PAGES = {
+        # investing
+        'portfolio', 'watchlist', 'earnings', 'financials', 'stock', 'admin',
+        # coaches
+        'home', 'calendar', 'students', 'payments', 'scoresheets', 'mistakes', 'diagram', 'about',
+    }
     if page.startswith('stock/'):
         page = 'stock'  # Aggregate all company pages
-    elif page not in ('portfolio', 'watchlist', 'earnings', 'financials', 'admin'):
+    elif page not in KNOWN_PAGES:
         page = 'other'
 
     with get_db() as conn:
@@ -441,6 +447,14 @@ def activity_heartbeat():
             ON CONFLICT(user_id, page) DO UPDATE SET
                 seconds = page_activity.seconds + 15
         ''', (request.user_id, page))
+
+        # Track daily page-level activity (for per-page daily charts)
+        conn.execute('''
+            INSERT INTO page_daily_activity (user_id, activity_date, page, seconds)
+            VALUES (?, ?, ?, 15)
+            ON CONFLICT(user_id, activity_date, page) DO UPDATE SET
+                seconds = page_daily_activity.seconds + 15
+        ''', (request.user_id, today, page))
 
         # Track theme preference (if provided)
         if theme and resolved_theme:

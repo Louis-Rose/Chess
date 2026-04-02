@@ -618,6 +618,27 @@ def init_db():
                     conn.execute("ALTER TABLE api_usage ADD COLUMN retry_free_elapsed INTEGER")
                     print("[Database] Added retry columns to api_usage")
 
+            # Migration: Create page_daily_activity table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'page_daily_activity'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE page_daily_activity (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL,
+                        activity_date TEXT NOT NULL,
+                        page TEXT NOT NULL,
+                        seconds INTEGER DEFAULT 0,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                        UNIQUE(user_id, activity_date, page)
+                    )
+                """)
+                conn.execute("CREATE INDEX idx_page_daily_activity_date ON page_daily_activity(activity_date)")
+                conn.execute("CREATE INDEX idx_page_daily_activity_user ON page_daily_activity(user_id)")
+                print("[Database] Created page_daily_activity table")
+
             # Migration: Tag admin account as coaches app user
             conn.execute("UPDATE users SET registered_app = 'coaches' WHERE email = 'rose.louis.mail@gmail.com' AND registered_app IS NULL")
 
