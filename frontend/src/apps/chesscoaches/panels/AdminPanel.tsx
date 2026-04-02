@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Shield, Loader2, ChevronUp, ChevronDown, Clock, Cpu, AlertTriangle, Download, Image, X } from 'lucide-react';
+import { Loader2, ChevronUp, ChevronDown, Clock, Cpu, AlertTriangle, Download, Image, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
