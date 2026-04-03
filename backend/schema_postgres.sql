@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     id SERIAL PRIMARY KEY,
     user_id INTEGER UNIQUE NOT NULL,
     chess_username TEXT,
+    coaches_chess_username TEXT,
+    lichess_username TEXT,
     preferred_time_class TEXT DEFAULT 'rapid',
     dashboard_card_order TEXT,  -- JSON array of card IDs for custom order
     financial_card_order TEXT,  -- JSON array of financial metric card IDs

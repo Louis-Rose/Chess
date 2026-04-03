@@ -299,9 +299,12 @@ def list_coach_users():
                    u.updated_at, u.sign_in_count,
                    COALESCE(SUM(a.seconds), 0) as total_seconds,
                    MAX(a.last_ping) as last_active,
-                   COUNT(a.id) as session_count
+                   COUNT(a.id) as session_count,
+                   up.coaches_chess_username,
+                   up.lichess_username
             FROM users u
             LEFT JOIN user_activity a ON u.id = a.user_id AND a.activity_date >= ?
+            LEFT JOIN user_preferences up ON u.id = up.user_id
             WHERE u.registered_app = 'coaches'
             GROUP BY u.id
             ORDER BY u.created_at DESC

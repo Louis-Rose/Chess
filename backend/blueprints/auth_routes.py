@@ -487,6 +487,29 @@ def activity_heartbeat():
                     updated_at = CURRENT_TIMESTAMP
             ''', (request.user_id, device_type))
 
+        # Track coaches usernames (if provided)
+        coaches_chess = data.get('coaches_chess_username')
+        lichess = data.get('lichess_username')
+        if coaches_chess or lichess:
+            sets = []
+            params = []
+            if coaches_chess:
+                sets.append('coaches_chess_username = ?')
+                params.append(coaches_chess)
+            if lichess:
+                sets.append('lichess_username = ?')
+                params.append(lichess)
+            params.append(request.user_id)
+            # Ensure row exists
+            conn.execute('''
+                INSERT INTO user_preferences (user_id) VALUES (?)
+                ON CONFLICT(user_id) DO NOTHING
+            ''', (request.user_id,))
+            conn.execute(f'''
+                UPDATE user_preferences SET {', '.join(sets)}
+                WHERE user_id = ?
+            ''', params)
+
     return jsonify({'success': True})
 
 

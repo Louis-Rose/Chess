@@ -24,6 +24,8 @@ interface AdminUser {
   session_count: number;
   sign_in_count: number;
   cost_usd: number;
+  coaches_chess_username: string | null;
+  lichess_username: string | null;
 }
 
 interface AdminUsersResponse {
@@ -187,6 +189,7 @@ export function AdminPanel() {
   const [sortColumn, setSortColumn] = useState<SortColumn>('total_seconds');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [usersCollapsed, setUsersCollapsed] = useState(false);
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [chartCollapsed, setChartCollapsed] = useState(false);
   const [featuresCollapsed, setFeaturesCollapsed] = useState(false);
   const [selectedFeatures, setSelectedFeatures] = useState<Set<string>>(() => new Set(COACH_FEATURES.map(f => f.id)));
@@ -472,7 +475,8 @@ export function AdminPanel() {
                 {sortedUsers.map(u => (
                   <React.Fragment key={u.id}>
                     <tr
-                      className={`hover:bg-slate-700/30 transition-colors ${selectedUserIds.has(u.id) ? 'bg-slate-700/20' : ''}`}
+                      className={`hover:bg-slate-700/30 transition-colors cursor-pointer ${selectedUserIds.has(u.id) ? 'bg-slate-700/20' : ''}`}
+                      onClick={() => setExpandedUserId(prev => prev === u.id ? null : u.id)}
                     >
                       <td className="px-2 py-2 text-center">
                         <input
@@ -504,6 +508,22 @@ export function AdminPanel() {
                       <td className="px-3 py-2 text-slate-400 text-center whitespace-nowrap">{formatDuration(u.total_seconds)}</td>
                       <td className="px-3 py-2 text-green-400 text-right whitespace-nowrap font-medium">{formatCost(u.cost_usd || 0)}</td>
                     </tr>
+                    {expandedUserId === u.id && (
+                      <tr className="bg-slate-800/50">
+                        <td colSpan={8} className="px-6 py-3">
+                          <div className="flex gap-6 text-xs">
+                            <div>
+                              <span className="text-slate-500">Chess.com: </span>
+                              <span className="text-slate-300">{u.coaches_chess_username || '—'}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">Lichess: </span>
+                              <span className="text-slate-300">{u.lichess_username || '—'}</span>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                   </React.Fragment>
                 ))}
               </tbody>}

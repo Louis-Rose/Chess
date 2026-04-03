@@ -639,6 +639,13 @@ def init_db():
                 conn.execute("CREATE INDEX idx_page_daily_activity_user ON page_daily_activity(user_id)")
                 print("[Database] Created page_daily_activity table")
 
+            # Migration: Add coaches_chess_username and lichess_username to user_preferences
+            conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'user_preferences' AND column_name = 'coaches_chess_username'")
+            if not conn._cursor.fetchone():
+                conn.execute("ALTER TABLE user_preferences ADD COLUMN coaches_chess_username TEXT")
+                conn.execute("ALTER TABLE user_preferences ADD COLUMN lichess_username TEXT")
+                print("[Database] Added coaches_chess_username and lichess_username to user_preferences")
+
             # Migration: Tag admin account as coaches app user
             conn.execute("UPDATE users SET registered_app = 'coaches' WHERE email = 'rose.louis.mail@gmail.com' AND registered_app IS NULL")
 
@@ -756,6 +763,16 @@ def init_db():
                 if 'registered_app' not in columns:
                     conn.execute('ALTER TABLE users ADD COLUMN registered_app TEXT')
                     print("[Database] Added registered_app column to users")
+
+            # Migration: Add coaches_chess_username and lichess_username to user_preferences
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='user_preferences'")
+            if cursor.fetchone():
+                cursor = conn.execute("PRAGMA table_info(user_preferences)")
+                columns = [row['name'] for row in cursor.fetchall()]
+                if 'coaches_chess_username' not in columns:
+                    conn.execute('ALTER TABLE user_preferences ADD COLUMN coaches_chess_username TEXT')
+                    conn.execute('ALTER TABLE user_preferences ADD COLUMN lichess_username TEXT')
+                    print("[Database] Added coaches_chess_username and lichess_username to user_preferences")
 
             # Run full schema
             with open(schema_path, 'r') as f:

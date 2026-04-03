@@ -239,11 +239,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(userAgent);
       const device_type = isMobile ? 'mobile' : 'desktop';
 
+      // Include coaches usernames if available
+      let coaches_chess_username: string | undefined;
+      let lichess_username: string | undefined;
+      try {
+        const prefs = JSON.parse(localStorage.getItem('coaches_preferences') || '{}');
+        if (prefs.chess_username) coaches_chess_username = prefs.chess_username;
+        if (prefs.lichess_username) lichess_username = prefs.lichess_username;
+      } catch {}
+
       fetch('/api/activity/heartbeat', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ page, theme: 'dark', resolved_theme, language, device_type })
+        body: JSON.stringify({ page, theme: 'dark', resolved_theme, language, device_type, coaches_chess_username, lichess_username })
       }).catch(() => {}); // Silently fail
     };
 
