@@ -1093,6 +1093,14 @@ export function ScoresheetReadPage() {
                               <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={false} onIllegalClick={() => {}} />
                             </div>
                             )}
+                            {allVerified && !hasHadSuccess.current && (
+                              <button
+                                onClick={() => { scoresheetClear(); setTimeout(() => fileInputRef.current?.click(), 100); }}
+                                className="w-full mt-3 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+                              >
+                                {t('coaches.tryOwnScoresheet')}
+                              </button>
+                            )}
                           </div>
                           {/* Right: board */}
                           <div className="flex flex-col items-center justify-center gap-3 max-w-[400px]" onClick={e => e.stopPropagation()}>
@@ -1262,6 +1270,14 @@ export function ScoresheetReadPage() {
                               <ChesscomAnalysisButton moves={displayConsensusMoves} meta={consensusMeta} hasIllegalMoves={false} onIllegalClick={() => {}} />
                               <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={false} onIllegalClick={() => {}} />
                             </div>
+                            )}
+                            {allVerified && !hasHadSuccess.current && (
+                              <button
+                                onClick={() => { scoresheetClear(); setTimeout(() => fileInputRef.current?.click(), 100); }}
+                                className="w-full max-w-[400px] mt-3 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+                              >
+                                {t('coaches.tryOwnScoresheet')}
+                              </button>
                             )}
                             <div ref={mobileExportRef} />
                           </>)}
