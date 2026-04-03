@@ -368,7 +368,7 @@ SCORESHEET_READ_PROMPT = """You are analyzing a handwritten chess tournament sco
 First, identify whether the scoresheet uses English or French notation:
 - English: K (King), Q (Queen), R (Rook), B (Bishop), N (Knight)
 - French: R (Roi/King), D (Dame/Queen), T (Tour/Rook), F (Fou/Bishop), C (Cavalier/Knight)
-Clues: column headers like "BLANCS/NOIRS" indicate French. "WHITE/BLACK" indicate English.
+Clues: column headers like "BLANCS"/"NOIRS" or "BLANC"/"NOIR" indicate French. "WHITE"/"BLACK" indicate English. If no headers are visible, infer from the piece letters used in the moves.
 
 Extract ALL moves from the scoresheet and return them as a JSON object with this exact format:
 {
