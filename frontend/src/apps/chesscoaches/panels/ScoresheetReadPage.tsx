@@ -43,7 +43,7 @@ function normalizeMoves(moves: Move[]): Move[] {
   });
 }
 
-function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result?: string; date?: string; event?: string }): string {
+function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result?: string; date?: string; event?: string; notation?: string }): string {
   const headers = [
     meta?.event ? `[Event "${meta.event}"]` : null,
     meta?.date ? `[Date "${meta.date}"]` : null,
@@ -810,7 +810,7 @@ export function ScoresheetReadPage() {
 
 
                     // Build consensus meta (player names + result) from model results
-                    const consensusMeta: { white?: string; black?: string; result?: string; date?: string; event?: string } = {};
+                    const consensusMeta: { white?: string; black?: string; result?: string; date?: string; event?: string; notation?: string } = {};
                     {
                       const results = Object.values(modelResults).map(mr => mr?.result).filter(Boolean);
                       const pick = (vals: (string | undefined)[]) => {
@@ -824,6 +824,7 @@ export function ScoresheetReadPage() {
                       consensusMeta.result = pick(results.map(r => r!.result));
                       consensusMeta.date = pick(results.map(r => r!.date));
                       consensusMeta.event = pick(results.map(r => r!.event));
+                      consensusMeta.notation = pick(results.map(r => r!.notation));
                     }
 
                     // Apply overrides on top of computed consensus, then normalize +/# annotations
@@ -1886,7 +1887,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
   error?: string;
-  meta?: { white?: string; black?: string; result?: string; date?: string; event?: string };
+  meta?: { white?: string; black?: string; result?: string; date?: string; event?: string; notation?: string };
   rereading?: boolean;
   corrections?: Set<string>;
   onEditSave?: (confirmed: Move[], correctionKey: string) => void;
@@ -2019,6 +2020,9 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
           )}
           {meta?.event && (
             <div>Event : <span className="text-slate-100">{meta.event}</span></div>
+          )}
+          {meta?.notation && (
+            <div>Notation : <span className="text-slate-100 capitalize">{meta.notation}</span></div>
           )}
         </div>
       )}
@@ -2281,7 +2285,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
 
 function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }: {
   moves: Move[];
-  meta?: { white?: string; black?: string; result?: string; date?: string; event?: string };
+  meta?: { white?: string; black?: string; result?: string; date?: string; event?: string; notation?: string };
   hasIllegalMoves?: boolean;
   onIllegalClick?: () => void;
 }) {
@@ -2322,7 +2326,7 @@ function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }
 
 function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onIllegalClick }: {
   moves: Move[];
-  meta?: { white?: string; black?: string; result?: string; date?: string; event?: string };
+  meta?: { white?: string; black?: string; result?: string; date?: string; event?: string; notation?: string };
   fileName?: string | null;
   hasIllegalMoves?: boolean;
   onIllegalClick?: () => void;
