@@ -2001,6 +2001,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
               reason={move.white_reason}
               confidence={move.white_confidence}
               time={move.white_time}
+              hasTime={hasTime}
               onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
               onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setVoteEditValue(move.white || ''); onMoveClick?.(moves, idx * 2 + 1); } : undefined}
               onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
@@ -2014,6 +2015,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
               reason={move.black_reason}
               confidence={move.black_confidence}
               time={move.black_time}
+              hasTime={hasTime}
               onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
               onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setVoteEditValue(move.black || ''); onMoveClick?.(moves, idx * 2 + 2); } : undefined}
               onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
@@ -2609,7 +2611,7 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselec
   );
 }
 
-function MoveCell({ value, legal, highlight, corrected, active, confidence, time, onShowBoard, onVoteInfo, onMoveInfo }: {
+function MoveCell({ value, legal, highlight, corrected, active, confidence, time, hasTime, onShowBoard, onVoteInfo, onMoveInfo }: {
   value: string;
   legal?: boolean;
   highlight?: boolean;
@@ -2618,6 +2620,7 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, time
   reason?: string;
   confidence?: 'high' | 'medium' | 'low';
   time?: number;
+  hasTime?: boolean;
   onShowBoard?: () => void;
   onVoteInfo?: () => void;
   onMoveInfo?: () => void;
@@ -2639,9 +2642,16 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, time
       className={`px-3 py-1.5 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg} ${border}`}
       onClick={handleClick}
     >
-      <span className="inline-flex items-center justify-center gap-1 w-full">
-        {value}{time != null && ` (${time})`}
-      </span>
+      {hasTime ? (
+        <span className="inline-flex items-center w-full">
+          <span className="flex-1 text-right">{value}</span>
+          <span className="flex-1 text-left">{time != null ? ` (${time})` : ''}</span>
+        </span>
+      ) : (
+        <span className="inline-flex items-center justify-center gap-1 w-full">
+          {value}
+        </span>
+      )}
     </td>
   );
 }
