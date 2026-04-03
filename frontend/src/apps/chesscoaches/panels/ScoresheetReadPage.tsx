@@ -387,11 +387,13 @@ export function ScoresheetReadPage() {
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <div className="flex items-center justify-between mt-1">
+                      <div className="text-center mt-1">
                         <span className={`text-sm font-medium ${allDone ? 'text-emerald-500' : 'text-blue-500'}`}>{pct}%</span>
-                        <span className="text-sm text-slate-400">
+                      </div>
+                      <div className="text-center mt-0.5">
+                        <span className="text-xs text-slate-400">
                           {allDone
-                            ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {t('coaches.status.done')}</span>
+                            ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-3 h-3" /> {t('coaches.status.done')}</span>
                             : <>{liveGlobalElapsed}s{maxAvg > 0 ? <> / ~{maxAvg}s</> : ''}</>
                           }
                         </span>
