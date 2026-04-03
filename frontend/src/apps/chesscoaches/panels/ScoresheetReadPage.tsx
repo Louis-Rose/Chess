@@ -324,7 +324,6 @@ export function ScoresheetReadPage() {
             )
           ) : !preview && !loadingSample ? (
             <div className="space-y-3">
-              <p className="text-slate-200 text-lg text-center my-6">{t('coaches.uploadExplanation')}</p>
               <UploadBox
                 onClick={() => fileInputRef.current?.click()}
                 icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
