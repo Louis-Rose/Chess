@@ -53,8 +53,8 @@ export function CoachesSidebar() {
 
       {/* Google login */}
       <div className="flex flex-col items-center gap-4 px-6">
-        <span className="text-slate-400 text-sm">{t('coaches.onboardingInstruction')}</span>
-        <LoginButton />
+        <span className="text-slate-400 text-lg">{t('coaches.onboardingInstruction')}</span>
+        <LoginButton size="large" />
       </div>
 
       <div className="h-px bg-slate-700 mx-3 mt-6" />

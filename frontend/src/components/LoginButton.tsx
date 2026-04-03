@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useRef } from 'react';
 
-export function LoginButton() {
+export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | 'large' }) {
   const { login } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ export function LoginButton() {
   }, [visible]);
 
   return (
-    <div className="relative h-[48px] min-h-[48px] max-h-[48px] flex items-center justify-center overflow-hidden">
+    <div className={`relative ${size === 'large' ? 'h-[56px] min-h-[56px] max-h-[56px]' : 'h-[48px] min-h-[48px] max-h-[48px]'} flex items-center justify-center overflow-hidden`}>
       <div className={visible ? 'opacity-100' : 'opacity-0'}>
         <GoogleLogin
           key={language}
@@ -46,7 +46,7 @@ export function LoginButton() {
           onError={() => {
             setError('Google login failed');
           }}
-          size="medium"
+          size={size}
           theme="outline"
           text="signin"
           shape="rectangular"
