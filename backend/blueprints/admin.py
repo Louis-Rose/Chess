@@ -306,7 +306,7 @@ def list_coach_users():
             LEFT JOIN user_activity a ON u.id = a.user_id AND a.activity_date >= ?
             LEFT JOIN user_preferences up ON u.id = up.user_id
             WHERE u.registered_app = 'coaches'
-            GROUP BY u.id
+            GROUP BY u.id, up.coaches_chess_username, up.lichess_username
             ORDER BY u.created_at DESC
         ''', (COACHES_LAUNCH_DATE, COACHES_LAUNCH_DATE, COACHES_LAUNCH_DATE))
         users = []
