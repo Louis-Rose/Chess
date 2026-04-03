@@ -1335,18 +1335,6 @@ export function ScoresheetReadPage() {
 
                   {/* Azure DI section — disabled, kept for future use */}
 
-                  {/* New scoresheet button — bottom of page, only after processing */}
-                  {!analyzing && (
-                    <div className="flex justify-center py-4">
-                      <button
-                        onClick={() => { scoresheetClear(); fileInputRef.current?.click(); }}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors text-sm bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-300"
-                      >
-                        <Upload className="w-4 h-4" />
-                        {t('coaches.replaceImage')}
-                      </button>
-                    </div>
-                  )}
 
                 </div>
                 );
