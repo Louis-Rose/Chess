@@ -104,6 +104,18 @@ def validate_moves():
 
 ## --- Scoresheet helpers (shared between read & re-read endpoints) ---
 
+# French → English piece letter mapping
+_FRENCH_TO_ENGLISH = {'T': 'R', 'F': 'B', 'D': 'Q', 'C': 'N'}
+_ENGLISH_TO_FRENCH = {v: k for k, v in _FRENCH_TO_ENGLISH.items()}
+
+
+def _scoresheet_french_to_english(san):
+    """Convert French notation (T, F, D, C) to English (R, B, Q, N)."""
+    if san and len(san) >= 2 and san[0] in _FRENCH_TO_ENGLISH:
+        return _FRENCH_TO_ENGLISH[san[0]] + san[1:]
+    return san
+
+
 def _scoresheet_clean_san(san):
     """Clean up common OCR artifacts from a SAN move."""
     import re
@@ -202,10 +214,12 @@ def _scoresheet_diagnose_illegal(board, san):
     return None
 
 
-def _scoresheet_validate_moves(moves, stop_at_illegal=False):
+def _scoresheet_validate_moves(moves, stop_at_illegal=False, notation=None):
     """Validate moves with python-chess, adding legality flags.
-    If stop_at_illegal, truncate after the first illegal move."""
+    If stop_at_illegal, truncate after the first illegal move.
+    If notation is 'french', translate piece letters before validation."""
     import chess
+    is_french = notation == 'french'
     board = chess.Board()
     for i, move in enumerate(moves):
         for color in ("white", "black"):
@@ -213,6 +227,10 @@ def _scoresheet_validate_moves(moves, stop_at_illegal=False):
             if not san or san == "?":
                 move.pop(f"{color}_legal", None)
                 continue
+            # Translate French notation to English for python-chess
+            if is_french:
+                san = _scoresheet_french_to_english(san)
+                move[color] = san
             # Normalize castling and clean OCR artifacts in the output
             cleaned = _scoresheet_clean_san(san)
             normalized = _scoresheet_normalize_castling(cleaned)
@@ -347,6 +365,11 @@ def _enrich_models_with_avg(user_id=None):
 
 SCORESHEET_READ_PROMPT = """You are analyzing a handwritten chess tournament scoresheet image.
 
+First, identify whether the scoresheet uses English or French notation:
+- English: K (King), Q (Queen), R (Rook), B (Bishop), N (Knight)
+- French: R (Roi/King), D (Dame/Queen), T (Tour/Rook), F (Fou/Bishop), C (Cavalier/Knight)
+Clues: column headers like "BLANCS/NOIRS" indicate French. "WHITE/BLACK" indicate English.
+
 Extract ALL moves from the scoresheet and return them as a JSON object with this exact format:
 {
   "white_player": "Name or empty string if unreadable",
@@ -354,6 +377,7 @@ Extract ALL moves from the scoresheet and return them as a JSON object with this
   "event": "Tournament name or empty string if unreadable",
   "date": "Date or empty string if unreadable",
   "result": "1-0, 0-1, 1/2-1/2, or * if unreadable/ongoing",
+  "notation": "english" or "french",
   "moves": [
     {"number": 1, "white": "e4", "white_confidence": "high", "black": "e5", "black_confidence": "high"},
     {"number": 2, "white": "Nf3", "white_confidence": "high", "white_time": 88, "black": "Nc6", "black_confidence": "medium", "black_time": 85}
@@ -362,13 +386,15 @@ Extract ALL moves from the scoresheet and return them as a JSON object with this
 
 Rules:
 - Transcribe EXACTLY what is written on the sheet — do not add or remove symbols
-- Some players write captures with "x" (e.g. Nxd4) and some without (e.g. Nd4). Read what is actually written.
+- Use the notation the player used. If the sheet is in French, output French piece letters (T, F, D, C). If in English, output English piece letters (K, Q, R, B, N). Pawn moves have no piece letter in either notation.
+- Some players write captures with "x" (e.g. Nxd4 / Cxd4) and some without (e.g. Nd4 / Cd4). Read what is actually written.
 - If a move is unreadable, use "?" as the move
 - If black's last move is missing (white won or game ended), omit the "black" field for that move
 - Include ALL moves you can read, even partially
-- Be careful with similar-looking pieces: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
+- Be careful with similar-looking pieces in English: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
+- Be careful with similar-looking pieces in French: R (Roi), C (Cavalier), F (Fou), T (Tour), D (Dame)
 - Chess moves always end with a rank digit (1-8), optionally followed by + or #. If you see a letter "l" or "I" at the end, it is the digit "1". Do not output moves ending in letters like "Reel" — that should be "Re1".
-- Castling: O-O (kingside), O-O-O (queenside)
+- Castling: O-O (kingside), O-O-O (queenside) — same in both notations
 - For each move, include a confidence level: "high" (clearly readable), "medium" (somewhat ambiguous), or "low" (hard to read/guessing)
 - Some players write the remaining minutes on their clock next to their moves (before or after the move). If you see a number that looks like a clock time (typically decreasing over the game), include it as "white_time" or "black_time" (integer, in minutes). Only include time fields if the scoresheet actually has clock times written — do not guess or fabricate them.
 Return ONLY the JSON object, no other text."""
@@ -441,11 +467,13 @@ Read ALL remaining moves from the scoresheet starting from move {resume_num} ({'
 
 Rules:
 - Transcribe EXACTLY what is written on the sheet — do not add or remove symbols
-- Some players write captures with "x" (e.g. Nxd4) and some without (e.g. Nd4). Read what is actually written.
+- The scoresheet may use English notation (K, Q, R, B, N) or French notation (R, D, T, F, C). Use whichever notation the player used.
+- Some players write captures with "x" (e.g. Nxd4 / Cxd4) and some without. Read what is actually written.
 - If a move is unreadable, use "?"
-- Be careful with similar-looking pieces: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
+- Be careful with similar-looking pieces in English: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
+- Be careful with similar-looking pieces in French: R (Roi), C (Cavalier), F (Fou), T (Tour), D (Dame)
 - Chess moves always end with a rank digit (1-8), optionally followed by + or #. If you see a letter "l" or "I" at the end, it is the digit "1".
-- Castling: O-O (kingside), O-O-O (queenside)
+- Castling: O-O (kingside), O-O-O (queenside) — same in both notations
 - If clock times (remaining minutes) are written next to moves, include them as "white_time" / "black_time" (integer). Only include if actually present on the sheet.
 
 Return ONLY a JSON object:
@@ -482,6 +510,13 @@ Return ONLY a JSON object:
     _log_api_usage('reread', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier, user_id=uid)
     gemini_result, warnings = _scoresheet_parse_response(response.text)
     new_moves = gemini_result.get("moves", [])
+
+    # Translate French notation in new moves to English before merging
+    for mv in new_moves:
+        for c in ('white', 'black'):
+            s = mv.get(c, '')
+            if s:
+                mv[c] = _scoresheet_french_to_english(s)
 
     # Merge: confirmed + newly read
     merged = [dict(m) for m in confirmed_moves]
@@ -840,7 +875,8 @@ def read_scoresheet():
             logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
 
             result, warnings = _scoresheet_parse_response(response.text)
-            result["moves"] = _scoresheet_validate_moves(result.get("moves", []))
+            notation = result.get("notation")
+            result["moves"] = _scoresheet_validate_moves(result.get("moves", []), notation=notation)
 
             move_count = len(result.get("moves", []))
             logger.info(f"[Scoresheet] {model_name}: {move_count} moves")
