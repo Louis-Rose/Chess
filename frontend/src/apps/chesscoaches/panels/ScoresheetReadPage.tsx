@@ -71,6 +71,23 @@ export function ScoresheetReadPage() {
 
   const { preview, fileName, error, modelResults, models, startTime, analyzing, azureGrid } = scoresheet;
 
+  // First-time users: auto-load sample scoresheet for immediate "aha" moment
+  const hasHadSuccess = useRef(getCoachesPrefs().scoresheet_success);
+  const autoSampleTriggered = useRef(false);
+  useEffect(() => {
+    if (hasHadSuccess.current || autoSampleTriggered.current || preview) return;
+    autoSampleTriggered.current = true;
+    setLoadingSample(true);
+    fetch('/sample_scoresheet.jpeg')
+      .then(r => r.blob())
+      .then(blob => {
+        const file = new File([blob], 'sample_scoresheet.jpeg', { type: 'image/jpeg' });
+        scoresheetSetImage(file, URL.createObjectURL(blob), file.name);
+        setLoadingSample(false);
+        setAutoRun(true);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Pick up shared image from Web Share Target
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -851,6 +868,7 @@ export function ScoresheetReadPage() {
                     // Scroll to export buttons on mobile when verification completes
                     if (allVerified && !prevAllVerifiedRef.current) {
                       setTimeout(() => mobileExportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 200);
+                      if (!getCoachesPrefs().scoresheet_success) saveCoachesPrefs({ scoresheet_success: true });
                     }
                     prevAllVerifiedRef.current = allVerified;
                     const unresolvedMovesList = unresolvedPlies.map(ply => {

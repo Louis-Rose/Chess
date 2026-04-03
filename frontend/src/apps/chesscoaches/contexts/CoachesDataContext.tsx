@@ -167,9 +167,10 @@ interface CoachesPrefs {
   onboarding_done: boolean;
   lesson_rate: number | null;
   lesson_currency: string;
+  scoresheet_success: boolean;
 }
 
-const DEFAULT_PREFS: CoachesPrefs = { chess_username: null, lichess_username: null, onboarding_done: false, lesson_rate: null, lesson_currency: 'EUR' };
+const DEFAULT_PREFS: CoachesPrefs = { chess_username: null, lichess_username: null, onboarding_done: false, lesson_rate: null, lesson_currency: 'EUR', scoresheet_success: false };
 
 const getPrefs = (): CoachesPrefs => {
   try {
