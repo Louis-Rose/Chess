@@ -1001,19 +1001,19 @@ export function ScoresheetReadPage() {
                                   <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
                                     <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                                   </span>
-                                  <span className="text-sm text-emerald-300 font-medium">Verification complete — PGN is ready</span>
+                                  <span className="text-sm text-emerald-300 font-medium">{t('coaches.verificationComplete')}</span>
                                 </div>
                               </div>
                             ) : (!allModelsFinished || analyzing || !voteState) ? (
                               <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2">
                                 <p className="text-base text-slate-500 font-medium text-center">Move — - —</p>
                                 <div className="text-center py-1">
-                                  <p className="text-sm text-slate-500">Read as <span className="font-mono">———</span></p>
+                                  <p className="text-sm text-slate-500">{t('coaches.readAs')} <span className="font-mono">———</span></p>
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                  <p className="text-sm text-slate-500 text-center">Drag a piece on the board and then confirm</p>
+                                  <p className="text-sm text-slate-500 text-center">{t('coaches.dragAndConfirm')}</p>
                                   <div className="flex justify-center">
-                                    <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">Confirm</button>
+                                    <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
                                   </div>
                                 </div>
                               </div>
@@ -1045,7 +1045,7 @@ export function ScoresheetReadPage() {
                               return (
                                 <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3]">
                                   <p className="text-base text-slate-100 font-medium text-center">
-                                    Move {moveIdx + 1} - {colorStr === 'black' ? 'Black' : 'White'}
+                                    {t('coaches.move')} {moveIdx + 1} - {colorStr === 'black' ? t('coaches.black') : t('coaches.white')}
                                   </p>
                                   <div className="flex items-center justify-center gap-3 py-1">
                                     {cellCrop && (
@@ -1053,10 +1053,10 @@ export function ScoresheetReadPage() {
                                         <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
                                       </div>
                                     )}
-                                    <p className="text-sm text-slate-100">Read as <span className="font-mono font-semibold">{displayMove}</span></p>
+                                    <p className="text-sm text-slate-100">{t('coaches.readAs')} <span className="font-mono font-semibold">{displayMove}</span></p>
                                   </div>
                                   <div className="flex flex-col gap-1.5">
-                                    <p className="text-sm text-slate-100 text-center">Drag a piece on the board and then confirm</p>
+                                    <p className="text-sm text-slate-100 text-center">{t('coaches.dragAndConfirm')}</p>
                                     <div className="flex justify-center">
                                     {userPickedMove ? (
                                       userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
@@ -1064,7 +1064,7 @@ export function ScoresheetReadPage() {
                                           onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); if (voteState) voteState.clearSelection(); }}
                                           className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-emerald-400"
                                         >
-                                          Confirm {displayMove}
+                                          {t('coaches.confirmMove')} {displayMove}
                                         </button>
                                       ) : (
                                         <button
@@ -1081,11 +1081,11 @@ export function ScoresheetReadPage() {
                                           }}
                                           className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-blue-400"
                                         >
-                                          Pick {userPickedMove}
+                                          {t('coaches.pickMove')} {userPickedMove}
                                         </button>
                                       )
                                     ) : (
-                                      <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">Confirm</button>
+                                      <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
                                     )}
                                     </div>
                                   </div>
@@ -1185,7 +1185,7 @@ export function ScoresheetReadPage() {
                                   <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
                                     <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                                   </span>
-                                  <span className="text-sm text-emerald-300 font-medium">Verification complete — PGN is ready</span>
+                                  <span className="text-sm text-emerald-300 font-medium">{t('coaches.verificationComplete')}</span>
                                 </div>
                               </div>
                             ) : voteState && (() => {
@@ -1216,7 +1216,7 @@ export function ScoresheetReadPage() {
                               return (
                                 <div className="w-full max-w-[400px] space-y-2 bg-slate-700/50 rounded-xl p-4 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3]">
                                   <p className="text-base text-slate-100 font-medium text-center">
-                                    Move {moveIdx + 1} - {colorStr === 'black' ? 'Black' : 'White'}
+                                    {t('coaches.move')} {moveIdx + 1} - {colorStr === 'black' ? t('coaches.black') : t('coaches.white')}
                                   </p>
                                   <div className="flex items-center justify-center gap-3 py-1">
                                     {cellCrop && (
@@ -1224,10 +1224,10 @@ export function ScoresheetReadPage() {
                                         <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
                                       </div>
                                     )}
-                                    <p className="text-sm text-slate-100">Read as <span className="font-mono font-semibold">{displayMove}</span></p>
+                                    <p className="text-sm text-slate-100">{t('coaches.readAs')} <span className="font-mono font-semibold">{displayMove}</span></p>
                                   </div>
                                   <div className="flex flex-col gap-1.5">
-                                    <p className="text-sm text-slate-100 text-center">Drag a piece on the board and then confirm</p>
+                                    <p className="text-sm text-slate-100 text-center">{t('coaches.dragAndConfirm')}</p>
                                     <div className="flex justify-center">
                                     {userPickedMove ? (
                                       userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
@@ -1239,7 +1239,7 @@ export function ScoresheetReadPage() {
                                           }}
                                           className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-emerald-400"
                                         >
-                                          Confirm {displayMove}
+                                          {t('coaches.confirmMove')} {displayMove}
                                         </button>
                                       ) : (
                                         <button
@@ -1256,7 +1256,7 @@ export function ScoresheetReadPage() {
                                           }}
                                           className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-blue-400"
                                         >
-                                          Pick {userPickedMove}
+                                          {t('coaches.pickMove')} {userPickedMove}
                                         </button>
                                       )
                                     ) : (
@@ -2046,7 +2046,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, rereadi
         )}
         {unresolvedMoves && unresolvedMoves.length > 0 && (
           <div className="px-3 py-2 border-t border-yellow-500/20 bg-yellow-500/10 text-center">
-            <p className="text-sm text-slate-100">Moves to review : {unresolvedMoves.length}</p>
+            <p className="text-sm text-slate-100">{t('coaches.movesToReview')} : {unresolvedMoves.length}</p>
           </div>
         )}
       </>)}
@@ -2216,6 +2216,7 @@ function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }
   hasIllegalMoves?: boolean;
   onIllegalClick?: () => void;
 }) {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const handleClick = async () => {
     if (hasIllegalMoves) { onIllegalClick?.(); return; }
@@ -2240,9 +2241,9 @@ function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }
       className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-sm text-slate-200 hover:bg-slate-600/40 transition-colors flex items-center justify-center gap-1.5"
     >
       {copied ? (
-        <><ExternalLink className="w-3.5 h-3.5 text-emerald-400" /> PGN copied — click again to open Chess.com</>
+        <><ExternalLink className="w-3.5 h-3.5 text-emerald-400" /> {t('coaches.chesscom.pgnCopied')}</>
       ) : (
-        <><ExternalLink className="w-3.5 h-3.5" /> Copy-Paste into Chess.com app</>
+        <><ExternalLink className="w-3.5 h-3.5" /> {t('coaches.chesscom.copyPaste')}</>
       )}
     </button>
   );

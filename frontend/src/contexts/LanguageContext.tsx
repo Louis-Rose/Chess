@@ -352,6 +352,19 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.lichess.openStudy': 'Open study on Lichess',
     'coaches.lichess.close': 'Close',
 
+    // Scoresheet review
+    'coaches.chesscom.copyPaste': 'Copy-Paste into Chess.com app',
+    'coaches.chesscom.pgnCopied': 'PGN copied — click again to open Chess.com',
+    'coaches.verificationComplete': 'Verification complete — PGN is ready',
+    'coaches.readAs': 'Read as',
+    'coaches.dragAndConfirm': 'Drag a piece on the board and then confirm',
+    'coaches.movesToReview': 'Moves to review',
+    'coaches.confirmMove': 'Confirm',
+    'coaches.pickMove': 'Pick',
+    'coaches.move': 'Move',
+    'coaches.white': 'White',
+    'coaches.black': 'Black',
+
     // Students panel — scheduling
     'coaches.students.title': 'My Students',
     'coaches.students.empty': 'No students yet. Add your first student to get started.',
@@ -794,6 +807,19 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.lichess.imported': 'PGN importé !',
     'coaches.lichess.openStudy': 'Ouvrir l\'étude sur Lichess',
     'coaches.lichess.close': 'Fermer',
+
+    // Scoresheet review
+    'coaches.chesscom.copyPaste': 'Copier-coller dans l\'app Chess.com',
+    'coaches.chesscom.pgnCopied': 'PGN copié — cliquez à nouveau pour ouvrir Chess.com',
+    'coaches.verificationComplete': 'Vérification terminée — PGN prêt',
+    'coaches.readAs': 'Lu comme',
+    'coaches.dragAndConfirm': 'Déplacez une pièce sur l\'échiquier puis confirmez',
+    'coaches.movesToReview': 'Coups à vérifier',
+    'coaches.confirmMove': 'Confirmer',
+    'coaches.pickMove': 'Choisir',
+    'coaches.move': 'Coup',
+    'coaches.white': 'Blancs',
+    'coaches.black': 'Noirs',
 
     // Students panel — scheduling
     'coaches.students.title': 'Mes élèves',
