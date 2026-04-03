@@ -368,15 +368,13 @@ export function ScoresheetReadPage() {
                 return (
                   <div className="flex justify-center">
                     <div className="relative bg-slate-700/40 rounded-xl p-4 min-w-[300px] max-w-[400px] w-full">
-                      {!allDone && (
                         <button
                           onClick={() => scoresheetClear()}
                           className="absolute top-2 right-2 w-6 h-6 bg-slate-600/80 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors"
-                          title={t('coaches.cancel')}
+                          title={allDone ? t('coaches.startFresh') || 'Start fresh' : t('coaches.cancel')}
                         >
                           <X className="w-3.5 h-3.5 text-slate-300" />
                         </button>
-                      )}
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-sm text-slate-300 inline-flex items-center gap-1.5">
                           {!allDone && <Clock className="w-3.5 h-3.5 animate-spin" />}
