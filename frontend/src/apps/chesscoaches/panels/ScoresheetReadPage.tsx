@@ -156,7 +156,11 @@ export function ScoresheetReadPage() {
   // ── Live elapsed timer for status table ──
   const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
   useEffect(() => {
-    if (!startTime || !analyzing) { setLiveGlobalElapsed(0); return; }
+    if (!startTime) { setLiveGlobalElapsed(0); return; }
+    if (!analyzing) {
+      setLiveGlobalElapsed(Math.round((Date.now() - startTime) / 1000));
+      return;
+    }
     setLiveGlobalElapsed(Math.round((Date.now() - startTime) / 1000));
     const id = setInterval(() => setLiveGlobalElapsed(Math.round((Date.now() - startTime) / 1000)), 1000);
     return () => clearInterval(id);
