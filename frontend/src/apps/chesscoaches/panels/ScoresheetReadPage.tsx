@@ -2640,7 +2640,7 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, time
       onClick={handleClick}
     >
       <span className="inline-flex items-center justify-center gap-1 w-full">
-        {value}{time != null && <span className="text-slate-500 text-xs font-normal">({time})</span>}
+        {value}{time != null && ` (${time})`}
       </span>
     </td>
   );
