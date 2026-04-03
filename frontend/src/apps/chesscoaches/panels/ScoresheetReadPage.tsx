@@ -704,7 +704,38 @@ export function ScoresheetReadPage() {
                     while (consensusMoves.length > 0 && !consensusMoves[consensusMoves.length - 1].white && !consensusMoves[consensusMoves.length - 1].black) {
                       consensusMoves.pop();
                     }
-                    if (consensusMoves.length === 0) return null;
+                    if (consensusMoves.length === 0) return (
+                      <>
+                        {/* Desktop skeleton: image + processing placeholder + board */}
+                        <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4">
+                          <div className="flex justify-end items-center">
+                            <ScoreSheetImage preview={preview} onImageClick={() => setShowImageModal(true)} fileName={fileName || undefined} />
+                          </div>
+                          <div className="self-start">
+                            <div className="bg-slate-700/50 rounded-xl overflow-hidden min-w-[540px]">
+                              <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
+                                <Clock className="w-4 h-4 animate-spin" />
+                                <span className="text-sm">{t('coaches.analyzing')}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-center justify-center gap-3 max-w-[400px]">
+                            <ModelBoard moves={[]} autoActivate={false} />
+                          </div>
+                        </div>
+                        {/* Mobile skeleton: image + processing placeholder + board */}
+                        <div className="md:hidden flex flex-col items-center gap-3 px-2">
+                          <img src={preview} alt="Scoresheet" className="max-h-[200px] rounded-xl object-contain cursor-pointer" onClick={() => setShowImageModal(true)} />
+                          <div className="bg-slate-700/50 rounded-xl overflow-hidden min-w-[320px]">
+                            <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
+                              <Clock className="w-4 h-4 animate-spin" />
+                              <span className="text-sm">{t('coaches.analyzing')}</span>
+                            </div>
+                          </div>
+                          <ModelBoard moves={[]} autoActivate={false} compact />
+                        </div>
+                      </>
+                    );
                     // Validate legality with chess.js, auto-resolve ambiguities
                     const valChess = new Chess();
                     for (let ci = 0; ci < consensusMoves.length; ci++) {
