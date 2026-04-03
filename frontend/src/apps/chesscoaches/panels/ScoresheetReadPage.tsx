@@ -329,26 +329,28 @@ export function ScoresheetReadPage() {
                 icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
                 title={t('coaches.uploadPrompt')}
               />
-              <div className="flex items-center gap-3 max-w-lg mx-auto">
-                <div className="flex-1 h-px bg-slate-600" />
-                <span className="text-slate-500 text-xs uppercase tracking-wider">{t('coaches.or')}</span>
-                <div className="flex-1 h-px bg-slate-600" />
-              </div>
-              <UploadBox
-                onClick={() => {
-                  setLoadingSample(true);
-                  fetch('/sample_scoresheet.jpeg')
-                    .then(r => r.blob())
-                    .then(blob => {
-                      const file = new File([blob], 'sample_scoresheet.jpeg', { type: 'image/jpeg' });
-                      scoresheetSetImage(file, URL.createObjectURL(blob), file.name);
-                      setLoadingSample(false);
-                      setAutoRun(true);
-                    });
-                }}
-                icon={<FileText className="w-10 h-10 text-slate-400" />}
-                title={t('coaches.trySample')}
-              />
+              {!hasHadSuccess.current && (<>
+                <div className="flex items-center gap-3 max-w-lg mx-auto">
+                  <div className="flex-1 h-px bg-slate-600" />
+                  <span className="text-slate-500 text-xs uppercase tracking-wider">{t('coaches.or')}</span>
+                  <div className="flex-1 h-px bg-slate-600" />
+                </div>
+                <UploadBox
+                  onClick={() => {
+                    setLoadingSample(true);
+                    fetch('/sample_scoresheet.jpeg')
+                      .then(r => r.blob())
+                      .then(blob => {
+                        const file = new File([blob], 'sample_scoresheet.jpeg', { type: 'image/jpeg' });
+                        scoresheetSetImage(file, URL.createObjectURL(blob), file.name);
+                        setLoadingSample(false);
+                        setAutoRun(true);
+                      });
+                  }}
+                  icon={<FileText className="w-10 h-10 text-slate-400" />}
+                  title={t('coaches.trySample')}
+                />
+              </>)}
             </div>
           ) : !preview ? (
             <div className="flex items-center justify-center py-12">
