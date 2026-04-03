@@ -402,10 +402,7 @@ export function ScoresheetReadPage() {
                       </div>
                       <div className="text-center mt-0.5">
                         <span className="text-xs text-slate-400">
-                          {allDone
-                            ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-3 h-3" /> {t('coaches.status.done')}</span>
-                            : <>{liveGlobalElapsed}s{maxAvg > 0 ? <> / ~{maxAvg}s <span className="text-slate-500 inline-block w-0 overflow-visible whitespace-nowrap">(estimated)</span></> : ''}</>
-                          }
+                          {liveGlobalElapsed}s{!allDone && maxAvg > 0 ? <> / ~{maxAvg}s <span className="text-slate-500 inline-block w-0 overflow-visible whitespace-nowrap">(estimated)</span></> : ''}
                         </span>
                       </div>
                     </div>
@@ -1933,12 +1930,8 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, rereadi
   return (
     <div className={`bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[320px] ${loading ? 'animate-loading-pulse' : ''}`}>
       {/* Header */}
-      <div className="px-3 py-2.5 border-b border-slate-600 relative flex items-center justify-center">
+      <div className="px-3 py-2.5 border-b border-slate-600 flex items-center justify-center">
         <span className="text-slate-100 font-medium text-sm">{label}</span>
-        <div className="absolute right-3 flex items-center gap-1">
-          <Clock className={`w-3 h-3 text-slate-400${rereading ? ' animate-spin' : ''}`} />
-          <span className="text-slate-400 text-xs">{rereading ? liveElapsed : elapsed}s</span>
-        </div>
       </div>
 
 
