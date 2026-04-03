@@ -43,12 +43,14 @@ function normalizeMoves(moves: Move[]): Move[] {
   });
 }
 
-function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result?: string }): string {
+function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result?: string; date?: string; event?: string }): string {
   const headers = [
+    meta?.event ? `[Event "${meta.event}"]` : null,
+    meta?.date ? `[Date "${meta.date}"]` : null,
     `[White "${meta?.white || '?'}"]`,
     `[Black "${meta?.black || '?'}"]`,
     `[Result "${meta?.result || '*'}"]`,
-  ].join('\n');
+  ].filter(Boolean).join('\n');
   const normalized = normalizeMoves(moves);
   const moveText = normalized.map(m =>
     `${m.number}. ${m.white}${m.black ? ' ' + m.black : ''}`
@@ -406,19 +408,6 @@ export function ScoresheetReadPage() {
                           }
                         </span>
                       </div>
-                      {(() => {
-                        const r = Object.values(modelResults).find(mr => mr?.result)?.result;
-                        if (!r) return null;
-                        const parts: string[] = [];
-                        if (r.white_player || r.black_player) parts.push(`${r.white_player || '?'} vs ${r.black_player || '?'}`);
-                        if (r.result && r.result !== '*') parts.push(r.result);
-                        if (r.date) parts.push(r.date);
-                        if (r.event) parts.push(r.event);
-                        if (parts.length === 0) return null;
-                        return (
-                          <p className="text-xs text-slate-400 text-center mt-2">{parts.join(' — ')}</p>
-                        );
-                      })()}
                     </div>
                   </div>
                 );
@@ -799,7 +788,7 @@ export function ScoresheetReadPage() {
 
 
                     // Build consensus meta (player names + result) from model results
-                    const consensusMeta: { white?: string; black?: string; result?: string } = {};
+                    const consensusMeta: { white?: string; black?: string; result?: string; date?: string; event?: string } = {};
                     {
                       const results = Object.values(modelResults).map(mr => mr?.result).filter(Boolean);
                       const pick = (vals: (string | undefined)[]) => {
@@ -811,6 +800,8 @@ export function ScoresheetReadPage() {
                       consensusMeta.white = pick(results.map(r => r!.white_player));
                       consensusMeta.black = pick(results.map(r => r!.black_player));
                       consensusMeta.result = pick(results.map(r => r!.result));
+                      consensusMeta.date = pick(results.map(r => r!.date));
+                      consensusMeta.event = pick(results.map(r => r!.event));
                     }
 
                     // Apply overrides on top of computed consensus, then normalize +/# annotations
@@ -1817,7 +1808,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, rereadi
   disagreements: Map<number, { white: boolean; black: boolean }>;
   elapsed: number;
   error?: string;
-  meta?: { white?: string; black?: string; result?: string };
+  meta?: { white?: string; black?: string; result?: string; date?: string; event?: string };
   rereading?: boolean;
   corrections?: Set<string>;
   onEditSave?: (confirmed: Move[], correctionKey: string) => void;
@@ -1950,12 +1941,21 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, rereadi
 
       {error && <p className="text-red-400 text-center py-3 text-xs px-2 break-words max-w-sm mx-auto">{error}</p>}
 
-      {/* Game result */}
-      {meta?.result && meta.result !== '*' && (
-        <div className="px-3 py-1.5 border-b border-slate-600/30 text-center">
-          <span className="text-slate-300 text-xs">
-            {meta.white || '?'} vs {meta.black || '?'} — <span className="font-semibold text-slate-100">{meta.result}</span>
-          </span>
+      {/* Game metadata */}
+      {(meta?.white || meta?.black || (meta?.result && meta.result !== '*') || meta?.date || meta?.event) && (
+        <div className="px-3 py-2 border-b border-slate-600/30 text-xs text-slate-300 space-y-0.5">
+          {(meta?.white || meta?.black) && (
+            <div>Players : <span className="text-slate-100">{meta.white || '?'}</span> (White) vs <span className="text-slate-100">{meta.black || '?'}</span> (Black)</div>
+          )}
+          {meta?.result && meta.result !== '*' && (
+            <div>Result : <span className="font-semibold text-slate-100">{meta.result}</span></div>
+          )}
+          {meta?.date && (
+            <div>Date : <span className="text-slate-100">{meta.date}</span></div>
+          )}
+          {meta?.event && (
+            <div>Event : <span className="text-slate-100">{meta.event}</span></div>
+          )}
         </div>
       )}
 
@@ -2212,7 +2212,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, rereadi
 
 function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }: {
   moves: Move[];
-  meta?: { white?: string; black?: string; result?: string };
+  meta?: { white?: string; black?: string; result?: string; date?: string; event?: string };
   hasIllegalMoves?: boolean;
   onIllegalClick?: () => void;
 }) {
@@ -2253,7 +2253,7 @@ function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }
 
 function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onIllegalClick }: {
   moves: Move[];
-  meta?: { white?: string; black?: string; result?: string };
+  meta?: { white?: string; black?: string; result?: string; date?: string; event?: string };
   fileName?: string | null;
   hasIllegalMoves?: boolean;
   onIllegalClick?: () => void;
