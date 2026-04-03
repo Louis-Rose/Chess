@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
-import { ImageIcon, FileText, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, X, Pause } from 'lucide-react';
+import { ImageIcon, FileText, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, X } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -66,7 +66,7 @@ export function ScoresheetReadPage() {
   const prevAllVerifiedRef = useRef(false);
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
-    scoresheetCancel, scoresheetClear, scoresheetSetOverrides,
+    scoresheetClear, scoresheetSetOverrides,
   } = useCoachesData();
 
   const { preview, fileName, error, modelResults, models, startTime, analyzing, azureGrid } = scoresheet;
@@ -376,24 +376,13 @@ export function ScoresheetReadPage() {
                 return (
                   <div className="flex justify-center">
                     <div className="relative bg-slate-700/40 rounded-xl p-4 min-w-[300px] max-w-[400px] w-full">
-                        <div className="absolute top-2 right-2 flex items-center gap-1">
-                          {!allDone && (
-                            <button
-                              onClick={() => scoresheetCancel()}
-                              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-600/80 hover:bg-yellow-600 text-slate-300 text-xs transition-colors"
-                            >
-                              <Pause className="w-3 h-3" />
-                              {t('coaches.pauseProcessing')}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => scoresheetClear()}
-                            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-600/80 hover:bg-red-600 text-slate-300 text-xs transition-colors"
-                          >
-                            <X className="w-3 h-3" />
-                            {allDone ? t('coaches.startFresh') : t('coaches.stopProcessing')}
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => scoresheetClear()}
+                          className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-600/80 hover:bg-red-600 text-slate-300 text-xs transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                          {allDone ? t('coaches.startFresh') : t('coaches.stopProcessing')}
+                        </button>
                       <div className="flex items-center mb-1.5">
                         <span className="text-sm text-slate-300 inline-flex items-center gap-1.5">
                           {!allDone && <Clock className="w-3.5 h-3.5 animate-spin" />}
