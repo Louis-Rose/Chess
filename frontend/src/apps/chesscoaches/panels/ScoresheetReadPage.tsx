@@ -1473,7 +1473,7 @@ function ScoreSheetImage({ preview, onImageClick, fileName, activePly, sheetColu
         />
         {highlight && (
           <div
-            className="absolute pointer-events-none rounded-sm transition-all duration-200"
+            className="absolute pointer-events-none rounded-sm"
             style={{
               left: highlight.left, top: highlight.top, width: highlight.width, height: highlight.height,
               backgroundColor: 'rgba(59, 130, 246, 0.3)', border: '2px solid rgba(59, 130, 246, 0.7)',
