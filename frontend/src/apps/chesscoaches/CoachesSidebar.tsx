@@ -34,11 +34,8 @@ export function CoachesSidebar() {
 
   return (
     <SidebarShell hideThemeToggle hideLanguageToggle fullWidth>
-      <div className="relative flex flex-col items-center px-2 pb-3 mb-2">
+      <div className="flex flex-col items-center px-2 pb-3 mb-2">
         <LumnaBrand />
-        <div className="absolute right-0 top-0">
-          <LanguageToggleInline />
-        </div>
       </div>
       <div className="h-px bg-slate-700 mx-3 mb-4" />
 
@@ -51,8 +48,9 @@ export function CoachesSidebar() {
 
       <div className="h-px bg-slate-700 mx-3 mb-6" />
 
-      {/* Google login */}
+      {/* Language toggle + Google login */}
       <div className="flex flex-col items-center gap-4 px-6">
+        <LanguageToggleInline />
         <span className="text-slate-100 text-lg">{t('coaches.onboardingInstruction')}</span>
         <LoginButton size="large" />
       </div>
