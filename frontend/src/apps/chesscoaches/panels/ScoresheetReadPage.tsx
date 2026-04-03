@@ -72,11 +72,12 @@ export function ScoresheetReadPage() {
   const { preview, fileName, error, modelResults, models, startTime, analyzing, azureGrid } = scoresheet;
 
   // First-time users: auto-load sample scoresheet into preview
-  const hasHadSuccess = useRef(getCoachesPrefs().scoresheet_success);
+  const initialSuccess = useRef(getCoachesPrefs().scoresheet_success);
+  const [hasHadSuccess, setHasHadSuccess] = useState(initialSuccess.current);
   const autoSampleTriggered = useRef(false);
   const [isFirstTimeDemo, setIsFirstTimeDemo] = useState(false);
   useEffect(() => {
-    if (hasHadSuccess.current || autoSampleTriggered.current || preview) return;
+    if (initialSuccess.current || autoSampleTriggered.current || preview) return;
     autoSampleTriggered.current = true;
     fetch('/sample_scoresheet.jpeg')
       .then(r => r.blob())
@@ -329,7 +330,7 @@ export function ScoresheetReadPage() {
                 icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
                 title={t('coaches.uploadPrompt')}
               />
-              {!hasHadSuccess.current && (<>
+              {!hasHadSuccess && (<>
                 <div className="flex items-center gap-3 max-w-lg mx-auto">
                   <div className="flex-1 h-px bg-slate-600" />
                   <span className="text-slate-500 text-xs uppercase tracking-wider">{t('coaches.or')}</span>
@@ -927,7 +928,7 @@ export function ScoresheetReadPage() {
                     // Scroll to export buttons on mobile when verification completes
                     if (allVerified && !prevAllVerifiedRef.current) {
                       setTimeout(() => mobileExportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 200);
-                      if (!getCoachesPrefs().scoresheet_success) saveCoachesPrefs({ scoresheet_success: true });
+                      if (!getCoachesPrefs().scoresheet_success) { saveCoachesPrefs({ scoresheet_success: true }); setHasHadSuccess(true); }
                     }
                     prevAllVerifiedRef.current = allVerified;
                     const unresolvedMovesList = unresolvedPlies.map(ply => {
@@ -1093,7 +1094,7 @@ export function ScoresheetReadPage() {
                               <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={false} onIllegalClick={() => {}} />
                             </div>
                             )}
-                            {allVerified && !hasHadSuccess.current && (
+                            {allVerified && !hasHadSuccess && (
                               <button
                                 onClick={() => scoresheetClear()}
                                 className="w-full mt-3 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
@@ -1271,7 +1272,7 @@ export function ScoresheetReadPage() {
                               <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={false} onIllegalClick={() => {}} />
                             </div>
                             )}
-                            {allVerified && !hasHadSuccess.current && (
+                            {allVerified && !hasHadSuccess && (
                               <button
                                 onClick={() => scoresheetClear()}
                                 className="w-full max-w-[400px] mt-3 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
