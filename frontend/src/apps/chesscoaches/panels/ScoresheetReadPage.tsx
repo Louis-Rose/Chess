@@ -1986,12 +1986,10 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
         const perCol = Math.ceil(moves.length / numCols);
         const columns = Array.from({ length: numCols }, (_, c) => moves.slice(c * perCol, (c + 1) * perCol));
         const rows = Math.max(...columns.map(col => col.length));
-        const hasWhiteTime = moves.some(m => m.white_time != null);
-        const hasBlackTime = moves.some(m => m.black_time != null);
-        const emptyCols = 3 + (hasWhiteTime ? 1 : 0) + (hasBlackTime ? 1 : 0);
+        const hasTime = moves.some(m => m.white_time != null || m.black_time != null);
 
         const renderHalf = (move: Move | undefined, idx: number, d: { white: boolean; black: boolean } | undefined) => {
-          if (!move) return <>{Array.from({ length: emptyCols }, (_, i) => <td key={i} className="px-3 py-1.5" />)}</>;
+          if (!move) return <><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /></>;
           return <>
             <td className="px-3 py-1.5 text-slate-500 text-center font-mono">{move.number}</td>
             <MoveCell
@@ -2002,6 +2000,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
               active={activePly === idx * 2 + 1}
               reason={move.white_reason}
               confidence={move.white_confidence}
+              time={move.white_time}
               onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
               onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setVoteEditValue(move.white || ''); onMoveClick?.(moves, idx * 2 + 1); } : undefined}
               onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
@@ -2014,20 +2013,11 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
               active={activePly === idx * 2 + 2}
               reason={move.black_reason}
               confidence={move.black_confidence}
+              time={move.black_time}
               onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
               onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setVoteEditValue(move.black || ''); onMoveClick?.(moves, idx * 2 + 2); } : undefined}
               onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
             />
-            {hasWhiteTime && (
-              <td className="px-2 py-1.5 text-slate-500 text-center font-mono whitespace-nowrap">
-                {move.white_time != null ? move.white_time : ''}
-              </td>
-            )}
-            {hasBlackTime && (
-              <td className="px-2 py-1.5 text-slate-500 text-center font-mono whitespace-nowrap">
-                {move.black_time != null ? move.black_time : ''}
-              </td>
-            )}
           </>;
         };
 
@@ -2038,10 +2028,8 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
                 {columns.map((_, c) => (
                   <React.Fragment key={c}>
                     <th className={`px-3 py-2 text-slate-400 font-medium text-center w-8 ${c > 0 ? 'border-l border-slate-600' : ''}`}>#</th>
-                    <th className="px-3 py-2 text-slate-400 font-medium text-center">White</th>
-                    <th className="px-3 py-2 text-slate-400 font-medium text-center">Black</th>
-                    {hasWhiteTime && <th className="px-2 py-2 text-slate-500 font-medium text-center">W⏱</th>}
-                    {hasBlackTime && <th className="px-2 py-2 text-slate-500 font-medium text-center">B⏱</th>}
+                    <th className="px-3 py-2 text-slate-400 font-medium text-center">{hasTime ? <span className="inline-flex items-center gap-1">White <Clock className="w-3 h-3" /></span> : 'White'}</th>
+                    <th className="px-3 py-2 text-slate-400 font-medium text-center">{hasTime ? <span className="inline-flex items-center gap-1">Black <Clock className="w-3 h-3" /></span> : 'Black'}</th>
                   </React.Fragment>
                 ))}
               </tr>
@@ -2621,7 +2609,7 @@ function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselec
   );
 }
 
-function MoveCell({ value, legal, highlight, corrected, active, confidence, onShowBoard, onVoteInfo, onMoveInfo }: {
+function MoveCell({ value, legal, highlight, corrected, active, confidence, time, onShowBoard, onVoteInfo, onMoveInfo }: {
   value: string;
   legal?: boolean;
   highlight?: boolean;
@@ -2629,6 +2617,7 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onSh
   active?: boolean;
   reason?: string;
   confidence?: 'high' | 'medium' | 'low';
+  time?: number;
   onShowBoard?: () => void;
   onVoteInfo?: () => void;
   onMoveInfo?: () => void;
@@ -2651,7 +2640,7 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, onSh
       onClick={handleClick}
     >
       <span className="inline-flex items-center justify-center gap-1 w-full">
-        {value}
+        {value}{time != null && <span className="text-slate-500 text-xs font-normal">({time})</span>}
       </span>
     </td>
   );
