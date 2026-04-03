@@ -1977,8 +1977,9 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
         const perCol = Math.ceil(moves.length / numCols);
         const columns = Array.from({ length: numCols }, (_, c) => moves.slice(c * perCol, (c + 1) * perCol));
         const rows = Math.max(...columns.map(col => col.length));
-        const hasTime = moves.some(m => m.white_time != null || m.black_time != null);
-        const emptyCols = hasTime ? 4 : 3;
+        const hasWhiteTime = moves.some(m => m.white_time != null);
+        const hasBlackTime = moves.some(m => m.black_time != null);
+        const emptyCols = 3 + (hasWhiteTime ? 1 : 0) + (hasBlackTime ? 1 : 0);
 
         const renderHalf = (move: Move | undefined, idx: number, d: { white: boolean; black: boolean } | undefined) => {
           if (!move) return <>{Array.from({ length: emptyCols }, (_, i) => <td key={i} className="px-3 py-1.5" />)}</>;
@@ -2008,11 +2009,14 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
               onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setVoteEditValue(move.black || ''); onMoveClick?.(moves, idx * 2 + 2); } : undefined}
               onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
             />
-            {hasTime && (
-              <td className="px-2 py-1.5 text-slate-500 text-center text-xs font-mono whitespace-nowrap">
-                {move.white_time != null || move.black_time != null
-                  ? <>{move.white_time != null ? move.white_time : '–'}<span className="text-slate-600 mx-0.5">/</span>{move.black_time != null ? move.black_time : '–'}</>
-                  : ''}
+            {hasWhiteTime && (
+              <td className="px-2 py-1.5 text-slate-500 text-center font-mono whitespace-nowrap">
+                {move.white_time != null ? move.white_time : ''}
+              </td>
+            )}
+            {hasBlackTime && (
+              <td className="px-2 py-1.5 text-slate-500 text-center font-mono whitespace-nowrap">
+                {move.black_time != null ? move.black_time : ''}
               </td>
             )}
           </>;
@@ -2027,7 +2031,8 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
                     <th className={`px-3 py-2 text-slate-400 font-medium text-center w-8 ${c > 0 ? 'border-l border-slate-600' : ''}`}>#</th>
                     <th className="px-3 py-2 text-slate-400 font-medium text-center">White</th>
                     <th className="px-3 py-2 text-slate-400 font-medium text-center">Black</th>
-                    {hasTime && <th className="px-2 py-2 text-slate-400 font-medium text-center text-xs">Time</th>}
+                    {hasWhiteTime && <th className="px-2 py-2 text-slate-500 font-medium text-center">W⏱</th>}
+                    {hasBlackTime && <th className="px-2 py-2 text-slate-500 font-medium text-center">B⏱</th>}
                   </React.Fragment>
                 ))}
               </tr>
