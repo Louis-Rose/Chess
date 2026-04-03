@@ -72,6 +72,12 @@ export function ScoresheetReadPage() {
   const { preview, fileName, error, modelResults, models, startTime, analyzing, azureGrid } = scoresheet;
 
   // First-time users: auto-load sample scoresheet into preview
+  // Track whether the user entered as a first-timer this browser session (survives remounts)
+  const wasFirstTimer = useRef((() => {
+    if (sessionStorage.getItem('scoresheet-was-first-timer') === '1') return true;
+    if (!getCoachesPrefs().scoresheet_success) { sessionStorage.setItem('scoresheet-was-first-timer', '1'); return true; }
+    return false;
+  })());
   const initialSuccess = useRef(getCoachesPrefs().scoresheet_success);
   const [hasHadSuccess, setHasHadSuccess] = useState(initialSuccess.current);
   const autoSampleTriggered = useRef(false);
@@ -1093,7 +1099,7 @@ export function ScoresheetReadPage() {
                               <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={false} onIllegalClick={() => {}} />
                             </div>
                             )}
-                            {allVerified && !initialSuccess.current && (
+                            {allVerified && wasFirstTimer.current && (
                               <button
                                 onClick={() => scoresheetClear()}
                                 className="w-full mt-3 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
