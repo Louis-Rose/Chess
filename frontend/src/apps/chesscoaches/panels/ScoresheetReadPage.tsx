@@ -1045,7 +1045,7 @@ export function ScoresheetReadPage() {
                               return (
                                 <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3]">
                                   <p className="text-base text-slate-100 font-medium text-center">
-                                    {t('coaches.move')} {moveIdx + 1} - {colorStr === 'black' ? t('coaches.black') : t('coaches.white')}
+                                    {t('coaches.move')} {moveIdx + 1} - {colorStr === 'black' ? t('coaches.moveBlack') : t('coaches.moveWhite')}
                                   </p>
                                   <div className="flex items-center justify-center gap-3 py-1">
                                     {cellCrop && (
@@ -1216,7 +1216,7 @@ export function ScoresheetReadPage() {
                               return (
                                 <div className="w-full max-w-[400px] space-y-2 bg-slate-700/50 rounded-xl p-4 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3]">
                                   <p className="text-base text-slate-100 font-medium text-center">
-                                    {t('coaches.move')} {moveIdx + 1} - {colorStr === 'black' ? t('coaches.black') : t('coaches.white')}
+                                    {t('coaches.move')} {moveIdx + 1} - {colorStr === 'black' ? t('coaches.moveBlack') : t('coaches.moveWhite')}
                                   </p>
                                   <div className="flex items-center justify-center gap-3 py-1">
                                     {cellCrop && (

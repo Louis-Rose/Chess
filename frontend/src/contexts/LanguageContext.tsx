@@ -362,9 +362,6 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.movesToReview': 'Moves to review',
     'coaches.confirmMove': 'Confirm',
     'coaches.pickMove': 'Pick',
-    'coaches.move': 'Move',
-    'coaches.white': 'White',
-    'coaches.black': 'Black',
 
     // Students panel — scheduling
     'coaches.students.title': 'My Students',
@@ -819,9 +816,6 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.movesToReview': 'Coups à vérifier',
     'coaches.confirmMove': 'Confirmer',
     'coaches.pickMove': 'Choisir',
-    'coaches.move': 'Coup',
-    'coaches.white': 'Blancs',
-    'coaches.black': 'Noirs',
 
     // Students panel — scheduling
     'coaches.students.title': 'Mes élèves',
