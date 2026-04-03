@@ -831,13 +831,15 @@ export function AdminPanel() {
                                     </tbody>
                                   </table>
                                   {/* Uploads for this user */}
-                                  {uploadsLoading ? (
+                                  {(() => {
+                                    const invUploads = uploadsData?.uploads?.filter(f => f.filename.includes(inv.request_id)) || [];
+                                    return uploadsLoading ? (
                                     <div className="flex justify-center py-2">
                                       <Loader2 className="w-3 h-3 text-slate-500 animate-spin" />
                                     </div>
-                                  ) : uploadsData?.uploads?.length ? (
+                                  ) : invUploads.length ? (
                                     <div className="mt-2 flex gap-2 flex-wrap">
-                                      {uploadsData.uploads.map(file => (
+                                      {invUploads.map(file => (
                                         <a
                                           key={file.filename}
                                           href={`/api/admin/user-uploads/${inv.user_id}/${file.filename}`}
@@ -851,7 +853,8 @@ export function AdminPanel() {
                                         </a>
                                       ))}
                                     </div>
-                                  ) : null}
+                                  ) : null;
+                                  })()}
                                 </td>
                               </tr>
                             )}
