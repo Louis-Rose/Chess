@@ -2041,7 +2041,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
                     const move = col[i];
                     const idx = c * perCol + i;
                     const d = move ? disagreements.get(move.number) : undefined;
-                    if (!move && c > 0) return <React.Fragment key={c}>{Array.from({ length: emptyCols }, (_, j) => <td key={j} className={`px-3 py-1.5 ${j === 0 && c > 0 ? 'border-l border-slate-600/30' : ''}`} />)}</React.Fragment>;
+                    if (!move && c > 0) return <React.Fragment key={c}><td className="px-3 py-1.5 border-l border-slate-600/30" /><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /></React.Fragment>;
                     return <React.Fragment key={c}>{renderHalf(move, idx, d)}</React.Fragment>;
                   })}
                 </tr>
