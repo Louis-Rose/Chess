@@ -375,16 +375,10 @@ export function ScoresheetReadPage() {
                           <X className="w-3 h-3" />
                           {allDone ? t('coaches.startFresh') : t('coaches.stopProcessing')}
                         </button>
-                      <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center mb-1.5">
                         <span className="text-sm text-slate-300 inline-flex items-center gap-1.5">
                           {!allDone && <Clock className="w-3.5 h-3.5 animate-spin" />}
                           {t('coaches.processing')}
-                        </span>
-                        <span className="text-sm text-slate-400 mr-6">
-                          {allDone
-                            ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {t('coaches.status.done')}</span>
-                            : <>{liveGlobalElapsed}s{maxAvg > 0 ? <> / ~{maxAvg}s (estimated)</> : ''}</>
-                          }
                         </span>
                       </div>
                       <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -393,8 +387,14 @@ export function ScoresheetReadPage() {
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <div className="text-center mt-1">
+                      <div className="flex items-center justify-between mt-1">
                         <span className={`text-sm font-medium ${allDone ? 'text-emerald-500' : 'text-blue-500'}`}>{pct}%</span>
+                        <span className="text-sm text-slate-400">
+                          {allDone
+                            ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {t('coaches.status.done')}</span>
+                            : <>{liveGlobalElapsed}s{maxAvg > 0 ? <> / ~{maxAvg}s</> : ''}</>
+                          }
+                        </span>
                       </div>
                       {(() => {
                         const r = Object.values(modelResults).find(mr => mr?.result)?.result;
