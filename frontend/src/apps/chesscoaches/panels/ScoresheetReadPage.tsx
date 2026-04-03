@@ -2028,8 +2028,8 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
                 {columns.map((_, c) => (
                   <React.Fragment key={c}>
                     <th className={`px-3 py-2 text-slate-400 font-medium text-center w-8 ${c > 0 ? 'border-l border-slate-600' : ''}`}>#</th>
-                    <th className="px-3 py-2 text-slate-400 font-medium text-center">{hasTime ? <span className="inline-flex items-center gap-1">White <Clock className="w-3 h-3" /></span> : 'White'}</th>
-                    <th className="px-3 py-2 text-slate-400 font-medium text-center">{hasTime ? <span className="inline-flex items-center gap-1">Black <Clock className="w-3 h-3" /></span> : 'Black'}</th>
+                    <th className="px-3 py-2 text-slate-400 font-medium text-center">{hasTime ? 'White (⏱)' : 'White'}</th>
+                    <th className="px-3 py-2 text-slate-400 font-medium text-center">{hasTime ? 'Black (⏱)' : 'Black'}</th>
                   </React.Fragment>
                 ))}
               </tr>
