@@ -1094,7 +1094,7 @@ export function ScoresheetReadPage() {
                               <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={false} onIllegalClick={() => {}} />
                             </div>
                             )}
-                            {allVerified && !hasHadSuccess && (
+                            {allVerified && !initialSuccess.current && (
                               <button
                                 onClick={() => scoresheetClear()}
                                 className="w-full mt-3 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
