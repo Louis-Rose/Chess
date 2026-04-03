@@ -19,6 +19,13 @@ import { pieceImageUrl } from '../utils/pieces';
 import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
+const ENGLISH_TO_FRENCH: Record<string, string> = { R: 'T', B: 'F', Q: 'D', N: 'C', K: 'R' };
+function toNotation(san: string, notation?: string): string {
+  if (!san || notation !== 'french') return san;
+  if (san[0] in ENGLISH_TO_FRENCH) return ENGLISH_TO_FRENCH[san[0]] + san.slice(1);
+  return san;
+}
+
 /** Replay moves on a board and return copies with correct +/# annotations only (keeps original move text). */
 function normalizeMoves(moves: Move[]): Move[] {
   const chess = new Chess();
@@ -1036,7 +1043,7 @@ export function ScoresheetReadPage() {
                               const colorStr = voteState.color;
                               const moveObj = displayConsensusMoves[moveIdx];
                               if (!moveObj) return null;
-                              const displayMove = moveObj[colorStr] || '—';
+                              const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
                               const cellCrop = preview && gridData?.cells ? (() => {
                                 const rows = rowsPerColumn || Math.ceil(displayConsensusMoves.length / Math.max(sheetColumns, 1));
                                 const sheetCol = Math.floor(moveIdx / rows);
@@ -1207,7 +1214,7 @@ export function ScoresheetReadPage() {
                               const colorStr = voteState.color;
                               const moveObj = displayConsensusMoves[moveIdx];
                               if (!moveObj) return null;
-                              const displayMove = moveObj[colorStr] || '—';
+                              const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
                               const cellCrop = preview && gridData?.cells ? (() => {
                                 const rows = rowsPerColumn || Math.ceil(displayConsensusMoves.length / Math.max(sheetColumns, 1));
                                 const sheetCol = Math.floor(moveIdx / rows);
@@ -2043,7 +2050,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
           return <>
             <td className="px-3 py-1.5 text-slate-500 text-center font-mono">{move.number}</td>
             <MoveCell
-              value={move.white}
+              value={toNotation(move.white, meta?.notation)}
               legal={move.white_legal}
               highlight={(d?.white || !!move.white_reason) && !(move as any).white_confirmed}
               corrected={corrections?.has(`${move.number}-white`)}
@@ -2057,7 +2064,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
               onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
             />
             <MoveCell
-              value={move.black || ''}
+              value={toNotation(move.black || '', meta?.notation)}
               legal={move.black_legal}
               corrected={corrections?.has(`${move.number}-black`)}
               highlight={(d?.black || !!move.black_reason) && !(move as any).black_confirmed}
