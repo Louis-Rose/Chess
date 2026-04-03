@@ -8,6 +8,7 @@ import { Loader2, ChevronUp, ChevronDown, Clock, Cpu, AlertTriangle } from 'luci
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { getCoachesPrefs, saveCoachesPrefs } from '../contexts/CoachesDataContext';
 import { PanelShell } from '../components/PanelShell';
 import { NAV_SECTIONS } from '../ChessCoachesLayout';
 
@@ -849,7 +850,37 @@ export function AdminPanel() {
           </div>
         )}
 
+        {/* Debug Tools */}
+        <div className="rounded-lg border border-slate-700 p-4">
+          <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-3">Debug Tools</h3>
+          <ResetScoresheetSuccess />
+        </div>
+
       </div>
     </PanelShell>
+  );
+}
+
+function ResetScoresheetSuccess() {
+  const [success, setSuccess] = useState(getCoachesPrefs().scoresheet_success);
+  return (
+    <label className="flex items-center justify-between cursor-pointer">
+      <div>
+        <span className="text-sm text-slate-200">Scoresheet first-time user</span>
+        <p className="text-xs text-slate-500">
+          {success ? 'Has completed a scoresheet — sees upload choice' : 'First-timer — auto-loads sample on next visit'}
+        </p>
+      </div>
+      <button
+        onClick={() => {
+          const next = !success;
+          saveCoachesPrefs({ scoresheet_success: next });
+          setSuccess(next);
+        }}
+        className={`relative w-10 h-5 rounded-full transition-colors ${success ? 'bg-emerald-600' : 'bg-slate-600'}`}
+      >
+        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${success ? 'translate-x-5' : ''}`} />
+      </button>
+    </label>
   );
 }
