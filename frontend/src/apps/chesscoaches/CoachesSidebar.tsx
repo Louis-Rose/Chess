@@ -49,8 +49,11 @@ export function CoachesSidebar() {
       <div className="h-px bg-slate-700 mx-3 mb-6" />
 
       {/* Language toggle + Google login */}
-      <div className="flex flex-col items-center gap-4 px-6">
+      <div className="flex justify-center px-6 mb-6">
         <LanguageToggleInline />
+      </div>
+      <div className="h-px bg-slate-700 mx-3 mb-6" />
+      <div className="flex flex-col items-center gap-4 px-6">
         <span className="text-slate-100 text-lg">{t('coaches.onboardingInstruction')}</span>
         <LoginButton size="large" />
       </div>
