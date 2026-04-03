@@ -1095,7 +1095,7 @@ export function ScoresheetReadPage() {
                             )}
                             {allVerified && !hasHadSuccess.current && (
                               <button
-                                onClick={() => { scoresheetClear(); setTimeout(() => fileInputRef.current?.click(), 100); }}
+                                onClick={() => scoresheetClear()}
                                 className="w-full mt-3 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
                               >
                                 {t('coaches.tryOwnScoresheet')}
@@ -1273,7 +1273,7 @@ export function ScoresheetReadPage() {
                             )}
                             {allVerified && !hasHadSuccess.current && (
                               <button
-                                onClick={() => { scoresheetClear(); setTimeout(() => fileInputRef.current?.click(), 100); }}
+                                onClick={() => scoresheetClear()}
                                 className="w-full max-w-[400px] mt-3 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
                               >
                                 {t('coaches.tryOwnScoresheet')}
