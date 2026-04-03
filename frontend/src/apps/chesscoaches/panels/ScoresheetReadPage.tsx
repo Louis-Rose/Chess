@@ -370,10 +370,10 @@ export function ScoresheetReadPage() {
                     <div className="relative bg-slate-700/40 rounded-xl p-4 min-w-[300px] max-w-[400px] w-full">
                         <button
                           onClick={() => scoresheetClear()}
-                          className="absolute top-2 right-2 w-6 h-6 bg-slate-600/80 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors"
-                          title={allDone ? t('coaches.startFresh') || 'Start fresh' : t('coaches.cancel')}
+                          className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-600/80 hover:bg-red-600 text-slate-300 text-xs transition-colors"
                         >
-                          <X className="w-3.5 h-3.5 text-slate-300" />
+                          <X className="w-3 h-3" />
+                          {allDone ? t('coaches.startFresh') : t('coaches.stopProcessing')}
                         </button>
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-sm text-slate-300 inline-flex items-center gap-1.5">
