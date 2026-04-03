@@ -2644,8 +2644,8 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, time
     >
       {hasTime ? (
         <span className="inline-flex items-center w-full">
-          <span className="flex-1 text-right">{value}</span>
-          <span className="flex-1 text-left">{time != null ? ` (${time})` : ''}</span>
+          <span className="flex-1 text-center">{value}</span>
+          <span className="flex-1 text-center">{time != null ? `(${time})` : ''}</span>
         </span>
       ) : (
         <span className="inline-flex items-center justify-center gap-1 w-full">
