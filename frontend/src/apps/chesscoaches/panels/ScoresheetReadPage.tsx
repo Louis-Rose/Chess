@@ -124,7 +124,8 @@ export function ScoresheetReadPage() {
   const [imageZoomLevel, setImageZoomLevel] = useState(0); // 0=closed, 1=fit, 2=extra zoom
   const [showExampleModal, setShowExampleModal] = useState(false);
   const [zoomedCell, setZoomedCell] = useState<{ cx1: number; cy1: number; cropW: number; cropH: number; cW: number; cH: number } | null>(null);
-  const closeModal = useCallback(() => { setImageZoomLevel(0); setShowExampleModal(false); setZoomedCell(null); }, []);
+  const [cellZoomLevel, setCellZoomLevel] = useState(1); // 1=3x, 2=6x
+  const closeModal = useCallback(() => { setImageZoomLevel(0); setShowExampleModal(false); setZoomedCell(null); setCellZoomLevel(1); }, []);
   useEffect(() => {
     if (!imageZoomLevel && !showExampleModal && !zoomedCell) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal(); };
@@ -1332,16 +1333,23 @@ export function ScoresheetReadPage() {
       )}
 
       {/* Zoomed cell modal */}
-      {zoomedCell && preview && (
+      {zoomedCell && preview && (() => {
+        const scale = cellZoomLevel === 2 ? 6 : 3;
+        return (
         <div
-          onClick={closeModal}
-          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] cursor-pointer"
+          onClick={() => { if (cellZoomLevel > 1) { setCellZoomLevel(1); } else { closeModal(); } }}
+          className={`fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-pointer overflow-auto ${cellZoomLevel === 2 ? 'p-4' : 'flex items-center justify-center'}`}
         >
-          <div className="rounded-xl overflow-hidden border border-slate-600" style={{ width: zoomedCell.cW * 3, height: zoomedCell.cH * 3 }}>
+          <div
+            className="rounded-xl overflow-hidden border border-slate-600 flex-shrink-0"
+            style={{ width: zoomedCell.cW * scale, height: zoomedCell.cH * scale, ...(cellZoomLevel === 2 ? { margin: '0 auto' } : {}) }}
+            onClick={(e) => { if (cellZoomLevel < 2) { e.stopPropagation(); setCellZoomLevel(2); } }}
+          >
             <img
               src={preview}
               alt="Zoomed cell"
               draggable={false}
+              className={cellZoomLevel === 2 ? 'cursor-zoom-out' : 'cursor-zoom-in'}
               style={{
                 display: 'block',
                 width: `${100 / zoomedCell.cropW}%`,
@@ -1353,7 +1361,8 @@ export function ScoresheetReadPage() {
             />
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Example image modal */}
       {showExampleModal && (
