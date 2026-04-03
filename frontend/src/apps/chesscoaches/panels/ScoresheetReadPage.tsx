@@ -1338,11 +1338,11 @@ export function ScoresheetReadPage() {
         return (
         <div
           onClick={() => { if (cellZoomLevel > 1) { setCellZoomLevel(1); } else { closeModal(); } }}
-          className={`fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-pointer overflow-auto ${cellZoomLevel === 2 ? 'p-4' : 'flex items-center justify-center'}`}
+          className="fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-pointer overflow-auto flex items-center justify-center"
         >
           <div
             className="rounded-xl overflow-hidden border border-slate-600 flex-shrink-0"
-            style={{ width: zoomedCell.cW * scale, height: zoomedCell.cH * scale, ...(cellZoomLevel === 2 ? { margin: '0 auto' } : {}) }}
+            style={{ width: zoomedCell.cW * scale, height: zoomedCell.cH * scale }}
             onClick={(e) => { if (cellZoomLevel < 2) { e.stopPropagation(); setCellZoomLevel(2); } }}
           >
             <img
