@@ -961,7 +961,7 @@ export function ScoresheetReadPage() {
                                 });
                                 return m;
                               })()}
-                              elapsed={!allModelsFinished || analyzing ? liveGlobalElapsed : Math.max(...models.map(m => modelResults[m.id]?.elapsed || 0))}
+
                               loading={!allModelsFinished || analyzing}
                               meta={consensusMeta}
                               onEditSave={allModelsFinished && !analyzing ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
@@ -1140,7 +1140,7 @@ export function ScoresheetReadPage() {
                                 });
                                 return m;
                               })()}
-                              elapsed={!allModelsFinished || analyzing ? liveGlobalElapsed : Math.max(...models.map(m => modelResults[m.id]?.elapsed || 0))}
+
                               loading={!allModelsFinished || analyzing}
                               meta={consensusMeta}
                               onEditSave={allModelsFinished && !analyzing ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
@@ -1802,11 +1802,10 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
 
 
-function MovesPanel({ label, moves, disagreements, elapsed, error, meta, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange, unresolvedMoves }: {
+function MovesPanel({ label, moves, disagreements, error, meta, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange, unresolvedMoves }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
-  elapsed: number;
   error?: string;
   meta?: { white?: string; black?: string; result?: string; date?: string; event?: string };
   rereading?: boolean;
@@ -1830,7 +1829,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, rereadi
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
   const [editFromVoteKey, setEditFromVoteKey] = useState<string | null>(null);
-  const [liveElapsed, setLiveElapsed] = useState(0);
   const [showIllegalModal, setShowIllegalModal] = useState(false);
   const [voteInfoKey, setVoteInfoKey] = useState<string | null>(null);
   const [, setVoteEditValue] = useState<string | null>(null);
@@ -1865,7 +1863,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, rereadi
 
   const [moveInfoKey, setMoveInfoKey] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const rereadStartRef = useRef<number | null>(null);
 
   // Compute legal moves at the editing position
   const legalMoves = useMemo(() => {
@@ -1890,14 +1887,6 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, rereadi
     if (editing && inputRef.current) inputRef.current.focus();
   }, [editing]);
 
-  useEffect(() => {
-    if (rereading) {
-      rereadStartRef.current = Date.now();
-      setLiveElapsed(0);
-      const id = setInterval(() => setLiveElapsed(Math.round((Date.now() - rereadStartRef.current!) / 1000)), 1000);
-      return () => clearInterval(id);
-    }
-  }, [rereading]);
 
   const handleSave = () => {
     if (!editing || !onEditSave) return;
