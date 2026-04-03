@@ -694,6 +694,17 @@ export function ScoresheetReadPage() {
 
                     } // end else (>= 2 models)
 
+                    // Merge time data from model results (pick first available for each move)
+                    for (let i = 0; i < consensusMoves.length; i++) {
+                      for (const color of ['white', 'black'] as const) {
+                        const timeKey = `${color}_time` as const;
+                        for (const modelMv of allModelMoves) {
+                          const t = modelMv[i]?.[timeKey];
+                          if (t != null) { (consensusMoves[i] as any)[timeKey] = t; break; }
+                        }
+                      }
+                    }
+
                     // Remove trailing empty moves
                     while (consensusMoves.length > 0 && !consensusMoves[consensusMoves.length - 1].white && !consensusMoves[consensusMoves.length - 1].black) {
                       consensusMoves.pop();
@@ -1953,9 +1964,11 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
         const perCol = Math.ceil(moves.length / numCols);
         const columns = Array.from({ length: numCols }, (_, c) => moves.slice(c * perCol, (c + 1) * perCol));
         const rows = Math.max(...columns.map(col => col.length));
+        const hasTime = moves.some(m => m.white_time != null || m.black_time != null);
+        const emptyCols = hasTime ? 4 : 3;
 
         const renderHalf = (move: Move | undefined, idx: number, d: { white: boolean; black: boolean } | undefined) => {
-          if (!move) return <><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /></>;
+          if (!move) return <>{Array.from({ length: emptyCols }, (_, i) => <td key={i} className="px-3 py-1.5" />)}</>;
           return <>
             <td className="px-3 py-1.5 text-slate-500 text-center font-mono">{move.number}</td>
             <MoveCell
@@ -1982,6 +1995,13 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
               onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setVoteEditValue(move.black || ''); onMoveClick?.(moves, idx * 2 + 2); } : undefined}
               onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
             />
+            {hasTime && (
+              <td className="px-2 py-1.5 text-slate-500 text-center text-xs font-mono whitespace-nowrap">
+                {move.white_time != null || move.black_time != null
+                  ? <>{move.white_time != null ? move.white_time : '–'}<span className="text-slate-600 mx-0.5">/</span>{move.black_time != null ? move.black_time : '–'}</>
+                  : ''}
+              </td>
+            )}
           </>;
         };
 
@@ -1994,6 +2014,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
                     <th className={`px-3 py-2 text-slate-400 font-medium text-center w-8 ${c > 0 ? 'border-l border-slate-600' : ''}`}>#</th>
                     <th className="px-3 py-2 text-slate-400 font-medium text-center">White</th>
                     <th className="px-3 py-2 text-slate-400 font-medium text-center">Black</th>
+                    {hasTime && <th className="px-2 py-2 text-slate-400 font-medium text-center text-xs">Time</th>}
                   </React.Fragment>
                 ))}
               </tr>
@@ -2005,7 +2026,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
                     const move = col[i];
                     const idx = c * perCol + i;
                     const d = move ? disagreements.get(move.number) : undefined;
-                    if (!move && c > 0) return <React.Fragment key={c}><td className={`px-3 py-1.5 ${c > 0 ? 'border-l border-slate-600/30' : ''}`} /><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /></React.Fragment>;
+                    if (!move && c > 0) return <React.Fragment key={c}>{Array.from({ length: emptyCols }, (_, j) => <td key={j} className={`px-3 py-1.5 ${j === 0 && c > 0 ? 'border-l border-slate-600/30' : ''}`} />)}</React.Fragment>;
                     return <React.Fragment key={c}>{renderHalf(move, idx, d)}</React.Fragment>;
                   })}
                 </tr>

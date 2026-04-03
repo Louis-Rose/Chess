@@ -356,7 +356,7 @@ Extract ALL moves from the scoresheet and return them as a JSON object with this
   "result": "1-0, 0-1, 1/2-1/2, or * if unreadable/ongoing",
   "moves": [
     {"number": 1, "white": "e4", "white_confidence": "high", "black": "e5", "black_confidence": "high"},
-    {"number": 2, "white": "Nf3", "white_confidence": "high", "black": "Nc6", "black_confidence": "medium"}
+    {"number": 2, "white": "Nf3", "white_confidence": "high", "white_time": 88, "black": "Nc6", "black_confidence": "medium", "black_time": 85}
   ]
 }
 
@@ -370,6 +370,7 @@ Rules:
 - Chess moves always end with a rank digit (1-8), optionally followed by + or #. If you see a letter "l" or "I" at the end, it is the digit "1". Do not output moves ending in letters like "Reel" — that should be "Re1".
 - Castling: O-O (kingside), O-O-O (queenside)
 - For each move, include a confidence level: "high" (clearly readable), "medium" (somewhat ambiguous), or "low" (hard to read/guessing)
+- Some players write the remaining minutes on their clock next to their moves (before or after the move). If you see a number that looks like a clock time (typically decreasing over the game), include it as "white_time" or "black_time" (integer, in minutes). Only include time fields if the scoresheet actually has clock times written — do not guess or fabricate them.
 Return ONLY the JSON object, no other text."""
 
 
@@ -445,6 +446,7 @@ Rules:
 - Be careful with similar-looking pieces: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
 - Chess moves always end with a rank digit (1-8), optionally followed by + or #. If you see a letter "l" or "I" at the end, it is the digit "1".
 - Castling: O-O (kingside), O-O-O (queenside)
+- If clock times (remaining minutes) are written next to moves, include them as "white_time" / "black_time" (integer). Only include if actually present on the sheet.
 
 Return ONLY a JSON object:
 {{
