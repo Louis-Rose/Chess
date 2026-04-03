@@ -7,7 +7,6 @@ import axios from 'axios';
 import { Eye, X, Loader2, Search } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { searchAllStocks, findStockByTicker, type Stock, type IndexFilter } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 
@@ -197,7 +196,6 @@ export function WatchlistPanel() {
         <p className="text-slate-500 dark:text-slate-400 text-lg italic">
           {language === 'fr' ? 'Gérez les actions que vous suivez' : 'Manage the stocks you follow'}
         </p>
-        <PWAInstallPrompt className="max-w-md w-full mt-2" />
       </div>
 
       <div className="max-w-2xl mx-auto space-y-6">

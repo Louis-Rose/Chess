@@ -6,7 +6,6 @@ import axios from 'axios';
 import { Calendar, Loader2, CheckCircle2, HelpCircle, Briefcase, Eye, ExternalLink, Bell, BellOff, X, Mail } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { getCompanyIRUrl } from '../utils/companyIRLinks';
 
 interface AlertPreferences {
@@ -507,8 +506,6 @@ export function EarningsCalendarPanel() {
               ? 'Prochaines publications de résultats'
               : 'Upcoming earnings releases'}
           </p>
-          <PWAInstallPrompt className="max-w-md w-full mt-2" />
-
           {/* Source filter tabs */}
           <div className="flex justify-center items-center mt-4 bg-slate-100 dark:bg-slate-600 rounded-lg p-1">
             <button

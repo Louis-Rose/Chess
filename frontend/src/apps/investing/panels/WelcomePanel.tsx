@@ -7,7 +7,6 @@ import axios from 'axios';
 import { Eye, Calendar, TrendingUp, Loader2, PartyPopper, X, Newspaper, Wallet, Flame, Briefcase, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import stockResearchPreview from '../../../assets/stock-research-preview.png';
 
@@ -1061,7 +1060,6 @@ export function InvestingWelcomePanel() {
         <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100">
           {language === 'fr' ? 'Tableau de Bord' : 'Your Investment Dashboard'}
         </h1>
-        <PWAInstallPrompt className="max-w-md mx-auto" />
       </div>
 
       {/* New user welcome banner - only when authenticated */}

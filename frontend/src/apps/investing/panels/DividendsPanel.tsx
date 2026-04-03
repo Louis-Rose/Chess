@@ -7,7 +7,6 @@ import { DollarSign, Loader2, Briefcase, CheckCircle2, HelpCircle, X, TrendingUp
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 
 interface DividendData {
@@ -225,8 +224,6 @@ export function DividendsPanel() {
           <p className="text-slate-500 dark:text-slate-400 text-lg italic">
             {language === 'fr' ? 'Prochains versements de dividendes' : 'Upcoming dividend payments'}
           </p>
-          <PWAInstallPrompt className="max-w-md w-full mt-2" />
-
           {/* Account selector */}
           {accounts.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2 mt-3">

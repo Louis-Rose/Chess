@@ -9,7 +9,6 @@ import { findStockByTicker } from '../utils/allStocks';
 import { getCompanyLogoUrl } from '../utils/companyLogos';
 import { GICS_SECTORS, getStocksBySubIndustry, getStocksBySector, getStocksByIndustryGroup, getStocksByIndustry, type GICSSector, type GICSIndustryGroup, type GICSIndustry, type GICSSubIndustry } from '../utils/gics';
 import { addRecentStock } from '../utils/recentStocks';
-import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { StockSearchBar } from '../components/StockSearchBar';
 import { StockDetailPanel } from './StockDetailPanel';
 
@@ -159,7 +158,6 @@ export function FinancialsPanel() {
         <p className="text-slate-500 dark:text-slate-400 text-lg italic">
           {language === 'fr' ? 'Recherchez 2 500+ actions sur 8 marchés mondiaux' : 'Research 2,500+ stocks across 8 global markets'}
         </p>
-        <PWAInstallPrompt className="max-w-md w-full mt-2" />
       </div>
 
       <div className="max-w-6xl mx-auto space-y-6">

@@ -3,7 +3,6 @@
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { PWAInstallPrompt } from '../../../components/PWAInstallPrompt';
 import { NAV_SECTIONS } from '../ChessCoachesLayout';
 
 export function ScoresheetPanel() {
@@ -12,8 +11,6 @@ export function ScoresheetPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 flex flex-col min-h-[calc(100dvh-80px)]">
-      <PWAInstallPrompt className="max-w-4xl mx-[5%] md:mx-auto mb-4 mt-2 md:mt-0" />
-
       {NAV_SECTIONS.map(({ titleKey, items }) => {
         const enabledItems = items.filter(({ path }) => path === '/scoresheets');
         if (enabledItems.length === 0) return null;
