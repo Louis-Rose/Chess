@@ -402,7 +402,7 @@ export function ScoresheetReadPage() {
                       </div>
                       <div className="text-center mt-0.5">
                         <span className="text-xs text-slate-400">
-                          {liveGlobalElapsed}s{!allDone && maxAvg > 0 ? <> / ~{maxAvg}s <span className="text-slate-500 inline-block w-0 overflow-visible whitespace-nowrap">(estimated)</span></> : ''}
+                          {liveGlobalElapsed}s{!allDone && maxAvg > 0 ? <> / ~{maxAvg}s <span className="inline-block w-0 overflow-visible whitespace-nowrap">(estimated)</span></> : ''}
                         </span>
                       </div>
                     </div>
