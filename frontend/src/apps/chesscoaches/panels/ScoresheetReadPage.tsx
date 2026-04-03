@@ -166,6 +166,15 @@ export function ScoresheetReadPage() {
     return () => clearInterval(id);
   }, [startTime, analyzing]);
 
+  // ── Image natural aspect ratio (natW / natH) for cell crop calculations ──
+  const [imageAspect, setImageAspect] = useState(1);
+  useEffect(() => {
+    if (!preview) return;
+    const img = new Image();
+    img.onload = () => setImageAspect(img.naturalWidth / img.naturalHeight);
+    img.src = preview;
+  }, [preview]);
+
   // ── Crop state ──
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [cropFileName, setCropFileName] = useState('');
@@ -1042,7 +1051,7 @@ export function ScoresheetReadPage() {
                                 const cx1 = Math.max(0, cell.x1 - padX), cy1 = Math.max(0, cell.y1 - padY);
                                 const cx2 = Math.min(1, cell.x2 + padX), cy2 = Math.min(1, cell.y2 + padY);
                                 const cropW = cx2 - cx1, cropH = cy2 - cy1;
-                                const cW = 180, cH = cW * (cropH / cropW);
+                                const cW = 180, cH = cW * cropH / (cropW * imageAspect);
                                 return { cx1, cy1, cropW, cropH, cW, cH };
                               })() : null;
                               return (
@@ -1053,7 +1062,7 @@ export function ScoresheetReadPage() {
                                   <div className="flex items-center justify-center gap-3 py-1">
                                     {cellCrop && (
                                       <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" style={{ width: cellCrop.cW, height: cellCrop.cH }} onClick={() => setZoomedCell(cellCrop)}>
-                                        <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
+                                        <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: `${100 / cellCrop.cropW}%`, height: 'auto', marginLeft: `${-cellCrop.cx1 / cellCrop.cropW * 100}%`, maxWidth: 'none', transform: `translateY(${-cellCrop.cy1 * 100}%)` }} />
                                       </div>
                                     )}
                                     <p className="text-sm text-slate-100">{t('coaches.readAs')} <span className="font-mono font-semibold">{displayMove}</span></p>
@@ -1213,7 +1222,7 @@ export function ScoresheetReadPage() {
                                 const cx1 = Math.max(0, cell.x1 - padX), cy1 = Math.max(0, cell.y1 - padY);
                                 const cx2 = Math.min(1, cell.x2 + padX), cy2 = Math.min(1, cell.y2 + padY);
                                 const cropW = cx2 - cx1, cropH = cy2 - cy1;
-                                const cW = 180, cH = cW * (cropH / cropW);
+                                const cW = 180, cH = cW * cropH / (cropW * imageAspect);
                                 return { cx1, cy1, cropW, cropH, cW, cH };
                               })() : null;
                               return (
@@ -1224,7 +1233,7 @@ export function ScoresheetReadPage() {
                                   <div className="flex items-center justify-center gap-3 py-1">
                                     {cellCrop && (
                                       <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" style={{ width: cellCrop.cW, height: cellCrop.cH }} onClick={() => setZoomedCell(cellCrop)}>
-                                        <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: cellCrop.cW / cellCrop.cropW, height: cellCrop.cH / cellCrop.cropH, marginLeft: -(cellCrop.cx1 / cellCrop.cropW) * cellCrop.cW, marginTop: -(cellCrop.cy1 / cellCrop.cropH) * cellCrop.cH, maxWidth: 'none' }} />
+                                        <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: `${100 / cellCrop.cropW}%`, height: 'auto', marginLeft: `${-cellCrop.cx1 / cellCrop.cropW * 100}%`, maxWidth: 'none', transform: `translateY(${-cellCrop.cy1 * 100}%)` }} />
                                       </div>
                                     )}
                                     <p className="text-sm text-slate-100">{t('coaches.readAs')} <span className="font-mono font-semibold">{displayMove}</span></p>
@@ -1335,10 +1344,10 @@ export function ScoresheetReadPage() {
               draggable={false}
               style={{
                 display: 'block',
-                width: (zoomedCell.cW * 3) / zoomedCell.cropW,
-                height: (zoomedCell.cH * 3) / zoomedCell.cropH,
-                marginLeft: -(zoomedCell.cx1 / zoomedCell.cropW) * (zoomedCell.cW * 3),
-                marginTop: -(zoomedCell.cy1 / zoomedCell.cropH) * (zoomedCell.cH * 3),
+                width: `${100 / zoomedCell.cropW}%`,
+                height: 'auto',
+                marginLeft: `${-zoomedCell.cx1 / zoomedCell.cropW * 100}%`,
+                transform: `translateY(${-zoomedCell.cy1 * 100}%)`,
                 maxWidth: 'none',
               }}
             />
