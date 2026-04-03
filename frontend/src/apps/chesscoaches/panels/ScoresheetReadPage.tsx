@@ -394,7 +394,7 @@ export function ScoresheetReadPage() {
                         <span className="text-xs text-slate-400">
                           {allDone
                             ? <span className="text-emerald-400 inline-flex items-center gap-1"><Check className="w-3 h-3" /> {t('coaches.status.done')}</span>
-                            : <>{liveGlobalElapsed}s{maxAvg > 0 ? <> / ~{maxAvg}s</> : ''}</>
+                            : <>{liveGlobalElapsed}s{maxAvg > 0 ? <> / ~{maxAvg}s (estimated)</> : ''}</>
                           }
                         </span>
                       </div>
