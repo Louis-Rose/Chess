@@ -71,20 +71,20 @@ export function ScoresheetReadPage() {
 
   const { preview, fileName, error, modelResults, models, startTime, analyzing, azureGrid } = scoresheet;
 
-  // First-time users: auto-load sample scoresheet for immediate "aha" moment
+  // First-time users: auto-load sample scoresheet into crop view
   const hasHadSuccess = useRef(getCoachesPrefs().scoresheet_success);
   const autoSampleTriggered = useRef(false);
   useEffect(() => {
     if (hasHadSuccess.current || autoSampleTriggered.current || preview) return;
     autoSampleTriggered.current = true;
-    setLoadingSample(true);
     fetch('/sample_scoresheet.jpeg')
       .then(r => r.blob())
       .then(blob => {
-        const file = new File([blob], 'sample_scoresheet.jpeg', { type: 'image/jpeg' });
-        scoresheetSetImage(file, URL.createObjectURL(blob), file.name);
-        setLoadingSample(false);
-        setAutoRun(true);
+        const dataUrl = URL.createObjectURL(blob);
+        setCropSrc(dataUrl);
+        setCropFileName('sample_scoresheet.jpeg');
+        setCrop({ unit: '%', x: 0, y: 0, width: 100, height: 100 });
+        setCompletedCrop(undefined);
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
