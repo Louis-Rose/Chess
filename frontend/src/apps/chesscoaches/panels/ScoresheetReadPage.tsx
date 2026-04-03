@@ -66,7 +66,7 @@ export function ScoresheetReadPage() {
   const prevAllVerifiedRef = useRef(false);
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
-    scoresheetClear,
+    scoresheetClear, scoresheetSetOverrides,
   } = useCoachesData();
 
   const { preview, fileName, error, modelResults, models, startTime, analyzing, azureGrid } = scoresheet;
@@ -235,7 +235,7 @@ export function ScoresheetReadPage() {
   // Per-model board ply + source tracking
   const [modelBoardPlys, setModelBoardPlys] = useState<Record<string, { ply: number; source: 'gt' | 'read' | 'nav' }>>({});
   // Consensus overrides: user edits on top of the computed consensus
-  const [consensusOverrides, setConsensusOverrides] = useState<Move[] | null>(null);
+  const consensusOverrides = scoresheet.consensusOverrides;
   const [consensusPreviewFen, setConsensusPreviewFen] = useState<string | null>(null);
 
   return (
@@ -883,7 +883,7 @@ export function ScoresheetReadPage() {
                           }
                         }
                       }
-                      setConsensusOverrides([...current]);
+                      scoresheetSetOverrides([...current]);
                     };
 
                     const handleConfirmMove = (moveNumber: number, color: 'white' | 'black') => {

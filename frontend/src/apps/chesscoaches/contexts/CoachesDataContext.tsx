@@ -108,12 +108,14 @@ export interface ScoresheetState {
   analyzing: boolean;
   azureResult: ScoresheetAzureResult | null;
   azureGrid: { top: number; bottom: number; tilt: number; col_dividers: number[]; col_count?: number; row_count?: number; first_move_row?: number; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }> } | null;
+  consensusOverrides: ScoresheetMove[] | null;
 }
 
 const SCORESHEET_INITIAL: ScoresheetState = {
   preview: null, fileName: null, imageFile: null, error: '',
   modelResults: {}, reReads: {}, models: [],
   startTime: null, analyzing: false, azureResult: null, azureGrid: null,
+  consensusOverrides: null,
 };
 
 // ── Mistakes types ──
@@ -243,6 +245,7 @@ interface CoachesDataContextType {
   scoresheetReread: (modelId: string) => void;
   scoresheetCancel: () => void;
   scoresheetClear: () => void;
+  scoresheetSetOverrides: (overrides: ScoresheetMove[] | null) => void;
 
   // Diagram panel
   diagram: DiagramState;
@@ -390,6 +393,10 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
   const scoresheetClear = useCallback(() => {
     if (scoresheetAnalyzeAbortRef.current) { scoresheetAnalyzeAbortRef.current.abort(); scoresheetAnalyzeAbortRef.current = null; }
     setScoresheet(SCORESHEET_INITIAL);
+  }, []);
+
+  const scoresheetSetOverrides = useCallback((overrides: ScoresheetMove[] | null) => {
+    setScoresheet(prev => ({ ...prev, consensusOverrides: overrides }));
   }, []);
 
   const scoresheetDoReread = useCallback(async (file: File, modelId: string, confirmedMoves: ScoresheetMove[], signal?: AbortSignal) => {
@@ -714,7 +721,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
       handleSelectSavedUsername, handleRemoveSavedPlayer,
       playerInfo, playerInfoLoading, playerInfoError,
       handleSubmit, onboardingDone, completeOnboarding,
-      scoresheet, scoresheetSetImage, scoresheetStartOneRead, scoresheetHandleEditSave, scoresheetReread, scoresheetCancel, scoresheetClear,
+      scoresheet, scoresheetSetImage, scoresheetStartOneRead, scoresheetHandleEditSave, scoresheetReread, scoresheetCancel, scoresheetClear, scoresheetSetOverrides,
       diagram, diagramSetImage, diagramAnalyze, diagramClear,
       mistakes: mistakesState, mistakesSetFile, mistakesAnalyze, mistakesClear, mistakesSetExpanded,
     }}>
