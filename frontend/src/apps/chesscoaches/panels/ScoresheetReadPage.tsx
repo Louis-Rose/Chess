@@ -1939,7 +1939,7 @@ function MovesPanel({ label, moves, disagreements, elapsed, error, meta, rereadi
 
       {/* Game metadata */}
       {(meta?.white || meta?.black || (meta?.result && meta.result !== '*') || meta?.date || meta?.event) && (
-        <div className="px-3 py-2 border-b border-slate-600/30 text-xs text-slate-300 space-y-0.5">
+        <div className="px-3 py-2 border-b border-slate-600/30 text-xs text-slate-300 space-y-0.5 text-center">
           {(meta?.white || meta?.black) && (
             <div>Players : <span className="text-slate-100">{meta.white || '?'}</span> (White) vs <span className="text-slate-100">{meta.black || '?'}</span> (Black)</div>
           )}
