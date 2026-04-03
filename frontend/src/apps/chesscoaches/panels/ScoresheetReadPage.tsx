@@ -1318,7 +1318,7 @@ export function ScoresheetReadPage() {
       {imageZoomLevel > 0 && preview && (
         <div
           onClick={() => setImageZoomLevel(prev => prev - 1)}
-          className={`fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[0.5px] cursor-pointer overflow-auto ${imageZoomLevel === 2 ? 'p-4' : 'flex items-center justify-center'}`}
+          className={`fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-pointer overflow-auto ${imageZoomLevel === 2 ? 'p-4' : 'flex items-center justify-center'}`}
         >
           <img
             src={preview}
@@ -1335,7 +1335,7 @@ export function ScoresheetReadPage() {
       {zoomedCell && preview && (
         <div
           onClick={closeModal}
-          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px] cursor-pointer"
+          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] cursor-pointer"
         >
           <div className="rounded-xl overflow-hidden border border-slate-600" style={{ width: zoomedCell.cW * 3, height: zoomedCell.cH * 3 }}>
             <img
@@ -1359,7 +1359,7 @@ export function ScoresheetReadPage() {
       {showExampleModal && (
         <div
           onClick={closeModal}
-          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px] cursor-pointer"
+          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] cursor-pointer"
         >
           <img
             src="/cropping_example.jpeg"
@@ -2079,7 +2079,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
       {/* Edit modal */}
       {editing && (
         <div
-          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[0.5px]"
+          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px]"
           onClick={() => { setEditing(null); onClearPreview?.(); setEditFromVoteKey(null); }}
         >
           <div
@@ -2151,7 +2151,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
       {/* Illegal moves modal */}
       {showIllegalModal && createPortal(
         <div
-          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px]"
+          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px]"
           onClick={() => setShowIllegalModal(false)}
         >
           <div
@@ -2190,7 +2190,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
         const isHighlighted = legal === false || !!reason;
         return createPortal(
           <div
-            className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px]"
+            className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px]"
             onClick={() => setMoveInfoKey(null)}
           >
             <div
@@ -2383,7 +2383,7 @@ function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onIllegalC
 
       {open && (
         <div
-          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px]"
+          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px]"
           onClick={handleClose}
         >
           <div
