@@ -1297,14 +1297,14 @@ export function ScoresheetReadPage() {
       {imageZoomLevel > 0 && preview && (
         <div
           onClick={() => setImageZoomLevel(prev => prev - 1)}
-          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[0.5px] cursor-pointer overflow-auto"
+          className={`fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[0.5px] cursor-pointer overflow-auto ${imageZoomLevel === 2 ? 'p-4' : 'flex items-center justify-center'}`}
         >
           <img
             src={preview}
             alt="Scoresheet"
             onClick={(e) => { if (imageZoomLevel < 2) { e.stopPropagation(); setImageZoomLevel(2); } }}
             className={imageZoomLevel === 2
-              ? "max-w-none rounded-xl object-contain cursor-zoom-out"
+              ? "max-w-none rounded-xl object-contain cursor-zoom-out mx-auto"
               : "max-w-[90vw] max-h-[90vh] rounded-xl object-contain cursor-zoom-in"}
           />
         </div>
