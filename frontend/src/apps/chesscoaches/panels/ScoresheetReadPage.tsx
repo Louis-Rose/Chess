@@ -71,9 +71,10 @@ export function ScoresheetReadPage() {
 
   const { preview, fileName, error, modelResults, models, startTime, analyzing, azureGrid } = scoresheet;
 
-  // First-time users: auto-load sample scoresheet into crop view
+  // First-time users: auto-load sample scoresheet into preview
   const hasHadSuccess = useRef(getCoachesPrefs().scoresheet_success);
   const autoSampleTriggered = useRef(false);
+  const [isFirstTimeDemo, setIsFirstTimeDemo] = useState(false);
   useEffect(() => {
     if (hasHadSuccess.current || autoSampleTriggered.current || preview) return;
     autoSampleTriggered.current = true;
@@ -83,8 +84,7 @@ export function ScoresheetReadPage() {
         const dataUrl = URL.createObjectURL(blob);
         setCropSrc(dataUrl);
         setCropFileName('sample_scoresheet.jpeg');
-        setCrop({ unit: '%', x: 0, y: 0, width: 100, height: 100 });
-        setCompletedCrop(undefined);
+        setIsFirstTimeDemo(true);
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -249,6 +249,31 @@ export function ScoresheetReadPage() {
           />
 
           {cropSrc ? (
+            isFirstTimeDemo ? (
+            /* ── First-time demo: simple preview + confirm ── */
+            <div className="space-y-4">
+              <p className="text-slate-200 text-lg text-center">
+                Hi {user?.name?.split(' ')[0] || ''}! This is a sample scoresheet. Hit confirm to see the magic!
+              </p>
+              <div className="flex justify-center">
+                <img
+                  ref={cropImgRef}
+                  src={cropSrc}
+                  alt="Sample scoresheet"
+                  className="rounded-lg max-h-[50vh] max-w-sm"
+                />
+              </div>
+              <div className="flex justify-center">
+                <button
+                  onClick={() => { setIsFirstTimeDemo(false); handleCropConfirm(); }}
+                  className="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  <Check className="w-4 h-4" />
+                  {t('coaches.cropConfirm')}
+                </button>
+              </div>
+            </div>
+            ) : (
             /* ── Crop step ── */
             <div className="space-y-4">
               <div className="relative flex justify-center">
@@ -295,6 +320,7 @@ export function ScoresheetReadPage() {
                 </button>
               </div>
             </div>
+            )
           ) : !preview && !loadingSample ? (
             <div className="space-y-3">
               <p className="text-slate-200 text-lg text-center my-6">{t('coaches.uploadExplanation')}</p>
