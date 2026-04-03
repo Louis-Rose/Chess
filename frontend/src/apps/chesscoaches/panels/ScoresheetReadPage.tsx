@@ -1056,7 +1056,7 @@ export function ScoresheetReadPage() {
                                       userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
                                         <button
                                           onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); if (voteState) voteState.clearSelection(); }}
-                                          className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
+                                          className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-emerald-400"
                                         >
                                           Confirm {displayMove}
                                         </button>
@@ -1073,7 +1073,7 @@ export function ScoresheetReadPage() {
                                             setUserPickedMove(null);
                                             if (voteState) voteState.clearSelection();
                                           }}
-                                          className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
+                                          className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-blue-400"
                                         >
                                           Pick {userPickedMove}
                                         </button>
@@ -1223,7 +1223,7 @@ export function ScoresheetReadPage() {
                                             setUserPickedMove(null);
                                             if (voteState) voteState.clearSelection();
                                           }}
-                                          className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
+                                          className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-emerald-400"
                                         >
                                           Confirm {displayMove}
                                         </button>
@@ -1240,7 +1240,7 @@ export function ScoresheetReadPage() {
                                             setUserPickedMove(null);
                                             if (voteState) voteState.clearSelection();
                                           }}
-                                          className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
+                                          className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-blue-400"
                                         >
                                           Pick {userPickedMove}
                                         </button>
