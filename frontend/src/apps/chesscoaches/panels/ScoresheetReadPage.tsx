@@ -1070,8 +1070,10 @@ export function ScoresheetReadPage() {
                                   </p>
                                   <div className="flex items-center justify-center gap-3 py-1 h-14">
                                     {cellCrop && (
-                                      <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" style={{ width: cellCrop.cW, height: Math.min(cellCrop.cH, 48) }} onClick={() => setZoomedCell(cellCrop)}>
-                                        <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: `${100 / cellCrop.cropW}%`, height: 'auto', marginLeft: `${-cellCrop.cx1 / cellCrop.cropW * 100}%`, maxWidth: 'none', transform: `translateY(${-cellCrop.cy1 * 100}%)` }} />
+                                      <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity overflow-hidden flex items-center" style={{ width: cellCrop.cW, height: 48 }} onClick={() => setZoomedCell(cellCrop)}>
+                                        <div className="rounded-lg overflow-hidden border border-slate-600" style={{ width: cellCrop.cW, height: cellCrop.cH }}>
+                                          <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: `${100 / cellCrop.cropW}%`, height: 'auto', marginLeft: `${-cellCrop.cx1 / cellCrop.cropW * 100}%`, maxWidth: 'none', transform: `translateY(${-cellCrop.cy1 * 100}%)` }} />
+                                        </div>
                                       </div>
                                     )}
                                     <p className="text-sm text-slate-100">{t('coaches.readAs')} <span className="font-mono font-semibold">{displayMove}</span></p>
@@ -1241,8 +1243,10 @@ export function ScoresheetReadPage() {
                                   </p>
                                   <div className="flex items-center justify-center gap-3 py-1 h-14">
                                     {cellCrop && (
-                                      <div className="rounded-lg overflow-hidden border border-slate-600 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" style={{ width: cellCrop.cW, height: Math.min(cellCrop.cH, 48) }} onClick={() => setZoomedCell(cellCrop)}>
-                                        <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: `${100 / cellCrop.cropW}%`, height: 'auto', marginLeft: `${-cellCrop.cx1 / cellCrop.cropW * 100}%`, maxWidth: 'none', transform: `translateY(${-cellCrop.cy1 * 100}%)` }} />
+                                      <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity overflow-hidden flex items-center" style={{ width: cellCrop.cW, height: 48 }} onClick={() => setZoomedCell(cellCrop)}>
+                                        <div className="rounded-lg overflow-hidden border border-slate-600" style={{ width: cellCrop.cW, height: cellCrop.cH }}>
+                                          <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: `${100 / cellCrop.cropW}%`, height: 'auto', marginLeft: `${-cellCrop.cx1 / cellCrop.cropW * 100}%`, maxWidth: 'none', transform: `translateY(${-cellCrop.cy1 * 100}%)` }} />
+                                        </div>
                                       </div>
                                     )}
                                     <p className="text-sm text-slate-100">{t('coaches.readAs')} <span className="font-mono font-semibold">{displayMove}</span></p>
