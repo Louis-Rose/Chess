@@ -1308,6 +1308,52 @@ export function ScoresheetReadPage() {
 
                   {/* Azure DI section — disabled, kept for future use */}
 
+                  {/* Individual model reads — admin only */}
+                  {user?.email === 'rose.louis.mail@gmail.com' && models.length > 0 && (() => {
+                    const finishedModels = models.filter(m => modelResults[m.id]?.result?.moves?.length);
+                    if (finishedModels.length === 0) return null;
+                    return (
+                      <div className="mt-6 space-y-4 px-2">
+                        <p className="text-slate-400 text-sm font-medium text-center">Individual model reads</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {finishedModels.map(m => {
+                            const mr = modelResults[m.id]!;
+                            const moves = mr.result!.moves;
+                            return (
+                              <div key={m.id} className="bg-slate-700/50 rounded-xl overflow-hidden">
+                                <div className="px-3 py-2 border-b border-slate-600 text-center">
+                                  <span className="text-slate-100 font-medium text-sm">{m.name}</span>
+                                  <span className="text-slate-500 text-xs ml-2">{mr.elapsed}s{mr.tier ? ` · ${mr.tier}` : ''}</span>
+                                </div>
+                                <table className="w-full text-sm">
+                                  <thead className="bg-slate-700">
+                                    <tr className="border-b border-slate-600">
+                                      <th className="px-2 py-1 text-slate-400 text-center w-6">#</th>
+                                      <th className="px-2 py-1 text-slate-400 text-center">White</th>
+                                      <th className="px-2 py-1 text-slate-400 text-center">Black</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {moves.map((move, i) => (
+                                      <tr key={i} className="border-b border-slate-600/20">
+                                        <td className="px-2 py-0.5 text-slate-500 text-center font-mono text-xs">{move.number || i + 1}</td>
+                                        <td className={`px-2 py-0.5 font-mono text-center ${move.white_legal === false ? 'text-red-400' : 'text-slate-200'}`}>
+                                          {move.white}{move.white_time != null ? ` (${move.white_time})` : ''}
+                                        </td>
+                                        <td className={`px-2 py-0.5 font-mono text-center ${move.black_legal === false ? 'text-red-400' : 'text-slate-200'}`}>
+                                          {move.black || ''}{move.black_time != null ? ` (${move.black_time})` : ''}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                 </div>
                 );
