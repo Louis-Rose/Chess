@@ -197,7 +197,7 @@ export function StudentDetailPage() {
                 </button>
               </div>
             ) : (
-              <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-red-400 text-xs transition-colors">
+              <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-600 hover:border-red-500/50 hover:bg-red-600/10 text-slate-400 hover:text-red-400 text-xs rounded-lg transition-colors">
                 <Trash2 className="w-3.5 h-3.5" />
                 {t('coaches.students.deleteStudentFull')}
               </button>
