@@ -1121,21 +1121,34 @@ export function ScoresheetReadPage() {
                               const moveObj = displayConsensusMoves[moveIdx];
                               if (!moveObj) return null;
                               const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
-                              const isConfirmed = !!(moveObj as any)[`${colorStr}_confirmed`];
+                              // Find last confirmed move (highest ply) for revert
+                              const lastConfirmed = (() => {
+                                let last: { idx: number; color: 'white' | 'black' } | null = null;
+                                displayConsensusMoves.forEach((m, i) => {
+                                  if ((m as any).white_confirmed) last = { idx: i, color: 'white' };
+                                  if ((m as any).black_confirmed) last = { idx: i, color: 'black' };
+                                });
+                                return last as { idx: number; color: 'white' | 'black' } | null;
+                              })();
                               return (
                                 <div className="flex justify-center gap-2">
                                   <button
-                                    disabled={!isConfirmed}
+                                    disabled={!lastConfirmed}
                                     onClick={() => {
+                                      if (!lastConfirmed) return;
                                       const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
-                                      if (current[moveIdx]) {
-                                        delete (current[moveIdx] as any)[`${colorStr}_confirmed`];
+                                      if (current[lastConfirmed.idx]) {
+                                        delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
                                       }
                                       rerunConsensusAfterEdit(current);
                                       setUserPickedMove(null);
-                                      if (voteState) voteState.setEditValue('');
+                                      if (voteState) {
+                                        voteState.setEditValue('');
+                                        const ply = lastConfirmed.color === 'white' ? lastConfirmed.idx * 2 + 1 : lastConfirmed.idx * 2 + 2;
+                                        voteState.goToMove(lastConfirmed.idx + 1, lastConfirmed.color, ply);
+                                      }
                                     }}
-                                    className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${isConfirmed ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
+                                    className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${lastConfirmed ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
                                   >
                                     {t('coaches.revertChange')}
                                   </button>
@@ -1232,21 +1245,34 @@ export function ScoresheetReadPage() {
                               const moveObj = displayConsensusMoves[moveIdx];
                               if (!moveObj) return null;
                               const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
-                              const isConfirmed = !!(moveObj as any)[`${colorStr}_confirmed`];
+                              // Find last confirmed move (highest ply) for revert
+                              const lastConfirmed = (() => {
+                                let last: { idx: number; color: 'white' | 'black' } | null = null;
+                                displayConsensusMoves.forEach((m, i) => {
+                                  if ((m as any).white_confirmed) last = { idx: i, color: 'white' };
+                                  if ((m as any).black_confirmed) last = { idx: i, color: 'black' };
+                                });
+                                return last as { idx: number; color: 'white' | 'black' } | null;
+                              })();
                               return (
                                 <div className="flex justify-center gap-2 w-full max-w-[400px]">
                                   <button
-                                    disabled={!isConfirmed}
+                                    disabled={!lastConfirmed}
                                     onClick={() => {
+                                      if (!lastConfirmed) return;
                                       const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
-                                      if (current[moveIdx]) {
-                                        delete (current[moveIdx] as any)[`${colorStr}_confirmed`];
+                                      if (current[lastConfirmed.idx]) {
+                                        delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
                                       }
                                       rerunConsensusAfterEdit(current);
                                       setUserPickedMove(null);
-                                      if (voteState) voteState.setEditValue('');
+                                      if (voteState) {
+                                        voteState.setEditValue('');
+                                        const ply = lastConfirmed.color === 'white' ? lastConfirmed.idx * 2 + 1 : lastConfirmed.idx * 2 + 2;
+                                        voteState.goToMove(lastConfirmed.idx + 1, lastConfirmed.color, ply);
+                                      }
                                     }}
-                                    className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${isConfirmed ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
+                                    className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${lastConfirmed ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
                                   >
                                     {t('coaches.revertChange')}
                                   </button>
