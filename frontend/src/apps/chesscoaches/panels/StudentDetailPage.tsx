@@ -581,26 +581,6 @@ export function StudentDetailPage() {
               </div>
             </div>
 
-            {/* Actions row */}
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => setShowLessonForm(!showLessonForm)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 rounded-lg text-sm font-medium transition-colors"
-              >
-                <Calendar className="w-4 h-4" />
-                {t('coaches.students.scheduleLessonFull')}
-              </button>
-            </div>
-
-            {/* Lesson form */}
-            {showLessonForm && (
-              <LessonForm
-                studentId={student.id}
-                defaultTime={getDefaultLessonTime()}
-                onSaved={() => { setShowLessonForm(false); fetchData(); }}
-                onCancel={() => setShowLessonForm(false)}
-              />
-            )}
           </>
         )}
 
@@ -637,82 +617,6 @@ export function StudentDetailPage() {
             </div>
           );
         })}
-
-        {/* Upcoming lessons */}
-        {upcoming.length > 0 && (
-          <div>
-            <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">
-              {t('coaches.student.upcoming')} ({upcoming.length})
-            </h2>
-            <div className="space-y-1.5">
-              {upcoming.map(l => (
-                <div key={l.id} className="flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5">
-                  <span className="text-sm text-slate-200 flex-shrink-0">{formatDate(l.scheduled_at, lang)}</span>
-                  <span className="text-xs text-slate-400">{formatDuration(l.duration_minutes)}</span>
-                  <div className="flex-1" />
-                  <select
-                    value={l.status}
-                    onChange={e => handleStatusChange(l.id, e.target.value)}
-                    className={`text-xs rounded px-1.5 py-0.5 border cursor-pointer ${statusColors[l.status] || statusColors.scheduled}`}
-                  >
-                    {Object.entries(statusLabels).map(([val, label]) => (
-                      <option key={val} value={val}>{label}</option>
-                    ))}
-                  </select>
-                  {rescheduleId === l.id ? (
-                    <RescheduleForm lesson={l} onSaved={() => { setRescheduleId(null); fetchData(); }} onCancel={() => setRescheduleId(null)} />
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => setRescheduleId(l.id)} className="text-slate-500 hover:text-slate-300 transition-colors" title={t('coaches.students.reschedule')}>
-                        <RefreshCw className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleStatusChange(l.id, 'cancelled')}
-                        className="text-slate-500 hover:text-red-400 transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Past lessons / history */}
-        {past.length > 0 && (
-          <div>
-            <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">
-              {t('coaches.student.history')} ({past.length})
-            </h2>
-            <div className="space-y-1.5">
-              {past.map(l => (
-                <div key={l.id} className="flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5">
-                  <span className="text-sm text-slate-200 flex-shrink-0">{formatDate(l.scheduled_at, lang)}</span>
-                  <span className="text-xs text-slate-400">{formatDuration(l.duration_minutes)}</span>
-                  <div className="flex-1" />
-                  <select
-                    value={l.status}
-                    onChange={e => handleStatusChange(l.id, e.target.value)}
-                    className={`text-xs rounded px-1.5 py-0.5 border cursor-pointer ${statusColors[l.status] || statusColors.scheduled}`}
-                  >
-                    {Object.entries(statusLabels).map(([val, label]) => (
-                      <option key={val} value={val}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* No lessons at all */}
-        {lessons.length === 0 && !showLessonForm && (
-          <div className="text-center py-8 text-slate-500 text-sm">
-            {t('coaches.student.noLessons')}
-          </div>
-        )}
 
         {/* Delete student — bottom of page */}
         {!editing && (
