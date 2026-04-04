@@ -1337,6 +1337,7 @@ export function ScoresheetReadPage() {
                                 <div className="px-3 py-2 border-b border-slate-600 text-center">
                                   <span className="text-slate-100 font-medium text-sm">{m.name}</span>
                                   <span className="text-slate-500 text-xs ml-2">{mr.elapsed}s{mr.tier ? ` · ${mr.tier}` : ''}</span>
+                                  <div className="text-slate-500 text-xs font-mono">{m.id}</div>
                                   <div className="text-slate-400 text-xs capitalize">{modelNotation || '?'} notation</div>
                                 </div>
                                 <table className="w-full text-sm">
