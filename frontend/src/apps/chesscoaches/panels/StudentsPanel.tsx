@@ -264,21 +264,15 @@ function useLiveClock(interval = 30000) {
 
 interface StudentFormData {
   student_name: string;
-  timezone: string;
-  city: string;
-  currency: string;
-  recurring_day: number | null;
-  recurring_time: string;
+  source: string;
 }
 
 const EMPTY_FORM: StudentFormData = {
   student_name: '',
-  timezone: '',
-  city: '',
-  currency: '',
-  recurring_day: null,
-  recurring_time: '',
+  source: '',
 };
+
+const SOURCES = ['superprof', 'website', 'direct', 'other'] as const;
 
 function StudentForm({ initial, onSave, onCancel, saving, lang }: {
   initial: StudentFormData;
@@ -289,135 +283,35 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
 }) {
   const { t } = useLanguage();
   const [form, setForm] = useState(initial);
-  const set = (k: keyof StudentFormData, v: string | number | null) => setForm(prev => ({ ...prev, [k]: v }));
 
-  const [cityQuery, setCityQuery] = useState(initial.city || '');
-  const [showSuggestions, setShowSuggestions] = useState(false);
-
-  const citySuggestions = cityQuery.length >= 2
-    ? CITY_TIMEZONES.filter(([city]) => city.toLowerCase().includes(cityQuery.toLowerCase())).slice(0, 8)
-    : [];
-
-  const handleCitySelect = (city: string, tz: string) => {
-    setCityQuery(city);
-    const deducedCurrency = getCurrencyForTimezone(tz);
-    setForm(prev => ({ ...prev, timezone: tz, city, currency: prev.currency || deducedCurrency }));
-    setShowSuggestions(false);
-  };
-
-  const dayNames = lang === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
   const input = 'w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors';
   const label = 'text-xs font-medium text-slate-400 mb-1';
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
-      {/* Row 1: Name + City */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <div className={label}>{t('coaches.students.name')} *</div>
-          <input className={input} value={form.student_name} onChange={e => set('student_name', e.target.value)} placeholder={lang === 'fr' ? 'Nom de l\'élève' : 'Student name'} />
+          <input className={input} value={form.student_name} onChange={e => setForm({ ...form, student_name: e.target.value })} placeholder={lang === 'fr' ? 'Nom de l\'élève' : 'Student name'} />
         </div>
-        <div className="relative">
-          <div className={label}>{t('coaches.students.city')} *</div>
-          <input
-            className={input}
-            value={cityQuery}
-            onChange={e => { setCityQuery(e.target.value); setShowSuggestions(true); set('timezone', ''); }}
-            onFocus={() => setShowSuggestions(true)}
-            placeholder={lang === 'fr' ? 'Rechercher une ville...' : 'Search city...'}
-          />
-          {/* Suggestions dropdown */}
-          {showSuggestions && citySuggestions.length > 0 && (
-            <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-              {citySuggestions.map(([city, tz]) => (
-                <button
-                  key={`${city}-${tz}`}
-                  onClick={() => handleCitySelect(city, tz)}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors flex justify-between items-center"
-                >
-                  <span className="text-slate-100">{city}</span>
-                  <span className="text-xs text-slate-400">{getTimezoneAbbr(tz)}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {/* Show deduced timezone */}
-          {form.timezone && (
-            <div className="mt-1 text-xs text-slate-400">
-              {t('coaches.students.timezone')}: {getTimezoneAbbr(form.timezone)} ({form.timezone.replace(/_/g, ' ')})
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Row 2: Currency (shown after city is picked) */}
-      {form.timezone && (() => {
-        const coachTzData = localStorage.getItem('lumna_coach_tz');
-        const coachCurrency = coachTzData ? getCurrencyForTimezone(JSON.parse(coachTzData).timezone || '') : '';
-        const studentCurrency = getCurrencyForTimezone(form.timezone);
-        const currencies = buildCurrencyList([coachCurrency, studentCurrency].filter(Boolean));
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <div className={label}>{t('coaches.students.currency')}</div>
-              <select className={input} value={form.currency} onChange={e => set('currency', e.target.value)}>
-                <option value="">{lang === 'fr' ? 'Pas de devise' : 'No currency'}</option>
-                {currencies.map(c => <option key={c} value={c}>{c} ({CURRENCY_NAMES[c] || c})</option>)}
-              </select>
-            </div>
+        <div>
+          <div className={label}>{t('coaches.packs.source')}</div>
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {SOURCES.map(s => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setForm({ ...form, source: form.source === s ? '' : s })}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                  form.source === s
+                    ? 'bg-purple-600/20 text-purple-400 border-purple-500/40'
+                    : 'bg-slate-700 text-slate-400 border-slate-600 hover:border-slate-500'
+                }`}
+              >
+                {t(`coaches.packs.${s}`)}
+              </button>
+            ))}
           </div>
-        );
-      })()}
-
-      {/* Row 3: Recurring slot (optional) */}
-      <div>
-        <div className={label}>{t('coaches.students.recurringSlot')}</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <select
-            className={input}
-            value={form.recurring_day === null ? '' : form.recurring_day}
-            onChange={e => set('recurring_day', e.target.value === '' ? null : parseInt(e.target.value))}
-          >
-            <option value="">{t('coaches.students.noRecurring')}</option>
-            {dayNames.map((d, i) => <option key={i} value={i}>{d}</option>)}
-          </select>
-          {form.recurring_day !== null && (
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                className={input}
-                value={form.recurring_time ? form.recurring_time.split(':')[0] : ''}
-                onChange={e => {
-                  const h = e.target.value;
-                  const m = form.recurring_time ? form.recurring_time.split(':')[1] : '00';
-                  set('recurring_time', h ? `${h}:${m}` : '');
-                }}
-              >
-                <option value="">{lang === 'fr' ? 'Choisir l\'heure' : 'Pick hour'}</option>
-                {Array.from({ length: 24 }, (_, i) => {
-                  const h24 = String(i).padStart(2, '0');
-                  if (lang === 'fr') return <option key={i} value={h24}>{h24}h</option>;
-                  const period = i < 12 ? 'AM' : 'PM';
-                  const h12 = i === 0 ? 12 : i > 12 ? i - 12 : i;
-                  return <option key={i} value={h24}>{h12} {period}</option>;
-                })}
-              </select>
-              <select
-                className={input}
-                value={form.recurring_time ? form.recurring_time.split(':')[1] : ''}
-                disabled={!form.recurring_time}
-                onChange={e => {
-                  const h = form.recurring_time?.split(':')[0];
-                  if (!h) return;
-                  set('recurring_time', `${h}:${e.target.value}`);
-                }}
-              >
-                {!form.recurring_time && <option value="">--</option>}
-                {['00', '15', '30', '45'].map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
-          )}
         </div>
       </div>
 
@@ -425,7 +319,7 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
       <div className="flex items-center justify-center gap-3 pt-1">
         <button
           onClick={() => onSave(form)}
-          disabled={!form.student_name.trim() || !form.timezone || saving}
+          disabled={!form.student_name.trim() || saving}
           className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
         >
           {saving ? '...' : t('coaches.students.save')}
