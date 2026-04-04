@@ -429,7 +429,7 @@ export function ScoresheetReadPage() {
                       {!allDone ? (
                         <p className="text-center text-blue-400 text-sm mt-2">{t('coaches.waitProcessing')}</p>
                       ) : (
-                        <p className="text-center text-blue-400 text-sm mt-2">{t('coaches.processingDone')}</p>
+                        <p className="text-center text-emerald-500 text-sm mt-2">{t('coaches.processingDone')}</p>
                       )}
                     </div>
                   </div>

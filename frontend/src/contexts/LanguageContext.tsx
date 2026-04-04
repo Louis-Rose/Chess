@@ -749,7 +749,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.sampleDemoAction': 'Appuyez sur confirmer pour voir la magie opérer !',
     'coaches.sampleDemoAlt': 'Exemple de feuille de partie',
     'coaches.waitProcessing': 'Attendez la fin du traitement',
-    'coaches.processingDone': 'Traitement terminé. Vérifiez les coups surlignés. Pour corriger un coup, déplacez une pièce sur l\'échiquier puis cliquez sur confirmer.',
+    'coaches.processingDone': 'Traitement terminé ! Vérifiez les coups surlignés. Pour corriger un coup, déplacez une pièce sur l\'échiquier puis cliquez sur confirmer.',
     'coaches.tryOwnScoresheet': 'Maintenant, essayez avec votre propre feuille de partie !',
     'coaches.cropHint': 'Recadrez autour du tableau des coups',
     'coaches.example': 'Exemple',
