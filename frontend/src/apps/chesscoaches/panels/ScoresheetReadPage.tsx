@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
-import { ImageIcon, FileText, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, X } from 'lucide-react';
+import { ImageIcon, FileText, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -1377,16 +1377,39 @@ export function ScoresheetReadPage() {
       {imageZoomLevel > 0 && preview && (
         <div
           onClick={() => setImageZoomLevel(prev => prev - 1)}
-          className={`fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-pointer overflow-auto ${imageZoomLevel === 2 ? 'p-4' : 'flex items-center justify-center'}`}
+          className={`fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-pointer overflow-auto ${imageZoomLevel >= 2 ? 'p-4' : 'flex items-center justify-center'}`}
         >
-          <img
-            src={preview}
-            alt="Scoresheet"
-            onClick={(e) => { if (imageZoomLevel < 2) { e.stopPropagation(); setImageZoomLevel(2); } }}
-            className={imageZoomLevel === 2
-              ? "max-w-none rounded-xl object-contain cursor-zoom-out mx-auto"
-              : "max-w-[90vw] max-h-[90vh] rounded-xl object-contain cursor-zoom-in"}
-          />
+          <div className={`flex flex-col items-center gap-2 ${imageZoomLevel >= 2 ? '' : ''}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setImageZoomLevel(prev => Math.max(prev - 1, 0))}
+                className="p-1.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-slate-300 transition-colors"
+                disabled={imageZoomLevel <= 1}
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <span className="text-xs text-slate-400 w-8 text-center">{imageZoomLevel}/3</span>
+              <button
+                onClick={() => setImageZoomLevel(prev => Math.min(prev + 1, 3))}
+                className="p-1.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-slate-300 transition-colors"
+                disabled={imageZoomLevel >= 3}
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+            </div>
+            <img
+              src={preview}
+              alt="Scoresheet"
+              onClick={() => setImageZoomLevel(prev => prev < 3 ? prev + 1 : prev - 1)}
+              className={
+                imageZoomLevel === 3
+                  ? "max-w-none rounded-xl object-contain cursor-zoom-out"
+                  : imageZoomLevel === 2
+                  ? "max-w-[150vw] max-h-[150vh] rounded-xl object-contain cursor-zoom-in"
+                  : "max-w-[90vw] max-h-[90vh] rounded-xl object-contain cursor-zoom-in"
+              }
+            />
+          </div>
         </div>
       )}
 
