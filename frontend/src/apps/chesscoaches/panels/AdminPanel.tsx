@@ -174,7 +174,7 @@ const PAGE_TO_API_FEATURES: Record<string, string[]> = {
 };
 
 // Enabled features — derived from NAV_SECTIONS with same filter as sidebar
-const ENABLED_FEATURE_FILTER = (path: string) => path === '/scoresheets';
+const ENABLED_FEATURE_FILTER = (path: string) => ['/scoresheets', '/payments', '/students'].includes(path);
 const COACH_FEATURES: { id: string; labelKey: string }[] = NAV_SECTIONS
   .flatMap(s => s.items)
   .filter(({ path }) => ENABLED_FEATURE_FILTER(path))
