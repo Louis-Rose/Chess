@@ -138,10 +138,10 @@ export function StudentDetailPage() {
                 </div>
                 <button
                   onClick={() => setEditing(true)}
-                  className="text-slate-500 hover:text-slate-300 transition-colors p-1.5"
-                  title={t('coaches.students.editStudent')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-600 hover:border-slate-500 text-slate-400 hover:text-slate-200 text-xs rounded-lg transition-colors"
                 >
-                  <Pencil className="w-4 h-4" />
+                  <Pencil className="w-3.5 h-3.5" />
+                  {t('coaches.students.editStudent')}
                 </button>
               </div>
             </div>
