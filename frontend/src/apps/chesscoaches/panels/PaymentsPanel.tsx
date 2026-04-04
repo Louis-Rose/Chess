@@ -253,7 +253,7 @@ function PackCard({ pack, index, onEdit, onDelete, t }: {
 
       <CreditBar consumed={pack.lessons_done} total={pack.total_lessons} />
 
-      <div className="flex items-center gap-4 mt-1.5 text-xs text-slate-200">
+      <div className="flex flex-col items-center mt-1.5 text-xs text-slate-200">
         <span>{t('coaches.packs.lessonsRemaining')}: {remaining}</span>
         {(pack.lessons_done - pack.lessons_paid) > 0 && (
           <span>{t('coaches.packs.lessonsUnpaid')}: {pack.lessons_done - pack.lessons_paid}</span>
