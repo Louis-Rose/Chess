@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Package, ChevronDown, ChevronUp, Pencil, Trash2, X, Check } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { PanelShell, btnPrimary, BTN_GHOST } from '../components/PanelShell';
+import { PanelShell, btnPrimary } from '../components/PanelShell';
 import { authFetch } from '../utils/authFetch';
 
 // ── Types ──
