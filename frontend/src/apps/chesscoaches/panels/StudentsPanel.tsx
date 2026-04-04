@@ -578,7 +578,7 @@ export function StudentsPanel() {
         ) : (
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-1.5 mx-auto px-4 py-2 text-slate-400 hover:text-purple-400 text-sm transition-colors"
+            className="flex items-center gap-1.5 mx-auto px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
             {t('coaches.students.addStudent')}
