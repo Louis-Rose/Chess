@@ -1400,10 +1400,10 @@ export function ScoresheetReadPage() {
             <img
               src={preview}
               alt="Scoresheet"
-              onClick={(e) => { e.stopPropagation(); setImageZoomLevel(prev => prev < 3 ? prev + 1 : prev - 1); }}
+              onClick={(e) => { e.stopPropagation(); if (imageZoomLevel < 3) setImageZoomLevel(prev => prev + 1); }}
               className={
                 imageZoomLevel === 3
-                  ? "max-w-none rounded-xl object-contain cursor-zoom-out"
+                  ? "max-w-none rounded-xl object-contain cursor-default"
                   : imageZoomLevel === 2
                   ? "max-w-[150vw] max-h-[150vh] rounded-xl object-contain cursor-zoom-in"
                   : "max-w-[90vw] max-h-[90vh] rounded-xl object-contain cursor-zoom-in"
