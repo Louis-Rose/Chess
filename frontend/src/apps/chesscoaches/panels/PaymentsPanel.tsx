@@ -198,8 +198,8 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, editForm, editingP
 
       {editForm}
 
-      {activePacks.filter(p => p.id !== editingPackId).map(p => (
-        <PackCard key={p.id} pack={p} onEdit={onEdit} onDelete={onDelete} t={t} />
+      {activePacks.filter(p => p.id !== editingPackId).map((p, i) => (
+        <PackCard key={p.id} pack={p} index={i} onEdit={onEdit} onDelete={onDelete} t={t} />
       ))}
 
       {completedPacks.length > 0 && (
@@ -212,8 +212,8 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, editForm, editingP
         </button>
       )}
 
-      {showHistory && completedPacks.filter(p => p.id !== editingPackId).map(p => (
-        <PackCard key={p.id} pack={p} onEdit={onEdit} onDelete={onDelete} t={t} />
+      {showHistory && completedPacks.filter(p => p.id !== editingPackId).map((p, i) => (
+        <PackCard key={p.id} pack={p} index={activePacks.length + i} onEdit={onEdit} onDelete={onDelete} t={t} />
       ))}
     </div>
   );
@@ -221,8 +221,9 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, editForm, editingP
 
 // ── Pack Card ──
 
-function PackCard({ pack, onEdit, onDelete, t }: {
+function PackCard({ pack, index, onEdit, onDelete, t }: {
   pack: Pack;
+  index: number;
   onEdit: (pack: Pack) => void;
   onDelete: (pack: Pack) => void;
   t: (key: string) => string;
@@ -240,13 +241,13 @@ function PackCard({ pack, onEdit, onDelete, t }: {
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-slate-200">
-            {pack.total_lessons} {t('coaches.packs.lessons')}
+            Pack {index + 1} — {pack.total_lessons} {t('coaches.packs.lessons')}
+            {pack.price != null && (
+              <span className="text-xs text-slate-400 ml-1">
+                ({pack.price}{currency ? ` ${currency}` : ''})
+              </span>
+            )}
           </span>
-          {pack.price != null && (
-            <span className="text-xs text-slate-400">
-              {pack.price}{currency ? ` ${currency}` : ''}
-            </span>
-          )}
           <SourceBadge source={pack.source} />
           {isCompleted && (
             <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-600/20 text-slate-500 border-slate-600/30 font-medium">
