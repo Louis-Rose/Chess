@@ -191,14 +191,10 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, onToggleStatus, t 
 
   return (
     <div className="space-y-2">
-      <div>
-        <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-          {studentName}
-        </div>
+      <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+        {studentName}
         {activePacks.length > 0 && (
-          <div className="text-xs text-slate-500 mt-0.5">
-            {studentRemaining} {t('coaches.packs.lessons')} {t('coaches.packs.remaining')}
-          </div>
+          <span> ({studentRemaining} {t('coaches.packs.lessons')} {t('coaches.packs.remaining')})</span>
         )}
       </div>
 
