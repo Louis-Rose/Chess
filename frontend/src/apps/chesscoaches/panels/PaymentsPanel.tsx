@@ -1,6 +1,7 @@
 // Packs panel — lesson credit tracking dashboard
 
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Package, ChevronDown, ChevronUp, Trash2, X } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell, btnPrimary } from '../components/PanelShell';
@@ -270,6 +271,7 @@ function PackCard({ pack, index, onEdit, onDelete, t }: {
 
 export function PaymentsPanel() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   const [packs, setPacks] = useState<Pack[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
@@ -359,6 +361,7 @@ export function PaymentsPanel() {
     <PanelShell title={t('coaches.packs.title')}>
       <div className="max-w-3xl mx-auto space-y-4">
         {/* Header row */}
+        {students.length > 0 && (
         <div className="flex items-center justify-end">
           <button
             onClick={() => { setEditingPack(null); setShowForm(!showForm); }}
@@ -368,6 +371,7 @@ export function PaymentsPanel() {
             {showForm ? t('coaches.packs.cancel') : t('coaches.packs.newPack')}
           </button>
         </div>
+        )}
 
         {/* Source filter chips */}
         {allSources.length > 1 && (
@@ -420,6 +424,12 @@ export function PaymentsPanel() {
               <Package className="w-8 h-8 text-emerald-400" />
             </div>
             <p className="text-slate-200 text-lg">{t('coaches.packs.noStudents')}</p>
+            <button
+              onClick={() => navigate('/students')}
+              className={`mt-4 flex items-center gap-1.5 ${btnPrimary('emerald')}`}
+            >
+              {t('coaches.packs.goToStudents')}
+            </button>
           </div>
         ) : packs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
