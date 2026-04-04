@@ -241,9 +241,10 @@ function PackCard({ pack, index, onEdit, onDelete, t }: {
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-slate-200">
-            Pack {index + 1} — {pack.total_lessons} {t('coaches.packs.lessons')}
+            Pack {index + 1}
+            <span className="ml-6">{pack.total_lessons} {t('coaches.packs.lessons')}</span>
             {pack.price != null && (
-              <span className="text-xs text-slate-400 ml-1">
+              <span className="ml-2">
                 ({pack.price}{currency ? ` ${currency}` : ''})
               </span>
             )}
