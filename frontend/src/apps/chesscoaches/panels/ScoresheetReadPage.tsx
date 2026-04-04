@@ -432,7 +432,7 @@ export function ScoresheetReadPage() {
                       ) : unresolvedCountRef.current > 0 ? (
                         <div className="text-center text-emerald-500 text-sm mt-2">
                           <p>{t('coaches.processingDone1')}</p>
-                          <p>{t('coaches.processingDone2').replace('{count}', String(unresolvedCountRef.current))}</p>
+                          <p>{unresolvedCountRef.current === 1 ? t('coaches.processingDone2_one') : t('coaches.processingDone2_other').replace('{count}', String(unresolvedCountRef.current))}</p>
                           <p>{t('coaches.processingDone3')}</p>
                         </div>
                       ) : (
