@@ -143,6 +143,7 @@ export function ScoresheetReadPage() {
 
   const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void; clearSelection: () => void } | null>(null);
   const [userPickedMove, setUserPickedMove] = useState<string | null>(null);
+  const unresolvedCountRef = useRef(0);
   const handleVoteStateChange = useCallback((s: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void; clearSelection: () => void } | null) => {
     setVoteState(prev => {
       if (prev && s && prev.moveIdx === s.moveIdx && prev.color === s.color) return s;
@@ -426,8 +427,12 @@ export function ScoresheetReadPage() {
                           {liveGlobalElapsed}s{!allDone && maxAvg > 0 ? <> / ~{maxAvg}s <span className="inline-block w-0 overflow-visible whitespace-nowrap">(estimated)</span></> : ''}
                         </span>
                       </div>
-                      {!allDone && (
+                      {!allDone ? (
                         <p className="text-center text-blue-400 text-sm mt-2">{t('coaches.waitProcessing')}</p>
+                      ) : unresolvedCountRef.current > 0 ? (
+                        <p className="text-center text-emerald-500 text-sm mt-2">{t('coaches.processingDone').replace('{count}', String(unresolvedCountRef.current))}</p>
+                      ) : (
+                        <p className="text-center text-emerald-500 text-sm mt-2">{t('coaches.allMovesVerified')}</p>
                       )}
                     </div>
                   </div>
@@ -954,6 +959,7 @@ export function ScoresheetReadPage() {
                       });
                     }
                     const allVerified = (hasIssues || hasConfirmedMoves) && unresolvedPlies.length === 0;
+                    unresolvedCountRef.current = unresolvedPlies.length;
                     // Scroll to export buttons on mobile when verification completes
                     if (allVerified && !prevAllVerifiedRef.current) {
                       setTimeout(() => mobileExportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 200);
@@ -967,16 +973,6 @@ export function ScoresheetReadPage() {
                     });
 
                     return (<>
-                        {allModelsFinished && !allVerified && unresolvedPlies.length > 0 && (
-                          <p className="text-center text-emerald-500 text-sm mb-3">
-                            {t('coaches.processingDone').replace('{count}', String(unresolvedPlies.length))}
-                          </p>
-                        )}
-                        {allModelsFinished && allVerified && (
-                          <p className="text-center text-emerald-500 text-sm mb-3">
-                            {t('coaches.allMovesVerified')}
-                          </p>
-                        )}
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           {/* Left: scoresheet image */}
                           <div className="flex justify-end items-center" onClick={e => e.stopPropagation()}>
