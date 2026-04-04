@@ -426,8 +426,10 @@ export function ScoresheetReadPage() {
                           {liveGlobalElapsed}s{!allDone && maxAvg > 0 ? <> / ~{maxAvg}s <span className="inline-block w-0 overflow-visible whitespace-nowrap">(estimated)</span></> : ''}
                         </span>
                       </div>
-                      {!allDone && (
+                      {!allDone ? (
                         <p className="text-center text-blue-400 text-sm mt-2">{t('coaches.waitProcessing')}</p>
+                      ) : (
+                        <p className="text-center text-blue-400 text-sm mt-2">{t('coaches.processingDone')}</p>
                       )}
                     </div>
                   </div>
