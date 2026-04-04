@@ -283,13 +283,13 @@ export function ScoresheetReadPage() {
             /* ── First-time demo: simple preview + confirm ── */
             <div className="space-y-4">
               <p className="text-slate-200 text-lg text-center">
-                Hi {user?.name?.split(' ')[0] || ''} !<br />This is a sample scoresheet.<br />Hit confirm to see the magic !
+                {t('coaches.sampleDemoGreeting').replace('{name}', user?.name?.split(' ')[0] || '')}<br />{t('coaches.sampleDemoDescription')}<br />{t('coaches.sampleDemoAction')}
               </p>
               <div className="flex justify-center">
                 <img
                   ref={cropImgRef}
                   src={cropSrc}
-                  alt="Sample scoresheet"
+                  alt={t('coaches.sampleDemoAlt')}
                   className="rounded-lg max-h-[50vh] max-w-sm"
                 />
               </div>
