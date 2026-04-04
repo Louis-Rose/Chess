@@ -189,7 +189,7 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, editForm, editingP
 
   return (
     <div className="border border-slate-700 rounded-xl p-4 space-y-2">
-      <div className="text-xs font-medium text-slate-200 uppercase tracking-wider">
+      <div className="text-xs font-medium text-slate-200 uppercase tracking-wider mb-3">
         {studentName}
         {activePacks.length > 0 && (
           <span> ({studentRemaining} {t('coaches.packs.lessons')} {t('coaches.packs.remaining')})</span>
@@ -238,23 +238,12 @@ function PackCard({ pack, index, onEdit, onDelete, t }: {
       className={`bg-slate-800 border rounded-xl p-3 cursor-pointer hover:border-emerald-500/50 transition-colors ${isCompleted ? 'border-slate-700/50 opacity-60' : 'border-slate-700'}`}
       onClick={() => onEdit(pack)}
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-slate-200">Pack {index + 1}</span>
-          <span className="text-sm font-medium text-slate-200 flex-1 text-center">
-            {pack.total_lessons} {t('coaches.packs.lessons')}
-            {pack.price != null && (
-              <span className="ml-2">({pack.price}{currency ? ` ${currency}` : ''})</span>
-            )}
-          </span>
-          <SourceBadge source={pack.source} />
-          {isCompleted && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-600/20 text-slate-500 border-slate-600/30 font-medium">
-              {t('coaches.packs.completed')}
-            </span>
-          )}
-        </div>
-
+      <div className="flex items-center mb-2">
+        <span className="text-sm font-medium text-slate-200 flex-shrink-0">Pack {index + 1}</span>
+        <span className="text-sm font-medium text-slate-200 flex-1 text-center">
+          {pack.total_lessons} {t('coaches.packs.lessons')}
+          {pack.price != null && ` (${pack.price}${currency ? ` ${currency}` : ''})`}
+        </span>
         <div className="flex items-center gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
           {confirmDelete ? (
             <div className="flex items-center gap-1.5">
