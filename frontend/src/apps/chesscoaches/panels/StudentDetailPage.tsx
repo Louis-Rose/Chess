@@ -123,16 +123,16 @@ export function StudentDetailPage() {
                 <div className="w-14 h-14 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 font-bold text-xl flex-shrink-0">
                   {student.student_name.charAt(0).toUpperCase()}
                 </div>
-                <div className="flex-1 min-w-0 flex items-baseline gap-3">
+                <div className="flex-1 min-w-0">
                   <h1 className="text-xl font-bold text-slate-100">{student.student_name}</h1>
                   {student.chesscom_username && (
-                    <a href={`https://www.chess.com/member/${student.chesscom_username}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-                      {student.chesscom_username} <span className="text-slate-500">(Chess.com)</span>
+                    <a href={`https://www.chess.com/member/${student.chesscom_username}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-0.5 block">
+                      {student.chesscom_username} (Chess.com)
                     </a>
                   )}
                   {student.lichess_username && (
-                    <a href={`https://lichess.org/@/${student.lichess_username}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-                      {student.lichess_username} <span className="text-slate-500">(Lichess)</span>
+                    <a href={`https://lichess.org/@/${student.lichess_username}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-0.5 block">
+                      {student.lichess_username} (Lichess)
                     </a>
                   )}
                 </div>
