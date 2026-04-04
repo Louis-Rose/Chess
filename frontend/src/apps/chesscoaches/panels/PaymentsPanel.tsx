@@ -171,12 +171,13 @@ function CreditBar({ consumed, total }: { consumed: number; total: number }) {
 
 // ── Student Pack Group ──
 
-function StudentGroup({ studentName, packs, onEdit, onDelete, editForm, t }: {
+function StudentGroup({ studentName, packs, onEdit, onDelete, editForm, editingPackId, t }: {
   studentName: string;
   packs: Pack[];
   onEdit: (pack: Pack) => void;
   onDelete: (pack: Pack) => void;
   editForm: React.ReactNode;
+  editingPackId: number | null;
   t: (key: string) => string;
 }) {
   const [showHistory, setShowHistory] = useState(false);
@@ -197,7 +198,7 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, editForm, t }: {
 
       {editForm}
 
-      {activePacks.map(p => (
+      {activePacks.filter(p => p.id !== editingPackId).map(p => (
         <PackCard key={p.id} pack={p} onEdit={onEdit} onDelete={onDelete} t={t} />
       ))}
 
@@ -217,7 +218,7 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, editForm, t }: {
         </button>
       )}
 
-      {showHistory && completedPacks.map(p => (
+      {showHistory && completedPacks.filter(p => p.id !== editingPackId).map(p => (
         <PackCard key={p.id} pack={p} onEdit={onEdit} onDelete={onDelete} t={t} />
       ))}
     </div>
@@ -492,6 +493,7 @@ export function PaymentsPanel() {
                     t={t}
                   />
                 ) : null}
+                editingPackId={editingPack?.id ?? null}
                 t={t}
               />
             ))}
