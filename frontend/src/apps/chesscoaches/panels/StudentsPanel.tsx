@@ -272,7 +272,7 @@ const EMPTY_FORM: StudentFormData = {
   source: '',
 };
 
-const SOURCES = ['superprof', 'website', 'direct', 'other'] as const;
+const SOURCES = ['chess.com', 'lichess', 'superprof', 'my website'] as const;
 
 function StudentForm({ initial, onSave, onCancel, saving, lang }: {
   initial: StudentFormData;
@@ -296,22 +296,16 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
         </div>
         <div>
           <div className={label}>{t('coaches.packs.source')}</div>
-          <div className="flex flex-wrap gap-1.5 mt-1">
+          <select
+            className={input}
+            value={form.source}
+            onChange={e => setForm({ ...form, source: e.target.value })}
+          >
+            <option value="">—</option>
             {SOURCES.map(s => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setForm({ ...form, source: form.source === s ? '' : s })}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
-                  form.source === s
-                    ? 'bg-purple-600/20 text-purple-400 border-purple-500/40'
-                    : 'bg-slate-700 text-slate-400 border-slate-600 hover:border-slate-500'
-                }`}
-              >
-                {t(`coaches.packs.${s}`)}
-              </button>
+              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
             ))}
-          </div>
+          </select>
         </div>
       </div>
 

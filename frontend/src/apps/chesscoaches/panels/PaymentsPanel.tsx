@@ -6,6 +6,8 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell, btnPrimary } from '../components/PanelShell';
 import { authFetch } from '../utils/authFetch';
 
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 // ── Types ──
 
 interface Pack {
@@ -38,7 +40,7 @@ interface PackFormData {
   note: string;
 }
 
-const SOURCES = ['superprof', 'website', 'direct', 'other'] as const;
+const SOURCES = ['chess.com', 'lichess', 'superprof', 'my website'] as const;
 
 const EMPTY_FORM: PackFormData = {
   student_id: null,
@@ -60,7 +62,6 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
 }) {
   const [form, setForm] = useState<PackFormData>(initial);
 
-  const sourceKey = (s: string) => `coaches.packs.${s}` as const;
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 space-y-3">
@@ -129,7 +130,7 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
                   : 'bg-slate-900 text-slate-400 border-slate-600 hover:border-slate-500'
               }`}
             >
-              {t(sourceKey(s))}
+              {capitalize(s)}
             </button>
           ))}
         </div>
@@ -166,20 +167,18 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
 
 // ── Source Badge ──
 
-function SourceBadge({ source, t }: { source: string | null; t: (key: string) => string }) {
+function SourceBadge({ source }: { source: string | null }) {
   if (!source) return null;
   const colors: Record<string, string> = {
+    'chess.com': 'bg-green-500/15 text-green-400 border-green-500/30',
+    lichess: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
     superprof: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-    website: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-    direct: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-    other: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+    'my website': 'bg-blue-500/15 text-blue-400 border-blue-500/30',
   };
-  const key = SOURCES.includes(source as typeof SOURCES[number]) ? source : 'other';
+  const style = colors[source] || 'bg-slate-500/15 text-slate-400 border-slate-500/30';
   return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${colors[key]}`}>
-      {SOURCES.includes(source as typeof SOURCES[number])
-        ? t(`coaches.packs.${source}`)
-        : source}
+    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${style}`}>
+      {capitalize(source)}
     </span>
   );
 }
@@ -278,7 +277,7 @@ function PackCard({ pack, onEdit, onDelete, onToggleStatus, t }: {
               {pack.price}{currency ? ` ${currency}` : ''}
             </span>
           )}
-          <SourceBadge source={pack.source} t={t} />
+          <SourceBadge source={pack.source} />
           {isCompleted && (
             <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-600/20 text-slate-500 border-slate-600/30 font-medium">
               {t('coaches.packs.completed')}
@@ -474,9 +473,7 @@ export function PaymentsPanel() {
                     : 'bg-slate-900 text-slate-400 border-slate-700 hover:border-slate-500'
                 }`}
               >
-                {SOURCES.includes(s as typeof SOURCES[number])
-                  ? t(`coaches.packs.${s}`)
-                  : s}
+                {capitalize(s)}
               </button>
             ))}
           </div>
