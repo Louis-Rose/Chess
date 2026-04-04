@@ -188,7 +188,7 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, editForm, editingP
   const studentRemaining = activePacks.reduce((sum, p) => sum + (p.total_lessons - p.lessons_done), 0);
 
   return (
-    <div className="space-y-2">
+    <div className="border border-slate-700 rounded-xl p-4 space-y-2">
       <div className="text-xs font-medium text-slate-200 uppercase tracking-wider">
         {studentName}
         {activePacks.length > 0 && (
