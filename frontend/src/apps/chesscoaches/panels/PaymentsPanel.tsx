@@ -202,19 +202,13 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, editForm, editingP
         <PackCard key={p.id} pack={p} onEdit={onEdit} onDelete={onDelete} t={t} />
       ))}
 
-      {activePacks.length === 0 && completedPacks.length > 0 && (
-        <div className="text-xs text-slate-500 italic px-1">
-          {t('coaches.packs.completed')}
-        </div>
-      )}
-
       {completedPacks.length > 0 && (
         <button
           onClick={() => setShowHistory(!showHistory)}
           className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors px-1"
         >
           {showHistory ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          {t('coaches.packs.history')} ({completedPacks.length})
+          {t('coaches.packs.completedPacks')} ({completedPacks.length})
         </button>
       )}
 
