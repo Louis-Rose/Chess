@@ -7,7 +7,7 @@ import {
   AlertTriangle, Users,
 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { PanelShell, BTN_PRIMARY, BTN_GHOST } from '../components/PanelShell';
+import { PanelShell, btnPrimary, BTN_GHOST } from '../components/PanelShell';
 
 // ── Types ──
 
@@ -320,7 +320,7 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
         <button
           onClick={() => onSave(form)}
           disabled={!form.student_name.trim() || saving}
-          className={BTN_PRIMARY}
+          className={btnPrimary('purple')}
         >
           {saving ? '...' : t('coaches.students.save')}
         </button>
@@ -472,7 +472,7 @@ export function StudentsPanel() {
         ) : (
           <button
             onClick={() => setShowAddForm(true)}
-            className={`flex items-center gap-1.5 mx-auto ${BTN_PRIMARY}`}
+            className={`flex items-center gap-1.5 mx-auto ${btnPrimary('purple')}`}
           >
             <Plus className="w-4 h-4" />
             {t('coaches.students.addStudent')}
