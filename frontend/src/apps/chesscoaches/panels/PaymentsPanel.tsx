@@ -240,13 +240,11 @@ function PackCard({ pack, index, onEdit, onDelete, t }: {
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-slate-200">
-            Pack {index + 1}
-            <span className="ml-6">{pack.total_lessons} {t('coaches.packs.lessons')}</span>
+          <span className="text-sm font-medium text-slate-200">Pack {index + 1}</span>
+          <span className="text-sm font-medium text-slate-200 flex-1 text-center">
+            {pack.total_lessons} {t('coaches.packs.lessons')}
             {pack.price != null && (
-              <span className="ml-2">
-                ({pack.price}{currency ? ` ${currency}` : ''})
-              </span>
+              <span className="ml-2">({pack.price}{currency ? ` ${currency}` : ''})</span>
             )}
           </span>
           <SourceBadge source={pack.source} />
