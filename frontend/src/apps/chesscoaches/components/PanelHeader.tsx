@@ -16,9 +16,9 @@ export function PanelHeader({ title }: PanelHeaderProps) {
     <div className="flex flex-col pt-2">
       <button
         onClick={() => navigate('/')}
-        className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base px-2 md:px-4"
+        className="inline-flex items-center gap-2 text-white hover:text-slate-200 transition-colors text-lg px-3 py-1.5 bg-slate-700/50 border border-slate-600 rounded-lg"
       >
-        <ArrowLeft className="w-5 h-5" />
+        <ArrowLeft className="w-6 h-6" />
         <span>{t('coaches.previous')}</span>
       </button>
       <div className="border-t border-slate-700 mt-2" />
