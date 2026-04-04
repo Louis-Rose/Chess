@@ -38,7 +38,6 @@ interface PackFormData {
   currency: string;
 }
 
-const SOURCES = ['chess.com', 'lichess', 'superprof', 'my website'] as const;
 
 const EMPTY_FORM: PackFormData = {
   student_id: null,
