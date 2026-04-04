@@ -1322,25 +1322,21 @@ export function ScoresheetReadPage() {
                       return (
                         <div className="mt-6 px-2">
                           <p className="text-slate-400 text-sm font-medium text-center mb-2">Consensus debug</p>
-                          <div className="flex gap-1 mb-1 text-center text-xs">
-                            {finishedModels.map(m => {
-                              const mr = modelResults[m.id]!;
-                              return (
-                                <div key={m.id} className="text-slate-500 font-mono" style={{ flex: 1 }}>
-                                  {m.id.replace('-preview', '')} · {mr.elapsed}s · {mr.tier} · <span className="capitalize">{mr.result!.notation || '?'}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
                           <div className="bg-slate-700/50 rounded-xl overflow-x-auto">
                             <table className="w-full text-xs font-mono">
                               <thead className="bg-slate-700 sticky top-0">
                                 <tr className="border-b border-slate-600">
                                   <th className="px-1 py-1 text-slate-400 text-center w-6">#</th>
                                   <th className="px-1 py-1 text-slate-400 text-center">Col</th>
-                                  {finishedModels.map(m => (
-                                    <th key={m.id} className="px-1 py-1 text-slate-400 text-center border-l border-slate-600/50">{m.name}</th>
-                                  ))}
+                                  {finishedModels.map(m => {
+                                    const mr = modelResults[m.id]!;
+                                    return (
+                                      <th key={m.id} className="px-1 py-1 text-slate-400 text-center border-l border-slate-600/50">
+                                        <div>{m.name}</div>
+                                        <div className="text-slate-500 font-normal">{m.id.replace('-preview', '')} · {mr.elapsed}s · {mr.tier} · <span className="capitalize">{mr.result!.notation || '?'}</span></div>
+                                      </th>
+                                    );
+                                  })}
                                   <th className="px-1 py-1 text-slate-400 text-center border-l border-slate-500">Pass1</th>
                                   <th className="px-1 py-1 text-slate-400 text-center border-l border-slate-500">Pass2</th>
                                   <th className="px-1 py-1 text-slate-400 text-center border-l border-slate-500">Legal</th>
