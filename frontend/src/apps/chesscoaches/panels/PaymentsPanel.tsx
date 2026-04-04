@@ -103,11 +103,11 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.lessonsDone')}</label>
-          <input type="number" min="0" value={form.lessons_done} onChange={e => setForm({ ...form, lessons_done: e.target.value })} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
+          <input type="number" min="0" value={form.lessons_done} onChange={e => { const v = e.target.value; setForm(prev => ({ ...prev, lessons_done: v, lessons_paid: Number(prev.lessons_paid) > Number(v) ? v : prev.lessons_paid })); }} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
         </div>
         <div>
           <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.lessonsPaid')}</label>
-          <input type="number" min="0" value={form.lessons_paid} onChange={e => setForm({ ...form, lessons_paid: e.target.value })} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
+          <input type="number" min="0" max={form.lessons_done || '0'} value={form.lessons_paid} onChange={e => { const v = e.target.value; if (Number(v) <= Number(form.lessons_done || 0)) setForm({ ...form, lessons_paid: v }); }} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
         </div>
       </div>
 
