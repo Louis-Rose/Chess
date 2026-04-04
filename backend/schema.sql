@@ -395,7 +395,8 @@ CREATE TABLE IF NOT EXISTS coach_students (
     timezone TEXT DEFAULT 'UTC',
     currency TEXT,                           -- e.g. 'USD', 'EUR', NULL=not set
     source TEXT,                             -- origin platform: 'chess.com', 'lichess', 'superprof', 'my website'
-    chess_username TEXT,                     -- chess.com or lichess username
+    chesscom_username TEXT,                  -- chess.com username
+    lichess_username TEXT,                   -- lichess username
     recurring_day INTEGER,                   -- 0=Mon .. 6=Sun, NULL=no recurring
     recurring_time TEXT,                     -- 'HH:MM' in coach's TZ, NULL=no recurring
     is_active INTEGER DEFAULT 1,

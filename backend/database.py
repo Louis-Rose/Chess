@@ -523,14 +523,30 @@ def init_db():
                 if not conn._cursor.fetchone():
                     conn.execute("ALTER TABLE coach_students ADD COLUMN source TEXT")
                     print("[Database] Added source column to coach_students")
-                # Add chess_username column if missing
+                # Add chesscom_username / lichess_username columns if missing
+                conn.execute("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'coach_students' AND column_name = 'chesscom_username'
+                """)
+                if not conn._cursor.fetchone():
+                    conn.execute("ALTER TABLE coach_students ADD COLUMN chesscom_username TEXT")
+                    print("[Database] Added chesscom_username column to coach_students")
+                conn.execute("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'coach_students' AND column_name = 'lichess_username'
+                """)
+                if not conn._cursor.fetchone():
+                    conn.execute("ALTER TABLE coach_students ADD COLUMN lichess_username TEXT")
+                    print("[Database] Added lichess_username column to coach_students")
+                # Migrate old chess_username to chesscom_username if it exists
                 conn.execute("""
                     SELECT column_name FROM information_schema.columns
                     WHERE table_name = 'coach_students' AND column_name = 'chess_username'
                 """)
-                if not conn._cursor.fetchone():
-                    conn.execute("ALTER TABLE coach_students ADD COLUMN chess_username TEXT")
-                    print("[Database] Added chess_username column to coach_students")
+                if conn._cursor.fetchone():
+                    conn.execute("UPDATE coach_students SET chesscom_username = chess_username WHERE chess_username IS NOT NULL AND chesscom_username IS NULL")
+                    conn.execute("ALTER TABLE coach_students DROP COLUMN chess_username")
+                    print("[Database] Migrated chess_username -> chesscom_username")
                 # Relax old NOT NULL constraints so new simplified INSERT works
                 conn.execute("""
                     SELECT column_name, is_nullable FROM information_schema.columns
@@ -797,9 +813,12 @@ def init_db():
                 if 'source' not in columns:
                     conn.execute('ALTER TABLE coach_students ADD COLUMN source TEXT')
                     print("[Database] Added source column to coach_students")
-                if 'chess_username' not in columns:
-                    conn.execute('ALTER TABLE coach_students ADD COLUMN chess_username TEXT')
-                    print("[Database] Added chess_username column to coach_students")
+                if 'chesscom_username' not in columns:
+                    conn.execute('ALTER TABLE coach_students ADD COLUMN chesscom_username TEXT')
+                    print("[Database] Added chesscom_username column to coach_students")
+                if 'lichess_username' not in columns:
+                    conn.execute('ALTER TABLE coach_students ADD COLUMN lichess_username TEXT')
+                    print("[Database] Added lichess_username column to coach_students")
 
             # Migration: Add pack_id column to coach_lessons if missing (SQLite)
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='coach_lessons'")

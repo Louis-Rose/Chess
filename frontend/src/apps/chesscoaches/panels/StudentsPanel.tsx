@@ -265,13 +265,15 @@ function useLiveClock(interval = 30000) {
 interface StudentFormData {
   student_name: string;
   source: string;
-  chess_username: string;
+  chesscom_username: string;
+  lichess_username: string;
 }
 
 const EMPTY_FORM: StudentFormData = {
   student_name: '',
   source: '',
-  chess_username: '',
+  chesscom_username: '',
+  lichess_username: '',
 };
 
 const SOURCES = ['chess.com', 'lichess', 'superprof', 'my website'] as const;
@@ -311,18 +313,17 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
         </div>
       </div>
 
-      {/* Chess username (shown for chess.com / lichess) */}
-      {(form.source === 'chess.com' || form.source === 'lichess') && (
+      {/* Chess usernames (shown for chess.com / lichess) */}
+      {form.source === 'chess.com' && (
         <div>
-          <div className={label}>
-            {form.source === 'chess.com' ? 'Chess.com username' : 'Lichess username'}
-          </div>
-          <input
-            className={input}
-            value={form.chess_username}
-            onChange={e => setForm({ ...form, chess_username: e.target.value })}
-            placeholder={form.source === 'chess.com' ? 'e.g. MagnusCarlsen' : 'e.g. DrNykterstein'}
-          />
+          <div className={label}>Chess.com username</div>
+          <input className={input} value={form.chesscom_username} onChange={e => setForm({ ...form, chesscom_username: e.target.value })} placeholder="e.g. MagnusCarlsen" />
+        </div>
+      )}
+      {form.source === 'lichess' && (
+        <div>
+          <div className={label}>Lichess username</div>
+          <input className={input} value={form.lichess_username} onChange={e => setForm({ ...form, lichess_username: e.target.value })} placeholder="e.g. DrNykterstein" />
         </div>
       )}
 
