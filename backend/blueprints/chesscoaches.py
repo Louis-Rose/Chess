@@ -1222,7 +1222,8 @@ def get_coach_packs():
     student_filter = request.args.get('student_id', type=int)
     with get_db() as conn:
         query = '''
-            SELECT p.id, p.student_id, p.total_lessons, p.price, p.currency, p.source, p.note,
+            SELECT p.id, p.student_id, p.total_lessons, p.lessons_done, p.lessons_paid,
+                   p.price, p.currency, p.source, p.note,
                    p.status, p.created_at,
                    s.student_name, s.currency AS student_currency,
                    COUNT(CASE WHEN l.status = 'completed' THEN 1 END) AS consumed
@@ -1235,7 +1236,7 @@ def get_coach_packs():
         if student_filter:
             query += ' AND p.student_id = ?'
             params.append(student_filter)
-        query += ' GROUP BY p.id, p.student_id, p.total_lessons, p.price, p.currency, p.source, p.note, p.status, p.created_at, s.student_name, s.currency ORDER BY s.student_name ASC, p.created_at DESC'
+        query += ' GROUP BY p.id, p.student_id, p.total_lessons, p.lessons_done, p.lessons_paid, p.price, p.currency, p.source, p.note, p.status, p.created_at, s.student_name, s.currency ORDER BY s.student_name ASC, p.created_at DESC'
         rows = conn.execute(query, tuple(params)).fetchall()
     return jsonify({'packs': [dict(r) for r in rows]})
 
@@ -1259,9 +1260,11 @@ def create_coach_pack(student_id):
             return jsonify({'error': 'Student not found'}), 404
 
         cursor = conn.execute(
-            '''INSERT INTO coach_packs (student_id, total_lessons, price, currency, source, note)
-               VALUES (?, ?, ?, ?, ?, ?)''',
+            '''INSERT INTO coach_packs (student_id, total_lessons, lessons_done, lessons_paid, price, currency, source, note)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
             (student_id, total,
+             data.get('lessons_done', 0),
+             data.get('lessons_paid', 0),
              data.get('price'),
              (data.get('currency') or '').strip() or None,
              (data.get('source') or '').strip() or None,
@@ -1280,7 +1283,7 @@ def create_coach_pack(student_id):
 def update_coach_pack(pack_id):
     """Update a pack's details."""
     data = request.get_json()
-    allowed = ['total_lessons', 'price', 'currency', 'source', 'note', 'status']
+    allowed = ['total_lessons', 'lessons_done', 'lessons_paid', 'price', 'currency', 'source', 'note', 'status']
     sets = []
     vals = []
     for field in allowed:

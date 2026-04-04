@@ -409,9 +409,11 @@ CREATE TABLE IF NOT EXISTS coach_packs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     student_id INTEGER NOT NULL,
     total_lessons INTEGER NOT NULL,
-    price REAL,                              -- optional total pack price
-    currency TEXT,                           -- e.g. 'EUR', inherited from student if null
-    source TEXT,                             -- 'superprof', 'website', 'direct', or freeform
+    lessons_done INTEGER DEFAULT 0,
+    lessons_paid INTEGER DEFAULT 0,
+    price REAL,
+    currency TEXT,
+    source TEXT,
     note TEXT,
     status TEXT DEFAULT 'active',            -- 'active' | 'completed'
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

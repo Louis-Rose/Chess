@@ -14,6 +14,8 @@ interface Pack {
   id: number;
   student_id: number;
   total_lessons: number;
+  lessons_done: number;
+  lessons_paid: number;
   price: number | null;
   currency: string | null;
   source: string | null;
@@ -34,6 +36,8 @@ interface Student {
 interface PackFormData {
   student_id: number | null;
   total_lessons: string;
+  lessons_done: string;
+  lessons_paid: string;
   price: string;
   currency: string;
 }
@@ -42,6 +46,8 @@ interface PackFormData {
 const EMPTY_FORM: PackFormData = {
   student_id: null,
   total_lessons: '',
+  lessons_done: '0',
+  lessons_paid: '0',
   price: '',
   currency: 'EUR',
 };
@@ -80,37 +86,28 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.totalLessons')}</label>
-          <input
-            type="number"
-            min="1"
-            value={form.total_lessons}
-            onChange={e => setForm({ ...form, total_lessons: e.target.value })}
-            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200"
-            placeholder=""
-          />
+          <input type="number" min="1" value={form.total_lessons} onChange={e => setForm({ ...form, total_lessons: e.target.value })} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
         </div>
         <div>
           <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.price')}</label>
           <div className="flex gap-1.5">
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.price}
-              onChange={e => setForm({ ...form, price: e.target.value })}
-              className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200"
-              placeholder=""
-            />
-            <select
-              value={form.currency}
-              onChange={e => setForm({ ...form, currency: e.target.value })}
-              className="w-20 bg-slate-900 border border-slate-600 rounded-lg px-2 py-2 text-sm text-slate-200"
-            >
+            <input type="number" min="0" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
+            <select value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} className="w-20 bg-slate-900 border border-slate-600 rounded-lg px-2 py-2 text-sm text-slate-200">
               {['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'AUD', 'BRL', 'INR'].map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.lessonsDone')}</label>
+          <input type="number" min="0" value={form.lessons_done} onChange={e => setForm({ ...form, lessons_done: e.target.value })} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.lessonsPaid')}</label>
+          <input type="number" min="0" value={form.lessons_paid} onChange={e => setForm({ ...form, lessons_paid: e.target.value })} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
         </div>
       </div>
 
@@ -174,12 +171,13 @@ function CreditBar({ consumed, total }: { consumed: number; total: number }) {
 
 // ── Student Pack Group ──
 
-function StudentGroup({ studentName, packs, onEdit, onDelete, onToggleStatus, t }: {
+function StudentGroup({ studentName, packs, onEdit, onDelete, onToggleStatus, editForm, t }: {
   studentName: string;
   packs: Pack[];
   onEdit: (pack: Pack) => void;
   onDelete: (pack: Pack) => void;
   onToggleStatus: (pack: Pack) => void;
+  editForm: React.ReactNode;
   t: (key: string) => string;
 }) {
   const [showHistory, setShowHistory] = useState(false);
@@ -197,6 +195,8 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, onToggleStatus, t 
           <span> ({studentRemaining} {t('coaches.packs.lessons')} {t('coaches.packs.remaining')})</span>
         )}
       </div>
+
+      {editForm}
 
       {activePacks.map(p => (
         <PackCard key={p.id} pack={p} onEdit={onEdit} onDelete={onDelete} onToggleStatus={onToggleStatus} t={t} />
@@ -334,25 +334,24 @@ export function PaymentsPanel() {
   }, [fetchPacks, fetchStudents]);
 
   const handleSave = async (form: PackFormData) => {
+    const payload = {
+      total_lessons: Number(form.total_lessons),
+      lessons_done: Number(form.lessons_done) || 0,
+      lessons_paid: Number(form.lessons_paid) || 0,
+      price: form.price ? Number(form.price) : null,
+      currency: form.currency || null,
+    };
     if (editingPack) {
       await authFetch(`/api/coaches/packs/${editingPack.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          total_lessons: Number(form.total_lessons),
-          price: form.price ? Number(form.price) : null,
-          currency: form.currency || null,
-        }),
+        body: JSON.stringify(payload),
       });
     } else {
       await authFetch(`/api/coaches/students/${form.student_id}/packs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          total_lessons: Number(form.total_lessons),
-          price: form.price ? Number(form.price) : null,
-          currency: form.currency || null,
-        }),
+        body: JSON.stringify(payload),
       });
     }
     setShowForm(false);
@@ -439,16 +438,11 @@ export function PaymentsPanel() {
           </div>
         )}
 
-        {/* New/Edit Pack Form */}
-        {showForm && (
+        {/* New Pack Form (top-level, only for creating new packs) */}
+        {showForm && !editingPack && (
           <PackForm
             students={students}
-            initial={editingPack ? {
-              student_id: editingPack.student_id,
-              total_lessons: String(editingPack.total_lessons),
-              price: editingPack.price != null ? String(editingPack.price) : '',
-              currency: editingPack.currency || editingPack.student_currency || '',
-            } : EMPTY_FORM}
+            initial={EMPTY_FORM}
             onSave={handleSave}
             onCancel={() => { setShowForm(false); setEditingPack(null); }}
             t={t}
@@ -488,6 +482,22 @@ export function PaymentsPanel() {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onToggleStatus={handleToggleStatus}
+                editForm={editingPack && editingPack.student_name === studentName ? (
+                  <PackForm
+                    students={students}
+                    initial={{
+                      student_id: editingPack.student_id,
+                      total_lessons: String(editingPack.total_lessons),
+                      lessons_done: String(editingPack.lessons_done || 0),
+                      lessons_paid: String(editingPack.lessons_paid || 0),
+                      price: editingPack.price != null ? String(editingPack.price) : '',
+                      currency: editingPack.currency || editingPack.student_currency || '',
+                    }}
+                    onSave={handleSave}
+                    onCancel={() => { setShowForm(false); setEditingPack(null); }}
+                    t={t}
+                  />
+                ) : null}
                 t={t}
               />
             ))}

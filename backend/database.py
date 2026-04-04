@@ -606,6 +606,16 @@ def init_db():
                 conn.execute("CREATE INDEX idx_coach_packs_student ON coach_packs(student_id)")
                 print("[Database] Created coach_packs table")
 
+            # Migration: Add lessons_done/lessons_paid columns to coach_packs if missing
+            conn.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'coach_packs' AND column_name = 'lessons_done'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("ALTER TABLE coach_packs ADD COLUMN lessons_done INTEGER DEFAULT 0")
+                conn.execute("ALTER TABLE coach_packs ADD COLUMN lessons_paid INTEGER DEFAULT 0")
+                print("[Database] Added lessons_done/lessons_paid columns to coach_packs")
+
             # Migration: Add pack_id column to coach_lessons if missing
             conn.execute("""
                 SELECT column_name FROM information_schema.columns
@@ -828,6 +838,16 @@ def init_db():
                 if 'pack_id' not in columns:
                     conn.execute('ALTER TABLE coach_lessons ADD COLUMN pack_id INTEGER REFERENCES coach_packs(id)')
                     print("[Database] Added pack_id column to coach_lessons")
+
+            # Migration: Add lessons_done/lessons_paid columns to coach_packs if missing (SQLite)
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='coach_packs'")
+            if cursor.fetchone():
+                cursor = conn.execute("PRAGMA table_info(coach_packs)")
+                columns = [row['name'] for row in cursor.fetchall()]
+                if 'lessons_done' not in columns:
+                    conn.execute('ALTER TABLE coach_packs ADD COLUMN lessons_done INTEGER DEFAULT 0')
+                    conn.execute('ALTER TABLE coach_packs ADD COLUMN lessons_paid INTEGER DEFAULT 0')
+                    print("[Database] Added lessons_done/lessons_paid columns to coach_packs")
 
             # Migration: Add registered_app column to users if not exists
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
