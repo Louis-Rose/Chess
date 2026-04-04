@@ -1036,12 +1036,9 @@ export function ScoresheetReadPage() {
                                 <div className="text-center py-1">
                                   <p className="text-sm text-slate-500">{t('coaches.readAs')} <span className="font-mono">———</span></p>
                                 </div>
-                                <div className="flex flex-col gap-1.5">
-                                  <p className="text-sm text-slate-500 text-center">{t('coaches.dragAndConfirm')}</p>
-                                  <div className="flex justify-center">
+                                <div className="flex justify-center">
                                     <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
                                   </div>
-                                </div>
                               </div>
                             ) : voteState && (() => {
                               const moveIdx = voteState.moveIdx;
@@ -1083,40 +1080,6 @@ export function ScoresheetReadPage() {
                                     )}
                                     <p className="text-sm text-slate-100">{t('coaches.readAs')} <span className="font-mono font-semibold">{displayMove}</span></p>
                                   </div>
-                                  <div className="flex flex-col gap-1.5">
-                                    <p className="text-sm text-slate-100 text-center">{t('coaches.dragAndConfirm')}</p>
-                                    <div className="flex justify-center">
-                                    {userPickedMove ? (
-                                      userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
-                                        <button
-                                          onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); if (voteState) voteState.clearSelection(); }}
-                                          className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-emerald-400"
-                                        >
-                                          {t('coaches.confirmMove')} {displayMove}
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={() => {
-                                            const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
-                                            if (current[moveIdx]) {
-                                              current[moveIdx][colorStr] = userPickedMove;
-                                              (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
-                                              delete (current[moveIdx] as any)[`${colorStr}_reason`];
-                                            }
-                                            rerunConsensusAfterEdit(current);
-                                            setUserPickedMove(null);
-                                            if (voteState) voteState.clearSelection();
-                                          }}
-                                          className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-blue-400"
-                                        >
-                                          {t('coaches.pickMove')} {userPickedMove}
-                                        </button>
-                                      )
-                                    ) : (
-                                      <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
-                                    )}
-                                    </div>
-                                  </div>
                                 </div>
                               );
                             })()}
@@ -1152,6 +1115,46 @@ export function ScoresheetReadPage() {
                               });
                               return plies;
                             })() : undefined} />
+                            {voteState && (() => {
+                              const moveIdx = voteState.moveIdx;
+                              const colorStr = voteState.color;
+                              const moveObj = displayConsensusMoves[moveIdx];
+                              if (!moveObj) return null;
+                              const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
+                              return (
+                                <div className="flex justify-center">
+                                  {userPickedMove ? (
+                                    userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
+                                      <button
+                                        onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); if (voteState) voteState.clearSelection(); }}
+                                        className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-emerald-400"
+                                      >
+                                        {t('coaches.confirmMove')} {displayMove}
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => {
+                                          const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
+                                          if (current[moveIdx]) {
+                                            current[moveIdx][colorStr] = userPickedMove;
+                                            (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
+                                            delete (current[moveIdx] as any)[`${colorStr}_reason`];
+                                          }
+                                          rerunConsensusAfterEdit(current);
+                                          setUserPickedMove(null);
+                                          if (voteState) voteState.clearSelection();
+                                        }}
+                                        className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-blue-400"
+                                      >
+                                        {t('coaches.pickMove')} {userPickedMove}
+                                      </button>
+                                    )
+                                  ) : (
+                                    <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                         {/* Mobile: image above table */}
@@ -1206,6 +1209,47 @@ export function ScoresheetReadPage() {
                                 setUserPickedMove(san);
                               } : undefined} />
                             </div>
+                            {/* Mobile confirm/pick button — under the board */}
+                            {voteState && (() => {
+                              const moveIdx = voteState.moveIdx;
+                              const colorStr = voteState.color;
+                              const moveObj = displayConsensusMoves[moveIdx];
+                              if (!moveObj) return null;
+                              const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
+                              return (
+                                <div className="flex justify-center w-full max-w-[400px]">
+                                  {userPickedMove ? (
+                                    userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
+                                      <button
+                                        onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); if (voteState) voteState.clearSelection(); }}
+                                        className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-emerald-400"
+                                      >
+                                        {t('coaches.confirmMove')} {displayMove}
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => {
+                                          const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
+                                          if (current[moveIdx]) {
+                                            current[moveIdx][colorStr] = userPickedMove;
+                                            (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
+                                            delete (current[moveIdx] as any)[`${colorStr}_reason`];
+                                          }
+                                          rerunConsensusAfterEdit(current);
+                                          setUserPickedMove(null);
+                                          if (voteState) voteState.clearSelection();
+                                        }}
+                                        className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-blue-400"
+                                      >
+                                        {t('coaches.pickMove')} {userPickedMove}
+                                      </button>
+                                    )
+                                  ) : (
+                                    <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
+                                  )}
+                                </div>
+                              );
+                            })()}
                             {/* Mobile edit panel */}
                             {allModelsFinished && allVerified ? (
                               <div className="w-full max-w-[400px] flex justify-center animate-[fadeIn_0.4s_ease-out]">
@@ -1255,46 +1299,6 @@ export function ScoresheetReadPage() {
                                       </div>
                                     )}
                                     <p className="text-sm text-slate-100">{t('coaches.readAs')} <span className="font-mono font-semibold">{displayMove}</span></p>
-                                  </div>
-                                  <div className="flex flex-col gap-1.5">
-                                    <p className="text-sm text-slate-100 text-center">{t('coaches.dragAndConfirm')}</p>
-                                    <div className="flex justify-center">
-                                    {userPickedMove ? (
-                                      userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
-                                        <button
-                                          onClick={() => {
-                                            handleConfirmMove(moveIdx + 1, colorStr);
-                                            setUserPickedMove(null);
-                                            if (voteState) voteState.clearSelection();
-                                          }}
-                                          className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-emerald-400"
-                                        >
-                                          {t('coaches.confirmMove')} {displayMove}
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={() => {
-                                            const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
-                                            if (current[moveIdx]) {
-                                              current[moveIdx][colorStr] = userPickedMove;
-                                              (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
-                                              delete (current[moveIdx] as any)[`${colorStr}_reason`];
-                                            }
-                                            rerunConsensusAfterEdit(current);
-                                            setUserPickedMove(null);
-                                            if (voteState) voteState.clearSelection();
-                                          }}
-                                          className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-blue-400"
-                                        >
-                                          {t('coaches.pickMove')} {userPickedMove}
-                                        </button>
-                                      )
-                                    ) : (
-                                      <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">
-                                        Confirm
-                                      </button>
-                                    )}
-                                    </div>
                                   </div>
                                 </div>
                               );
