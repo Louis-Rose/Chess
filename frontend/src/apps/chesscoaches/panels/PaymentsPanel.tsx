@@ -187,10 +187,19 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, onToggleStatus, t 
   const activePacks = packs.filter(p => p.status === 'active');
   const completedPacks = packs.filter(p => p.status === 'completed');
 
+  const studentRemaining = activePacks.reduce((sum, p) => sum + (p.total_lessons - p.consumed), 0);
+
   return (
     <div className="space-y-2">
-      <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-        {studentName}
+      <div>
+        <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+          {studentName}
+        </div>
+        {activePacks.length > 0 && (
+          <div className="text-xs text-slate-500 mt-0.5">
+            {studentRemaining} {t('coaches.packs.lessons')} {t('coaches.packs.remaining')}
+          </div>
+        )}
       </div>
 
       {activePacks.map(p => (
@@ -391,20 +400,11 @@ export function PaymentsPanel() {
   // Collect unique sources for filter
   const allSources = [...new Set(packs.map(p => p.source).filter(Boolean))] as string[];
 
-  // Summary stats
-  const activePacks = packs.filter(p => p.status === 'active');
-  const totalRemaining = activePacks.reduce((sum, p) => sum + (p.total_lessons - p.consumed), 0);
-
   return (
     <PanelShell title={t('coaches.packs.title')}>
       <div className="max-w-3xl mx-auto space-y-4">
         {/* Header row */}
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-slate-400">
-            {activePacks.length > 0 && (
-              <span>{activePacks.length} {activePacks.length === 1 ? 'pack' : 'packs'} &middot; {totalRemaining} {t('coaches.packs.credits')} {t('coaches.packs.remaining')}</span>
-            )}
-          </div>
+        <div className="flex items-center justify-end">
           <button
             onClick={() => { setEditingPack(null); setShowForm(!showForm); }}
             className={`flex items-center gap-1.5 ${btnPrimary('emerald')}`}
