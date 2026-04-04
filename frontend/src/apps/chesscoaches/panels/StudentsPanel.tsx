@@ -292,28 +292,20 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
   const label = 'text-xs font-medium text-slate-400 mb-1';
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <div className={label}>{t('coaches.students.name')} *</div>
-          <input className={input} value={form.student_name} onChange={e => setForm({ ...form, student_name: e.target.value })} placeholder={lang === 'fr' ? 'Nom de l\'élève' : 'Student name'} />
-        </div>
-        <div>
-          <div className={label}>{t('coaches.packs.source')}</div>
-          <select
-            className={input}
-            value={form.source}
-            onChange={e => setForm({ ...form, source: e.target.value })}
-          >
-            <option value="">—</option>
-            {SOURCES.map(s => (
-              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-            ))}
-          </select>
-        </div>
+    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-3">
+      <div>
+        <div className={label}>{t('coaches.students.name')} *</div>
+        <input className={input} value={form.student_name} onChange={e => setForm({ ...form, student_name: e.target.value })} placeholder={lang === 'fr' ? 'Nom de l\'élève' : 'Student name'} />
       </div>
-
-      {/* Chess usernames (shown for chess.com / lichess) */}
+      <div>
+        <div className={label}>{t('coaches.packs.source')}</div>
+        <select className={input} value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}>
+          <option value="">—</option>
+          {SOURCES.map(s => (
+            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+          ))}
+        </select>
+      </div>
       {form.source === 'chess.com' && (
         <div>
           <div className={label}>Chess.com username</div>
