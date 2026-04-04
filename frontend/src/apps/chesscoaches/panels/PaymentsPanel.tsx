@@ -290,10 +290,10 @@ function PackCard({ pack, onEdit, onDelete, t }: {
       <CreditBar consumed={pack.lessons_done} total={pack.total_lessons} />
 
       <div className="flex items-center justify-between mt-1.5">
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-slate-200">
           {remaining > 0
             ? `${remaining} ${t('coaches.packs.remaining')}`
-            : `${pack.consumed} ${t('coaches.packs.used')}`}
+            : `${pack.lessons_done} ${t('coaches.packs.used')}`}
         </span>
         {pack.note && (
           <span className="text-xs text-slate-600 truncate max-w-[200px]">{pack.note}</span>
