@@ -85,21 +85,22 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div>
           <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.totalLessons')}</label>
           <input type="number" min="1" value={form.total_lessons} onChange={e => { const v = e.target.value; setForm(prev => { const done = Number(prev.lessons_done) > Number(v) ? v : prev.lessons_done; const paid = Number(prev.lessons_paid) > Number(done) ? done : prev.lessons_paid; return { ...prev, total_lessons: v, lessons_done: done, lessons_paid: paid }; }); }} disabled={isEditing} className={`w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`} />
         </div>
         <div>
           <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.price')}</label>
-          <div className="flex gap-1.5">
-            <input type="number" min="0" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} disabled={isEditing} className={`flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`} />
-            <select value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} disabled={isEditing} className={`w-20 bg-slate-900 border border-slate-600 rounded-lg px-2 py-2 text-sm text-slate-200 ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}>
-              {['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'AUD', 'BRL', 'INR'].map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+          <input type="number" min="0" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} disabled={isEditing} className={`w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`} />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.currency')}</label>
+          <select value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} disabled={isEditing} className={`w-full bg-slate-900 border border-slate-600 rounded-lg px-2 py-2 text-sm text-slate-200 ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            {['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'AUD', 'BRL', 'INR'].map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
