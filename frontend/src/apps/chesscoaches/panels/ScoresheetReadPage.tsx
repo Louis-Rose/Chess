@@ -1122,7 +1122,15 @@ export function ScoresheetReadPage() {
                               if (!moveObj) return null;
                               const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
                               return (
-                                <div className="flex justify-center">
+                                <div className="flex justify-center gap-2">
+                                  {userPickedMove && (
+                                    <button
+                                      onClick={() => { setUserPickedMove(null); if (voteState) voteState.setEditValue(''); }}
+                                      className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                                    >
+                                      {t('coaches.revertChange')}
+                                    </button>
+                                  )}
                                   {userPickedMove ? (
                                     userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
                                       <button
@@ -1217,7 +1225,15 @@ export function ScoresheetReadPage() {
                               if (!moveObj) return null;
                               const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
                               return (
-                                <div className="flex justify-center w-full max-w-[400px]">
+                                <div className="flex justify-center gap-2 w-full max-w-[400px]">
+                                  {userPickedMove && (
+                                    <button
+                                      onClick={() => { setUserPickedMove(null); if (voteState) voteState.setEditValue(''); }}
+                                      className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                                    >
+                                      {t('coaches.revertChange')}
+                                    </button>
+                                  )}
                                   {userPickedMove ? (
                                     userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
                                       <button

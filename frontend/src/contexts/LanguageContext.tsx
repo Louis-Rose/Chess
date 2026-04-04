@@ -366,8 +366,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.readAs': 'Read as',
     'coaches.dragAndConfirm': 'Drag a piece on the board and then confirm',
     'coaches.movesToReview': 'Moves to review',
-    'coaches.confirmMove': 'Confirm',
-    'coaches.pickMove': 'Pick',
+    'coaches.confirmMove': 'Confirm move',
+    'coaches.pickMove': 'Confirm',
+    'coaches.revertChange': 'Revert change',
 
     // Students panel — scheduling
     'coaches.students.title': 'My Students',
@@ -854,8 +855,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.readAs': 'Lu comme',
     'coaches.dragAndConfirm': 'Déplacez une pièce sur l\'échiquier puis confirmez',
     'coaches.movesToReview': 'Coups à vérifier',
-    'coaches.confirmMove': 'Confirmer',
-    'coaches.pickMove': 'Choisir',
+    'coaches.confirmMove': 'Confirmer le coup',
+    'coaches.pickMove': 'Confirmer',
+    'coaches.revertChange': 'Annuler',
 
     // Students panel — scheduling
     'coaches.students.title': 'Mes élèves',
