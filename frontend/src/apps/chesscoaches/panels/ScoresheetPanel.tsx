@@ -24,18 +24,18 @@ export function ScoresheetPanel() {
             </div>
             <div className="border-t border-slate-700 mb-4" />
             <div className="max-w-4xl mx-[5%] md:mx-auto flex flex-col items-center">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full mb-4">
                 {items.map(({ path, labelKey, icon: Icon, bgColor, hoverColor }) => (
                   <div
                     key={path}
                     onClick={() => navigate(path)}
-                    className={`bg-slate-800 border border-slate-700 rounded-xl p-4 flex items-center gap-3 ${hoverColor} hover:bg-slate-750 transition-colors cursor-pointer`}
+                    className={`relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[100px] flex items-center ${hoverColor} hover:bg-slate-750 transition-colors cursor-pointer`}
                   >
-                    <div className={`w-9 h-9 ${bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                      <Icon className="w-4.5 h-4.5 text-white" />
+                    <div className={`w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                      <Icon className="w-5 h-5 text-white" />
                     </div>
-                    <span className="text-sm font-medium text-slate-100">{t(labelKey)}</span>
-                    <ChevronRight className="w-4 h-4 text-slate-500 ml-auto flex-shrink-0" />
+                    <span className="text-base font-semibold text-slate-100 ml-4">{t(labelKey)}</span>
+                    <ChevronRight className="w-5 h-5 text-slate-400 absolute top-3 right-3" />
                   </div>
                 ))}
               </div>
