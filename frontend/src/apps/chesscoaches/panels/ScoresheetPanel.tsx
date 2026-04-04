@@ -11,6 +11,7 @@ export function ScoresheetPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 flex flex-col min-h-[calc(100dvh-80px)]">
+      <p className="text-slate-400 text-sm text-center mt-4 mb-2">{t('coaches.homePrompt')}</p>
       {NAV_SECTIONS.map(({ titleKey, items }) => {
         if (items.length === 0) return null;
         return (
