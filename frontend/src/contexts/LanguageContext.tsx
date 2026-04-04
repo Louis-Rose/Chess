@@ -260,7 +260,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.sampleDemoDescription': 'This is a sample scoresheet.',
     'coaches.sampleDemoAction': 'Hit confirm to see the magic !',
     'coaches.sampleDemoAlt': 'Sample scoresheet',
-    'coaches.waitProcessing': 'Wait for the processing to complete',
+    'coaches.waitProcessing': 'Processing in progress, please wait...',
     'coaches.processingDone': 'Processing is complete. Now, verify the highlighted moves (in yellow). To edit a move, drag a piece on the board and then click confirm.',
     'coaches.tryOwnScoresheet': 'Now, try with your own scoresheet!',
     'coaches.cropHint': 'Crop around the moves table',
