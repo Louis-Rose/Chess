@@ -1,7 +1,7 @@
 // Packs panel — lesson credit tracking dashboard
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Package, ChevronDown, ChevronUp, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Package, ChevronDown, ChevronUp, Trash2, X } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell, btnPrimary } from '../components/PanelShell';
 import { authFetch } from '../utils/authFetch';
@@ -238,7 +238,10 @@ function PackCard({ pack, onEdit, onDelete, t }: {
   const currency = pack.currency || pack.student_currency || '';
 
   return (
-    <div className={`bg-slate-800 border rounded-xl p-3 ${isCompleted ? 'border-slate-700/50 opacity-60' : 'border-slate-700'}`}>
+    <div
+      className={`bg-slate-800 border rounded-xl p-3 cursor-pointer hover:border-emerald-500/50 transition-colors ${isCompleted ? 'border-slate-700/50 opacity-60' : 'border-slate-700'}`}
+      onClick={() => onEdit(pack)}
+    >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-slate-200">
@@ -257,13 +260,7 @@ function PackCard({ pack, onEdit, onDelete, t }: {
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <button
-            onClick={() => onEdit(pack)}
-            className="p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
+        <div className="flex items-center gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
           {confirmDelete ? (
             <div className="flex items-center gap-1.5">
               <button
