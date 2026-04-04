@@ -1121,16 +1121,24 @@ export function ScoresheetReadPage() {
                               const moveObj = displayConsensusMoves[moveIdx];
                               if (!moveObj) return null;
                               const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
+                              const isConfirmed = !!(moveObj as any)[`${colorStr}_confirmed`];
                               return (
                                 <div className="flex justify-center gap-2">
-                                  {userPickedMove && (
-                                    <button
-                                      onClick={() => { setUserPickedMove(null); if (voteState) voteState.setEditValue(''); }}
-                                      className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
-                                    >
-                                      {t('coaches.revertChange')}
-                                    </button>
-                                  )}
+                                  <button
+                                    disabled={!isConfirmed}
+                                    onClick={() => {
+                                      const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
+                                      if (current[moveIdx]) {
+                                        delete (current[moveIdx] as any)[`${colorStr}_confirmed`];
+                                      }
+                                      rerunConsensusAfterEdit(current);
+                                      setUserPickedMove(null);
+                                      if (voteState) voteState.setEditValue('');
+                                    }}
+                                    className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${isConfirmed ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
+                                  >
+                                    {t('coaches.revertChange')}
+                                  </button>
                                   {userPickedMove ? (
                                     userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
                                       <button
@@ -1224,16 +1232,24 @@ export function ScoresheetReadPage() {
                               const moveObj = displayConsensusMoves[moveIdx];
                               if (!moveObj) return null;
                               const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
+                              const isConfirmed = !!(moveObj as any)[`${colorStr}_confirmed`];
                               return (
                                 <div className="flex justify-center gap-2 w-full max-w-[400px]">
-                                  {userPickedMove && (
-                                    <button
-                                      onClick={() => { setUserPickedMove(null); if (voteState) voteState.setEditValue(''); }}
-                                      className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
-                                    >
-                                      {t('coaches.revertChange')}
-                                    </button>
-                                  )}
+                                  <button
+                                    disabled={!isConfirmed}
+                                    onClick={() => {
+                                      const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
+                                      if (current[moveIdx]) {
+                                        delete (current[moveIdx] as any)[`${colorStr}_confirmed`];
+                                      }
+                                      rerunConsensusAfterEdit(current);
+                                      setUserPickedMove(null);
+                                      if (voteState) voteState.setEditValue('');
+                                    }}
+                                    className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${isConfirmed ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
+                                  >
+                                    {t('coaches.revertChange')}
+                                  </button>
                                   {userPickedMove ? (
                                     userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
                                       <button
