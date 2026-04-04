@@ -43,7 +43,7 @@ const EMPTY_FORM: PackFormData = {
   student_id: null,
   total_lessons: '',
   price: '',
-  currency: '',
+  currency: 'EUR',
 };
 
 // ── Pack Form ──
@@ -101,13 +101,15 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
               className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200"
               placeholder="300"
             />
-            <input
-              type="text"
+            <select
               value={form.currency}
               onChange={e => setForm({ ...form, currency: e.target.value })}
-              className="w-16 bg-slate-900 border border-slate-600 rounded-lg px-2 py-2 text-sm text-slate-200 text-center"
-              placeholder="EUR"
-            />
+              className="w-20 bg-slate-900 border border-slate-600 rounded-lg px-2 py-2 text-sm text-slate-200"
+            >
+              {['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'AUD', 'BRL', 'INR'].map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
