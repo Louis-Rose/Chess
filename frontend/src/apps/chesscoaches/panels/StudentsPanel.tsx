@@ -448,7 +448,7 @@ export function StudentsPanel() {
             <div className="w-16 h-16 rounded-full bg-purple-600/10 flex items-center justify-center mb-4">
               <Users className="w-8 h-8 text-purple-400" />
             </div>
-            <p className="text-slate-200 text-lg">{t('coaches.students.empty')}</p>
+            <p className="text-slate-200 text-lg whitespace-pre-line">{t('coaches.students.empty')}</p>
           </div>
         ) : (
           <div className="space-y-2">

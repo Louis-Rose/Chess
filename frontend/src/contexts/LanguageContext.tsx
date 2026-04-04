@@ -365,7 +365,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Students panel — scheduling
     'coaches.students.title': 'My Students',
-    'coaches.students.empty': 'No students yet. Add your first student to get started.',
+    'coaches.students.empty': 'No students yet.\nAdd your first student to get started.',
     'coaches.students.addStudent': 'Add Student',
     'coaches.students.editStudent': 'Edit',
     'coaches.students.deleteStudent': 'Delete',
@@ -842,7 +842,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Students panel — scheduling
     'coaches.students.title': 'Mes élèves',
-    'coaches.students.empty': 'Aucun élève pour le moment. Ajoutez votre premier élève pour commencer.',
+    'coaches.students.empty': 'Aucun élève pour le moment.\nAjoutez votre premier élève pour commencer.',
     'coaches.students.addStudent': 'Ajouter un élève',
     'coaches.students.editStudent': 'Modifier',
     'coaches.students.deleteStudent': 'Supprimer',
