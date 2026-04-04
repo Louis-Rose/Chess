@@ -1120,19 +1120,7 @@ def get_coach_students():
             'SELECT * FROM coach_students WHERE coach_user_id = ? ORDER BY is_active DESC, student_name ASC',
             (request.user_id,)
         ).fetchall()
-        students = []
-        for r in rows:
-            s = dict(r)
-            # Upcoming lesson
-            upcoming = conn.execute(
-                '''SELECT id, scheduled_at, duration_minutes, status
-                   FROM coach_lessons WHERE student_id = ? AND status = 'scheduled'
-                   ORDER BY scheduled_at ASC LIMIT 1''',
-                (s['id'],)
-            ).fetchone()
-            s['next_lesson'] = dict(upcoming) if upcoming else None
-            students.append(s)
-    return jsonify({'students': students})
+    return jsonify({'students': [dict(r) for r in rows]})
 
 
 @coaches_bp.route('/api/coaches/students', methods=['POST'])
@@ -1212,160 +1200,16 @@ def delete_coach_student(student_id):
 
 @coaches_bp.route('/api/coaches/students/<int:student_id>/lessons', methods=['GET'])
 @login_required
-def get_student_lessons(student_id):
-    """Get all lessons for a specific student."""
+def get_student_detail(student_id):
+    """Get a specific student's details."""
     with get_db() as conn:
-        # Verify ownership
         student = conn.execute(
             'SELECT * FROM coach_students WHERE id = ? AND coach_user_id = ?',
             (student_id, request.user_id)
         ).fetchone()
         if not student:
             return jsonify({'error': 'Student not found'}), 404
-
-        rows = conn.execute(
-            '''SELECT id, student_id, scheduled_at, duration_minutes, status, paid, created_at
-               FROM coach_lessons WHERE student_id = ?
-               ORDER BY scheduled_at DESC''',
-            (student_id,)
-        ).fetchall()
-    return jsonify({'student': dict(student), 'lessons': [dict(r) for r in rows]})
-
-
-@coaches_bp.route('/api/coaches/students/<int:student_id>/lessons', methods=['POST'])
-@login_required
-def add_coach_lesson(student_id):
-    """Schedule a lesson for a student."""
-    data = request.get_json()
-    scheduled_at = data.get('scheduled_at')
-    if not scheduled_at:
-        return jsonify({'error': 'scheduled_at required'}), 400
-
-    with get_db() as conn:
-        conn.execute(
-            '''INSERT INTO coach_lessons (student_id, scheduled_at, duration_minutes, status)
-               VALUES (?, ?, ?, 'scheduled')''',
-            (student_id, scheduled_at, data.get('duration_minutes', 60))
-        )
-    return jsonify({'message': 'Lesson scheduled'}), 201
-
-
-@coaches_bp.route('/api/coaches/lessons/week', methods=['GET'])
-@login_required
-def get_week_lessons():
-    """Get all lessons for the coach within a date range, with student names.
-    Auto-generates lessons from recurring slots if they don't exist yet."""
-    start = request.args.get('start')
-    end = request.args.get('end')
-    coach_tz = request.args.get('tz', 'UTC')
-    if not start or not end:
-        return jsonify({'error': 'start and end required'}), 400
-
-    from datetime import datetime, timedelta
-    try:
-        import zoneinfo
-        tz = zoneinfo.ZoneInfo(coach_tz)
-    except Exception:
-        import zoneinfo
-        tz = zoneinfo.ZoneInfo('UTC')
-
-    start_dt = datetime.fromisoformat(start.replace('Z', '+00:00'))
-    end_dt = datetime.fromisoformat(end.replace('Z', '+00:00'))
-
-    with get_db() as conn:
-        # Auto-generate lessons from recurring slots
-        students = conn.execute(
-            '''SELECT id, recurring_day, recurring_time FROM coach_students
-               WHERE coach_user_id = ? AND is_active = 1 AND recurring_day IS NOT NULL AND recurring_time IS NOT NULL''',
-            (request.user_id,)
-        ).fetchall()
-
-        for s in students:
-            # recurring_day: 0=Mon..6=Sun, recurring_time: "HH:MM" in coach's TZ
-            rd = s['recurring_day']
-            rt = s['recurring_time']
-            if rt is None:
-                continue
-
-            # Find the date for this weekday within start..end
-            # start_dt is Monday 00:00 UTC typically
-            start_local = start_dt.astimezone(tz)
-            # Monday=0 in our system
-            current_weekday = start_local.weekday()  # Python: Mon=0
-            days_ahead = rd - current_weekday
-            if days_ahead < 0:
-                days_ahead += 7
-            lesson_date = start_local + timedelta(days=days_ahead)
-
-            try:
-                h, m = rt.split(':')
-                lesson_dt = lesson_date.replace(hour=int(h), minute=int(m), second=0, microsecond=0)
-            except (ValueError, TypeError):
-                continue
-
-            # Convert to UTC for storage
-            lesson_utc = lesson_dt.astimezone(zoneinfo.ZoneInfo('UTC'))
-
-            if lesson_utc < start_dt or lesson_utc >= end_dt:
-                continue
-
-            # Check if a lesson already exists for this student at this time
-            lesson_str = lesson_utc.strftime('%Y-%m-%d %H:%M:%S')
-            existing = conn.execute(
-                '''SELECT id FROM coach_lessons
-                   WHERE student_id = ? AND scheduled_at = ?''',
-                (s['id'], lesson_str)
-            ).fetchone()
-
-            if not existing:
-                conn.execute(
-                    '''INSERT INTO coach_lessons (student_id, scheduled_at, duration_minutes, status)
-                       VALUES (?, ?, 60, 'scheduled')''',
-                    (s['id'], lesson_str)
-                )
-
-        # Now fetch all lessons for the week
-        rows = conn.execute(
-            '''SELECT l.id, l.student_id, l.scheduled_at, l.duration_minutes, l.status, l.created_at,
-                      s.student_name
-               FROM coach_lessons l
-               JOIN coach_students s ON l.student_id = s.id
-               WHERE s.coach_user_id = ? AND l.scheduled_at >= ? AND l.scheduled_at < ?
-               ORDER BY l.scheduled_at ASC''',
-            (request.user_id, start, end)
-        ).fetchall()
-    return jsonify({'lessons': [dict(r) for r in rows]})
-
-
-@coaches_bp.route('/api/coaches/lessons/<int:lesson_id>', methods=['PUT'])
-@login_required
-def update_coach_lesson(lesson_id):
-    """Update a lesson's status or time."""
-    data = request.get_json()
-    allowed = ['scheduled_at', 'duration_minutes', 'status', 'pack_id']
-    sets = []
-    vals = []
-    for field in allowed:
-        if field in data:
-            val = data[field]
-            if isinstance(val, str):
-                val = val.strip() or None
-            sets.append(f'{field} = ?')
-            vals.append(val)
-
-    if not sets:
-        return jsonify({'error': 'No fields to update'}), 400
-
-    vals.append(lesson_id)
-
-    with get_db() as conn:
-        old = conn.execute('SELECT status, student_id FROM coach_lessons WHERE id = ?', (lesson_id,)).fetchone()
-        if not old:
-            return jsonify({'error': 'Lesson not found'}), 404
-
-        conn.execute(f'UPDATE coach_lessons SET {", ".join(sets)} WHERE id = ?', tuple(vals))
-
-    return jsonify({'message': 'Lesson updated'})
+    return jsonify({'student': dict(student)})
 
 
 # ── Coach Packs Management ──
