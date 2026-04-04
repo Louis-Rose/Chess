@@ -268,9 +268,8 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
 
 // ── Student Card ──
 
-function StudentCard({ student, lang }: {
+function StudentCard({ student }: {
   student: Student;
-  lang: string;
 }) {
   const navigate = useNavigate();
 
@@ -363,7 +362,7 @@ export function StudentsPanel() {
             {students
               .sort((a, b) => a.student_name.localeCompare(b.student_name))
               .map(s => (
-                <StudentCard key={s.id} student={s} lang={language} />
+                <StudentCard key={s.id} student={s} />
               ))}
           </div>
         )}
