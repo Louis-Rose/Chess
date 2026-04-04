@@ -2,10 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Plus, Clock, ChevronRight,
-  AlertTriangle, Users,
-} from 'lucide-react';
+import { Plus, ChevronRight, Users } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell, btnPrimary, BTN_GHOST } from '../components/PanelShell';
 
@@ -118,9 +115,6 @@ export const CITY_TIMEZONES: [string, string][] = [
   ['Auckland', 'Pacific/Auckland'], ['Wellington', 'Pacific/Auckland'],
 ];
 
-const DAY_NAMES_EN = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const DAY_NAMES_FR = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-
 // Timezone → currency mapping
 const TZ_CURRENCY: Record<string, string> = {
   'America/New_York': 'USD', 'America/Chicago': 'USD', 'America/Denver': 'USD', 'America/Los_Angeles': 'USD',
@@ -188,77 +182,12 @@ export function getCurrencyForTimezone(tz: string): string {
 
 import { authFetch } from '../utils/authFetch';
 
-function formatLocalTime(tz: string, lang: string): string {
-  try {
-    const locale = lang === 'fr' ? 'fr-FR' : 'en-US';
-    return new Intl.DateTimeFormat(locale, {
-      timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: lang !== 'fr',
-    }).format(new Date());
-  } catch { return '--:--'; }
-}
-
 export function getTimezoneAbbr(tz: string): string {
   try {
     return new Intl.DateTimeFormat('en-US', {
       timeZone: tz, timeZoneName: 'short',
     }).formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value || tz;
   } catch { return tz; }
-}
-
-function formatHHMM(time: string, lang: string): string {
-  if (lang === 'fr') return time;
-  const [h, m] = time.split(':').map(Number);
-  const suffix = h >= 12 ? 'PM' : 'AM';
-  const h12 = h % 12 || 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${suffix}`;
-}
-
-function formatLessonTime(iso: string, lang: string, tz?: string): string {
-  try {
-    const d = new Date(iso);
-    const locale = lang === 'fr' ? 'fr-FR' : 'en-US';
-    const opts: Intl.DateTimeFormatOptions = {
-      weekday: 'short', month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit', hour12: lang !== 'fr',
-    };
-    if (tz) opts.timeZone = tz;
-    return new Intl.DateTimeFormat(locale, opts).format(d);
-  } catch { return iso; }
-}
-
-/** Check if a timezone has a DST transition in the next 7 days. Returns description or null. */
-function getDstAlert(tz: string, lang: string): string | null {
-  try {
-    const now = new Date();
-    const in7d = new Date(now.getTime() + 7 * 86400000);
-    const nowOffset = getUtcOffset(tz, now);
-    const futureOffset = getUtcOffset(tz, in7d);
-    if (nowOffset !== futureOffset) {
-      const diff = futureOffset - nowOffset;
-      const absDiff = Math.abs(diff);
-      if (lang === 'fr') {
-        return `${diff > 0 ? '+' : '-'}${absDiff} ${absDiff === 1 ? 'heure' : 'heures'} dans 7 jours`;
-      }
-      return `${diff > 0 ? '+' : '-'}${absDiff} ${absDiff === 1 ? 'hour' : 'hours'} in 7 days`;
-    }
-  } catch { /* ignore */ }
-  return null;
-}
-
-function getUtcOffset(tz: string, date: Date): number {
-  const utcStr = date.toLocaleString('en-US', { timeZone: 'UTC' });
-  const tzStr = date.toLocaleString('en-US', { timeZone: tz });
-  return (new Date(tzStr).getTime() - new Date(utcStr).getTime()) / 3600000;
-}
-
-// ── Live Clock Hook ──
-
-function useLiveClock(interval = 30000) {
-  const [, setNow] = useState(Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), interval);
-    return () => clearInterval(id);
-  }, [interval]);
 }
 
 // ── Student Form ──
