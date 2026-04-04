@@ -406,7 +406,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Packs
     'coaches.packs.title': 'Lesson Packs',
     'coaches.packs.empty': 'No packs yet. Create one from a student\'s page or use the button above.',
-    'coaches.packs.noStudents': 'Add a student first from the My Students page.',
+    'coaches.packs.noStudents': 'First, add a student from the My Students page.',
     'coaches.packs.remaining': 'remaining',
     'coaches.packs.used': 'used',
     'coaches.packs.of': 'of',
@@ -883,7 +883,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Packs
     'coaches.packs.title': 'Forfaits de cours',
     'coaches.packs.empty': 'Aucun forfait pour le moment. Créez-en un depuis la page d\'un élève ou via le bouton ci-dessus.',
-    'coaches.packs.noStudents': 'Ajoutez d\'abord un élève depuis la page Mes élèves.',
+    'coaches.packs.noStudents': 'Commencez par ajouter un élève depuis la page Mes élèves.',
     'coaches.packs.remaining': 'restant(s)',
     'coaches.packs.used': 'utilisé(s)',
     'coaches.packs.of': 'sur',
