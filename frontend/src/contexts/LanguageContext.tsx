@@ -744,7 +744,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.pauseProcessing': 'Pause',
     'coaches.sampleDemoGreeting': 'Bonjour {name} !',
     'coaches.sampleDemoDescription': 'Voici un exemple de feuille de partie.',
-    'coaches.sampleDemoAction': 'Appuyez sur confirmer pour voir la magie !',
+    'coaches.sampleDemoAction': 'Appuyez sur confirmer pour voir la magie opérer !',
     'coaches.sampleDemoAlt': 'Exemple de feuille de partie',
     'coaches.tryOwnScoresheet': 'Maintenant, essayez avec votre propre feuille de partie !',
     'coaches.cropHint': 'Recadrez autour du tableau des coups',
