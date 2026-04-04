@@ -2804,7 +2804,7 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, time
 }) {
   const isLowConfidence = confidence === 'low';
   const isIllegal = legal === false;
-  const bg = corrected ? 'bg-green-900/50 text-green-200' : (highlight || isIllegal || isLowConfidence) ? 'bg-yellow-500/25 text-yellow-100' : 'text-slate-100';
+  const bg = corrected ? 'bg-green-900/50 text-green-200' : (highlight || isIllegal || isLowConfidence) ? 'bg-yellow-500/50 text-yellow-100' : 'text-slate-100';
   const border = active ? 'ring-2 ring-blue-400 ring-inset' : '';
 
   const handleClick = (e: React.MouseEvent) => {
