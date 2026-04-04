@@ -232,6 +232,7 @@ function PackCard({ pack, onEdit, onDelete, t }: {
   onDelete: (pack: Pack) => void;
   t: (key: string) => string;
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const remaining = pack.total_lessons - pack.lessons_done;
   const isCompleted = pack.lessons_done >= pack.total_lessons;
   const currency = pack.currency || pack.student_currency || '';
@@ -256,19 +257,33 @@ function PackCard({ pack, onEdit, onDelete, t }: {
           )}
         </div>
 
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={() => onEdit(pack)}
-            className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
+            className="p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
           >
-            <Pencil className="w-3.5 h-3.5" />
+            <Pencil className="w-4 h-4" />
           </button>
-          <button
-            onClick={() => onDelete(pack)}
-            className="p-1 text-slate-500 hover:text-red-400 transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+          {confirmDelete ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => onDelete(pack)}
+                className="px-2 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-500 transition-colors"
+              >
+                {t('coaches.packs.deletePack')}
+              </button>
+              <button onClick={() => setConfirmDelete(false)} className="text-slate-400 hover:text-slate-200">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
