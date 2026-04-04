@@ -1320,51 +1320,97 @@ export function ScoresheetReadPage() {
 
                   {/* Azure DI section — disabled, kept for future use */}
 
-                  {/* Individual model reads — admin only */}
+                  {/* Combined debug table — admin only */}
                   {user?.email === 'rose.louis.mail@gmail.com' && models.length > 0 && (() => {
                     const finishedModels = models.filter(m => modelResults[m.id]?.result?.moves?.length);
                     if (finishedModels.length === 0) return null;
+                    const maxMoves = Math.max(...finishedModels.map(m => modelResults[m.id]!.result!.moves.length), displayConsensusMoves.length);
                     return (
-                      <div className="mt-6 space-y-4 px-2">
-                        <p className="text-slate-400 text-sm font-medium text-center">Individual model reads</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="mt-6 px-2">
+                        <p className="text-slate-400 text-sm font-medium text-center mb-2">Consensus debug</p>
+                        {/* Model headers */}
+                        <div className="flex gap-1 mb-1 text-center text-xs">
                           {finishedModels.map(m => {
                             const mr = modelResults[m.id]!;
-                            const moves = mr.result!.moves;
-                            const modelNotation = mr.result!.notation;
                             return (
-                              <div key={m.id} className="bg-slate-700/50 rounded-xl overflow-hidden">
-                                <div className="px-3 py-2 border-b border-slate-600 text-center">
-                                  <span className="text-slate-100 font-medium text-sm">{m.name}</span>
-                                  <span className="text-slate-500 text-xs ml-2">{mr.elapsed}s{mr.tier ? ` · ${mr.tier}` : ''}</span>
-                                  <div className="text-slate-500 text-xs font-mono">{m.id}</div>
-                                  <div className="text-slate-400 text-xs capitalize">{modelNotation || '?'} notation</div>
-                                </div>
-                                <table className="w-full text-sm">
-                                  <thead className="bg-slate-700">
-                                    <tr className="border-b border-slate-600">
-                                      <th className="px-2 py-1 text-slate-400 text-center w-6">#</th>
-                                      <th className="px-2 py-1 text-slate-400 text-center">White</th>
-                                      <th className="px-2 py-1 text-slate-400 text-center">Black</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {moves.map((move, i) => (
-                                      <tr key={i} className="border-b border-slate-600/20">
-                                        <td className="px-2 py-0.5 text-slate-500 text-center font-mono text-xs">{move.number || i + 1}</td>
-                                        <td className={`px-2 py-0.5 font-mono text-center ${move.white_legal === false ? 'text-red-400' : 'text-slate-200'}`}>
-                                          {toNotation(move.white, modelNotation)}{move.white_time != null ? ` (${move.white_time})` : ''}
-                                        </td>
-                                        <td className={`px-2 py-0.5 font-mono text-center ${move.black_legal === false ? 'text-red-400' : 'text-slate-200'}`}>
-                                          {toNotation(move.black || '', modelNotation)}{move.black_time != null ? ` (${move.black_time})` : ''}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
+                              <div key={m.id} className="text-slate-500 font-mono" style={{ flex: 1 }}>
+                                {m.id.replace('-preview', '')} · {mr.elapsed}s · {mr.tier} · <span className="capitalize">{mr.result!.notation || '?'}</span>
                               </div>
                             );
                           })}
+                        </div>
+                        <div className="bg-slate-700/50 rounded-xl overflow-x-auto">
+                          <table className="w-full text-xs font-mono">
+                            <thead className="bg-slate-700 sticky top-0">
+                              <tr className="border-b border-slate-600">
+                                <th className="px-1 py-1 text-slate-400 text-center w-6">#</th>
+                                <th className="px-1 py-1 text-slate-400 text-center">Col</th>
+                                {finishedModels.map(m => (
+                                  <th key={m.id} className="px-1 py-1 text-slate-400 text-center border-l border-slate-600/50">{m.name}</th>
+                                ))}
+                                <th className="px-1 py-1 text-slate-400 text-center border-l border-slate-500">Pass1</th>
+                                <th className="px-1 py-1 text-slate-400 text-center border-l border-slate-500">Pass2</th>
+                                <th className="px-1 py-1 text-slate-400 text-center border-l border-slate-500">Legal</th>
+                                <th className="px-1 py-1 text-slate-400 text-center border-l border-slate-500">Votes</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {Array.from({ length: maxMoves }, (_, i) => {
+                                const consensusMove = displayConsensusMoves[i];
+                                const notation = consensusMeta.notation;
+                                return (['white', 'black'] as const).map(color => {
+                                  const key = `${i + 1}-${color}`;
+                                  const details = voteDetails?.[key];
+                                  const chosen = details?.find(d => d.chosen);
+                                  const pass1 = chosen?.pass1Choice;
+                                  const pass2 = chosen?.candidate;
+                                  const cMove = consensusMove?.[color];
+                                  const legal = consensusMove?.[`${color}_legal` as const];
+                                  const reason = consensusMove?.[`${color}_reason` as const];
+                                  const allAgree = finishedModels.every(m => {
+                                    const mv = modelResults[m.id]!.result!.moves[i]?.[color];
+                                    return mv === cMove || (!mv && !cMove);
+                                  });
+                                  return (
+                                    <tr key={key} className={`border-b border-slate-600/20 ${color === 'black' ? 'border-b-slate-600/50' : ''} ${!allAgree ? 'bg-yellow-500/10' : ''}`}>
+                                      {color === 'white' && <td className="px-1 py-0.5 text-slate-500 text-center" rowSpan={2}>{i + 1}</td>}
+                                      <td className={`px-1 py-0.5 text-center ${color === 'white' ? 'text-slate-300' : 'text-slate-500'}`}>{color === 'white' ? 'W' : 'B'}</td>
+                                      {finishedModels.map(m => {
+                                        const mr = modelResults[m.id]!;
+                                        const mv = mr.result!.moves[i]?.[color] || '';
+                                        const modelNotation = mr.result!.notation;
+                                        const conf = mr.result!.moves[i]?.[`${color}_confidence` as 'white_confidence' | 'black_confidence'];
+                                        const differs = mv && cMove && mv !== cMove;
+                                        return (
+                                          <td key={m.id} className={`px-1 py-0.5 text-center border-l border-slate-600/50 ${differs ? 'text-yellow-400' : 'text-slate-300'}`}>
+                                            {toNotation(mv, modelNotation)}
+                                            {conf && conf !== 'high' && <span className={`ml-0.5 ${conf === 'low' ? 'text-red-400' : 'text-yellow-600'}`}>({conf[0]})</span>}
+                                          </td>
+                                        );
+                                      })}
+                                      <td className={`px-1 py-0.5 text-center border-l border-slate-500 ${pass1 && pass1 !== pass2 ? 'text-orange-400' : 'text-slate-400'}`}>
+                                        {pass1 ? toNotation(pass1, notation) : ''}
+                                      </td>
+                                      <td className="px-1 py-0.5 text-center border-l border-slate-500 text-slate-200 font-semibold">
+                                        {pass2 ? toNotation(pass2, notation) : (cMove ? toNotation(cMove, notation) : '')}
+                                      </td>
+                                      <td className={`px-1 py-0.5 text-center border-l border-slate-500 ${legal === false ? 'text-red-400' : legal === true ? 'text-green-400' : 'text-slate-600'}`}>
+                                        {legal === true ? '✓' : legal === false ? '✗' : ''}
+                                        {reason && <span className="text-red-400/70 ml-0.5" title={reason}>!</span>}
+                                      </td>
+                                      <td className="px-1 py-0.5 text-center border-l border-slate-500 text-slate-500">
+                                        {details && details.length > 1 && details.map(d => (
+                                          <span key={d.candidate} className={`${d.chosen ? 'text-slate-200 font-semibold' : 'text-slate-500'} mr-1`}>
+                                            {toNotation(d.candidate, notation)}:{d.votes}{d.downstreamIllegals > 0 ? `(${d.downstreamIllegals}⚠)` : ''}
+                                          </span>
+                                        ))}
+                                      </td>
+                                    </tr>
+                                  );
+                                });
+                              })}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     );
