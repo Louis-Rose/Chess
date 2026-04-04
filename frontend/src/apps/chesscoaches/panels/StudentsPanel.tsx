@@ -285,11 +285,6 @@ function StudentCard({ student }: {
 
         <div className="flex-1 min-w-0">
           <span className="text-slate-100 font-medium text-sm truncate block">{student.student_name}</span>
-          {student.source && (
-            <span className="text-xs text-slate-500 mt-0.5 block">
-              {student.source.charAt(0).toUpperCase() + student.source.slice(1)}
-            </span>
-          )}
         </div>
 
         <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
