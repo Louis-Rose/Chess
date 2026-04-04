@@ -131,10 +131,16 @@ export function StudentDetailPage() {
                     </div>
                   )}
                   {student.chesscom_username && (
-                    <div className="mt-0.5 text-sm text-slate-500">Chess.com: {student.chesscom_username}</div>
+                    <div className="mt-0.5 text-sm">
+                      <span className="text-slate-500">Chess.com: </span>
+                      <a href={`https://www.chess.com/member/${student.chesscom_username}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors">{student.chesscom_username}</a>
+                    </div>
                   )}
                   {student.lichess_username && (
-                    <div className="mt-0.5 text-sm text-slate-500">Lichess: {student.lichess_username}</div>
+                    <div className="mt-0.5 text-sm">
+                      <span className="text-slate-500">Lichess: </span>
+                      <a href={`https://lichess.org/@/${student.lichess_username}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors">{student.lichess_username}</a>
+                    </div>
                   )}
                 </div>
                 <button
