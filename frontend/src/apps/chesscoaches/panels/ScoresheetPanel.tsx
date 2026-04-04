@@ -13,7 +13,8 @@ export function ScoresheetPanel() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 flex flex-col min-h-[calc(100dvh-80px)]">
       <p className="text-slate-200 text-lg text-center mt-4 mb-2">{t('coaches.homePrompt')}</p>
       {NAV_SECTIONS.map(({ titleKey, items }) => {
-        if (items.length === 0) return null;
+        const visibleItems = items.filter(i => !i.hidden);
+        if (visibleItems.length === 0) return null;
         return (
           <div key={titleKey}>
             <div className="border-t border-slate-700" />
@@ -25,7 +26,7 @@ export function ScoresheetPanel() {
             <div className="border-t border-slate-700 mb-4" />
             <div className="max-w-4xl mx-[5%] md:mx-auto flex flex-col items-center">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full mb-4">
-                {items.map(({ path, labelKey, icon: Icon, bgColor, hoverColor }) => (
+                {visibleItems.map(({ path, labelKey, icon: Icon, bgColor, hoverColor }) => (
                   <div
                     key={path}
                     onClick={() => navigate(path)}

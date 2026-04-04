@@ -16,6 +16,7 @@ export interface NavItem {
   icon: LucideIcon;
   hoverColor: string;   // tailwind border-* color for card hover
   bgColor: string;       // tailwind bg-* color for card icon badge
+  hidden?: boolean;      // true = route exists but not shown in sidebar/home
 }
 
 export interface NavSection {
@@ -27,7 +28,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     titleKey: 'coaches.sectionAdmin',
     items: [
-      { path: '/calendar', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
+      { path: '/calendar', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600', hidden: true },
       { path: '/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600' },
       { path: '/payments', labelKey: 'coaches.navPacks', icon: CreditCard, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600' },
     ],
@@ -40,8 +41,8 @@ export const NAV_SECTIONS: NavSection[] = [
     titleKey: 'coaches.sectionAITools',
     items: [
       { path: '/scoresheets', labelKey: 'coaches.navScoresheets', icon: FileText, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
-      { path: '/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600' },
-      { path: '/mistakes', labelKey: 'coaches.navMistakes', icon: Clock, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600' },
+      { path: '/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', hidden: true },
+      { path: '/mistakes', labelKey: 'coaches.navMistakes', icon: Clock, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600', hidden: true },
     ],
   },
 ];
@@ -141,7 +142,7 @@ function CoachesNavSidebar() {
           </NavLink>
 
           {NAV_SECTIONS.map(({ titleKey, items }) => {
-            const enabledItems = items;
+            const enabledItems = items.filter(i => !i.hidden);
             if (enabledItems.length === 0) return null;
             return (
               <div key={titleKey}>
