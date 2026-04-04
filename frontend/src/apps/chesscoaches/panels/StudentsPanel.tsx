@@ -16,6 +16,7 @@ interface Student {
   student_name: string;
   timezone: string;
   currency: string | null;
+  source: string | null;
   recurring_day: number | null;   // 0=Mon .. 6=Sun, null=no recurring
   recurring_time: string | null;  // "HH:MM" in coach's TZ
   is_active: number;
@@ -342,13 +343,7 @@ function StudentCard({ student, lang }: {
   student: Student;
   lang: string;
 }) {
-  const { t } = useLanguage();
   const navigate = useNavigate();
-  useLiveClock();
-
-  const dayNamesFull = lang === 'fr' ? DAY_NAMES_FR : DAY_NAMES_EN;
-  const studentLocalTime = formatLocalTime(student.timezone, lang);
-  const dstAlert = getDstAlert(student.timezone, lang);
 
   return (
     <div
@@ -362,24 +357,11 @@ function StudentCard({ student, lang }: {
 
         <div className="flex-1 min-w-0">
           <span className="text-slate-100 font-medium text-sm truncate block">{student.student_name}</span>
-          <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span className="text-slate-200">{studentLocalTime}</span>
-              <span className="text-slate-200">({getTimezoneAbbr(student.timezone)})</span>
+          {student.source && (
+            <span className="text-xs text-slate-500 mt-0.5 block">
+              {student.source.charAt(0).toUpperCase() + student.source.slice(1)}
             </span>
-            {dstAlert && (
-              <span className="flex items-center gap-1 text-amber-400">
-                <AlertTriangle className="w-3 h-3" />
-                {dstAlert}
-              </span>
-            )}
-            {student.recurring_day !== null && student.recurring_time && (
-              <span className="text-slate-400">
-                {t('coaches.students.recurringLabel')} {dayNamesFull[student.recurring_day]} {formatHHMM(student.recurring_time, lang)}
-              </span>
-            )}
-          </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
