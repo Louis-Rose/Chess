@@ -86,7 +86,7 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
             value={form.total_lessons}
             onChange={e => setForm({ ...form, total_lessons: e.target.value })}
             className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200"
-            placeholder="10"
+            placeholder=""
           />
         </div>
         <div>
@@ -99,7 +99,7 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
               value={form.price}
               onChange={e => setForm({ ...form, price: e.target.value })}
               className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200"
-              placeholder="300"
+              placeholder=""
             />
             <select
               value={form.currency}
