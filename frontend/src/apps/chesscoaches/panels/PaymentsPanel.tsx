@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Package, ChevronDown, ChevronUp, Pencil, Trash2, X, Check } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { PanelShell } from '../components/PanelShell';
+import { PanelShell, BTN_PRIMARY, BTN_GHOST } from '../components/PanelShell';
 import { authFetch } from '../utils/authFetch';
 
 // ── Types ──
@@ -155,7 +155,7 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
         <button
           onClick={() => onSave(form)}
           disabled={!form.total_lessons || Number(form.total_lessons) < 1 || (initial.student_id === null && !form.student_id)}
-          className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-medium transition-colors"
+          className={BTN_PRIMARY}
         >
           {t('coaches.packs.save')}
         </button>
@@ -444,7 +444,7 @@ export function PaymentsPanel() {
           </div>
           <button
             onClick={() => { setEditingPack(null); setShowForm(!showForm); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium transition-colors"
+            className={`flex items-center gap-1.5 ${BTN_PRIMARY}`}
           >
             {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
             {showForm ? t('coaches.packs.cancel') : t('coaches.packs.newPack')}

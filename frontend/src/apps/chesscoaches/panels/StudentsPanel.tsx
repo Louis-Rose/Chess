@@ -7,7 +7,7 @@ import {
   AlertTriangle, Users,
 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { PanelShell } from '../components/PanelShell';
+import { PanelShell, BTN_PRIMARY, BTN_GHOST } from '../components/PanelShell';
 
 // ── Types ──
 
@@ -320,11 +320,11 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
         <button
           onClick={() => onSave(form)}
           disabled={!form.student_name.trim() || saving}
-          className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+          className={BTN_PRIMARY}
         >
           {saving ? '...' : t('coaches.students.save')}
         </button>
-        <button onClick={onCancel} className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">
+        <button onClick={onCancel} className={BTN_GHOST}>
           {t('coaches.students.cancel')}
         </button>
       </div>
@@ -472,7 +472,7 @@ export function StudentsPanel() {
         ) : (
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-1.5 mx-auto px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors"
+            className={`flex items-center gap-1.5 mx-auto ${BTN_PRIMARY}`}
           >
             <Plus className="w-4 h-4" />
             {t('coaches.students.addStudent')}
