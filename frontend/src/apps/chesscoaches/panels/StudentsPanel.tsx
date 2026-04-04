@@ -293,14 +293,7 @@ function StudentCard({ student, lang }: {
           )}
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {student.next_lesson && (
-            <span className="text-xs px-2 py-1 rounded-lg border bg-blue-500/20 text-blue-400 border-blue-500/30">
-              {formatLessonTime(student.next_lesson.scheduled_at, lang)}
-            </span>
-          )}
-          <ChevronRight className="w-4 h-4 text-slate-500" />
-        </div>
+        <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
       </div>
     </div>
   );
