@@ -265,11 +265,13 @@ function useLiveClock(interval = 30000) {
 interface StudentFormData {
   student_name: string;
   source: string;
+  chess_username: string;
 }
 
 const EMPTY_FORM: StudentFormData = {
   student_name: '',
   source: '',
+  chess_username: '',
 };
 
 const SOURCES = ['chess.com', 'lichess', 'superprof', 'my website'] as const;
@@ -308,6 +310,21 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
           </select>
         </div>
       </div>
+
+      {/* Chess username (shown for chess.com / lichess) */}
+      {(form.source === 'chess.com' || form.source === 'lichess') && (
+        <div>
+          <div className={label}>
+            {form.source === 'chess.com' ? 'Chess.com username' : 'Lichess username'}
+          </div>
+          <input
+            className={input}
+            value={form.chess_username}
+            onChange={e => setForm({ ...form, chess_username: e.target.value })}
+            placeholder={form.source === 'chess.com' ? 'e.g. MagnusCarlsen' : 'e.g. DrNykterstein'}
+          />
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex items-center justify-center gap-3 pt-1">

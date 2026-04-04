@@ -523,6 +523,14 @@ def init_db():
                 if not conn._cursor.fetchone():
                     conn.execute("ALTER TABLE coach_students ADD COLUMN source TEXT")
                     print("[Database] Added source column to coach_students")
+                # Add chess_username column if missing
+                conn.execute("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'coach_students' AND column_name = 'chess_username'
+                """)
+                if not conn._cursor.fetchone():
+                    conn.execute("ALTER TABLE coach_students ADD COLUMN chess_username TEXT")
+                    print("[Database] Added chess_username column to coach_students")
                 # Relax old NOT NULL constraints so new simplified INSERT works
                 conn.execute("""
                     SELECT column_name, is_nullable FROM information_schema.columns
@@ -789,6 +797,9 @@ def init_db():
                 if 'source' not in columns:
                     conn.execute('ALTER TABLE coach_students ADD COLUMN source TEXT')
                     print("[Database] Added source column to coach_students")
+                if 'chess_username' not in columns:
+                    conn.execute('ALTER TABLE coach_students ADD COLUMN chess_username TEXT')
+                    print("[Database] Added chess_username column to coach_students")
 
             # Migration: Add pack_id column to coach_lessons if missing (SQLite)
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='coach_lessons'")
