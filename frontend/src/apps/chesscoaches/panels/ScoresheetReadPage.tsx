@@ -2809,7 +2809,7 @@ function MoveCell({ value, legal, highlight, corrected, active, confidence, time
   const isLowConfidence = confidence === 'low';
   const isIllegal = legal === false;
   const bg = corrected ? 'bg-green-900/50 text-green-200' : (highlight || isIllegal || isLowConfidence) ? 'bg-yellow-500/50 text-yellow-100' : 'text-slate-100';
-  const border = active ? 'ring-2 ring-blue-400 bg-blue-500/30 animate-pulse' : '';
+  const border = active ? 'ring-3 ring-blue-400 animate-pulse' : '';
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
