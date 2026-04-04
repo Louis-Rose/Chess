@@ -25,12 +25,12 @@ export function ScoresheetPanel() {
             </div>
             <div className="border-t border-slate-700 mb-4" />
             <div className="max-w-4xl mx-[5%] md:mx-auto flex flex-col items-center">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full mb-4">
+              <div className="flex flex-wrap justify-center gap-4 w-full mb-4">
                 {visibleItems.map(({ path, labelKey, icon: Icon, bgColor, hoverColor }) => (
                   <div
                     key={path}
                     onClick={() => navigate(path)}
-                    className={`relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[100px] flex items-center ${hoverColor} hover:bg-slate-750 transition-colors cursor-pointer`}
+                    className={`relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[100px] flex items-center w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.7rem)] ${hoverColor} hover:bg-slate-750 transition-colors cursor-pointer`}
                   >
                     <div className={`w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
                       <Icon className="w-5 h-5 text-white" />
