@@ -507,8 +507,8 @@ export function PaymentsPanel() {
           </div>
         ) : students.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-full bg-purple-600/10 flex items-center justify-center mb-4">
-              <Package className="w-8 h-8 text-purple-400" />
+            <div className="w-16 h-16 rounded-full bg-emerald-600/10 flex items-center justify-center mb-4">
+              <Package className="w-8 h-8 text-emerald-400" />
             </div>
             <p className="text-slate-400 text-sm">{t('coaches.packs.noStudents')}</p>
           </div>
