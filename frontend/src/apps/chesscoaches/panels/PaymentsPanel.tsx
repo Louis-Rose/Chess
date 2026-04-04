@@ -86,7 +86,7 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.totalLessons')}</label>
-          <input type="number" min="1" value={form.total_lessons} onChange={e => setForm({ ...form, total_lessons: e.target.value })} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
+          <input type="number" min="1" value={form.total_lessons} onChange={e => { const v = e.target.value; setForm(prev => { const done = Number(prev.lessons_done) > Number(v) ? v : prev.lessons_done; const paid = Number(prev.lessons_paid) > Number(done) ? done : prev.lessons_paid; return { ...prev, total_lessons: v, lessons_done: done, lessons_paid: paid }; }); }} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
         </div>
         <div>
           <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.price')}</label>
@@ -103,7 +103,7 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.lessonsDone')}</label>
-          <input type="number" min="0" value={form.lessons_done} onChange={e => { const v = e.target.value; setForm(prev => ({ ...prev, lessons_done: v, lessons_paid: Number(prev.lessons_paid) > Number(v) ? v : prev.lessons_paid })); }} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
+          <input type="number" min="0" max={form.total_lessons || '0'} value={form.lessons_done} onChange={e => { const v = e.target.value; if (Number(v) <= Number(form.total_lessons || 0)) setForm(prev => ({ ...prev, lessons_done: v, lessons_paid: Number(prev.lessons_paid) > Number(v) ? v : prev.lessons_paid })); }} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
         </div>
         <div>
           <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.lessonsPaid')}</label>
